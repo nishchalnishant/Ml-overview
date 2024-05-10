@@ -1,24 +1,26 @@
 # Table of contents
 
 * [👋 Welcome!](README.md)
-
-## Artificial intelligence&#x20;
-
-* [Machine learning](artificial-intelligence/machine-learning/README.md)
-  * [Supervised learning](artificial-intelligence/machine-learning/supervised-learning.md)
-  * [unsupervised learning](artificial-intelligence/machine-learning/unsupervised-learning.md)
-* [Deep learning](artificial-intelligence/deep-learning.md)
-* [Generative networks](artificial-intelligence/generative-networks.md)
-
-## Team
-
-* [👋 Meet the Team!](team/meet-the-team.md)
-
-## Collaborating
-
-* [🤝 How we Work Together](collaborating/how-we-work-together.md)
-* [📅 Meetings](collaborating/meetings.md)
-
-## Policies
-
-* [🌴 Requesting Time Off](policies/requesting-time-off.md)
+* [Introduction to AI](introduction-to-ai.md)
+* [Machine Learning](machine-learning/README.md)
+  * [Supervised Learning](machine-learning/supervised-learning.md)
+  * [Unsupervised learning](machine-learning/unsupervised-learning.md)
+* [Deep learning](deep-learning/README.md)
+  * [Parts of deep learning](deep-learning/parts-of-deep-learning/README.md)
+    * [Backpropagation](deep-learning/parts-of-deep-learning/backpropagation.md)
+    * [Hidden layers](deep-learning/parts-of-deep-learning/hidden-layers.md)
+    * [Activation functions](deep-learning/parts-of-deep-learning/activation-functions.md)
+    * [Loss Functions](deep-learning/parts-of-deep-learning/loss-functions.md)
+    * [Optimizers](deep-learning/parts-of-deep-learning/optimizers.md)
+    * [Regularization](deep-learning/parts-of-deep-learning/regularization.md)
+    * [Attention](deep-learning/parts-of-deep-learning/attention.md)
+    * [Transformers](deep-learning/parts-of-deep-learning/transformers.md)
+    * [Autoencoders](deep-learning/parts-of-deep-learning/autoencoders.md)
+  * [Deep learning methods](deep-learning/deep-learning-methods/README.md)
+    * [Computer vision](deep-learning/deep-learning-methods/computer-vision.md)
+    * [NLP](deep-learning/deep-learning-methods/nlp.md)
+    * [Time series](deep-learning/deep-learning-methods/time-series.md)
+    * [Generative models](deep-learning/deep-learning-methods/generative-models.md)
+    * [Page 1](deep-learning/deep-learning-methods/page-1.md)
+* [MLOps](mlops.md)
+* [ML Glossary](ml-glossary.md)
