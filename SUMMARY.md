@@ -26,3 +26,5 @@
   * [Machine Learning Interviews](interview/machine-learning-interviews.md)
 * [MLOps](mlops.md)
 * [ML Glossary](ml-glossary.md)
+* [Pytorch](pytorch/README.md)
+  * [Pytorch fundamentals](pytorch/pytorch-fundamentals.md)
