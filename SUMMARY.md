@@ -37,6 +37,7 @@
   * [Deep learning](book-notes/deep-learning/README.md)
     * [Dive into Deep Learning](book-notes/deep-learning/dive-into-deep-learning.md)
     * [Deep learning with pytorch](book-notes/deep-learning/deep-learning-with-pytorch.md)
-    * [Page](book-notes/deep-learning/page.md)
+    * [Grokking Deep Learning](book-notes/deep-learning/grokking-deep-learning.md)
+    * [Deep learning practitioner approach](book-notes/deep-learning/deep-learning-practitioner-approach.md)
   * [Machine learning](book-notes/machine-learning/README.md)
     * [Machine Learning Pocket Reference](book-notes/machine-learning/machine-learning-pocket-reference.md)
