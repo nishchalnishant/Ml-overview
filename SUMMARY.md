@@ -35,6 +35,7 @@
     * [Machine Learning Engineering](book-notes/mlops/machine-learning-engineering.md)
     * [Keras to Kubernetes](book-notes/mlops/keras-to-kubernetes.md)
   * [Deep learning](book-notes/deep-learning/README.md)
+    * [Alice in differentiable wonderland](book-notes/deep-learning/alice-in-differentiable-wonderland.md)
     * [Dive into Deep Learning](book-notes/deep-learning/dive-into-deep-learning.md)
     * [Deep learning with pytorch](book-notes/deep-learning/deep-learning-with-pytorch.md)
     * [Grokking Deep Learning](book-notes/deep-learning/grokking-deep-learning.md)
