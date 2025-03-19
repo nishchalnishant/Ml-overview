@@ -82,3 +82,4 @@
 * [LLM Applications](llm-applications/README.md)
   * [RAG](llm-applications/rag.md)
   * [db Genie](llm-applications/db-genie.md)
+  * [How to train Your Dragon (LLM)](llm-applications/how-to-train-your-dragon-llm.md)
