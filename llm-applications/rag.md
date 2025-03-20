@@ -14,7 +14,7 @@
 
 ### What is RAG?
 
-<figure><img src="../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../.gitbook/assets/image (4).png" alt=""><figcaption></figcaption></figure>
 
 * LLM + external resources which were not included in their training
   * i.e. Any LLM (gpt-4o, Gemini, llama) + internal document, service now ticket etc
@@ -36,7 +36,7 @@
     * This augmentation can be of three types. Iterative, recursice and Adaptive
     *
 
-        <figure><img src="../.gitbook/assets/image (1).png" alt=""><figcaption></figcaption></figure>
+        <figure><img src="../.gitbook/assets/image (1) (1).png" alt=""><figcaption></figcaption></figure>
   * Generation&#x20;
     * The prompt is passed to the LLMs which then generates a response to the query
 * Types of RAG
@@ -48,5 +48,5 @@
 
 Summary of RAG ecosystem
 
-<figure><img src="../.gitbook/assets/image (3).png" alt=""><figcaption></figcaption></figure>
+<figure><img src="../.gitbook/assets/image (3) (1).png" alt=""><figcaption></figcaption></figure>
 
