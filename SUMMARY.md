@@ -22,6 +22,7 @@
     * [Time series](deep-learning/deep-learning-methods/time-series.md)
     * [Generative models](deep-learning/deep-learning-methods/generative-models.md)
     * [Page 1](deep-learning/deep-learning-methods/page-1.md)
+  * [MCP](deep-learning/mcp.md)
 * [Research papers](research-papers/README.md)
   * [ML](research-papers/ml.md)
   * [Deep learning](research-papers/deep-learning/README.md)
