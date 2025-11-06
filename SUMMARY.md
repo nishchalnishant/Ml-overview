@@ -32,6 +32,7 @@
   * [MLOps](research-papers/mlops.md)
 * [Interview](interview/README.md)
   * [Machine Learning Interviews](interview/machine-learning-interviews.md)
+  * [ML revision](interview/ml-revision.md)
 * [MLOps](mlops.md)
 * [ML Glossary](ml-glossary.md)
 * [Pytorch](pytorch/README.md)
