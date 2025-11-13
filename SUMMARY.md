@@ -89,6 +89,8 @@
   * [books](ml-system-design/books.md)
   * [Machine learning design patterns](ml-system-design/machine-learning-design-patterns.md)
   * [Machine learning engineering](ml-system-design/machine-learning-engineering.md)
+  * [Machine learning design interview](ml-system-design/machine-learning-design-interview.md)
+  * [Building machine learning powered applications](ml-system-design/building-machine-learning-powered-applications.md)
 
 ## Group 1
 
