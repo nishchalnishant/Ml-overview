@@ -85,3 +85,11 @@
   * [RAG](llm-applications/rag.md)
   * [db Genie](llm-applications/db-genie.md)
   * [How to train Your Dragon (LLM)](llm-applications/how-to-train-your-dragon-llm.md)
+* [ml system design](ml-system-design/README.md)
+  * [books](ml-system-design/books.md)
+  * [Machine learning design patterns](ml-system-design/machine-learning-design-patterns.md)
+  * [Machine learning engineering](ml-system-design/machine-learning-engineering.md)
+
+## Group 1
+
+* [books](group-1/books.md)
