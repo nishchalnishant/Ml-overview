@@ -31,6 +31,8 @@
     * [LLM](research-papers/deep-learning/llm.md)
   * [MLOps](research-papers/mlops.md)
 * [Interview](interview/README.md)
+  * [Top ML interview questions](interview/top-ml-interview-questions.md)
+  * [ML system design](interview/ml-system-design.md)
   * [Machine Learning Interviews](interview/machine-learning-interviews.md)
   * [ML revision](interview/ml-revision.md)
 * [MLOps](mlops.md)
@@ -91,7 +93,3 @@
   * [Machine learning engineering](ml-system-design/machine-learning-engineering.md)
   * [Machine learning design interview](ml-system-design/machine-learning-design-interview.md)
   * [Building machine learning powered applications](ml-system-design/building-machine-learning-powered-applications.md)
-
-## Group 1
-
-* [books](group-1/books.md)
