@@ -4,10 +4,7 @@ Here are detailed notes for Chapter 1 — “The Need for Machine Learning Desig
 
 ***
 
-### Chapter 1: The Need for Machine Learning Design Patterns
-
-\
-
+## Chapter 1: The Need for Machine Learning Design Patterns
 
 #### 1. Introduction
 
@@ -49,9 +46,6 @@ Here are detailed notes for Chapter 1 — “The Need for Machine Learning Desig
 ***
 
 #### 4. Machine Learning Terminology
-
-\
-
 
 **Models and Frameworks**
 
@@ -128,9 +122,6 @@ Here are detailed notes for Chapter 1 — “The Need for Machine Learning Desig
 ***
 
 #### 5. Common Challenges in Machine Learning
-
-\
-
 
 **A. Data Quality**
 
@@ -213,15 +204,9 @@ Here are detailed notes for Chapter 2 — “Data Representation Design Patterns
 
 ***
 
-### Chapter 2: Data Representation Design Patterns
-
-\
-
+## Chapter 2: Data Representation Design Patterns
 
 #### 1. Introduction
-
-\
-
 
 At the heart of every machine learning model lies a mathematical function designed to operate on specific data types (e.g., booleans, numbers).
 
@@ -229,17 +214,11 @@ However, real-world data—text, images, categories—often doesn’t directly f
 
 Hence, data needs to be represented or transformed into a form that the model can process.
 
-\
-
-
 This chapter explains various data representation patterns, i.e., methods for converting raw inputs into mathematical features suitable for ML models.
 
 ***
 
-### 2. Key Concepts
-
-\
-
+#### 2. Key Concepts
 
 #### a. Input vs. Feature
 
@@ -249,9 +228,6 @@ This chapter explains various data representation patterns, i.e., methods for co
 *   Feature: The transformed, numeric or boolean value used by the model.
 
     Example: is\_low\_weight = (baby\_weight < 3kg) → Boolean feature.
-
-\
-
 
 The process of converting inputs into features is called feature engineering.
 
@@ -267,9 +243,8 @@ The process of converting inputs into features is called feature engineering.
 ```
 x1 = (hospital IN France)
 x2 = (babyweight < 3)
-```
 
-* \
+```
 
 * A good data representation makes learning:
   * Simpler (fewer nodes/features),
@@ -306,10 +281,7 @@ x2 = (babyweight < 3)
 
 ***
 
-### 3. Overview of the Chapter’s Patterns
-
-\
-
+#### 3. Overview of the Chapter’s Patterns
 
 This chapter introduces four major data representation patterns:
 
@@ -324,32 +296,20 @@ Before discussing these, the book explains simple data representations — basic
 
 ***
 
-### 4. Simple Data Representations
-
-\
-
+#### 4. Simple Data Representations
 
 #### A. Numerical Inputs
 
-\
-
-
 Most ML models (linear regression, random forests, neural nets) operate on numeric features.
-
-\
-
 
 **Why Scaling is Important**
 
-* Optimizers (like gradient descent) converge faster when all features have comparable magnitudes.
+* Optimisers (like gradient descent) converge faster when all features have comparable magnitudes.
 * Scaling to \[-1, 1] or \[0, 1] helps:
   * Reduces curvature of the loss surface.
   * Stabilizes gradients.
   * Improves numerical precision.
 * Example experiment using scikit-learn showed \~9% faster training when data was scaled.
-
-\
-
 
 **Scaling Techniques**
 
@@ -379,13 +339,7 @@ Most ML models (linear regression, random forests, neural nets) operate on numer
 
 #### B. Categorical Inputs
 
-\
-
-
 Categorical data represents discrete, non-numeric values (e.g., gender, city, color).
-
-\
-
 
 **Representation Methods**
 
@@ -409,10 +363,7 @@ Categorical data represents discrete, non-numeric values (e.g., gender, city, co
 
 ***
 
-### 5. Data Representation Design Patterns
-
-\
-
+#### 5. Data Representation Design Patterns
 
 #### Pattern 1 — Hashed Feature
 
@@ -481,7 +432,7 @@ Categorical data represents discrete, non-numeric values (e.g., gender, city, co
 
 ***
 
-### 6. Conceptual Summary
+#### 6. Conceptual Summary
 
 | Concept                   | Purpose                          | Examples         |
 | ------------------------- | -------------------------------- | ---------------- |
@@ -493,7 +444,7 @@ Categorical data represents discrete, non-numeric values (e.g., gender, city, co
 
 ***
 
-### 7. Key Takeaways
+#### 7. Key Takeaways
 
 * ML models don’t understand raw data — they understand numerical representations.
 * The choice of representation heavily affects performance, generalization, and scalability.
@@ -505,8 +456,6 @@ Categorical data represents discrete, non-numeric values (e.g., gender, city, co
 
 Would you like me to now create summary tables + 20 practice questions (theoretical and applied) from Chapter 2 next — similar to how we did for Arrays and Sorting in DSA?
 
-
-
 ***
 
 Here are detailed notes for Chapter 3 — “Problem Representation Design Patterns”
@@ -515,30 +464,15 @@ from _Machine Learning Design Patterns_ by Valliappa Lakshmanan, Sara Robinson, 
 
 ***
 
-### Chapter 3: Problem Representation Design Patterns
-
-\
-
+## Chapter 3: Problem Representation Design Patterns
 
 #### 1. Introduction
 
-\
-
-
 After understanding how data is represented (Chapter 2), the next challenge is how to represent the problem itself so that it can be effectively solved using machine learning.
-
-\
-
 
 In other words:
 
-\
-
-
 > _Sometimes, it’s not the data or model that’s wrong — it’s the way we’ve framed the problem._
-
-\
-
 
 For instance, a problem that seems like classification might be easier to solve as regression, ranking, or clustering.
 
@@ -570,32 +504,17 @@ This chapter introduces problem representation design patterns — techniques to
 
 ***
 
-### 4. Pattern 5 — Reframing
-
-\
-
+#### 4. Pattern 5 — Reframing
 
 #### Problem
-
-\
-
 
 Sometimes, the initial formulation of a problem is not ideal for ML.
 
 Example: Instead of predicting “will a user buy or not,” predict “how likely is the user to buy” (a regression problem).
 
-\
-
-
 #### Solution
 
-\
-
-
 Reframe the task into an equivalent but more learnable or measurable ML problem.
-
-\
-
 
 #### Examples
 
@@ -609,17 +528,11 @@ Reframe the task into an equivalent but more learnable or measurable ML problem.
 
     Instead of generating all possibilities, classify the best one.
 
-\
-
-
 #### Why It Works
 
 * Reframing simplifies the target function.
 * Allows use of existing datasets or pretrained models.
 * Reduces overfitting or data inefficiency.
-
-\
-
 
 #### Trade-Offs
 
@@ -628,47 +541,26 @@ Reframe the task into an equivalent but more learnable or measurable ML problem.
 
 ***
 
-### 5. Pattern 6 — Multilabel
-
-\
-
+#### 5. Pattern 6 — Multilabel
 
 #### Problem
 
-\
-
-
 An instance can belong to multiple categories simultaneously.
-
-\
-
 
 Example:
 
 * An article can be both _“sports”_ and _“politics.”_
 * A movie can be tagged _“action”_, _“comedy”_, _“romance.”_
 
-\
-
-
 Standard classifiers assume mutually exclusive labels — not valid here.
 
-\
-
-
-#### Solution
-
-\
-
+Solution
 
 Use a multilabel classification setup:
 
 * Model outputs a vector of probabilities (one per label).
 * Apply a sigmoid activation on each output neuron (not softmax).
 * Threshold each output independently (e.g., > 0.5 → label present).
-
-\
-
 
 #### Implementation
 
@@ -677,16 +569,10 @@ Use a multilabel classification setup:
     Example: \[1, 0, 1, 0] → belongs to classes 1 and 3.
 * Evaluation: Use metrics like Hamming loss, precision@k, or F1 score per label.
 
-\
-
-
 #### Why It Works
 
 * Models learn shared features across labels.
 * Reflects real-world multi-dimensional tagging.
-
-\
-
 
 #### Trade-Offs
 
@@ -695,30 +581,15 @@ Use a multilabel classification setup:
 
 ***
 
-### 6. Pattern 7 — Ensembles
-
-\
-
+#### 6. Pattern 7 — Ensembles
 
 #### Problem
 
-\
-
-
 Single models have bias and variance limitations; one algorithm rarely captures all aspects of a complex dataset.
-
-\
-
 
 #### Solution
 
-\
-
-
 Combine multiple models to leverage their collective strengths.
-
-\
-
 
 #### Common Ensemble Techniques
 
@@ -733,16 +604,10 @@ Combine multiple models to leverage their collective strengths.
 3. Stacking:
    * Train multiple base models, then use a meta-model to combine their predictions.
 
-\
-
-
 #### Why It Works
 
 * Reduces overfitting by averaging out individual model weaknesses.
 * Improves robustness and generalization.
-
-\
-
 
 #### Trade-Offs
 
@@ -752,20 +617,11 @@ Combine multiple models to leverage their collective strengths.
 
 ***
 
-### 7. Pattern 8 — Cascade
-
-\
-
+#### 7. Pattern 8 — Cascade
 
 #### Problem
 
-\
-
-
 Some predictions are hierarchical or conditional — one model’s decision informs the next.
-
-\
-
 
 Example:
 
@@ -776,21 +632,12 @@ Example:
 
     First model flags _suspicious transactions_ → second verifies _fraud probability._
 
-\
-
-
 #### Solution
-
-\
-
 
 Chain models sequentially, where:
 
 * Output of model _A_ becomes input (or trigger) for model _B_.
 * Each stage filters or enriches data.
-
-\
-
 
 #### Advantages
 
@@ -798,17 +645,11 @@ Chain models sequentially, where:
 * Allows specialized models for each sub-task.
 * Mimics human decision-making hierarchy.
 
-\
-
-
 #### Trade-Offs
 
 * Error propagation: mistakes in early stages affect later ones.
 * Hard to debug end-to-end.
 * Latency increases if cascaded synchronously.
-
-\
-
 
 #### Best Practices
 
@@ -817,33 +658,18 @@ Chain models sequentially, where:
 
 ***
 
-### 8. Pattern 9 — Neutral Class
-
-\
-
+#### 8. Pattern 9 — Neutral Class
 
 #### Problem
-
-\
-
 
 Real-world data often includes uncertain or ambiguous examples.
 
 * Example: Image classifier forced to choose between “dog” or “cat” even if it’s neither.
 * Model gives overconfident wrong predictions → dangerous in production.
 
-\
-
-
 #### Solution
 
-\
-
-
 Introduce a neutral class (e.g., “none,” “other,” or “uncertain”) to capture ambiguous inputs.
-
-\
-
 
 #### Why It Works
 
@@ -851,17 +677,11 @@ Introduce a neutral class (e.g., “none,” “other,” or “uncertain”) to
 * Reduces false positives and improves user trust.
 * Especially useful for open-world or safety-critical systems.
 
-\
-
-
 #### Techniques
 
 * Add “Other” class during training.
 * Use confidence thresholds — if model confidence < threshold → “neutral.”
 * Calibrate probabilities using temperature scaling or Platt scaling.
-
-\
-
 
 #### Trade-Offs
 
@@ -870,49 +690,31 @@ Introduce a neutral class (e.g., “none,” “other,” or “uncertain”) to
 
 ***
 
-### 9. Pattern 10 — Rebalancing
+#### 9. Pattern 10 — Rebalancing
 
 #### Problem
 
-\
-
-
 In many ML problems, classes are imbalanced — one class has far more examples than others.
-
-\
-
 
 Examples:
 
 * Fraud detection: 0.1% fraud vs. 99.9% non-fraud.
 * Disease diagnosis: rare positive cases.
 
-\
-
-
 This leads to:
 
 * Biased model predictions toward majority class.
 * Misleading accuracy (model always predicts “non-fraud”).
 
-\
-
-
 #### Solution
 
-\
-
-
 Adjust data or loss to balance the learning process.
-
-\
-
 
 **Techniques**
 
 1. Resampling
    * Oversampling minority class: Duplicate or synthesize samples (SMOTE).
-   * Undersampling majority class: Randomly drop examples.
+   * Under sampling majority class: Randomly drop examples.
    * Hybrid approaches combine both.
 2. Class Weighting
    * Assign higher loss weight to minority class during training.
@@ -922,25 +724,16 @@ Adjust data or loss to balance the learning process.
 4. Synthetic Data Generation
    * Use GANs or variational autoencoders to create realistic minority samples.
 
-\
-
-
 **Evaluation Metrics**
 
 * Precision, Recall, F1 score
 * ROC-AUC, PR-AUC
 * Avoid plain accuracy.
 
-\
-
-
 #### Why It Works
 
 * Forces the model to treat rare cases seriously.
 * Improves recall for minority classes.
-
-\
-
 
 #### Trade-Offs
 
@@ -963,7 +756,7 @@ Adjust data or loss to balance the learning process.
 
 ***
 
-### 11. Key Takeaways
+#### 11. Key Takeaways
 
 * Problem framing is as important as model choice.
 * Many ML problems benefit from creative reformulation.
@@ -985,25 +778,14 @@ from _Machine Learning Design Patterns_ by Valliappa Lakshmanan, Sara Robinson, 
 
 ***
 
-### Chapter 4: Model Training Design Patterns
-
-\
-
+## Chapter 4: Model Training Design Patterns
 
 #### 1. Introduction
 
-\
-
-
-After understanding data representation (Ch. 2) and problem representation (Ch. 3), this chapter focuses on the model training phase — the process of teaching the model to recognize patterns and relationships in data.
-
-\
+After understanding data representation (Ch. 2) and problem representation (Ch. 3), this chapter focuses on the model training phase — the process of teaching the model to recognize patterns and relationships in data.\
 
 
 Model training is where the model’s parameters (weights) are adjusted based on the loss function and optimizer. However, ML engineers face several practical challenges during this process — such as data leakage, distribution mismatch, instability, and lack of reproducibility.
-
-\
-
 
 This chapter introduces design patterns to make training:
 
@@ -1027,15 +809,9 @@ This chapter introduces design patterns to make training:
 
 
 
-### Pattern 11 — Transform
-
-\
-
+#### Pattern 11 — Transform
 
 #### Problem
-
-\
-
 
 The training-serving skew problem:
 
@@ -1046,18 +822,9 @@ Example:
 * During training, you normalize age by (x - mean) / std using training stats.
 * During serving, an engineer recomputes or implements the transformation differently → prediction mismatch.
 
-\
-
-
-#### Solution
-
-\
-
+Solution
 
 Create a shared transformation pipeline used identically in both training and serving.
-
-\
-
 
 #### Approaches
 
@@ -1086,9 +853,6 @@ serve_fn = tf.function(lambda x: normalize(x))
 * Improves reproducibility.
 * Reduces production bugs.
 
-\
-
-
 #### Trade-Offs
 
 * Slight overhead in maintaining shared pipelines.
@@ -1096,15 +860,9 @@ serve_fn = tf.function(lambda x: normalize(x))
 
 ***
 
-### Pattern 12 — Multistage Training
-
-\
-
+#### Pattern 12 — Multistage Training
 
 #### Problem
-
-\
-
 
 Some problems are too complex to learn directly.
 
@@ -1114,20 +872,11 @@ Models might:
 * Overfit quickly,
 * Or fail to generalize when trained in one go.
 
-\
-
-
 #### Solution
-
-\
-
 
 Break training into multiple stages — each focusing on a specific sub-goal or learning task.
 
 Each stage’s output (weights, embeddings, or models) is used as input to the next.
-
-\
-
 
 #### Examples
 
@@ -1142,17 +891,11 @@ Each stage’s output (weights, embeddings, or models) is used as input to the n
 4. Multitask Training
    * Train on multiple related tasks sequentially or jointly.
 
-\
-
-
 #### Why It Works
 
 * Reduces learning complexity.
 * Speeds convergence.
 * Improves generalization and performance on small datasets.
-
-\
-
 
 #### Trade-Offs
 
@@ -1162,30 +905,15 @@ Each stage’s output (weights, embeddings, or models) is used as input to the n
 
 ***
 
-### Pattern 13 — Transfer Learning
-
-\
-
+#### Pattern 13 — Transfer Learning
 
 #### Problem
 
-\
-
-
 Training models from scratch requires massive labeled data and computational power.
-
-\
-
 
 #### Solution
 
-\
-
-
 Leverage pretrained models (trained on large generic datasets) and fine-tune them for your specific task.
-
-\
-
 
 #### How It Works
 
@@ -1198,9 +926,6 @@ Leverage pretrained models (trained on large generic datasets) and fine-tune the
 3.  Replace or retrain final layers:
 
     Adapt model to the new dataset.
-
-\
-
 
 #### Example (Image Classification)
 
@@ -1219,17 +944,11 @@ for layer in base_model.layers[:-10]:
 * Reduces required training time and data.
 * Often achieves better performance.
 
-\
-
-
 #### Applications
 
 * NLP: BERT, GPT, T5
 * Vision: ResNet, EfficientNet
 * Audio: Wav2Vec
-
-\
-
 
 #### Trade-Offs
 
@@ -1239,30 +958,15 @@ for layer in base_model.layers[:-10]:
 
 ***
 
-### Pattern 14 — Distillation
-
-\
-
+#### <mark style="color:orange;">Pattern 14 — Distillation</mark>
 
 #### Problem
 
-\
-
-
 Large, high-performing models (e.g., ensembles, deep networks) are too big or slow for deployment.
-
-\
-
 
 #### Solution
 
-\
-
-
 Train a smaller model (“student”) to mimic a larger one (“teacher”) — capturing its “knowledge.”
-
-\
-
 
 #### How It Works
 
@@ -1270,13 +974,7 @@ Train a smaller model (“student”) to mimic a larger one (“teacher”) — 
 * Student is trained to match teacher’s probability distribution.
 * Often done with a temperature parameter (T) to soften the logits.
 
-\
-
-
 p\_i = \frac{\exp(z\_i / T)}{\sum\_j \exp(z\_j / T)}
-
-\
-
 
 #### Example
 
@@ -1284,16 +982,10 @@ p\_i = \frac{\exp(z\_i / T)}{\sum\_j \exp(z\_j / T)}
 2. Use BERT’s predictions to train a small BiLSTM model (student).
 3. Student is faster to serve with minimal accuracy loss.
 
-\
-
-
 #### Why It Works
 
 * Soft labels contain richer information (class similarity).
 * Student approximates teacher’s decision boundaries.
-
-\
-
 
 #### Trade-Offs
 
@@ -1303,40 +995,20 @@ p\_i = \frac{\exp(z\_i / T)}{\sum\_j \exp(z\_j / T)}
 
 ***
 
-
-
-### Pattern 15 — Regularization
-
-\
-
+#### Pattern 15 — Regularization
 
 #### Problem
 
-\
-
-
 Overfitting — model learns noise instead of underlying signal.
-
-\
-
 
 Symptoms:
 
 * High training accuracy but poor validation accuracy.
 * Unstable predictions on new data.
 
-\
-
-
 #### Solution
 
-\
-
-
 Add constraints or penalties to discourage overly complex models.
-
-\
-
 
 #### Types of Regularization
 
@@ -1353,9 +1025,6 @@ Add constraints or penalties to discourage overly complex models.
 * Encourages simpler models.
 * Improves generalisation.
 * Makes training more stable.
-
-\
-
 
 #### Trade-Offs
 
@@ -1387,7 +1056,7 @@ Add constraints or penalties to discourage overly complex models.
 3.  Fine-tune with caution
 
     → Freeze lower layers when using transfer learning; overfitting is common.
-4.  Regularization is your friend
+4.  Regularisation is your friend
 
     → Use dropout, L2, or early stopping as standard components in your training pipeline.
 5.  Use model distillation for production
@@ -1420,20 +1089,11 @@ from _Machine Learning Design Patterns_ by Valliappa Lakshmanan, Sara Robinson, 
 
 ***
 
-### Chapter 5: Model Evaluation Design Patterns
-
-\
-
+## Chapter 5: Model Evaluation Design Patterns
 
 #### 1. Introduction
 
-\
-
-
 After designing data representations (Ch. 2), framing the problem (Ch. 3), and training models effectively (Ch. 4), the next critical step is evaluating the model — i.e., determining how well it actually works.
-
-\
-
 
 Model evaluation is _not just_ about computing accuracy.
 
@@ -1450,7 +1110,7 @@ This chapter introduces evaluation design patterns — reusable strategies for r
 
 ***
 
-### 2. Overview of Evaluation Design Patterns
+#### 2. Overview of Evaluation Design Patterns
 
 | Pattern # | Pattern Name        | Purpose                                                             |
 | --------- | ------------------- | ------------------------------------------------------------------- |
@@ -1462,32 +1122,17 @@ This chapter introduces evaluation design patterns — reusable strategies for r
 
 ***
 
-### Pattern 16 — Evaluation Metrics
-
-\
-
+#### Pattern 16 — Evaluation Metrics
 
 #### Problem
 
-\
-
-
 Choosing the wrong metric can make a model look “good” while it fails in production or misaligns with business goals.
-
-\
-
 
 Example:
 
 * Fraud detection model with 99.9% accuracy, but it never predicts “fraud” because fraud cases are rare.
 
-\
-
-
 #### Solution
-
-\
-
 
 Choose metrics that:
 
@@ -1499,17 +1144,11 @@ Choose metrics that:
 
 #### Types of Metrics
 
-\
-
-
 **A. Regression**
 
 * Mean Squared Error (MSE) – sensitive to large errors.
 * Mean Absolute Error (MAE) – robust to outliers.
 * R² (Coefficient of Determination) – proportion of variance explained.
-
-\
-
 
 **B. Classification**
 
@@ -1520,17 +1159,11 @@ Choose metrics that:
 * ROC-AUC: Measures model’s ability to rank positives over negatives.
 * PR-AUC: Better for highly imbalanced data.
 
-\
-
-
-**C. Ranking / Recommendation**
+<mark style="color:orange;">C. Ranking / Recommendation</mark>
 
 * Precision@k, Recall@k
 * Mean Average Precision (MAP)
 * Normalized Discounted Cumulative Gain (NDCG)
-
-\
-
 
 **D. Probabilistic Outputs**
 
@@ -1545,9 +1178,6 @@ Choose metrics that:
 * Different tasks demand different metrics.
 * Composite metrics (like F1) balance conflicting goals.
 
-\
-
-
 #### Best Practices
 
 * Choose one primary metric tied to business success.
@@ -1556,32 +1186,17 @@ Choose metrics that:
 
 ***
 
-### Pattern 17 — Slicing
-
-\
-
+#### Pattern 17 — Slicing
 
 #### Problem
 
-\
-
-
 A model might perform well overall but poorly for specific subgroups — leading to unfair or biased outcomes.
-
-\
-
 
 Example:
 
 * A credit scoring model performs well overall but discriminates against a certain age group or region.
 
-\
-
-
 #### Solution
-
-\
-
 
 Break down evaluation by data slices — subsets of data defined by key attributes (e.g., gender, region, device type).
 
@@ -1593,9 +1208,8 @@ Break down evaluation by data slices — subsets of data defined by key attribut
 
 ```
 slices = ["region=North", "region=South", "gender=F"]
-```
 
-* \
+```
 
 * Compute metrics (accuracy, precision, recall, etc.) per slice.
 * Compare metrics across slices to detect weak areas.
@@ -1624,20 +1238,11 @@ slices = ["region=North", "region=South", "gender=F"]
 
 ***
 
-### Pattern 18 — Skew Detection
-
-\
-
+#### Pattern 18 — Skew Detection
 
 #### Problem
 
-\
-
-
 Performance drop in production often happens because serving data differs from training data — known as data skew or drift.
-
-\
-
 
 Types of skew:
 
@@ -1654,9 +1259,6 @@ Types of skew:
 ***
 
 #### Solution
-
-\
-
 
 Continuously compare distributions of features and predictions between training and production data.
 
@@ -1691,24 +1293,16 @@ Continuously compare distributions of features and predictions between training 
 
 ***
 
-### Pattern 19 — Baseline Comparison
+#### Pattern 19 — Baseline Comparison
 
 Problem
-
-\
-
 
 A model’s performance number (e.g., 0.82 F1 score) is meaningless without context.
 
 We must always ask: _Better than what?_
 
 \
-
-
-#### Solution
-
-\
-
+Solution
 
 Always compare against baselines:
 
@@ -1753,22 +1347,16 @@ Always compare against baselines:
 
 ***
 
-### Pattern 20 — Prediction Bias
+#### Pattern 20 — Prediction Bias
 
 #### Problem
 
 Models may systematically favor or disfavor certain groups, even if unintentionally.
 
-\
-
-
 Example:
 
 * A hiring model prefers candidates from certain universities.
 * A vision model underperforms for darker skin tones.
-
-\
-
 
 This is prediction bias — when errors are unevenly distributed across subpopulations.
 
@@ -1823,7 +1411,7 @@ Detect and mitigate bias during evaluation using fairness metrics and balanced d
 
 ***
 
-### 6. Chapter Summary Table
+#### 6. Chapter Summary Table
 
 | Pattern             | Goal                      | Key Idea                         | Example Use Case                       |
 | ------------------- | ------------------------- | -------------------------------- | -------------------------------------- |
