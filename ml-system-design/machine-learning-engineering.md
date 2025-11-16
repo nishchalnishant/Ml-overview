@@ -6,22 +6,13 @@ Here are detailed notes for Chapter 1: Introduction of _Machine Learning Enginee
 
 ### Chapter 1 – Introduction
 
-\
-
-
 #### 1. Overview
-
-\
-
 
 This chapter defines foundational machine learning (ML) concepts and sets the stage for what _machine learning engineering_ entails. It focuses on ensuring consistent understanding of terms and introduces the ML project life cycle.
 
 ***
 
 #### 1.1 Notation and Definitions
-
-\
-
 
 **Data Structures**
 
@@ -35,9 +26,6 @@ This chapter defines foundational machine learning (ML) concepts and sets the st
   * Intersection: 𝒮₁ ∩ 𝒮₂
   * Union: 𝒮₁ ∪ 𝒮₂
   * |𝒮| = number of elements in the set.
-
-\
-
 
 **Capital Sigma (Σ) Notation**
 
@@ -56,23 +44,14 @@ Summation is expressed as:
 
 #### 1.2 What is Machine Learning
 
-\
-
-
 **Definition**
 
 Machine learning is the subfield of computer science that builds algorithms relying on examples of phenomena to solve practical problems.
-
-\
-
 
 Steps:
 
 1. Collect dataset.
 2. Train a statistical model algorithmically.
-
-\
-
 
 **Types of Learning**
 
@@ -100,16 +79,10 @@ Steps:
 
 #### 1.3 Data and Machine Learning Terminology
 
-\
-
-
 **Data Used Directly vs. Indirectly**
 
 * Direct data: forms feature vectors (e.g., word sequences in NER).
 * Indirect data: enriches features (e.g., dictionaries, gazetteers).
-
-\
-
 
 **Raw vs. Tidy Data**
 
@@ -118,9 +91,6 @@ Steps:
   * Needed for ML algorithms.
   * Categorical data may need numerical encoding (feature engineering).
 
-\
-
-
 **Training, Validation, and Test Sets**
 
 * Training set: builds the model.
@@ -128,16 +98,9 @@ Steps:
 * Test set: final unbiased performance check.
 * Must prevent data leakage between these sets.
 
-\
-
-
 **Baseline**
 
-A simple heuristic or trivial model used as a reference for comparison.
-
-\
-
-
+A simple heuristic or trivial model used as a reference for comparison.\
 **Machine Learning Pipeline**
 
 Sequential data flow from raw data → trained model.
@@ -151,16 +114,10 @@ Includes:
 * dimensionality reduction
 * model training
 
-\
-
-
 **Parameters vs. Hyperparameters**
 
 * Parameters: learned from data (e.g., weights _w_, bias _b_).
 * Hyperparameters: set before training (e.g., tree depth, learning rate).
-
-\
-
 
 **Classification vs. Regression**
 
@@ -168,24 +125,15 @@ Includes:
   * Binary (spam/not spam) or multiclass.
 * Regression: predicts continuous numerical values.
 
-\
-
-
 **Model-Based vs. Instance-Based Learning**
 
 * Model-Based: trains parameters (e.g., SVM, Logistic Regression).
 * Instance-Based: uses training data directly (e.g., kNN).
 
-\
-
-
 **Shallow vs. Deep Learning**
 
 * Shallow: directly learns from features (e.g., SVM).
 * Deep: multi-layered neural networks that learn hierarchical features.
-
-\
-
 
 **Training vs. Scoring**
 
@@ -195,9 +143,6 @@ Includes:
 ***
 
 #### 1.4 When to Use Machine Learning
-
-\
-
 
 Use ML when:
 
@@ -218,9 +163,6 @@ Use ML when:
 
 #### 1.5 When Not to Use Machine Learning
 
-\
-
-
 Avoid ML when:
 
 * Full explainability is required.
@@ -234,15 +176,9 @@ Avoid ML when:
 
 #### 1.6 What is Machine Learning Engineering (MLE)
 
-\
-
-
 Definition:
 
 Application of ML and software engineering principles to build scalable, reliable, maintainable ML systems.
-
-\
-
 
 Key Responsibilities:
 
@@ -252,17 +188,11 @@ Key Responsibilities:
 * Model monitoring and maintenance.
 * Preventing and handling silent failures (degradation due to data drift).
 
-\
-
-
 MLE bridges the gap between data analysis and software engineering.
 
 ***
 
 #### 1.7 Machine Learning Project Life Cycle
-
-\
-
 
 Stages:
 
@@ -275,9 +205,6 @@ Stages:
 7. Model serving
 8. Model monitoring
 9. Model maintenance
-
-\
-
 
 ↪ Loops exist to collect more data or re-engineer features if needed.
 
@@ -301,9 +228,6 @@ Here are detailed notes for Chapter 2 – “Before the Project Starts” from _
 
 ### Chapter 2: Before the Project Starts
 
-\
-
-
 This chapter focuses on the _planning and pre-execution_ stage of a machine learning (ML) project — before any data collection, model building, or deployment begins.
 
 It discusses how to prioritize, define, and structure ML projects and teams to maximize their impact and minimize waste of time, cost, and effort.
@@ -312,17 +236,11 @@ It discusses how to prioritize, define, and structure ML projects and teams to m
 
 #### 2.1 Prioritization of Machine Learning Projects
 
-\
-
-
 Before starting, every ML project must be prioritized since:
 
 * Engineering and computational resources are limited.
 * The backlog of ideas and potential ML applications is often long.
 * ML projects have high uncertainty and hidden costs.
-
-\
-
 
 **Key Factors in Prioritization**
 
@@ -345,9 +263,6 @@ High-impact ML projects are those where:
        A dispatching system classifies incoming requests as “easy” or “difficult.”
 
        If 90% of “easy” requests are correctly automated, human time is saved significantly, even if 10% are misclassified.
-
-\
-
 
 Impact is high when:
 
@@ -375,9 +290,6 @@ The cost of an ML project depends on three key factors:
    * You must balance acceptable accuracy with cost.
    * Cost of errors must be compared with the cost of perfection.
 
-\
-
-
 📈 Rule of thumb:
 
 Going from 90% → 99% accuracy often multiplies the cost several times.
@@ -386,13 +298,7 @@ Going from 90% → 99% accuracy often multiplies the cost several times.
 
 #### 2.2 Estimating the Complexity of a Machine Learning Project
 
-\
-
-
 Unlike traditional software projects, ML projects have many unknowns. Estimating their complexity is hard.
-
-\
-
 
 **2.2.1 The Unknowns**
 
@@ -404,13 +310,7 @@ Before starting, you usually don’t know:
 * What model size or architecture is required.
 * How much time training and experimentation will take.
 
-\
-
-
 > ⚠️ If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
-
-\
-
 
 Benchmark:
 
@@ -431,10 +331,7 @@ To make complexity estimation manageable:
 3. Use pilot projects.
    * Small-scale pilots reveal whether full-scale implementation is worth it.
 
-\
-
-
-> 🧩 Note: As the number of classes grows, the required data grows _superlinearly_.
+🧩 Note: As the number of classes grows, the required data grows _superlinearly_.
 
 ***
 
@@ -445,9 +342,6 @@ ML project progress is nonlinear:
 * Rapid improvement early → plateau later.
 * Sometimes no progress until new data/features are added.
 * Progress may stagnate while waiting for labeling or new data pipelines.
-
-\
-
 
 Recommendation:
 
@@ -460,9 +354,6 @@ Recommendation:
 ***
 
 #### 2.3 Defining the Goal of a Machine Learning Project
-
-\
-
 
 An ML project’s goal is to build a model that contributes to solving a business problem.
 
@@ -512,17 +403,11 @@ A model is successful if it satisfies four criteria:
 
 Poorly defined goals lead to wasted effort.
 
-\
-
-
 Example (Cat vs. Dog problem):
 
 * Goal: Allow the client’s _own cat_ inside, block the dog.
 * Bad definition: Train model to distinguish cats vs. dogs → lets any cat in!
 * Correct definition: Identify _the client’s cat specifically._
-
-\
-
 
 Lesson:
 
@@ -538,9 +423,6 @@ Different teams have different objectives:
 * Executive: increase revenue.
 * Finance: reduce costs.
 
-\
-
-
 The ML engineer must balance these goals and translate them into:
 
 * Choice of inputs/outputs
@@ -550,9 +432,6 @@ The ML engineer must balance these goals and translate them into:
 ***
 
 #### 2.4 Structuring a Machine Learning Team
-
-\
-
 
 Two main organizational cultures exist for ML teams:
 
@@ -630,9 +509,6 @@ Here are detailed notes for Chapter 3 – “Framing the Problem and Project” 
 
 ### Chapter 3: Framing the Problem and Project
 
-\
-
-
 This chapter explains how to convert a business or research problem into a concrete machine learning (ML) task.
 
 It discusses framing, defining objectives, metrics, and the nature of predictions, while avoiding common pitfalls in the problem-definition stage.
@@ -641,22 +517,13 @@ It discusses framing, defining objectives, metrics, and the nature of prediction
 
 #### 3.1 Importance of Problem Framing
 
-\
-
-
 Before collecting data or building models, you must:
 
 * Define what exactly is being predicted.
 * Understand how predictions are used.
 * Specify measurable objectives.
 
-\
-
-
 > 🚀 The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
-
-\
-
 
 A poorly framed problem leads to:
 
@@ -668,26 +535,17 @@ A poorly framed problem leads to:
 
 #### 3.2 From Business Problem to Machine Learning Problem
 
-\
-
-
 **Step 1: Understand the Business Objective**
 
 * Identify the desired business outcome (e.g., “increase retention”, “reduce churn”).
 * Define success in measurable terms.
   * Example: “Reduce customer churn by 15% over 6 months.”
 
-\
-
-
 **Step 2: Define the Decision**
 
 * What _decision_ will be made based on the model output?
   * Example: “Which customers should receive retention offers?”
 * The decision determines what kind of prediction you need.
-
-\
-
 
 **Step 3: Translate to Prediction**
 
@@ -699,13 +557,7 @@ A poorly framed problem leads to:
 
 #### 3.3 Target Variable (Label) Definition
 
-\
-
-
 The target variable (y) is what the model learns to predict.
-
-\
-
 
 **Common Pitfalls**
 
@@ -718,9 +570,6 @@ The target variable (y) is what the model learns to predict.
 3. Changing Targets
    * When business objectives shift mid-project, forcing relabeling.
 
-\
-
-
 **How to Define a Good Target**
 
 * Based on data available at prediction time.
@@ -731,16 +580,10 @@ The target variable (y) is what the model learns to predict.
 
 #### 3.4 Features (Input Variables)
 
-\
-
-
 Features are input variables (x₁, x₂, …, xₙ) used for prediction.
 
 * Good features contain relevant, predictive information available before the event occurs.
 * Bad features include post-event data (causing leakage).
-
-\
-
 
 Example:
 
@@ -761,9 +604,6 @@ Example:
 
 * One-off, fixed features, no feedback loop.
 
-\
-
-
 **Dynamic**
 
 * Needs real-time data ingestion, continuous training, and feedback monitoring.
@@ -772,20 +612,11 @@ Example:
 
 #### 3.6 The Prediction Horizon
 
-\
-
-
 Prediction horizon = the time gap between when input data is collected and when the event (label) happens.
-
-\
-
 
 Example:
 
 * Predict churn 30 days in advance → horizon = 30 days.
-
-\
-
 
 Choosing horizon affects:
 
@@ -796,13 +627,7 @@ Choosing horizon affects:
 
 #### 3.7 Setting a Baseline
 
-\
-
-
 A baseline is the simplest possible model or heuristic that performs the task.
-
-\
-
 
 Examples:
 
@@ -810,16 +635,10 @@ Examples:
 * Using mean or median for regression.
 * Rule-based thresholds.
 
-\
-
-
 Baselines are critical because:
 
 * They reveal whether your ML model truly adds value.
 * They act as a sanity check for initial experiments.
-
-\
-
 
 > 📈 If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
 
@@ -827,13 +646,7 @@ Baselines are critical because:
 
 #### 3.8 Metrics: How to Measure Success
 
-\
-
-
 Evaluation metrics quantify how well the model achieves the business goal.
-
-\
-
 
 **Types of Metrics**
 
@@ -847,9 +660,6 @@ Evaluation metrics quantify how well the model achieves the business goal.
 4. Business KPIs
    * Actual real-world outcomes, e.g., revenue lift, reduced churn rate.
 
-\
-
-
 **Cost-Based Metrics**
 
 Sometimes decisions depend on error costs:
@@ -858,9 +668,6 @@ Sometimes decisions depend on error costs:
 * Example:
   * FP: sending a retention offer unnecessarily.
   * FN: losing a valuable customer.
-
-\
-
 
 The metric must align with the business objective.
 
@@ -878,16 +685,10 @@ The metric must align with the business objective.
 * Good for experimentation.
 * Must ensure data distribution matches production.
 
-\
-
-
 **Online**
 
 * Exposes model to live users.
 * Measures impact on KPIs like conversion or engagement.
-
-\
-
 
 > 🔁 Best practice: use both — offline to validate technically, online to validate business value.
 
@@ -910,22 +711,13 @@ The metric must align with the business objective.
 
 #### 3.11 Example: Credit Default Prediction
 
-\
-
-
 **Business Goal**
 
 Reduce financial losses from unpaid loans.
 
-\
-
-
 **Machine Learning Problem**
 
 Predict the probability a new loan applicant will default.
-
-\
-
 
 **Key Components**
 
@@ -934,9 +726,6 @@ Predict the probability a new loan applicant will default.
 * Prediction horizon: 6 months from loan approval.
 * Metric: ROC-AUC or cost-weighted accuracy.
 * Baseline: Rule-based scoring system.
-
-\
-
 
 **Decisions**
 
@@ -948,18 +737,12 @@ Predict the probability a new loan applicant will default.
 
 #### 3.12 Iterative Framing
 
-\
-
-
 Problem framing is not one-time; it’s iterative:
 
 1. Start with a draft problem definition.
 2. Run pilot experiments.
 3. Analyze results and feedback.
 4. Refine features, targets, and metrics.
-
-\
-
 
 This cycle continues until:
 
@@ -970,16 +753,10 @@ This cycle continues until:
 
 #### 3.13 Human-in-the-Loop Design
 
-\
-
-
 In many real systems:
 
 * Models assist, not replace, humans.
 * Final decisions are hybrid (model + expert).
-
-\
-
 
 Benefits:
 
@@ -1011,9 +788,6 @@ Here are detailed notes for Chapter 4 – “Data Definition and Collection” f
 
 ### Chapter 4: Data Definition and Collection
 
-\
-
-
 This chapter focuses on the data stage of the machine learning project lifecycle — defining, identifying, collecting, and labeling data.
 
 It emphasizes that data quality is more critical than model complexity and explores practical methods for gathering reliable, representative, and unbiased data.
@@ -1027,15 +801,9 @@ It emphasizes that data quality is more critical than model complexity and explo
 
     but data defines what the model learns.
 
-\
-
-
 > Garbage in → Garbage out.
 
 > Even the best algorithm cannot overcome bad data.
-
-\
-
 
 Key Principle:
 
@@ -1045,21 +813,12 @@ Better data almost always beats a better model.
 
 #### 4.2 What Is Data in ML Projects
 
-\
-
-
 In ML, _data_ is a collection of examples representing the phenomenon the model must learn.
-
-\
-
 
 Each example typically includes:
 
 * Input features (x₁, x₂, …, xₙ)
 * Target label (y)
-
-\
-
 
 The dataset should reflect the distribution of real-world data the model will see in production.
 
@@ -1067,22 +826,13 @@ The dataset should reflect the distribution of real-world data the model will se
 
 #### 4.3 Defining the Data Requirements
 
-\
-
-
 Before data collection begins, you must define what data you need and why.
-
-\
-
 
 **4.3.1 Identify the Unit of Observation**
 
 * What is a single data point?
   * Example: one transaction, one user session, one product.
 * Must match how predictions are made later.
-
-\
-
 
 **4.3.2 Define the Input Features**
 
@@ -1091,25 +841,16 @@ Ask:
 * What information is available before the prediction moment?
 * Which features are causal or correlated with the outcome?
 
-\
-
-
 Avoid including:
 
 * Information not available at prediction time (leads to data leakage).
 * Features that will change meaning over time (nonstationarity).
-
-\
-
 
 **4.3.3 Define the Label (Target)**
 
 * Clearly specify the event being predicted.
   * Example: “User churn = no login in the next 30 days.”
 * Ensure the label is objectively measurable and consistent across data points.
-
-\
-
 
 **4.3.4 Define Sampling Strategy**
 
@@ -1121,9 +862,6 @@ Avoid including:
 ***
 
 #### 4.4 Data Quality Dimensions
-
-\
-
 
 Good data satisfies multiple dimensions of quality:
 
@@ -1142,13 +880,7 @@ Good data satisfies multiple dimensions of quality:
 
 #### 4.5 Data Collection Sources
 
-\
-
-
 Data can come from multiple sources, depending on the problem.
-
-\
-
 
 **4.5.1 Internal Data**
 
@@ -1156,17 +888,11 @@ Data can come from multiple sources, depending on the problem.
 * Usually the easiest and cheapest to obtain.
 * Must check for bias and completeness.
 
-\
-
-
 **4.5.2 External Data**
 
 * Purchased or open-source datasets.
 * Public APIs, web scraping, government or academic data repositories.
 * Must ensure licensing and privacy compliance (e.g., GDPR).
-
-\
-
 
 **4.5.3 Synthetic Data**
 
@@ -1176,25 +902,16 @@ Data can come from multiple sources, depending on the problem.
   * Privacy preservation.
   * Testing edge cases.
 
-\
-
-
 > ⚠️ Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
 
 ***
 
 #### 4.6 Data Labeling
 
-\
-
-
 **4.6.1 The Role of Labels**
 
 * Labels are _ground truth_ — the foundation of supervised learning.
 * Incorrect labels → incorrect learning.
-
-\
-
 
 **4.6.2 Labeling Methods**
 
@@ -1209,9 +926,6 @@ Data can come from multiple sources, depending on the problem.
    * Combine small labeled data + large unlabeled data.
    * Use self-training or pseudo-labeling.
 
-\
-
-
 **4.6.3 Labeling Quality Assurance**
 
 * Consensus labeling: multiple annotators per item → use majority vote.
@@ -1224,13 +938,7 @@ Data can come from multiple sources, depending on the problem.
 
 #### 4.7 Dealing with Class Imbalance
 
-\
-
-
 When one class appears much less frequently (e.g., 1% fraud, 99% normal).
-
-\
-
 
 **Solutions:**
 
@@ -1242,33 +950,21 @@ When one class appears much less frequently (e.g., 1% fraud, 99% normal).
    * Assign class weights inversely proportional to frequency.
    * Use metrics robust to imbalance (AUC, F1, Precision-Recall).
 
-\
-
-
 > ⚖️ The chosen technique depends on the problem’s cost of false negatives vs. false positives.
 
 ***
 
 #### 4.8 Avoiding Data Leakage
 
-\
-
-
 Data leakage occurs when:
 
 * Information from the _future_ or _test set_ influences training.
 * The model indirectly learns from data it won’t have at prediction time.
 
-\
-
-
 **Examples:**
 
 * Using “time of resolution” when predicting issue occurrence.
 * Normalizing using global mean (instead of training mean).
-
-\
-
 
 Prevention:
 
@@ -1280,16 +976,10 @@ Prevention:
 
 #### 4.9 Temporal Data Considerations
 
-\
-
-
 For time-series or temporal data:
 
 * Always maintain chronological order in train/test splits.
 * Avoid using future data for past predictions.
-
-\
-
 
 **Sliding Window Techniques:**
 
@@ -1300,13 +990,7 @@ For time-series or temporal data:
 
 #### 4.10 Data Representativeness
 
-\
-
-
 Your dataset must represent the real-world population where the model will operate.
-
-\
-
 
 **Common Issues**
 
@@ -1314,9 +998,6 @@ Your dataset must represent the real-world population where the model will opera
   * Example: only urban customers in training data → poor rural predictions.
 * Historical Bias: past data reflects outdated or unfair decisions.
   * Example: old hiring data biased against certain demographics.
-
-\
-
 
 **Solutions**
 
@@ -1327,25 +1008,16 @@ Your dataset must represent the real-world population where the model will opera
 
 #### 4.11 Privacy, Ethics, and Compliance
 
-\
-
-
 **Privacy Concerns**
 
 * Personally Identifiable Information (PII) must be:
   * Protected (encryption, anonymization).
   * Used under consent (GDPR, HIPAA compliance).
 
-\
-
-
 **Ethical Considerations**
 
 * Bias in data leads to biased models.
 * Example: hiring algorithm favoring one gender due to biased training data.
-
-\
-
 
 **Best Practices**
 
@@ -1369,9 +1041,6 @@ Your dataset must represent the real-world population where the model will opera
 
 #### 4.13 Data Collection Pipeline
 
-\
-
-
 Typical stages in the data pipeline:
 
 1. Data Ingestion
@@ -1387,26 +1056,17 @@ Typical stages in the data pipeline:
 6. Access
    * Enable secure queries and sampling for model training.
 
-\
-
-
 > ⚙️ Use automated validation and monitoring to detect anomalies early.
 
 ***
 
 #### 4.14 The Iterative Nature of Data Work
 
-\
-
-
 Data collection and cleaning are never one-time tasks:
 
 * New data changes the distribution.
 * Features evolve.
 * Systems and sensors introduce new errors.
-
-\
-
 
 Cycle:
 
@@ -1443,9 +1103,6 @@ Here are detailed notes for Chapter 5 – “Data Preparation” from _Machine L
 
 ### Chapter 5: Data Preparation
 
-\
-
-
 This chapter covers how to clean, transform, and structure raw data into a usable format for model training.
 
 It emphasizes that data preparation is one of the most time-consuming and crucial phases of any machine learning (ML) project — often taking up 60–80% of the total effort.
@@ -1454,20 +1111,11 @@ It emphasizes that data preparation is one of the most time-consuming and crucia
 
 #### 5.1 The Purpose of Data Preparation
 
-\
-
-
 Machine learning algorithms require data in a numerical, structured, and consistent format.
 
 However, raw data is often messy — with missing values, duplicates, outliers, or mixed formats.
 
-\
-
-
 > “The quality of your model depends more on your data preparation than on the algorithm you choose.”
-
-\
-
 
 Goals of Data Preparation:
 
@@ -1480,9 +1128,6 @@ Goals of Data Preparation:
 
 #### 5.2 Steps of Data Preparation
 
-\
-
-
 The process generally includes the following stages:
 
 1. Data Cleaning
@@ -1492,30 +1137,18 @@ The process generally includes the following stages:
 5. Data Splitting
 6. Data Balancing
 
-\
-
-
 Each step transforms raw data toward a model-ready dataset.
 
 ***
 
 #### 5.3 Data Cleaning
 
-\
-
-
 Data cleaning fixes errors, inconsistencies, and missing values.
-
-\
-
 
 **5.3.1 Detecting and Removing Duplicates**
 
 * Remove identical or near-identical rows.
 * Example: duplicate user transactions or logs.
-
-\
-
 
 **5.3.2 Handling Missing Values**
 
@@ -1528,13 +1161,7 @@ Data cleaning fixes errors, inconsistencies, and missing values.
      * KNN or regression-based imputation
   3. Special category: assign “Unknown” for categorical features.
 
-\
-
-
 > ⚠️ Imputation introduces bias if not done carefully — especially if data is not missing at random.
-
-\
-
 
 **5.3.3 Detecting Outliers**
 
@@ -1547,17 +1174,11 @@ Outliers can distort model learning and skew statistics.
   * Cap at a threshold (winsorization).
   * Remove or transform (e.g., log-transform skewed distributions).
 
-\
-
-
 **5.3.4 Correcting Data Types**
 
 * Convert text numbers (“10,000”) to numeric.
 * Standardize date/time formats.
 * Ensure categorical data uses consistent naming.
-
-\
-
 
 **5.3.5 Resolving Inconsistencies**
 
@@ -1567,20 +1188,11 @@ Outliers can distort model learning and skew statistics.
 
 #### 5.4 Data Transformation
 
-\
-
-
 Raw data often needs to be reshaped or scaled before model ingestion.
-
-\
-
 
 **5.4.1 Scaling and Normalization**
 
 ML models like linear regression, SVM, and neural networks are sensitive to feature scales.
-
-\
-
 
 Techniques:
 
@@ -1595,16 +1207,10 @@ Techniques:
 
     Transforms to mean = 0, std = 1.
 
-\
-
-
 When to use:
 
 * Normalization → bounded models (e.g., neural nets with sigmoid/tanh).
 * Standardization → unbounded models (e.g., linear regression).
-
-\
-
 
 > Always fit the scaler on the training set only to avoid leakage.
 
@@ -1613,9 +1219,6 @@ When to use:
 **5.4.2 Encoding Categorical Variables**
 
 ML algorithms require numeric input, so categorical data must be encoded.
-
-\
-
 
 Types of encoding:
 
@@ -1628,7 +1231,6 @@ Types of encoding:
    * Replace each category with the average of the target variable.
    * Useful for high-cardinality features.
 
-\
 
 
 > Use with caution — target encoding can lead to overfitting; apply regularization or cross-fold encoding.
@@ -1658,9 +1260,6 @@ Dates and timestamps can be converted into:
 * Hour of day (cyclic encoding for periodic data).
 * Time differences (e.g., days since signup).
 
-\
-
-
 Use sin/cos encoding for cyclical features:
 
 \text{sin}(2\pi t/T), \quad \text{cos}(2\pi t/T)
@@ -1673,22 +1272,13 @@ Use sin/cos encoding for cyclical features:
   * Example: age → child, adult, senior.
 * Aggregation: summarize data (e.g., average purchases per week).
 
-\
-
-
 These help reduce noise and variance.
 
 ***
 
 #### 5.5 Feature Engineering
 
-\
-
-
 Feature engineering = creating new informative features that help the model learn patterns more easily.
-
-\
-
 
 **5.5.1 Derived Features**
 
@@ -1696,16 +1286,10 @@ Feature engineering = creating new informative features that help the model lear
 * Interactions: “feature1 × feature2”.
 * Temporal trends: “number of logins in last 7 days”.
 
-\
-
-
 **5.5.2 Domain Knowledge**
 
 * Use domain expertise to craft meaningful signals.
 * Example (banking): combine “income” and “loan amount” → “loan-to-income ratio”.
-
-\
-
 
 **5.5.3 Feature Reduction**
 
@@ -1716,9 +1300,6 @@ Feature engineering = creating new informative features that help the model lear
 ***
 
 #### 5.6 Data Splitting
-
-\
-
 
 To evaluate model performance fairly, data is split into:
 
@@ -1733,15 +1314,9 @@ To evaluate model performance fairly, data is split into:
 * K-Fold CV: split into _k_ folds, rotate validation set.
 * Reduces variance and ensures robustness.
 
-\
-
-
 **5.6.2 Temporal Splits**
 
 * For time-series data, preserve chronological order (no random shuffling).
-
-\
-
 
 **5.6.3 Stratified Sampling**
 
