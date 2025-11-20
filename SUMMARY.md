@@ -3,6 +3,7 @@
 * [👋 Welcome!](README.md)
 * [Introduction to AI](introduction-to-ai.md)
 * [Machine Learning](machine-learning/README.md)
+  * [Data preprocessing](machine-learning/data-preprocessing.md)
   * [Supervised Learning](machine-learning/supervised-learning.md)
   * [Unsupervised learning](machine-learning/unsupervised-learning.md)
 * [Deep learning](deep-learning/README.md)
