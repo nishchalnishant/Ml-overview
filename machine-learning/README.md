@@ -6,31 +6,67 @@
 
 *   **Using plane/ hyperplane**&#x20;
 
-    * Linear Regression: Linear regression is a basic and commonly used algorithm that uses a linear relationship between the input variables and the output variable. It uses a line to represent the relationship between the input and output variables.
-    * Logistic Regression: Similar to linear regression, logistic regression is used for classification problems. It uses a hyperplane to separate the data points into different classes.&#x20;
-    * Support Vector Machines (SVMs): SVMs are used for both classification and regression problems. They use a hyperplane to separate the data points into different classes. The hyperplane is chosen to maximize the margin between the classes.&#x20;
-    * Perceptron: The perceptron is a basic neural network that uses a linear function to make predictions. It uses a threshold function to classify the input data into different classes.&#x20;
-    * Linear Discriminant Analysis (LDA): LDA is a statistical method used for classification problems. It uses a hyperplane to separate the data points into different classes based on the means and variances of the input variables.&#x20;
-    * Principal Component Analysis (PCA): PCA is a dimensionality reduction technique that uses a hyperplane to project the data into a lower-dimensional space. It finds the hyperplane that captures the most variance in the data.
+    * Linear Regression:&#x20;
+      * Linear regression is a basic and commonly used algorithm that uses a linear relationship between the input variables and the output variable.&#x20;
+      * It uses a line to represent the relationship between the input and output variables.
+    * Logistic Regression:&#x20;
+      * Similar to linear regression, logistic regression is used for classification problems.&#x20;
+      * It uses a hyperplane to separate the data points into different classes.&#x20;
+    * Support Vector Machines (SVMs):&#x20;
+      * SVMs are used for both classification and regression problems.&#x20;
+      * They use a hyperplane to separate the data points into different classes.&#x20;
+      * The hyperplane is chosen to maximize the margin between the classes.&#x20;
+    * Perceptron:&#x20;
+      * The perceptron is a basic neural network that uses a linear function to make predictions.&#x20;
+      * It uses a threshold function to classify the input data into different classes.&#x20;
+    * Linear Discriminant Analysis (LDA):&#x20;
+      * LDA is a statistical method used for classification problems.&#x20;
+      * It uses a hyperplane to separate the data points into different classes based on the means and variances of the input variables.&#x20;
+    * Principal Component Analysis (PCA):&#x20;
+      * PCA is a dimensionality reduction technique that uses a hyperplane to project the data into a lower-dimensional space.&#x20;
+      * It finds the hyperplane that captures the most variance in the data.
 
 
 *   **Using tree/ graphs**
 
-    * Decision Trees: Decision trees are a popular classification and regression algorithm that uses a tree structure to make decisions. The algorithm splits the data into subsets based on the values of input features and constructs a tree-like model to predict the output.&#x20;
-    * Random Forests: Random forests are an ensemble learning method that uses decision trees. It generates multiple decision trees and combines their predictions to improve accuracy and reduce overfitting.&#x20;
-    * Gradient Boosting Machines (GBMs): GBMs are another ensemble learning method that uses decision trees. They generate decision trees in a sequential manner and update the weights of each data point to improve the accuracy of the model.&#x20;
-    * Adaboost: Adaboost is a boosting algorithm that uses decision trees. It generates multiple weak learners, which are simple decision trees, and combines their predictions to form a strong learner.&#x20;
-    * Graph Convolutional Networks (GCNs): GCNs are a type of neural network that operates on graph structures. They use a convolution operation to extract features from nodes in the graph and perform classification or regression tasks.&#x20;
-    * Belief Propagation: Belief propagation is a message-passing algorithm used in graphical models. It propagates beliefs, which are probability distributions, between nodes in a graph to estimate the probability of each variable.&#x20;
-    * Hierarchical Clustering: Hierarchical clustering is a clustering algorithm that uses a tree structure to group similar data points. It recursively merges clusters of data points based on their similarity until all data points are in a single cluster.&#x20;
+    * Decision Trees:&#x20;
+      * Decision trees are a popular classification and regression algorithm that uses a tree structure to make decisions.&#x20;
+      * The algorithm splits the data into subsets based on the values of input features and constructs a tree-like model to predict the output.&#x20;
+    * Random Forests:&#x20;
+      * Random forests are an ensemble learning method that uses decision trees.&#x20;
+      * It generates multiple decision trees and combines their predictions to improve accuracy and reduce overfitting.&#x20;
+    * Gradient Boosting Machines (GBMs):&#x20;
+      * GBMs are another ensemble learning method that uses decision trees. They generate decision trees in a sequential manner and update the weights of each data point to improve the accuracy of the model.&#x20;
+    * Adaboost:&#x20;
+      * Adaboost is a boosting algorithm that uses decision trees.&#x20;
+      * It generates multiple weak learners, which are simple decision trees, and combines their predictions to form a strong learner.&#x20;
+    * Graph Convolutional Networks (GCNs):&#x20;
+      * GCNs are a type of neural network that operates on graph structures.&#x20;
+      * They use a convolution operation to extract features from nodes in the graph and perform classification or regression tasks.&#x20;
+    * Belief Propagation:&#x20;
+      * Belief propagation is a message-passing algorithm used in graphical models.&#x20;
+      * It propagates beliefs, which are probability distributions, between nodes in a graph to estimate the probability of each variable.&#x20;
+    * Hierarchical Clustering:&#x20;
+      * Hierarchical clustering is a clustering algorithm that uses a tree structure to group similar data points.&#x20;
+      * It recursively merges clusters of data points based on their similarity until all data points are in a single cluster.&#x20;
 
 
 * **Using probability**
-  * Naive Bayes: Naive Bayes is a classification algorithm that is based on Bayes' theorem. It calculates the probability of each class given the input data and selects the class with the highest probability.&#x20;
-  * Gaussian Mixture Models (GMM): GMM is a clustering algorithm that uses probability to model the underlying distribution of the input data. It assumes that the data is generated from a mixture of Gaussian distributions.&#x20;
-  * Hidden Markov Models (HMM): HMM is a statistical model that uses probability to model sequential data. It assumes that the sequence of observations is generated by an underlying sequence of hidden states.&#x20;
-  * Bayesian Networks: Bayesian networks are probabilistic graphical models that represent the conditional dependencies between variables. They use probability to infer the probability of each variable given the evidence.&#x20;
-  * Markov Chain Monte Carlo (MCMC): MCMC is a sampling method that uses probability to estimate the distribution of a complex function. It generates a sequence of samples that converge to the target distribution.
+  * Naive Bayes:&#x20;
+    * Naive Bayes is a classification algorithm that is based on Bayes' theorem.&#x20;
+    * It calculates the probability of each class given the input data and selects the class with the highest probability.&#x20;
+  * Gaussian Mixture Models (GMM):&#x20;
+    * GMM is a clustering algorithm that uses probability to model the underlying distribution of the input data.&#x20;
+    * It assumes that the data is generated from a mixture of Gaussian distributions.&#x20;
+  * Hidden Markov Models (HMM):&#x20;
+    * HMM is a statistical model that uses probability to model sequential data.&#x20;
+    * It assumes that the sequence of observations is generated by an underlying sequence of hidden states.&#x20;
+  * Bayesian Networks:&#x20;
+    * Bayesian networks are probabilistic graphical models that represent the conditional dependencies between variables.&#x20;
+    * They use probability to infer the probability of each variable given the evidence.&#x20;
+  * Markov Chain Monte Carlo (MCMC):&#x20;
+    * MCMC is a sampling method that uses probability to estimate the distribution of a complex function.&#x20;
+    * It generates a sequence of samples that converge to the target distribution.
 
 
 
@@ -38,56 +74,21 @@
 
 
 
-*   overfitting vs underfitting
-
-    * Overfitting and underfitting are crucial concepts in machine learning, often explained using the bias-variance tradeoff. Here’s how they relate:
-    * 1\. Overfitting
-      * Definition: A model learns the training data too well, including its noise and outliers, resulting in poor performance on unseen data (test set).
-      * Bias: Low bias (the model fits the training data very well).
-      * Variance: High variance (the model’s predictions vary a lot with small changes in the data).
-      * Example: Imagine memorizing a textbook word-for-word. You might fail to answer questions requiring broader understanding.
-    * 2\. Underfitting
-
-    • Definition: A model is too simple to capture the underlying patterns in the data, resulting in poor performance on both training and test sets.
-
-• Bias: High bias (the model makes overly simplistic assumptions and fails to capture the data’s complexity).
-
-• Variance: Low variance (the model’s predictions do not change much, even with new data).
-
-• Example: Imagine skimming a textbook and missing key details, leading to an incomplete understanding.
-
-\
-
-
-3\. Mnemonics to Remember
-
-• Overfitting:
-
-“Overly Focused” – The model is overly focused on the training data, leading to Overfitting (low bias, high variance).
-
-“Variability Varies Violently” – Overfitting has high variance because small data changes drastically affect predictions.
-
-• Underfitting:
-
-“Underprepared” – The model is underprepared for the task, leading to Underfitting (high bias, low variance).
-
-“Blunt Bias” – Underfitting has high bias because the model’s assumptions are too blunt and simplistic.
-
-\
-
-
-4\. Bias-Variance Tradeoff Summary
-
-\
-
-
-Bias Variance Performance
-
-Underfitting High (too simplistic) Low (stable predictions) Poor on training and test data
-
-Overfitting Low (fits training data well) High (unstable predictions) Good on training, poor on test data
-
-\
-
-
-Would you like me to explain this with a visual analogy or diagram?
+* Overfitting vs Underfitting
+  * Overfitting and underfitting are crucial concepts in machine learning, often explained using the bias-variance tradeoff. Here’s how they relate:
+  * 1\. Overfitting
+    * Definition: A model learns the training data too well, including its noise and outliers, resulting in poor performance on unseen data (test set).
+    * Bias: Low bias (the model fits the training data very well).
+    * Variance: High variance (the model’s predictions vary a lot with small changes in the data).
+    * Example: Imagine memorizing a textbook word-for-word. You might fail to answer questions requiring broader understanding.
+  * 2\. Underfitting
+    * Definition: A model is too simple to capture the underlying patterns in the data, resulting in poor performance on both training and test sets.
+    * Bias: High bias (the model makes overly simplistic assumptions and fails to capture the data’s complexity).
+    * Variance: Low variance (the model’s predictions do not change much, even with new data).
+    * Example: Imagine skimming a textbook and missing key details, leading to an incomplete understanding.
+  * Bias-Variance Tradeoff Summary
+    * An ideal model is the one which has low bias and low variance, our aim to have least bias and least variance but&#x20;
+    * Both are inversely proportional, if we reduce bias the variance increases and if we reduce variance bias increase.
+  * Bias Variance Performance
+    * Underfitting High (too simplistic) Low (stable predictions) Poor on training and test data
+    * Overfitting Low (fits training data well) High (unstable predictions) Good on training, poor on test data
