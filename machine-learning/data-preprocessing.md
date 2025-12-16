@@ -6,9 +6,9 @@ It's arguably the most important stage of any machine learning project. The qual
 
 ***
 
-#### 🚨 A Critical Step _Before_ You Begin: The Train-Test Split
+#### A Critical Step _Before_ You Begin: The Train-Test Split
 
-Before you do _any_ preprocessing, you must split your data into training and testing sets.
+Before you do _any_ preprocessing, you **must split your data into training and testing sets.**
 
 * Why? This prevents data leakage.
 * Data Leakage is when information from your test set (which is supposed to be "unseen" data) "leaks" into your training process.
@@ -20,54 +20,52 @@ Before you do _any_ preprocessing, you must split your data into training and te
 
 ***
 
-#### 1. Preprocessing for Tabular Data (Numerical & Categorical)
+## <mark style="color:blue;">1. Preprocessing for Tabular Data (Numerical & Categorical)</mark>
 
 This is the most common data type, found in spreadsheets or databases. It's a mix of number and text columns.
 
-**🧹 General Cleaning (Apply to all)**
+### <mark style="color:green;">**General Cleaning (Apply to all)**</mark>
 
-* **Handling Missing Data:**
-  * Deletion: Remove any rows (listwise deletion) or columns that have missing values.
+* <mark style="color:yellow;">**Handling Missing Data:**</mark>
+  * <mark style="color:red;">Deletion</mark>: Remove any rows (listwise deletion) or columns that have missing values.
     * Pro: Simple.
     * Con: You lose data. Bad if you have few samples or if the data is "missing not at random."
-  * Imputation: Fill in the missing values.
+  * <mark style="color:red;">Imputation</mark>: Fill in the missing values.
     * Numerical: Fill with the mean, median (best for skewed data), or a constant (like 0).
     * Categorical: Fill with the mode (most frequent value) or a constant (like "Missing").
-* **Handling Duplicates:**
-  * Remove duplicate rows (`drop_duplicates()`). They add no new information and can bias the model.
-* **Handling Outliers:**
-  * What: Extreme values that are far from the other data points (e.g., a person's age of 150).
-  * How:
-    * Remove: If it's a clear data entry error.
-    * Cap (Clipping): Set all values above a certain percentile (e.g., 99th) to that value.
-    * Transform: Use a log transform to pull in extreme values.
+* <mark style="color:yellow;">**Handling Duplicates:**</mark>
+  * <mark style="color:red;">Remove duplicate rows (</mark><mark style="color:red;">`drop_duplicates()`</mark><mark style="color:red;">).</mark> They add no new information and can bias the model.
+* <mark style="color:yellow;">**Handling Outliers:**</mark>
+  * <mark style="color:red;">Remove</mark>: If it's a clear data entry error.
+  * <mark style="color:red;">Cap (Clipping):</mark> Set all values above a certain percentile (e.g., 99th) to that value.
+  * <mark style="color:red;">Transform</mark>: Use a log transform to pull in extreme values.
 
-**📈 For Numerical Features**
+### <mark style="color:green;">**For Numerical Features**</mark>
 
-Models need numbers, but they are often sensitive to the _scale_ of those numbers. A "Salary" (10,000-100,000) will overpower an "Age" (20-60).
+Models are often sensitive to the _scale_ of those numbers. A "Salary" (10,000-100,000) will overpower an "Age" (20-60).
 
-* **Feature Scaling (Standardization):**
-  * What: Rescales the data to have a mean of 0 and a standard deviation of 1.
+* <mark style="color:yellow;">**Feature Scaling (Standardization):**</mark>
+  * What: Rescales the data to have a <mark style="color:red;">mean of 0 and a standard deviation of 1.</mark>
   * Formula: $$ $z = (x - \mu) / \sigma$ $$
   * When: The default, go-to scaling method. Required for models like SVM, Logistic Regression, and PCA.
-* **Feature Scaling (Normalization):**
-  * What: Rescales the data to a specific range, usually `[0, 1]`.
+* <mark style="color:yellow;">**Feature Scaling (Normalization):**</mark>
+  * What: <mark style="color:red;">Rescales the data to a specific range, usually</mark> <mark style="color:red;"></mark><mark style="color:red;">`[0, 1]`</mark><mark style="color:red;">.</mark>
   * Formula: $$ $x_{\text{norm}} = (x - x_{\text{min}}) / (x_{\text{max}} - x_{\text{min}})$ $$
   * When: Good for image data (pixel intensities) and neural networks.
-* **Log Transform:**
-  * What: Applies $$ $log(x)$ $$ to the data.
+* <mark style="color:yellow;">**Log Transform:**</mark>
+  * What<mark style="color:red;">: Applies</mark> $$ $log(x)$ $$ <mark style="color:red;">to the data.</mark>
   * When: Used to handle highly skewed data (e.g., incomes, website traffic). It makes the distribution more "normal" (Gaussian).
 
-**🏷️ For Categorical Features**
+### <mark style="color:green;">**For Categorical Features**</mark>
 
 Models don't understand text like "Red," "Green," or "Blue." You must encode them into numbers.
 
-* **Label Encoding:**
-  * What: Converts each unique category into an integer. (e.g., "Red" $$ $\rightarrow$ $$ 0, "Green" $$ $\rightarrow$ $$ 1, "Blue" $$ $\rightarrow$ $$ 2).
+* <mark style="color:yellow;">**Label Encoding:**</mark>
+  * What: <mark style="color:red;">Converts each unique category into an integer</mark>. (e.g., "Red" $$ $\rightarrow$ $$ 0, "Green" $$ $\rightarrow$ $$ 1, "Blue" $$ $\rightarrow$ $$ 2).
   * When: Only for ordinal data, where the order matters (e.g., "Small" $$ $\rightarrow$ $$ 0, "Medium" $$ $\rightarrow$ $$ 1, "Large" $$ $\rightarrow$ $$ 2).
   * Con: Creates a false mathematical relationship (Blue > Green) that will confuse most models.
-* **One-Hot Encoding (OHE):**
-  * What: Creates a new binary (0/1) column for _each_ unique category.
+* <mark style="color:yellow;">**One-Hot Encoding (OHE):**</mark>
+  * What: <mark style="color:red;">Creates a new binary (0/1) column for</mark> <mark style="color:red;"></mark>_<mark style="color:red;">each</mark>_ <mark style="color:red;"></mark><mark style="color:red;">unique category</mark>.
     * "Red" $$ $\rightarrow$ $$ `[1, 0, 0]`
     * "Green" $$ $\rightarrow$ $$ `[0, 1, 0]`
     * "Blue" $$ $\rightarrow$ $$ `[0, 0, 1]`
@@ -76,47 +74,43 @@ Models don't understand text like "Red," "Green," or "Blue." You must encode the
 
 ***
 
-#### 2. Preprocessing for Text Data (NLP)
+## <mark style="color:blue;">2. Preprocessing for Text Data (NLP)</mark>
 
 The goal is to turn sentences into numerical vectors (a process called vectorization).
 
-* **Cleaning:**
-  * Lowercasing: Converts all text to lowercase ("The" and "the" become the same).
-  * Removing Punctuation: Removes all `.,!?"` etc.
-  * Removing Stop Words: Removes common words that add little meaning (e.g., "a", "an", "the", "is", "in").
-* **Tokenization:**
-  * What: Splits a sentence into a list of individual words (tokens).
+* <mark style="color:yellow;">**Cleaning**</mark>**:**
+  * <mark style="color:red;">Lowercasing</mark>: Converts all text to lowercase ("The" and "the" become the same).
+  * <mark style="color:red;">Removing Punctuation</mark>: Removes all `.,!?"` etc.
+  * <mark style="color:red;">Removing Stop Words</mark>: Removes common words that add little meaning (e.g., "a", "an", "the", "is", "in").
+* <mark style="color:yellow;">**Tokenization**</mark>**:**
+  * <mark style="color:red;">What</mark>: Splits a sentence into a list of individual words (tokens).
   * Example: "The cat sat" $$ $\rightarrow$ $$ `['the', 'cat', 'sat']`.
-* **Normalization**:
-  * Stemming: A crude method of chopping off word endings. (e.g., "running", "runs" $$ $\rightarrow$ $$ "run"). Fast but can be inaccurate.
-  * Lemmatization: A smarter method that uses a dictionary to find the root form of a word. (e.g., "ran" $$ $\rightarrow$ $$ "run", "better" $$ $\rightarrow$ $$ "good"). Slower but more accurate.
-* **Vectorization**:
-  * Bag-of-Words (BoW) / CountVectorizer: Creates a vector where each entry is a _count_ of how many times a word appeared in the text. Ignores grammar and word order.
-  * TF-IDF Vectorizer: An upgrade to BoW. It counts words but _down-weights_ common words (like "the") and _boosts_ the score of rare, more meaningful words.
-  * Word Embeddings (Word2Vec, GloVe): The modern approach. Maps each word to a dense vector that captures its _meaning_ and _context_. (e.g., the vectors for "cat" and "dog" will be mathematically "close" to each other).
+* <mark style="color:yellow;">**Normalization**</mark>:
+  * <mark style="color:red;">Stemming</mark>: A crude method of chopping off word endings. (e.g., "running", "runs" $$ $\rightarrow$ $$ "run"). Fast but can be inaccurate.
+  * <mark style="color:red;">Lemmatization</mark>: A smarter method that uses a dictionary to find the root form of a word. (e.g., "ran" $$ $\rightarrow$ $$ "run", "better" $$ $\rightarrow$ $$ "good"). Slower but more accurate.
+* <mark style="color:yellow;">**Vectorization**</mark>:
+  * <mark style="color:orange;">Bag-of-Words (BoW) / CountVectorizer</mark>: Creates a vector where each entry is a _count_ of how many times a word appeared in the text. Ignores grammar and word order.
+  * <mark style="color:red;">TF-IDF Vectorizer</mark>: An upgrade to BoW. It counts words but _down-weights_ common words (like "the") and _boosts_ the score of rare, more meaningful words.
+  * <mark style="color:red;">Word Embeddings (Word2Vec, GloVe):</mark> The modern approach. Maps each word to a dense vector that captures its _meaning_ and _context_. (e.g., the vectors for "cat" and "dog" will be mathematically "close" to each other).
 
 ***
 
-#### 3. Preprocessing for Image Data (CV)
+## <mark style="color:blue;">3. Preprocessing for Image Data (CV)</mark>
 
 The goal is to turn a collection of images (which are 3D arrays of pixel values) into a standardized batch of tensors.
 
-* Resizing & Cropping:
-  * Resize: _This is mandatory._ All images in a batch must be the exact same height and width (e.g., 224x224) to be fed into the model.
-  * Crop: (e.g., Center Crop, Random Crop). Used to focus on the important part of an image.
-* Normalisation / Scaling:
+* <mark style="color:yellow;">Resizing & Cropping:</mark>
+  * <mark style="color:red;">Resize</mark>: _This is mandatory._ All images in a batch must be the exact same height and width (e.g., 224x224) to be fed into the model.
+  * <mark style="color:red;">Crop</mark>: (e.g., Center Crop, Random Crop). Used to focus on the important part of an image.
+* <mark style="color:yellow;">Normalization / Scaling:</mark>
   * _This is also mandatory._ Pixel values are typically `[0-255]`. This range is too large.
   * Option 1: Normalize to `[0, 1]`: Simply divide all pixels by 255.
   * Option 2: Standardize to `[-1, 1]`: Use the mean and standard deviation of a large dataset (like ImageNet) to standardize the pixels. This is the most common method for transfer learning.
-* Data Augmentation (A training-only step):
+* <mark style="color:yellow;">Data Augmentation (A training-only step):</mark>
   * What: Artificially creating "new" images from your existing ones to make your model more robust and prevent overfitting.
   * Techniques:
     * Geometric: Randomly flipping (horizontally), rotating, zooming, or shearing the image.
     * Color: Randomly changing the brightness, contrast, or saturation.
-
-
-
-
 
 ***
 
@@ -126,9 +120,9 @@ The most important rule is to always fit your preprocessor on the training data 
 
 ***
 
-#### 1. Handling Missing Data
+## <mark style="color:blue;">1. Handling Missing Data</mark>
 
-**🧹 Deletion (Dropping Rows/Columns)**
+<mark style="color:yellow;">**Deletion (Dropping Rows/Columns)**</mark>
 
 * When to Use:
   * If you have a very large dataset and only a tiny fraction of rows have missing data (e.g., < 1% of rows).
@@ -142,7 +136,7 @@ The most important rule is to always fit your preprocessor on the training data 
 
 ***
 
-**🔢 Imputation (Filling Values)**
+<mark style="color:yellow;">**Imputation (Filling Values)**</mark>
 
 * When to Use: The standard approach when you cannot afford to lose data.
 
@@ -154,9 +148,9 @@ The most important rule is to always fit your preprocessor on the training data 
 
 ***
 
-#### 2. Handling Numerical Data
+## <mark style="color:blue;">2. Handling Numerical Data</mark>
 
-**📈 Log Transform**
+<mark style="color:yellow;">**Log Transform**</mark>
 
 * When to Use:
   * When a numerical feature is highly skewed (e.g., has a "long tail" like income, website visits, or housing prices).
@@ -169,21 +163,17 @@ The most important rule is to always fit your preprocessor on the training data 
 
 ***
 
-**⚖️ Feature Scaling**
+<mark style="color:yellow;">**Feature Scaling**</mark>
 
 You must scale features for models that are sensitive to distance or magnitude, like Linear Regression, Logistic Regression, SVM, k-NN, and Neural Networks.
 
-| **Scaler**                       | **When to Use**                                                                                                                        | **Pros**                                                                                                        | **Cons**                                                                                                                                        |
-| -------------------------------- | -------------------------------------------------------------------------------------------------------------------------------------- | --------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------- |
-| Standardization (StandardScaler) | The default, go-to scaler. Use this when your data is normally distributed (or close to it) and you have _few_ outliers.               | Centers the data at mean=0. Required by many classic models.                                                    | Highly sensitive to outliers. The mean and standard deviation are both pulled by extreme values, which can "squish" the rest of your data.      |
-| Normalization (MinMaxScaler)     | When you need a strict `[0, 1]` range. Common for image data (pixel intensities) or neural networks that require inputs in this range. | Guarantees a fixed range, which is good for some algorithms.                                                    | Extremely sensitive to outliers. A single outlier will become the new `min` or `max`, "squishing" all other data into a tiny part of the range. |
-| Robust Scaling (RobustScaler)    | The best choice when your data has outliers. Use this when you don't want to remove the outliers but need to scale around them.        | Robust to outliers. It uses the median and Interquartile Range (IQR), which are not affected by extreme values. | Does not center the data at mean=0. The resulting range is not fixed, which may be a problem for some models.                                   |
+<table data-header-hidden><thead><tr><th width="151"></th><th></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Scaler</strong></td><td><strong>When to Use</strong></td><td><strong>Pros</strong></td><td><strong>Cons</strong></td></tr><tr><td>Standardization (StandardScaler)</td><td>The default, go-to scaler. Use this when your data is normally distributed (or close to it) and you have <em>few</em> outliers.</td><td>Centers the data at mean=0. Required by many classic models.</td><td>Highly sensitive to outliers. The mean and standard deviation are both pulled by extreme values, which can "squish" the rest of your data.</td></tr><tr><td>Normalization (MinMaxScaler)</td><td>When you need a strict <code>[0, 1]</code> range. Common for image data (pixel intensities) or neural networks that require inputs in this range.</td><td>Guarantees a fixed range, which is good for some algorithms.</td><td>Extremely sensitive to outliers. A single outlier will become the new <code>min</code> or <code>max</code>, "squishing" all other data into a tiny part of the range.</td></tr><tr><td>Robust Scaling (RobustScaler)</td><td>The best choice when your data has outliers. Use this when you don't want to remove the outliers but need to scale around them.</td><td>Robust to outliers. It uses the median and Interquartile Range (IQR), which are not affected by extreme values.</td><td>Does not center the data at mean=0. The resulting range is not fixed, which may be a problem for some models.</td></tr></tbody></table>
 
 ***
 
-#### 3. Handling Categorical Data
+## <mark style="color:blue;">3. Handling Categorical Data</mark>
 
-**🏷️ Label Encoding**
+<mark style="color:yellow;">**Label Encoding**</mark>
 
 * What it is: "Red" $$ $\rightarrow$ $$ 0, "Green" $$ $\rightarrow$ $$ 1, "Blue" $$ $\rightarrow$ $$ 2
 * When to Use:
@@ -196,7 +186,7 @@ You must scale features for models that are sensitive to distance or magnitude, 
 
 ***
 
-**🚦 One-Hot Encoding**
+&#x20;<mark style="color:yellow;">**One-Hot Encoding**</mark>
 
 * What it is: "Red" $$ $\rightarrow$ $$ `[1, 0, 0]`, "Green" $$ $\rightarrow$ $$ `[0, 1, 0]`, "Blue" $$ $\rightarrow$ $$ `[0, 0, 1]`
 * When to Use:
@@ -209,9 +199,9 @@ You must scale features for models that are sensitive to distance or magnitude, 
 
 ***
 
-#### 4. Preprocessing Text Data (NLP)
+## <mark style="color:blue;">4. Preprocessing Text Data (NLP)</mark>
 
-**🧹 Cleaning & Normalization**
+<mark style="color:yellow;">**Cleaning & Normalization**</mark>
 
 | **Technique**                                   | **When to Use**                                                                               | **Pros**                                                                                                   | **Cons**                                                                                                                        |
 | ----------------------------------------------- | --------------------------------------------------------------------------------------------- | ---------------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------- |
@@ -221,7 +211,7 @@ You must scale features for models that are sensitive to distance or magnitude, 
 
 ***
 
-**🔡 Vectorization (Turning Text to Numbers)**
+<mark style="color:yellow;">**Vectorization (Turning Text to Numbers)**</mark>
 
 | **Technique**      | **When to Use**                                                                                   | **Pros**                                                                                                                       | **Cons**                                                                                                                                         |
 | ------------------ | ------------------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------------------------------------------------------ | ------------------------------------------------------------------------------------------------------------------------------------------------ |
@@ -230,9 +220,9 @@ You must scale features for models that are sensitive to distance or magnitude, 
 
 ***
 
-#### 5. Preprocessing Image Data (CV)
+## <mark style="color:blue;">5. Preprocessing Image Data (CV)</mark>
 
-**🖼️ Resizing**
+<mark style="color:yellow;">**Resizing**</mark>
 
 * When to Use: This is mandatory for all models. Every image in a batch must be the exact same height and width (e.g., 224x224) to be fed into the network.
 * Pros:
@@ -244,7 +234,7 @@ You must scale features for models that are sensitive to distance or magnitude, 
 
 ***
 
-**🎨 Pixel Scaling**
+<mark style="color:yellow;">**Pixel Scaling**</mark>
 
 * When to Use: This is also mandatory. Neural networks train poorly on pixel values in the `[0-255]` range.
 
@@ -255,7 +245,7 @@ You must scale features for models that are sensitive to distance or magnitude, 
 
 ***
 
-**🔄 Data Augmentation**
+<mark style="color:yellow;">**Data Augmentation**</mark>
 
 * When to Use: Always, during training, especially when you have a small dataset.
 * Pros:
