@@ -27,7 +27,6 @@
 
 ## Algorithms that can be used for both regression and classification
 
-* Naïve bayes classification \[Probability]
 * Support vector machines \[Plane]
 * KNN \[Plane]
 * Decision tree \[Tree]
@@ -47,7 +46,7 @@
   * Used to predict a continuous value (such as a price or a probability) based on a set of independent variables.
   * Assumes a linear relationship between the input variables and the output variable.
   * Algorithm estimates the coefficient for each input variable which represents the change in the output variable for one unit change in the input variable.
-  * These coefficients are learnt from the training data using an optimization technique called gradient descent.
+  * These coefficients are learnt from the training data using an optimisation technique called gradient descent.
   * **Pros**
     * Relatively simple and easy to implement, making it a good choice for many applications.
     * Can handle large datasets efficiently, since it only requires matrix operations to make predictions.
@@ -87,7 +86,7 @@
 
       **Finding the Best-Fitting Line**
 
-      The key to linear regression is finding the values of β0 and β1 that minimize the sum of the squared errors (also known as the residual sum of squares or RSS). This is often done using the method of least squares.
+      The key to linear regression is finding the values of β0 and β1 that <mark style="color:red;">minimize the sum of the squared errors (also known as the residual sum of squares or RSS).</mark> This is often done using the method of least squares.
 
       *   **Least Squares Method**
 
@@ -117,8 +116,8 @@
           **Key Concepts**
 
           * **Correlation:** Measures the strength and direction of the linear relationship between two variables.
-          * **R-squared:** A statistical measure that represents the proportion of the variance in the dependent variable that is explained by the independent variable(s).2
-          * **Residuals:** The differences between the actual Y values and the predicted Y values.
+          * <mark style="color:red;">**R-squared:**</mark> <mark style="color:red;"></mark><mark style="color:red;">A statistical measure that represents the proportion of the variance in the dependent variable that is explained by the independent variable(s)</mark>
+          * <mark style="color:red;">**Residuals:**</mark> <mark style="color:red;"></mark><mark style="color:red;">The differences between the actual Y values and the predicted Y values.</mark>
           * **Assumptions of Linear Regression:**
             * Linearity: The relationship between the variables is linear.
             * Independence: The observations are independent of each other.
@@ -189,9 +188,6 @@ if __name__ == "__main__":
       * It gives you a sense of how far off your predictions are from the actual values on average.
       * Unlike Mean Squared Error (MSE), which squares the differences, MAE treats all differences equally, regardless of whether they are overestimations or underestimations.
       * MAE is less sensitive to outliers compared to MSE because it doesn't amplify large errors.
-
-
-
       *   **Mathematical Definition:**
 
           MAE is calculated as the average of the absolute differences between the predicted values and the actual values. Mathematically,1 it's represented as:
@@ -237,7 +233,6 @@ if __name__ == "__main__":
 
 *   <mark style="color:yellow;">**Mean squared error \[MSE]**</mark>
 
-    *
     * **Where**:
       * ( N ) is the total number of data points
       * ( Y\_i ) is the actual value of the dependent variables for the ith data point
@@ -247,7 +242,7 @@ if __name__ == "__main__":
     *   Here's what MSE represents:
 
         * It quantifies the average of the squared differences between predicted and actual values. Larger errors contribute more to the metric due to the squaring operation.
-        * It provides a way to penalize large errors more heavily than smaller ones.
+        * It <mark style="color:red;">provides a way to penalize large errors more heavily than smaller ones.</mark>
         * It is always a non-negative value, with lower values indicating better model performance.
 
 
@@ -268,7 +263,7 @@ if __name__ == "__main__":
 
         **Key Points:**
 
-        * **Squared Differences:** The squaring of the differences between actual and predicted values emphasizes larger errors, making MSE more sensitive to outliers compared to Mean Absolute Error (MAE).
+        * **Squared Differences:** The squaring of the differences between actual and predicted values emphasises larger errors, making MSE more sensitive to outliers compared to Mean Absolute Error (MAE).
         * **Average Error:** MSE provides a single, interpretable value representing the average squared error of the model's predictions.
         * **Scale-Dependent:** MSE is measured in squared units of the target variable, which might not be directly interpretable in the same context as the original data.
 
@@ -296,20 +291,17 @@ if __name__ == "__main__":
 
 *   <mark style="color:yellow;">**Root mean squared error \[RMSE]**</mark>
 
-    *
     * **Where**:
       * ( N ) is the total number of data points
       * ( Y\_i ) is the actual value of the dependent variable for the ith data point
       * ( \hat{Y\_i} ) is the predicted value of the dependent variable for the ith data point
     * Widely used metric in regression analysis that provides a measure of the average magnitude of the error between predicted and actual values.
-    * It provides an error measure in the same units as the target variable, making it easy to interpret.
+    * It p<mark style="color:red;">rovides an error measure in the same units as the target variable, making it easy to interpret.</mark>
     * It quantifies the typical or root average error between the predicted and actual values.
 
 
 
-    *   **Root Mean Squared Error (RMSE)**
-
-        **Mathematical Definition:**
+    *   **Mathematical Definition:**
 
         RMSE is the square root of the average of the squared differences between the predicted values and the actual values. Mathematically,1 it's represented as:
 
@@ -326,7 +318,7 @@ if __name__ == "__main__":
 
         **Key Points:**
 
-        * **Squared Differences:** Similar to MSE, RMSE emphasizes larger errors due to the squaring of the differences.
+        * **Squared Differences:** Similar to MSE, RMSE emphasises larger errors due to the squaring of the differences.
         * **Square Root:** Taking the square root of the mean squared error brings the units of RMSE back to the same units as the target variable, making it more interpretable.
         * **Sensitivity to Outliers:** Like MSE, RMSE is sensitive to outliers.
 
@@ -354,20 +346,19 @@ if __name__ == "__main__":
 
 
 * **R&#x20;**<mark style="color:yellow;">**squared**</mark>
-  *
   * **Where**:
-    * ( SSR ) is the sum of squared residuals (the differences between predicted and actual values).
+    * <mark style="color:red;">( SSR ) is the sum of squared residuals (the differences between predicted and actual values).</mark>
       * **Residuals**: The term "residual" refers to the difference between the observed value and the predicted value for a specific data point. Squaring and summing these residuals gives us the SSR.
-    * ( SST ) is the total sum of squares, which measures the total variability in the dependent variable.
+    * <mark style="color:red;">( SST ) is the total sum of squares, which measures the total variability in the dependent variable.</mark>
       * Represents the total variation in the dependent variable (or response variable) before accounting for the variation explained by the independent variables.
   * A statistical measure used in regression analysis to evaluate the goodness of fit of a model to the data.
   * It provides insights into how well the model explains the variance in the dependent variable.
   * It should be used in conjunction with other metrics and domain knowledge to gain a comprehensive understanding of the model's performance.
-  * **R-squared** is a value between 0 and 1, where:
+  * <mark style="color:red;">**R-squared**</mark> <mark style="color:red;"></mark><mark style="color:red;">is a value between 0 and 1, where:</mark>
     * 0: The model does not explain any of the variability in the dependent variable.
     * 1: The model perfectly explains the variability in the dependent variable.
   * **What R-squared represents**:
-    * It measures the proportion of the variance in the dependent variable that is predictable from the independent variable(s) in the model.
+    * <mark style="color:red;">It measures the proportion of the variance in the dependent variable that is predictable from the independent variable(s) in the model.</mark>
     * A higher R-squared value indicates a better fit, meaning that a larger proportion of the variability in the dependent variable is explained by the model.
   *   **R-Squared limitations**:
 
@@ -390,12 +381,12 @@ if __name__ == "__main__":
 
       Where:
 
-      *   **SSR (Sum of Squared Residuals):** The sum of the squared differences between the actual values (y\_i) and the predicted values (ŷ\_i). It represents the unexplained variance.
+      *   **SSR (Sum of Squared Residuals):** The sum of the <mark style="color:red;">squared differences between the actual values (y\_i) and the predicted values (ŷ\_i).</mark> It represents the unexplained variance.
 
           ```
           SSR = Σ(y_i - ŷ_i)²
           ```
-      *   **SST (Total Sum of Squares):** The sum of the squared differences between the actual values (y\_i) and the mean of the actual values (ȳ). It represents the total variance.
+      *   **SST (Total Sum of Squares):** The sum of the <mark style="color:red;">squared differences between the actual values (y\_i) and the mean of the actual values (ȳ).</mark> It represents the total variance.
 
           ```
           SST = Σ(y_i - ȳ)²
@@ -404,9 +395,9 @@ if __name__ == "__main__":
       **Interpretation:**
 
       * **R² ranges from 0 to 1:**
-        * **R² = 0:** The model explains none of the variability in the dependent variable.
-        * **R² = 1:** The model explains all of the variability in the dependent variable.2
-      * **Higher R² values generally indicate a better fit:** A higher R² suggests that the model is better at predicting the dependent variable based on the independent variables.
+        * <mark style="color:red;">**R² = 0:**</mark> <mark style="color:red;"></mark><mark style="color:red;">The model explains none of the variability in the dependent variable.</mark>
+        * **R² = 1:** The model explains all of the variability in <mark style="color:red;">the dependent variable.2</mark>
+      * <mark style="color:red;">**Higher R² values generally indicate a better fit:**</mark> A higher R² suggests that the model is better at predicting the dependent variable based on the independent variables.
 
       **Example:**
 
@@ -448,47 +439,47 @@ if __name__ == "__main__":
     * Modified version of the standard R-squared (coefficient of determination) that takes into account the number of independent variables in a regression model.
     * It is particularly useful when comparing models with different numbers of predictors.
     * Here's what adjusted R-squared represents:
-      * It provides a more accurate measure of the model's goodness of fit, especially when comparing models with different numbers of predictors.
+      * <mark style="color:red;">It provides a more accurate measure of the model's goodness of fit, especially when comparing models with different numbers of predictors.</mark>
       * It penalizes the addition of unnecessary independent variables to the model. As ( K ) increases, the penalty term ( \frac{(N-1)}{(N-K-1)} ) decreases, which means that Adjusted R-squared becomes closer to R-squared.
     * The main difference between R-squared and Adjusted R-squared is that the latter takes into account the complexity of the model. It provides a more conservative estimate of the proportion of variance explained by the independent variables.
     * While Adjusted R-squared is a useful metric, it should be used in conjunction with other evaluation criteria and domain knowledge to make informed decisions about model selection and performance.
 
 
 
-    *   Maths --
+    * Maths --
+      * R-squared is a valuable metric for assessing the goodness-of-fit of a regression model, but it has a limitation: it tends to increase as you add more independent variables to the model, even if those variables don't actually improve the model's predictive power.&#x20;
+      * This can lead to overfitting, where the model performs well on the training data but poorly on new, unseen data.
+      * **Adjusted R-squared addresses this limitation by penalizing the model for including irrelevant predictors.**
+      *   **Mathematical Definition:**
 
-        R-squared is a valuable metric for assessing the goodness-of-fit of a regression model, but it has a limitation: it tends to increase as you add more independent variables to the model, even if those variables don't actually improve the model's predictive power. This can lead to overfitting, where the model performs well on the training data but poorly on new, unseen data.
+          ```
+          Adjusted R² = 1 - [(1 - R²) * (n - 1) / (n - k - 1)]
+          ```
 
-        **Adjusted R-squared addresses this limitation by penalizing the model for including irrelevant predictors.**
+          Where:
 
-        **Mathematical Definition:**
+          * `R²`: is the regular R-squared value
+            * `n`: is the number of data points
+            * `k`: is the number of independent variables in the model1
 
-        ```
-        Adjusted R² = 1 - [(1 - R²) * (n - 1) / (n - k - 1)]
-        ```
 
-        Where:
+      *   **̵Key Points:**
 
-        * `R²`: is the regular R-squared value
-        * `n`: is the number of data points
-        * `k`: is the number of independent variables in the model1
+          * <mark style="color:red;">**Penalizes for Irrelevant Predictors:**</mark> <mark style="color:red;"></mark><mark style="color:red;">T</mark>he adjusted R-squared value will only increase if the new predictor improves the model's fit more than would be expected by chance. If a predictor doesn't significantly improve the model, the adjusted R-squared may actually decrease.
+          * <mark style="color:red;">**More Conservative:**</mark> Adjusted R-squared is generally more conservative than regular R-squared, providing a more realistic assessment of the model's true predictive power.
+          * <mark style="color:red;">**Useful for Model Comparison:**</mark> Adjusted R-squared is particularly useful when comparing models with different numbers of predictors. It helps to avoid selecting models that simply have more variables but don't necessarily have better predictive performance.
 
-        **Key Points:**
 
-        * **Penalizes for Irrelevant Predictors:** The adjusted R-squared value will only increase if the new predictor improves the model's fit more than would be expected by chance. If a predictor doesn't significantly improve the model, the adjusted R-squared may actually decrease.
-        * **More Conservative:** Adjusted R-squared is generally more conservative than regular R-squared, providing a more realistic assessment of the model's true predictive power.
-        * **Useful for Model Comparison:** Adjusted R-squared is particularly useful when comparing models with different numbers of predictors. It helps to avoid selecting models that simply have more variables but don't necessarily have better predictive performance.
+      *   <mark style="color:red;">**In essence, adjusted R-squared provides a more reliable measure of the goodness-of-fit of a regression model, especially when dealing with multiple predictors, by accounting for the number of predictors and preventing overfitting.**</mark>
 
-        **In essence, adjusted R-squared provides a more reliable measure of the goodness-of-fit of a regression model, especially when dealing with multiple predictors, by accounting for the number of predictors and preventing overfitting.**
+          **Example:**
 
-        **Example:**
+          Let's say you have two models:
 
-        Let's say you have two models:
+          * **Model A:** R-squared = 0.8, 3 independent variables
+          * **Model B:** R-squared = 0.85, 5 independent variables
 
-        * **Model A:** R-squared = 0.8, 3 independent variables
-        * **Model B:** R-squared = 0.85, 5 independent variables
-
-        While Model B has a slightly higher R-squared, its adjusted R-squared might be lower than Model A's if the two additional variables don't significantly improve the model's predictive power. In this case, the adjusted R-squared would suggest that Model A is a better fit despite having fewer predictors.
+          <mark style="color:red;">While Model B has a slightly higher R-squared, its adjusted R-squared might be lower than Model A's if the two additional variables don't significantly improve the model's predictive power. In this case, the adjusted R-squared would suggest that Model A is a better fit despite having fewer predictors.</mark>
 
 
 
@@ -501,10 +492,9 @@ if __name__ == "__main__":
 * Logistic regression is a supervised learning algorithm used to predict a binary outcome (such as a yes/no or 0/1 response) based on a set of independent variables.
 * It is similar to linear regression, but the output is transformed using a logistic function to ensure it is always between 0 and 1.
 * To perform logistic regression, the algorithm estimates the coefficients for each input variable, representing the change in the output variable for a one-unit change in the input variable.
-* These coefficients are learned from the training data using an optimization technique called gradient descent.
-* Once the model is trained, it can make predictions on new data by plugging in the input values and using the learned coefficients to calculate the predicted output value.
+* These coefficients are learned from the training data using an optimisation technique called gradient descent.
 * The predicted output is transformed using the logistic function to give a probability of the positive class. This probability can be thresholded to obtain a binary prediction.
-* It is especially useful for cases where the output is binary, but can also be used for multiclass classification by training multiple logistic regression models, one for each class.
+* It is especially useful for cases where the output is binary, but can also be used for multi-class classification by training multiple logistic regression models, one for each class.
 * However, logistic regression is limited by the assumption that the relationship between the input and output variables is linear.
 * In cases where the relationship is more complex, a non-linear model such as a decision tree or a neural network may be more appropriate.
 
@@ -524,70 +514,70 @@ if __name__ == "__main__":
 
 Maths
 
-*   **Logistic Regression: A Deep Dive into the Mathematics**
+* **Logistic Regression: A Deep Dive into the Mathematics**
+* **1. The Core Idea**
+  *   Logistic regression is a powerful statistical method used to model the probability of a binary outcome (e.g., success/failure, yes/no) based on one or more predictor variables. It achieves this by transforming the linear combination of predictors into a probability value between 0 and 1.
 
-    **1. The Core Idea**
 
-    Logistic regression is a powerful statistical method used to model the probability of a binary outcome (e.g., success/failure, yes/no) based on one or more predictor variables. It achieves this by transforming the linear combination of predictors into a probability value between 0 and 1.
+* **2. The Logistic Function**
+  *   The heart of logistic regression lies in the logistic function (also known as the sigmoid function):
 
-    **2. The Logistic Function**
+      ```
+      P(y = 1 | x) = 1 / (1 + exp(-z))
+      ```
 
-    The heart of logistic regression lies in the logistic function (also known as the sigmoid function):
+      Where:
 
-    ```
-    P(y = 1 | x) = 1 / (1 + exp(-z))
-    ```
+      * `P(y = 1 | x)`: The probability of the outcome being 1 (positive class) given the input features `x`.
+        * `z`: The linear combination of predictors and their coefficients: `z = b0 + b1*x1 + b2*x2 + ... + bn*xn`
 
-    Where:
+      The logistic function maps any real-valued input `z` to a value between 0 and 1, making it suitable for representing probabilities.
 
-    * `P(y = 1 | x)`: The probability of the outcome being 1 (positive class) given the input features `x`.
-    * `z`: The linear combination of predictors and their coefficients: `z = b0 + b1*x1 + b2*x2 + ... + bn*xn`
 
-    The logistic function maps any real-valued input `z` to a value between 0 and 1, making it suitable for representing probabilities.
+* **3. Estimating the Coefficients**
+  *   The primary goal in logistic regression is to estimate the coefficients (b0, b1, b2, ..., bn) that best fit the data. This is typically done using the maximum likelihood estimation (MLE) method.
 
-    **3. Estimating the Coefficients**
 
-    The primary goal in logistic regression is to estimate the coefficients (b0, b1, b2, ..., bn) that best fit the data. This is typically done using the maximum likelihood estimation (MLE) method.
+* **4. Maximum Likelihood Estimation (MLE)**
+  *   MLE aims to find the coefficients that maximize the likelihood of observing the given data. The likelihood function for logistic regression is:
 
-    **4. Maximum Likelihood Estimation (MLE)**
+      ```
+      L(b0, b1, ..., bn) = Π [P(y_i = 1 | x_i)]^y_i * [1 - P(y_i = 1 | x_i)]^(1-y_i)
+      ```
 
-    MLE aims to find the coefficients that maximize the likelihood of observing the given data. The likelihood function for logistic regression is:
+      Where:
 
-    ```
-    L(b0, b1, ..., bn) = Π [P(y_i = 1 | x_i)]^y_i * [1 - P(y_i = 1 | x_i)]^(1-y_i)
-    ```
+      * `y_i`: The actual class label of the i-th data point (0 or 1)
+        * `x_i`: The input features of the i-th data point
 
-    Where:
+      To <mark style="color:red;">find the coefficients that maximize this likelihood, we often work with the log-likelihood function, which is easier to optimize:</mark>
 
-    * `y_i`: The actual class label of the i-th data point (0 or 1)
-    * `x_i`: The input features of the i-th data point
+      ```
+      log L(b0, b1, ..., bn) = Σ [y_i * log(P(y_i = 1 | x_i)) + (1 - y_i) * log(1 - P(y_i = 1 | x_i))]
+      ```
 
-    To find the coefficients that maximize this likelihood, we often work with the log-likelihood function, which is easier to optimize:
 
-    ```
-    log L(b0, b1, ..., bn) = Σ [y_i * log(P(y_i = 1 | x_i)) + (1 - y_i) * log(1 - P(y_i = 1 | x_i))]
-    ```
+*   **5. Optimisation Algorithms**
 
-    **5. Optimization Algorithms**
-
-    Various optimization algorithms can be used to find the coefficients that maximize the log-likelihood, such as:
+    Various optimisation algorithms can be used to find the coefficients that <mark style="color:red;">maximize the log-likelihood,</mark> such as:
 
     * **Gradient Descent:** An iterative algorithm that adjusts the coefficients in the direction of the steepest ascent of the log-likelihood function.
-    * **Newton-Raphson Method:** A more advanced optimization algorithm that can converge faster than gradient descent.
+    * **Newton-Raphson Method:** A more advanced optimisation algorithm that can converge faster than gradient descent.
 
-    **6. Making Predictions**
 
-    Once the coefficients are estimated, we can use the logistic function to predict the probability of the positive class for new data points. A common decision rule is to classify a data point as positive if the predicted probability is greater than 0.5.
+* **6. Making Predictions**
+  *   <mark style="color:red;">Once the coefficients are estimated, we can use the logistic function to predict the probability of the positive class for new data points.</mark> A common decision rule is to classify a data point as positive if the predicted probability is greater than 0.5.
 
-    **7. Key Points**
 
-    * Logistic regression is a powerful tool for binary classification problems.
-    * The logistic function transforms the linear combination of predictors into probabilities between 0 and 1.
-    * MLE is commonly used to estimate the coefficients.
-    * Various optimization algorithms can be employed to find the optimal coefficients.
-    * The decision boundary in logistic regression is typically a linear hyperplane.
+*   **7. Key Points**
 
-    **In summary, logistic regression provides a robust framework for modeling the relationship between predictor variables and a binary outcome. By understanding the underlying mathematics, you can gain a deeper appreciation for its strengths and limitations.**
+    * **In summary, logistic regression provides a robust framework for modeling the relationship between predictor variables and a binary outcome. By understanding the underlying mathematics, you can gain a deeper appreciation for its strengths and limitations.**
+
+
+* The logistic function transforms the linear combination of predictors into probabilities between 0 and 1.
+* MLE is commonly used to estimate the coefficients.
+* Various optimisation algorithms can be employed to find the optimal coefficients.
+* The decision boundary in logistic regression is typically a linear hyperplane.
 * **Example --**
   *   **1. Define the Logistic Regression Model**
 
@@ -2287,4 +2277,200 @@ class CatBoostRegressor:
 
 
 
+
+## TIME SERIES
+
+
+
+Time series forecasting is a specialized field of machine learning that deals with data points indexed in temporal order. Unlike standard regression, time series data has a "temporal dependency," meaning the value at time $$ $t$ $$ is often correlated with the value at $$ $t-1$ $$.
+
+***
+
+### 1. Data Cleaning & Preprocessing
+
+Before modeling, time series data requires specific cleaning steps to ensure the "signal" isn't lost in the "noise."
+
+* Handling Missing Values: You cannot simply delete rows in a time series as it breaks the sequence.
+  * _Forward Fill (LOCF):_ Carrying the last known value forward.
+  * _Interpolation:_ Filling gaps using linear or spline interpolation (preferred for gradual changes).
+* Outlier Detection: Spikes caused by sensor errors or one-time events can mislead models. These are often smoothed using a Moving Average or replaced with the median of a local window.
+* Stationarity Check: Many models (especially statistical ones) assume the data is Stationary—meaning its mean, variance, and autocorrelation do not change over time.
+  * _Test:_ Use the Augmented Dickey-Fuller (ADF) Test.
+  * _Fix:_ Use Differencing ($$ $y_t - y_{t-1}$ $$) to remove trends.
+* Decomposition: Breaking the series into three components: Trend, Seasonality, and Residuals (Noise).
+
+***
+
+### 2. Statistical Models (Classical)
+
+These are the foundational models, best for univariate data with clear trends or cycles.
+
+You are absolutely right. To understand ARIMA, we must first break down its constituent parts: AR, MA, and the combination ARMA. These are the "Classical" statistical models that paved the way for modern forecasting.
+
+Here is the detailed breakdown of these foundational models.
+
+***
+
+#### 1. AR (AutoRegressive) Model
+
+An AR model assumes that the current value of the series depends linearly on its own previous values (lags).<sup>1</sup> It is essentially a regression of the variable against itself.
+
+<a class="button secondary"></a>
+
+*   The Math: An $AR(p)$ model is defined as:
+
+    \$$Y\_t = c + \phi\_1 Y\_{t-1} + \phi\_2 Y\_{t-2} + \dots + \phi\_p Y\_{t-p} + \epsilon\_t\$$
+
+    Where 2$p$ is the "order" (number of lags), 3$\phi$ are the coefficients, and 4$\epsilon\_t$ is white noise.5
+*   Identification: We use the Partial Autocorrelation Function (PACF) plot.<sup>6</sup> If the PACF "shuts off" or drops to zero after lag $$ $p$ $$, it suggests an $$ $AR(p)$ $$ model.
+
+    <a class="button secondary"></a>
+* Assumptions: The data must be stationary. If there is a trend, the AR model will fail.
+*   Pros: Very effective for data with high "momentum" or "memory" (e.g., daily temperatures).<sup>7</sup>
+
+    <a class="button secondary"></a>
+*   Cons: Cannot handle shocks or sudden changes that aren't related to past values.<sup>8</sup>
+
+    <a class="button secondary"></a>
+
+***
+
+#### 2. MA (Moving Average) Model
+
+Contrary to what the name suggests, this is not a simple "rolling average." An MA model assumes the current value depends on the residual errors (shocks) from previous time steps.
+
+*   The Math: An $MA(q)$ model is defined as:
+
+    \$$Y\_t = \mu + \epsilon\_t + \theta\_1 \epsilon\_{t-1} + \theta\_2 \epsilon\_{t-2} + \dots + \theta\_q \epsilon\_{t-q}\$$
+
+    Where 9$q$ is the order and 10$\epsilon$ represents the error terms.11
+* Identification: We use the Autocorrelation Function (ACF) plot. If the ACF drops to zero after lag $$ $q$ $$, it suggests an $$ $MA(q)$ $$ model.
+* Assumptions: Assumes the series is a stationary process fluctuating around a mean, where "shocks" eventually fade away.
+* Pros: Excellent for modeling short-term "noise" or sudden fluctuations in the data.
+* Cons: Limited in capturing long-term trends or cycles on its own.
+
+***
+
+#### 3. ARMA (AutoRegressive Moving Average)
+
+The ARMA model is a "hybrid" that combines both the past values (AR) and the past errors (MA).<sup>12</sup> This is used when the data shows both momentum and sensitivity to shocks.
+
+<a class="button secondary"></a>
+
+*   The Math: An $ARMA(p, q)$ model:
+
+    \$$Y\_t = c + \epsilon\_t + \sum\_{i=1}^{p} \phi\_i Y\_{t-i} + \sum\_{j=1}^{q} \theta\_j \epsilon\_{t-j}\$$
+* When to use: Use this when the ACF and PACF plots both show gradual decay rather than a sharp cutoff, indicating that both components are at work.
+* Assumptions: Strict Stationarity. ARMA cannot handle data with a trend (upward/downward slope) or seasonality.
+
+***
+
+#### 4. Comparison and Summary
+
+| **Model**          | **Relationship**                       | **Primary Tool** | **Best For**                         |
+| ------------------ | -------------------------------------- | ---------------- | ------------------------------------ |
+| AR ($$ $p$ $$)     | $$ $Y_t$ $$ depends on $$ $Y_{t-1}$ $$ | PACF Plot        | Long-term "memory" or momentum.      |
+| MA ($$ $q$ $$)     | $$ $Y_t$ $$ depends on Error$\_{t-1}$  | ACF Plot         | Short-term "shocks" or random noise. |
+| ARMA ($$ $p,q$ $$) | Combines Lags + Errors                 | Both ACF/PACF    | Complex stationary signals.          |
+| ARIMA              | ARMA + Differencing                    | ADF Test         | Non-stationary data with trends.     |
+
+#### The "I" in ARIMA
+
+The reason we usually jump to ARIMA (AutoRegressive Integrated Moving Average) is that real-world data is rarely stationary. The "I" stands for Differencing ($$ $Y_t - Y_{t-1}$ $$), which turns non-stationary data into stationary data so that the AR and MA components can actually work.
+
+***
+
+#### Practical Example Updated
+
+If you were modeling the stock price of a company:
+
+1. AR component: Captures the fact that if the price was high yesterday, it’s likely to be high today (momentum).
+2. MA component: Captures the fact that a sudden news event yesterday (a "shock" or error) will still affect the price for a few days.
+3. Integrated (I) component: Captures the overall upward trend of the stock over the last year.
+
+Would you like me to show you how to read an ACF and PACF plot to determine the $$ $p$ $$ and $$ $q$ $$ values for your own data?
+
+#### A. ARIMA (AutoRegressive Integrated Moving Average)
+
+* Explanation: Combines past values (AR), differencing to reach stationarity (I), and past forecast errors (MA). It is defined by $$ $(p, d, q)$ $$ parameters.
+* Assumptions: Data is linear and can be made stationary through differencing.
+* Pros: Highly interpretable; excellent for short-term forecasting.
+* Cons: Struggles with non-linear patterns or multiple seasonalities.
+
+#### B. SARIMA
+
+* Explanation: An extension of ARIMA that explicitly supports Seasonality (e.g., monthly sales spikes).
+* Assumptions: Similar to ARIMA, but assumes the seasonal pattern is consistent.
+* Pros: Best for data with strong, predictable seasonal cycles.
+
+#### C. Prophet (by Meta)
+
+* Explanation: An additive model where non-linear trends are fit with yearly, weekly, and daily seasonality, plus holiday effects.
+* Assumptions: Works best with time series that have strong seasonal effects and several seasons of historical data.
+* Pros: Robust to missing data and shifts in trend; very "plug-and-play" for business analysts.
+
+***
+
+### 3. Traditional Machine Learning Models
+
+To use these, we must transform time series into a Supervised Learning problem using "Lag Features" (e.g., using $$ $t-1$ $$ and $$ $t-2$ $$ as input features to predict $$ $t$ $$).
+
+#### A. XGBoost / LightGBM / Random Forest
+
+* Explanation: Gradient-boosted trees or forests that treat each timestamp as a row of features (Day of week, Month, Lag\_1, Lag\_7, etc.).
+* Assumptions: Assumes the features provided (lags) capture the temporal dependency sufficiently.
+* Pros: Can handle non-linear relationships and exogenous variables (e.g., weather, price changes) easily.
+* Cons: Does not "understand" time inherently; if the trend goes beyond the training range, trees struggle to extrapolate.
+
+#### B. Support Vector Regression (SVR)
+
+* Explanation: Uses kernels to find a hyperplane that fits the data within a specific threshold ($$ $\epsilon$ $$).
+* Pros: Effective in high-dimensional spaces.
+* Cons: Computationally expensive for very large datasets.
+
+***
+
+### 4. Deep Learning Models
+
+Used for massive datasets where complex, long-term dependencies exist.
+
+#### A. LSTM (Long Short-Term Memory)
+
+* Explanation: A type of Recurrent Neural Network (RNN) designed to "remember" information for long periods using a cell state and gates.
+* Assumptions: Assumes the data has complex sequences where the context from far in the past matters.
+* Pros: Can capture extremely complex, non-linear patterns.
+* Cons: Requires large amounts of data and high computational power; prone to overfitting on small datasets.
+
+#### B. N-BEATS / Transformers (TFT)
+
+* Explanation: Modern architectures that use attention mechanisms to weigh the importance of different past time steps.
+* Pros: State-of-the-art performance for multi-horizon forecasting.
+
+***
+
+### Summary Table
+
+| **Model** | **Best For**                 | **Main Assumption**      | **Complexity** |
+| --------- | ---------------------------- | ------------------------ | -------------- |
+| ARIMA     | Short-term, linear data      | Stationarity & Linearity | Low            |
+| Prophet   | Business metrics (Sales)     | Consistent Seasonality   | Medium         |
+| XGBoost   | Multivariate data            | Informative Lag Features | Medium         |
+| LSTM      | High-frequency, complex data | Long-term dependencies   | High           |
+
+***
+
+### 5. Practical Example: Retail Sales Forecasting
+
+Imagine you are forecasting the daily sales of a retail store for the next 30 days.
+
+1. Data Collection: You have 3 years of daily sales, weather data, and holiday markers.
+2. Preprocessing:
+   * Fill missing values from a 2-day store closure using linear interpolation.
+   * Create Lag Features: `sales_lag_1` (yesterday), `sales_lag_7` (same day last week).
+   * Create Window Features: `rolling_mean_7` (average sales over the last week).
+3. Model Selection: Since you have external factors (weather), you choose XGBoost.
+4. Training: The model learns that if it's a Saturday (Seasonality), it's raining (Exogenous), and sales were high yesterday (Lag), then today's sales will likely be high.
+5. Evaluation: You use MAE (Mean Absolute Error) to see how many dollars, on average, your forecast is off.
+
+Would you like me to provide a Python code snippet using a specific model (like Prophet or XGBoost) to demonstrate this?
 
