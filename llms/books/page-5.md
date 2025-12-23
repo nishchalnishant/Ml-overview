@@ -1,4 +1,4 @@
-# Page 5
+# An Introduction to Large Language Models
 
 Here are detailed study notes for Chapter 1: “An Introduction to Large Language Models” based entirely on the content provided from your uploaded book. Citations are included using the required format.
 
