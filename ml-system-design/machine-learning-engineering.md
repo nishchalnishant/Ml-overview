@@ -1326,8 +1326,7 @@ To evaluate model performance fairly, data is split into:
 
 #### 5.7 Data Balancing
 
-\
-
+<br>
 
 If dataset classes are imbalanced (e.g., fraud = 1%, non-fraud = 99%), balance them via:
 
@@ -1343,13 +1342,11 @@ If dataset classes are imbalanced (e.g., fraud = 1%, non-fraud = 99%), balance t
 
 #### 5.8 Data Leakage Prevention
 
-\
-
+<br>
 
 Data leakage is a critical issue that invalidates model evaluation.
 
-\
-
+<br>
 
 **Avoid by:**
 
@@ -1362,13 +1359,11 @@ Data leakage is a critical issue that invalidates model evaluation.
 
 #### 5.9 Automating Data Preparation
 
-\
-
+<br>
 
 Data pipelines can automate cleaning and transformation.
 
-\
-
+<br>
 
 **Tools:**
 
@@ -1376,8 +1371,7 @@ Data pipelines can automate cleaning and transformation.
 * DataOps / MLOps tools: Apache Airflow, Kubeflow, MLflow, Prefect.
 * Feature Stores: centralized repositories for preprocessed features (e.g., Feast, Tecton).
 
-\
-
+<br>
 
 Benefits:
 
@@ -1390,8 +1384,7 @@ Benefits:
 
 #### 5.10 Data Versioning and Reproducibility
 
-\
-
+<br>
 
 Reproducibility requires tracking:
 
@@ -1400,8 +1393,7 @@ Reproducibility requires tracking:
 * Random seeds
 * Train/validation splits
 
-\
-
+<br>
 
 Tools:
 
@@ -1411,15 +1403,13 @@ DVC (Data Version Control), Git LFS, MLflow Tracking.
 
 #### 5.11 Feature Scaling in Production
 
-\
-
+<br>
 
 The same transformation logic used during training must be applied consistently during inference.
 
 Hence, the preprocessing pipeline must be serialized (saved) with the model.
 
-\
-
+<br>
 
 > Example: If you used a StandardScaler, the same mean and std must be applied to production data.
 
@@ -1454,15 +1444,13 @@ Here are detailed notes for Chapter 6 – “Feature Engineering and Selection�
 
 ### Chapter 6: Feature Engineering and Selection
 
-\
-
+<br>
 
 This chapter explores how to design, construct, and select features that most effectively represent the underlying structure of your data.
 
 Feature engineering is one of the most critical stages in the ML lifecycle — it often determines the ultimate success of the model.
 
-\
-
+<br>
 
 > “The quality of your features largely determines the quality of your model.”
 
@@ -1470,15 +1458,13 @@ Feature engineering is one of the most critical stages in the ML lifecycle — i
 
 #### 6.1 The Importance of Features
 
-\
-
+<br>
 
 A feature is a measurable property or characteristic of a phenomenon being observed.
 
 In ML, features are the inputs (x₁, x₂, …, xₙ) the model uses to learn patterns and make predictions.
 
-\
-
+<br>
 
 **Why Feature Engineering Matters**
 
@@ -1486,8 +1472,7 @@ In ML, features are the inputs (x₁, x₂, …, xₙ) the model uses to learn p
 * Poor features → poor model performance, even with complex algorithms.
 * Good features can make even simple models perform competitively.
 
-\
-
+<br>
 
 > Algorithms amplify the information in data — they don’t create it.
 
@@ -1497,8 +1482,7 @@ In ML, features are the inputs (x₁, x₂, …, xₙ) the model uses to learn p
 
 #### 6.2 The Feature Engineering Process
 
-\
-
+<br>
 
 Feature engineering is iterative and involves:
 
@@ -1525,23 +1509,20 @@ Feature engineering is iterative and involves:
 
 #### 6.4 Domain Understanding and Feature Design
 
-\
-
+<br>
 
 Feature engineering begins with understanding the domain:
 
 * Know what influences the target variable.
 * Understand data generation and collection context.
 
-\
-
+<br>
 
 Example (Loan Default Prediction):
 
 * Domain knowledge reveals that “loan-to-income ratio” or “credit utilization” are better predictors than raw “income” or “loan amount.”
 
-\
-
+<br>
 
 **Key Questions:**
 
@@ -1553,8 +1534,7 @@ Example (Loan Default Prediction):
 
 #### 6.5 Feature Construction Techniques
 
-\
-
+<br>
 
 **6.5.1 Mathematical Transformations**
 
@@ -1574,8 +1554,7 @@ Used to adjust feature distributions or linearize relationships.
 
 Combine multiple raw features to create new, meaningful attributes.
 
-\
-
+<br>
 
 Examples:
 
@@ -1584,8 +1563,7 @@ Examples:
 * Product: height × weight (for BMI)
 * Aggregation: avg\_spent\_per\_week
 
-\
-
+<br>
 
 These help models learn relationships directly rather than relying on complex nonlinearities.
 
@@ -1643,8 +1621,7 @@ Different encodings for different use cases:
 
 Summarize grouped data (by user, session, region, etc.).
 
-\
-
+<br>
 
 Examples:
 
@@ -1652,8 +1629,7 @@ Examples:
 * max\_rating\_by\_category
 * count\_of\_transactions\_last\_30\_days
 
-\
-
+<br>
 
 Aggregation captures behavioral or temporal context that individual events miss.
 
@@ -1661,8 +1637,7 @@ Aggregation captures behavioral or temporal context that individual events miss.
 
 #### 6.6 Handling Feature Correlations and Redundancy
 
-\
-
+<br>
 
 Highly correlated features can:
 
@@ -1670,8 +1645,7 @@ Highly correlated features can:
 * Lead to unstable coefficients (in linear models).
 * Reduce interpretability.
 
-\
-
+<br>
 
 Approaches:
 
@@ -1683,8 +1657,7 @@ Approaches:
 
 #### 6.7 Feature Scaling
 
-\
-
+<br>
 
 Many ML algorithms assume that all features are on comparable scales.
 
@@ -1700,15 +1673,13 @@ Many ML algorithms assume that all features are on comparable scales.
 
 #### 6.8 Feature Selection
 
-\
-
+<br>
 
 After creating features, not all are useful.
 
 Feature selection helps remove irrelevant, redundant, or noisy variables.
 
-\
-
+<br>
 
 **Goals:**
 
@@ -1763,8 +1734,7 @@ Embedded methods are efficient and widely used in production.
 
 #### 6.9 Dimensionality Reduction
 
-\
-
+<br>
 
 Used when there are hundreds or thousands of features.
 
@@ -1780,13 +1750,11 @@ These help eliminate redundancy and speed up model training.
 
 #### 6.10 Evaluating Feature Importance
 
-\
-
+<br>
 
 Helps explain model decisions and select features intelligently.
 
-\
-
+<br>
 
 Techniques:
 
@@ -1804,13 +1772,11 @@ Techniques:
 
 #### 6.11 Feature Drift and Monitoring
 
-\
-
+<br>
 
 Once deployed, feature distributions may shift over time due to changing environments.
 
-\
-
+<br>
 
 Types:
 
@@ -1818,8 +1784,7 @@ Types:
 * Label Drift: Relationship between features and labels changes.
 * Concept Drift: Target definition evolves.
 
-\
-
+<br>
 
 Solution:
 
@@ -1830,21 +1795,18 @@ Solution:
 
 #### 6.12 Automation in Feature Engineering
 
-\
-
+<br>
 
 Modern ML systems use automated feature generation and management.
 
-\
-
+<br>
 
 **Tools:**
 
 * Featuretools (Python) → automatic feature synthesis.
 * Feast, Tecton, Vertex AI Feature Store → store, version, and serve features in production.
 
-\
-
+<br>
 
 **Benefits:**
 
@@ -1884,15 +1846,13 @@ Here are detailed notes for Chapter 7 – “Model Training and Evaluation” fr
 
 ### Chapter 7: Model Training and Evaluation
 
-\
-
+<br>
 
 This chapter explains how to train, evaluate, and optimize machine learning models.
 
 It emphasizes best practices for achieving reliable generalization, fair performance comparison, and effective model tuning — all while avoiding common pitfalls like overfitting and data leakage.
 
-\
-
+<br>
 
 > “A model that performs well on training data but fails on unseen data is worse than no model at all.”
 
@@ -1900,13 +1860,11 @@ It emphasizes best practices for achieving reliable generalization, fair perform
 
 #### 7.1 The Purpose of Model Training
 
-\
-
+<br>
 
 Model training is the process of finding the best parameters (θ) that minimize prediction errors on known data while maintaining generalization to unseen data.
 
-\
-
+<br>
 
 **Objective:**
 
@@ -1918,8 +1876,7 @@ Where:
 * _y_ = true labels
 * _f(x; θ)_ = model prediction
 
-\
-
+<br>
 
 The main goal is not just minimizing training error, but ensuring low generalization error — i.e., performing well on new, unseen examples.
 
@@ -1927,8 +1884,7 @@ The main goal is not just minimizing training error, but ensuring low generaliza
 
 #### 7.2 Training, Validation, and Test Splits
 
-\
-
+<br>
 
 Proper data splitting is fundamental to unbiased model evaluation.
 
@@ -1954,29 +1910,25 @@ Proper data splitting is fundamental to unbiased model evaluation.
 
 #### 7.4 Optimization Algorithms
 
-\
-
+<br>
 
 Optimization adjusts model parameters to minimize the loss function.
 
-\
-
+<br>
 
 **7.4.1 Batch Gradient Descent**
 
 * Uses the entire training dataset for each update.
 * Slow but accurate.
 
-\
-
+<br>
 
 **7.4.2 Stochastic Gradient Descent (SGD)**
 
 * Updates after each example.
 * Faster and enables online learning but noisier.
 
-\
-
+<br>
 
 **7.4.3 Mini-Batch Gradient Descent**
 
@@ -2001,13 +1953,11 @@ Optimization adjusts model parameters to minimize the loss function.
 
 #### 7.6 Bias–Variance Tradeoff
 
-\
-
+<br>
 
 Generalization error can be decomposed as:
 
-\
-
+<br>
 
 E\_{total} = \text{Bias}^2 + \text{Variance} + \text{Irreducible Error}
 
@@ -2021,8 +1971,7 @@ E\_{total} = \text{Bias}^2 + \text{Variance} + \text{Irreducible Error}
 
 Find a balance between bias and variance.
 
-\
-
+<br>
 
 Techniques to control variance:
 
@@ -2036,8 +1985,7 @@ Techniques to control variance:
 
 #### 7.7 Regularization
 
-\
-
+<br>
 
 Regularization penalizes large parameter weights to prevent overfitting.
 
@@ -2053,13 +2001,11 @@ Regularization penalizes large parameter weights to prevent overfitting.
 
 #### 7.8 Cross-Validation
 
-\
-
+<br>
 
 A method for assessing model stability and generalization.
 
-\
-
+<br>
 
 **7.8.1 k-Fold Cross-Validation**
 
@@ -2067,22 +2013,19 @@ A method for assessing model stability and generalization.
 * Train on _k−1_ folds, test on the remaining.
 * Average results for final score.
 
-\
-
+<br>
 
 **7.8.2 Stratified k-Fold**
 
 * Maintains class balance (important for classification).
 
-\
-
+<br>
 
 **7.8.3 Time-Series Cross-Validation**
 
 * Respects chronological order (train → validate → test progressively).
 
-\
-
+<br>
 
 > Use cross-validation for model comparison and hyperparameter tuning.
 
@@ -2090,13 +2033,11 @@ A method for assessing model stability and generalization.
 
 #### 7.9 Hyperparameter Tuning
 
-\
-
+<br>
 
 Hyperparameters are not learned during training; they define how training occurs.
 
-\
-
+<br>
 
 Examples:
 
@@ -2104,8 +2045,7 @@ Examples:
 * Regularization strength
 * Number of layers, trees, neighbors, etc.
 
-\
-
+<br>
 
 **Tuning Techniques:**
 
@@ -2122,13 +2062,11 @@ Examples:
 
 #### 7.10 Evaluation Metrics
 
-\
-
+<br>
 
 The right metric depends on your task type and business objective.
 
-\
-
+<br>
 
 **7.10.1 Classification Metrics**
 
@@ -2167,8 +2105,7 @@ The right metric depends on your task type and business objective.
 
 Sometimes, classical metrics don’t reflect real-world value.
 
-\
-
+<br>
 
 Examples:
 
@@ -2177,8 +2114,7 @@ Examples:
 * False alarm cost
 * Customer churn rate reduction
 
-\
-
+<br>
 
 > Choose metrics that align with business impact.
 
@@ -2186,8 +2122,7 @@ Examples:
 
 #### 7.11 Confusion Matrix and Error Analysis
 
-\
-
+<br>
 
 A confusion matrix breaks down predictions into:
 
@@ -2198,8 +2133,7 @@ A confusion matrix breaks down predictions into:
 
 From this, all classification metrics are derived.
 
-\
-
+<br>
 
 Error Analysis Steps:
 
@@ -2211,13 +2145,11 @@ Error Analysis Steps:
 
 #### 7.12 Handling Class Imbalance
 
-\
-
+<br>
 
 When one class dominates others (e.g., fraud = 1%, non-fraud = 99%).
 
-\
-
+<br>
 
 **Techniques:**
 
@@ -2230,8 +2162,7 @@ When one class dominates others (e.g., fraud = 1%, non-fraud = 99%).
 
 #### 7.13 Model Comparison
 
-\
-
+<br>
 
 When comparing models, ensure:
 
@@ -2239,13 +2170,11 @@ When comparing models, ensure:
 * Same preprocessing steps.
 * Same evaluation metrics.
 
-\
-
+<br>
 
 > Fair comparison = same data, same metric, same protocol.
 
-\
-
+<br>
 
 Always include a baseline model for reference:
 
@@ -2257,8 +2186,7 @@ Always include a baseline model for reference:
 
 #### 7.14 Ensemble Methods
 
-\
-
+<br>
 
 Combine multiple models to improve stability and performance.
 
@@ -2274,13 +2202,11 @@ Combine multiple models to improve stability and performance.
 
 #### 7.15 Avoiding Overfitting
 
-\
-
+<br>
 
 Overfitting = low training error but high validation/test error.
 
-\
-
+<br>
 
 **Prevention Techniques:**
 
@@ -2296,8 +2222,7 @@ Overfitting = low training error but high validation/test error.
 
 #### 7.16 Reproducibility in Training
 
-\
-
+<br>
 
 Ensure experiments are repeatable by fixing:
 
@@ -2306,8 +2231,7 @@ Ensure experiments are repeatable by fixing:
 * Environment dependencies
 * Code versions
 
-\
-
+<br>
 
 Use experiment-tracking tools:
 
@@ -2319,13 +2243,11 @@ Use experiment-tracking tools:
 
 #### 7.17 Model Interpretability
 
-\
-
+<br>
 
 Interpretability builds trust and helps debugging.
 
-\
-
+<br>
 
 Methods:
 
@@ -2334,8 +2256,7 @@ Methods:
 * LIME / SHAP values
 * Decision rules / surrogate models
 
-\
-
+<br>
 
 Choose explainable models for high-stakes domains (healthcare, finance).
 
@@ -2343,8 +2264,7 @@ Choose explainable models for high-stakes domains (healthcare, finance).
 
 #### 7.18 Continuous Evaluation and Monitoring
 
-\
-
+<br>
 
 Model performance can drift in production due to:
 
@@ -2352,8 +2272,7 @@ Model performance can drift in production due to:
 * Concept drift
 * Label leakage
 
-\
-
+<br>
 
 Monitor:
 
@@ -2362,8 +2281,7 @@ Monitor:
 * Live performance (A/B testing)
 * Business KPIs
 
-\
-
+<br>
 
 Retrain or recalibrate when drift is detected.
 
@@ -2400,15 +2318,13 @@ Here are detailed notes for Chapter 8 – “Model Deployment and Prediction Ser
 
 ### Chapter 8: Model Deployment and Prediction Service
 
-\
-
+<br>
 
 This chapter explains how to turn a trained model into a usable service — accessible to users or systems — in a reliable, scalable, and maintainable way.
 
 It covers deployment strategies, prediction pipelines, system architecture, versioning, monitoring, and performance optimization.
 
-\
-
+<br>
 
 > “A model that stays in a notebook helps no one — deployment turns ideas into value.”
 
@@ -2416,13 +2332,11 @@ It covers deployment strategies, prediction pipelines, system architecture, vers
 
 #### 8.1 What Is Model Deployment?
 
-\
-
+<br>
 
 Model deployment is the process of integrating a trained ML model into a production environment where it can make predictions on new, unseen data.
 
-\
-
+<br>
 
 Goal:
 
@@ -2432,8 +2346,7 @@ To make the model’s predictions accessible through an interface (API, batch jo
 
 #### 8.2 Model Deployment Paradigms
 
-\
-
+<br>
 
 Deployment depends on how predictions are used:
 
@@ -2453,8 +2366,7 @@ Deployment depends on how predictions are used:
 
 #### 8.3 Components of a Prediction Service
 
-\
-
+<br>
 
 A prediction service typically includes:
 
@@ -2470,8 +2382,7 @@ A prediction service typically includes:
 5. Monitoring & Logging
    * Tracks requests, latency, and model performance drift.
 
-\
-
+<br>
 
 > Consistency rule: The data preprocessing used during training must be identical during inference.
 
@@ -2479,13 +2390,11 @@ A prediction service typically includes:
 
 #### 8.4 Packaging and Serialization
 
-\
-
+<br>
 
 To deploy a model, you first package it into a portable artifact.
 
-\
-
+<br>
 
 **Common Serialization Formats**
 
@@ -2502,13 +2411,11 @@ To deploy a model, you first package it into a portable artifact.
 
 #### 8.5 Containerization
 
-\
-
+<br>
 
 Models are deployed as containers for consistency across environments.
 
-\
-
+<br>
 
 **Benefits of Containerization:**
 
@@ -2516,8 +2423,7 @@ Models are deployed as containers for consistency across environments.
 * Scalability across clusters (e.g., Kubernetes).
 * Isolation from other services.
 
-\
-
+<br>
 
 **Typical Container Stack:**
 
@@ -2525,8 +2431,7 @@ Models are deployed as containers for consistency across environments.
 * Docker image → Portable build.
 * Container orchestration → Managed by Kubernetes, ECS, or Docker Swarm.
 
-\
-
+<br>
 
 Example structure:
 
@@ -2543,8 +2448,7 @@ Example structure:
 
 #### 8.6 Model Serving Architectures
 
-\
-
+<br>
 
 **8.6.1 Embedded (In-process) Serving**
 
@@ -2552,8 +2456,7 @@ Example structure:
 * Pros: Low latency, simple setup.
 * Cons: Harder to update model without redeploying the app.
 
-\
-
+<br>
 
 **8.6.2 Separate Microservice**
 
@@ -2561,8 +2464,7 @@ Example structure:
 * Pros: Independent scalability and updates.
 * Cons: Network latency and additional infrastructure.
 
-\
-
+<br>
 
 **8.6.3 Model Server Frameworks**
 
@@ -2592,8 +2494,7 @@ Example structure:
 
 #### 8.8 Model Versioning and Management
 
-\
-
+<br>
 
 Every model version must be tracked along with:
 
@@ -2603,8 +2504,7 @@ Every model version must be tracked along with:
 * Evaluation metrics
 * Deployment metadata
 
-\
-
+<br>
 
 **Tools:**
 
@@ -2613,8 +2513,7 @@ Every model version must be tracked along with:
 * Weights & Biases
 * Git + Tagging
 
-\
-
+<br>
 
 Version control ensures:
 
@@ -2626,13 +2525,11 @@ Version control ensures:
 
 #### 8.9 CI/CD for Machine Learning (MLOps)
 
-\
-
+<br>
 
 Continuous Integration / Continuous Deployment pipelines automate model lifecycle tasks.
 
-\
-
+<br>
 
 **CI/CD Stages:**
 
@@ -2642,15 +2539,13 @@ Continuous Integration / Continuous Deployment pipelines automate model lifecycl
 4. Deployment (automated if new model passes threshold)
 5. Monitoring & rollback
 
-\
-
+<br>
 
 > MLOps = DevOps + DataOps + ModelOps.
 
 > It ensures automation, reliability, and scalability of ML systems.
 
-\
-
+<br>
 
 Popular Tools:
 
@@ -2664,42 +2559,36 @@ Popular Tools:
 
 #### 8.10 Model Performance Monitoring
 
-\
-
+<br>
 
 After deployment, models must be continuously monitored for:
 
-\
-
+<br>
 
 **1. Data Drift**
 
 * Distribution of inputs changes over time.
 * Detected via KS-test, population stability index (PSI).
 
-\
-
+<br>
 
 **2. Concept Drift**
 
 * Relationship between features and target changes.
 
-\
-
+<br>
 
 **3. Latency and Throughput**
 
 * Measure prediction response time and load capacity.
 
-\
-
+<br>
 
 **4. Prediction Quality**
 
 * Compare real-world outcomes vs. model predictions (if labels become available).
 
-\
-
+<br>
 
 **5. Business Metrics**
 
@@ -2709,21 +2598,18 @@ After deployment, models must be continuously monitored for:
 
 #### 8.11 Canary and Shadow Deployments
 
-\
-
+<br>
 
 Safe rollout strategies for new models.
 
-\
-
+<br>
 
 **Canary Deployment**
 
 * Deploy new model to small % of users → monitor performance.
 * If stable → gradually increase traffic.
 
-\
-
+<br>
 
 **Shadow Deployment**
 
@@ -2731,8 +2617,7 @@ Safe rollout strategies for new models.
 * Receives same inputs but its predictions are not used.
 * Used for testing before production rollout.
 
-\
-
+<br>
 
 > Both strategies prevent full-scale failures.
 
@@ -2740,13 +2625,11 @@ Safe rollout strategies for new models.
 
 #### 8.12 Model Scaling
 
-\
-
+<br>
 
 Scalability ensures that your service handles increasing requests efficiently.
 
-\
-
+<br>
 
 **Scaling Strategies**
 
@@ -2754,8 +2637,7 @@ Scalability ensures that your service handles increasing requests efficiently.
 2. Horizontal Scaling: Add more replicas behind a load balancer.
 3. Autoscaling: Automatically adjust resources based on traffic (Kubernetes HPA, AWS Auto Scaling).
 
-\
-
+<br>
 
 Use asynchronous queues (Kafka, RabbitMQ) for large batch or streaming workloads.
 
@@ -2774,8 +2656,7 @@ Use asynchronous queues (Kafka, RabbitMQ) for large batch or streaming workloads
 5. Privacy Preservation
    * Techniques: differential privacy, federated learning, secure enclaves.
 
-\
-
+<br>
 
 > Inference APIs can unintentionally expose sensitive model behavior — protect them like other production assets.
 
@@ -2783,8 +2664,7 @@ Use asynchronous queues (Kafka, RabbitMQ) for large batch or streaming workloads
 
 #### 8.14 Model Retraining and Lifecycle Management
 
-\
-
+<br>
 
 Models degrade over time due to:
 
@@ -2792,8 +2672,7 @@ Models degrade over time due to:
 * Behavior change
 * Concept drift
 
-\
-
+<br>
 
 **Retraining Loop**
 
@@ -2802,8 +2681,7 @@ Models degrade over time due to:
 3. Retrain if performance falls below threshold.
 4. Re-deploy and monitor.
 
-\
-
+<br>
 
 Automation tip:
 
@@ -2813,8 +2691,7 @@ Integrate retraining pipelines in CI/CD workflow (MLOps).
 
 #### 8.15 A/B Testing for Model Performance
 
-\
-
+<br>
 
 Compare two models live on real traffic.
 
@@ -2831,13 +2708,11 @@ Compare two models live on real traffic.
 
 #### 8.16 Logging and Observability
 
-\
-
+<br>
 
 Logging ensures traceability and debugging ability.
 
-\
-
+<br>
 
 **Key Logs:**
 
@@ -2847,8 +2722,7 @@ Logging ensures traceability and debugging ability.
 * Latency and request ID
 * System-level metrics (CPU, GPU, memory)
 
-\
-
+<br>
 
 Observability Tools:
 
@@ -2898,15 +2772,13 @@ Here are detailed notes for Chapter 9 – “Model Maintenance and Monitoring”
 
 ### Chapter 9: Model Maintenance and Monitoring
 
-\
-
+<br>
 
 This chapter focuses on what happens after model deployment — the phase where most real-world challenges appear.
 
 It explains how to monitor, maintain, and update machine learning models to ensure their performance remains consistent, fair, and reliable over time.
 
-\
-
+<br>
 
 > “In machine learning, deployment is not the end — it’s the beginning of a new lifecycle.”
 
@@ -2914,15 +2786,13 @@ It explains how to monitor, maintain, and update machine learning models to ensu
 
 #### 9.1 Why Model Maintenance Is Essential
 
-\
-
+<br>
 
 A model’s environment is dynamic, not static.
 
 Once in production, it begins to interact with real-world data — which changes continuously.
 
-\
-
+<br>
 
 **Reasons for Degradation (a.k.a. Model Decay):**
 
@@ -2932,8 +2802,7 @@ Once in production, it begins to interact with real-world data — which changes
 4. Feature Drift: Important features lose predictive power or disappear.
 5. System Drift: Infrastructure or upstream changes (e.g., APIs, ETL jobs) alter inputs.
 
-\
-
+<br>
 
 > Even a perfectly trained model will fail if the world it represents changes.
 
@@ -2941,8 +2810,7 @@ Once in production, it begins to interact with real-world data — which changes
 
 #### 9.2 Model Lifecycle Management
 
-\
-
+<br>
 
 The ML lifecycle doesn’t stop at deployment; it’s a continuous loop:
 
@@ -2952,8 +2820,7 @@ The ML lifecycle doesn’t stop at deployment; it’s a continuous loop:
 4. Retrain or recalibrate the model.
 5. Validate new version and redeploy.
 
-\
-
+<br>
 
 This cycle repeats throughout the model’s operational lifespan — a concept called continuous ML (CML) or MLOps.
 
@@ -2961,13 +2828,11 @@ This cycle repeats throughout the model’s operational lifespan — a concept c
 
 #### 9.3 Key Aspects of Monitoring
 
-\
-
+<br>
 
 Monitoring ensures the model performs as expected technically and business-wise.
 
-\
-
+<br>
 
 **Monitoring Dimensions:**
 
@@ -2983,13 +2848,11 @@ Monitoring ensures the model performs as expected technically and business-wise.
 
 #### 9.4 Monitoring Data Quality
 
-\
-
+<br>
 
 Data quality issues are among the most common causes of performance degradation.
 
-\
-
+<br>
 
 **What to Check:**
 
@@ -3004,8 +2867,7 @@ Data quality issues are among the most common causes of performance degradation.
 4. Outlier Ratios:
    * Large deviation may signal corrupted data.
 
-\
-
+<br>
 
 **Tools:**
 
@@ -3014,8 +2876,7 @@ Data quality issues are among the most common causes of performance degradation.
 * Deequ (AWS)
 * Pandera (Python)
 
-\
-
+<br>
 
 > Always log input data summaries with every prediction request.
 
@@ -3023,8 +2884,7 @@ Data quality issues are among the most common causes of performance degradation.
 
 #### 9.5 Detecting Drift
 
-\
-
+<br>
 
 **9.5.1 Types of Drift**
 
@@ -3048,13 +2908,11 @@ Data quality issues are among the most common causes of performance degradation.
 
 #### 9.6 Monitoring Model Performance
 
-\
-
+<br>
 
 Measure how the model performs on _live data_ compared to its original validation results.
 
-\
-
+<br>
 
 **Approaches:**
 
@@ -3066,8 +2924,7 @@ Measure how the model performs on _live data_ compared to its original validatio
 3. Continuous Evaluation:
    * Periodically run evaluation pipelines on new labeled batches.
 
-\
-
+<br>
 
 **Typical Metrics:**
 
@@ -3075,8 +2932,7 @@ Measure how the model performs on _live data_ compared to its original validatio
 * Regression: MAE, RMSE, R².
 * Business: Revenue lift, reduced churn, fraud savings.
 
-\
-
+<br>
 
 > Track both model metrics and business outcomes to assess true health.
 
@@ -3084,13 +2940,11 @@ Measure how the model performs on _live data_ compared to its original validatio
 
 #### 9.7 Model Explainability and Accountability
 
-\
-
+<br>
 
 Post-deployment interpretability helps detect unexpected model behavior or bias.
 
-\
-
+<br>
 
 **Explainability Tools:**
 
@@ -3099,8 +2953,7 @@ Post-deployment interpretability helps detect unexpected model behavior or bias.
 * LIME (Local Interpretable Model-Agnostic Explanations)
 * Counterfactual explanations
 
-\
-
+<br>
 
 **Accountability Measures:**
 
@@ -3111,8 +2964,7 @@ Post-deployment interpretability helps detect unexpected model behavior or bias.
   * Evaluation metrics
   * Known limitations and risks
 
-\
-
+<br>
 
 This builds trust and auditability, especially in regulated industries.
 
@@ -3120,13 +2972,11 @@ This builds trust and auditability, especially in regulated industries.
 
 #### 9.8 Automating Model Maintenance (MLOps Loop)
 
-\
-
+<br>
 
 Automation ensures models are updated without manual intervention.
 
-\
-
+<br>
 
 **Typical Automated Workflow:**
 
@@ -3135,8 +2985,7 @@ Automation ensures models are updated without manual intervention.
 3. Evaluate → Compare with Baseline → If Better → Deploy.
 4. Monitor Performance → Repeat.
 
-\
-
+<br>
 
 This can be implemented via tools like:
 
@@ -3145,8 +2994,7 @@ This can be implemented via tools like:
 * TFX (TensorFlow Extended)
 * AWS SageMaker Pipelines
 
-\
-
+<br>
 
 > Automation reduces human error and keeps models synchronized with reality.
 
@@ -3154,13 +3002,11 @@ This can be implemented via tools like:
 
 #### 9.9 Retraining Strategies
 
-\
-
+<br>
 
 Retraining keeps models relevant but must be done strategically.
 
-\
-
+<br>
 
 **Retraining Triggers:**
 
@@ -3168,8 +3014,7 @@ Retraining keeps models relevant but must be done strategically.
 2. Performance-based: Retrain when performance drops below threshold.
 3. Data-based: Retrain when input distribution drifts beyond limit.
 
-\
-
+<br>
 
 **Retraining Types:**
 
@@ -3185,8 +3030,7 @@ Retraining keeps models relevant but must be done strategically.
 
 #### 9.10 Model Versioning and Rollback
 
-\
-
+<br>
 
 Every new model must be:
 
@@ -3194,8 +3038,7 @@ Every new model must be:
 * Tested for regression against current production.
 * Deployable with rollback support.
 
-\
-
+<br>
 
 **Model Registry Should Include:**
 
@@ -3205,8 +3048,7 @@ Every new model must be:
 * Validation & production metrics
 * Deployment date and owner
 
-\
-
+<br>
 
 Rollback:
 
@@ -3216,8 +3058,7 @@ If a new version performs worse or introduces bias, the system should automatica
 
 #### 9.11 Bias and Fairness Monitoring
 
-\
-
+<br>
 
 Models can become biased due to:
 
@@ -3225,8 +3066,7 @@ Models can become biased due to:
 * Uneven drift across user groups.
 * Feedback loops reinforcing prior errors.
 
-\
-
+<br>
 
 **Monitoring Methods:**
 
@@ -3234,8 +3074,7 @@ Models can become biased due to:
 * Group-wise Performance Tracking: Compare F1 or AUC across demographics.
 * Bias Dashboards: Automated visualization tools (e.g., What-If Tool, Aequitas).
 
-\
-
+<br>
 
 > Fairness is not a one-time check — it must be continuously measured.
 
@@ -3243,21 +3082,18 @@ Models can become biased due to:
 
 #### 9.12 Shadow and Champion–Challenger Models
 
-\
-
+<br>
 
 Safe maintenance requires testing new models before replacing old ones.
 
-\
-
+<br>
 
 **Shadow Mode:**
 
 * New model runs in parallel, receives same inputs, but predictions are not used.
 * Compares outputs silently to production model.
 
-\
-
+<br>
 
 **Champion–Challenger Setup:**
 
@@ -3265,8 +3101,7 @@ Safe maintenance requires testing new models before replacing old ones.
 * Challenger = candidate model.
 * Challenger replaces Champion only if it performs better in real-world data.
 
-\
-
+<br>
 
 > This system prevents regressions and enables experimentation without risk.
 
@@ -3274,8 +3109,7 @@ Safe maintenance requires testing new models before replacing old ones.
 
 #### 9.13 Monitoring Tools and Infrastructure
 
-\
-
+<br>
 
 Popular tools for end-to-end monitoring and maintenance:
 
@@ -3291,13 +3125,11 @@ Popular tools for end-to-end monitoring and maintenance:
 
 #### 9.14 Model Governance and Compliance
 
-\
-
+<br>
 
 For enterprise and regulated domains (finance, healthcare, insurance), compliance is critical.
 
-\
-
+<br>
 
 Governance Elements:
 
@@ -3306,8 +3138,7 @@ Governance Elements:
 3. Accountability: Who approved, trained, and deployed the model.
 4. Transparency: Clear documentation of data sources and decisions.
 
-\
-
+<br>
 
 **Tools and Standards:**
 
@@ -3320,13 +3151,11 @@ Governance Elements:
 
 #### 9.15 Human-in-the-Loop Systems
 
-\
-
+<br>
 
 Human oversight improves model robustness and accountability.
 
-\
-
+<br>
 
 Examples:
 
@@ -3334,8 +3163,7 @@ Examples:
 * Provide feedback for retraining.
 * Override model outputs in critical cases.
 
-\
-
+<br>
 
 > The goal is not to replace humans but to _augment_ them.
 
@@ -3387,15 +3215,13 @@ Here are detailed notes for Chapter 10 – “Ethics and Privacy” from _Machin
 
 ### Chapter 10: Ethics and Privacy
 
-\
-
+<br>
 
 This final chapter emphasizes the responsibility of ML engineers in developing and deploying machine learning systems that are ethical, fair, transparent, and respectful of privacy.
 
 It discusses the moral, social, and legal implications of AI models and outlines strategies to build systems that benefit people without causing harm.
 
-\
-
+<br>
 
 > “A great machine learning engineer doesn’t just optimize models — they optimize for humanity.”
 
@@ -3403,8 +3229,7 @@ It discusses the moral, social, and legal implications of AI models and outlines
 
 ### 10.1 The Importance of Ethics in Machine Learning
 
-\
-
+<br>
 
 Machine learning models influence critical decisions — in healthcare, finance, justice, hiring, and public policy.
 
@@ -3415,8 +3240,7 @@ Unethical design or misuse can lead to:
 * Spread of misinformation
 * Erosion of trust in technology
 
-\
-
+<br>
 
 Hence, ethical ML is not optional — it’s a core engineering responsibility.
 
@@ -3424,8 +3248,7 @@ Hence, ethical ML is not optional — it’s a core engineering responsibility.
 
 ### 10.2 Defining AI Ethics
 
-\
-
+<br>
 
 AI Ethics is the practice of aligning machine learning systems with:
 
@@ -3433,8 +3256,7 @@ AI Ethics is the practice of aligning machine learning systems with:
 2. Moral principles (justice, beneficence, non-maleficence)
 3. Legal and social norms
 
-\
-
+<br>
 
 Key Objective:
 
@@ -3458,13 +3280,11 @@ Ensure ML systems help more than they harm, and their decisions can be understoo
 
 ### 10.4 Fairness in Machine Learning
 
-\
-
+<br>
 
 ML models learn from historical data, which often carries systemic bias.
 
-\
-
+<br>
 
 #### 10.4.1 Sources of Bias
 
@@ -3474,8 +3294,7 @@ ML models learn from historical data, which often carries systemic bias.
 4. Algorithmic Bias: Model amplifies existing inequalities.
 5. Societal Bias: Data reflects human prejudice and discrimination.
 
-\
-
+<br>
 
 #### 10.4.2 Fairness Metrics
 
@@ -3493,37 +3312,32 @@ ML models learn from historical data, which often carries systemic bias.
 
 ### 10.5 Addressing Fairness
 
-\
-
+<br>
 
 Approaches to Mitigate Bias:
 
-\
-
+<br>
 
 #### 1. Pre-Processing
 
 * Clean and rebalance data before training.
 * Techniques: reweighting, resampling (e.g., SMOTE for minority classes), removing sensitive features.
 
-\
-
+<br>
 
 #### 2. In-Processing
 
 * Modify training algorithms to include fairness constraints.
 * Example: adversarial debiasing.
 
-\
-
+<br>
 
 #### 3. Post-Processing
 
 * Adjust model outputs or thresholds for fairness.
 * Example: equalize prediction probabilities across subgroups.
 
-\
-
+<br>
 
 Tools:
 
@@ -3533,8 +3347,7 @@ IBM AI Fairness 360, Google What-If Tool, Fairlearn (Microsoft).
 
 ### 10.6 Transparency and Explainability
 
-\
-
+<br>
 
 Black-box models raise questions like:
 
@@ -3542,13 +3355,11 @@ Black-box models raise questions like:
 * How is this diagnosis justified?
 * Can we trust an algorithmic decision?
 
-\
-
+<br>
 
 Explainability = Understanding model decisions.
 
-\
-
+<br>
 
 #### Types of Explainability
 
@@ -3565,8 +3376,7 @@ Explainability = Understanding model decisions.
 * Helps detect bias and errors.
 * Required by law (e.g., GDPR “right to explanation”).
 
-\
-
+<br>
 
 > Choose the simplest model that meets performance requirements — simpler models are easier to explain.
 
@@ -3574,13 +3384,11 @@ Explainability = Understanding model decisions.
 
 ### 10.7 Accountability in ML Systems
 
-\
-
+<br>
 
 Humans must remain responsible for AI outcomes.
 
-\
-
+<br>
 
 #### Accountability Components
 
@@ -3591,8 +3399,7 @@ Humans must remain responsible for AI outcomes.
 2. Auditability: Logs and metrics must be available for external review.
 3. Human Oversight: Humans can override model decisions when necessary.
 
-\
-
+<br>
 
 #### Documentation Tools
 
@@ -3604,13 +3411,11 @@ Humans must remain responsible for AI outcomes.
 
 ### 10.8 Privacy in Machine Learning
 
-\
-
+<br>
 
 ML often requires large amounts of data, much of it personal. Protecting privacy is both ethical and legal.
 
-\
-
+<br>
 
 #### 10.8.1 Types of Sensitive Data
 
@@ -3619,8 +3424,7 @@ ML often requires large amounts of data, much of it personal. Protecting privacy
 * Biometric data (face, fingerprints)
 * Behavioral logs or user activity
 
-\
-
+<br>
 
 #### 10.8.2 Privacy Violations
 
@@ -3648,8 +3452,7 @@ ML often requires large amounts of data, much of it personal. Protecting privacy
 
 ### 10.10 Legal and Regulatory Frameworks
 
-\
-
+<br>
 
 Several global regulations enforce responsible data and AI use.
 
@@ -3673,13 +3476,11 @@ GDPR Key Rights:
 
 ### 10.11 Security in ML Systems
 
-\
-
+<br>
 
 Security breaches can compromise both the data and the model.
 
-\
-
+<br>
 
 #### Common Threats
 
@@ -3688,8 +3489,7 @@ Security breaches can compromise both the data and the model.
 3. Adversarial Attacks: Slightly modifying inputs to fool the model.
 4. Model Stealing: Reverse-engineering a proprietary model via API queries.
 
-\
-
+<br>
 
 #### Mitigation Techniques
 
@@ -3702,13 +3502,11 @@ Security breaches can compromise both the data and the model.
 
 ### 10.12 Social Impacts of Machine Learning
 
-\
-
+<br>
 
 ML systems shape human behavior and societal structures.
 
-\
-
+<br>
 
 #### Potential Negative Impacts
 
@@ -3717,8 +3515,7 @@ ML systems shape human behavior and societal structures.
 * Surveillance capitalism via behavioral tracking.
 * Misinformation spread through deepfakes and algorithmic amplification.
 
-\
-
+<br>
 
 #### Positive Impacts
 
@@ -3727,8 +3524,7 @@ ML systems shape human behavior and societal structures.
 * Accessible education via adaptive learning.
 * Faster scientific discoveries.
 
-\
-
+<br>
 
 > ML should be designed to empower — not manipulate — humans.
 
@@ -3736,8 +3532,7 @@ ML systems shape human behavior and societal structures.
 
 ### 10.13 Building Ethical ML Systems
 
-\
-
+<br>
 
 Checklist for Ethical ML Development:
 
@@ -3760,8 +3555,7 @@ Best Practices:
 
 ### 10.14 Responsible AI Frameworks
 
-\
-
+<br>
 
 Leading tech organizations promote responsible AI principles:
 
@@ -3785,8 +3579,7 @@ All emphasize:
 
 ### 10.15 The Role of the ML Engineer
 
-\
-
+<br>
 
 An ethical ML engineer is:
 
@@ -3794,8 +3587,7 @@ An ethical ML engineer is:
 * A scientist: Validates assumptions with data.
 * A philosopher: Questions the social impact of their creations.
 
-\
-
+<br>
 
 #### Key Responsibilities:
 
@@ -3805,8 +3597,7 @@ An ethical ML engineer is:
 4. Respect privacy — minimize data collection and use only necessary features.
 5. Communicate transparently — with both technical and non-technical stakeholders.
 
-\
-
+<br>
 
 > Ethical ML engineering is a discipline — not a checklist.
 

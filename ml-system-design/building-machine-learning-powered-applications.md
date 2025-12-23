@@ -48,8 +48,7 @@ Takeaway: Use ML when deterministic rules are too complex or impossible to defin
 
 #### 4. The Process of Deciding if ML is Suitable
 
-\
-
+<br>
 
 Two main steps:
 
@@ -66,8 +65,7 @@ Two main steps:
 
 #### 5. Categories of ML Models
 
-\
-
+<br>
 
 **A. Classification and Regression**
 
@@ -117,16 +115,14 @@ Two main steps:
 
 #### 6. Data: The Foundation of ML
 
-\
-
+<br>
 
 **A. Importance of Data**
 
 * Data defines what a model can learn.
 * Without quality and representative data, even strong models will fail.
 
-\
-
+<br>
 
 **B. Levels of Data Availability**
 
@@ -135,13 +131,11 @@ Two main steps:
 3. Unlabeled data: Requires manual labeling or self-supervised learning.
 4. No data: You’ll need to collect or simulate it.
 
-\
-
+<br>
 
 > _In practice, most datasets are weakly labeled and evolve iteratively._
 
-\
-
+<br>
 
 **C. Data Iteration**
 
@@ -152,13 +146,11 @@ Two main steps:
 
 #### 7. Case Study: ML-Assisted Writing Editor
 
-\
-
+<br>
 
 Goal: Help users write better questions (e.g., Stack Overflow style).
 
-\
-
+<br>
 
 **Three ML Approaches:**
 
@@ -788,8 +780,7 @@ This chapter also includes practical advice from engineers at companies like Sti
 
 Here are detailed notes for Chapter 4 — “Iterating on Models and Data” from _Building Machine Learning Powered Applications: Going from Idea to Product_ by Emmanuel Ameisen.
 
-\
-
+<br>
 
 This chapter builds directly upon the earlier ones — after you’ve framed the problem (Ch.1), defined metrics (Ch.2), and built a prototype (Ch.3) — now the focus shifts to the heart of ML development: improving models and data through iteration.
 
@@ -1490,8 +1481,7 @@ Strong collaboration prevents silos and ensures that the ML system serves produc
 
 Here are detailed notes for Chapter 6 — “Maintaining and Improving ML Systems” from _Building Machine Learning Powered Applications: Going from Idea to Product_ by Emmanuel Ameisen.
 
-\
-
+<br>
 
 This chapter is a continuation of Chapter 5’s deployment discussion — but it moves beyond initial rollout to cover the long-term health, scalability, and continuous improvement of machine learning systems in production.
 

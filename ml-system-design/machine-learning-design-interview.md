@@ -261,13 +261,11 @@ Here are the detailed notes of Chapter 3 – Search System Design from _Machine 
 
 ### Chapter 3 — Search System Design
 
-\
-
+<br>
 
 #### 1️⃣  Introduction
 
-\
-
+<br>
 
 A search engine connects user queries to relevant items (documents, profiles, products, or listings).
 
@@ -280,8 +278,7 @@ Typical use cases:
 * Airbnb → rental listings
 * Spotify → music tracks
 
-\
-
+<br>
 
 High-level pipeline
 
@@ -328,8 +325,7 @@ Example – Onebar semantic search
 
 #### 4️⃣  Ad / Search Ranking Example
 
-\
-
+<br>
 
 Ad Ranking System resembles search:
 
@@ -337,16 +333,14 @@ Ad Ranking System resembles search:
 * Compute pCTR and expected value = bid × pCTR × quality.
 * Auction (GSP or VCG) decides placement and cost.
 
-\
-
+<br>
 
 Why separate retrieval & ranking?
 
 * Retrieval = fast, coarse; Ranking = slow, precise.
 * Allows different update cadences and independent scaling.
 
-\
-
+<br>
 
 Feature update issue
 
@@ -357,13 +351,11 @@ Feature update issue
 
 #### 5️⃣  Training–Serving Skew
 
-\
-
+<br>
 
 Mismatch between offline preprocessing and online inference pipelines can cripple performance.
 
-\
-
+<br>
 
 Solutions
 
@@ -371,8 +363,7 @@ Solutions
 2. Feature logging at serving → reuse for training.
 3. TFDV / schema validation → detect drift.
 
-\
-
+<br>
 
 _Spotify example:_ four-month bug fixed via feature logging + validation.
 
@@ -380,8 +371,7 @@ _Spotify example:_ four-month bug fixed via feature logging + validation.
 
 #### 6️⃣  Scaling Retrieval Service
 
-\
-
+<br>
 
 Scalability patterns
 
@@ -394,8 +384,7 @@ Scalability patterns
 
 #### 7️⃣  LinkedIn Talent Search Case Study
 
-\
-
+<br>
 
 Goal: rank candidates most likely to accept recruiter messages (InMail).
 
@@ -427,8 +416,7 @@ Key improvements
 
 #### 9️⃣  Airbnb Search Ranking Case
 
-\
-
+<br>
 
 Objective: maximize booking likelihood for a given query (location + dates).
 
@@ -483,20 +471,17 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ### Chapter 4 — Fraud Detection System
 
-\
-
+<br>
 
 #### 1. Overview
 
-\
-
+<br>
 
 Fraud detection systems aim to identify abnormal or malicious behaviors in transactions, signups, reviews, etc., while minimizing false positives that affect user experience.
 
 Fraud detection = a real-time classification + graph-based pattern recognition problem.
 
-\
-
+<br>
 
 Examples:
 
@@ -540,8 +525,7 @@ Challenges
 
 #### 4. ML Pipeline Overview
 
-\
-
+<br>
 
 **Step 1.**&#x20;
 
@@ -551,8 +535,7 @@ Challenges
 * Delay between fraud occurrence and confirmation → label delay.
 * To reduce delay: Use proxy labels (e.g., user banned within 7 days).
 
-\
-
+<br>
 
 **Step 2.**&#x20;
 
@@ -563,8 +546,7 @@ Challenges
 * Transaction-level: frequency, amount deviation, velocity features.
 * User-level: account age, historical rejection rate.
 
-\
-
+<br>
 
 **Step 3.**&#x20;
 
@@ -593,8 +575,7 @@ Label Imbalance Handling
 
 #### 6. Graph-Based Fraud Detection
 
-\
-
+<br>
 
 **A. Why Graphs?**
 
@@ -605,16 +586,14 @@ Represent system as heterogeneous graph with:
 * Nodes: users, devices, IPs, credit cards.
 * Edges: transactions, logins, ownership.
 
-\
-
+<br>
 
 **B. GNN Models**
 
 * GraphSAGE, R-GCN, or GAT (Graph Attention Networks).
 * Learn embeddings that capture neighbor behavior and structural signals.
 
-\
-
+<br>
 
 Industry Examples
 
@@ -626,8 +605,7 @@ Industry Examples
 
 #### 7. Real-Time Fraud Detection Architecture
 
-\
-
+<br>
 
 **Typical Flow:**
 
@@ -637,8 +615,7 @@ Industry Examples
 4. Decision Engine → rules + ML output to approve/block/review.
 5. Feedback loop → store labeled outcomes for retraining.
 
-\
-
+<br>
 
 **Tech Stack:**
 
@@ -651,8 +628,7 @@ Industry Examples
 
 #### 8. Hybrid Rules + ML System
 
-\
-
+<br>
 
 Fraud detection systems combine static rules + ML models.
 
@@ -668,8 +644,7 @@ Final Fraud Score =
 
 0.6 \* ML\_Model\_Score + 0.4 \* Rule\_Engine\_Score
 
-\
-
+<br>
 
 Reason:
 
@@ -696,13 +671,11 @@ At PayPal, cost of false negatives >> cost of false positives → optimize for h
 
 #### 10. Handling Concept Drift
 
-\
-
+<br>
 
 Concept drift: Fraud patterns evolve (e.g., new devices, IP ranges).
 
-\
-
+<br>
 
 Detection methods
 
@@ -710,8 +683,7 @@ Detection methods
 * Retraining triggers based on drift thresholds.
 * Rolling window training (e.g., last 4 weeks).
 
-\
-
+<br>
 
 Solution Strategies
 
@@ -723,13 +695,11 @@ Solution Strategies
 
 #### 11. Explainability & Compliance
 
-\
-
+<br>
 
 Why important: Financial & legal regulations require interpretability.
 
-\
-
+<br>
 
 Techniques
 
@@ -737,8 +707,7 @@ Techniques
 * Rule-based post-hoc filtering: “Blocked because multiple devices used.”
 * Dashboard for fraud analysts to override false positives.
 
-\
-
+<br>
 
 Case Study:
 
@@ -748,8 +717,7 @@ Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“veloc
 
 #### 12. Case Studies
 
-\
-
+<br>
 
 **1.**&#x20;
 
@@ -758,8 +726,7 @@ Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“veloc
 * Graph-based feature + GNN → XGBoost hybrid model.
 * 80% reduction in false negatives, lower latency with Redis cache.
 
-\
-
+<br>
 
 **2.**&#x20;
 
@@ -768,8 +735,7 @@ Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“veloc
 * Embedding-based account similarity detection.
 * Detect fake listings using text similarity + image hash + GNN edges.
 
-\
-
+<br>
 
 **3.**&#x20;
 
@@ -808,20 +774,17 @@ Here are the detailed notes of Chapter 5 – Feed Ranking System from _“Machin
 
 ### 📰 Chapter 5 — Feed Ranking System
 
-\
-
+<br>
 
 #### 1. Overview
 
-\
-
+<br>
 
 A feed ranking system determines the order of posts, photos, or videos on platforms like Facebook, LinkedIn, Twitter, or Instagram.
 
 Its objective is to maximize user engagement (e.g., clicks, likes, shares, dwell time) while maintaining diversity and fairness.
 
-\
-
+<br>
 
 Core steps:
 
@@ -834,8 +797,7 @@ Core steps:
 
 #### 2. Candidate Generation
 
-\
-
+<br>
 
 **A. Sources of Candidates**
 
@@ -844,16 +806,14 @@ Core steps:
 * Interest Graph: Communities, topics, hashtags, etc.
 * Content Pools: Popular, trending, or location-based posts.
 
-\
-
+<br>
 
 Example – LinkedIn:
 
 * Candidates from 1st and 2nd-degree connections.
 * Additional ones from followed companies or influencers.
 
-\
-
+<br>
 
 **B. Candidate Selection**
 
@@ -869,13 +829,11 @@ Common techniques:
 
 #### 3. Ranking Model
 
-\
-
+<br>
 
 Ranking model scores each candidate to estimate engagement likelihood.
 
-\
-
+<br>
 
 **A. Input Features**
 
@@ -884,8 +842,7 @@ Ranking model scores each candidate to estimate engagement likelihood.
 3. Context features – device type, session time, network speed.
 4. Interaction features – relationship strength, past engagement.
 
-\
-
+<br>
 
 **B. Model Architectures**
 
@@ -901,8 +858,7 @@ Common Output:
 * Predicted probability for actions (e.g., click, like, comment).
 * Composite score = weighted sum of multiple action probabilities.
 
-\
-
+<br>
 
 Formula Example:
 
@@ -912,8 +868,7 @@ FinalScore = 0.4 \* p\_like + 0.3 \* p\_comment + 0.3 \* p\_share
 
 #### 4. Multi-Objective Optimization
 
-\
-
+<br>
 
 Real feed ranking often has multiple competing objectives:
 
@@ -923,8 +878,7 @@ Real feed ranking often has multiple competing objectives:
 * Creator fairness
 * Content quality / safety
 
-\
-
+<br>
 
 **Techniques:**
 
@@ -932,8 +886,7 @@ Real feed ranking often has multiple competing objectives:
 2. Pareto optimal optimization – no objective can be improved without worsening another.
 3. Constraint-based ranking – e.g., maximize CTR under fairness constraints.
 
-\
-
+<br>
 
 Facebook Example:
 
@@ -943,8 +896,7 @@ Optimize engagement while constraining user well-being and content diversity.
 
 #### 5. Post-Processing / Re-ranking
 
-\
-
+<br>
 
 **A. Freshness**
 
@@ -952,24 +904,21 @@ Optimize engagement while constraining user well-being and content diversity.
 
     FreshnessBoost = e^(-λ \* post\_age\_hours)
 
-\
-
+<br>
 
 **B. Diversity**
 
 * Avoid showing many similar posts consecutively.
 * Methods: Topic clustering + round-robin from each cluster.
 
-\
-
+<br>
 
 **C. Fairness**
 
 * Ensure visibility for new or small creators.
 * Example: LinkedIn boosts visibility of less-connected users’ posts.
 
-\
-
+<br>
 
 **D. Content Safety**
 
@@ -979,13 +928,11 @@ Optimize engagement while constraining user well-being and content diversity.
 
 #### 6. Position Bias & Debiasing
 
-\
-
+<br>
 
 Users tend to click higher-ranked items → causes training bias.
 
-\
-
+<br>
 
 Solutions:
 
@@ -993,8 +940,7 @@ Solutions:
 * Introduce randomized experiments (e.g., shuffled results) to collect unbiased data.
 * Add position feature explicitly in the model.
 
-\
-
+<br>
 
 LinkedIn Example:
 
@@ -1004,8 +950,7 @@ Position-based impression discounting for feed ranking.
 
 #### 7. Data Pipeline
 
-\
-
+<br>
 
 **A. Offline Training**
 
@@ -1013,8 +958,7 @@ Position-based impression discounting for feed ranking.
 * Join user, content, and context features.
 * Train DNN/GBDT with millions of samples.
 
-\
-
+<br>
 
 **B. Online Serving**
 
@@ -1022,8 +966,7 @@ Position-based impression discounting for feed ranking.
 * Model inference in <100 ms.
 * Output ranked list for rendering in user’s feed.
 
-\
-
+<br>
 
 Feature freshness is critical — stale features lead to lower engagement.
 
@@ -1034,8 +977,7 @@ Feature freshness is critical — stale features lead to lower engagement.
 * Exploitation: Show known engaging posts.
 * Exploration: Try new posts or creators to discover potential engagement.
 
-\
-
+<br>
 
 Common strategies:
 
@@ -1043,8 +985,7 @@ Common strategies:
 * Thompson sampling: Bayesian exploration balancing known vs. new items.
 * Bandit models (UCB, LinUCB): Learn reward confidence intervals.
 
-\
-
+<br>
 
 TikTok Example:
 
@@ -1059,8 +1000,7 @@ Uses contextual bandits to explore new creators while optimizing watch time.
 * Detect concept drift (user interests change).
 * Continuous retraining pipelines (Airflow/SageMaker).
 
-\
-
+<br>
 
 Feature drift monitoring:
 
@@ -1086,8 +1026,7 @@ A/B Testing:
 
 #### 11. Case Studies
 
-\
-
+<br>
 
 **A.**&#x20;
 
@@ -1097,8 +1036,7 @@ A/B Testing:
 * Models include user embeddings and MLP ranking towers.
 * Optimizes for engagement and long-term satisfaction (measured via surveys).
 
-\
-
+<br>
 
 **B.**&#x20;
 
@@ -1108,8 +1046,7 @@ A/B Testing:
 * Adds features: content type, recency, relationship strength, language match.
 * Multi-objective: engagement + creator diversity.
 
-\
-
+<br>
 
 **C.**&#x20;
 
@@ -1118,8 +1055,7 @@ A/B Testing:
 * Real-time ranking using GBDT + deep re-ranker.
 * Heavy use of recency features + text embeddings from tweets.
 
-\
-
+<br>
 
 **D.**&#x20;
 
@@ -1132,8 +1068,7 @@ A/B Testing:
 
 #### 12. System Design Pattern
 
-\
-
+<br>
 
 Architecture Overview:
 
@@ -1194,13 +1129,11 @@ Here are the detailed notes of Chapter 6 – Ads Ranking System from _“Machine
 
 ### 💰 Chapter 6 — Ads Ranking System
 
-\
-
+<br>
 
 #### 1. Overview
 
-\
-
+<br>
 
 Ads ranking systems are among the most complex and revenue-critical ML systems, used by companies like Google, Meta, LinkedIn, and TikTok.
 
@@ -1210,8 +1143,7 @@ They aim to:
 * Maintain user satisfaction (avoid irrelevant or spammy ads).
 * Ensure advertiser ROI (return on ad spend).
 
-\
-
+<br>
 
 Thus, the ads ranking model optimizes for a multi-objective balance between these three forces.
 
@@ -1231,13 +1163,11 @@ Thus, the ads ranking model optimizes for a multi-objective balance between thes
 
 #### 3. Ads Auction Basics
 
-\
-
+<br>
 
 Most platforms use Generalized Second Price (GSP) auctions.
 
-\
-
+<br>
 
 Key Terms:
 
@@ -1247,15 +1177,13 @@ Key Terms:
 * Expected Value (EV): EVᵢ = bᵢ × pᵢ × qᵢ
 * Rank Score: Scoreᵢ = EVᵢ + adjustments
 
-\
-
+<br>
 
 Payment Rule (GSP):
 
 * Winner pays the minimum bid needed to beat the next advertiser’s rank score.
 
-\
-
+<br>
 
 Example:
 
@@ -1272,8 +1200,7 @@ B: bid = 3, pCTR = 0.05 → score = 0.15
 
 #### 4. Modeling Components
 
-\
-
+<br>
 
 **A.**&#x20;
 
@@ -1286,8 +1213,7 @@ Predicts probability of click.
 * Loss: Cross-entropy.
 * Calibration: Platt scaling, isotonic regression.
 
-\
-
+<br>
 
 **B.**&#x20;
 
@@ -1299,8 +1225,7 @@ Predicts probability of conversion given click.
 * Solution: Delayed feedback modeling, two-stage models (click → conversion).
 * Advanced: Joint CTR–CVR modeling using ESMM (Entire Space Multi-Task Model) by Alibaba.
 
-\
-
+<br>
 
 **C.**&#x20;
 
@@ -1308,8 +1233,7 @@ Predicts probability of conversion given click.
 
 Compute expected ROI to advertisers.
 
-\
-
+<br>
 
 **D.**&#x20;
 
@@ -1339,8 +1263,7 @@ Embedding & Cross Features
 
 #### 6. Multi-Objective Optimization
 
-\
-
+<br>
 
 Ads ranking optimizes several goals simultaneously:
 
@@ -1349,8 +1272,7 @@ Ads ranking optimizes several goals simultaneously:
 * Platform revenue → maximize bid × CTR.
 * Fairness & pacing → avoid overexposure of a few ads.
 
-\
-
+<br>
 
 Approaches
 
@@ -1358,8 +1280,7 @@ Approaches
 2. Constraint-based optimization (e.g., maintain ≥ X% user satisfaction).
 3. Multi-task learning (shared tower with multiple output heads).
 
-\
-
+<br>
 
 Meta Example: Multi-task learning for pCTR + pCVR + watch time → shared embedding backbone.
 
@@ -1367,8 +1288,7 @@ Meta Example: Multi-task learning for pCTR + pCVR + watch time → shared embedd
 
 #### 7. Real-Time Serving Flow
 
-\
-
+<br>
 
 Step-by-step:
 
@@ -1380,13 +1300,11 @@ Step-by-step:
 6. Winning ad delivered; impression logged.
 7. User clicks or converts → feedback loop updates labels.
 
-\
-
+<br>
 
 Latency: < 50 ms per request.
 
-\
-
+<br>
 
 Tech stack examples:
 
@@ -1396,13 +1314,11 @@ Tech stack examples:
 
 #### 8. Calibration and Normalization
 
-\
-
+<br>
 
 Because ads models are trained with sampled negatives, predicted probabilities are biased.
 
-\
-
+<br>
 
 Fixes:
 
@@ -1410,8 +1326,7 @@ Fixes:
 * Calibration models (e.g., Platt scaling).
 * Probability normalization: adjust pCTR by device type, geography.
 
-\
-
+<br>
 
 Facebook Example:
 
@@ -1423,8 +1338,7 @@ p’(click) = \frac{p}{p + \frac{1-p}{w\}}
 
 #### 9. Online Learning & Drift Handling
 
-\
-
+<br>
 
 Ad markets change hourly.
 
@@ -1434,8 +1348,7 @@ Solutions:
 * Online learning using delayed-feedback correction.
 * Replay buffer for click histories.
 
-\
-
+<br>
 
 Monitoring:
 
@@ -1479,8 +1392,7 @@ Key Formulas
 
 #### 12. Case Studies
 
-\
-
+<br>
 
 **A.**&#x20;
 
@@ -1490,8 +1402,7 @@ Key Formulas
 * Uses Wide & Deep networks for candidate scoring.
 * Performs budget pacing + multi-objective optimization with constraints.
 
-\
-
+<br>
 
 **B.**&#x20;
 
@@ -1501,8 +1412,7 @@ Key Formulas
 * Targets multiple outcomes (click, view, conversion).
 * Online learning pipeline refreshes every few hours.
 
-\
-
+<br>
 
 **C.**&#x20;
 
@@ -1511,8 +1421,7 @@ Key Formulas
 * ESMM / ESM² (multi-task modeling for CTR–CVR–CTCVR).
 * Jointly trained shared embeddings → better calibration on conversion predictions.
 
-\
-
+<br>
 
 **D.**&#x20;
 

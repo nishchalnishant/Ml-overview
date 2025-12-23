@@ -252,8 +252,7 @@ Used in search, recommendations, feeds.
 
 ## 👉 Want this turned into a cheat-sheet PDF?
 
-\
-
+<br>
 
 I can convert this into a 2-page interview-ready PDF with:
 
@@ -263,7 +262,6 @@ I can convert this into a 2-page interview-ready PDF with:
 * Diagram examples
 * Use-case snippets
 
-\
-
+<br>
 
 Just say “make it a PDF”.

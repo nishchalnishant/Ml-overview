@@ -782,8 +782,7 @@ from _Machine Learning Design Patterns_ by Valliappa Lakshmanan, Sara Robinson, 
 
 #### 1. Introduction
 
-After understanding data representation (Ch. 2) and problem representation (Ch. 3), this chapter focuses on the model training phase — the process of teaching the model to recognize patterns and relationships in data.\
-
+After understanding data representation (Ch. 2) and problem representation (Ch. 3), this chapter focuses on the model training phase — the process of teaching the model to recognize patterns and relationships in data.<br>
 
 Model training is where the model’s parameters (weights) are adjusted based on the loss function and optimizer. However, ML engineers face several practical challenges during this process — such as data leakage, distribution mismatch, instability, and lack of reproducibility.
 
@@ -1103,8 +1102,7 @@ It’s about verifying:
 * Whether it meets business objectives, and
 * Whether it’s reliable, unbiased, and fair.
 
-\
-
+<br>
 
 This chapter introduces evaluation design patterns — reusable strategies for robust, fair, and meaningful model assessment.
 

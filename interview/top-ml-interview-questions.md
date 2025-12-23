@@ -10,7 +10,7 @@ These answers are concise, accurate, and interview-ready.
 
 ***
 
-#### 1. What is Machine Learning (ML), and how is it different from AI and Data Science? 
+#### 1. What is Machine Learning (ML), and how is it different from AI and Data Science?<br>
 
 * ML: Algorithms that learn patterns from data to make predictions/decisions.
 * AI: Broader field aiming to create human-like intelligence; ML is a subset.
@@ -387,8 +387,7 @@ When cluster assignments stop changing.
 
 #### 60. Advanced version of K-Means?
 
-\
-
+<br>
 
 Answer:
 
@@ -398,8 +397,7 @@ K-Means++, Gaussian Mixture Models.
 
 #### 61. K-Means++ and Fuzzy C-Means?
 
-\
-
+<br>
 
 Answer:
 
@@ -410,8 +408,7 @@ Answer:
 
 #### 62. What is Hierarchical Clustering?
 
-\
-
+<br>
 
 Answer:
 
@@ -421,8 +418,7 @@ Creates a tree of clusters (agglomerative/divisive).
 
 #### 63. Linkage Methods?
 
-\
-
+<br>
 
 Answer:
 
@@ -485,41 +481,34 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 
 13. Explain Regularization in Machine Learning.
 
-\
-
+<br>
 
 * Answer: The article references an image for regularization but doesn’t give a full textual description.&#x20;
 
-\
-
+<br>
 
 14. What is Feature Engineering?
 
-\
-
+<br>
 
 * Answer: Feature engineering is the process of creating or transforming input features to improve a model’s predictive performance. Key steps: data cleaning (handling missing values, outliers), feature transformation (scaling, log transform, polynomial features), feature selection (mutual information, recursive elimination), and feature creation (interactions, derived features). Example: combining “quantity sold” and “unit price” into “total revenue.”&#x20;
 
-\
-
+<br>
 
 15. Differentiate between Bagging and Boosting.
 
-\
-
+<br>
 
 * Answer:
   * _Bagging_: trains multiple models independently on random subsets of data (bootstrap), combines their outputs (averaging for regression, majority vote for classification). Reduces variance. Example: Random Forest.&#x20;
   * _Boosting_: trains models sequentially, each new model focuses on correcting previous errors, gives more weight to misclassified examples, reduces bias. Examples: AdaBoost, Gradient Boosting, XGBoost.&#x20;
   * Key difference: Bagging is parallel and variance-focused; Boosting is sequential and bias-focused.&#x20;
 
-\
-
+<br>
 
 16. What is the Curse of Dimensionality?
 
-\
-
+<br>
 
 * Answer: The Curse of Dimensionality refers to problems that occur when dealing with high-dimensional data:
   * Sparsity: data becomes sparse, making it hard for models to generalize.&#x20;
@@ -527,13 +516,11 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   * Overfitting: too many features may cause the model to learn noise.&#x20;
   * Mitigation: use dimensionality reduction (PCA, t-SNE), feature selection (L1 regularization, mutual information).&#x20;
 
-\
-
+<br>
 
 17. What is PCA? How does it work?
 
-\
-
+<br>
 
 * Answer: Principal Component Analysis (PCA) is a dimensionality reduction technique. Steps:
   1. Standardize data (mean 0, unit variance)&#x20;
@@ -543,36 +530,30 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   5. Project the original data onto those components.&#x20;
   * Applications: visualization, noise reduction, speeding up ML.&#x20;
 
-\
-
+<br>
 
 18. What are Ensemble Learning Methods?
 
-\
-
+<br>
 
 * Answer: Ensemble learning combines predictions from multiple base models to improve performance by reducing errors. Types:
   1. _Bagging_ (reduces variance; e.g., Random Forest)&#x20;
   2. _Boosting_ (reduces bias; e.g., AdaBoost, XGBoost)&#x20;
   3. _Stacking_ (combines multiple base models using a meta-model, e.g., logistic regression on top of tree + SVM)&#x20;
 
-\
-
+<br>
 
 19. How does Naive Bayes work?
 
-\
-
+<br>
 
 * Answer: (The article uses an image for the explanation; textual detail is limited.)&#x20;
 
-\
-
+<br>
 
 20. What is K-Means Clustering?
 
-\
-
+<br>
 
 * Answer: K-Means is an unsupervised algorithm that partitions data into k clusters based on proximity. Steps:
   1. Randomly initialize k centroids.&#x20;
@@ -581,25 +562,21 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   4. Repeat until the centroids don’t change (or max iterations).&#x20;
   * Use cases: market segmentation, image compression, anomaly detection.&#x20;
 
-\
-
+<br>
 
 21. What is the difference between Random Forest and Gradient Boosting?
 
-\
-
+<br>
 
 * Answer:
   * _Random Forest_: an ensemble of decision trees trained independently (bagging). Reduces variance, less prone to overfitting, works well on large datasets.&#x20;
   * _Gradient Boosting_: builds trees sequentially to minimize error; reduces bias but more prone to overfitting if not regularized.&#x20;
 
-\
-
+<br>
 
 22. Explain Support Vector Machines (SVM).
 
-\
-
+<br>
 
 * Answer: SVM is a supervised learning algorithm for classification (and regression) that finds the optimal hyperplane separating classes with maximum margin. Concepts:
   * _Hyperplane_: decision boundary.&#x20;
@@ -607,53 +584,43 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   * _Kernel Trick_: maps data to higher dimensions for non-linear separation (kernels: linear, polynomial, RBF).&#x20;
   * Objective: maximize margin to improve generalization.&#x20;
 
-\
-
+<br>
 
 23. What is Logistic Regression?
 
-\
-
+<br>
 
 * Answer: Logistic Regression is used for binary classification. Instead of predicting a continuous value, it models the probability of a class via the sigmoid (logistic) function. Outputs between 0 and 1, converted to classes using a threshold (e.g., 0.5). Assumes independent variables are linearly related to the log-odds. Use cases: fraud detection, disease prediction.&#x20;
 
-\
-
+<br>
 
 24. Explain the concept of Multi-Collinearity.
 
-\
-
+<br>
 
 * Answer: Multi-collinearity occurs when independent variables in a regression are highly correlated, causing instability in coefficient estimates. Effects: large standard errors, sensitivity to small data changes. Detection: Variance Inflation Factor (VIF > 10 indicates high collinearity), correlation matrix. Solutions: remove or combine correlated variables, use PCA, apply regularization (e.g., Ridge).&#x20;
 
-\
-
+<br>
 
 25. What is the ROC Curve?
 
-\
-
+<br>
 
 * Answer: The Receiver Operating Characteristic (ROC) curve is a graph that shows the performance of a classifier across different thresholds, plotting True Positive Rate (sensitivity) vs False Positive Rate.&#x20;
 
-\
-
+<br>
 
 26. How does Early Stopping work?
 
-\
-
+<br>
 
 * Answer: Early stopping is a regularization technique for iterative training: monitor model performance on a validation set each epoch, and stop training when performance stops improving (or starts degrading). This helps avoid overfitting and saves compute.&#x20;
 
-\
-
+<br>
 
 27. What is AUC-ROC?
 
-\
-
+<br>
 
 * Answer: AUC-ROC (Area Under the ROC Curve) is a single scalar summarizing classifier performance. AUC ranges from 0 to 1. A higher AUC means better discrimination. \text{AUC} = 1 → perfect classifier, \text{AUC} = 0.5 → random performance, less than 0.5 → worse than random. It’s useful because it considers all classification thresholds.&#x20;
 
@@ -663,54 +630,45 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 
 28. What is the role of eigenvalues and eigenvectors in PCA?
 
-\
-
+<br>
 
 * Answer: Eigenvalues and eigenvectors are central to PCA. Eigenvalues represent the variance explained by each principal component. Eigenvectors define the direction of these components in feature space. PCA projects data onto eigenvectors corresponding to the largest eigenvalues to reduce dimensionality while preserving maximum variance.&#x20;
 
-\
-
+<br>
 
 29. How does the Random Forest algorithm handle overfitting?
 
-\
-
+<br>
 
 * Answer: Random Forest handles overfitting via:
 * Averaging predictions from multiple trees (reduces variance)&#x20;
 * Random feature selection (each tree sees a different subset of features)&#x20;
 * Bootstrap aggregation (bagging): trains trees on different samples of data, improving generalization.&#x20;
 
-\
-
+<br>
 
 30. What is the role of a learning rate in Gradient Descent?
 
-\
-
+<br>
 
 * Answer: The learning rate \eta controls the step size during gradient descent updates.
   * A small learning rate → stable but slow convergence.&#x20;
   * A large learning rate → faster convergence but risk of overshooting or divergence.&#x20;
   * Finding an optimal rate is key. Adaptive methods (Adam, learning rate schedules) can help.&#x20;
 
-\
-
+<br>
 
 31. Explain how Support Vector Machines (SVM) work.
 
-\
-
+<br>
 
 * Answer: (Covered above in question 22, but here re-emphasized) SVM finds a hyperplane maximizing margin between classes, uses support vectors, and applies the kernel trick for non-linear data.&#x20;
 
-\
-
+<br>
 
 32. What is the difference between KNN and K-Means Clustering?
 
-\
-
+<br>
 
 * Answer:
 
@@ -721,40 +679,33 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 | How it works                                | Assigns a label based on k nearest neighbors | Groups data into k clusters minimizing intra-cluster variance  |
 | KNN is predictive; K-Means is descriptive.  |                                              |                                                                |
 
-\
+<br>
 
-
-\
-
+<br>
 
 33. What is the difference between Batch Gradient Descent and Stochastic Gradient Descent?
 
-\
-
+<br>
 
 * Answer:
   * _Batch Gradient Descent_: computes gradient using the entire dataset before updating parameters. More stable, but computationally expensive for large data.&#x20;
   * _Stochastic Gradient Descent (SGD)_: updates parameters for each data point. Faster, more suited for large datasets, but convergence is noisier and less stable.&#x20;
 
-\
-
+<br>
 
 34. What is the difference between a Generative and Discriminative Model?
 
-\
-
+<br>
 
 * Answer:
   * _Generative Model_: models the joint probability P(x, y), can generate new data points. Examples: Naive Bayes, Variational Autoencoders.&#x20;
   * _Discriminative Model_: models the conditional probability P(y \mid x), focuses on decision boundary. Examples: Logistic Regression, SVM.&#x20;
 
-\
-
+<br>
 
 35. How do you handle imbalanced datasets in classification problems?
 
-\
-
+<br>
 
 * Answer: Techniques include:
   * Resampling: oversample minority class (e.g., SMOTE), or undersample majority class&#x20;
@@ -763,13 +714,11 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   * Use algorithms / loss functions that support imbalance (e.g., XGBoost)&#x20;
   * Evaluate using appropriate metrics: Precision, Recall, F1-score, AUC-ROC instead of just Accuracy.&#x20;
 
-\
-
+<br>
 
 36. What is a Variational Autoencoder (VAE) and how do they work?
 
-\
-
+<br>
 
 * Answer: A VAE is a generative model combining deep learning and Bayesian inference.
   * Encoder: maps input x to a latent probability distribution q(z \mid x).&#x20;
@@ -777,36 +726,30 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   * Decoder: reconstruct x from z.&#x20;
   * Loss: combines reconstruction loss (e.g., MSE) + KL divergence to regularize latent space.&#x20;
 
-\
-
+<br>
 
 37. Explain the concept of Entropy in Decision Trees.
 
-\
-
+<br>
 
 * Answer: Entropy measures the impurity or randomness in a dataset; in decision trees, it quantifies how mixed the target classes are in a set of samples. Higher entropy means more disorder / uncertainty.&#x20;
 
-\
-
+<br>
 
 38. What is Transfer Learning? When is it used?
 
-\
-
+<br>
 
 * Answer: Transfer Learning takes a model trained on one (source) task and fine-tunes it for a related (target) task. Useful when:
   * The target dataset is small.&#x20;
   * There’s domain similarity between source and target (e.g., general image recognition → medical imaging).&#x20;
   * Pre-trained models are available (e.g., BERT, ResNet).&#x20;
 
-\
-
+<br>
 
 39. How do Gradient Boosting and XGBoost differ?
 
-\
-
+<br>
 
 * Answer:
   * _Gradient Boosting_: sequentially builds weak learners (usually decision trees) to correct the residuals of previous models.&#x20;
@@ -816,26 +759,22 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
     * Handling of missing values built-in&#x20;
     * More flexible objective functions.&#x20;
 
-\
-
+<br>
 
 40. What is Federated Learning?
 
-\
-
+<br>
 
 * Answer: Federated Learning is a decentralized training approach where data stays on local devices, and only model updates (like gradients) are shared with a central server.
   * _Key features:_ data privacy (raw data never leaves device), collaborative training across distributed datasets.&#x20;
   * _Use cases:_ mobile devices, healthcare, etc.&#x20;
   * _Challenges:_ communication overhead, synchronization, heterogeneous data distributions.&#x20;
 
-\
-
+<br>
 
 41. Explain Bayesian Optimization.
 
-\
-
+<br>
 
 * Answer: Bayesian Optimization is a method to optimize expensive-to-evaluate “black-box” functions (like ML hyperparameter tuning) using:
   1. A surrogate model (often a Gaussian Process) to model the objective function.&#x20;
@@ -843,13 +782,11 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   3. Update the surrogate model with new observed data and repeat.&#x20;
   * Advantages: efficient for non-convex, noisy, expensive functions; helps tune hyperparameters.&#x20;
 
-\
-
+<br>
 
 42. What is Gradient Clipping?
 
-\
-
+<br>
 
 * Answer: Gradient Clipping is a technique to prevent exploding gradients during backpropagation in deep learning:
   * When gradients go beyond a threshold, they’re scaled down.&#x20;
@@ -864,79 +801,66 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 
 43. What is Tokenization in NLP, and why is it important?
 
-\
-
+<br>
 
 * Answer: Tokenization is the process of splitting text into smaller units (tokens), such as words, subwords or sentences. It’s important because:
   * Tokens are basic units for text processing.&#x20;
   * It helps standardize input for models (BoW, embeddings).&#x20;
   * Necessary for tasks like sentiment analysis, machine translation, summarization.&#x20;
 
-\
-
+<br>
 
 44. Explain the concept of Bag of Words (BoW).
 
-\
-
+<br>
 
 * Answer: Bag of Words is a model that represents text by counting how many times each unique word appears in a document, ignoring grammar and order. Creates a vocabulary and represents each document as a sparse frequency vector. Limitations: loses word order/context; results in high-dimensional, sparse vectors for large vocabularies.&#x20;
 
-\
-
+<br>
 
 45. What is Word Embedding, and how does it differ from one-hot encoding?
 
-\
-
+<br>
 
 * Answer:
   * _Word Embedding_ represents words as dense, low-dimensional vectors capturing semantic meaning (e.g., Word2Vec, GloVe).&#x20;
   * _One-hot encoding_: produces sparse, high-dimensional binary vectors, where each word is a separate dimension with no semantic relationship.&#x20;
   * Embeddings capture relationships like “king – man + woman ≈ queen”; one-hot does not.
 
-\
-
+<br>
 
 46. What is the purpose of Stop Word Removal in NLP?
 
-\
-
+<br>
 
 * Answer: Stop Word Removal removes common, low-information words (e.g., “is”, “the”, “and”) to:
   * Reduce noise in text data.&#x20;
   * Improve computational efficiency by shrinking feature space.&#x20;
   * Enhance feature relevance in tasks like text classification or clustering.&#x20;
 
-\
-
+<br>
 
 47. Explain Named Entity Recognition (NER).
 
-\
-
+<br>
 
 * Answer: NER is a task in NLP to identify and classify named entities in text into categories like Person, Organization, Location, Date, etc. Example: in “Google was founded in 1998 by Larry Page …”, NER would tag “Google” as an organization, “Larry Page” as a person, “1998” as date, “California” as a location. Applications: information retrieval, question-answering, entity linking.&#x20;
 
-\
-
+<br>
 
 48. What is the difference between TF-IDF and CountVectorizer?
 
-\
-
+<br>
 
 * Answer:
   * _CountVectorizer_: converts text into a matrix of raw word counts for each document.&#x20;
   * _TF-IDF_: (Term Frequency-Inverse Document Frequency) weighs word counts by penalizing words that appear frequently across many documents; emphasizes rarer but more informative words.&#x20;
 
-\
-
+<br>
 
 49. How does the Transformer architecture revolutionize NLP?
 
-\
-
+<br>
 
 * Answer: The Transformer (from _“Attention Is All You Need”_) uses self-attention to model global dependencies in sequences without requiring recurrence or convolution. Key benefits:
 * Self-attention captures relationships irrespective of position in sequence.&#x20;
@@ -949,21 +873,18 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 
 50. What is the difference between a Feedforward Neural Network and a Recurrent Neural Network (RNN)?
 
-\
-
+<br>
 
 * Answer:
   * _Feedforward Neural Network (FNN)_: information flows in one direction (input → hidden → output), no cycles, processes data statically. Good for tasks where data points are independent (e.g., image classification).&#x20;
   * _Recurrent Neural Network (RNN)_: designed for sequential data; has loops so that the output depends on previous computations (hidden states). Useful for time series, text, speech.&#x20;
   * Main difference: FNN assumes inputs are independent; RNN retains memory of past inputs.&#x20;
 
-\
-
+<br>
 
 51. What is the purpose of Activation Functions in Neural Networks? Name a few.
 
-\
-
+<br>
 
 * Answer: Activation functions introduce non-linearity so neural networks can learn complex patterns. Without them, the network would behave like a linear model regardless of depth. Examples:
   * Sigmoid (for binary classification)&#x20;
@@ -971,18 +892,15 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
   * Tanh — zero-centered output&#x20;
   * Softmax — used in output layer for multi-class classification to map outputs to probabilities.&#x20;
 
-\
-
+<br>
 
 52. Explain the concept of Backpropagation in Neural Networks.
 
-\
-
+<br>
 
 * Answer: Backpropagation is the method to train neural networks by optimizing weights using gradient-based methods:
 
-\
-
+<br>
 
 1. Forward pass: input flows through network to produce prediction.&#x20;
 2. Compute loss (difference between prediction and true output).&#x20;
@@ -990,40 +908,33 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 4. Update weights (e.g., using gradient descent) in the direction that reduces the loss.&#x20;
 5. What is a Convolutional Neural Network (CNN), and where is it used?
 
-\
-
+<br>
 
 * Answer: CNN is a deep neural network architecture specifically designed for grid-like data (e.g., images). It uses convolutional layers (with kernels) to learn spatial hierarchies, followed by pooling layers to reduce spatial dimension. Applications: image classification, object detection, medical imaging, autonomous vehicles, etc.&#x20;
 
-\
-
+<br>
 
 54. How does Dropout help in preventing overfitting in Deep Learning?
 
-\
-
+<br>
 
 * Answer: Dropout randomly deactivates (“drops out”) a fraction of neurons during training (forward and backward passes). This prevents the network from relying too much on any one neuron and encourages it to learn more robust, distributed representations, thereby reducing overfitting. Typical dropout rate: 20%–50%.&#x20;
 
-\
-
+<br>
 
 55. What are the differences between LSTMs and GRUs?
 
-\
-
+<br>
 
 * Answer:
 * _LSTM (Long Short-Term Memory)_: has three gates — input, forget, and output — and a separate cell state to remember long-term dependencies. More complex, more parameters, good for long sequences.&#x20;
 * _GRU (Gated Recurrent Unit)_: simpler than LSTM, combines forget and input gates into an update gate, uses only hidden state (no separate cell state), fewer parameters, faster convergence, works well on shorter sequences.&#x20;
 
-\
-
+<br>
 
 56. What is Transfer Learning in Deep Learning, and why is it effective?
 
-\
-
+<br>
 
 * Answer: Transfer Learning involves using a pre-trained model (trained on a large dataset) and fine-tuning it on a new, often smaller dataset. It’s effective because:
 * It reduces training time (model already learned basic features).&#x20;
@@ -1037,31 +948,26 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 
 57. What is Reinforcement Learning?
 
-\
-
+<br>
 
 * Answer: Reinforcement Learning (RL) is a type of ML where an agent learns to take actions in an environment to maximize cumulative rewards. The agent interacts, receives states, takes actions, and gets rewards (or penalties). Key elements: agent, environment, state, action, reward, policy. Unlike supervised learning, RL doesn’t use labeled examples; learning is via exploration and exploitation.&#x20;
 
-\
-
+<br>
 
 58. What is Deep Q-Learning (DQN)?
 
-\
-
+<br>
 
 * Answer: Deep Q-Learning (DQN) is RL algorithm where a deep neural network approximates the Q-value function instead of using a tabular Q-table. Key techniques:
 * _Experience Replay_: storing past transitions and sampling them to train, which reduces correlation between samples.&#x20;
 * _Target Network_: a copy of the Q-network used to generate stable targets, reduces divergence during training.&#x20;
 * Successful in tasks like playing Atari games directly from raw pixel inputs.&#x20;
 
-\
-
+<br>
 
 59. Explain the role of exploration vs. exploitation in RL.
 
-\
-
+<br>
 
 * Answer:
 * _Exploration_: trying new actions to discover possibly better long-term rewards.&#x20;
@@ -1069,13 +975,11 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 * Balancing is crucial: too much exploration wastes time, too much exploitation may miss better strategies.
 * A common strategy: ε-greedy, where with probability ε the agent explores randomly, and with probability 1 - ε it exploits.&#x20;
 
-\
-
+<br>
 
 60. Explain Hyperparameter Optimization Techniques.
 
-\
-
+<br>
 
 * Answer: Techniques include:
 * _Grid Search_: try all combinations from a predefined grid (simple but expensive).&#x20;
@@ -1084,13 +988,11 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 * _Genetic Algorithms_: evolutionary approach — population of hyperparameter sets, evolve them via crossover/mutation.&#x20;
 * _Gradient-based Optimization_: use gradients w.r.t. hyperparameters (if differentiable) — less common.&#x20;
 
-\
-
+<br>
 
 61. Explain GANs.
 
-\
-
+<br>
 
 * Answer: Generative Adversarial Networks (GANs) are composed of two neural networks: a _Generator_ and a _Discriminator_.
   * _Generator_: tries to produce realistic data (e.g., images) from noise.&#x20;
@@ -1104,21 +1006,18 @@ Here are the questions and answers extracted from the GUVI article _“Top 65+ M
 
 62. How would you handle missing data in a dataset using Python?
 
-\
-
+<br>
 
 * Answer:
   * Drop missing values: df.dropna() or drop columns/rows accordingly.&#x20;
   * Fill missing values: use mean/median for numerical, mode for categorical. df.fillna(...).&#x20;
   * Imputation: use sklearn.impute.SimpleImputer with strategies like mean, median, constant.&#x20;
 
-\
-
+<br>
 
 63. Explain how to split a dataset into training and testing sets in Python.
 
-\
-
+<br>
 
 * Answer: Use train\_test\_split from sklearn.model\_selection, e.g.:
 
@@ -1130,13 +1029,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 * test\_size: proportion for test set (e.g., 0.2 for 20%)
 * random\_state: for reproducibility.&#x20;
 
-\
-
+<br>
 
 64. What are Python libraries commonly used for Machine Learning?
 
-\
-
+<br>
 
 * Answer: Some common libraries:
 * scikit-learn: preprocessing, ML algorithms, evaluation.&#x20;
@@ -1147,13 +1044,11 @@ X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_
 * XGBoost / LightGBM: efficient gradient boosting.&#x20;
 * Statsmodels: statistical modeling & hypothesis testing.&#x20;
 
-\
-
+<br>
 
 65. Write Python code to implement feature scaling.
 
-\
-
+<br>
 
 * Answer: Use StandardScaler or MinMaxScaler from sklearn.preprocessing:
 
@@ -1169,13 +1064,11 @@ X_minmax = scaler2.fit_transform(X)
 * Standard scaling: mean = 0, variance = 1.
 * Min-max scaling: scales features to a fixed range (e.g., \[0, 1]).&#x20;
 
-\
-
+<br>
 
 66. How would you implement cross-validation in Python?
 
-\
-
+<br>
 
 * Answer: Use KFold or StratifiedKFold from sklearn.model\_selection + cross\_val\_score. Example:
 
@@ -1190,13 +1083,11 @@ print(cv_scores)
 
 * n\_splits: number of folds, shuffle: whether to shuffle before splitting.&#x20;
 
-\
-
+<br>
 
 67. How do you tune hyperparameters in Python?
 
-\
-
+<br>
 
 * Answer: Use GridSearchCV or RandomizedSearchCV from sklearn.model\_selection.
 * _GridSearchCV_ example:
@@ -1210,8 +1101,7 @@ grid_search.fit(X_train, y_train)
 print(grid_search.best_params_)
 ```
 
-* \
-
+* <br>
 * _RandomizedSearchCV_ example:
 
 ```python
@@ -1228,8 +1118,7 @@ print(random_search.best_params_)
 
 68. How can you visualize the correlation matrix of a dataset in Python?
 
-\
-
+<br>
 
 * Answer: Use seaborn and matplotlib to compute and plot the correlation matrix. Example:
 
@@ -1329,8 +1218,7 @@ Here are the questions and answers from the Interview Kickstart article: _“Key
 
 #### Sample (Bonus) Advanced Questions for Practice
 
-\
-
+<br>
 
 The article also gives sample advanced questions (without full answers) to practice:&#x20;
 
@@ -1356,8 +1244,7 @@ The article also gives sample advanced questions (without full answers) to pract
 
 Here are the key questions (and their discussed answers / advice) from the Medium article _“Part 1 — How to Crack Machine Learning Interviews at FAANG”_ by Bharathi Priyaa.&#x20;
 
-\
-
+<br>
 
 > Note: This article is more of a strategy / preparation guide than a straight Q\&A list — so many “questions” are interview-topics or themes, rather than formal “Q: … A: …” pairs.
 
