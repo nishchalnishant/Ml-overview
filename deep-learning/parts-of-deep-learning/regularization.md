@@ -4,7 +4,7 @@ Regularization is a set of techniques used to prevent **overfitting** by discour
 
 ---
 
-## 🏗️ Core Techniques
+##  Core Techniques
 
 ### 1. L1 and L2 Regularization (Weight Decay)
 Adds a penalty term to the loss function based on the magnitude of the weights.
@@ -30,7 +30,7 @@ Artificially increases the size of the training set by applying transformations 
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "Why does L1 lead to sparsity while L2 doesn't?"**
 > L1 has a constant gradient (except at zero), so it keeps pushing weights all the way to zero. L2's gradient decreases as the weight gets smaller, so it effectively "slows down" the shrinkage as it nears zero.

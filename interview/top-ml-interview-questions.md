@@ -2,7 +2,7 @@
 
 ---
 
-## 🟢 Level 1: Foundations (Entry-Level / Junior)
+##  Level 1: Foundations (Entry-Level / Junior)
 
 ### Machine Learning Basics
 
@@ -87,7 +87,7 @@
 
 ---
 
-## 🟡 Level 2: Intermediate (Mid-Level / L4)
+##  Level 2: Intermediate (Mid-Level / L4)
 
 ### Model Comparison & Selection
 
@@ -172,7 +172,7 @@
 
 ---
 
-## 🔴 Level 3: Advanced (Senior / L5+)
+##  Level 3: Advanced (Senior / L5+)
 
 ### Architecture & Theory
 

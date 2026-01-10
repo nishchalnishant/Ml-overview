@@ -4,7 +4,7 @@ Generative models learn the underlying probability distribution of the training 
 
 ---
 
-## 🏗️ Core Architectures
+##  Core Architectures
 
 ### 1. Variational Autoencoders (VAEs)
 - **Mechanism:** Maps input to a latent space (mean and variance) and samples from a Gaussian distribution to reconstruct the data.
@@ -41,7 +41,7 @@ Generative models learn the underlying probability distribution of the training 
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What is Mode Collapse in GANs and how to fix it?"**
 > Mode collapse is when the generator produces a very limited set of outputs that "fool" the discriminator but lack diversity. Fixes: Unrolled GANs, Wasserstein GAN (WGAN), or Mini-batch discrimination.

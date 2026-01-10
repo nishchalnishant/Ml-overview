@@ -20,7 +20,7 @@ At its core, CV is about pattern recognition.
 
 Here are the primary tasks in CV, the models that solve them, and their trade-offs.
 
-#### 1. 🖼️ Image Classification
+#### 1.  Image Classification
 
 This is the most fundamental CV task. The goal is to assign a single label to an entire image.
 
@@ -35,7 +35,7 @@ This is the most fundamental CV task. The goal is to assign a single label to an
 
 ***
 
-#### 2. 📦 Object Detection
+#### 2.  Object Detection
 
 This is the next step up. The goal is to find multiple objects in an image and draw a bounding box around each one.
 
@@ -60,7 +60,7 @@ These models predict the bounding boxes and class labels in a single pass.
 
 ***
 
-#### 3. 🎨 Image Segmentation
+#### 3.  Image Segmentation
 
 This is the most detailed CV task. The goal is to classify every single pixel in an image.
 

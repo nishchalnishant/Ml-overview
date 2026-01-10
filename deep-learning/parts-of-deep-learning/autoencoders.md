@@ -121,7 +121,7 @@ This is the most advanced type. It's a generative model, meaning it can create _
   * Understanding complex data distributions.
   * Data augmentation.
 
-#### 🚀 Summary: Which Autoencoder to Use?
+####  Summary: Which Autoencoder to Use?
 
 | **Autoencoder Type** | **Key Idea**                          | **Main Use Case**                                    |
 | -------------------- | ------------------------------------- | ---------------------------------------------------- |

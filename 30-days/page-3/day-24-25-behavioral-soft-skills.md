@@ -1,6 +1,6 @@
 # Day 24-25: Behavioral & Soft Skills
 
-## 📋 Executive Summary
+##  Executive Summary
 For senior ML roles, **how** you work is as important as **what** you know.
 
 | Focus Area | Core Method | Example Questions |
@@ -12,7 +12,7 @@ For senior ML roles, **how** you work is as important as **what** you know.
 
 ---
 
-## 💬 1. The STAR Method
+##  1. The STAR Method
 Always structure your answers this way:
 - **S**ituation: Context.
 - **T**ask: Your specific responsibility.
@@ -31,7 +31,7 @@ ML Engineers often sit between Data Scientists and Backend Engineers. Discuss ho
 
 ---
 
-## 🧪 3. Top Behavioral Questions
+##  3. Top Behavioral Questions
 
 1. **"Tell me about a time you worked with a difficult dataset."**
    - Focus on: Imbalance, noise, or labeling issues.
@@ -42,7 +42,7 @@ ML Engineers often sit between Data Scientists and Backend Engineers. Discuss ho
 
 ---
 
-## ❓ Final Mock Tips
+##  Final Mock Tips
 - **Be Concise**: Don't ramble.
 - **Be Technical but Intuitive**: Can you explain backprop to a 10-year-old? (Google loves this).
 - **Ask Good Questions**: "How does the team handle model versioning?" shows you care about engineering quality.

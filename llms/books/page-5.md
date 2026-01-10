@@ -251,13 +251,13 @@ The chapter ends by demonstrating:
 
 If you’d like, I can also prepare:
 
-✅ Flashcards for Chapter 1
+ Flashcards for Chapter 1
 
-✅ A mind map of the concepts
+ A mind map of the concepts
 
-✅ Practice questions + answers
+ Practice questions + answers
 
-✅ A condensed quick-revision sheet
+ A condensed quick-revision sheet
 
 Below are detailed study notes for Chapter 2: Tokens and Embeddings based entirely on the full chapter text retrieved from your uploaded PDF. All statements include citations where needed.
 
@@ -524,13 +524,13 @@ Chapter 2 teaches that:
 
 ## If you want, I can also create:
 
-✅ Flashcards for Chapter 2
+ Flashcards for Chapter 2
 
-✅ A visual mind map of tokens and embeddings
+ A visual mind map of tokens and embeddings
 
-✅ Simplified notes for quick revision
+ Simplified notes for quick revision
 
-✅ Practice questions with answers
+ Practice questions with answers
 
 ***
 

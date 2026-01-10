@@ -1,6 +1,6 @@
 # Day 19-21: Specialized Techniques (NLP & CV)
 
-## 📋 Executive Summary
+##  Executive Summary
 | Domain | Core Task | Standard Feature/Arch |
 |--------|-----------|------------------------|
 | **NLP** | Text Classification/Translation | Embeddings, Transformers, attention |
@@ -23,7 +23,7 @@
 
 ---
 
-## 🖼️ 2. Computer Vision (CV)
+##  2. Computer Vision (CV)
 
 ### Convolutional Neural Networks (CNNs)
 - **Filters/Kernels**: Learn features like edges, textures, and patterns.
@@ -35,7 +35,7 @@ Recent breakthrough: Applying the Transformer architecture to patches of images 
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What is TF-IDF and why use it over simple counts?"**
 > TF (Term Frequency) measures how often a word appears in a doc. IDF (Inverse Document Frequency) penalizes common words (like "the", "is"). TF-IDF highlights words that are unique/important to a specific document.
@@ -48,7 +48,7 @@ Recent breakthrough: Applying the Transformer architecture to patches of images 
 
 ---
 
-## 💻 NLP Quick-Check
+##  NLP Quick-Check
 ```python
 from sklearn.feature_extraction.text import TfidfVectorizer
 

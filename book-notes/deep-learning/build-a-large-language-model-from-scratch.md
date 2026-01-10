@@ -1275,11 +1275,11 @@ def generate_response(text):
 
 #### **Summary**
 
-✅ **Instruction fine-tuning adapts LLMs to generate structured responses.**\
-✅ **Dataset preparation involves tokenizing instructions & batching data.**\
-✅ **GPT-2 was fine-tuned using a small learning rate over multiple epochs.**\
-✅ **Evaluation showed a significant improvement in instruction-following accuracy.**\
-✅ **Preference fine-tuning and LoRA are recommended for future optimization.**
+ **Instruction fine-tuning adapts LLMs to generate structured responses.**\
+ **Dataset preparation involves tokenizing instructions & batching data.**\
+ **GPT-2 was fine-tuned using a small learning rate over multiple epochs.**\
+ **Evaluation showed a significant improvement in instruction-following accuracy.**\
+ **Preference fine-tuning and LoRA are recommended for future optimization.**
 
 ***
 
@@ -1428,11 +1428,11 @@ This chapter **fine-tuned GPT-2 for instruction-following**. The next step explo
 
 #### **8.9 Summary**
 
-✅ **Preference fine-tuning aligns LLMs with human values**.\
-✅ **RLHF uses reinforcement learning to improve response quality**.\
-✅ **Reward models assign preference scores to LLM responses**.\
-✅ **PPO and LoRA are popular methods for optimizing models**.\
-✅ **Real-world applications include ChatGPT, Claude, and Gemini**.
+ **Preference fine-tuning aligns LLMs with human values**.\
+ **RLHF uses reinforcement learning to improve response quality**.\
+ **Reward models assign preference scores to LLM responses**.\
+ **PPO and LoRA are popular methods for optimizing models**.\
+ **Real-world applications include ChatGPT, Claude, and Gemini**.
 
 ***
 
@@ -1684,16 +1684,16 @@ model.to(device)
 
 #### **Summary**
 
-✅ **PyTorch is a flexible and GPU-accelerated deep learning framework.**\
-✅ **Tensors are the core data structure, supporting GPU operations.**\
-✅ **Autograd simplifies backpropagation with automatic differentiation.**\
-✅ **DataLoaders enable efficient batch processing.**\
-✅ **Training follows a structured loop with forward, backward, and optimization steps.**\
-✅ **PyTorch supports model saving/loading and multi-GPU training.**
+ **PyTorch is a flexible and GPU-accelerated deep learning framework.**\
+ **Tensors are the core data structure, supporting GPU operations.**\
+ **Autograd simplifies backpropagation with automatic differentiation.**\
+ **DataLoaders enable efficient batch processing.**\
+ **Training follows a structured loop with forward, backward, and optimization steps.**\
+ **PyTorch supports model saving/loading and multi-GPU training.**
 
 ***
 
 This appendix **provides the foundational PyTorch knowledge** needed for **building large language models (LLMs)**.
 
-Would you like notes on **Appendix D (Advanced Training Techniques like Learning Rate Warmup, Cosine Decay, and Gradient Clipping)?** 🚀
+Would you like notes on **Appendix D (Advanced Training Techniques like Learning Rate Warmup, Cosine Decay, and Gradient Clipping)?** 
 

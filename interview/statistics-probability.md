@@ -2,7 +2,7 @@
 
 ---
 
-## 📊 Probability Fundamentals
+##  Probability Fundamentals
 
 **1. What is Bayes' Theorem?**
 > $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates prior belief given new evidence.
@@ -27,7 +27,7 @@
 
 ---
 
-## 📈 Distributions
+##  Distributions
 
 **8. Describe the Normal (Gaussian) distribution.**
 > Bell curve. Defined by mean $\mu$ and std $\sigma$. 68-95-99.7 rule.
@@ -58,7 +58,7 @@
 
 ---
 
-## 🧪 Hypothesis Testing
+##  Hypothesis Testing
 
 **17. What is a Null Hypothesis?**
 > Default assumption of no effect. $H_0$: "Model A = Model B".
@@ -95,7 +95,7 @@
 
 ---
 
-## 📐 Statistical Concepts for ML
+##  Statistical Concepts for ML
 
 **28. What is Expectation?**
 > $E[X] = \sum x_i P(x_i)$. The average value.
@@ -129,7 +129,7 @@
 
 ---
 
-## 🎲 A/B Testing & Experimentation
+##  A/B Testing & Experimentation
 
 **38. How do you determine sample size for A/B test?**
 > Based on: effect size, baseline rate, significance level ($\alpha$), power ($1-\beta$). Use power analysis.

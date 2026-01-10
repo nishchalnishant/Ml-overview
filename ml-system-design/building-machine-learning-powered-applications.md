@@ -490,7 +490,7 @@ Key lessons:
 
 ***
 
-#### ✅ Chapter Summary Table
+####  Chapter Summary Table
 
 | Concept         | Description                           | Example                                |
 | --------------- | ------------------------------------- | -------------------------------------- |
@@ -510,7 +510,7 @@ This chapter follows the first two (which focused on framing and evaluating an M
 
 ***
 
-### 🧩 Chapter 3: Designing and Building an ML-Powered Prototype
+###  Chapter 3: Designing and Building an ML-Powered Prototype
 
 #### 1. Objective of the Chapter
 
@@ -784,7 +784,7 @@ This chapter also includes practical advice from engineers at companies like Sti
 
 ***
 
-### ✅ Chapter 3 Summary Table
+###  Chapter 3 Summary Table
 
 | Concept             | Description                     | Example                                       |
 | ------------------- | ------------------------------- | --------------------------------------------- |
@@ -1460,7 +1460,7 @@ Strong collaboration prevents silos and ensures that the ML system serves produc
 
 ***
 
-### ✅ 15. Chapter Summary Table
+###  15. Chapter Summary Table
 
 | Concept             | Description                      | Tools/Examples            |
 | ------------------- | -------------------------------- | ------------------------- |

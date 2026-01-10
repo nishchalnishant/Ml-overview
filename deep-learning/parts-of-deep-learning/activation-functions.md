@@ -143,7 +143,7 @@ These are special-purpose functions you use _only_ in the final layer of your ne
 
 ***
 
-#### 🚀 Summary: How to Choose
+####  Summary: How to Choose
 
 Here is a simple rule-of-thumb:
 

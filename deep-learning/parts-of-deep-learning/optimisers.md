@@ -119,7 +119,7 @@ AdamW is a _correction_ to the way Adam handles L2 regularization (also known as
 
 ***
 
-#### 🚀 Summary: Which Optimizer Should I Choose?
+####  Summary: Which Optimizer Should I Choose?
 
 * Start with Adam or AdamW: For most problems, Adam (or AdamW if you are using weight decay) will give you the fastest results and is the easiest to tune.
 * For Computer Vision: If you're not getting the generalization you want from Adam, try SGD with Momentum (or Nesterov Momentum). It often requires a lot more tuning of the learning rate and a "warm-up" schedule, but it can lead to a final model with better test accuracy.

@@ -310,7 +310,7 @@ The cost of an ML project depends on three key factors:
    * You must balance acceptable accuracy with cost.
    * Cost of errors must be compared with the cost of perfection.
 
-📈 Rule of thumb:
+ Rule of thumb:
 
 Going from 90% → 99% accuracy often multiplies the cost several times.
 
@@ -351,7 +351,7 @@ To make complexity estimation manageable:
 3. Use pilot projects.
    * Small-scale pilots reveal whether full-scale implementation is worth it.
 
-🧩 Note: As the number of classes grows, the required data grows _superlinearly_.
+ Note: As the number of classes grows, the required data grows _superlinearly_.
 
 ***
 
@@ -543,7 +543,7 @@ Before collecting data or building models, you must:
 * Understand how predictions are used.
 * Specify measurable objectives.
 
-> 🚀 The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
+>  The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
 
 A poorly framed problem leads to:
 
@@ -608,7 +608,7 @@ Features are input variables (x₁, x₂, …, xₙ) used for prediction.
 Example:
 
 * Predicting flight delays.
-  * ✅ Use: weather forecasts, aircraft type, route.
+  *  Use: weather forecasts, aircraft type, route.
   * ❌ Don’t use: actual arrival time.
 
 ***
@@ -660,7 +660,7 @@ Baselines are critical because:
 * They reveal whether your ML model truly adds value.
 * They act as a sanity check for initial experiments.
 
-> 📈 If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
+>  If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
 
 ***
 
@@ -894,7 +894,7 @@ Good data satisfies multiple dimensions of quality:
 | Timeliness         | Data reflects current conditions.    | Real-time transaction logs.                |
 | Representativeness | Matches the production environment.  | Distribution of regions/cities is similar. |
 
-> ✅ Always measure and monitor these quality metrics before model training.
+>  Always measure and monitor these quality metrics before model training.
 
 ***
 
@@ -970,7 +970,7 @@ When one class appears much less frequently (e.g., 1% fraud, 99% normal).
    * Assign class weights inversely proportional to frequency.
    * Use metrics robust to imbalance (AUC, F1, Precision-Recall).
 
-> ⚖️ The chosen technique depends on the problem’s cost of false negatives vs. false positives.
+>  The chosen technique depends on the problem’s cost of false negatives vs. false positives.
 
 ***
 
@@ -1076,7 +1076,7 @@ Typical stages in the data pipeline:
 6. Access
    * Enable secure queries and sampling for model training.
 
-> ⚙️ Use automated validation and monitoring to detect anomalies early.
+>  Use automated validation and monitoring to detect anomalies early.
 
 ***
 

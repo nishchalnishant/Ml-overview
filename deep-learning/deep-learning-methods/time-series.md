@@ -114,7 +114,7 @@ These models are designed to learn patterns from raw sequential data, automatica
   * Very Complex: A "black box" that is hard to tune and interpret.
   * Computational Overkill: Using a Transformer on a simple monthly sales dataset is unnecessary and will likely perform _worse_ than ARIMA.
 
-#### 🚀 How to Choose
+####  How to Choose
 
 | **Model Family** | **When to Use**                                                                                                                                               |
 | ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |

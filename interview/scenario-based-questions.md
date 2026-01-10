@@ -2,7 +2,7 @@
 
 ---
 
-## 🚨 Debugging & Troubleshooting
+##  Debugging & Troubleshooting
 
 ### Scenario 1: Model accuracy dropped 10% overnight.
 **How do you investigate?**
@@ -33,7 +33,7 @@
 
 ---
 
-## ⚖️ Trade-offs & Decisions
+##  Trade-offs & Decisions
 
 ### Scenario 6: Choose between 90% accurate fast model vs 92% accurate slow model.
 **How do you decide?**
@@ -74,7 +74,7 @@
 
 ---
 
-## 🏗️ System Design Scenarios
+##  System Design Scenarios
 
 ### Scenario 11: Design a fraud detection system.
 **Key points:**
@@ -118,7 +118,7 @@
 
 ---
 
-## 🎯 ML-Specific Scenarios
+##  ML-Specific Scenarios
 
 ### Scenario 16: Your model is great on average but terrible for a minority group.
 **What do you do?**

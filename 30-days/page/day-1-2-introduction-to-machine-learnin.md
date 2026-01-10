@@ -1,6 +1,6 @@
 # Day 1-2: Introduction to Machine Learning
 
-## 📋 Executive Summary
+##  Executive Summary
 | Topic | Core Concept | Key Algorithms | Evaluation |
 |-------|--------------|----------------|------------|
 | **Supervised** | Labeled data mapping $X \rightarrow y$ | Linear/Logistic Reg, Decision Trees, SVM | MSE, Accuracy, F1-Score |
@@ -23,7 +23,7 @@ The model finds "hidden" structures.
 
 ---
 
-## 📐 Mathematical Foundations
+##  Mathematical Foundations
 
 ### 1. Linear Regression
 The hypothesis $h_\theta(x)$ is a linear combination of features:
@@ -39,7 +39,7 @@ Hypothesis: $h_\theta(x) = g(\theta^T x) = P(y=1|x;\theta)$
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What is the difference between Bias and Variance in the context of Days 1-2?"**
 > **Bias** is error due to overly simplistic assumptions (underfitting). **Variance** is error due to over-sensitivity to training noise (overfitting). Linear models usually have high bias/low variance, while deep trees have low bias/high variance.
@@ -52,7 +52,7 @@ Hypothesis: $h_\theta(x) = g(\theta^T x) = P(y=1|x;\theta)$
 
 ---
 
-## 🛠️ Implementation Quick-Lookup
+##  Implementation Quick-Lookup
 ```python
 from sklearn.linear_model import LinearRegression, LogisticRegression
 from sklearn.metrics import mean_squared_error, accuracy_score

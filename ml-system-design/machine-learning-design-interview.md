@@ -283,7 +283,7 @@ Sample design questions:
 
 ***
 
-#### 📚 Summary
+####  Summary
 
 * Recommendation systems = Candidate Generation + Ranking + Re-ranking
 * Must balance accuracy, freshness, diversity, and fairness
@@ -498,7 +498,7 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ***
 
-#### 🧩  Key Takeaways
+####   Key Takeaways
 
 | Concept         | Summary                                     |
 | --------------- | ------------------------------------------- |
@@ -1153,7 +1153,7 @@ Key components:
 
 ***
 
-#### 🧩 Key Takeaways
+####  Key Takeaways
 
 | Concept          | Summary                                          |
 | ---------------- | ------------------------------------------------ |

@@ -1,6 +1,6 @@
 # Tuning & Optimization: SFT, PEFT, and RLHF
 
-## 📋 Executive Summary
+##  Executive Summary
 | Technique | Goal | Cost | Key Method |
 |-----------|------|------|------------|
 | **SFT** | Instruction Following | Medium | Full parameter updates |
@@ -10,7 +10,7 @@
 
 ---
 
-## 🛠️ 1. Fine-Tuning Strategies
+##  1. Fine-Tuning Strategies
 
 ### SFT (Supervised Fine-Tuning)
 The "base" model is trained on $(Prompt, Response)$ pairs to learn how to be a chatbot or a specific instruction follower.
@@ -22,7 +22,7 @@ Instead of updating billions of parameters, we freeze the model and add tiny "ad
 
 ---
 
-## 🚀 2. Alignment: RLHF & DPO
+##  2. Alignment: RLHF & DPO
 
 ### RLHF (Reinforcement Learning from Human Feedback)
 1. **Human Ranking**: Humans rank multiple model outputs.
@@ -34,7 +34,7 @@ A modern alternative that eliminates the need for a separate Reward Model. It tr
 
 ---
 
-## ⚡ 3. Optimization: Quantization
+##  3. Optimization: Quantization
 How to fit a large model on a consumer GPU.
 - **FP16 / BF16**: Standard training precision.
 - **Int8 / 4-bit (QLoRA)**: Squashes weights into fewer bits.
@@ -42,7 +42,7 @@ How to fit a large model on a consumer GPU.
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What is LoRA and why does rank selection matter?"**
 > LoRA approximates the update matrix with two low-rank matrices. The rank $r$ (e.g., 8, 16) determines capacity. A higher $r$ learns more complex patterns but increases memory and risk of overfitting.
@@ -55,7 +55,7 @@ How to fit a large model on a consumer GPU.
 
 ---
 
-## 💻 Code: LoRA Config (PEFT)
+##  Code: LoRA Config (PEFT)
 ```python
 from peft import LoraConfig, get_peft_model
 

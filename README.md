@@ -4,7 +4,7 @@ Welcome to the ultimate repository for mastering Machine Learning, Deep Learning
 
 ---
 
-## 🗺️ Learning Paths
+##  Learning Paths
 
 ### 1. [Foundational Machine Learning](machine-learning/)
 *Core algorithms, math, and concepts. Start here for the "How it works" level of depth.*
@@ -32,19 +32,19 @@ Welcome to the ultimate repository for mastering Machine Learning, Deep Learning
 
 ---
 
-## 🛠️ Performance & Reference
+##  Performance & Reference
 - [**ML Glossary**](ml-glossary.md) - A-Z of ML terms with formulas and examples.
 - [**MLOps Guide**](mlops.md) - Deployment, monitoring, and lifecycle management.
 - [**30-Day Roadmap**](30-days/) - A structured learning journey.
 
 ---
 
-## 📈 Technical Standards
+##  Technical Standards
 Every file in this repository is maintained to a high technical standard:
-- ✅ **Mathematical Rigor:** Formal formulas and complexity analysis.
-- ✅ **Code Implementation:** Clean Python/Scikit-Learn/PyTorch snippets.
-- ✅ **Interview Focused:** "Executive Summaries" and "Interview Tips" in every major file.
-- ✅ **Production Ready:** Real-world trade-offs and engineering constraints.
+-  **Mathematical Rigor:** Formal formulas and complexity analysis.
+-  **Code Implementation:** Clean Python/Scikit-Learn/PyTorch snippets.
+-  **Interview Focused:** "Executive Summaries" and "Interview Tips" in every major file.
+-  **Production Ready:** Real-world trade-offs and engineering constraints.
 
 ---
 

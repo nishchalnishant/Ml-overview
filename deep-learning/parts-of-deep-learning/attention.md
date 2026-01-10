@@ -112,7 +112,7 @@ This is a more conceptual distinction.
 
 ***
 
-#### 🚀 Why Attention is the Most Important Idea in Modern AI
+####  Why Attention is the Most Important Idea in Modern AI
 
 The invention of Self-Attention led directly to the Transformer architecture in 2017 ("Attention is All You Need").
 

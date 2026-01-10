@@ -26,11 +26,11 @@ Deep learning is a subset of machine learning that uses neural networks with mul
 ## When to Use Deep Learning
 
 ### Choose Deep Learning When:
-✅ **Large Dataset:** 100K+ samples available  
-✅ **Unstructured Data:** Images, text, audio, video  
-✅ **Complex Patterns:** Non-linear relationships  
-✅ **Performance Priority:** Accuracy over interpretability  
-✅ **Computational Resources:** Access to GPUs/TPUs  
+ **Large Dataset:** 100K+ samples available  
+ **Unstructured Data:** Images, text, audio, video  
+ **Complex Patterns:** Non-linear relationships  
+ **Performance Priority:** Accuracy over interpretability  
+ **Computational Resources:** Access to GPUs/TPUs  
 
 ### Choose Traditional ML When:
 ❌ **Small Dataset:** < 10K samples  

@@ -1,6 +1,6 @@
 # RAG: Retrieval-Augmented Generation
 
-## 📋 Executive Summary
+##  Executive Summary
 | Stage | Technical Goal | Components |
 |-------|----------------|------------|
 | **Indexing** | Knowledge Representation | Chunking, Embedding Models, Vector DBs |
@@ -10,7 +10,7 @@
 
 ---
 
-## 🛠️ 1. The RAG Pipeline
+##  1. The RAG Pipeline
 
 ### Precision Chunking
 The quality of RAG depends on the granularity of data.
@@ -24,7 +24,7 @@ Storing embeddings in a way that allows for sub-millisecond search among million
 
 ---
 
-## 🚀 2. Advanced RAG Patterns
+##  2. Advanced RAG Patterns
 
 ### Re-Ranking
 Standard retrieval might return the top 10 documents by vector similarity, but those might not be the most "helpful".
@@ -40,7 +40,7 @@ Instead of just vector proximity, it uses **Knowledge Graphs** (Nodes = Entities
 
 ---
 
-## 📊 3. Evaluation: The RAGAS Framework
+##  3. Evaluation: The RAGAS Framework
 Don't just "vibe check". Use the **RAG Triad**:
 1. **Context Relevance**: Is the retrieved context useful for the query?
 2. **Faithfulness (Groundedness)**: Is the answer derived *only* from the context?
@@ -48,7 +48,7 @@ Don't just "vibe check". Use the **RAG Triad**:
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What is the difference between RAG and Fine-tuning?"**
 > **RAG** is like giving a student an open book; it's great for facts, low cost, and no training needed. **Fine-tuning** is like the student studying and internalizing knowledge; it's better for style, tone, and specific patterns but expensive and prone to hallucinations on facts.
@@ -61,7 +61,7 @@ Don't just "vibe check". Use the **RAG Triad**:
 
 ---
 
-## 💻 Code: Simple Retrieval Pattern (LangChain logic)
+##  Code: Simple Retrieval Pattern (LangChain logic)
 ```python
 # Semantic Search Flow
 query_vector = embed_model.embed(query)

@@ -119,7 +119,7 @@ This is a common point of confusion. What if an input can have _multiple_ correc
 
 ***
 
-#### 🚀 Quick Summary: How to Choose
+####  Quick Summary: How to Choose
 
 | **Problem Type**                                            | **Model's Last Layer**         | **Loss Function to Use**                                                                                       |
 | ----------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |

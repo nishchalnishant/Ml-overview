@@ -4,7 +4,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-## 🎯 Target by Role & Level
+##  Target by Role & Level
 
 | Level | Files to Focus On |
 |-------|-------------------|
@@ -14,29 +14,29 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-## 📚 Complete File Index
+##  Complete File Index
 
 ### Core Q&A
-- 📝 **[Master Q&A Bank](top-ml-interview-questions.md)** – Tiered questions (Level 1-3)
-- 📊 **[Statistics & Probability](statistics-probability.md)** – Bayes, Distributions, Hypothesis Testing, MLE
+-  **[Master Q&A Bank](top-ml-interview-questions.md)** – Tiered questions (Level 1-3)
+-  **[Statistics & Probability](statistics-probability.md)** – Bayes, Distributions, Hypothesis Testing, MLE
 
 ### Technical Deep Dives
 - 🧠 **[Deep Learning Architectures](dl-architectures.md)** – CNNs, RNNs, Transformers, GANs, Object Detection
-- 🤖 **[NLP & Transformers](nlp-transformers.md)** – BERT, GPT, Attention, Text Preprocessing
+-  **[NLP & Transformers](nlp-transformers.md)** – BERT, GPT, Attention, Text Preprocessing
 
 ### Practical Application
-- 🛠️ **[ML Coding Patterns](ml-coding-patterns.md)** – Pipelines, NumPy, PyTorch templates
-- 🏗️ **[System Design Case Studies](ml-system-design.md)** – RecSys, Fraud, Search
-- 🚨 **[Scenario-Based Questions](scenario-based-questions.md)** – "What would you do if..."
+-  **[ML Coding Patterns](ml-coding-patterns.md)** – Pipelines, NumPy, PyTorch templates
+-  **[System Design Case Studies](ml-system-design.md)** – RecSys, Fraud, Search
+-  **[Scenario-Based Questions](scenario-based-questions.md)** – "What would you do if..."
 
 ### Foundations & Strategy
-- 📋 **[Quick Revision Cheat Sheet](ml-revision.md)** – Algorithms & Metrics
-- 📐 **[Math & Derivations](math-derivations.md)** – Whiteboard proofs
-- 🎤 **[Interview Strategy Guide](machine-learning-interviews.md)** – Behavioral, STAR method
+-  **[Quick Revision Cheat Sheet](ml-revision.md)** – Algorithms & Metrics
+-  **[Math & Derivations](math-derivations.md)** – Whiteboard proofs
+-  **[Interview Strategy Guide](machine-learning-interviews.md)** – Behavioral, STAR method
 
 ---
 
-## ⏰ Emergency Study Plan
+##  Emergency Study Plan
 
 | Time Left | What to Do |
 |-----------|------------|
@@ -48,7 +48,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-## 📈 Topic Coverage Checklist
+##  Topic Coverage Checklist
 
 - [x] ML Fundamentals (Bias-Variance, Regularization)
 - [x] Supervised Learning (Regression, Classification, Ensembles)
@@ -66,4 +66,4 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-**You are fully prepared. Trust your training. Good luck! 🚀**
+**You are fully prepared. Trust your training. Good luck! **

@@ -1,6 +1,6 @@
 # LLM Mechanics: From Transformers to KV-Cache
 
-## 📋 Executive Summary
+##  Executive Summary
 | Concept | Technical Essence | Interview Key |
 |---------|-------------------|---------------|
 | **Attention** | $Softmax(\frac{QK^T}{\sqrt{d_k}})V$ | Quadratic complexity $O(L^2)$ |
@@ -10,7 +10,7 @@
 
 ---
 
-## 🛠️ 1. The Transformer Architecture
+##  1. The Transformer Architecture
 The core of modern LLMs (GPT, Llama, Claude).
 
 ### The Attention Mechanism
@@ -26,7 +26,7 @@ Since Transformers process tokens in parallel (unlike RNNs), they have no inhere
 
 ---
 
-## 🚀 2. Training at Scale
+##  2. Training at Scale
 
 ### Chinchilla Scaling Laws
 DeepMind discovered that most models are "under-trained". 
@@ -40,7 +40,7 @@ LLMs don't read words; they read **tokens**.
 
 ---
 
-## ⚡ 3. Inference Optimization: KV-Caching
+##  3. Inference Optimization: KV-Caching
 In autoregressive generation, each new token requires re-computing the attention for all previous tokens.
 - **The Problem**: $O(L^2)$ complexity.
 - **The Solution**: Store the **Keys ($K$)** and **Values ($V$)** of previous tokens in memory. 
@@ -48,7 +48,7 @@ In autoregressive generation, each new token requires re-computing the attention
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "Explain the difference between Encoder-only, Decoder-only, and Encoder-Decoder architectures."**
 > - **Encoder-only (BERT)**: Sees whole sentence at once. Best for NLU (Sentiment, NER).
@@ -65,7 +65,7 @@ In autoregressive generation, each new token requires re-computing the attention
 
 ---
 
-## 💻 Code Snippet: Minimal Softmax with Temperature
+##  Code Snippet: Minimal Softmax with Temperature
 ```python
 import numpy as np
 

@@ -1,6 +1,6 @@
 # Table of contents
 
-* [👋 Welcome!](README.md)
+* [ Welcome!](README.md)
 * [Introduction to AI](introduction-to-ai.md)
 * [Machine Learning](machine-learning/README.md)
   * [Data preprocessing](machine-learning/data-preprocessing.md)

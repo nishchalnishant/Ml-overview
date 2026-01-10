@@ -55,7 +55,7 @@
 
 ---
 
-## 🤖 Transformer Architecture
+##  Transformer Architecture
 
 **16. What is Self-Attention?**
 > Each token attends to all tokens. Computes relevance-weighted sum.
@@ -86,7 +86,7 @@
 
 ---
 
-## 🏗️ BERT Deep Dive
+##  BERT Deep Dive
 
 **25. What is BERT?**
 > Bidirectional Encoder Representations from Transformers. Encoder-only.
@@ -114,7 +114,7 @@
 
 ---
 
-## 🚀 GPT & Generation
+##  GPT & Generation
 
 **33. What is GPT?**
 > Generative Pre-trained Transformer. Decoder-only, autoregressive.
@@ -142,7 +142,7 @@
 
 ---
 
-## 📊 NLP Tasks
+##  NLP Tasks
 
 **41. What is Sentiment Analysis?**
 > Classify text as positive/negative/neutral. Classification on [CLS] embedding.

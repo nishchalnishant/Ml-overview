@@ -1,6 +1,6 @@
 # Day 26-30: Final Review & Mental Prep
 
-## 📋 Executive Summary: The Final Sprint
+##  Executive Summary: The Final Sprint
 The goal of the final days is **Consolidation**, not new learning.
 
 | Day | Goal | Activity |
@@ -33,7 +33,7 @@ Draw diagrams if using a whiteboard (or virtual whiteboard). Label your axes. Sh
 
 ---
 
-## 🧪 3. Readiness Checklist
+##  3. Readiness Checklist
 - [ ] Can I explain my 2 most important projects in < 3 minutes?
 - [ ] Do I have 3 questions ready for the interviewer?
 - [ ] Have I reviewed the math for the algorithms I used in past projects?
@@ -41,7 +41,7 @@ Draw diagrams if using a whiteboard (or virtual whiteboard). Label your axes. Sh
 
 ---
 
-## 🚀 Good Luck!
+##  Good Luck!
 You've put in 30 days of high-quality work. Trust your foundations. The interview is just a conversation between two engineers solving a problem together.
 
 **You've got this!**

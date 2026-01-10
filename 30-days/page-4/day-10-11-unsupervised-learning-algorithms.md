@@ -1,6 +1,6 @@
 # Day 10-11: Unsupervised Learning Algorithms
 
-## 📋 Executive Summary
+##  Executive Summary
 | Category | Algorithm | Core Objective | Key Hyperparameter |
 |----------|-----------|----------------|--------------------|
 | **Clustering** | **K-Means** | Minimize Inertia | $K$ (Clusters) |
@@ -23,7 +23,7 @@ An iterative algorithm that assigns points to the nearest centroid.
 
 ---
 
-## 📐 2. Dimensionality Reduction
+##  2. Dimensionality Reduction
 
 ### Principal Component Analysis (PCA)
 A linear transformation that finds orthogonal axes (Principal Components) along which variance is maximized.
@@ -36,7 +36,7 @@ A non-linear method primarily used for **visualization**.
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What are the limitations of K-Means?"**
 > It assumes clusters are spherical and equal-sized. It is sensitive to outliers and requires the number of clusters $K$ to be predefined. It can also get stuck in local minima (fixed by `n_init`).
@@ -49,7 +49,7 @@ A non-linear method primarily used for **visualization**.
 
 ---
 
-## 💻 Cluster Evaluation
+##  Cluster Evaluation
 ```python
 from sklearn.metrics import silhouette_score
 from sklearn.cluster import KMeans

@@ -118,7 +118,7 @@ These are not "layers" that learn, but _techniques_ (often implemented as layers
 
 ***
 
-#### 🚀 Summary: When to Use What
+####  Summary: When to Use What
 
 | **Technique** | **Type**       | **Use For...**                                                                                    |
 | ------------- | -------------- | ------------------------------------------------------------------------------------------------- |

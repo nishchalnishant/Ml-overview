@@ -1,6 +1,6 @@
 # Day 17-18: Hyperparameter Tuning
 
-## 📋 Executive Summary
+##  Executive Summary
 | Method | Strategy | Pros | Cons |
 |--------|----------|------|------|
 | **Grid Search** | Exhaustive | Guarantees best in grid | Extremely slow |
@@ -10,7 +10,7 @@
 
 ---
 
-## 🧪 1. Search Strategies
+##  1. Search Strategies
 
 ### Grid Search
 We define a list of values for each hyperparameter, and the algorithm tries every single combination.
@@ -36,7 +36,7 @@ The most sensitive hyperparameter.
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What is the difference between a Model Parameter and a Hyperparameter?"**
 > **Parameters** are learned from data during training (e.g., weights $w$, bias $b$). **Hyperparameters** are set by the engineer *before* training to control the learning process (e.g., learning rate, $K$ in KNN).
@@ -49,7 +49,7 @@ The most sensitive hyperparameter.
 
 ---
 
-## 💻 Implementation (Optuna Example)
+##  Implementation (Optuna Example)
 ```python
 import optuna
 

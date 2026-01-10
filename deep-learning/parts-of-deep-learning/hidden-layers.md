@@ -35,7 +35,7 @@ The beauty of deep learning lies in how hidden layers decompose complex problems
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What happens if you have no hidden layers?"**
 > The model becomes a simple linear classifier (like Logistic Regression) and cannot learn non-linear decision boundaries.

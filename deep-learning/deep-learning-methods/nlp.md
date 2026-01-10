@@ -15,7 +15,7 @@ The evolution of these models is a story of capturing context:
 
 ***
 
-#### 1. 📊 Foundational Statistical Models
+#### 1.  Foundational Statistical Models
 
 These models are "classic," fast, and work well for simple tasks. They treat text as a "bag" or collection of words, ignoring order.
 
@@ -44,7 +44,7 @@ These models are "classic," fast, and work well for simple tasks. They treat tex
 
 ***
 
-#### 2. 💡 Word Embedding Models
+#### 2.  Word Embedding Models
 
 These models were a breakthrough, as they learned to represent the _meaning_ and _relationships_ of words.
 
@@ -86,13 +86,13 @@ Here is a detailed explanation of the inner workings of RNNs, LSTMs, and GRUs.
 
 This is the most basic version and the foundation for the others.
 
-**💡 The Core Idea: The Loop**
+** The Core Idea: The Loop**
 
 An RNN cell processes one item from a sequence (e.g., one word) and combines it with a "memory" of the _previous_ item. It then passes this updated memory to the next step.
 
 Think of it as a person reading a sentence one word at a time, constantly updating their "summary" of what they've read so far.
 
-**⚙️ How It Works**
+** How It Works**
 
 At each time step `t`, the RNN cell performs two simple tasks:
 
@@ -121,13 +121,13 @@ An RNN's memory is very short. To train the network, you use "backpropagation th
 
 LSTMs were designed _specifically_ to solve the vanishing gradient problem.
 
-**💡 The Core Idea: A "Conveyor Belt" Memory**
+** The Core Idea: A "Conveyor Belt" Memory**
 
 An LSTM introduces a dedicated, separate "memory line" called the Cell State ($$ $c_t$ $$). Think of this as a conveyor belt that carries information down the sequence.
 
 The LSTM has special "gates" that can _learn_ to add information to this belt, or remove information from it. This system gives it a stable, long-term memory.
 
-**⚙️ How It Works**
+** How It Works**
 
 An LSTM cell has two states it passes to the next step:
 
@@ -159,11 +159,11 @@ Why this works: The cell state "conveyor belt" has very simple math (just additi
 
 A GRU is a (newer) simplified version of an LSTM. It's the "sleek, modern" version that achieves the same goal with less complexity.
 
-**💡 The Core Idea: Combine and Simplify**
+** The Core Idea: Combine and Simplify**
 
 A GRU works by merging the LSTM's Cell State and Hidden State into a _single_ state $$ $h_t$ $$. It also combines the "forget" and "input" gates into a single gate.
 
-**⚙️ How It Works**
+** How It Works**
 
 A GRU has only two gates:
 
@@ -180,7 +180,7 @@ A GRU has only two gates:
 
 ***
 
-#### 🚀 Summary: LSTM vs. GRU vs. RNN
+####  Summary: LSTM vs. GRU vs. RNN
 
 | **Feature**  | **Simple RNN**                                        | **LSTM (Long Short-Term Memory)**                                                      | **GRU (Gated Recurrent Unit)**                                                  |
 | ------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -193,7 +193,7 @@ A GRU has only two gates:
 
 ***
 
-#### 4. 🚀 Transformer-Based Models (The Modern Era)
+#### 4.  Transformer-Based Models (The Modern Era)
 
 This architecture (from the 2017 paper "Attention Is All You Need") revolutionized NLP by getting rid of sequential processing and using self-attention.
 

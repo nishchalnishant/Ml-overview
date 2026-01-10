@@ -1,6 +1,6 @@
 # Advanced LLM Architectures: MoE, RoPE, and GQA
 
-## 📋 Executive Summary
+##  Executive Summary
 While the standard Transformer is the base, state-of-the-art models (Mistral, Llama 3, GPT-4) use several critical optimizations to handle 100k+ context windows and trillions of parameters.
 
 | Technique | Problem Solved | Mechanism |
@@ -12,21 +12,21 @@ While the standard Transformer is the base, state-of-the-art models (Mistral, Ll
 
 ---
 
-## 🧩 1. Mixture of Experts (MoE)
+##  1. Mixture of Experts (MoE)
 Instead of one massive dense layer, we use many small "Expert" layers. 
 - **The Router**: For every token, a "Gating Network" decides which 2 experts (out of 8 or 16) are best suited to process it.
 - **Benefit**: You get the knowledge of a 100B params model with the inference speed of a 12B params model (Active parameters).
 
 ---
 
-## 📐 2. Positional Encoding: RoPE
+##  2. Positional Encoding: RoPE
 **Rotary Positional Embeddings (RoPE)** replaced fixed sinusoidal encodings.
 - **How it works**: It rotates the embedding vectors in a specific way that represents their relative position.
 - **Advantage**: It allows the model to extrapolate to much longer context windows (e.g., from 4k to 128k) more gracefully than absolute positional encodings.
 
 ---
 
-## ⚡ 3. Memory Optimization: GQA
+##  3. Memory Optimization: GQA
 **Grouped Query Attention (GQA)** is a middle ground between Multi-Head (MHA) and Multi-Query (MQA).
 - **MHA**: Every Query has its own Key and Value head. (High memory).
 - **MQA**: All Queries share a single Key and Value head. (Fast, but lower quality).
@@ -34,7 +34,7 @@ Instead of one massive dense layer, we use many small "Expert" layers.
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "Why is Flash Attention 10x faster if it still has $O(L^2)$ complexity?"**
 > It addresses **Memory Wall** issues. Standard attention spends more time moving data between HBM (GPU VRAM) and SRAM (fast cache) than actually computing. Flash Attention "tiles" the operation to stay in SRAM as much as possible, reducing I/O.
@@ -47,7 +47,7 @@ Instead of one massive dense layer, we use many small "Expert" layers.
 
 ---
 
-## 💻 Architecture Comparison
+##  Architecture Comparison
 | Model | Attention | Positional Encoding | Layer Type |
 |-------|-----------|---------------------|------------|
 | **GPT-3** | MHA | Absolute | Dense |

@@ -1,6 +1,6 @@
 # LLM Training Lifecycle: From Raw Text to Aligned Assistant
 
-## 📋 Executive Summary
+##  Executive Summary
 The training of a modern LLM (e.g., Llama 3, GPT-4) happens in three distinct stages, each with a different objective, data requirement, and mathematical optimization.
 
 | Stage | Objective | Data Type | Algorithm |
@@ -11,7 +11,7 @@ The training of a modern LLM (e.g., Llama 3, GPT-4) happens in three distinct st
 
 ---
 
-## 🏗️ 1. Pre-training: The Heavy Lifting
+##  1. Pre-training: The Heavy Lifting
 This is where 99% of the compute is spent. The model learns to predict the next token based on a massive corpus.
 - **Data Mixture**: High-quality web text (Common Crawl), code (GitHub), math (ArXiv), and reasoning data.
 - **Objective Function**: Cross-Entropy Loss over the entire sequence.
@@ -19,7 +19,7 @@ This is where 99% of the compute is spent. The model learns to predict the next 
 
 ---
 
-## 🛠️ 2. Supervised Fine-Tuning (SFT)
+##  2. Supervised Fine-Tuning (SFT)
 Converting a Base Model into an **Instruct Model**.
 - **Data**: Humans manually write high-quality responses to prompts (e.g., "Summarize this...", "Write code for...").
 - **Objective**: The model is trained to maximize the likelihood of the human-written answer.
@@ -27,7 +27,7 @@ Converting a Base Model into an **Instruct Model**.
 
 ---
 
-## ⚖️ 3. Alignment: RLHF & DPO
+##  3. Alignment: RLHF & DPO
 Ensuring the model is helpful, honest, and harmless ($HHH$).
 
 ### RLHF (Reinforcement Learning from Human Feedback)
@@ -41,7 +41,7 @@ A more stable and efficient alternative to RLHF. It directly optimizes the model
 
 ---
 
-## ❓ Interview Questions
+##  Interview Questions
 
 **1. "What happens if you skip Pre-training and only do SFT?"**
 > The model will lack "World Knowledge". It might learn the *style* of an assistant but will hallucinate facts constantly because it hasn't seen the trillions of tokens required to learn underlying patterns and data relationships.
@@ -54,7 +54,7 @@ A more stable and efficient alternative to RLHF. It directly optimizes the model
 
 ---
 
-## 💻 Logic Flow
+##  Logic Flow
 ```python
 # The standard "Alignment" loss intuition
 loss = -log(prob_winning_response) + log(prob_losing_response)

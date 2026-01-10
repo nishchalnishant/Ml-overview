@@ -30,7 +30,7 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 
 ---
 
-## ❓ [Interview Question Bank](interview-questions.md)
+##  [Interview Question Bank](interview-questions.md)
 *Direct answers to high-signal LLM interview questions.*
 - Architecture deep-dives.
 - Training strategies.
@@ -38,5 +38,5 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 
 ---
 
-## 📚 [Recommended Reading](books/README.md)
+##  [Recommended Reading](books/README.md)
 *Deep-dive books and resources on LLM development.*

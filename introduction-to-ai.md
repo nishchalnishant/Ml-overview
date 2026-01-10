@@ -98,7 +98,7 @@ E[(y - ŷ)²] = Bias² + Variance + σ²
 High Bias, Low Variance:    Low Bias, High Variance:    Optimal:
   Consistent but wrong        Close but inconsistent      Accurate & consistent
   
-        🎯                           🎯                          🎯
+                                                             
      ●●●                           ●  ●                         ●●●
      ●●●                         ●   ●                          ●●●
   (Underfitting)              (Overfitting)                   (Balanced)
@@ -711,22 +711,22 @@ model = Sequential([
    - Use grid search or random search
 
 **Model Overfitting (High Variance):**
-- ✅ Collect more training data
-- ✅ Reduce model complexity
-- ✅ Increase regularization (L1/L2, dropout)
-- ✅ Feature selection / dimensionality reduction
-- ✅ Cross-validation
-- ✅ Early stopping
-- ✅ Data augmentation
-- ✅ Ensemble methods (bagging)
+-  Collect more training data
+-  Reduce model complexity
+-  Increase regularization (L1/L2, dropout)
+-  Feature selection / dimensionality reduction
+-  Cross-validation
+-  Early stopping
+-  Data augmentation
+-  Ensemble methods (bagging)
 
 **Model Underfitting (High Bias):**
-- ✅ Use more complex model
-- ✅ Add more features / feature engineering
-- ✅ Reduce regularization
-- ✅ Train longer
-- ✅ Remove noise from data
-- ✅ Ensemble methods (boosting)
+-  Use more complex model
+-  Add more features / feature engineering
+-  Reduce regularization
+-  Train longer
+-  Remove noise from data
+-  Ensemble methods (boosting)
 
 ### Production Considerations
 

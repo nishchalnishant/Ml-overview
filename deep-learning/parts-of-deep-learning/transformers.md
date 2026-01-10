@@ -83,7 +83,7 @@ While the original was an Encoder-Decoder model, the architecture has been broke
 
 #### 👍 Pros and 👎 Cons
 
-**✅ Pros**
+** Pros**
 
 1. Parallelization: This is its biggest advantage. Unlike RNNs, all calculations within a layer can be done simultaneously, making it _dramatically_ faster to train on modern GPUs.
 2. Captures Long-Range Dependencies: Self-attention can (theoretically) connect the 1st word and the 1000th word in a sequence with equal ease. This solves the "forgetting" problem of RNNs.
