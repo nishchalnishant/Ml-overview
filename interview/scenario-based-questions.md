@@ -157,7 +157,7 @@
 
 ---
 
-## 🧠 Behavioral & Soft Skills
+##  Behavioral & Soft Skills
 
 ### Scenario 21: You disagree with your tech lead on the modeling approach.
 **How do you handle?**

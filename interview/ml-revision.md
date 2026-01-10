@@ -53,7 +53,7 @@
 
 ---
 
-## 🧠 4. Neural Network Fundamentals
+##  4. Neural Network Fundamentals
 
 | Component | Purpose |
 |-----------|---------|

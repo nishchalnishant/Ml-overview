@@ -2,7 +2,7 @@
 
 ---
 
-## � Text Preprocessing
+##  Text Preprocessing
 
 **1. What is Tokenization?**
 > Splitting text into tokens (words, subwords, or characters).
@@ -30,7 +30,7 @@
 
 ---
 
-## 🧠 Word Representations
+##  Word Representations
 
 **9. What is TF-IDF?**
 > Term Frequency × Inverse Document Frequency. Weighs words by importance in corpus.

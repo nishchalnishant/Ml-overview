@@ -21,7 +21,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 -  **[Statistics & Probability](statistics-probability.md)** – Bayes, Distributions, Hypothesis Testing, MLE
 
 ### Technical Deep Dives
-- 🧠 **[Deep Learning Architectures](dl-architectures.md)** – CNNs, RNNs, Transformers, GANs, Object Detection
+-  **[Deep Learning Architectures](dl-architectures.md)** – CNNs, RNNs, Transformers, GANs, Object Detection
 -  **[NLP & Transformers](nlp-transformers.md)** – BERT, GPT, Attention, Text Preprocessing
 
 ### Practical Application
