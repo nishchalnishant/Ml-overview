@@ -1,110 +1,169 @@
-# NLP & Transformers: Interview Deep Dive
-
-## 📋 Quick Reference
-| Concept | Definition | Interview Key |
-|---------|------------|---------------|
-| **Tokenization** | Split text into tokens | BPE, WordPiece, SentencePiece |
-| **Embedding** | Token → Dense vector | Word2Vec, GloVe, Learned |
-| **Attention** | Weigh all tokens | $Softmax(QK^T/\sqrt{d})V$ |
-| **BERT** | Encoder-only, bidirectional | MLM, NSP, fine-tuning |
-| **GPT** | Decoder-only, autoregressive | Next-token prediction |
+# NLP & Transformers: 40+ Questions
 
 ---
 
-## 🔤 1. Text Preprocessing
+## � Text Preprocessing
 
-### Tokenization Methods
-- **Word-level**: Simple but huge vocabulary. OOV problem.
-- **Character-level**: Small vocabulary but loses word semantics.
-- **Subword (BPE)**: Best of both. "unhappiness" → ["un", "happiness"]. Handles OOV.
+**1. What is Tokenization?**
+> Splitting text into tokens (words, subwords, or characters).
 
-### Common Preprocessing Steps
-1. Lowercasing (context-dependent)
-2. Removing special characters/URLs
-3. Handling contractions ("don't" → "do not")
-4. Lemmatization/Stemming (less common with modern LLMs)
+**2. What is BPE (Byte Pair Encoding)?**
+> Iteratively merges frequent character pairs. Creates subword vocabulary. Handles OOV words.
 
----
+**3. What is WordPiece?**
+> Similar to BPE but uses likelihood-based merging. Used by BERT.
 
-## 🧠 2. Word Representations
+**4. What is SentencePiece?**
+> Language-agnostic tokenizer. Treats text as raw bytes. No need for pre-tokenization.
 
-### Traditional (Pre-Transformer Era)
-- **TF-IDF**: Sparse, based on word frequency. Good for simple retrieval.
-- **Word2Vec**: Dense embeddings learned via Skip-gram or CBOW.
-- **GloVe**: Learned from co-occurrence matrix.
+**5. Why use subword tokenization over word-level?**
+> Handles OOV words by breaking into known subwords. Smaller vocabulary size.
 
-### Contextual (Modern)
-- **ELMo**: First contextual embeddings (BiLSTM).
-- **BERT/GPT**: Context-dependent from Transformers. "Bank" in "river bank" vs "money bank" gets different vectors.
+**6. What preprocessing steps are common for NLP?**
+> Lowercasing, removing punctuation/URLs, handling contractions, tokenization.
 
-### Interview Q: "Why are contextual embeddings better?"
-> Static embeddings (Word2Vec) give the same vector to "bank" regardless of context. Contextual embeddings (BERT) produce different vectors based on surrounding words, capturing polysemy and nuance.
+**7. What is Stemming vs Lemmatization?**
+> **Stemming**: Chops word endings (faster, cruder). **Lemmatization**: Reduces to dictionary form (slower, accurate).
+
+**8. Should you lowercase text for BERT?**
+> Depends. BERT-base-uncased: yes. BERT-base-cased: no. Use cased for NER.
 
 ---
 
-## 🤖 3. Transformer Variants
+## 🧠 Word Representations
 
-### BERT (Bidirectional Encoder Representations from Transformers)
-- **Architecture**: Encoder-only.
-- **Pre-training**: 
-  - **MLM (Masked Language Modeling)**: Predict [MASK]ed words.
-  - **NSP (Next Sentence Prediction)**: Is sentence B the next sentence after A?
-- **Fine-tuning**: Add a classification head for downstream tasks.
+**9. What is TF-IDF?**
+> Term Frequency × Inverse Document Frequency. Weighs words by importance in corpus.
 
-### GPT (Generative Pre-trained Transformer)
-- **Architecture**: Decoder-only.
-- **Pre-training**: Next-token prediction (Causal Language Modeling).
-- **Use**: Generation tasks (chatbots, code generation).
+**10. What is Word2Vec?**
+> Neural network that learns word embeddings. Two methods: Skip-gram, CBOW.
 
-### T5 (Text-to-Text Transfer Transformer)
-- **Architecture**: Full Encoder-Decoder.
-- **Paradigm**: Every task is framed as "text-in, text-out".
+**11. What is Skip-gram vs CBOW?**
+> **Skip-gram**: Predict context from word. **CBOW**: Predict word from context.
 
-### Interview Q: "When to use BERT vs GPT?"
-> **BERT** for understanding/classification (sentiment, NER, Q&A). **GPT** for generation (chatbots, summarization, creative writing). If you need both, use T5 or an Encoder-Decoder.
+**12. What is GloVe?**
+> Learns embeddings from co-occurrence matrix. Captures global statistics.
 
----
+**13. What are Contextual Embeddings?**
+> Same word gets different vectors based on context (ELMo, BERT). Solves polysemy.
 
-## 📐 4. Attention Mechanisms
+**14. Why are BERT embeddings better than Word2Vec?**
+> Context-dependent. "Bank" in "river bank" vs "money bank" gets different vectors.
 
-### Self-Attention
-Every token attends to every other token in the sequence.
-$$\text{Attention}(Q, K, V) = \text{Softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
-
-### Multi-Head Attention
-Run attention $h$ times with different projections, then concatenate.
-- Allows model to focus on different relationships simultaneously.
-
-### Cross-Attention
-Used in Encoder-Decoder models. Query from Decoder, Key/Value from Encoder.
-
-### Interview Q: "What is Causal (Masked) Attention?"
-> In GPT, we mask future tokens so the model can only "see" past. The attention matrix is upper-triangular (or lower, depending on convention). This is what makes it autoregressive.
+**15. What is the embedding dimension typically?**
+> 300 for Word2Vec/GloVe. 768 for BERT-base. 1024 for BERT-large.
 
 ---
 
-## 📊 5. Common NLP Tasks & Approaches
+## 🤖 Transformer Architecture
 
-| Task | Type | Approach |
-|------|------|----------|
-| **Sentiment Analysis** | Classification | Fine-tune BERT with [CLS] token |
-| **Named Entity Recognition (NER)** | Token Classification | Predict label per token |
-| **Question Answering** | Extractive | Predict start/end span indices |
-| **Summarization** | Generation | Encoder-Decoder (T5, BART) |
-| **Translation** | Seq2Seq | Encoder-Decoder |
+**16. What is Self-Attention?**
+> Each token attends to all tokens. Computes relevance-weighted sum.
+
+**17. What is the Attention formula?**
+> $Attention(Q,K,V) = Softmax(\frac{QK^T}{\sqrt{d_k}})V$
+
+**18. Why scale by $\sqrt{d_k}$?**
+> Prevents large dot products from saturating softmax, which kills gradients.
+
+**19. What is Multi-Head Attention?**
+> Multiple parallel attention operations with different projections. Captures varied relationships.
+
+**20. What is the number of heads typically?**
+> 12 for BERT-base, 16 for BERT-large.
+
+**21. What is Positional Encoding?**
+> Injects position information. Sinusoidal (fixed) or learned.
+
+**22. Why is positional encoding needed?**
+> Attention is permutation-invariant. Doesn't know token order without position info.
+
+**23. What is Masked (Causal) Attention?**
+> Prevents attending to future tokens. Used in GPT for autoregressive generation.
+
+**24. What is Cross-Attention?**
+> Query from decoder, Key/Value from encoder. Connects encoder-decoder.
 
 ---
 
-## ❓ Interview Questions
+## 🏗️ BERT Deep Dive
 
-**"What is the difference between Encoder and Decoder in Transformers?"**
-> The **Encoder** sees the whole input at once (bidirectional attention). The **Decoder** generates output autoregressively, seeing only past tokens (causal/masked attention). Encoder is for understanding, Decoder is for generation.
+**25. What is BERT?**
+> Bidirectional Encoder Representations from Transformers. Encoder-only.
 
-**"Why is positional encoding needed?"**
-> Attention is permutation-invariant—it doesn't know token order. Positional encodings (sinusoidal or learned) are added to embeddings to inject sequence position information.
+**26. What are BERT's pre-training objectives?**
+> **MLM**: Predict masked tokens. **NSP**: Predict if sentence B follows A.
 
-**"What is the difference between Fine-tuning and Feature Extraction?"**
-> **Fine-tuning**: Update all weights of the pre-trained model on your task. **Feature Extraction**: Freeze the pre-trained model, only train a classifier head on top. Feature extraction is faster but less accurate; fine-tuning adapts the whole model to your domain.
+**27. What is Masked Language Modeling (MLM)?**
+> 15% of tokens are masked. Model predicts the original token.
 
-**"How do you handle long documents that exceed the context window?"**
-> Options: 1) Truncate (simple but lossy). 2) Sliding window with aggregation. 3) Hierarchical models (encode chunks, then aggregate). 4) Use long-context models (Longformer, BigBird) with sparse attention.
+**28. What is [CLS] token used for?**
+> Classification token. Its final embedding represents the whole sequence.
+
+**29. What is [SEP] token used for?**
+> Separates two sentences in sentence-pair tasks.
+
+**30. How do you fine-tune BERT for classification?**
+> Add classification head on [CLS] token. Fine-tune all layers.
+
+**31. What is Feature Extraction vs Fine-tuning?**
+> **Feature Extraction**: Freeze BERT, train only classifier. **Fine-tuning**: Update all weights.
+
+**32. What is RoBERTa?**
+> BERT trained longer, on more data, without NSP. Dynamic masking.
+
+---
+
+## 🚀 GPT & Generation
+
+**33. What is GPT?**
+> Generative Pre-trained Transformer. Decoder-only, autoregressive.
+
+**34. How is GPT trained?**
+> Next-token prediction: Predict token t given tokens 1 to t-1.
+
+**35. What is Causal Language Modeling?**
+> Same as next-token prediction. Only sees past tokens.
+
+**36. BERT vs GPT: when to use which?**
+> **BERT**: Understanding (NER, sentiment). **GPT**: Generation (chatbot, summarization).
+
+**37. What is Temperature in generation?**
+> Controls randomness. Low temp = deterministic. High temp = diverse.
+
+**38. What is Top-k sampling?**
+> Sample from top k most likely tokens.
+
+**39. What is Top-p (Nucleus) sampling?**
+> Sample from smallest set of tokens whose cumulative probability ≥ p.
+
+**40. What is Beam Search?**
+> Keeps top k sequences at each step. More coherent than greedy, less diverse than sampling.
+
+---
+
+## 📊 NLP Tasks
+
+**41. What is Sentiment Analysis?**
+> Classify text as positive/negative/neutral. Classification on [CLS] embedding.
+
+**42. What is Named Entity Recognition (NER)?**
+> Identify entities (Person, Location, Organization) in text. Token classification.
+
+**43. What is Question Answering (Extractive)?**
+> Predict start and end indices of answer span in context.
+
+**44. What is Text Summarization?**
+> Generate shorter version of document. Abstractive (generate new text) or Extractive (select sentences).
+
+**45. What is Machine Translation?**
+> Convert text from one language to another. Encoder-decoder architecture.
+
+**46. What is Text Generation?**
+> Produce coherent text given prompt. Autoregressive models (GPT).
+
+**47. How do you handle long documents that exceed context length?**
+> Truncation, sliding window, hierarchical processing, or use Longformer/BigBird.
+
+**48. What is the maximum context length for BERT?**
+> 512 tokens. For GPT-3: 4096. For GPT-4: up to 128K.

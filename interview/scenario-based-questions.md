@@ -1,144 +1,197 @@
-# Practical & Scenario-Based ML Interview Questions
-
-These "What would you do if..." questions test your practical engineering judgment.
+# Scenario-Based Questions: 25+ Practical Cases
 
 ---
 
-## 🚨 Debugging & Problem Solving
+## 🚨 Debugging & Troubleshooting
 
-### Scenario 1: Your model's accuracy dropped 10% overnight.
+### Scenario 1: Model accuracy dropped 10% overnight.
 **How do you investigate?**
+1. Check data pipeline for schema changes, missing values, new nulls.
+2. Compare feature distributions (PSI, K-S test) vs baseline.
+3. Check for deployment/config changes.
+4. Slice by segments—is drop uniform or localized?
+5. Check label distribution if available.
 
-1. **Check Data Pipeline**: Was there a data source change? Schema drift? Missing values appearing?
-2. **Compare Distributions**: Use PSI or K-S test to compare yesterday's input distribution to today's.
-3. **Check Labels**: If you have labels, is the label distribution different?
-4. **Check Infrastructure**: Any deployment changes? Model version rollback?
-5. **Segment Analysis**: Is the drop uniform or concentrated in a specific user segment/region?
+### Scenario 2: Training loss decreases but validation loss increases.
+**What's happening?**
+> **Overfitting**. Model memorizes training data. Fix: More data, regularization, dropout, early stopping, simpler model.
 
-**Answer Framework:**
-> "First, I'd check if the data pipeline is healthy—are there new nulls or schema changes? Then I'd compare feature distributions against a baseline window. If data looks fine, I'd check for code/config changes in the deployment. Finally, I'd slice performance by segments to isolate where the drop is happening."
+### Scenario 3: Both training and validation accuracy are low.
+**What's happening?**
+> **Underfitting**. Model too simple. Fix: More features, more complex model, train longer, less regularization.
+
+### Scenario 4: Model works great in testing but fails in production.
+**What went wrong?**
+1. **Data leakage**: Future information in training features.
+2. **Train-serve skew**: Different preprocessing in training vs serving.
+3. **Distribution shift**: Production data different from training.
+4. Check for missing features or incorrect feature computation.
+
+### Scenario 5: Your model has 99% accuracy but is useless.
+**Why?**
+> **Class imbalance**. If 99% of data is negative, predicting all negative gives 99% accuracy but catches no positives. Use F1, Precision, Recall, PR-AUC instead.
 
 ---
 
-### Scenario 2: You have 1 million users but only 100 fraud cases.
-**How do you build a fraud detection model?**
+## ⚖️ Trade-offs & Decisions
 
-1. **Don't use Accuracy**: Use Precision, Recall, F1, or **PR-AUC**.
-2. **Resampling**: SMOTE (oversample minority), Undersampling (downsample majority), or Hybrid.
-3. **Class Weights**: Penalize misclassifying fraud more heavily (`class_weight='balanced'`).
-4. **Anomaly Detection**: Treat fraud as an anomaly using Isolation Forest or Autoencoders.
-5. **Two-Stage**: Use rules/heuristics to flag candidates, then a model for precision.
+### Scenario 6: Choose between 90% accurate fast model vs 92% accurate slow model.
+**How do you decide?**
+1. Quantify business impact of 2% accuracy difference.
+2. Real-time system? Speed matters more.
+3. Batch system? Accuracy matters more.
+4. Consider: Can you distill the slow model?
+5. Hybrid: Fast model for most cases, slow model for edge cases.
 
-**Answer Framework:**
-> "I'd frame this as an anomaly detection problem due to extreme imbalance. I'd use PR-AUC as my metric, apply SMOTE or class weighting, and consider an autoencoder approach where a high reconstruction error flags anomalies."
+### Scenario 7: Stakeholders want the model deployed tomorrow. You think it's not ready.
+**What do you do?**
+1. Present data: error analysis, edge cases, risk scenarios.
+2. Propose limited rollout (1% traffic) with monitoring.
+3. Ensure robust alerting and rollback plan.
+4. Document concerns in writing.
 
----
+### Scenario 8: You have limited labeling budget. How do you prioritize?
+**Approach:**
+1. **Active Learning**: Label points where model is most uncertain.
+2. **Cluster-based**: Sample from each cluster to ensure diversity.
+3. **Error analysis**: Label examples similar to current errors.
+4. **Stratified**: Ensure all classes represented.
 
-### Scenario 3: Stakeholders want explainability for a Black Box model.
-**How do you provide it?**
+### Scenario 9: Your training data is 3 years old. Is it still valid?
+**Consider:**
+1. Has the domain changed? (Concept drift)
+2. Are user behaviors different now?
+3. Are there new features/entities?
+4. Solution: Add recent data, monitor for drift, retrain regularly.
 
-1. **Global Interpretability**: Feature Importance (Permutation Importance, SHAP summary plots).
-2. **Local Interpretability**: LIME or SHAP values for a single prediction.
-3. **Surrogate Models**: Train a simple Decision Tree on the complex model's predictions.
-4. **Partial Dependence Plots (PDPs)**: Show the marginal effect of one feature on prediction.
-
-**Answer Framework:**
-> "I'd use SHAP values for both global and local explanations. For stakeholders, I'd provide a summary plot showing which features matter most across the population, and for individual cases, a SHAP force plot explaining why *this specific* prediction was made."
+### Scenario 10: Client wants explainability for a black-box model.
+**Options:**
+1. **SHAP values**: Local and global explanations.
+2. **LIME**: Local interpretable model-agnostic explanations.
+3. **Permutation importance**: Global feature importance.
+4. **Surrogate model**: Train interpretable model on black-box predictions.
+5. **Partial Dependence Plots**: Show feature effects.
 
 ---
 
 ## 🏗️ System Design Scenarios
 
-### Scenario 4: Design a real-time content moderation system for a social media platform.
-**Requirements:** Flag harmful content (hate speech, violence) before it's published. Latency < 200ms.
+### Scenario 11: Design a fraud detection system.
+**Key points:**
+1. **Latency**: Real-time (<50ms).
+2. **Model**: XGBoost/LightGBM for tabular data.
+3. **Features**: Velocity features (transactions in last 10 min).
+4. **Metrics**: Focus on Recall (catch fraud) with acceptable Precision.
+5. **Feedback loop**: Human review → labels → retrain.
 
-**Architecture:**
-1. **Input**: Text/Image/Video from user post.
-2. **Fast Path (Rules)**: Regex for known banned keywords. Hashlist for known harmful images (PhotoDNA).
-3. **ML Path (Parallel)**: 
-   - Text: Distilled BERT classifier.
-   - Image: CLIP or fine-tuned ResNet.
-4. **Decision**: If any path flags, route to human review queue.
-5. **Feedback Loop**: Human review labels feed back into training data.
+### Scenario 12: Design a recommendation system for an e-commerce site.
+**Key points:**
+1. **Two-stage**: Candidate generation (fast) → Ranking (accurate).
+2. **Embeddings**: User and item embeddings via Two-Tower.
+3. **ANN search**: Faiss/HNSW for retrieval.
+4. **Ranking features**: User history, item attributes, context.
+5. **Cold start**: Content-based for new items/users.
 
-**Key Trade-offs:**
-- **Latency vs. Accuracy**: Use smaller, distilled models.
-- **Recall vs. Precision**: Err on the side of recall (flag more, humans review) to protect users.
+### Scenario 13: Design a content moderation system.
+**Key points:**
+1. **Multi-modal**: Text (BERT), Image (CLIP), Video (SlowFast).
+2. **Rules layer**: Hashlist for known bad content, regex for keywords.
+3. **ML layer**: Classification models for nuanced cases.
+4. **Human review**: Queue flagged content for human decision.
+5. **Latency**: Must be real-time to block before publish.
 
----
+### Scenario 14: Design a search ranking system.
+**Key points:**
+1. **Query understanding**: Spell check, entity extraction.
+2. **Retrieval**: BM25 + Dense embeddings (Bi-encoder).
+3. **Ranking**: Cross-encoder or LTR (Learning to Rank).
+4. **Personalization**: User history, preferences.
+5. **Evaluation**: NDCG, MRR.
 
-### Scenario 5: You built a recommendation model. Click-through rate is up, but user satisfaction is down. Why?
-
-**Root Causes:**
-1. **Clickbait Optimization**: Model learned to recommend sensational content that gets clicks but disappoints.
-2. **Engagement ≠ Satisfaction**: A user might click out of anger or confusion.
-3. **Short-term vs. Long-term**: CTR is a short-term metric; user retention is long-term.
-
-**Solution:**
-1. **Change the Metric**: Optimize for **Watch Time**, **Completion Rate**, or **Explicit Rating**.
-2. **Add Negative Signals**: Factor in regret signals like "Watch < 5 seconds then close", "Hide post", "Report".
-3. **Multi-Objective Optimization**: Balance CTR with a satisfaction proxy.
-
----
-
-## 💡 Behavioral / Soft Skill Scenarios
-
-### Scenario 6: Your manager wants to deploy a model you think isn't ready.
-**How do you handle it?**
-
-> "I'd present data-driven concerns: show the error analysis, highlight risky edge cases, and propose a limited rollout (e.g., 1% of traffic) with monitoring. I'd also propose a timeline for addressing the concerns. If pushed to deploy anyway, I'd ensure robust alerting and a quick rollback plan."
-
----
-
-### Scenario 7: A non-technical stakeholder doesn't trust the ML model.
-**How do you build confidence?**
-
-1. **Explain with Analogies**: "The model is like a very fast intern who's studied 1 million past cases."
-2. **Show Examples**: Walk through specific predictions the model got right.
-3. **Shadow Mode**: Run the model in parallel with human decisions for a week and compare.
-4. **Quantify Errors**: Show the model's error rate vs. the current process's error rate.
+### Scenario 15: Design a real-time bidding system for ads.
+**Key points:**
+1. **Latency**: Must respond in ~10ms.
+2. **Model**: Light model (logistic regression, small GBM).
+3. **Features**: User demographics, context, ad metadata.
+4. **Bid calculation**: Predicted CTR × Value per click.
+5. **Calibration**: Ensure predicted probabilities are accurate.
 
 ---
 
-## 🧠 Edge Case & Tricky Questions
+## 🎯 ML-Specific Scenarios
 
-### Scenario 8: Your training and test accuracy are both 95%, but production accuracy is 60%.
-**What happened?**
-
-1. **Data Leakage**: A feature that exists in training (e.g., future data) doesn't exist in production.
-2. **Train-Serve Skew**: Different preprocessing logic between training and serving.
-3. **Distribution Shift**: Production data comes from a different population than training data.
-4. **Feedback Loops**: The model's past predictions are influencing future data (e.g., a loan model changing who applies for loans).
-
-**Answer Framework:**
-> "This is a classic train-serve skew symptom. I'd first check for data leakage by examining feature importance for suspiciously powerful features. Then I'd compare feature distributions between training data and live serving logs. Finally, I'd audit the preprocessing code to ensure it's identical."
-
----
-
-### Scenario 9: You need to choose between a 90% accurate model that's fast vs. an 92% accurate model that's 10x slower.
-**What do you pick?**
-
-**It Depends:**
-- **Real-time (Search, Fraud)**: Speed is critical. Pick the faster model. The 2% difference is usually not worth the latency hit.
-- **Batch (Loan approval, Medical)**: Accuracy is critical. Pick the slower model. Process offline.
-- **Hybrid**: Use the fast model for initial filtering, the slow model for top candidates.
-
-**Answer Framework:**
-> "I'd quantify the business impact of the 2% accuracy difference. If we're saving $10M in fraud, 2% is $200k—likely worth the slower model. If it's a recommendation system where speed is part of the user experience, the faster model is better. I'd also explore distillation to get the best of both worlds."
-
----
-
-### Scenario 10: Your model is great on average, but terrible for a minority group.
+### Scenario 16: Your model is great on average but terrible for a minority group.
 **What do you do?**
+1. Identify: Slice metrics by group.
+2. Check if training data is representative.
+3. Collect more data for underrepresented groups.
+4. Use fairness constraints (demographic parity, equalized odds).
+5. Report disaggregated metrics to stakeholders.
 
-1. **Identify**: Slice performance by demographic/segment.
-2. **Diagnose**: Is there less training data for this group? Are features less informative for them?
-3. **Mitigate**:
-   - Collect more representative data.
-   - Use stratified sampling.
-   - Apply fairness constraints (demographic parity, equalized odds).
-   - Use separate calibration for each group.
-4. **Document**: Report fairness metrics alongside overall metrics.
+### Scenario 17: You need to deploy a model to mobile devices.
+**Considerations:**
+1. **Model size**: Quantization (INT8), pruning.
+2. **Framework**: TensorFlow Lite, ONNX, Core ML.
+3. **Latency**: Optimize for on-device inference.
+4. **Updates**: How to push new models to devices?
 
-**Answer Framework:**
-> "This is a fairness issue. I'd first ensure we have enough data from that group. If not, I'd collect more. Then I'd audit features for potential proxies for the protected attribute. Finally, I'd apply post-processing calibration or in-processing fairness constraints and report disaggregated metrics to stakeholders."
+### Scenario 18: Your recommendation model increases CTR but users are less satisfied.
+**Root cause:**
+1. Optimizing for clicks, not satisfaction.
+2. Clickbait: Users click but regret.
+3. **Fix**: Optimize for engagement quality (watch time, not clicks). Add negative signals (quick bounce, hide, report).
+
+### Scenario 19: You have a cold-start problem for new users.
+**Solutions:**
+1. Ask for explicit preferences during onboarding.
+2. Use content-based features (item attributes).
+3. Show popular items initially.
+4. Multi-armed bandit for exploration.
+5. Transfer from similar users via demographic features.
+
+### Scenario 20: Your model's predictions are well-calibrated in training but poorly calibrated in production.
+**Causes:**
+1. Distribution shift.
+2. Different population in production.
+3. **Fix**: Recalibrate on recent production data. Use Platt scaling or isotonic regression.
+
+---
+
+## 🧠 Behavioral & Soft Skills
+
+### Scenario 21: You disagree with your tech lead on the modeling approach.
+**How do you handle?**
+1. Present data-driven arguments.
+2. Propose an experiment to test both approaches.
+3. Understand their perspective—they may have context you lack.
+4. Disagree and commit if decision is made.
+
+### Scenario 22: Non-technical stakeholder doesn't trust the model.
+**Build confidence:**
+1. Show specific examples of correct predictions.
+2. Run shadow mode: Compare model vs current process.
+3. Quantify error rate vs human error rate.
+4. Explain with analogies, not jargon.
+
+### Scenario 23: Your model was deployed and caused a PR incident.
+**Response:**
+1. Immediate: Rollback to previous model.
+2. Investigate: What input caused the failure?
+3. Document: Post-mortem with root cause.
+4. Prevent: Add guardrails, edge-case testing, monitoring.
+
+### Scenario 24: You inherit a model with no documentation.
+**What do you do?**
+1. Trace data sources and feature engineering.
+2. Run test predictions to understand behavior.
+3. Check version control for development history.
+4. Talk to original authors if available.
+5. Document as you learn.
+
+### Scenario 25: You're asked to build a model with very little data.
+**Options:**
+1. **Transfer learning**: Pre-trained models, fine-tune on small data.
+2. **Data augmentation**: Create synthetic variations.
+3. **Few-shot learning**: Use prompting or prototypical networks.
+4. **Active learning**: Label most informative samples.
+5. **Simpler models**: Less prone to overfit on small data.
