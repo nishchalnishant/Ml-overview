@@ -1,39 +1,69 @@
-# ML Interview Preparation Portal
+# ML Interview Preparation Portal (Complete Edition)
 
-Welcome to the comprehensive guide for acing Machine Learning and Data Science interviews. This section is organized to take you from foundational revision to high-level system design.
-
----
-
-## 🚀 Navigation
-
-### 1. [Technical Revision Cheat Sheet](ml-revision.md)
-*Quick-fire technical summary of all major models, metrics, and deep learning fundamentals. Perfect for the "day before" revision.*
-
-### 2. [Master Q&A Bank](top-ml-interview-questions.md)
-*A high-signal collection of the most frequent interview questions with professional, depth-focused answers. Covers fundamentals to advanced scenarios.*
-
-### 3. [Interview Strategy & Career Guide](machine-learning-interviews.md)
-*Insights into the L4/L5 interview loop, behavioral strategies, and high-level technical positioning.*
-
-### 4. [ML System Design Catalog](ml-system-design.md)
-*A specialized guide for the System Design round, mapping modern ML architectures to real-world business problems (Recommendations, Fraud, Search, etc.).*
+This portal is your **one-stop shop** for Machine Learning interviews at top-tier tech companies. It covers everything from entry-level basics to senior system architecture.
 
 ---
 
-## 🛠️ How to Use This Guide
+## 🎯 Target by Role & Level
 
-1. **Phase 1: Foundations** - Start with the [Revision Cheat Sheet](ml-revision.md) to ensure no gaps in basic theory.
-2. **Phase 2: Practice** - Work through the [Q&A Bank](top-ml-interview-questions.md). Try explaining answers out loud.
-3. **Phase 3: Architecture** - Study the [System Design Catalog](ml-system-design.md) and practice drawing end-to-end pipelines.
-4. **Phase 4: Strategy** - Refine your project delivery and behavioral stories using the [Strategy Guide](machine-learning-interviews.md).
+| Level | Files to Focus On |
+|-------|-------------------|
+| **Junior (L3)** | [Q&A Bank](top-ml-interview-questions.md), [Cheat Sheet](ml-revision.md), [Statistics](statistics-probability.md) |
+| **Mid (L4)** | Above + [System Design](ml-system-design.md), [Coding](ml-coding-patterns.md), [Scenarios](scenario-based-questions.md) |
+| **Senior (L5+)** | Above + [Math Derivations](math-derivations.md), [DL Architectures](dl-architectures.md), [NLP/Transformers](nlp-transformers.md) |
 
 ---
 
-## 📈 Recommended External Resources
+## 📚 Complete File Index
 
-- **Books:** 
-  - *Designing Data-Intensive Applications* (Kleppmann)
-  - *Machine Learning System Design* (Chip Huyen)
-- **Practice:**
-  - LeetCode (Top 100 Liked Questions)
-  - Stratascratch / DataLemur (for SQL/Case Studies)
+### Core Q&A
+- 📝 **[Master Q&A Bank](top-ml-interview-questions.md)** – Tiered questions (Level 1-3)
+- 📊 **[Statistics & Probability](statistics-probability.md)** – Bayes, Distributions, Hypothesis Testing, MLE
+
+### Technical Deep Dives
+- 🧠 **[Deep Learning Architectures](dl-architectures.md)** – CNNs, RNNs, Transformers, GANs, Object Detection
+- 🤖 **[NLP & Transformers](nlp-transformers.md)** – BERT, GPT, Attention, Text Preprocessing
+
+### Practical Application
+- 🛠️ **[ML Coding Patterns](ml-coding-patterns.md)** – Pipelines, NumPy, PyTorch templates
+- 🏗️ **[System Design Case Studies](ml-system-design.md)** – RecSys, Fraud, Search
+- 🚨 **[Scenario-Based Questions](scenario-based-questions.md)** – "What would you do if..."
+
+### Foundations & Strategy
+- 📋 **[Quick Revision Cheat Sheet](ml-revision.md)** – Algorithms & Metrics
+- 📐 **[Math & Derivations](math-derivations.md)** – Whiteboard proofs
+- 🎤 **[Interview Strategy Guide](machine-learning-interviews.md)** – Behavioral, STAR method
+
+---
+
+## ⏰ Emergency Study Plan
+
+| Time Left | What to Do |
+|-----------|------------|
+| **12 hours** | Read all files. Practice [Coding Patterns](ml-coding-patterns.md) once. |
+| **6 hours** | [Q&A Bank](top-ml-interview-questions.md) + [System Design](ml-system-design.md) + [Scenarios](scenario-based-questions.md) |
+| **3 hours** | [Cheat Sheet](ml-revision.md) + [Statistics](statistics-probability.md) + [DL Architectures](dl-architectures.md) |
+| **1 hour** | [Cheat Sheet](ml-revision.md) + [Math Derivations](math-derivations.md) |
+| **30 min** | Review STAR stories in [Strategy Guide](machine-learning-interviews.md) |
+
+---
+
+## 📈 Topic Coverage Checklist
+
+- [x] ML Fundamentals (Bias-Variance, Regularization)
+- [x] Supervised Learning (Regression, Classification, Ensembles)
+- [x] Unsupervised Learning (Clustering, PCA)
+- [x] Deep Learning Architectures (CNN, RNN, Transformer, GAN)
+- [x] NLP (Tokenization, Embeddings, BERT, GPT)
+- [x] Statistics & Probability (Bayes, Distributions, MLE)
+- [x] Model Evaluation (Metrics, Cross-Validation)
+- [x] System Design (RecSys, Fraud, Search)
+- [x] MLOps (Monitoring, Drift, Deployment)
+- [x] Coding Patterns (Sklearn, NumPy, PyTorch)
+- [x] Scenario-Based Questions (Debugging, Trade-offs)
+- [x] Math Derivations (Gradient Descent, PCA)
+- [x] Behavioral (STAR method)
+
+---
+
+**You are fully prepared. Trust your training. Good luck! 🚀**

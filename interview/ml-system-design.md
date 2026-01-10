@@ -1,73 +1,70 @@
-# ML System Design: Model-to-Use-Case Mapping
+# ML System Design: Comprehensive Case Studies
 
-A curated catalog of ML models mapped to real-world system design scenarios. Use this to justify your architectural choices during interviews.
-
----
-
-## 🏗️ Core Architecture Mapping
-
-### 1. Recommendation & Ranking
-*Systems: YouTube Home, Netflix Discovery, Amazon "Users also bought"*
-
-- **Candidate Generation (Retrieval):**
-  - **Two-Tower Networks:** Efficient for large-scale retrieval (User/Item embeddings).
-  - **Matrix Factorization (SVD++):** Classic, great for latent feature discovery.
-- **Ranking (Scoring):**
-  - **Wide & Deep:** Balances memorization (Wide) and generalization (Deep).
-  - **DeepFM:** Better for learning high-order feature interactions without feature engineering.
-  - **DCN (Deep & Cross Network):** Explicitly applies cross-features at each layer.
-
-### 2. Search & Retrieval
-*Systems: Google Search, E-commerce Search, Chatbot Knowledge Retrieval*
-
-- **Traditional:** **BM25** (Better than TF-IDF for term frequency saturation).
-- **Dense Retrieval:** **Bi-Encoders** (Sentence-BERT) for fast ANN search.
-- **Re-ranking:** **Cross-Encoders** (BERT-Ranker) for high precision at the cost of latency.
-- **Advanced:** **ColBERT v2** (Token-level late interaction) for state-of-the-art retrieval.
-
-### 3. Fraud & Anomaly Detection
-*Systems: Credit Card Fraud, Ad-Click Fraud, System Intrusion*
-
-- **Supervised:** **XGBoost / CatBoost** (Handles tabular data, missing values, and imbalanced classes natively).
-- **Unsupervised:** **Isolation Forest** (Great for detecting outliers in high dimensions) or **Autoencoders** (Detects anomalies via high reconstruction error).
-- **Relational:** **Graph Neural Networks (GNNs)** to detect "fraud rings" or money laundering patterns.
-
-### 4. Content Moderation & Safety
-*Systems: Social Media Filtering (NSFW), Toxic Comment Detection*
-
-- **Text:** **RoBERTa / DeBERTa** (Industry standards for sequence classification).
-- **Visual:** **CLIP** (Zero-shot classification for new categories) or **YOLOv10** (Real-time detection).
-- **Sequential:** **SlowFast Networks** for detecting violence or dynamic actions in video.
+This file provides end-to-end walkthroughs for the most common ML System Design interview questions.
 
 ---
 
-## ⚡ How to Justify Your Choice
+## 1. Case Study: Recommendation System (e.g., Netflix/YouTube)
 
-In an interview, don't just state the model. Use these lenses:
+### 🗺️ High-Level Architecture
+1. **Candidate Generation (Retrieval):** Million items $\rightarrow$ ~1000 items. (High recall).
+2. **Ranking (Scoring):** 1000 items $\rightarrow$ Top 20 items. (High precision).
+3. **Re-ranking/Calibration:** Diversity, fresh items, removing duplicates.
 
-1. **Latency vs. Accuracy:** 
-   - *"We use a Logistic Regression baseline for the live ad-serving tier because it has <5ms latency, even though a Transformer might be 2% more accurate but take 200ms."*
-2. **Data Type:**
-   - *"Since our data is primarily tabular with 40% missing values, I'll use CatBoost which handles categorical features and missingness natively."*
-3. **Training Recency:**
-   - *"For a news-ranking system where trends change hourly, I'd prefer a simpler model (Linear/LR) that can be re-trained frequently or updated online."*
-4. **Explainability:**
-   - *"For credit scoring (regulated), I'll use a globally interpretable model like a Decision Tree or use SHAP values with a Random Forest."*
-
----
-
-## 📚 Specialized Use-Cases
-
-| **Use Case** | **Recommended Model** | **Why?** |
-|--------------|-----------------------|-----------|
-| **Demand Forecasting** | **TFT (Temporal Fusion Transformer)** | Handles multiple time-series, static metadata, and provides uncertainty bounds. |
-| **OCR / Doc Parsing** | **LayoutLMv3** | Modern "Multimodal" transformer that sees both text and spatial position. |
-| **Zero-Shot Image Tagging** | **CLIP (OpenAI)** | Learned on 400M image-text pairs; no labeling needed for new tags. |
-| **Speech-to-Text** | **Whisper (OpenAI)** | Robust to noise and multiple languages out of the box. |
+### 📐 Technical Deep-Dive
+- **Embeddings:** Two-Tower Network (User tower $U(x)$, Item tower $V(y)$). The retrieval is a Dot Product $U(x) \cdot V(y)$.
+- **ANN Search:** Use **Faiss** or **HNSW** for sub-millisecond similarity search.
+- **Handling Feature Crosses:** Use **DCN v2** or **DeepFM** in the Ranking stage to learn non-linear interactions (e.g., `UserAge` x `MovieGenre`).
 
 ---
 
-## 👉 Interview Tip: The "Two-Stage" Pattern
-Almost every large-scale ML system follows the **Retrieval → Ranking** pattern.
-1. **Retrieval (Fast):** Filter 100M items to 500 using ANN (Faiss) and simple embeddings.
-2. **Ranking (Precise):** Rank those 500 items using a heavy, multi-feature Deep Learning model.
+## 2. Case Study: Fraud Detection (Real-Time)
+
+### 🗺️ High-Level Architecture
+1. **Event Stream:** Transaction events $\rightarrow$ Feature injection $\rightarrow$ Model.
+2. **Inference:** Fast decisioning (<50ms).
+3. **Loop:** Alerting $\rightarrow$ Human reviewer $\rightarrow$ Labels $\rightarrow$ Retraining.
+
+### 📐 Technical Deep-Dive
+- **Model:** **XGBoost** or **LightGBM**. Fraud data is tabular and highly imbalanced. Boosting handles imbalance well via scale_pos_weight.
+- **Features:** "Amount of transactions in the last 10 minutes" (Velocity features). Requires a **Streaming Feature Store** (e.g., Flink/Tecton).
+- **Metric:** Focus on **Precision-Recall AUC**. Maximizing Recall (catching fraud) while keeping False Positives (blocking real users) low.
+
+---
+
+## 3. Case Study: Large Scale Search (e.g., E-commerce)
+
+### 🗺️ High-Level Architecture
+1. **Query Understanding:** Spell check, Entity extraction, Query expansion.
+2. **Retrieval:** BM25 (Keyword) + Semantic Search (Dense vectors).
+3. **Ranking:** Learning to Rank (LTR).
+
+### 📐 Technical Deep-Dive
+- **Bi-Encoders (Retrieval):** Map query and products to the same space. Fast but ignores query-product nuances.
+- **Cross-Encoders (Reranking):** Takes top 100 results and passes (Query, Product) into a Transformer. Very slow, used only for final re-rank.
+- **Hybrid Search:** Combine scores from Keyword (BM25) and Semantic using **Reciprocal Rank Fusion (RRF)**.
+
+---
+
+## 4. Case Study: Smart Reply / Auto-Complete (NLP)
+
+### 🗺️ High-Level Architecture
+1. **Language Model:** Pre-trained Transformer (e.g., T5 or tiny GPT).
+2. **Constrained Search:** Beam Search or Top-P sampling prefix restricted by prefix tree (Trie).
+3. **Latency:** Tightly optimized via **Inference Quantization** (Int8) and **KV-Caching**.
+
+---
+
+## ❓ Critical Discussion Points for Seniors (L5)
+
+**1. Personalization vs. Privacy:**
+- How do you handle GDPR? (Data anonymization, federated learning).
+- Is PII (Personally Identifiable Information) leaking into embeddings?
+
+**2. Handling Skew & Bias:**
+- **Positional Bias:** Users click items at the top simply because they are at the top. 
+- **Fix:** Include "Position" as a feature during training, but set it to "1" or a fixed value during serving.
+
+**3. Online vs. Offline Metrics:**
+- Why does "Offline AUC" go up but "Online CTR" go down?
+- **Root Cause:** Usually **Selection Bias** or **Data Leakage**. Your model learned a signal that only exists in historical logs but not in live real-time (e.g., future data leaked into features).
