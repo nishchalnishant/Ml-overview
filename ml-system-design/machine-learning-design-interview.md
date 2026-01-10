@@ -1,6 +1,48 @@
-# Machine learning design interview
+# Machine Learning System Design: Master Framework
 
-## Chapter 1 – Machine Learning Primer covers the foundations required for ML system-design interviews.
+> [!IMPORTANT]
+> **The ML System Design Interview Checklist**
+>
+> Use this 7-step framework to lead any ML design discussion. 
+> 
+> 1. **Clarification & Scoping:**
+>    - [ ] What is the core business objective? (e.g., maximize clicks, minimize churn).
+>    - [ ] Success Metrics: Online (CTR, revenue) vs. Offline (AUC, nDCG).
+>    - [ ] Constraints: Latency (P99 < 100ms), Scale (1B users), fresh data frequency.
+> 
+> 2. **Data & Labels:**
+>    - [ ] Label generation (Explicit vs. Implicit).
+>    - [ ] Handling data imbalance (resampling, class weights).
+>    - [ ] Sampling strategy (Negative sampling, Importance sampling).
+> 
+> 3. **Feature Engineering:**
+>    - [ ] Categorical (One-hot, Hashing, Embeddings).
+>    - [ ] Numerical (Scaling, Binning, Interaction features).
+>    - [ ] Feature Store logic (consistent training/serving).
+> 
+> 4. **Model Architecture:**
+>    - [ ] Baseline (Logistic Regression, GBDT).
+>    - [ ] Candidate Generation (Two-tower, ANN search).
+>    - [ ] Ranking (Deep Cross Networks, Transformers).
+> 
+> 5. **Training Pipeline:**
+>    - [ ] Loss functions (Cross-entropy, Weighted MSE, Pairwise Hinge).
+>    - [ ] Evaluation strategy (Time-series split, Rolling window).
+> 
+> 6. **Serving & Infrastructure:**
+>    - [ ] Online vs. Batch inference.
+>    - [ ] Model compression (Quantization, Distillation).
+>    - [ ] Caching (Redis) for high-frequency features.
+> 
+> 7. **Post-Production:**
+>    - [ ] Monitoring for Data/Concept Drift.
+>    - [ ] A/B testing & Shadow deployments.
+>    - [ ] Continual learning/retraining strategy.
+
+---
+
+## Chapter 1: Machine Learning Primer
+This chapter covers the foundations required for ML system-design interviews.
 
 1. Feature Selection & Engineering
    * One-Hot Encoding – definition, issues (tree models & sparsity), best practices, usage at Uber.

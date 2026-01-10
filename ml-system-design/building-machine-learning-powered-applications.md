@@ -1,8 +1,27 @@
-# Building machine learning powered applications
+# Building ML-Powered Applications: Strategic Summary
 
-Here are detailed notes for Chapter 1 – “From Product Goal to ML Framing” from _Building Machine Learning Powered Applications: Going from Idea to Product_ by Emmanuel Ameisen:
+> [!TIP]
+> **The ML Product Engineer's Checklist**
+> 
+> 1. **Rule-Based Baseline:** Can you solve 80% of the problem with a simple regex or nested `if` statements? Do it first to establish a rigorous baseline.
+> 2. **Evaluation Alignment:** Does your offline metric (e.g., F1 score) actually move the product KPI (e.g., higher user retention)?
+> 3. **The "Microscope" Pattern:** Use interpretable features (lengths, counts, presence of keywords) in your first model iteration to understand the data signal.
+> 4. **Micro-Iterations:** Focus on one change at a time: 
+>    - Fix labeling inconsistency.
+>    - Add one feature interaction.
+>    - Tune one hyperparameter.
+> 5. **Deployment Safety:** Use "Shadow Mode" for your prototype to compare model predictions with existing heuristics without affecting users.
+> 6. **Error Analysis:** Manually inspect the 100 worst-performing samples to find systematic data gaps.
 
-***
+---
+
+### Chapter Summaries
+- [Chapter 1: From Goal to Framing](#chapter-1-from-product-goal-to-ml-framing)
+- [Chapter 2: Evaluating & Scoping](#chapter-2-evaluating-and-scoping-an-ml-problem)
+- [Chapter 3: Building a Prototype](#chapter-3-designing-and-building-an-ml-powered-prototype)
+- [Chapter 4: Iterating on Models/Data](#chapter-4-iterating-on-models-and-data)
+
+---
 
 ## Chapter 1: From Product Goal to ML Framing
 

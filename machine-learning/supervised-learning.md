@@ -1,44 +1,20 @@
-# Supervised Learning
+# Supervised Learning: From Regression to Ensembles
 
-## <mark style="color:purple;">Regression</mark>
+> [!TIP]
+> **Supervised Learning Quick Reference**
+> 
+> | **Algorithm** | **Task** | **Complexity (Train)** | **Key Metric** | **Best For** |
+> |---------------|----------|-------------------------|----------------|--------------|
+> | **Linear Reg.** | Regression | $O(p^2 n + p^3)$ | MSE, $R^2$ | Simple, interpretable trends. |
+> | **Logistic Reg.** | Classification | $O(np)$ | Log Loss | Probability estimation, baseline. |
+> | **SVM** | Both | $O(n^2)$ to $O(n^3)$ | Hinge Loss | High-dim, clear margins. |
+> | **Random Forest** | Both | $O(n \log n \cdot p \cdot k)$ | Gini/Entropy | Robust, handles non-linearities. |
+> | **XGBoost/LGBM** | Both | $O(n \log n \cdot p)$ | Log Loss/MSE | SOTA for tabular data. |
+> | **KNN** | Both | $O(1)$ (Lazy) | Accuracy | Small data, complex boundaries. |
+> 
+> *n = samples, p = features, k = trees*
 
-* <mark style="color:yellow;">**Algorithms**</mark>
-  * Linear regression \[Plane]
-* <mark style="color:yellow;">**Metrics**</mark>
-  * Mean absolute error \[MAE]
-  * Mean squared error \[MSE]
-  * Root mean squared error \[RMSE]
-  * R squared
-  * Adjusted R squared
-
-## <mark style="color:purple;">Classification</mark>
-
-* <mark style="color:yellow;">**Algorithms**</mark>
-  * Logistic regression \[Plane]
-* <mark style="color:yellow;">**Metrics**</mark>
-  * Accuracy
-  * Precision
-  * Recall
-  * F1 scores
-  * Confusion matrix
-  * ROC curve
-  * Area under curve
-  * Log loss / logistic loss / cross entropy loss
-
-## Algorithms that can be used for both regression and classification
-
-* Support vector machines \[Plane]
-* KNN \[Plane]
-* Decision tree \[Tree]
-* Random forest \[Tree]
-*   Ensemble Learning
-
-    * Bagging methods \[bootstrap aggregating]
-    * Boosting methods
-
-
-
-\############################# Regression ######################
+---
 
 ### **Algorithm**
 

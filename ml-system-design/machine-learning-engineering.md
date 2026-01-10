@@ -1,8 +1,28 @@
-# Machine learning engineering
+# Machine Learning Engineering: Production-Ready Notes
 
-Here are detailed notes for Chapter 1: Introduction of _Machine Learning Engineering_ by Andriy Burkov:
+> [!IMPORTANT]
+> **Executive Summary for ML Engineers**
+> 
+> Production ML is 10% modeling and 90% engineering. This guide summarizes Andriy Burkov's *Machine Learning Engineering*, focusing on building reliable, scalable, and maintainable systems.
+>
+> **Core Engineering Principles:**
+> 1. **Data over Algorithms:** A simple model with clean, high-quality data beats a complex model with noisy data.
+> 2. **Baseline First:** Never build a complex neural net without a simple heuristic or linear baseline to measure incremental value.
+> 3. **Avoid Silent Failures:** ML models don't "crash"; they degrade. Use distribution monitoring (PSI, K-S test) to detect data drift.
+> 4. **Train-Serve Skew:** Ensure identical feature engineering pipelines for training and inference using Feature Stores or shared serialization.
+> 5. **Iterative Deployment:** Use Shadow Mode (predict but don't serve) or Canary deployments to validate models on live traffic.
+> 6. **Human-in-the-Loop:** Bridge the gap between low-confidence predictions and high-stakes decisions with manual review tiers.
 
-***
+---
+
+### Table of Contents (Chapter Summaries)
+- [Chapter 1: Introduction & Life Cycle](#chapter-1--introduction)
+- [Chapter 2: Prioritization & Impact vs Cost](#chapter-2-before-the-project-starts)
+- [Chapter 3: Problem Framing & Metrics](#chapter-3-framing-the-problem-and-project)
+- [Chapter 4: Data Collection & Labeling](#chapter-4-data-definition-and-collection)
+... (Full notes below)
+
+---
 
 ### Chapter 1 – Introduction
 
