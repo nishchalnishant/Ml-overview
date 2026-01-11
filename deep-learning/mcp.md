@@ -2,7 +2,7 @@
 
 ## MCP artitecture&#x20;
 
-####  Core Architecture (0:43 - 1:27)
+#### Core Architecture (0:43 - 1:27)
 
 * Host: The main LLM application or environment (e.g., Claude desktop, Cursor, Windsurf) where the user interacts. It's responsible for managing clients and connections to servers.
 * Client: Lives inside the Host. It manages the connection to an MCP server and is responsible for finding and using the tools, resources, and prompts the server offers.
@@ -11,7 +11,7 @@
 
 ***
 
-####  Key Primitives (Fundamental Pieces of the Protocol) (1:36 - 3:10)
+#### Key Primitives (Fundamental Pieces of the Protocol) (1:36 - 3:10)
 
 | **Primitive**    | **Description**                                                                                                                               | **Analogy/Use Case**                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@
 
 ***
 
-####  SDK and Declaration (7:58 - 10:05)
+#### SDK and Declaration (7:58 - 10:05)
 
 * MCP provides Software Development Kits (SDKs) for building clients and servers (Python SDK is used in the course).
 * Tools are declared by decorating a function, passing in arguments, and defining a return value to generate the tool schema.
@@ -33,7 +33,7 @@
 
 ***
 
-#### 🌐 Communication and Transport (10:08 - 14:50)
+#### Communication and Transport (10:08 - 14:50)
 
 * Communication Lifecycle:
   1. Initialization: Client connects, requests and capabilities are exchanged.
@@ -138,7 +138,7 @@ This lesson details the process of migrating existing chatbot tools (`search_pap
 
 ***
 
-####  Key Steps & Implementation
+#### Key Steps & Implementation
 
 1. Refactoring Goal: Abstract the definition and schema of the existing chatbot functions (tools) and wrap them in an MCP server for standardized access by LLMs/clients.
 2. FastMCP Initialization:
@@ -154,7 +154,7 @@ This lesson details the process of migrating existing chatbot tools (`search_pap
 
 ***
 
-####  Environment Setup & Testing
+#### Environment Setup & Testing
 
 1. File Creation: The code is executed to write a file named `ResearchServer.py`.
 2. Terminal Setup: A new terminal is opened, and the environment is set up.
@@ -516,7 +516,7 @@ Here are the detailed notes:
 * Transport: Since the Python SDK at the time didn't fully support HTTP streamable, the server was configured to use SSE (Server-Sent Events).
   * _Note:_ The speaker mentioned that switching to the newer HTTP streamable transport should be a quick change once it's fully supported in the SDKs.
 
-#### 2. 🔎 Testing the Remote Server with the Inspector (1:05)
+#### 2.  Testing the Remote Server with the Inspector (1:05)
 
 * The server is assumed to be running at a specific URL.
 * Tool Used: The MCP Inspector tool is used to connect to and test the remote server.
@@ -585,7 +585,7 @@ Congratulations on completing the core concepts of the Model Context Protocol (M
 
 ***
 
-#### 🛡️ Authentication with OAuth 2.1 (0:56)
+#### Authentication with OAuth 2.1 (0:56)
 
 * Core Method: The Model Context Protocol (MCP) adopted OAuth 2.1 in the March specification update as the primary means for authentication with remote servers.
 * Purpose: It allows clients and servers to authenticate securely and send authorized requests to data sources.
@@ -598,7 +598,7 @@ Congratulations on completing the core concepts of the Model Context Protocol (M
 
 ***
 
-####  Client-Exposed Primitives (2:09)
+#### Client-Exposed Primitives (2:09)
 
 While you've learned about server primitives (tools, resources, prompts), clients can also expose capabilities to servers.
 
@@ -621,7 +621,7 @@ While you've learned about server primitives (tools, resources, prompts), client
 
 ***
 
-####  The Future: Agentic Capabilities and Discovery
+#### The Future: Agentic Capabilities and Discovery
 
 **Multi-Agent Architecture (4:16)**
 
@@ -642,7 +642,7 @@ While you've learned about server primitives (tools, resources, prompts), client
 
 ***
 
-####  Roadmap Highlights (8:08)
+#### Roadmap Highlights (8:08)
 
 * HTTP Streamable Support: Aiming for a smoother transition between stateful and stateless capabilities.
 * Collision Prevention: Addressing naming conflicts when multiple MCP servers use generic tool names (e.g., `fetch_users`). This requires creating logical groups for tools or servers.

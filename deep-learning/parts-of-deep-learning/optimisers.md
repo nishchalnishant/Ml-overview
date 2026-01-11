@@ -2,7 +2,7 @@
 
 Here are detailed notes on the most common optimizers used in deep learning, complete with their pros, cons, and typical use cases.
 
-#### 📜 What is an Optimizer?
+#### What is an Optimizer?
 
 In deep learning, an optimizer is an algorithm used to change the attributes of your neural network, such as weights and learning rates, to minimize the loss function.
 
@@ -119,7 +119,7 @@ AdamW is a _correction_ to the way Adam handles L2 regularization (also known as
 
 ***
 
-####  Summary: Which Optimizer Should I Choose?
+#### Summary: Which Optimizer Should I Choose?
 
 * Start with Adam or AdamW: For most problems, Adam (or AdamW if you are using weight decay) will give you the fastest results and is the easiest to tune.
 * For Computer Vision: If you're not getting the generalization you want from Adam, try SGD with Momentum (or Nesterov Momentum). It often requires a lot more tuning of the learning rate and a "warm-up" schedule, but it can lead to a final model with better test accuracy.

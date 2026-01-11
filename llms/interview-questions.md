@@ -1,6 +1,6 @@
 # Top LLM Interview Questions (Technical & Strategy)
 
-##  Architecture & Theory
+## Architecture & Theory
 
 **1. "Explain the 'KV Cache' and why it's critical for real-time LLM applications."**
 > In autoregressive models, we predict tokens one by one. Each new prediction depends on the hidden states of all previous tokens. Instead of re-calculating the Key ($K$) and Value ($V$) dot products for the entire history every time, we store (cache) them. This reduces the time complexity for a single token generation from $O(L)$ to $O(1)$ relative to history length, significantly reducing latency.
@@ -13,7 +13,7 @@
 
 ---
 
-##  Training & Production
+## Training & Production
 
 **4. "How do you detect and mitigate 'catastrophic forgetting' when fine-tuning an LLM?"**
 > **Detect**: Evaluate the model on a "general" benchmark (like MMLU) after fine-tuning on a specific task; if the general score drops significantly, forgetting has occurred. 
@@ -27,7 +27,7 @@
 
 ---
 
-##  Creative & Problem Solving
+## Creative & Problem Solving
 
 **7. "An LLM is hallucinating a legal fact. How do you solve this without training?"**
 > Use **RAG** (Retrieval-Augmented Generation). 1. Retrieve the actual law text from a verified database. 2. Inject that text into the prompt context. 3. Instruct the model to "Answer only using the provided text." This anchors the model in reality and provides a "paper trail" via citations.

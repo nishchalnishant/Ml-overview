@@ -4,7 +4,7 @@ A guide for mid-to-senior (L4/L5) ML Engineer roles, focusing on system design, 
 
 ---
 
-##  The Interview Landscape (Engineer 2/L4)
+## The Interview Landscape (Engineer 2/L4)
 
 At the **Engineer 2 / Senior** level, interviews shift from "What is X?" to "Why X and not Y?". 
 
@@ -18,7 +18,7 @@ At the **Engineer 2 / Senior** level, interviews shift from "What is X?" to "Why
 
 ---
 
-##  ML System Design Framework
+## ML System Design Framework
 
 This is the most critical round. Use this 5-step framework to lead the discussion.
 
@@ -50,7 +50,7 @@ This is the most critical round. Use this 5-step framework to lead the discussio
 
 ---
 
-##  Case Study: Ranking YouTube Videos
+## Case Study: Ranking YouTube Videos
 
 **Interviewer:** *"Design a system to rank videos on the YouTube home page."*
 
@@ -72,14 +72,14 @@ This is the most critical round. Use this 5-step framework to lead the discussio
 
 ---
 
-##  Pro-Tips for the Deep Dive
+## Pro-Tips for the Deep Dive
 - **Explain the "Why":** Why did you choose Adam over SGD in your project? (e.g., faster convergence, handles noisy gradients).
 - **Acknowledge Trade-offs:** "We used XGBoost because it was interpretable and handled our tabular data well, even though a MLP might have slightly higher accuracy."
 - **Focus on Impact:** Always mention the % improvement in business metrics, not just ML metrics.
 
 ---
 
-##  Study Checklist
-- [ ] **LeetCode:** ~100-150 Mediums, focus on the "Top 75".
-- [ ] **System Design:** Read "Designing Data-Intensive Applications" (DDIA) and "Machine Learning System Design" by Chip Huyen.
-- [ ] **Projects:** Be ready to talk for 20 minutes about your best work, including failures and pivots.
+## Study Checklist
+- [] **LeetCode:** ~100-150 Mediums, focus on the "Top 75".
+- [] **System Design:** Read "Designing Data-Intensive Applications" (DDIA) and "Machine Learning System Design" by Chip Huyen.
+- [] **Projects:** Be ready to talk for 20 minutes about your best work, including failures and pivots.

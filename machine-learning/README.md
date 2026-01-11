@@ -391,26 +391,26 @@ P(x₁,x₂,...,xₚ|class) = P(x₁|class) × P(x₂|class) × ... × P(xₚ|cl
 ```
 Start
   |
-  ├─ Need interpretability? ──Yes─> Decision Tree, Linear Regression, Logistic Regression
+   Need interpretability? Yes> Decision Tree, Linear Regression, Logistic Regression
   |                          
-  ├─ Have labels?
-  │   |
-  │   ├─ Yes (Supervised)
-  │   │   |
-  │   │   ├─ Continuous output? ──Yes─> Regression
-  │   │   │                           ├─ Linear relationship? ──Yes─> Linear Regression
-  │   │   │                           ├─ No? ─> Random Forest → XGBoost
-  │   │   │
-  │   │   └─ Categorical output? ──Yes─> Classification
-  │   │                               ├─ Need probabilities? ──Yes─> Logistic Regression
-  │   │                               ├─ Text data? ──Yes─> Naive Bayes
-  │   │                               ├─ <10K samples? ──Yes─> SVM
-  │   │                               └─ Tabular data? ──Yes─> Random Forest → XGBoost
-  │   │
-  │   └─ No (Unsupervised)
-  │       ├─ Find groups? ──Yes─> K-Means, GMM, Hierarchical
-  │       ├─ Reduce dimensions? ──Yes─> PCA (unsupervised), LDA (supervised)
-  │       └─ Find anomalies? ──Yes─> Isolation Forest, One-Class SVM
+   Have labels?
+     |
+      Yes (Supervised)
+        |
+         Continuous output? Yes> Regression
+                                    Linear relationship? Yes> Linear Regression
+                                    No? > Random Forest → XGBoost
+        
+         Categorical output? Yes> Classification
+                                     Need probabilities? Yes> Logistic Regression
+                                     Text data? Yes> Naive Bayes
+                                     <10K samples? Yes> SVM
+                                     Tabular data? Yes> Random Forest → XGBoost
+     
+      No (Unsupervised)
+          Find groups? Yes> K-Means, GMM, Hierarchical
+          Reduce dimensions? Yes> PCA (unsupervised), LDA (supervised)
+          Find anomalies? Yes> Isolation Forest, One-Class SVM
 ```
 
 ---

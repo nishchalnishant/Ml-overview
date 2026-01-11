@@ -1,6 +1,6 @@
 # Day 22: Designing ML Systems
 
-##  Executive Summary: The 5-Step Framework
+## Executive Summary: The 5-Step Framework
 Designing an ML system is not just about choosing a model; it's about the entire lifecycle.
 
 | Step | Goal | Key Considerations |
@@ -13,7 +13,7 @@ Designing an ML system is not just about choosing a model; it's about the entire
 
 ---
 
-##  1. Scalability Considerations
+## 1. Scalability Considerations
 
 ### Offline vs. Online (Real-time)
 - **Offline (Batch)**: Predict on all data once a day (e.g., daily recommendations). High throughput, low cost.
@@ -24,13 +24,13 @@ Designing an ML system is not just about choosing a model; it's about the entire
 
 ---
 
-##  2. Common System Design Patterns
+## 2. Common System Design Patterns
 - **Retrieval & Ranking**: Common in Search/RecSys. Stage 1 (Retrieval) narrows down billions of items to hundreds. Stage 2 (Ranking) uses a complex model to order the top results.
 - **Cascading Classifiers**: Use a cheap model (e.g., Logistic Regression) to filter out 90% of easy cases, then a heavy model (e.g., Transformer) for the difficult ones.
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "How would you handle a system that requires real-time predictions but uses a very slow model?"**
 > 1. Use **Model Quantization** or Distillation to speed it up. 2. Implement **Result Caching** for frequent queries. 3. Use an **Asynchronous Architecture** or a two-stage pattern (cheap filter first).
@@ -43,8 +43,8 @@ Designing an ML system is not just about choosing a model; it's about the entire
 
 ---
 
-##  System Checklist
-- [ ] Is the success metric aligned with the business goal?
-- [ ] Do we have a monitoring strategy for data drift?
-- [ ] How will we handle cold-start problems (new users/items)?
-- [ ] Is the data pipeline scalable (Spark/Flink)?
+## System Checklist
+- [] Is the success metric aligned with the business goal?
+- [] Do we have a monitoring strategy for data drift?
+- [] How will we handle cold-start problems (new users/items)?
+- [] Is the data pipeline scalable (Spark/Flink)?

@@ -1,6 +1,6 @@
 # Agentic Workflows & Multi-Agent Systems
 
-##  Executive Summary
+## Executive Summary
 Moving from "Chatbots" to "Autonomous Agents".
 
 | Concept | Definition | Key Pattern |
@@ -12,7 +12,7 @@ Moving from "Chatbots" to "Autonomous Agents".
 
 ---
 
-##  1. Core Logic Patterns
+## 1. Core Logic Patterns
 
 ### Chain-of-Thought (CoT)
 Encouraging the model to output its intermediate reasoning steps. 
@@ -23,25 +23,25 @@ Encouraging the model to output its intermediate reasoning steps.
 A loop of **Thought $\rightarrow$ Action $\rightarrow$ Observation**.
 1. **Thought**: "I need to find the current weather in Paris."
 2. **Action**: `get_weather(city="Paris")`
-3. **Observation**: "15°C and Cloudy."
-4. **Conclusion**: "The weather in Paris is 15°C."
+3. **Observation**: "15C and Cloudy."
+4. **Conclusion**: "The weather in Paris is 15C."
 
 ---
 
-##  2. Compound AI Systems
+## 2. Compound AI Systems
 Instead of one massive model, use multiple components.
 - **Routing**: A small model decides which specialized model to use (e.g., Coding agent vs. Summarization agent).
 - **Consensus**: Multiple agents vote on an answer to reduce hallucinations.
 
 ---
 
-##  3. Cognitive Architectures
+## 3. Cognitive Architectures
 - **Memory**: Giving agents a "working memory" (Short-term context) and "long-term memory" (Vector DB retrieval).
 - **Planning**: Breaking a complex user goal into sub-tasks (e.g., Task Decomposition).
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "What is an 'Agent' in the context of LLMs?"**
 > An agent is a system where the LLM is the "brain" that uses a planning loop and external tools (APIs, code execution) to accomplish a non-trivial goal. Unlike a simple RAG, an agent can decide *how* to use the information it retrieves.
@@ -54,7 +54,7 @@ Instead of one massive model, use multiple components.
 
 ---
 
-##  Agentic Pseudo-code
+## Agentic Pseudo-code
 ```python
 while not finished:
     thought = model.generate(f"Goal: {goal}\nHistory: {history}\nNext Step?")

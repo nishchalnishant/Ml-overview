@@ -2,7 +2,7 @@
 
 ---
 
-##  Framework Questions
+## Framework Questions
 
 **1. What is the typical ML System Design framework?**
 > 1. Requirements & Scope, 2. Data & Features, 3. Model Selection, 4. Evaluation, 5. Deployment & Monitoring.
@@ -21,7 +21,7 @@
 
 ---
 
-##  Recommendation Systems
+## Recommendation Systems
 
 **6. Design a YouTube-like video recommendation system.**
 > **Candidate Gen**: Two-Tower embeddings for user/video. **Ranking**: Deep model with user history, video features, context. **Objective**: Maximize watch time, not clicks.
@@ -52,7 +52,7 @@
 
 ---
 
-##  Search & Ranking
+## Search & Ranking
 
 **15. Design a search ranking system.**
 > **Query Understanding**: Spell check, query expansion. **Retrieval**: BM25 + Dense. **Ranking**: Cross-encoder or LTR model.
@@ -74,7 +74,7 @@
 
 ---
 
-##  Fraud & Anomaly Detection
+## Fraud & Anomaly Detection
 
 **21. Design a credit card fraud detection system.**
 > **Real-time**: Fast model (XGBoost) for immediate decisioning. **Features**: Velocity, amount deviation, location. **Feedback**: Human review provides labels.
@@ -93,7 +93,7 @@
 
 ---
 
-##  Content Moderation
+## Content Moderation
 
 **26. Design a content moderation system for social media.**
 > **Text**: BERT classifier. **Image**: CLIP or ResNet. **Rules**: Hashlist for known bad content. **Human review**: Queue for edge cases.
@@ -106,7 +106,7 @@
 
 ---
 
-##  Production & MLOps
+## Production & MLOps
 
 **29. What is Data Drift?**
 > Input feature distributions change over time. Detect with PSI, K-S test.
@@ -137,7 +137,7 @@
 
 ---
 
-##  Advanced Design Questions
+## Advanced Design Questions
 
 **38. How would you design a model to predict customer churn?**
 > **Features**: Usage patterns, support tickets, payment history. **Model**: XGBoost or survival analysis. **Evaluation**: Precision at top K (focus on high-risk).

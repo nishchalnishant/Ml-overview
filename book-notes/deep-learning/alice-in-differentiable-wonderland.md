@@ -90,7 +90,7 @@ This section introduces key concepts for differentiation, which is central to tr
 
 * **Derivatives and Chain Rule**:
   * Derivatives of basic functions (e.g., polynomials, logarithms, sine) are introduced geometrically as slopes of tangents at points on the function's graph.
-  * **Chain Rule**: The derivative of a composite function is the product of the derivatives of the individual functions: \[ \frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x) ]
+  * **Chain Rule**: The derivative of a composite function is the product of the derivatives of the individual functions: \[\frac{d}{dx} f(g(x)) = f'(g(x)) \cdot g'(x) ]
 * **Gradients (Definition D.2.6)**: The gradient is the vector of partial derivatives for multi-variable functions. It points in the direction of the steepest ascent of the function.
 * **Directional Derivatives**: The rate of change of a function in any given direction can be computed as the dot product between the gradient and the direction vector.
 * **Jacobians (Definition D.2.7)**: For vector-valued functions, the Jacobian matrix contains partial derivatives of each component function. It generalizes the gradient for functions with multiple outputs.
@@ -142,12 +142,12 @@ Chapter 3 of _Alice's Adventures in a Differentiable Wonderland_ introduces foun
 
 **2.1. Empirical Risk Minimization (ERM)**
 
-* The goal of ERM is to minimize the average loss over a dataset. The optimization objective is expressed as: \[ f^\* = \text{argmin}_f \frac{1}{n} \sum_{i=1}^n l(y\_i, f(x\_i)) ]
+* The goal of ERM is to minimize the average loss over a dataset. The optimization objective is expressed as: \[f^\* = \text{argmin}_f \frac{1}{n} \sum_{i=1}^n l(y\_i, f(x\_i)) ]
   * This is referred to as **empirical risk** because it is the loss calculated on the available training data. The true goal, however, is to minimize the loss over unseen future data, which leads to the concept of **expected risk**.
 
 #### 3. **Expected Risk and Generalization**
 
-* **Definition of Expected Risk (D.3.3)**: The expected risk is the theoretical average loss over all possible input-output pairs, not just those in the training dataset: \[ ER\[f] = \mathbb{E}\_{p(x,y)}\[l(y, f(x))] ]
+* **Definition of Expected Risk (D.3.3)**: The expected risk is the theoretical average loss over all possible input-output pairs, not just those in the training dataset: \[ER\[f] = \mathbb{E}\_{p(x,y)}\[l(y, f(x))] ]
   * Since calculating the expected risk is generally impractical (requiring knowledge of the entire data distribution), empirical risk serves as an approximation.
   * **Generalization Gap**: The difference between the empirical risk and the expected risk is known as the **generalization gap**. A model that minimizes empirical risk but performs poorly on new data is said to **overfit** the training data. This is often tested by evaluating model performance on a separate test set.
 
@@ -155,14 +155,14 @@ Chapter 3 of _Alice's Adventures in a Differentiable Wonderland_ introduces foun
 
 * A more general view of supervised learning comes from a probabilistic standpoint. In this view:
   * Each output ( y ) is seen as a sample from a probability distribution ( p(y | x) ) conditioned on the input.
-  * **Maximum Likelihood Estimation (MLE)**: The model is trained to maximize the likelihood of observing the dataset ( S\_n ): \[ f^\* = \text{argmax}_f \prod_{i=1}^n p(y\_i | f(x\_i)) ]
-    * Taking the log of the likelihood, this can be reframed as minimizing the negative log-likelihood, which can be interpreted as a "pseudo-loss" function: \[ f^\* = \text{argmin}_f \sum_{i=1}^n -\log p(y\_i | f(x\_i)) ]
+  * **Maximum Likelihood Estimation (MLE)**: The model is trained to maximize the likelihood of observing the dataset ( S\_n ): \[f^\* = \text{argmax}_f \prod_{i=1}^n p(y\_i | f(x\_i)) ]
+    * Taking the log of the likelihood, this can be reframed as minimizing the negative log-likelihood, which can be interpreted as a "pseudo-loss" function: \[f^\* = \text{argmin}_f \sum_{i=1}^n -\log p(y\_i | f(x\_i)) ]
 
 #### 5. **Bayesian Learning**
 
-* In **Bayesian Neural Networks (BNNs)**, we go beyond maximum likelihood by assigning a probability distribution ( p(f) ) over the model functions themselves, known as the **prior**. Once data is observed, the distribution is updated to a **posterior** distribution over functions via Bayes’ theorem: \[ p(f | S\_n) = \frac{p(S\_n | f) p(f)}{p(S\_n)} ]
+* In **Bayesian Neural Networks (BNNs)**, we go beyond maximum likelihood by assigning a probability distribution ( p(f) ) over the model functions themselves, known as the **prior**. Once data is observed, the distribution is updated to a **posterior** distribution over functions via Bayes’ theorem: \[p(f | S\_n) = \frac{p(S\_n | f) p(f)}{p(S\_n)} ]
   * Bayesian methods allow the model to capture uncertainty by averaging over many possible functions, rather than selecting a single best function. This is useful when multiple models fit the data well, helping to make more robust predictions.
-  * **Maximum A Posteriori (MAP)**: This combines prior information and likelihood into a regularized solution. The MAP estimate is: \[ f^\* = \text{argmax}\_f \left( \log p(S\_n | f) + \log p(f) \right) ]
+  * **Maximum A Posteriori (MAP)**: This combines prior information and likelihood into a regularized solution. The MAP estimate is: \[f^\* = \text{argmax}\_f \left( \log p(S\_n | f) + \log p(f) \right) ]
     * This introduces a regularization term, encouraging simpler or more stable models depending on the choice of the prior.
 
 ***
@@ -188,15 +188,15 @@ Chapter 4 of _Alice's Adventures in a Differentiable Wonderland_ delves into lin
 
 This is the foundational linear model introduced in the chapter, where the task is to predict a continuous output.
 
-* **Linear Models (Definition D.4.1)**: A linear model on an input ( x ) is defined as: \[ f(x) = w^\top x + b ] where ( w ) is the weight vector, and ( b ) is the bias term.
+* **Linear Models (Definition D.4.1)**: A linear model on an input ( x ) is defined as: \[f(x) = w^\top x + b ] where ( w ) is the weight vector, and ( b ) is the bias term.
   * **Geometrical Interpretation**: For one feature, the model represents a line, for two features a plane, and for more than two, a hyperplane.
-* **Least-Squares Problem (Definition D.4.2)**: The least-squares optimization problem minimizes the squared error between the model's predictions and the true outputs. It can be expressed as: \[ \min\_{w, b} \frac{1}{n} \sum\_{i=1}^{n} \left( y\_i - w^\top x\_i - b \right)^2 ]
+* **Least-Squares Problem (Definition D.4.2)**: The least-squares optimization problem minimizes the squared error between the model's predictions and the true outputs. It can be expressed as: \[\min\_{w, b} \frac{1}{n} \sum\_{i=1}^{n} \left( y\_i - w^\top x\_i - b \right)^2 ]
 * **Gradient Descent**: Gradient descent is used to solve the least-squares problem. The gradient of the least-squares loss is linear in the model's parameters, which simplifies optimization.
-* **Closed-form Solution**: In certain cases, least-squares regression has a closed-form solution. The weights can be computed as: \[ w^\* = \left( X^\top X \right)^{-1} X^\top y ] This is a more direct solution than iterative gradient descent.
+* **Closed-form Solution**: In certain cases, least-squares regression has a closed-form solution. The weights can be computed as: \[w^\* = \left( X^\top X \right)^{-1} X^\top y ] This is a more direct solution than iterative gradient descent.
 
 **Regularization:**
 
-* **Ridge Regression (Regularized Least-Squares)**: When the matrix ( X^\top X ) is close to singular, adding a regularization term helps stabilize the solution. This gives rise to ridge regression, where the optimization problem becomes: \[ \min\_{w} \frac{1}{n} \sum\_{i=1}^{n} \left( y\_i - w^\top x\_i \right)^2 + \lambda |w|^2 ]
+* **Ridge Regression (Regularized Least-Squares)**: When the matrix ( X^\top X ) is close to singular, adding a regularization term helps stabilize the solution. This gives rise to ridge regression, where the optimization problem becomes: \[\min\_{w} \frac{1}{n} \sum\_{i=1}^{n} \left( y\_i - w^\top x\_i \right)^2 + \lambda |w|^2 ]
 
 ***
 
@@ -204,10 +204,10 @@ This is the foundational linear model introduced in the chapter, where the task 
 
 Loss functions are essential to training machine learning models by guiding optimization.
 
-* **Squared Loss (E.4.1)**: The squared loss is used in regression problems to measure the difference between the predicted and actual values: \[ l(\hat{y}, y) = (\hat{y} - y)^2 ]
+* **Squared Loss (E.4.1)**: The squared loss is used in regression problems to measure the difference between the predicted and actual values: \[l(\hat{y}, y) = (\hat{y} - y)^2 ]
 * **Other Loss Functions**:
-  * **Absolute Loss**: More robust to outliers compared to squared loss: \[ l(\hat{y}, y) = |\hat{y} - y| ]
-  * **Huber Loss**: A combination of squared and absolute loss: \[ L(y, \hat{y}) = \begin{cases} \frac{1}{2}(y - \hat{y})^2 & \text{if } |y - \hat{y}| \leq 1 \ |y - \hat{y}| - \frac{1}{2} & \text{otherwise} \end{cases} ]
+  * **Absolute Loss**: More robust to outliers compared to squared loss: \[l(\hat{y}, y) = |\hat{y} - y| ]
+  * **Huber Loss**: A combination of squared and absolute loss: \[L(y, \hat{y}) = \begin{cases} \frac{1}{2}(y - \hat{y})^2 & \text{if } |y - \hat{y}| \leq 1 \ |y - \hat{y}| - \frac{1}{2} & \text{otherwise} \end{cases} ]
 
 ***
 
@@ -216,16 +216,16 @@ Loss functions are essential to training machine learning models by guiding opti
 The chapter moves on to classification, where the output is a class label rather than a continuous value.
 
 * **Logistic Regression**:
-  * The model predicts a probability between 0 and 1 by passing a linear combination of inputs through the **sigmoid function**: \[ f(x) = \sigma(w^\top x + b) = \frac{1}{1 + \exp(-w^\top x - b)} ]
-  * **Binary Classification**: In binary classification, the model outputs a probability ( \hat{y} \in \[0, 1] ), and the predicted class is: \[ \hat{y} = \begin{cases} 1 & \text{if } f(x) > 0.5 \ 0 & \text{otherwise} \end{cases} ]
+  * The model predicts a probability between 0 and 1 by passing a linear combination of inputs through the **sigmoid function**: \[f(x) = \sigma(w^\top x + b) = \frac{1}{1 + \exp(-w^\top x - b)} ]
+  * **Binary Classification**: In binary classification, the model outputs a probability ( \hat{y} \in \[0, 1] ), and the predicted class is: \[\hat{y} = \begin{cases} 1 & \text{if } f(x) > 0.5 \ 0 & \text{otherwise} \end{cases} ]
 
 **Loss Function for Logistic Regression:**
 
-* **Cross-Entropy Loss (E.4.17)**: For binary classification, cross-entropy is used to measure the discrepancy between predicted and actual class probabilities: \[ CE(\hat{y}, y) = - y \log(\hat{y}) - (1 - y) \log(1 - \hat{y}) ] Minimizing this loss ensures the model outputs probabilities close to the true class labels.
+* **Cross-Entropy Loss (E.4.17)**: For binary classification, cross-entropy is used to measure the discrepancy between predicted and actual class probabilities: \[CE(\hat{y}, y) = - y \log(\hat{y}) - (1 - y) \log(1 - \hat{y}) ] Minimizing this loss ensures the model outputs probabilities close to the true class labels.
 
 **Softmax for Multiclass Classification:**
 
-* For multi-class classification, the **softmax function** generalizes logistic regression. It converts raw scores (logits) into probabilities: \[ \text{softmax}(x)_i = \frac{\exp(x\_i)}{\sum_{j} \exp(x\_j)} ]
+* For multi-class classification, the **softmax function** generalizes logistic regression. It converts raw scores (logits) into probabilities: \[\text{softmax}(x)_i = \frac{\exp(x\_i)}{\sum_{j} \exp(x\_j)} ]
   * The softmax output represents a probability distribution over all possible classes, and the predicted class is the one with the highest probability.
 
 ***
@@ -257,7 +257,7 @@ Chapter 5 of _Alice's Adventures in a Differentiable Wonderland_ explores fully-
 #### 2. **Fully-Connected (FC) Models**
 
 * **Multilayer Perceptrons (MLPs)**: MLPs overcome the limitations of linear models by composing multiple layers of transformations. The core idea is to add **hidden layers**, where each layer applies a transformation to the input before passing it to the next layer.
-* **Composition of Functions**: The model ( f(x) ) is the composition of several functions, where each function introduces its own set of parameters. For example: \[ f(x) = (f\_l \circ f\_{l-1} \circ \cdots \circ f\_1)(x) ]
+* **Composition of Functions**: The model ( f(x) ) is the composition of several functions, where each function introduces its own set of parameters. For example: \[f(x) = (f\_l \circ f\_{l-1} \circ \cdots \circ f\_1)(x) ]
   * In each layer, a matrix multiplication ( W\_ix + b\_i ) is followed by a non-linearity, preventing the collapse of layers into a single linear transformation. Without this non-linearity, the stacked layers would reduce to a single linear model.
 
 ***
@@ -394,7 +394,7 @@ In _Alice's Adventures in a Differentiable Wonderland_, Chapter 7 introduces **c
 #### 2. **Convolution Operation**
 
 * **Filter Application**: A filter (or kernel) is a small matrix that moves across the input image, applying element-wise multiplication to local regions of the image (called patches) and summing the results. This produces an output feature map that highlights certain patterns (like edges) in the image.
-* **Mathematical Representation**: \[ H\_{i,j,z} = \sum\_{i', j', d} W\_{i', j', z, d} \cdot X\_{i' + t(i), j' + t(j), d} ] Here, ( W ) is the weight tensor representing the filter, and ( t(i) ) accounts for the shifting of the filter over the image. This equation describes how a filter with weights ( W ) is applied to a patch of the input ( X ).
+* **Mathematical Representation**: \[H\_{i,j,z} = \sum\_{i', j', d} W\_{i', j', z, d} \cdot X\_{i' + t(i), j' + t(j), d} ] Here, ( W ) is the weight tensor representing the filter, and ( t(i) ) accounts for the shifting of the filter over the image. This equation describes how a filter with weights ( W ) is applied to a patch of the input ( X ).
 
 ***
 
@@ -528,7 +528,7 @@ Scaling models beyond a few layers introduces several challenges, such as **slow
 
 **2.1. Weight Regularization**
 
-* **L2 Regularization**: Also known as weight decay, L2 regularization penalizes large weights, effectively controlling overfitting by adding a regularization term to the loss function: \[ L\_{reg} = L(w, S\_n) + \lambda |w|^2 ] Here, ( \lambda ) controls the regularization strength【38:16†source】.
+* **L2 Regularization**: Also known as weight decay, L2 regularization penalizes large weights, effectively controlling overfitting by adding a regularization term to the loss function: \[L\_{reg} = L(w, S\_n) + \lambda |w|^2 ] Here, ( \lambda ) controls the regularization strength【38:16†source】.
 
 **2.2. Data Augmentation**
 
@@ -555,7 +555,7 @@ Scaling models beyond a few layers introduces several challenges, such as **slow
 
 #### 4. **Residual Connections**
 
-* **Residual Blocks**: In deep networks, increasing the depth often leads to optimization issues, where deeper models perform worse than shallower ones due to gradient vanishing or exploding. **Residual connections** (also known as skip connections) mitigate this by allowing the input to bypass one or more layers: \[ r(x) = f(x) + x ]
+* **Residual Blocks**: In deep networks, increasing the depth often leads to optimization issues, where deeper models perform worse than shallower ones due to gradient vanishing or exploding. **Residual connections** (also known as skip connections) mitigate this by allowing the input to bypass one or more layers: \[r(x) = f(x) + x ]
   * This forces the model to learn residuals (deviations from the identity) instead of the entire transformation, making it easier for the model to learn the identity function when needed【38:7†source】【38:0†source】.
   * **ResNet (Residual Networks)**: A deep neural network composed of residual blocks. ResNets have been shown to scale up to hundreds of layers and perform well on a wide range of tasks【38:7†source】.
 
@@ -650,7 +650,7 @@ Chapter 11 discusses practical applications of transformers beyond the standard 
 **11.1.2 Cross-Attention**
 
 * **Cross-attention**: An important component in encoder-decoder models, cross-attention allows the decoder to focus on specific parts of the encoder’s output. This is done by calculating attention using keys and values from the encoder and queries from the decoder.
-* **Mechanism**: The cross-attention mechanism is formally written as \[ CA(X, Z) = softmax(\frac{XW\_q (Z W\_k)^T}{\sqrt{d\_k\}}) Z W\_v ], where ( Z ) contains the encoder outputs, while ( X ) is the decoder’s input sequence【8:15†source】.
+* **Mechanism**: The cross-attention mechanism is formally written as \[CA(X, Z) = softmax(\frac{XW\_q (Z W\_k)^T}{\sqrt{d\_k\}}) Z W\_v ], where ( Z ) contains the encoder outputs, while ( X ) is the decoder’s input sequence【8:15†source】.
 
 #### 11.2 Computational Considerations
 
@@ -716,7 +716,7 @@ These notes summarize Chapter 11's exploration of how transformers are implement
 * The process involves two steps:
   1. **Node-wise update**: Applying a linear transformation to node features.
   2. **Neighborhood aggregation**: Combining transformed features from neighboring nodes.
-* The GC layer can be defined as: \[ f(X, A) = \phi(A(XW + b)) ] where ( W ) is the weight matrix, ( b ) is a bias term, and ( \phi ) is an activation function【12:7†source】【12:12†source】.
+* The GC layer can be defined as: \[f(X, A) = \phi(A(XW + b)) ] where ( W ) is the weight matrix, ( b ) is a bias term, and ( \phi ) is an activation function【12:7†source】【12:12†source】.
 
 **Properties of GC Layers**
 
@@ -734,7 +734,7 @@ These notes summarize Chapter 11's exploration of how transformers are implement
 **Graph Attention Networks (GAT)**
 
 * **GAT Layers**: Utilize attention mechanisms to weigh neighbors based on feature similarity. This allows GATs to adaptively aggregate neighbors’ features, addressing scenarios where some neighbors may be more relevant than others.
-* Attention scores are calculated via: \[ \alpha(x\_i, x\_j) = \text{LeakyReLU}(a^\top \[Wx\_i \parallel Wx\_j]) ] where ( a ) and ( W ) are trainable parameters【12:8†source】【12:9†source】.
+* Attention scores are calculated via: \[\alpha(x\_i, x\_j) = \text{LeakyReLU}(a^\top \[Wx\_i \parallel Wx\_j]) ] where ( a ) and ( W ) are trainable parameters【12:8†source】【12:9†source】.
 
 **Message-Passing Neural Networks (MPNN)**
 
@@ -771,17 +771,17 @@ These notes outline the foundational concepts of graph-based data, describe the 
 
 * **Linearized Attention**: This approach generalizes the attention layer in a recurrent form, replacing the standard dot product with a similarity function (\alpha).
   * The attention mechanism in linearized form allows for recurrent computation, where only past elements contribute to the current token, useful in autoregressive models.
-  * Attention memory (S\_i) and normalizer memory (z\_i) can be calculated recursively: \[ S\_i = S\_{i-1} + \phi(k\_i)v\_i^\top \quad \text{and} \quad z\_i = z\_{i-1} + \phi(k\_i) ] where (\phi) is a feature expansion function【16:9†source】.
+  * Attention memory (S\_i) and normalizer memory (z\_i) can be calculated recursively: \[S\_i = S\_{i-1} + \phi(k\_i)v\_i^\top \quad \text{and} \quad z\_i = z\_{i-1} + \phi(k\_i) ] where (\phi) is a feature expansion function【16:9†source】.
 
 #### 13.2 Classical Recurrent Layers
 
 **General Recurrent Layer**
 
-* A basic recurrent layer can be formulated as: \[ s\_i = f(s\_{i-1}, x\_i) \quad \text{and} \quad h\_i = g(s\_i, x\_i) ] where (s\_i) represents the state vector, (f) is the transition function, and (g) is the readout function【16:8†source】.
+* A basic recurrent layer can be formulated as: \[s\_i = f(s\_{i-1}, x\_i) \quad \text{and} \quad h\_i = g(s\_i, x\_i) ] where (s\_i) represents the state vector, (f) is the transition function, and (g) is the readout function【16:8†source】.
 
 **Vanilla RNNs**
 
-* Vanilla RNNs use a simple state transition function: \[ f(s\_{i-1}, x\_i) = \phi(As\_{i-1} + Bx\_i) ] where (\phi) is an activation function, and (A) and (B) are weight matrices. However, these layers are prone to issues like vanishing and exploding gradients, which can cause training difficulties on long sequences【16:6†source】.
+* Vanilla RNNs use a simple state transition function: \[f(s\_{i-1}, x\_i) = \phi(As\_{i-1} + Bx\_i) ] where (\phi) is an activation function, and (A) and (B) are weight matrices. However, these layers are prone to issues like vanishing and exploding gradients, which can cause training difficulties on long sequences【16:6†source】.
 
 **Gated Recurrent Networks (GRUs and LSTMs)**
 
@@ -793,7 +793,7 @@ These notes outline the foundational concepts of graph-based data, describe the 
 
 **Linear Recurrent Layers**
 
-* SSMs operate by simplifying the transition function to a linear form: \[ f(s\_{i-1}, x\_i) = As\_{i-1} + Bx\_i ] This layer is less expressive but can be enhanced by adding non-linearities in subsequent layers or by interleaving with MLPs.
+* SSMs operate by simplifying the transition function to a linear form: \[f(s\_{i-1}, x\_i) = As\_{i-1} + Bx\_i ] This layer is less expressive but can be enhanced by adding non-linearities in subsequent layers or by interleaving with MLPs.
 * Recent research has introduced variants like HiPPO-based SSM layers, which compress input sequences while retaining long-term dependencies by applying structured matrices that efficiently handle large sequences【16:4†source】【16:18†source】.
 
 **Parallel Scans**
@@ -841,37 +841,37 @@ Here are the detailed study notes on the _Probability Theory_ section from the a
 
     **Joint Probability**: Represents the likelihood of two random events occurring together. For example, ( p(r, w) ) might represent the probability of a ticket being real or fake and its outcome.
 * **Conditional Probability**: Given as ( p(r | w) ), which is the probability of one event happening given that another event has occurred.
-  * **Product Rule**: Used to calculate joint probabilities: \[ p(r, w) = p(r | w)p(w) ]
-  * **Sum Rule**: Used for marginalizing over variables: \[ p(w) = \sum\_r p(w, r) = \sum\_r p(w | r)p(r) ]
-* **Bayes' Theorem**: A fundamental theorem for "reversing" conditional probabilities: \[ p(r | w) = \frac{p(w | r)p(r)}{p(w)} ] This theorem is often used in classification tasks to compute the probability of certain outcomes based on observed data .
+  * **Product Rule**: Used to calculate joint probabilities: \[p(r, w) = p(r | w)p(w) ]
+  * **Sum Rule**: Used for marginalizing over variables: \[p(w) = \sum\_r p(w, r) = \sum\_r p(w | r)p(r) ]
+* **Bayes' Theorem**: A fundamental theorem for "reversing" conditional probabilities: \[p(r | w) = \frac{p(w | r)p(r)}{p(w)} ] This theorem is often used in classification tasks to compute the probability of certain outcomes based on observed data .
 
 #### A.2 Real-Valued Distributions
 
 * When dealing with continuous random variables, probability densities are used rather than discrete probabilities.
-  * **Cumulative Density Function (CDF)**: Represents the probability that a random variable ( X ) is less than or equal to a certain value ( x ): \[ P(x) = \int\_{-\infty}^{x} p(t) , dt ]
+  * **Cumulative Density Function (CDF)**: Represents the probability that a random variable ( X ) is less than or equal to a certain value ( x ): \[P(x) = \int\_{-\infty}^{x} p(t) , dt ]
   * **Probability Density Function (PDF)**: The derivative of the CDF, representing the density of the probability distribution.
-  * **Integral-Based Sum and Product Rules**: For continuous distributions, sums in probability rules are replaced with integrals. For example: \[ p(x, y) = p(x | y)p(y) \quad \text{and} \quad p(x) = \int\_y p(x | y)p(y) , dy ] .
+  * **Integral-Based Sum and Product Rules**: For continuous distributions, sums in probability rules are replaced with integrals. For example: \[p(x, y) = p(x | y)p(y) \quad \text{and} \quad p(x) = \int\_y p(x | y)p(y) , dy ] .
 
 #### A.3 Common Distributions
 
-* **Categorical Distribution**: Applicable for discrete variables that can take on a finite number of values. Represented as: \[ p(x) = \prod\_i p\_i^{x\_i} ] where ( x ) is a one-hot encoded vector of observed outcomes, and ( p\_i ) are probabilities for each category.
+* **Categorical Distribution**: Applicable for discrete variables that can take on a finite number of values. Represented as: \[p(x) = \prod\_i p\_i^{x\_i} ] where ( x ) is a one-hot encoded vector of observed outcomes, and ( p\_i ) are probabilities for each category.
 * **Bernoulli Distribution**: A specific case of the categorical distribution with only two possible outcomes.
-* **Gaussian Distribution**: Used for continuous data, defined by mean ( \mu ) and variance ( \sigma^2 ): \[ p(x) = \frac{1}{\sqrt{2 \pi \sigma^2\}} \exp\left( -\frac{(x - \mu)^2}{2\sigma^2} \right) ] For multiple variables, the Gaussian distribution can be extended to the multivariate case with mean vector ( \mu ) and covariance matrix ( \Sigma ) .
+* **Gaussian Distribution**: Used for continuous data, defined by mean ( \mu ) and variance ( \sigma^2 ): \[p(x) = \frac{1}{\sqrt{2 \pi \sigma^2\}} \exp\left( -\frac{(x - \mu)^2}{2\sigma^2} \right) ] For multiple variables, the Gaussian distribution can be extended to the multivariate case with mean vector ( \mu ) and covariance matrix ( \Sigma ) .
 
 #### A.4 Moments and Expected Values
 
-* **Expected Value (Mean)**: The average or mean of a function ( f(x) ) over a probability distribution: \[ \mathbb{E}\[f(x)] = \sum\_x f(x)p(x) \quad \text{or} \quad \mathbb{E}\[f(x)] = \int\_x f(x)p(x) , dx ]
+* **Expected Value (Mean)**: The average or mean of a function ( f(x) ) over a probability distribution: \[\mathbb{E}\[f(x)] = \sum\_x f(x)p(x) \quad \text{or} \quad \mathbb{E}\[f(x)] = \int\_x f(x)p(x) , dx ]
 * **Moments**: Represent specific expected values that summarize the distribution's characteristics, such as the mean (first moment) and variance (second moment).
-* **Monte Carlo Estimation**: An approximation method for expected values when the distribution is unknown, relying on random sampling: \[ \mathbb{E}\[f(x)] \approx \frac{1}{n} \sum\_{i=1}^n f(x\_i) ] where ( x\_i ) are samples from the distribution .
+* **Monte Carlo Estimation**: An approximation method for expected values when the distribution is unknown, relying on random sampling: \[\mathbb{E}\[f(x)] \approx \frac{1}{n} \sum\_{i=1}^n f(x\_i) ] where ( x\_i ) are samples from the distribution .
 
 #### A.5 Distance between Distributions
 
-* **Kullback-Leibler (KL) Divergence**: Measures the difference between two distributions ( p(x) ) and ( q(x) ): \[ KL(p | q) = \int p(x) \log \frac{p(x)}{q(x)} , dx ] This is commonly used in optimization tasks and provides a sense of how well ( q(x) ) approximates ( p(x) ) .
+* **Kullback-Leibler (KL) Divergence**: Measures the difference between two distributions ( p(x) ) and ( q(x) ): \[KL(p | q) = \int p(x) \log \frac{p(x)}{q(x)} , dx ] This is commonly used in optimization tasks and provides a sense of how well ( q(x) ) approximates ( p(x) ) .
 
 #### A.6 Maximum Likelihood Estimation (MLE)
 
 * **Maximum Likelihood Estimation**: A method for estimating parameters that maximizes the probability of observed data under a given model.
-  * Given a parametric distribution ( p(x; \theta) ) and a dataset ( {x\_i} ), the log-likelihood ( L(\theta) ) is maximized: \[ L(\theta) = \sum\_{i=1}^n \log p(x\_i; \theta) ] where ( \theta ) are the parameters to be optimized.
+  * Given a parametric distribution ( p(x; \theta) ) and a dataset ( {x\_i} ), the log-likelihood ( L(\theta) ) is maximized: \[L(\theta) = \sum\_{i=1}^n \log p(x\_i; \theta) ] where ( \theta ) are the parameters to be optimized.
 * **Applications**: MLE is used to estimate parameters for various distributions, such as ( p ) in the Bernoulli distribution or ( \mu ) and ( \sigma^2 ) in the Gaussian distribution .
 
 These notes outline the principles and techniques of probability theory, emphasizing its importance for understanding machine learning models and their behavior in uncertain environments.
@@ -887,7 +887,7 @@ The 1D universal approximation section provides a visual and intuitive proof for
 #### B.1 Approximating a Step Function
 
 * The section begins by showing how a single neuron in a hidden layer can approximate a step function, a basic building block in function approximation.
-* The function of a single neuron can be represented as: \[ f(x) = a \sigma(w(x - s)) ] where:
+* The function of a single neuron can be represented as: \[f(x) = a \sigma(w(x - s)) ] where:
   * ( a ) controls the amplitude,
   * ( w ) controls the slope,
   * ( s ) shifts the function.
@@ -896,7 +896,7 @@ The 1D universal approximation section provides a visual and intuitive proof for
 #### B.2 Approximating Constant Functions Over Intervals
 
 * Adding a second neuron allows the network to approximate functions that are constant over small intervals (referred to as "bin" functions).
-* The function is formulated with two hidden layer neurons: \[ f(x) = a \sigma\left(w\left(x - s - \frac{\Delta}{2}\right)\right) - a \sigma\left(w\left(x - s + \frac{\Delta}{2}\right)\right) ] where ( \Delta ) controls the width of the bin.
+* The function is formulated with two hidden layer neurons: \[f(x) = a \sigma\left(w\left(x - s - \frac{\Delta}{2}\right)\right) - a \sigma\left(w\left(x - s + \frac{\Delta}{2}\right)\right) ] where ( \Delta ) controls the width of the bin.
 * This formulation enables the creation of localized functions, effectively zero outside of a specific interval and constant within the interval, which is key to approximating more complex continuous functions【32:4†source】.
 
 #### B.3 Approximating a Generic Function
@@ -906,7 +906,7 @@ The 1D universal approximation section provides a visual and intuitive proof for
   1. Divide the input domain into ( m ) equally spaced intervals, where ( m ) determines the approximation accuracy.
   2. For each interval ( B\_i ), compute the average value ( g\_i ) of the function ( g(x) ).
   3. Use a neural network with ( 2m ) neurons, placing two neurons in each interval to approximate the function.
-* The output function can be represented as: \[ f(x) = \sum\_{i=1}^{m} f\left(x; g\_i, \frac{i}{m}, \Delta\right) ] where ( g\_i ) represents the constant approximation over the ( i )-th bin.
+* The output function can be represented as: \[f(x) = \sum\_{i=1}^{m} f\left(x; g\_i, \frac{i}{m}, \Delta\right) ] where ( g\_i ) represents the constant approximation over the ( i )-th bin.
 * As ( m ) increases, the approximation error reduces, allowing the network to closely match the original function ( g(x) ). The mean squared error (MSE) decreases exponentially with the number of bins, which enhances the approximation’s precision【32:0†source】【32:1†source】.
 
 #### Key Takeaways

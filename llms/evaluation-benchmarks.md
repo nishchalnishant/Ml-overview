@@ -1,6 +1,6 @@
 # LLM Evaluation: Beyond the Vibe Check
 
-##  Executive Summary
+## Executive Summary
 Evaluating LLMs is difficult because language is subjective. We use a battery of automated benchmarks, "Model-as-a-Judge," and human evaluations.
 
 | Benchmark | Focus | Why it matters |
@@ -12,7 +12,7 @@ Evaluating LLMs is difficult because language is subjective. We use a battery of
 
 ---
 
-##  1. Common Benchmarks
+## 1. Common Benchmarks
 
 ### MMLU (Massive Multitask Language Understanding)
 The "SAT" for LLMs. It contains 16k multiple-choice questions across 57 branches of knowledge.
@@ -24,7 +24,7 @@ Tests multi-step reasoning. To solve these, models must maintain a consistent lo
 
 ---
 
-##  2. Modern Evaluation Techniques
+## 2. Modern Evaluation Techniques
 
 ### Model-as-a-Judge
 Since human evaluation is slow and expensive, we use a stronger model (e.g., GPT-4o) to grade the outputs of a smaller model.
@@ -37,7 +37,7 @@ An anonymous side-by-side comparison where humans pick the better answer.
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "What is 'Data Contamination' in LLM evaluation?"**
 > It happens when the test questions (e.g., from GSM8K) are present in the massive pre-training corpus of the model. This leads to the model "memorizing" the answers rather than "reasoning" through them, resulting in inflated scores.

@@ -1,6 +1,6 @@
 # Day 3-4: Data Preprocessing Techniques
 
-##  Executive Summary
+## Executive Summary
 | Stage | Problem | Techniques | Goal |
 |-------|---------|------------|------|
 | **Cleaning** | Missing values, Noise | Imputation, Outlier removal | Data Integrity |
@@ -10,7 +10,7 @@
 
 ---
 
-##  1. Data Cleaning: The "Garbage In, Garbage Out" Rule
+## 1. Data Cleaning: The "Garbage In, Garbage Out" Rule
 
 ### Handling Missing Values
 1. **Mean/Median/Mode**: Simple but reduces variance.
@@ -23,7 +23,7 @@
 
 ---
 
-##  2. Feature Scaling
+## 2. Feature Scaling
 
 ### Standardization (Z-Score)
 Centers data around 0 with unit variance.
@@ -37,7 +37,7 @@ $$x_{norm} = \frac{x - x_{min}}{x_{max} - x_{min}}$$
 
 ---
 
-##  3. Categorical Encoding
+## 3. Categorical Encoding
 
 ### One-Hot Encoding
 Creates binary columns for each category.
@@ -49,7 +49,7 @@ Replaces the category with the average target value for that category.
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "Why should you perform the train-test split before scaling?"**
 > To prevent **Data Leakage**. Scaling factors ($\mu, \sigma$) should be calculated ONLY on the training set and then applied to the test set to simulate real-world unseen data.
@@ -62,7 +62,7 @@ Replaces the category with the average target value for that category.
 
 ---
 
-##  Code Snippet
+## Code Snippet
 ```python
 from sklearn.preprocessing import StandardScaler, OneHotEncoder
 from sklearn.impute import SimpleImputer

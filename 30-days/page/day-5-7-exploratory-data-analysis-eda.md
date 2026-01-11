@@ -1,6 +1,6 @@
 # Day 5-7: Exploratory Data Analysis (EDA)
 
-##  Executive Summary
+## Executive Summary
 | Task | Objective | Primary Tools |
 |------|-----------|---------------|
 | **Univariate** | Distribution Check | Histograms, Boxplots, KDE |
@@ -10,7 +10,7 @@
 
 ---
 
-##  1. Statistical Foundations of EDA
+## 1. Statistical Foundations of EDA
 
 ### Descriptive Statistics
 - **Central Tendency**: Mean (sensitive to outliers), Median (robust), Mode.
@@ -23,7 +23,7 @@ Many real-world distributions (wealth, city sizes, NLP token frequency) follow a
 
 ---
 
-##  2. Visual Inspection Strategies
+## 2. Visual Inspection Strategies
 
 ### Identifying Relationships
 - **Pearson Correlation ($r$)**: Measures linear relationship. Range $[-1, 1]$.
@@ -36,7 +36,7 @@ Many real-world distributions (wealth, city sizes, NLP token frequency) follow a
 
 ---
 
-##  3. Missingness Patterns
+## 3. Missingness Patterns
 Understanding *why* data is missing is key to EDA:
 - **MCAR**: Missing Completely at Random.
 - **MAR**: Missing at Random (dependent on other observed variables).
@@ -44,7 +44,7 @@ Understanding *why* data is missing is key to EDA:
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "You have a distribution with Mean > Median. What does this tell you?"**
 > The distribution is likely **Right-Skewed** (Positive Skew). The extreme values on the right are pulling the mean away from the center.
@@ -57,7 +57,7 @@ Understanding *why* data is missing is key to EDA:
 
 ---
 
-##  Python EDA Quick-Start
+## Python EDA Quick-Start
 ```python
 import seaborn as sns
 import matplotlib.pyplot as plt

@@ -1,6 +1,6 @@
 # Day 12-14: Neural Networks & Deep Learning
 
-##  Executive Summary
+## Executive Summary
 | Concept | Role | Analogy |
 |---------|------|---------|
 | **Neuron** | Weighted sum + Activation | A decision node |
@@ -10,14 +10,14 @@
 
 ---
 
-## 🧠 1. The Perceptron & Beyond
+## 1. The Perceptron & Beyond
 The building block of NN: $z = w^T x + b$, then apply $\sigma(z)$.
 - **MLP (Multi-Layer Perceptron)**: A stack of fully connected layers.
 - **Universal Approximation Theorem**: A network with one hidden layer can approximate any continuous function given enough neurons.
 
 ---
 
-##  2. Backpropagation & Optimization
+## 2. Backpropagation & Optimization
 
 ### The Chain Rule
 The engine of learning. We calculate the gradient of the loss $L$ with respect to each weight $w$ by moving backward from output to input.
@@ -29,7 +29,7 @@ $$\frac{\partial L}{\partial w_{ij}} = \frac{\partial L}{\partial a_k} \times \f
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "Why do we need non-linear activation functions (like ReLU)?"**
 > If we used linear activations, the entire network would just be a linear combination of the inputs, making it equivalent to a single-layer linear model regardless of depth.
@@ -42,7 +42,7 @@ $$\frac{\partial L}{\partial w_{ij}} = \frac{\partial L}{\partial a_k} \times \f
 
 ---
 
-##  PyTorch Scaffold
+## PyTorch Scaffold
 ```python
 import torch.nn as nn
 

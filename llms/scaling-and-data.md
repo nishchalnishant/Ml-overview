@@ -1,6 +1,6 @@
 # Scaling Laws: The Economics of LLMs
 
-##  Executive Summary
+## Executive Summary
 The most influential paper in modern AI (Kaplan et al., 2020 / Chinchilla, 2022) proved that model performance is a predictable function of three variables: **Compute ($C$)**, **Data ($D$)**, and **Parameters ($N$)**.
 
 | Concept | Key Finding | Real-world Impact |
@@ -11,7 +11,7 @@ The most influential paper in modern AI (Kaplan et al., 2020 / Chinchilla, 2022)
 
 ---
 
-##  1. The Chinchilla Optimality
+## 1. The Chinchilla Optimality
 DeepMind's research showed that for every doubling of compute budget, we should increase model size and training tokens in equal proportions.
 - **Compute Budget $C$**: Measured in PFLOPS-days.
 - **Equation**: $C \approx 6ND$ (where $N$ is params and $D$ is tokens).
@@ -19,7 +19,7 @@ DeepMind's research showed that for every doubling of compute budget, we should 
 
 ---
 
-##  2. Data Mixture & Quality
+## 2. Data Mixture & Quality
 "More data" is no longer enough; it must be "high-quality" data.
 
 ### The Lifecycle of Data
@@ -29,7 +29,7 @@ DeepMind's research showed that for every doubling of compute budget, we should 
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "If you have a fixed compute budget, would you train a larger model for fewer steps or a smaller model for more steps?"**
 > According to Chinchilla laws, there is a specific "optimal" point. However, in practice, we often train **smaller models for longer** (over-training) because it makes inference cheaper for millions of users.
@@ -42,7 +42,7 @@ DeepMind's research showed that for every doubling of compute budget, we should 
 
 ---
 
-##  Summary Table: Model Sizes
+## Summary Table: Model Sizes
 | Model | Params | Training Tokens | Status |
 |-------|--------|-----------------|--------|
 | **GPT-3** | 175B | 300B | Under-trained |

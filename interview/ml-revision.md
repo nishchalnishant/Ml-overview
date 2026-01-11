@@ -2,7 +2,7 @@
 
 ---
 
-##  1. Regression Models
+## 1. Regression Models
 
 | Algorithm | Type | Loss | Key Insight |
 |-----------|------|------|-------------|
@@ -19,7 +19,7 @@
 
 ---
 
-##  2. Classification Models
+## 2. Classification Models
 
 | Algorithm | Boundary | Key Insight |
 |-----------|----------|-------------|
@@ -38,7 +38,7 @@
 
 ---
 
-##  3. Ensemble Methods
+## 3. Ensemble Methods
 
 | Method | Technique | Goal |
 |--------|-----------|------|
@@ -53,7 +53,7 @@
 
 ---
 
-##  4. Neural Network Fundamentals
+## 4. Neural Network Fundamentals
 
 | Component | Purpose |
 |-----------|---------|
@@ -73,7 +73,7 @@
 
 ---
 
-##  5. Key Formulas
+## 5. Key Formulas
 
 | Concept | Formula |
 |---------|---------|
@@ -87,7 +87,7 @@
 
 ---
 
-##  6. Unsupervised Learning
+## 6. Unsupervised Learning
 
 | Method | Goal | Key Metric |
 |--------|------|------------|
@@ -103,7 +103,7 @@
 
 ---
 
-##  7. Deep Learning Architectures
+## 7. Deep Learning Architectures
 
 | Architecture | Input | Use Case |
 |--------------|-------|----------|
@@ -117,7 +117,7 @@
 
 ---
 
-##  8. Common Trade-offs
+## 8. Common Trade-offs
 
 | Trade-off | Low | High |
 |-----------|-----|------|
@@ -128,7 +128,7 @@
 
 ---
 
-##  9. MLOps Quick Reference
+## 9. MLOps Quick Reference
 
 | Concept | Definition |
 |---------|------------|
@@ -142,7 +142,7 @@
 
 ---
 
-##  10. Quick Fire Recall
+## 10. Quick Fire Recall
 
 **L1 vs L2?**
 > L1 creates sparsity (zeros). L2 shrinks all weights.

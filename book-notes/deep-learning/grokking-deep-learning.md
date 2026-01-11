@@ -233,13 +233,13 @@ This chapter introduces the mathematical foundation of learning in neural networ
 
 * When a neural network has multiple inputs, each input is associated with a unique weight.
 * The prediction is computed as a **weighted sum** of these inputs, similar to a dot product.
-* For example, if there are three inputs (`toes`, `win/loss record`, `number of fans`), and three corresponding weights (`0.1, 0.2, -0.1`), the prediction is calculated as: \[ \text{Prediction} = (\text{toes} \times 0.1) + (\text{win/loss} \times 0.2) + (\text{fans} \times -0.1) ]
-* The error is calculated as: \[ \text{Error} = (\text{Prediction} - \text{True Value})^2 ]
+* For example, if there are three inputs (`toes`, `win/loss record`, `number of fans`), and three corresponding weights (`0.1, 0.2, -0.1`), the prediction is calculated as: \[\text{Prediction} = (\text{toes} \times 0.1) + (\text{win/loss} \times 0.2) + (\text{fans} \times -0.1) ]
+* The error is calculated as: \[\text{Error} = (\text{Prediction} - \text{True Value})^2 ]
 
 **5.3 Calculating the Weight Deltas for Multiple Inputs**
 
 * The weight deltas are calculated by taking the product of the error delta and each input.
-* For each weight: \[ \text{weight\_delta} = \text{input} \times \text{error\_delta} ]
+* For each weight: \[\text{weight\_delta} = \text{input} \times \text{error\_delta} ]
 * This ensures that each weight is adjusted in proportion to its contribution to the error.
 
 **5.4 Learning with Multiple Outputs**
@@ -253,7 +253,7 @@ This chapter introduces the mathematical foundation of learning in neural networ
 **5.5 Gradient Descent with Multiple Inputs and Outputs**
 
 * The chapter explores how to extend gradient descent to handle multiple inputs and multiple outputs.
-* **Weight updates** are performed by calculating each weight delta for every input-output pair: \[ \text{weight} = \text{weight} - (\alpha \times \text{weight\_delta}) ]
+* **Weight updates** are performed by calculating each weight delta for every input-output pair: \[\text{weight} = \text{weight} - (\alpha \times \text{weight\_delta}) ]
 * This allows the network to learn across all the connections simultaneously.
 
 **5.6 Visualizing Weight Updates**
@@ -383,7 +383,7 @@ This chapter effectively introduces the practical aspects of building a neural n
 
 **7.6 Linking the Variables**
 
-* The relationships between layers can be expressed mathematically. For instance: \[ l\_1 = \text{ReLU}(l\_0 W\_0) ] \[ l\_2 = l\_1 W\_1 ]
+* The relationships between layers can be expressed mathematically. For instance: \[l\_1 = \text{ReLU}(l\_0 W\_0) ] \[l\_2 = l\_1 W\_1 ]
 * This notation makes it easy to see how inputs are transformed through the network layers.
 
 **7.7 Everything Side by Side**
@@ -646,7 +646,7 @@ By introducing convolutional layers and the concept of weight reuse, this chapte
 
 **11.8 Word Analogies**
 
-* The chapter discusses how word embeddings can capture analogies, such as: \[ \text{king} - \text{man} + \text{woman} \approx \text{queen} ]
+* The chapter discusses how word embeddings can capture analogies, such as: \[\text{king} - \text{man} + \text{woman} \approx \text{queen} ]
 * This illustrates the capability of embeddings to understand relationships between words through vector operations.
 
 **11.9 Meaning Derived from Loss**

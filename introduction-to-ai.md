@@ -99,8 +99,8 @@ High Bias, Low Variance:    Low Bias, High Variance:    Optimal:
   Consistent but wrong        Close but inconsistent      Accurate & consistent
   
                                                              
-     ●●●                           ●  ●                         ●●●
-     ●●●                         ●   ●                          ●●●
+                                                           
+                                                           
   (Underfitting)              (Overfitting)                   (Balanced)
 ```
 
@@ -355,8 +355,8 @@ Unsupervised learning finds patterns in unlabeled data.
 ```
                   Predicted
                  Pos    Neg
-    Actual Pos │ TP  │ FN │
-           Neg │ FP  │ TN │
+    Actual Pos  TP   FN 
+           Neg  FP   TN 
 ```
 
 | **Metric** | **Formula** | **Range** | **Focus** |

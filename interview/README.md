@@ -4,7 +4,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-##  Target by Role & Level
+## Target by Role & Level
 
 | Level | Files to Focus On |
 |-------|-------------------|
@@ -14,7 +14,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-##  Complete File Index
+## Complete File Index
 
 ### Core Q&A
 -  **[Master Q&A Bank](top-ml-interview-questions.md)** – Tiered questions (Level 1-3)
@@ -36,7 +36,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-##  Emergency Study Plan
+## Emergency Study Plan
 
 | Time Left | What to Do |
 |-----------|------------|
@@ -48,7 +48,7 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 
 ---
 
-##  Topic Coverage Checklist
+## Topic Coverage Checklist
 
 - [x] ML Fundamentals (Bias-Variance, Regularization)
 - [x] Supervised Learning (Regression, Classification, Ensembles)

@@ -1267,9 +1267,9 @@ def generate_response(text):
 **Future Exploration**:
 
 * Check **Axolotl** for LLM fine-tuning:\
-  🔗 [Axolotl GitHub](https://github.com/OpenAccess-AI-Collective/axolotl)
+   [Axolotl GitHub](https://github.com/OpenAccess-AI-Collective/axolotl)
 * Check **LitGPT** for lightweight training:\
-  🔗 [LitGPT GitHub](https://github.com/Lightning-AI/litgpt)
+   [LitGPT GitHub](https://github.com/Lightning-AI/litgpt)
 
 ***
 

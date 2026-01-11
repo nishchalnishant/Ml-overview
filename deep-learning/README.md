@@ -33,11 +33,11 @@ Deep learning is a subset of machine learning that uses neural networks with mul
  **Computational Resources:** Access to GPUs/TPUs  
 
 ### Choose Traditional ML When:
-❌ **Small Dataset:** < 10K samples  
-❌ **Tabular Data:** Structured features  
-❌ **Need Interpretability:** Medical, financial domains  
-❌ **Limited Resources:** CPU-only environment  
-❌ **Quick Iteration:** Rapid prototyping needed  
+ **Small Dataset:** < 10K samples  
+ **Tabular Data:** Structured features  
+ **Need Interpretability:** Medical, financial domains  
+ **Limited Resources:** CPU-only environment  
+ **Quick Iteration:** Rapid prototyping needed  
 
 ---
 

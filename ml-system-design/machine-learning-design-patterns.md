@@ -308,10 +308,10 @@ This chapter introduces four major data representation patterns:
 
 | Pattern Name         | Purpose                                                                 |
 | -------------------- | ----------------------------------------------------------------------- |
-| 1️⃣ Hashed Feature   | Represent high-cardinality categorical data efficiently                 |
-| 2️⃣ Embeddings       | Learn dense, continuous representations for categorical or textual data |
-| 3️⃣ Feature Cross    | Combine multiple features to capture interactions                       |
-| 4️⃣ Multimodal Input | Handle and combine multiple data types (text, image, etc.)              |
+| 1⃣ Hashed Feature   | Represent high-cardinality categorical data efficiently                 |
+| 2⃣ Embeddings       | Learn dense, continuous representations for categorical or textual data |
+| 3⃣ Feature Cross    | Combine multiple features to capture interactions                       |
+| 4⃣ Multimodal Input | Handle and combine multiple data types (text, image, etc.)              |
 
 Before discussing these, the book explains simple data representations — basic techniques for handling numeric and categorical data.
 

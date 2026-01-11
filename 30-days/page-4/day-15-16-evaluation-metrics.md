@@ -1,6 +1,6 @@
 # Day 15-16: Model Evaluation and Selection
 
-##  Executive Summary
+## Executive Summary
 | Category | Metric | Best For | Logic |
 |----------|--------|----------|-------|
 | **Classification** | **F1-Score** | Imbalanced Data | Harmonic mean of P & R |
@@ -11,7 +11,7 @@
 
 ---
 
-##  1. Classification Metrics: Beyond Accuracy
+## 1. Classification Metrics: Beyond Accuracy
 
 ### Precision and Recall
 - **Precision**: $\frac{TP}{TP + FP}$ ("Of all predicted positive, how many were right?")
@@ -24,7 +24,7 @@
 
 ---
 
-##  2. Robust Selection Techniques
+## 2. Robust Selection Techniques
 
 ### Cross-Validation (K-Fold)
 Split data into $K$ folds. Train on $K-1$, validate on 1. Repeat $K$ times.
@@ -37,7 +37,7 @@ Used for tuning hyperparameters *and* estimating performance simultaneously.
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "When would you prefer F1-score over Accuracy?"**
 > When classes are imbalanced. For example, in fraud detection (99.9% legit), a model that predicts "legit" always gets 99.9% accuracy but is useless. F1-score would be 0, correctly identifying the failure.
@@ -50,7 +50,7 @@ Used for tuning hyperparameters *and* estimating performance simultaneously.
 
 ---
 
-##  Monitoring in Production
+## Monitoring in Production
 ```python
 from sklearn.metrics import classification_report, confusion_matrix
 

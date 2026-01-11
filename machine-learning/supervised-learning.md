@@ -835,7 +835,7 @@ if __name__ == "__main__":
 
 The posterior probability can be expressed using Bayes' theorem as:
 
-\[ P(y|x\_1, x\_2, ..., x\_n) = \frac{P(x\_1, x\_2, ..., x\_n|y) P(y)}{P(x\_1, x\_2, ..., x\_n)} ]
+\[P(y|x\_1, x\_2, ..., x\_n) = \frac{P(x\_1, x\_2, ..., x\_n|y) P(y)}{P(x\_1, x\_2, ..., x\_n)} ]
 
 where:
 
@@ -1001,7 +1001,7 @@ if __name__ == "__main__":
    * The goal of SVMs is to find the hyperplane that maximizes the margin between the two classes.
    *   The equation of the hyperplane is:
 
-       \[ w \cdot x + b = 0 ]
+       \[w \cdot x + b = 0 ]
 
        where:
 
@@ -1013,7 +1013,7 @@ if __name__ == "__main__":
 3. **Optimization Problem**:
    *   To find the optimal hyperplane, we solve the following optimization problem:
 
-       \[ \text{minimize: } \frac{1}{2} ||w||^2 ] subject to: \[ y\_i (w \cdot x\_i + b) \geq 1 \quad \text{for all } i ]
+       \[\text{minimize: } \frac{1}{2} ||w||^2 ] subject to: \[y\_i (w \cdot x\_i + b) \geq 1 \quad \text{for all } i ]
 
        where:
 
@@ -1028,7 +1028,7 @@ if __name__ == "__main__":
 
     The dual form is:
 
-    \[ \text{maximize: } \sum\_i \alpha\_i - \frac{1}{2} \sum\_i \sum\_j y\_i y\_j \alpha\_i \alpha\_j (x\_i \cdot x\_j) ] subject to: \[ \sum\_i y\_i \alpha\_i = 0 \quad \text{and} \quad 0 \leq \alpha\_i \leq C \quad \text{for all } i ]
+    \[\text{maximize: } \sum\_i \alpha\_i - \frac{1}{2} \sum\_i \sum\_j y\_i y\_j \alpha\_i \alpha\_j (x\_i \cdot x\_j) ] subject to: \[\sum\_i y\_i \alpha\_i = 0 \quad \text{and} \quad 0 \leq \alpha\_i \leq C \quad \text{for all } i ]
 
     where:
 

@@ -1,6 +1,6 @@
 # Day 8-9: Supervised Learning (Ensembles & Kernels)
 
-##  Executive Summary
+## Executive Summary
 | Algorithm | Logic | Strength | Weakness |
 |-----------|-------|----------|----------|
 | **k-NN** | Proximity ($k$ neighbors) | Lazy learner, simple | High memory, slow inference |
@@ -10,7 +10,7 @@
 
 ---
 
-##  1. Support Vector Machines (SVM)
+## 1. Support Vector Machines (SVM)
 The goal is to find a hyperplane that maximizes the **margin** between classes.
 - **Hard Margin**: Assumes linear separability.
 - **Soft Margin**: Allows some misclassifications (controlled by $C$).
@@ -19,7 +19,7 @@ The goal is to find a hyperplane that maximizes the **margin** between classes.
 
 ---
 
-##  2. Ensemble Methods: The "Wisdom of the Crowd"
+## 2. Ensemble Methods: The "Wisdom of the Crowd"
 
 ### Bagging (Bootstrap Aggregating)
 - **Concept**: Train $M$ models on $M$ random subsets (with replacement).
@@ -33,7 +33,7 @@ The goal is to find a hyperplane that maximizes the **margin** between classes.
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "What is the difference between Bagging and Boosting?"**
 > Bagging focuses on reducing variance by parallelizing independent models (e.g., Random Forest). Boosting focuses on reducing bias by sequentially building models that learn from predecessor mistakes (e.g., XGBoost).
@@ -46,7 +46,7 @@ The goal is to find a hyperplane that maximizes the **margin** between classes.
 
 ---
 
-##  Code Comparison
+## Code Comparison
 ```python
 from sklearn.ensemble import RandomForestClassifier
 from xgboost import XGBClassifier

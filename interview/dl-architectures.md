@@ -2,7 +2,7 @@
 
 ---
 
-##  CNNs (Convolutional Neural Networks)
+## CNNs (Convolutional Neural Networks)
 
 **1. What is a Convolution operation?**
 > A filter slides over the input, computing element-wise multiplication and sum at each position. Captures local patterns.
@@ -36,7 +36,7 @@
 
 ---
 
-##  RNNs & LSTMs
+## RNNs & LSTMs
 
 **11. What is the hidden state in RNN?**
 > $h_t = f(W_h h_{t-1} + W_x x_t)$. Carries information across time steps.
@@ -61,7 +61,7 @@
 
 ---
 
-##  Transformers
+## Transformers
 
 **18. What is Self-Attention?**
 > Each token attends to all other tokens in the sequence. Computes weighted sum based on relevance.
@@ -98,7 +98,7 @@
 
 ---
 
-##  Generative Models
+## Generative Models
 
 **29. How does a GAN work?**
 > Generator creates fakes from noise. Discriminator distinguishes real vs fake. Both improve via adversarial training.
@@ -123,7 +123,7 @@
 
 ---
 
-##  Object Detection & Segmentation
+## Object Detection & Segmentation
 
 **36. Two-stage vs One-stage detectors?**
 > **Two-stage**: Region proposal then classification (Faster R-CNN). More accurate. **One-stage**: Direct prediction (YOLO). Faster.
@@ -151,7 +151,7 @@
 
 ---
 
-##  Optimization & Regularization
+## Optimization & Regularization
 
 **44. What is Weight Initialization? Why does it matter?**
 > Initial weights affect gradient flow. **Xavier**: For tanh/sigmoid. **He**: For ReLU.

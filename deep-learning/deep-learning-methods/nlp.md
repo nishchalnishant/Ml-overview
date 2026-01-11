@@ -2,7 +2,7 @@
 
 Here are detailed notes on the models used in Natural Language Processing (NLP), from foundational statistical methods to modern Transformer architectures.
 
-#### 📜 What is an NLP Model?
+#### What is an NLP Model?
 
 In NLP, a "model" is a system designed to understand, interpret, and generate human language. The primary challenge is converting "words" (which are ambiguous and context-dependent) into a numerical format that a computer can process.
 
@@ -62,7 +62,7 @@ These models were a breakthrough, as they learned to represent the _meaning_ and
 
 ***
 
-#### 3. ➡️ Sequential Models
+#### 3.  Sequential Models
 
 These models were the first to treat language as a _sequence_, where order matters.
 
@@ -107,7 +107,7 @@ At each time step `t`, the RNN cell performs two simple tasks:
 
 This new hidden state $$ $h_t$ $$ is then passed as the "memory" to the next time step, $$ $t+1$ $$. The _same set of weights_ ($$ $W_{xh}$ $$, $$ $W_{hh}$ $$, etc.) is used at every single step.
 
-**❌ The Fatal Flaw: The Vanishing Gradient Problem**
+** The Fatal Flaw: The Vanishing Gradient Problem**
 
 An RNN's memory is very short. To train the network, you use "backpropagation through time," which is just regular backpropagation unrolled across the sequence.
 
@@ -136,17 +136,17 @@ An LSTM cell has two states it passes to the next step:
 
 It uses three "gates" (which are just small sigmoid neural networks) to control this memory. A sigmoid function outputs a number between 0 (block everything) and 1 (let everything through).
 
-1. 🚪 Forget Gate:
+1.  Forget Gate:
    * Question: "What parts of the _old_ long-term memory ($$ $c_{t-1}$ $$) should I forget?"
    * How: It looks at the new input $$ $x_t$ $$ and the last hidden state $$ $h_{t-1}$ $$.
    * Example: If it sees a new sentence subject (e.g., "A new dog..."), it might learn to "forget" the _previous_ sentence's subject. It outputs a "forget vector" (e.g., `[1, 1, 0, ...]`) to multiply with $$ $c_{t-1}$ $$.
-2. 🚪 Input Gate:
+2.  Input Gate:
    * Question: "What _new_ information from the current input should I add to the long-term memory?"
    * How: It has two parts:
      * An "input" sigmoid gate decides _which_ values to update.
      * A `tanh` layer creates a "candidate" vector of new information ($$ $\tilde{c}_t$ $$) to be added.
    * Example: If it sees the word "dog," the candidate vector is the "dog" information. The input gate decides to "add" this information.
-3. 🚪 Output Gate:
+3.  Output Gate:
    * Question: "What part of my long-term memory is relevant for my output _right now_?"
    * How: It looks at the new input $$ $x_t$ $$ and last hidden state $$ $h_{t-1}$ $$ to decide what to output from the _newly updated_ cell state $$ $c_t$ $$.
    * Example: The cell state might hold "brown dog, female." The _current_ task might only need to know "dog." The output gate learns to filter the cell state and produce the final hidden state $$ $h_t$ $$ (the "working memory").
@@ -167,11 +167,11 @@ A GRU works by merging the LSTM's Cell State and Hidden State into a _single_ st
 
 A GRU has only two gates:
 
-1. 🚪 Reset Gate ($$ $r_t$ $$):
+1.  Reset Gate ($$ $r_t$ $$):
    * Question: "How much of the _past_ memory should I ignore when creating my new 'candidate' memory?"
    * How: It looks at the new input $$ $x_t$ $$ and last hidden state $$ $h_{t-1}$ $$.
    * Action: This gate decides how much of $$ $h_{t-1}$ $$ to use. If $$ $r_t$ $$ is 0, it _completely ignores_ the past memory, effectively "resetting" for a new context.
-2. 🚪 Update Gate ($$ $z_t$ $$):
+2.  Update Gate ($$ $z_t$ $$):
    * Question: "What's the balance? How much of the _old_ memory ($$ $h_{t-1}$ $$) should I keep, and how much of the _new_ candidate memory ($$ $\tilde{h}_t$ $$) should I add?"
    * How: This is the key. It outputs a single value $$ $z_t$ $$ (e.g., 0.8).
    * Action: It uses $$ $z_t$ $$ to control the new memory:
@@ -180,7 +180,7 @@ A GRU has only two gates:
 
 ***
 
-####  Summary: LSTM vs. GRU vs. RNN
+#### Summary: LSTM vs. GRU vs. RNN
 
 | **Feature**  | **Simple RNN**                                        | **LSTM (Long Short-Term Memory)**                                                      | **GRU (Gated Recurrent Unit)**                                                  |
 | ------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |

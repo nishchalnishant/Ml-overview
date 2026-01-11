@@ -226,7 +226,7 @@ Stages:
 8. Model monitoring
 9. Model maintenance
 
-↪ Loops exist to collect more data or re-engineer features if needed.
+ Loops exist to collect more data or re-engineer features if needed.
 
 ***
 
@@ -330,7 +330,7 @@ Before starting, you usually don’t know:
 * What model size or architecture is required.
 * How much time training and experimentation will take.
 
-> ⚠️ If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
+>  If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
 
 Benchmark:
 
@@ -609,7 +609,7 @@ Example:
 
 * Predicting flight delays.
   *  Use: weather forecasts, aircraft type, route.
-  * ❌ Don’t use: actual arrival time.
+  *  Don’t use: actual arrival time.
 
 ***
 
@@ -710,7 +710,7 @@ The metric must align with the business objective.
 * Exposes model to live users.
 * Measures impact on KPIs like conversion or engagement.
 
-> 🔁 Best practice: use both — offline to validate technically, online to validate business value.
+>  Best practice: use both — offline to validate technically, online to validate business value.
 
 ***
 
@@ -922,7 +922,7 @@ Data can come from multiple sources, depending on the problem.
   * Privacy preservation.
   * Testing edge cases.
 
-> ⚠️ Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
+>  Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
 
 ***
 
@@ -1181,7 +1181,7 @@ Data cleaning fixes errors, inconsistencies, and missing values.
      * KNN or regression-based imputation
   3. Special category: assign “Unknown” for categorical features.
 
-> ⚠️ Imputation introduces bias if not done carefully — especially if data is not missing at random.
+>  Imputation introduces bias if not done carefully — especially if data is not missing at random.
 
 **5.3.3 Detecting Outliers**
 
@@ -1914,7 +1914,7 @@ Proper data splitting is fundamental to unbiased model evaluation.
 | Validation Set | Tune hyperparameters, prevent overfitting. | Helps model selection.     |
 | Test Set       | Final unbiased evaluation.                 | Used only once at the end. |
 
-> ⚠️ Never use test data during model development — it invalidates your evaluation.
+>  Never use test data during model development — it invalidates your evaluation.
 
 ***
 
@@ -2457,11 +2457,11 @@ Example structure:
 
 ```
 /model
-  ├── model.pkl
-  ├── preprocessing.py
-  ├── app.py (Flask/FastAPI)
-  ├── requirements.txt
-  ├── Dockerfile
+   model.pkl
+   preprocessing.py
+   app.py (Flask/FastAPI)
+   requirements.txt
+   Dockerfile
 ```
 
 ***

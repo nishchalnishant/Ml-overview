@@ -2,7 +2,7 @@
 
 ---
 
-##  Scikit-Learn Patterns
+## Scikit-Learn Patterns
 
 ### 1. Basic Pipeline (Prevent Data Leakage)
 ```python
@@ -67,7 +67,7 @@ clf = LogisticRegression(class_weight='balanced')
 
 ---
 
-## 🔢 NumPy Vectorization
+## NumPy Vectorization
 
 ### 7. Euclidean Distance Matrix
 ```python
@@ -114,7 +114,7 @@ def moving_average(x, window):
 
 ---
 
-##  PyTorch Patterns
+## PyTorch Patterns
 
 ### 13. Basic Training Loop
 ```python
@@ -200,7 +200,7 @@ for epoch in range(epochs):
 
 ---
 
-##  Evaluation Code
+## Evaluation Code
 
 ### 19. Classification Report
 ```python
@@ -240,7 +240,7 @@ importance = pd.DataFrame({
 
 ---
 
-##  Implement From Scratch
+## Implement From Scratch
 
 ### 23. K-Means Clustering
 ```python
@@ -296,7 +296,7 @@ def knn_predict(X_train, y_train, X_test, k=3):
 
 ---
 
-##  Interview Coding Questions
+## Interview Coding Questions
 
 **27. "How would you compute the cosine similarity between two vectors?"**
 ```python

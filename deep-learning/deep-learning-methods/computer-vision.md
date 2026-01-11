@@ -2,7 +2,7 @@
 
 Here are detailed notes on Computer Vision (CV), its primary tasks, and the key models used for each, including their pros and cons.
 
-#### 📜 What is Computer Vision?
+#### What is Computer Vision?
 
 Computer Vision (CV) is a field of artificial intelligence (AI) that enables computers and systems to "see," interpret, and understand visual information from the world, just as humans do. It aims to extract meaningful information from digital images, videos, and other visual inputs.
 
@@ -74,7 +74,7 @@ This is the most detailed CV task. The goal is to classify every single pixel in
 
 ***
 
-#### 4. ✨ Generative Models
+#### 4.  Generative Models
 
 This is a different branch of CV. The goal is not to _understand_ an image, but to create new images.
 

@@ -63,4 +63,4 @@ To effectively prepare for a machine learning interview at Google in the next 30
 
 By following this structured schedule, you will be well-prepared for your machine learning interview at Google. Focus on both theoretical understanding and practical application through coding exercises and mock interviews to enhance your readiness.
 
-Sources \[1] Google Machine Learning Engineer Interview Prep https://www.interviewkickstart.com/blogs/companies/google-machine-learning-engineer-interview-prep \[2] 📅30 days of Data Science Interview👔Preparation - All in one | Kaggle https://www.kaggle.com/discussions/getting-started/124056
+Sources \[1] Google Machine Learning Engineer Interview Prep https://www.interviewkickstart.com/blogs/companies/google-machine-learning-engineer-interview-prep \[2] 30 days of Data Science InterviewPreparation - All in one | Kaggle https://www.kaggle.com/discussions/getting-started/124056

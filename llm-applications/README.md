@@ -2,7 +2,7 @@
 
 This directory covers the full lifecycle of Large Language Model (LLM) applications, from the underlying transformer mechanics to advanced autonomous agents.
 
-##  Learning Path
+## Learning Path
 
 ### 1. [LLM Mechanics](how-to-train-your-dragon-llm.md)
 *The "How it works" section.*
@@ -34,5 +34,5 @@ This directory covers the full lifecycle of Large Language Model (LLM) applicati
 
 ---
 
-##  Interview Readiness
+## Interview Readiness
 Every file in this directory includes a dedicated **Interview Questions** section covering both theoretical "Why" and practical "How" for production-grade LLM engineering.

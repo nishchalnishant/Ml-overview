@@ -4,7 +4,7 @@ Hidden layers are the layers between the input and output layers in a neural net
 
 ---
 
-## 🔬 Types of Hidden Layers
+## Types of Hidden Layers
 
 ### 1. Dense (Fully Connected) Layers
 Every neuron in the layer is connected to every neuron in the previous layer.
@@ -27,7 +27,7 @@ Allows the model to focus on specific parts of the input sequence regardless of 
 
 ---
 
-## 🛡️ Intuition: Hierarchical Representation
+## Intuition: Hierarchical Representation
 The beauty of deep learning lies in how hidden layers decompose complex problems:
 1. **Early Layers:** Learn simple features (e.g., edges, blobs).
 2. **Mid Layers:** Combine simple features into parts (e.g., eyes, wheels).
@@ -35,7 +35,7 @@ The beauty of deep learning lies in how hidden layers decompose complex problems
 
 ---
 
-##  Interview Questions
+## Interview Questions
 
 **1. "What happens if you have no hidden layers?"**
 > The model becomes a simple linear classifier (like Logistic Regression) and cannot learn non-linear decision boundaries.
