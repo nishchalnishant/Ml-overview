@@ -1,577 +1,339 @@
-# ML Glossary
+# Machine Learning Glossary: Quick Revision Guide
 
-Comprehensive A-Z glossary of machine learning terms with definitions, formulas, and examples.
+A high-signal, "cheat sheet" style glossary for rapid technical revision. Each term includes definitions, formulas, practical applications, and interview key points.
 
 ---
 
 ## A
 
 **Accuracy**
-- **Definition:** Proportion of correct predictions out of total predictions
-- **Formula:** `(TP + TN) / (TP + TN + FP + FN)`
-- **Use Case:** Classification with balanced classes
-- **Warning:** Misleading for imbalanced datasets
+- **Definition:** The ratio of correct predictions to total predictions.
+- **Formula:** $\frac{TP + TN}{TP + TN + FP + FN}$
+- **Practical Application:** Use mostly for **balanced** datasets (e.g., handwritten digit classification).
+- **Interview Note:** **Never** use accuracy for fraud detection or medical diagnosis (imbalanced classes). Use F1 or PRC-AUC instead.
 
 **Activation Function**
-- **Definition:** Non-linear function applied to neuron outputs
-- **Examples:** ReLU, Sigmoid, Tanh, GELU
-- **Purpose:** Introduces non-linearity to learn complex patterns
+- **Definition:** Non-linear transformation applied to neuron outputs to enable learning complex patterns.
+- **Key Examples:**
+  - **ReLU:** $max(0, x)$ (Most usage).
+  - **Sigmoid:** $\frac{1}{1+e^{-x}}$ (Binary output).
+  - **Softmax:** Multi-class probabilities.
+- **Practical Application:** ReLU for hidden layers (avoids vanishing gradient), Sigmoid/Softmax for output layers.
 
 **AdaBoost (Adaptive Boosting)**
-- **Definition:** Ensemble method that combines weak learners sequentially
-- **How:** Increases weights of misclassified samples
-- **Use Case:** Binary classification
+- **Definition:** An ensemble method that trains weak learners sequentially, correcting the mistakes of previous predictors.
+- **Key Concept:** Assigns higher weights to misclassified training instances.
+- **Practical Application:** Tabular classification tasks where data is clean but hard to separate.
+- **Interview Note:** Sensitive to noisy data and outliers because it frantically tries to fit them.
 
 **Adam (Adaptive Moment Estimation)**
-- **Definition:** Optimization algorithm combining momentum and RMSprop
-- **Formula:** Adapts learning rate per parameter based on 1st and 2nd moments
-- **Default Choice:** Most popular optimizer for deep learning
+- **Definition:** An adaptive learning rate optimization algorithm.
+- **Key Concept:** Combines **Momentum** (keeps moving in average direction) and **RMSprop** (scales learning rate by variance).
+- **Practical Application:** The default optimizer for training Deep Learning models (LLMs, CNNs).
+- **Interview Note:** Often set learning rate $\alpha = 3e-4$ (Andrej Karpathy's "safe bet").
 
-**AUC (Area Under Curve)**
-- **Definition:** Area under the ROC curve
-- **Range:** [0, 1], where 0.5 = random, 1 = perfect
-- **Use Case:** Binary classification performance evaluation
+**AUC-ROC (Area Under Curve)**
+- **Definition:** Performance metric measuring the ability to distinguish between classes at all threshold settings.
+- **Key Range:** 0.5 (Random Guessing) to 1.0 (Perfect).
+- **Practical Application:** Comparing models for credit scoring or ad-click prediction.
+- **Interview Note:** Unlike Accuracy, AUC is **threshold-invariant** and **scale-invariant**.
 
-**Autoencoder**
-- **Definition:** Neural network that learns compressed representations
-- **Structure:** Encoder (compress) + Decoder (reconstruct)
-- **Use Case:** Dimensionality reduction, denoising, anomaly detection
+**Attention Mechanism**
+- **Definition:** Allows a model to focus on specific parts of the input sequence when generating output.
+- **Formula:** $Attention(Q, K, V) = softmax(\frac{QK^T}{\sqrt{d_k}})V$
+- **Practical Application:** The core of Transformers (ChatGPT, BERT). Enables long-range dependency modeling in translation.
 
 ---
 
 ## B
 
 **Backpropagation**
-- **Definition:** Algorithm to compute gradients using chain rule
-- **Process:** Forward pass → compute loss → backward pass → update weights
-- **Key:** Enables training of deep neural networks
+- **Definition:** The algorithm for computing gradients of the loss function with respect to weights using the chain rule.
+- **Key Concept:** "Credit assignment" — figuring out which weight contributed how much to the error.
+- **Practical Application:** The engine of training Neural Networks.
 
 **Bagging (Bootstrap Aggregating)**
-- **Definition:** Ensemble method training models on random subsets
-- **Example:** Random Forest
-- **Effect:** Reduces variance
+- **Definition:** Training multiple models in parallel on random subsets (with replacement) of training data.
+- **Key Example:** **Random Forest**.
+- **Practical Application:** Reducing **Variance** (overfitting). Great for high-variance models like Decision Trees.
 
 **Batch Normalization**
-- **Definition:** Normalizes layer inputs across mini-batch
-- **Benefits:** Faster training, higher learning rates, regularization
-- **Formula:** `(x - μ) / √(σ² + ε)`
+- **Definition:** Normalizing layer inputs to have mean 0 and variance 1 for each mini-batch.
+- **Formula:** $\hat{x} = \frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}$
+- **Practical Application:** Accelerates training, allows higher learning rates, and acts as a weak regularizer.
+- **Interview Note:** During **Inference**, use the moving average of mean/var calculated during training, not the batch statistics.
 
-**Batch Size**
-- **Definition:** Number of samples processed before updating weights
-- **Trade-off:** Larger = faster training, more stable, but more memory
-- **Common Values:** 32, 64, 128, 256
+**Bias-Variance Tradeoff**
+- **Definition:** The tension between a model's ability to minimize errors on training data (Bias) vs. unseen data (Variance).
+- **Key Insight:**
+  - **High Bias:** Underfitting (Linear Regression on nonlinear data).
+  - **High Variance:** Overfitting (100-depth Decision Tree).
+- **Goal:** Find the "Sweet Spot".
 
-**Bias (Model)**
-- **Definition:** Error from wrong assumptions in the learning algorithm
-- **High Bias:** Underfitting (model too simple)
-- **Low Bias:** Model captures true patterns
-
-**Bias (Parameter)**
-- **Definition:** Constant term in linear models (intercept)
-- **Formula:** `y = wx + b` (b is bias)
-- **Purpose:** Shifts decision boundary
-
-**Bias-Variance Trade-off**
-- **Definition:** Balance between bias and variance to minimize total error
-- **Formula:** `Error = Bias² + Variance + Irreducible Error`
-- **Goal:** Find sweet spot between underfitting and overfitting
-
-**Binary Cross-Entropy**
-- **Definition:** Loss function for binary classification
-- **Formula:** `-[y·log(ŷ) + (1-y)·log(1-ŷ)]`
-- **Use Case:** Logistic regression, binary neural networks
-
-**Boosting**
-- **Definition:** Sequential ensemble where each model corrects previous errors
-- **Examples:** AdaBoost, Gradient Boosting, XGBoost
-- **Effect:** Reduces bias
+**Binary Cross-Entropy (Log Loss)**
+- **Definition:** Loss function for binary classification.
+- **Formula:** $-\frac{1}{N} \sum [y_i \log(\hat{y}_i) + (1-y_i) \log(1-\hat{y}_i)]$
+- **Practical Application:** Evaluating probabilities in spam detection or churn prediction.
 
 ---
 
 ## C
 
-**Categorical Cross-Entropy**
-- **Definition:** Loss function for multi-class classification
-- **Formula:** `-Σ y_i · log(ŷ_i)`
-- **Use Case:** Multi-class neural networks with softmax output
-
-**CNN (Convolutional Neural Network)**
-- **Definition:** Neural network using convolution operations
-- **Components:** Conv layers, pooling, fully connected
-- **Use Case:** Image classification, object detection
-
 **Confusion Matrix**
-- **Definition:** Table showing TP, FP, FN, TN
-- **Purpose:** Detailed classification performance breakdown
-- **Metrics Derived:** Precision, recall, F1, accuracy
+- **Definition:** A table layout that visualizes the performance of a supervised learning algorithm.
+- **Components:**
+  - **TP:** Hit.
+  - **TN:** Correct Rejection.
+  - **FP:** False Alarm (Type I Error).
+  - **FN:** Miss (Type II Error).
 
-**Convolution**
-- **Definition:** Operation that slides a filter over input
-- **Purpose:** Extract local features (edges, textures)
-- **Output:** Feature maps
+**Cosine Similarity**
+- **Definition:** Measure of similarity between two non-zero vectors using the cosine of the angle between them.
+- **Formula:** $\frac{A \cdot B}{||A|| ||B||}$
+- **Practical Application:** Semantic Search, RAG (Retrieval Augmented Generation), Document Similarity.
+- **Interview Note:** Range is [-1, 1]. In high-dimensional spaces (embeddings), usually [0, 1].
 
-**Cross-Validation**
-- **Definition:** Splitting data into K folds for robust evaluation
-- **Types:** K-fold, stratified K-fold, time-series split
-- **Purpose:** Better performance estimation, prevent overfitting
+**Cross-Validation (K-Fold)**
+- **Definition:** Resampling procedure used to evaluate ML models on a limited data sample.
+- **Practical Application:** Validating that your model isn't just memorizing the specific train-test split.
+- **Interview Note:** For Time Series, use **TimeSeriesSplit** (Walk-Forward validation), never random K-Fold.
 
 ---
 
 ## D
 
-**Data Augmentation**
-- **Definition:** Artificially expanding dataset with transformations
-- **Vision:** Rotation, flipping, cropping, color jitter
-- **NLP:** Back-translation, synonym replacement
-- **Benefit:** Reduces overfitting
-
-**Decision Tree**
-- **Definition:** Tree structure for classification/regression
-- **Splitting:** Gini impurity, entropy, MSE
-- **Pros:** Interpretable, no scaling needed
-- **Cons:** Prone to overfitting
+**Data Leakage**
+- **Definition:** When information from outside the training dataset (or from the future) is used to create the model.
+- **Examples:** Using 'Target' in feature engineering, scaling data before splitting, future timestamps.
+- **Interview Note:** If you see 99.9% accuracy, suspect leakage immediately.
 
 **Dimensionality Reduction**
-- **Definition:** Reducing number of features
-- **Methods:** PCA, t-SNE, UMAP, LDA
-- **Purpose:** Visualization, speed, removing noise
+- **Definition:** Transformation of data from a high-dimensional space into a low-dimensional space.
+- **Techniques:**
+  - **PCA (Linear):** Preserves variance.
+  - **t-SNE / UMAP (Non-linear):** Preserves local structure/clusters.
+- **Practical Application:** Visualizing embeddings, reducing noise, speeding up training.
 
 **Dropout**
-- **Definition:** Randomly deactivate neurons during training
-- **Rate:** Typically 0.2-0.5
-- **Effect:** Prevents overfitting, forces robust features
+- **Definition:** Regularization technique where randomly selected neurons are ignored during training.
+- **Key Concept:** Prevents neurons from co-adapting too much (relying on specific peers).
+- **Practical Application:** Standard in almost all non-convolutional layers in Deep Learning.
 
 ---
 
 ## E
 
-**Early Stopping**
-- **Definition:** Stop training when validation performance plateaus
-- **Implementation:** Monitor validation loss, stop after N epochs without improvement
-- **Benefit:** Prevents overfitting
+**Eigenvalue / Eigenvector**
+- **Definition:** For a matrix $A$, $Av = \lambda v$. $v$ is the eigenvector (direction), $\lambda$ is eigenvalue (magnitude).
+- **Practical Application:** PCA (Principal Component Analysis) projects data onto the eigenvectors with largest eigenvalues.
 
 **Embedding**
-- **Definition:** Dense vector representation of discrete items
-- **Example:** Word2Vec (words → vectors), entity embeddings (categories → vectors)
-- **Dimension:** Typically 50-300 for words, 8-50 for categories
+- **Definition:** A relatively low-dimensional space into which high-dimensional vectors can be translated.
+- **Key Concept:** Semantic meaning. "King" - "Man" + "Woman" $\approx$ "Queen".
+- **Practical Application:** Word2Vec, BERT embeddings, Recommender Systems users/items.
 
-**Ensemble Methods**
-- **Definition:** Combining multiple models for better performance
-- **Types:** Bagging, boosting, stacking
-- **Benefit:** Reduces overfitting, improves accuracy
-
-**Epoch**
-- **Definition:** One complete pass through entire training dataset
-- **Training:** Typically requires 10-100 epochs
-- **Stop When:** Validation loss stops improving
-
-**Exploding Gradient**
-- **Definition:** Gradients become very large during backprop
-- **Causes:** Deep networks, especially RNNs
-- **Solutions:** Gradient clipping, lower learning rate, batch norm
+**Entropy (Shannon)**
+- **Definition:** Measure of uncertainty or impurity in a dataset.
+- **Formula:** $H(X) = - \sum p(x) \log p(x)$
+- **Practical Application:** Decision Trees use this (Information Gain) to decide split points.
 
 ---
 
 ## F
 
 **F1 Score**
-- **Definition:** Harmonic mean of precision and recall
-- **Formula:** `2 · (P · R) / (P + R)`
-- **Use Case:** Imbalanced datasets, balance precision/recall
-- **Range:** [0, 1], higher is better
+- **Definition:** The harmonic mean of Precision and Recall.
+- **Formula:** $2 \times \frac{Precision \times Recall}{Precision + Recall}$
+- **Practical Application:** The "single number" metric for imbalanced classification.
+- **Interview Note:** Harmonic mean punishes extreme values more than arithmetic mean (if Recall=0, F1=0).
 
-**False Negative (FN)**
-- **Definition:** Actual positive predicted as negative
-- **Example:** Sick patient classified as healthy
-- **Cost:** Depends on domain (very high in medical diagnosis)
-
-**False Positive (FP)**
-- **Definition:** Actual negative predicted as positive
-- **Example:** Healthy patient classified as sick
-- **Cost:** Depends on domain (high in spam filtering)
-
-**Feature Engineering**
-- **Definition:** Creating new features from existing data
-- **Techniques:** Polynomial features, interactions, domain-specific transforms
-- **Impact:** Often more important than algorithm choice
-
-**Feature Scaling**
-- **Definition:** Normalizing feature ranges
-- **Methods:** Standardization (z-score), min-max normalization
-- **When:** Required for gradient descent-based algorithms
-
-**Fine-tuning**
-- **Definition:** Training pretrained model on new task
-- **Strategy:** Freeze base → train head → unfreeze → train end-to-end
-- **Learning Rate:** Very low (1e-5 to 1e-6)
+**Fine-Tuning**
+- **Definition:** Taking a pre-trained model (e.g., Llama-2) and training it further on a specific dataset.
+- **Types:**
+  - **Full Fine-Tuning:** Update all weights.
+  - **PEFT (LoRA):** Update only a small subset of adapters.
+- **Practical Application:** Customizing an LLM for legal document analysis.
 
 ---
 
-##G
-
-**GAN (Generative Adversarial Network)**
-- **Definition:** Two networks (generator vs discriminator) in adversarial training
-- **Purpose:** Generate realistic data
-- **Applications:** Image generation, style transfer
-
-**Generalization**
-- **Definition:** Model's ability to perform well on unseen data
-- **Good:** Train and test performance similar
-- **Poor:** High train accuracy, low test accuracy (overfitting)
+## G
 
 **Gradient Descent**
-- **Definition:** Optimization algorithm minimizing loss by following gradients
-- **Variants:** SGD, mini-batch GD, batch GD
-- **Formula:** `w = w - η · ∂L/∂w`
+- **Definition:** An iterative optimization algorithm for finding the local minimum of a function.
+- **Formula:** $\theta_{new} = \theta_{old} - \alpha \nabla J(\theta)$ ($LearningRate \times Gradient$).
+- **Practical Application:** The fundamental way nearly all metrics are minimized in ML.
 
-**Gradient Clipping**
-- **Definition:** Limiting gradient magnitude to prevent exploding gradients
-- **Methods:** Clip by value, clip by norm
-- **Critical For:** RNN training
-
-**Grid Search**
-- **Definition:** Exhaustive hyperparameter search over defined grid
-- **Alternative:** Random search (often better)
-- **Use With:** Cross-validation
+**GAN (Generative Adversarial Network)**
+- **Definition:** Two neural networks contested with each other in a game.
+  - **Generator:** Creates fakes.
+  - **Discriminator:** Detects fakes.
+- **Practical Application:** DeepFakes, Image Super-resolution, Style Transfer.
 
 ---
 
 ## H
 
-**Hyperparameter**
-- **Definition:** Parameters set before training (not learned)
-- **Examples:** Learning rate, batch size, number of layers, regularization strength
-- **Tuning:** Grid search, random search, Bayesian optimization
-
-**Hyperplane**
-- **Definition:** Decision boundary in n-dimensional space
-- **Example:** Line (2D), plane (3D), hyperplane (n-D)
-- **Used In:** SVM, linear/logistic regression
+**Hyperparameter Tuning**
+- **Definition:** Choosing the optimal set of parameters that govern the training process (not learned by the model).
+- **Methods:**
+  - **Grid Search:** Brute force.
+  - **Random Search:** Surprisingly effective.
+  - **Bayesian Optimization:** Smarter, probabilistic search.
 
 ---
 
 ## I
 
 **Imbalanced Data**
-- **Definition:** Unequal class distribution (e.g., 95% negative, 5% positive)
-- **Solutions:** SMOTE, class weights, undersampling
-- **Metrics:** Precision, recall, F1, PR-AUC (not accuracy!)
+- **Definition:** A dataset with a skewed class distribution (e.g., 1000 : 1).
+- **Solutions:**
+  - Resampling (SMOTE, Undersampling).
+  - Class Weights (Change loss function).
+  - Metric Choice (Use F1/AUC, not Accuracy).
 
-**Interpretability**
-- **Definition:** Understanding how model makes decisions
-- **High:** Linear models, decision trees
-- **Low:** Deep neural networks (black box)
-- **Techniques:** SHAP, LIME, feature importance
+**IOU (Intersection over Union)**
+- **Definition:** Metric used to measure the accuracy of an object detector.
+- **Formula:** $\frac{Area(Overlap)}{Area(Union)}$
+- **Practical Application:** Evaluating bounding boxes in YOLO / R-CNN.
 
 ---
 
 ## K
 
-**K-Fold Cross-Validation**
-- **Definition:** Split data into K parts, train K times
-- **Process:** Each fold used as validation once
-- **Common K:** 5 or 10
-- **Variant:** Stratified K-fold (preserves class distribution)
-
 **K-Means Clustering**
-- **Definition:** Partitioning algorithm finding K centroids
-- **Algorithm:** Initialize centroids → assign points → update centroids → repeat
-- **Drawback:** Must specify K, assumes spherical clusters
+- **Definition:** Iterative algorithm that partitions data into $K$ clusters.
+- **Key Concept:** Minimizes variance within clusters.
+- **Interview Note:** Requires specifying $K$ beforehand (use Elbow Method to find optimal K).
 
-**KNN (K-Nearest Neighbors)**
-- **Definition:** Classify based on K closest training examples
-- **Lazy Learning:** No training, stores all data
-- **Drawback:** Slow prediction, curse of dimensionality
-
-**Kernel Trick**
-- **Definition:** Implicitly map data to higher dimension
-- **Used In:** SVM for non-linear separation
-- **Common Kernels:** RBF, polynomial, sigmoid
+**KL Divergence (Kullback-Leibler)**
+- **Definition:** Measure of how one probability distribution distinguishes from a second, reference probability distribution.
+- **Formula:** $D_{KL}(P || Q) = \sum P(x) \log \frac{P(x)}{Q(x)}$
+- **Practical Application:** Loss function in VAEs (Variational Autoencoders) and t-SNE.
 
 ---
 
 ## L
 
-**L1 Regularization (Lasso)**
-- **Definition:** Adds sum of absolute weights to loss
-- **Formula:** `Loss + λ Σ|w|`
-- **Effect:** Sparse models (some weights → 0)
-- **Use:** Feature selection
-
-**L2 Regularization (Ridge)**
-- **Definition:** Adds sum of squared weights to loss
-- **Formula:** `Loss + λ Σw²`
-- **Effect:** Shrinks weights, no zeros
-- **Use:** Prevent overfitting with correlated features
-
 **Learning Rate**
-- **Definition:** Step size in gradient descent
-- **Range:** Typically 0.001 to 0.1
-- **Too High:** Unstable training, divergence
-- **Too Low:** Slow convergence
-
-**Logistic Regression**
-- **Definition:** Linear model for classification using sigmoid
-- **Output:** Probabilities [0,1]
-- **Loss:** Binary cross-entropy
-- **Despite Name:** CLASSIFICATION, not regression
-
-**Loss Function**
-- **Definition:** Measures error between predictions and truth
-- **Examples:** MSE (regression), cross-entropy (classification)
-- **Training:** Minimized via gradient descent
+- **Definition:** Hyperparameter controlling how much we change the model in response to the estimated error each time the model weights are updated.
+- **Practical Application:** Too high = diverge. Too low = slow convergence.
+- **Tip:** Use a Scheduler (Cosine Decay, Warmup).
 
 **LSTM (Long Short-Term Memory)**
-- **Definition:** RNN variant with gates to control information flow
-- **Components:** Forget gate, input gate, output gate
-- **Purpose:** Capture long-range dependencies in sequences
+- **Definition:** A type of RNN capable of learning long-term dependencies.
+- **Key Mechanics:** Input Gate, Forget Gate, Output Gate.
+- **Practical Application:** Time-series forecasting, older NLP translation models.
 
 ---
 
 ## M
 
-**MAE (Mean Absolute Error)**
-- **Definition:** Average absolute difference between predictions and actuals
-- **Formula:** `(1/n) Σ|y - ŷ|`
-- **Robust to:** Outliers (vs MSE)
+**MSE / MAE / RMSE**
+- **MSE (Mean Squared Error):** Penalizes large errors heavily. Differentiable.
+- **MAE (Mean Absolute Error):** Robust to outliers. Not differentiable at 0.
+- **RMSE:** Root of MSE. Interpretability same units as target.
 
-**Metric**
-- **Definition:** Function measuring model performance
-- **Classification:** Accuracy, precision, recall, F1, AUC
-- **Regression:** MAE, MSE, RMSE, R²
-
-**MSE (Mean Squared Error)**
-- **Definition:** Average squared difference
-- **Formula:** `(1/n) Σ(y - ŷ)²`
-- **Sensitive to:** Outliers (quadratic penalty)
+**Momentum**
+- **Definition:** Technique to accelerate Gradient Descent by accumulating a velocity vector in directions of persistent reduction in the objective function.
+- **analogy:** Heavy ball rolling down a hill (it gains speed).
 
 ---
 
 ## N
 
-**Naive Bayes**
-- **Definition:** Probabilistic classifier based on Bayes' theorem
-- **Assumption:** Feature independence (naïve)
-- **Fast:** Excellent for text classification
-
-**Normalization**
-- **Definition:** Scaling features to standard range
-- **Methods:** Min-max [0,1], z-score (mean=0, std=1)
-- **When:** Gradient descent-based algorithms
+**Normalization vs. Standardization**
+- **Normalization (Min-Max):** Scales data to [0, 1]. Best for image data / bounded ranges.
+- **Standardization (Z-Score):** Scales data to $\mu=0, \sigma=1$. Best for algorithms assuming Gaussian distribution (SVM, Logistic Regression).
 
 ---
 
 ## O
 
 **Overfitting**
-- **Definition:** Model learns training data too well, including noise
-- **Signs:** High train accuracy, low test accuracy
-- **Solutions:** More data, regularization, simpler model, cross-validation
-
-**Optimizer**
-- **Definition:** Algorithm updating weights to minimize loss
-- **Examples:** SGD, Adam, RMSprop
-- **Choice:** Adam for most DL, SGD+momentum for fine-tuning
+- **Definition:** When a model learns the detail and noise in the training data to the extent that it negatively impacts performance on new data.
+- **The Fix:**
+  - More data.
+  - Regularization (L1/L2/Dropout).
+  - Simpler Model.
+  - Early Stopping.
 
 ---
 
 ## P
 
 **PCA (Principal Component Analysis)**
-- **Definition:** Dimensionality reduction preserving variance
-- **Unsupervised:** Doesn't use labels
-- **Use:** Visualization, speed up training, remove collinearity
+- **Definition:** Linear dimensionality reduction.
+- **Key Concept:** Finds axes (Principal Components) that maximize variance.
+- **Interview Note:** Sensitive to scale (must standardise data first!).
 
-**Precision**
-- **Definition:** Of predicted positives, how many are correct?
-- **Formula:** `TP / (TP + FP)`
-- **High When:** Minimizing false positives is critical (spam filter)
-
-**Pretrained Model**
-- **Definition:** Model trained on large dataset, reusable for other tasks
-- **Examples:** BERT (NLP), ResNet (vision)
- **Benefit:** Transfer learning, less data needed
-
-**Pooling**
-- **Definition:** Downsampling operation in CNNs
-- **Types:** Max pooling, average pooling
-- **Purpose:** Reduce spatial dimensions, translation invariance
+**Precision & Recall**
+- **Precision:** $\frac{TP}{TP + FP}$ (Quality). "Of all the spam we detected, how much was actually spam?"
+- **Recall:** $\frac{TP}{TP + FN}$ (Quantity). "Of all the actual spam, how much did we find?"
+- **Tradeoff:** Increasing threshold increases Precision but decreases Recall.
 
 ---
 
 ## R
 
-**R² (R-Squared)**
-- **Definition:** Proportion of variance explained by model
-- **Formula:** `1 - (SS_res / SS_tot)`
-- **Range:** (-∞, 1], 1 = perfect fit
-- **Can Be Negative:** If model worse than mean baseline
-
-**Random Forest**
-- **Definition:** Ensemble of decision trees using bagging
-- **Process:** Bootstrap samples + random feature subsets
-- **Robust:** Less overfitting than single tree
-
-**Recall (Sensitivity)**
-- **Definition:** Of actual positives, how many are caught?
-- **Formula:** `TP / (TP + FN)`
-- **High When:** Minimizing false negatives is critical (disease screening)
+**RAG (Retrieval-Augmented Generation)**
+- **Definition:** Enhancing LLMs by retrieving relevant documents from an external knowledge base before generating an answer.
+- **Components:** Vector DB + Embedding Model + LLM.
+- **Practical Application:** "Chat with PDF", Enterprise Search.
 
 **Regularization**
-- **Definition:** Technique to prevent overfitting by penalizing complexity
-- **Types:** L1, L2, dropout, early stopping
-- **Trade-off:** Bias-variance balance
+- **L1 (Lasso):** Adds absolute interactions. Can shrink coefficients to **zero** (Feature Selection).
+- **L2 (Ridge):** Adds squared interactions. Shrinks coefficients towards zero but not *to* zero.
 
 **ReLU (Rectified Linear Unit)**
-- **Definition:** Activation function f(x) = max(0, x)
-- **Advantages:** Fast, no vanishing gradient
-- **Disadvantage:** Dead ReLU problem
-
-**ResNet (Residual Network)**
-- **Definition:** CNN architecture with skip connections
-- **Innovation:** Solves vanishing gradient, enables very deep networks (152 layers)
-- **Formula:** `output = F(x) + x`
-
-**RMSE (Root Mean Squared Error)**
-- **Definition:** Square root of MSE
-- **Formula:** `√[(1/n) Σ(y - ŷ)²]`
-- **Benefit:** Same units as target variable
-
-**ROC Curve (Receiver Operating Characteristic)**
-- **Definition:** Plot of TPR vs FPR at various thresholds
-- **AUC:** Area under ROC curve (performance metric)
-- **Use:** Binary classification evaluation
+- **Definition:** Activation function $f(x) = max(0, x)$.
+- **Why?** Computationally cheap, solves vanishing gradient in positive domain.
 
 ---
 
 ## S
 
-**Sigmoid Function**
-- **Definition:** S-shaped activation function
-- **Formula:** `σ(x) = 1 / (1 + e^(-x))`
-- **Output:** (0, 1) - probabilities
-- **Use:** Logistic regression, binary classification output
+**Softmax**
+- **Definition:** Function that turns a vector of $K$ real values into a vector of $K$ real values that sum to 1.
+- **Formula:** $\sigma(z)_i = \frac{e^{z_i}}{\sum e^{z_j}}$
+- **Practical Application:** Final layer of Multi-Class Classification.
 
-**Softmax Function**
-- **Definition:** Converts logits to probability distribution
-- **Formula:** `softmax(x_i) = e^(x_i) / Σe^(x_j)`
-- **Output:** Sums to 1
-- **Use:** Multi-class classification output
-
-**Stochastic Gradient Descent (SGD)**
-- **Definition:** Gradient descent using single or mini-batch samples
-- **Variants:** SGD, SGD + momentum, SGD + Nesterov
-- **Stochastic:** Introduces noise, helps escape local minima
-
-**Stratification**
-- **Definition:** Preserving class distribution in train/test split
-- **When:** Imbalanced datasets
-- **Implementation:** `stratify=y` in sklearn
+**SGD (Stochastic Gradient Descent)**
+- **Definition:** Gradient descent using only a single sample (or mini-batch) to calculate the gradient.
+- **Why?** Faster per step, adds noise which helps escape local minima.
 
 **SVM (Support Vector Machine)**
-- **Definition:** Finds optimal hyperplane maximizing margin
-- **Kernel Trick:** Handles non-linear separation
-- **Good For:** Small-medium datasets, high dimensions
+- **Definition:** Finds the hyperplane that maximizes the **margin** between two classes.
+- **Key Concept:** Kernel Trick (maps non-linear data to higher dimensions where it becomes linear).
 
 ---
 
 ## T
 
-**Transfer Learning**
-- **Definition:** Reusing pretrained model for new task
-- **Process:** Load pretrained → freeze base → train head → fine-tune
-- **Benefit:** Less data, faster training, better performance
-
 **Transformer**
-- **Definition:** Architecture using self-attention mechanism
-- **Innovation:** Parallelizable, captures long-range dependencies
-- **Examples:** BERT, GPT, T5
+- **Definition:** Deep learning architecture based entirely on the Attention mechanism.
+- **Key Benefit:** Parallelizable (unlike RNNs) and captures long-term dependencies perfectly.
 
-**True Negative (TN)**
-- **Definition:** Actual negative correctly predicted as negative
-
-**True Positive (TP)**
-- **Definition:** Actual positive correctly predicted as positive
-
----
-
-## U
-
-**Underfitting**
-- **Definition:** Model too simple to capture patterns
-- **Signs:** Low train AND test accuracy
-- **Solutions:** More complex model, more features, less regularization
+**Transfer Learning**
+- **Definition:** Storing knowledge gained while solving one problem and applying it to a different but related problem.
+- **Practical Application:** Using ResNet trained on ImageNet to classify medical X-rays.
 
 ---
 
 ## V
 
-**Validation Set**
-- **Definition:** Data used for hyperparameter tuning and model selection
-- **Split:** Typically 10-20% of data
-- **Critical:** Must be separate from test set
-
 **Vanishing Gradient**
-- **Definition:** Gradients become very small in early layers
-- **Causes:** Deep networks with sigmoid/tanh
-- **Solutions:** ReLU, batch norm, ResNet skip connections
+- **Definition:** In deep networks, gradients can shrink exponentially as they backpropagate, effectively stopping early layers from training.
+- **Solution:** ResNet (Skip connections), ReLU, BatchNorm.
 
-**Variance (Model)**
-- **Definition:** Error from sensitivity to training data fluctuations
-- **High Variance:** Overfitting (model too complex)
-- **Low Variance:** Consistent predictions across datasets
-
----
-
-## W
-
-**Weight Decay**
-- **Definition:** L2 regularization in optimization
-- **Implementation:** Gradually shrink weights during training
-- **Effect:** Prevents overfitting
-
-**Weight Initialization**
-- **Definition:** Setting initial weights before training
-- **Methods:** Xavier/Glorot (tanh), He (ReLU)
-- **Important:** Affects convergence speed and stability
-
----
-
-## X
-
-**XGBoost (Extreme Gradient Boosting)**
-- **Definition:** Optimized gradient boosting implementation
-- **Features:** Regularization, parallel processing, custom objectives
-- **Best For:** Tabular data, Kaggle competitions
+**Vector Database**
+- **Definition:** A database optimized for storing and querying high-dimensional vectors.
+- **Examples:** Pinecone, Milvus, Chroma.
+- **Practical Application:** The "Long Term Memory" for LLM Agents.
 
 ---
 
 ## Z
 
-**Z-score Normalization**
-- **Definition:** Standardization to mean=0, std=1
-- **Formula:** `z = (x - μ) / σ`
-- **When:** Features on different scales
-
----
-
-## Interview Tips
-
-**Most Important Terms to Know Cold:**
-1. Bias-Variance Trade-off
-2. Overfitting vs Underfitting
-3. Precision vs Recall
-4. Cross-Validation
-5. Regularization (L1/L2)
-6. Gradient Descent
-7. Backpropagation
-8. Activation Functions
-9. Loss Functions
-10. Ensemble Methods
-
-**Be Ready to:**
-- Define any term concisely
-- Provide formula (if applicable)
-- Give practical example
-- Explain when to use
-- Compare with related concepts
+**Zero-Shot Learning**
+- **Definition:** The ability of a model to recognize objects or perform tasks it has not seen during training.
+- **Example:** Asking GPT-4 to categorize text into "Happy/Sad" without giving it examples, simply by describing the task.
