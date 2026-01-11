@@ -25,9 +25,10 @@ This portal is your **one-stop shop** for Machine Learning interviews at top-tie
 -  **[NLP & Transformers](nlp-transformers.md)** – BERT, GPT, Attention, Text Preprocessing
 
 ### Practical Application
--  **[ML Coding Patterns](ml-coding-patterns.md)** – Pipelines, NumPy, PyTorch templates
--  **[System Design Case Studies](ml-system-design.md)** – RecSys, Fraud, Search
--  **[Scenario-Based Questions](scenario-based-questions.md)** – "What would you do if..."
+- **[ML Coding Patterns](ml-coding-patterns.md)** – Pipelines, NumPy, PyTorch templates
+- **[System Design Case Studies](ml-system-design.md)** – RecSys, Fraud, Search
+- **[Practical ML Scenarios (Master Guide)](../practical-ml-scenarios.md)** – 50+ In-depth "What would you do if..." cases
+- **[Scenario-Based Quick Questions](scenario-based-questions.md)** – High-signal practice cases
 
 ### Foundations & Strategy
 -  **[Quick Revision Cheat Sheet](ml-revision.md)** – Algorithms & Metrics

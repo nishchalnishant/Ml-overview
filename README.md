@@ -26,9 +26,12 @@ Welcome to the ultimate repository for mastering Machine Learning, Deep Learning
 
 ### 4. [Interview Preparation Suite](interview/)
 *High-signal revision and practice material.*
-- [Q&A Bank](interview/top-ml-interview-questions.md) - The 50+ most common technical questions.
+
+- [Master Q&A Bank](interview/top-ml-interview-questions.md)
+- [Practical ML Scenarios (50+ Cases)](practical-ml-scenarios.md)
+- [ML System Design](interview/ml-system-design.md)
+- [Math for ML Interviews](interview/math-derivations.md)
 - [Revision Prep](interview/ml-revision.md) - The "Night Before" technical summary.
-- [System Design Cheat Sheet](interview/ml-system-design.md) - Model-to-use-case mapping.
 
 ---
 

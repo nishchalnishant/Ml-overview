@@ -57,6 +57,7 @@
   * [Coding Patterns](interview/ml-coding-patterns.md)
   * [System Design Catalog](interview/ml-system-design.md)
   * [Scenario-Based Questions](interview/scenario-based-questions.md)
+  * [Practical ML Scenarios (Master)](practical-ml-scenarios.md)
   * [Interview Strategy](interview/machine-learning-interviews.md)
 * [MLOps](mlops.md)
 * [ML Glossary](ml-glossary.md)
