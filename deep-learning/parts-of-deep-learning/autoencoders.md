@@ -2,7 +2,7 @@
 
 Here are detailed notes on autoencoders, their various types, and their pros and cons.
 
-#### 📜 What is an Autoencoder?
+#### What is an Autoencoder?
 
 An autoencoder is an unsupervised artificial neural network designed to learn efficient, compressed representations (codings) of data. It's "unsupervised" (or more accurately, "self-supervised") because it doesn't need labeled data. Its "label" is the input data itself.
 
@@ -20,7 +20,7 @@ The network is trained by minimizing a reconstruction loss (like Mean Squared Er
 
 ***
 
-#### 🗂️ Types of Autoencoders
+#### Types of Autoencoders
 
 While the basic structure is simple, different "types" of autoencoders use clever constraints to force the network to learn _useful_ features, not just "memorize" the data.
 
@@ -121,7 +121,7 @@ This is the most advanced type. It's a generative model, meaning it can create _
   * Understanding complex data distributions.
   * Data augmentation.
 
-#### 🚀 Summary: Which Autoencoder to Use?
+#### Summary: Which Autoencoder to Use?
 
 | **Autoencoder Type** | **Key Idea**                          | **Main Use Case**                                    |
 | -------------------- | ------------------------------------- | ---------------------------------------------------- |

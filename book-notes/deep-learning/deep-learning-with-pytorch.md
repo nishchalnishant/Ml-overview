@@ -379,7 +379,7 @@ In Chapter 6, the book shifts from linear models to neural networks, introducing
 
 **Example: Neuron Mathematical Formula**
 
-* A neuron is represented by the equation: \[ o = f(w \times x + b) ] where:
+* A neuron is represented by the equation: \[o = f(w \times x + b) ] where:
   * ( x ) is the input,
   * ( w ) is the weight,
   * ( b ) is the bias, and
@@ -857,7 +857,7 @@ Chapter 13 of _Deep Learning with PyTorch_ focuses on segmentation techniques fo
 * **Introduction to Dice Loss**: Dice loss is used to handle imbalanced datasets in segmentation problems, where only a small portion of the image is usually marked as positive (e.g., nodule pixels).
 *   **Dice Coefficient**: The Dice coefficient measures the overlap between the predicted and ground-truth segmentation masks. It is defined as:
 
-    \[ \text{Dice Coefficient} = \frac{2 \times \text{Intersection\}}{\text{Sum of Pixels in Prediction and Ground Truth\}} ]
+    \[\text{Dice Coefficient} = \frac{2 \times \text{Intersection\}}{\text{Sum of Pixels in Prediction and Ground Truth\}} ]
 
     * The coefficient ranges from 0 to 1, where 1 indicates perfect overlap.
 * **Benefits of Dice Loss**: Unlike pixel-wise cross-entropy loss, Dice loss better handles cases where there is a significant class imbalance, as it focuses on the overlap between the two sets rather than individual pixel predictions.

@@ -131,7 +131,7 @@ This chapter provides a practical walkthrough using the Titanic dataset, a well-
 4. **Data Layout**:
    * In machine learning, you train models on a matrix of data where rows represent samples and columns represent features.
    * The function transforms features (**X**) into a label or target variable (**y**).
-   * For example: \[ y = f(X) ] where **X** is the matrix of features and **y** is the vector of labels.
+   * For example: \[y = f(X) ] where **X** is the matrix of features and **y** is the vector of labels.
 5.  **Gather Data**:
 
     * The Titanic dataset includes the following features:

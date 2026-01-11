@@ -1,8 +1,28 @@
-# Machine learning engineering
+# Machine Learning Engineering: Production-Ready Notes
 
-Here are detailed notes for Chapter 1: Introduction of _Machine Learning Engineering_ by Andriy Burkov:
+> [!IMPORTANT]
+> **Executive Summary for ML Engineers**
+> 
+> Production ML is 10% modeling and 90% engineering. This guide summarizes Andriy Burkov's *Machine Learning Engineering*, focusing on building reliable, scalable, and maintainable systems.
+>
+> **Core Engineering Principles:**
+> 1. **Data over Algorithms:** A simple model with clean, high-quality data beats a complex model with noisy data.
+> 2. **Baseline First:** Never build a complex neural net without a simple heuristic or linear baseline to measure incremental value.
+> 3. **Avoid Silent Failures:** ML models don't "crash"; they degrade. Use distribution monitoring (PSI, K-S test) to detect data drift.
+> 4. **Train-Serve Skew:** Ensure identical feature engineering pipelines for training and inference using Feature Stores or shared serialization.
+> 5. **Iterative Deployment:** Use Shadow Mode (predict but don't serve) or Canary deployments to validate models on live traffic.
+> 6. **Human-in-the-Loop:** Bridge the gap between low-confidence predictions and high-stakes decisions with manual review tiers.
 
-***
+---
+
+### Table of Contents (Chapter Summaries)
+- [Chapter 1: Introduction & Life Cycle](#chapter-1--introduction)
+- [Chapter 2: Prioritization & Impact vs Cost](#chapter-2-before-the-project-starts)
+- [Chapter 3: Problem Framing & Metrics](#chapter-3-framing-the-problem-and-project)
+- [Chapter 4: Data Collection & Labeling](#chapter-4-data-definition-and-collection)
+... (Full notes below)
+
+---
 
 ### Chapter 1 – Introduction
 
@@ -206,7 +226,7 @@ Stages:
 8. Model monitoring
 9. Model maintenance
 
-↪ Loops exist to collect more data or re-engineer features if needed.
+ Loops exist to collect more data or re-engineer features if needed.
 
 ***
 
@@ -290,7 +310,7 @@ The cost of an ML project depends on three key factors:
    * You must balance acceptable accuracy with cost.
    * Cost of errors must be compared with the cost of perfection.
 
-📈 Rule of thumb:
+ Rule of thumb:
 
 Going from 90% → 99% accuracy often multiplies the cost several times.
 
@@ -310,7 +330,7 @@ Before starting, you usually don’t know:
 * What model size or architecture is required.
 * How much time training and experimentation will take.
 
-> ⚠️ If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
+>  If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
 
 Benchmark:
 
@@ -331,7 +351,7 @@ To make complexity estimation manageable:
 3. Use pilot projects.
    * Small-scale pilots reveal whether full-scale implementation is worth it.
 
-🧩 Note: As the number of classes grows, the required data grows _superlinearly_.
+ Note: As the number of classes grows, the required data grows _superlinearly_.
 
 ***
 
@@ -523,7 +543,7 @@ Before collecting data or building models, you must:
 * Understand how predictions are used.
 * Specify measurable objectives.
 
-> 🚀 The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
+>  The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
 
 A poorly framed problem leads to:
 
@@ -588,8 +608,8 @@ Features are input variables (x₁, x₂, …, xₙ) used for prediction.
 Example:
 
 * Predicting flight delays.
-  * ✅ Use: weather forecasts, aircraft type, route.
-  * ❌ Don’t use: actual arrival time.
+  *  Use: weather forecasts, aircraft type, route.
+  *  Don’t use: actual arrival time.
 
 ***
 
@@ -640,7 +660,7 @@ Baselines are critical because:
 * They reveal whether your ML model truly adds value.
 * They act as a sanity check for initial experiments.
 
-> 📈 If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
+>  If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
 
 ***
 
@@ -690,7 +710,7 @@ The metric must align with the business objective.
 * Exposes model to live users.
 * Measures impact on KPIs like conversion or engagement.
 
-> 🔁 Best practice: use both — offline to validate technically, online to validate business value.
+>  Best practice: use both — offline to validate technically, online to validate business value.
 
 ***
 
@@ -874,7 +894,7 @@ Good data satisfies multiple dimensions of quality:
 | Timeliness         | Data reflects current conditions.    | Real-time transaction logs.                |
 | Representativeness | Matches the production environment.  | Distribution of regions/cities is similar. |
 
-> ✅ Always measure and monitor these quality metrics before model training.
+>  Always measure and monitor these quality metrics before model training.
 
 ***
 
@@ -902,7 +922,7 @@ Data can come from multiple sources, depending on the problem.
   * Privacy preservation.
   * Testing edge cases.
 
-> ⚠️ Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
+>  Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
 
 ***
 
@@ -950,7 +970,7 @@ When one class appears much less frequently (e.g., 1% fraud, 99% normal).
    * Assign class weights inversely proportional to frequency.
    * Use metrics robust to imbalance (AUC, F1, Precision-Recall).
 
-> ⚖️ The chosen technique depends on the problem’s cost of false negatives vs. false positives.
+>  The chosen technique depends on the problem’s cost of false negatives vs. false positives.
 
 ***
 
@@ -1056,7 +1076,7 @@ Typical stages in the data pipeline:
 6. Access
    * Enable secure queries and sampling for model training.
 
-> ⚙️ Use automated validation and monitoring to detect anomalies early.
+>  Use automated validation and monitoring to detect anomalies early.
 
 ***
 
@@ -1161,7 +1181,7 @@ Data cleaning fixes errors, inconsistencies, and missing values.
      * KNN or regression-based imputation
   3. Special category: assign “Unknown” for categorical features.
 
-> ⚠️ Imputation introduces bias if not done carefully — especially if data is not missing at random.
+>  Imputation introduces bias if not done carefully — especially if data is not missing at random.
 
 **5.3.3 Detecting Outliers**
 
@@ -1894,7 +1914,7 @@ Proper data splitting is fundamental to unbiased model evaluation.
 | Validation Set | Tune hyperparameters, prevent overfitting. | Helps model selection.     |
 | Test Set       | Final unbiased evaluation.                 | Used only once at the end. |
 
-> ⚠️ Never use test data during model development — it invalidates your evaluation.
+>  Never use test data during model development — it invalidates your evaluation.
 
 ***
 
@@ -2437,11 +2457,11 @@ Example structure:
 
 ```
 /model
-  ├── model.pkl
-  ├── preprocessing.py
-  ├── app.py (Flask/FastAPI)
-  ├── requirements.txt
-  ├── Dockerfile
+   model.pkl
+   preprocessing.py
+   app.py (Flask/FastAPI)
+   requirements.txt
+   Dockerfile
 ```
 
 ***

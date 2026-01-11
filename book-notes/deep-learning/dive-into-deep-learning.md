@@ -206,13 +206,13 @@ Chapter 3 provides a comprehensive understanding of **linear neural networks**, 
 4. **Softmax Function**:
    * To convert the model’s output into probabilities, the **softmax function** is applied. Softmax ensures that the outputs are non-negative and sum to 1, resembling probabilities.
    * The formula for softmax is:\
-     \[ P(y = i | x) = \frac{\exp(o\_i)}{\sum\_j \exp(o\_j)} ] where (o\_i) is the output for the i-th category, and the denominator normalizes the output over all classes【22:7†source】.
+     \[P(y = i | x) = \frac{\exp(o\_i)}{\sum\_j \exp(o\_j)} ] where (o\_i) is the output for the i-th category, and the denominator normalizes the output over all classes【22:7†source】.
 
 **4.2 Loss Function: Cross-Entropy**
 
 1. **Log-Likelihood**:
    * Softmax regression uses the **cross-entropy loss**, which is based on the negative log-likelihood. This measures how well the predicted probabilities align with the actual class labels.
-   * The cross-entropy loss for a single prediction is: \[ L = - \log P(y = \text{true class} | x) ]
+   * The cross-entropy loss for a single prediction is: \[L = - \log P(y = \text{true class} | x) ]
    * This loss encourages the model to maximize the predicted probability for the correct class【22:2†source】【22:3†source】.
 
 **4.3 The Image Classification Dataset**
@@ -1404,7 +1404,7 @@ If we observe data points indexed by inputs (x), GPs let us fit a function by de
 
 #### 18.2.1 Definition of a Gaussian Process
 
-A Gaussian Process is a collection of random variables, any finite subset of which has a joint Gaussian distribution. This can be expressed as: \[ f(x) \sim \text{GP}(m(x), k(x, x')) ] where:
+A Gaussian Process is a collection of random variables, any finite subset of which has a joint Gaussian distribution. This can be expressed as: \[f(x) \sim \text{GP}(m(x), k(x, x')) ] where:
 
 * (m(x)) is the mean function.
 * (k(x, x')) is the covariance function, which defines how function values at different points relate to each other.
@@ -1413,7 +1413,7 @@ A Gaussian Process is a collection of random variables, any finite subset of whi
 
 #### 18.2.4 The Radial Basis Function (RBF) Kernel
 
-The **RBF Kernel**, also known as the Gaussian kernel, is one of the most commonly used kernels in GPs. Its formula is: \[ k\_{\text{RBF\}}(x, x') = a^2 \exp\left(-\frac{|x - x'|^2}{2\ell^2}\right) ] where (a) controls the amplitude, and (\ell) controls the length scale (smoothness). Small values of (\ell) lead to more wiggly functions, while larger values smooth the function.
+The **RBF Kernel**, also known as the Gaussian kernel, is one of the most commonly used kernels in GPs. Its formula is: \[k\_{\text{RBF\}}(x, x') = a^2 \exp\left(-\frac{|x - x'|^2}{2\ell^2}\right) ] where (a) controls the amplitude, and (\ell) controls the length scale (smoothness). Small values of (\ell) lead to more wiggly functions, while larger values smooth the function.
 
 ***
 
@@ -1432,7 +1432,7 @@ In regression tasks, we assume the observed data (y(x)) is generated from a late
 
 **Formula:**
 
-For new input (x\__), the predictive distribution is Gaussian: \[ f(x\__) | y \sim N(a\__, v\__) ] where:
+For new input (x\__), the predictive distribution is Gaussian: \[f(x\__) | y \sim N(a\__, v\__) ] where:
 
 * (a\_\*) is the predictive mean,
 * (v\_\*) is the predictive variance.
@@ -1570,7 +1570,7 @@ These notes summarize Chapter 19's focus on the techniques, challenges, and solu
 * The generator network takes a **latent vector (z)** from a simple distribution (e.g., Gaussian) and transforms it into a data point (e.g., an image).
 *   The objective of the generator is to maximize the probability that the discriminator classifies its generated output as real.
 
-    **Loss Function**: \[ \max\_G \mathbb{E}\_{z \sim p(z)} \[\log(D(G(z)))] ]
+    **Loss Function**: \[\max\_G \mathbb{E}\_{z \sim p(z)} \[\log(D(G(z)))] ]
 
     This aims to increase the discriminator's output for fake data, pushing the generator to produce more realistic samples.
 
@@ -1580,7 +1580,7 @@ These notes summarize Chapter 19's focus on the techniques, challenges, and solu
 
 *   The discriminator acts as a binary classifier, distinguishing between real data and generated (fake) data. It outputs the probability that a given sample is real.
 
-    **Loss Function**: \[ \min\_D \mathbb{E}_{x \sim p_{\text{data\}}(x)}\[\log(D(x))] + \mathbb{E}\_{z \sim p(z)}\[\log(1 - D(G(z)))] ]
+    **Loss Function**: \[\min\_D \mathbb{E}_{x \sim p_{\text{data\}}(x)}\[\log(D(x))] + \mathbb{E}\_{z \sim p(z)}\[\log(1 - D(G(z)))] ]
 
     This loss function minimizes the probability of misclassifying real data and maximizes the probability of detecting fake data.
 
@@ -1737,8 +1737,8 @@ This chapter provides a foundational understanding of the mathematics required f
 **Vectors and Their Geometry:**
 
 * **Vectors** can be interpreted as points or directions in space. For example, a vector in three dimensions (\[x, y, z]) can represent a point in 3D space or a direction from the origin.
-* **Dot Products**: Measures the similarity between two vectors, often used in machine learning to calculate angles and distances between data points. \[ \text{dot}(v, w) = v\_1 w\_1 + v\_2 w\_2 + \cdots + v\_n w\_n ]
-* **Cosine Similarity**: Measures how similar two vectors are, ranging from -1 (completely opposite) to 1 (exactly the same). \[ \cos(\theta) = \frac{\text{dot}(v, w)}{|v||w|} ]
+* **Dot Products**: Measures the similarity between two vectors, often used in machine learning to calculate angles and distances between data points. \[\text{dot}(v, w) = v\_1 w\_1 + v\_2 w\_2 + \cdots + v\_n w\_n ]
+* **Cosine Similarity**: Measures how similar two vectors are, ranging from -1 (completely opposite) to 1 (exactly the same). \[\cos(\theta) = \frac{\text{dot}(v, w)}{|v||w|} ]
 
 **Matrices and Transformations:**
 
@@ -1756,8 +1756,8 @@ This chapter provides a foundational understanding of the mathematics required f
 **Single Variable Calculus:**
 
 * Focuses on how functions behave under small changes in their inputs.
-  * **Derivatives**: Measure how a function changes as its input changes, fundamental for optimization in machine learning. \[ f'(x) = \lim\_{h \to 0} \frac{f(x+h) - f(x)}{h} ]
-  * **Gradient Descent**: The gradient points in the direction of steepest ascent, and moving in the opposite direction (steepest descent) helps minimize a loss function. \[ w \leftarrow w - \eta \nabla L(w) ]
+  * **Derivatives**: Measure how a function changes as its input changes, fundamental for optimization in machine learning. \[f'(x) = \lim\_{h \to 0} \frac{f(x+h) - f(x)}{h} ]
+  * **Gradient Descent**: The gradient points in the direction of steepest ascent, and moving in the opposite direction (steepest descent) helps minimize a loss function. \[w \leftarrow w - \eta \nabla L(w) ]
   * **Taylor Series**: Provides an approximation of a function as a sum of its derivatives, helping to understand the local behavior of functions.
 
 **Multivariable Calculus:**
@@ -1776,14 +1776,14 @@ This chapter provides a foundational understanding of the mathematics required f
 
 **Statistics:**
 
-* **Maximum Likelihood Estimation (MLE)**: A method of estimating parameters by maximizing the likelihood that the observed data is generated by a given model. \[ \hat{\theta}_{\text{MLE\}} = \arg \max_{\theta} \mathcal{L}(\theta | \text{data}) ]
+* **Maximum Likelihood Estimation (MLE)**: A method of estimating parameters by maximizing the likelihood that the observed data is generated by a given model. \[\hat{\theta}_{\text{MLE\}} = \arg \max_{\theta} \mathcal{L}(\theta | \text{data}) ]
 * **Hypothesis Testing**: Used to determine if the results of a model or experiment are statistically significant.
 
 ***
 
 #### A.4 Information Theory
 
-* **Entropy**: Measures the uncertainty in a set of outcomes. In machine learning, minimizing the entropy of a system leads to more confident predictions. \[ H(X) = -\sum p(x) \log p(x) ]
+* **Entropy**: Measures the uncertainty in a set of outcomes. In machine learning, minimizing the entropy of a system leads to more confident predictions. \[H(X) = -\sum p(x) \log p(x) ]
 * **KL Divergence**: Measures how one probability distribution diverges from a second, reference distribution, often used to improve model fitting by minimizing this divergence.
 
 ***

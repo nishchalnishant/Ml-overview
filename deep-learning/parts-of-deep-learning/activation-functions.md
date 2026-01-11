@@ -2,7 +2,7 @@
 
 Here are detailed notes on the activation functions used in deep learning, including what they do, when to use them, and their pros and cons.
 
-#### 📜 What is an Activation Function?
+#### What is an Activation Function?
 
 An activation function is a mathematical "gate" applied to the output of a neuron (or a layer of neurons). Its primary job is to introduce non-linearity into the network.
 
@@ -143,7 +143,7 @@ These are special-purpose functions you use _only_ in the final layer of your ne
 
 ***
 
-#### 🚀 Summary: How to Choose
+#### Summary: How to Choose
 
 Here is a simple rule-of-thumb:
 

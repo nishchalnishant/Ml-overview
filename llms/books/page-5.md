@@ -4,7 +4,7 @@ Here are detailed study notes for Chapter 1: “An Introduction to Large Languag
 
 ***
 
-## 📘 Study Notes: Chapter 1 — An Introduction to Large Language Models
+## Study Notes: Chapter 1 — An Introduction to Large Language Models
 
 <br>
 
@@ -238,7 +238,7 @@ The chapter ends by demonstrating:
 
 ***
 
-## ✔ Summary of Key Takeaways
+## Summary of Key Takeaways
 
 * LLMs evolved from simple word counting to deep contextual models powered by attention.
 * Transformers revolutionized Language AI by enabling parallel processing and long-range understanding.
@@ -251,19 +251,19 @@ The chapter ends by demonstrating:
 
 If you’d like, I can also prepare:
 
-✅ Flashcards for Chapter 1
+ Flashcards for Chapter 1
 
-✅ A mind map of the concepts
+ A mind map of the concepts
 
-✅ Practice questions + answers
+ Practice questions + answers
 
-✅ A condensed quick-revision sheet
+ A condensed quick-revision sheet
 
 Below are detailed study notes for Chapter 2: Tokens and Embeddings based entirely on the full chapter text retrieved from your uploaded PDF. All statements include citations where needed.
 
 ***
 
-## 📘 Chapter 2 — Tokens and Embeddings (Detailed Study Notes)
+## Chapter 2 — Tokens and Embeddings (Detailed Study Notes)
 
 _From:_ Hands-On Large Language Models — Jay Alammar & Maarten Grootendorst (2024)
 
@@ -509,7 +509,7 @@ RAG combines:
 
 ***
 
-## ✔ Complete Summary of Chapter 2
+## Complete Summary of Chapter 2
 
 Chapter 2 teaches that:
 
@@ -524,17 +524,17 @@ Chapter 2 teaches that:
 
 ## If you want, I can also create:
 
-✅ Flashcards for Chapter 2
+ Flashcards for Chapter 2
 
-✅ A visual mind map of tokens and embeddings
+ A visual mind map of tokens and embeddings
 
-✅ Simplified notes for quick revision
+ Simplified notes for quick revision
 
-✅ Practice questions with answers
+ Practice questions with answers
 
 ***
 
-## 📘 Chapter 3 — Looking Inside Large Language Models (Detailed Notes)
+## Chapter 3 — Looking Inside Large Language Models (Detailed Notes)
 
 \
 Chapter 3 is an expanded, modernized version of Jay Alammar’s famous _Illustrated Transformer_, explaining how Transformer-based LLMs actually work inside. This chapter bridges Chapter 2’s token/embedding concepts with the Transformer architecture responsible for modern generative LLM behavior.
@@ -770,7 +770,7 @@ These highlight how Transformer ideas are spreading beyond text.
 
 ***
 
-## 📘 Chapter 4 — Text Classification (Detailed Notes)
+## Chapter 4 — Text Classification (Detailed Notes)
 
 ***
 

@@ -1,8 +1,29 @@
-# Machine learning design patterns
+# Machine Learning Design Patterns: Quick Reference
 
-Here are detailed notes for Chapter 1 — “The Need for Machine Learning Design Patterns” from the book _Machine Learning Design Patterns_ by Valliappa Lakshmanan, Sara Robinson, and Michael Munn.
+> [!TIP]
+> **High-Frequency Patterns for System Design Interviews**
+> 
+> | **Pattern** | **Problem** | **Solution** |
+> |-------------|-------------|--------------|
+> | **Hashed Feature** | High cardinality categories. | Use deterministic hashing to map into fixed buckets. |
+> | **Embeddings** | Sparse high-dim data. | Learn dense, continuous vector representations. |
+> | **Feature Cross** | Non-linear interactions. | Create a new feature by concatenating/crossing two features. |
+> | **Multimodal Input** | Mixed data (text+image). | Separate specialized encoders with a late-fusion head. |
+> | **Reframing** | Hard classification. | Change to regression (probability) or ranking. |
+> | **Rebalancing** | Imbalanced datasets. | Weighted loss or resampling (SMOTE / Undersampling). |
+> | **Ensemble** | Single model weak signals. | Bagging (Variance), Boosting (Bias), or Stacking. |
+> | **Cascade** | Hierarchical decisions. | Chain models sequentially (e.g., Object Detection -> OCR). |
+> | **Transfer Learning** | Low data / High compute. | Leverage pretrained models and fine-tune on target data. |
 
-***
+---
+
+### Chapter Summaries
+- [Chapter 1: The Need for Patterns](#chapter-1-the-need-for-machine-learning-design-patterns)
+- [Chapter 2: Data Representation](#chapter-2-data-representation-design-patterns)
+- [Chapter 3: Problem Representation](#chapter-3-problem-representation-design-patterns)
+- [Chapter 4: Model Training Patterns](#chapter-4-model-training-design-patterns)
+
+---
 
 ## Chapter 1: The Need for Machine Learning Design Patterns
 
@@ -287,10 +308,10 @@ This chapter introduces four major data representation patterns:
 
 | Pattern Name         | Purpose                                                                 |
 | -------------------- | ----------------------------------------------------------------------- |
-| 1️⃣ Hashed Feature   | Represent high-cardinality categorical data efficiently                 |
-| 2️⃣ Embeddings       | Learn dense, continuous representations for categorical or textual data |
-| 3️⃣ Feature Cross    | Combine multiple features to capture interactions                       |
-| 4️⃣ Multimodal Input | Handle and combine multiple data types (text, image, etc.)              |
+| 1⃣ Hashed Feature   | Represent high-cardinality categorical data efficiently                 |
+| 2⃣ Embeddings       | Learn dense, continuous representations for categorical or textual data |
+| 3⃣ Feature Cross    | Combine multiple features to capture interactions                       |
+| 4⃣ Multimodal Input | Handle and combine multiple data types (text, image, etc.)              |
 
 Before discussing these, the book explains simple data representations — basic techniques for handling numeric and categorical data.
 

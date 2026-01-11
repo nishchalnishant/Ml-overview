@@ -2,7 +2,7 @@
 
 Here are detailed notes on the attention mechanism, a concept that has become arguably the most important and powerful idea in modern deep learning.
 
-#### 📜 What is an Attention Mechanism?
+#### What is an Attention Mechanism?
 
 At its core, an attention mechanism is a way for a neural network to mimic human attention.
 
@@ -112,7 +112,7 @@ This is a more conceptual distinction.
 
 ***
 
-#### 🚀 Why Attention is the Most Important Idea in Modern AI
+#### Why Attention is the Most Important Idea in Modern AI
 
 The invention of Self-Attention led directly to the Transformer architecture in 2017 ("Attention is All You Need").
 

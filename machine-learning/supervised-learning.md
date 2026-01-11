@@ -1,44 +1,20 @@
-# Supervised Learning
+# Supervised Learning: From Regression to Ensembles
 
-## <mark style="color:purple;">Regression</mark>
+> [!TIP]
+> **Supervised Learning Quick Reference**
+> 
+> | **Algorithm** | **Task** | **Complexity (Train)** | **Key Metric** | **Best For** |
+> |---------------|----------|-------------------------|----------------|--------------|
+> | **Linear Reg.** | Regression | $O(p^2 n + p^3)$ | MSE, $R^2$ | Simple, interpretable trends. |
+> | **Logistic Reg.** | Classification | $O(np)$ | Log Loss | Probability estimation, baseline. |
+> | **SVM** | Both | $O(n^2)$ to $O(n^3)$ | Hinge Loss | High-dim, clear margins. |
+> | **Random Forest** | Both | $O(n \log n \cdot p \cdot k)$ | Gini/Entropy | Robust, handles non-linearities. |
+> | **XGBoost/LGBM** | Both | $O(n \log n \cdot p)$ | Log Loss/MSE | SOTA for tabular data. |
+> | **KNN** | Both | $O(1)$ (Lazy) | Accuracy | Small data, complex boundaries. |
+> 
+> *n = samples, p = features, k = trees*
 
-* <mark style="color:yellow;">**Algorithms**</mark>
-  * Linear regression \[Plane]
-* <mark style="color:yellow;">**Metrics**</mark>
-  * Mean absolute error \[MAE]
-  * Mean squared error \[MSE]
-  * Root mean squared error \[RMSE]
-  * R squared
-  * Adjusted R squared
-
-## <mark style="color:purple;">Classification</mark>
-
-* <mark style="color:yellow;">**Algorithms**</mark>
-  * Logistic regression \[Plane]
-* <mark style="color:yellow;">**Metrics**</mark>
-  * Accuracy
-  * Precision
-  * Recall
-  * F1 scores
-  * Confusion matrix
-  * ROC curve
-  * Area under curve
-  * Log loss / logistic loss / cross entropy loss
-
-## Algorithms that can be used for both regression and classification
-
-* Support vector machines \[Plane]
-* KNN \[Plane]
-* Decision tree \[Tree]
-* Random forest \[Tree]
-*   Ensemble Learning
-
-    * Bagging methods \[bootstrap aggregating]
-    * Boosting methods
-
-
-
-\############################# Regression ######################
+---
 
 ### **Algorithm**
 
@@ -859,7 +835,7 @@ if __name__ == "__main__":
 
 The posterior probability can be expressed using Bayes' theorem as:
 
-\[ P(y|x\_1, x\_2, ..., x\_n) = \frac{P(x\_1, x\_2, ..., x\_n|y) P(y)}{P(x\_1, x\_2, ..., x\_n)} ]
+\[P(y|x\_1, x\_2, ..., x\_n) = \frac{P(x\_1, x\_2, ..., x\_n|y) P(y)}{P(x\_1, x\_2, ..., x\_n)} ]
 
 where:
 
@@ -1025,7 +1001,7 @@ if __name__ == "__main__":
    * The goal of SVMs is to find the hyperplane that maximizes the margin between the two classes.
    *   The equation of the hyperplane is:
 
-       \[ w \cdot x + b = 0 ]
+       \[w \cdot x + b = 0 ]
 
        where:
 
@@ -1037,7 +1013,7 @@ if __name__ == "__main__":
 3. **Optimization Problem**:
    *   To find the optimal hyperplane, we solve the following optimization problem:
 
-       \[ \text{minimize: } \frac{1}{2} ||w||^2 ] subject to: \[ y\_i (w \cdot x\_i + b) \geq 1 \quad \text{for all } i ]
+       \[\text{minimize: } \frac{1}{2} ||w||^2 ] subject to: \[y\_i (w \cdot x\_i + b) \geq 1 \quad \text{for all } i ]
 
        where:
 
@@ -1052,7 +1028,7 @@ if __name__ == "__main__":
 
     The dual form is:
 
-    \[ \text{maximize: } \sum\_i \alpha\_i - \frac{1}{2} \sum\_i \sum\_j y\_i y\_j \alpha\_i \alpha\_j (x\_i \cdot x\_j) ] subject to: \[ \sum\_i y\_i \alpha\_i = 0 \quad \text{and} \quad 0 \leq \alpha\_i \leq C \quad \text{for all } i ]
+    \[\text{maximize: } \sum\_i \alpha\_i - \frac{1}{2} \sum\_i \sum\_j y\_i y\_j \alpha\_i \alpha\_j (x\_i \cdot x\_j) ] subject to: \[\sum\_i y\_i \alpha\_i = 0 \quad \text{and} \quad 0 \leq \alpha\_i \leq C \quad \text{for all } i ]
 
     where:
 

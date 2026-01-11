@@ -1,80 +1,175 @@
-# ML revision
+# ML Quick Revision Cheat Sheet: 40+ Concepts
 
-The video "All Machine Learning Models Clearly Explained!" provides a comprehensive overview of various machine learning models, categorizing them by the type of problem they solve.
+---
 
-The models are presented in the following order: Regression, Classification, Models for Both, and Unsupervised Models \[[00:12](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=12)].
+## 1. Regression Models
 
-***
+| Algorithm | Type | Loss | Key Insight |
+|-----------|------|------|-------------|
+| **Linear Regression** | Parametric | MSE | Assumes linearity, sensitive to outliers |
+| **Ridge (L2)** | Regularized | MSE + λ||w||² | Shrinks weights, handles multicollinearity |
+| **Lasso (L1)** | Regularized | MSE + λ||w||₁ | Creates sparse weights, feature selection |
+| **Elastic Net** | Regularized | MSE + L1 + L2 | Best of both worlds |
+| **Polynomial Reg** | Parametric | MSE | Add x², x³, etc. High degree = overfit |
 
-### 1. Regression Models (For predicting continuous variables)
+**Key Metrics:**
+- **MSE**: Mean Squared Error. Penalizes large errors.
+- **MAE**: Mean Absolute Error. Robust to outliers.
+- **R²**: Variance explained. Range: 0 to 1.
 
-* Linear Regression \[[00:22](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=22)]
-  * The simplest model that finds a straight-line relationship between an input (X) and a continuous output (Y).
-  * The model is trained using Gradient Descent to iteratively optimize the weight (coefficient) and bias, minimizing the error \[[00:54](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=54)].
-  * we generate a intial weight and bias and use gradient disscent to capute the loss and adjust the weight and bias
-* Polynomial Regression \[[01:09](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=69)]
-  * A modification of linear regression that adds polynomial terms (e.g., $$ $X^2, X^3$ $$) to capture non-linear relationships in the data.
-* Regularization Techniques \[[01:27](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=87)]
-  * Methods used to combat overfitting, mainly by adding a penalty to the model's coefficients:
-    * Ridge: Shrinks coefficients toward zero, helpful for reducing multicollinearity \[[01:35](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=95)].
-    * Lasso: Can perform feature selection by shrinking some coefficients all the way to zero, effectively removing their influence \[[01:43](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=103)].
-    * Elastic Net: Combines the regularization methods of both Ridge and Lasso \[[01:51](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=111)].
+---
 
-### 2. Classification Models (For predicting categorical variables)
+## 2. Classification Models
 
-* Logistic Regression
-  * Despite its name, it is a classification model, primarily for binary classification (e.g., positive or negative class).
-  * It uses a Sigmoid function to transform the linear output into a probability between 0 and 1&#x20;
-  * The error is calculated using Cross-Entropy Loss.
-  * For multiclass classification, the Softmax function is used instead of Sigmoid.
-* Naive Bayes
-  * A probabilistic algorithm based on Bayes' theorem.
-  * It is "naive" because it assumes that features are conditionally independent of each other given the class label&#x20;
-  * Types include Gaussian (for continuous features), Multinomial (for discrete data like word counts), and Bernoulli (for binary features)
+| Algorithm | Boundary | Key Insight |
+|-----------|----------|-------------|
+| **Logistic Regression** | Linear | Outputs probabilities via sigmoid |
+| **Naive Bayes** | Non-linear | Assumes feature independence |
+| **KNN** | Non-linear | Lazy learner, O(n) inference |
+| **SVM** | Linear (or kernel) | Maximizes margin, kernel trick |
+| **Decision Tree** | Non-linear | Interpretable, prone to overfit |
 
-### 3. Models for Both Classification and Regression
+**Key Metrics:**
+- **Accuracy**: (TP+TN) / Total
+- **Precision**: TP / (TP+FP) — "Of predicted positive, how many correct?"
+- **Recall**: TP / (TP+FN) — "Of actual positive, how many caught?"
+- **F1**: Harmonic mean of P and R
+- **AUC-ROC**: Area under ROC curve
 
-* Decision Tree \[[04:10](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=250)]
-  * One of the most interpretable algorithms due to its tree-like structure \[[04:17](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=257)].
-  * It splits the data at each node based on a feature condition, aiming to maximize the split using a metric like impurity \[[04:38](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=278)].
-  * Disadvantage: Can easily overfit the training data if it grows too deep \[[04:55](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=295)].
-  * Pruning is used to avoid complexity: Pre-pruning (early stopping, like setting a max depth) or Post-pruning (removing low-value branches after the tree is fully grown) \[[05:02](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=302)].
-* Random Forest \[[06:23](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=383)]
-  * An ensemble method that combines predictions from multiple independent decision trees \[[06:27](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=387)].
-  * Each tree is trained on a random subset of data created by bootstrapping (sampling with replacement) \[[06:33](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=393)].
-  * It uses majority voting for classification and averaging for regression \[[07:06](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=426)].
-  * Advantage: Less prone to overfitting and generalizes better than a single decision tree \[[07:19](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=439)].
-* Support Vector Machines (SVM) \[[07:53](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=473)]
-  * Finds the optimal hyperplane that separates data points of different classes by maximizing the margin (the distance between the hyperplane and the nearest data points) \[[07:57](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=477)].
-  * The nearest data points are called Support Vectors \[[08:11](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=491)].
-  * The Kernel Trick is used to handle non-linearly separable data by implicitly mapping it to a higher-dimensional space where separation is easier (e.g., RBF kernel) \[[08:54](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=534)].
-  * For regression, Support Vector Regressor (SVR) defines a margin of tolerance ($$ $\epsilon$ $$) around the prediction line \[[09:41](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=581)].
-* K-Nearest Neighbors (KNN) \[[10:06](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=606)]
-  * A lazy learning algorithm that does not train a model but uses the entire training data set for every prediction \[[10:11](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=611)].
-  * To predict a new point, it calculates the distance to all other points, selects the K closest ones, and uses majority vote (classification) or average (regression) \[[10:47](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=647)].
-  * Disadvantage: Can be computationally expensive for large datasets because a calculation must be done for every prediction \[[11:33](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=693)].
-* Ensemble Methods \[[12:22](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=742)]
-  * The core idea is that combining multiple models (individuals) leads to better decisions (groups).
-  * Bagging (Bootstrap Aggregating): Training diverse, independent models and averaging their results (e.g., Random Forest) \[[12:44](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=764)].
-  * Boosting: Combining several weak models in a sequential manner, where each model attempts to correct the mistakes of the previous ones \[[13:18](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=798)].
-  * Voting: Combining predictions from different types of trained models (e.g., Decision Tree and Logistic Regression). Hard voting (majority class) or Soft voting (sum of probabilities) \[[13:50](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=830)].
-  * Stacking: Uses a set of Base Models whose predictions are used as input features for a final Meta Model (or blender) that learns how to optimally combine them \[[14:48](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=888)].
-* Neural Networks \[[15:54](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=954)]
-  * An architecture to approximate a complex function that maps input to output.
-  * Fully Connected Neural Networks include an Input Layer, multiple Hidden Layers (which control complexity), and an Output Layer \[[16:44](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1004)].
-  * Activation Functions are essential for introducing nonlinearity and allowing the network to learn complex patterns \[[17:14](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1034)].
-  * Backpropagation is the process where the model adjusts its parameters (weights and biases) by minimizing a loss function, essentially an application of Gradient Descent using the chain rule \[[17:25](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1045)].
+---
 
-### 4. Unsupervised Models (For uncovering hidden patterns without a target variable)
+## 3. Ensemble Methods
 
-* K-Means Clustering \[[19:27](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1167)]
-  * A popular clustering algorithm that requires predefining the number of clusters, K \[[19:34](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1174)].
-  * The algorithm iteratively assigns data points to the closest centroid and then recalculates the centroid's position until the assignments no longer change \[[19:40](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1180)].
-  * Drawback: Assumes clusters are circular and requires knowing the optimal K beforehand \[[20:32](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1232)].
-* Principal Component Analysis (PCA) \[[21:03](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1263)]
-  * A dimensionality reduction technique that simplifies complex data by reducing the number of features \[[21:03](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1263)].
-  * It transforms the data into new, uncorrelated variables called Principal Components, which are ranked by the amount of information they capture \[[21:12](http://www.youtube.com/watch?v=0YdpwSYMY6I\&t=1272)].
+| Method | Technique | Goal |
+|--------|-----------|------|
+| **Random Forest** | Bagging | Reduce variance |
+| **XGBoost/GBM** | Boosting | Reduce bias |
+| **Stacking** | Meta-learning | Maximize accuracy |
 
-***
+**Key Concepts:**
+- **Bagging**: Parallel, random samples, average predictions
+- **Boosting**: Sequential, fix errors of previous models
+- **Feature Subsampling**: Random Forest uses √p features per split
 
-The video is available here: All Machine Learning Models Clearly Explained!
+---
+
+## 4. Neural Network Fundamentals
+
+| Component | Purpose |
+|-----------|---------|
+| **Activation** | Introduce non-linearity |
+| **Backprop** | Compute gradients via chain rule |
+| **Optimizer** | Update weights (SGD, Adam) |
+| **Regularization** | Prevent overfitting (Dropout, L2) |
+
+**Activations:**
+- **ReLU**: max(0, x). Default choice. Avoids vanishing gradient.
+- **Sigmoid**: Maps to (0, 1). Output layer for binary.
+- **Softmax**: Maps to probability distribution. Output for multi-class.
+
+**Common Issues:**
+- **Vanishing Gradient**: Use ReLU, BatchNorm, ResNets
+- **Exploding Gradient**: Use gradient clipping
+
+---
+
+## 5. Key Formulas
+
+| Concept | Formula |
+|---------|---------|
+| **Sigmoid** | $\sigma(z) = \frac{1}{1+e^{-z}}$ |
+| **Softmax** | $\frac{e^{z_i}}{\sum e^{z_j}}$ |
+| **Cross-Entropy** | $-[y\log\hat{y} + (1-y)\log(1-\hat{y})]$ |
+| **MSE** | $\frac{1}{n}\sum(y-\hat{y})^2$ |
+| **Attention** | $Softmax(\frac{QK^T}{\sqrt{d_k}})V$ |
+| **Bias-Variance** | Error = Bias² + Variance + Noise |
+| **Bayes** | $P(A|B) = \frac{P(B|A)P(A)}{P(B)}$ |
+
+---
+
+## 6. Unsupervised Learning
+
+| Method | Goal | Key Metric |
+|--------|------|------------|
+| **K-Means** | Cluster by centroids | Inertia / Silhouette |
+| **DBSCAN** | Density-based clusters | Handles noise |
+| **PCA** | Reduce dimensions | Preserve variance |
+| **t-SNE** | Visualization | Preserve local structure |
+
+**PCA Key:**
+- Find eigenvectors of covariance matrix
+- Keep top k by eigenvalue
+- Orthogonal components, maximize variance
+
+---
+
+## 7. Deep Learning Architectures
+
+| Architecture | Input | Use Case |
+|--------------|-------|----------|
+| **CNN** | Grid (images) | Image classification, detection |
+| **RNN/LSTM** | Sequence | Time series, legacy NLP |
+| **Transformer** | Sequence | NLP, Vision, Multimodal |
+| **GAN** | Noise | Image generation |
+| **VAE** | Data | Generation, anomaly detection |
+| **ResNet** | Images | Deep image classification |
+| **U-Net** | Images | Segmentation |
+
+---
+
+## 8. Common Trade-offs
+
+| Trade-off | Low | High |
+|-----------|-----|------|
+| **Bias-Variance** | Simple model (underfit) | Complex model (overfit) |
+| **Precision-Recall** | High recall (catch all) | High precision (few errors) |
+| **Latency-Accuracy** | Fast, simple model | Slow, accurate model |
+| **Exploration-Exploitation** | Use known best | Try new options |
+
+---
+
+## 9. MLOps Quick Reference
+
+| Concept | Definition |
+|---------|------------|
+| **Data Drift** | Input distribution changes |
+| **Concept Drift** | Feature-target relationship changes |
+| **Train-Serve Skew** | Training vs serving discrepancy |
+| **Feature Store** | Centralized feature management |
+| **A/B Testing** | Compare models on live traffic |
+| **Canary Deployment** | Gradual rollout to subset |
+| **Shadow Mode** | Test in parallel without affecting users |
+
+---
+
+## 10. Quick Fire Recall
+
+**L1 vs L2?**
+> L1 creates sparsity (zeros). L2 shrinks all weights.
+
+**Generative vs Discriminative?**
+> Generative: P(X, Y). Discriminative: P(Y|X).
+
+**Parametric vs Non-parametric?**
+> Parametric: Fixed form (LR). Non-parametric: Grows with data (KNN).
+
+**Batch vs Layer Norm?**
+> Batch: Across batch. Layer: Across features. Use Layer for Transformers.
+
+**Encoder vs Decoder?**
+> Encoder: Bidirectional, understanding. Decoder: Causal, generation.
+
+**BERT vs GPT?**
+> BERT: Encoder, masked LM. GPT: Decoder, autoregressive.
+
+**Bagging vs Boosting?**
+> Bagging: Parallel, reduce variance. Boosting: Sequential, reduce bias.
+
+**Precision vs Recall?**
+> Precision: Quality of positives. Recall: Completeness of positives.
+
+**ROC vs PR curve?**
+> ROC: Balanced data. PR: Imbalanced data.
+
+**Why cross-validate?**
+> More robust estimate. Uses all data for training and validation.

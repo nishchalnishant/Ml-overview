@@ -1,267 +1,155 @@
-# ML system design
+# ML System Design: 30+ Questions & Case Studies
 
-Great — here is a practical, curated list of ML models mapped to real ML system-design use-cases, exactly the way they appear in FAANG-style interviews.
+---
 
-This is _not_ a generic ML model list — it’s a system-design-oriented catalog, meaning:
+## Framework Questions
 
-✔ what model to use
+**1. What is the typical ML System Design framework?**
+> 1. Requirements & Scope, 2. Data & Features, 3. Model Selection, 4. Evaluation, 5. Deployment & Monitoring.
 
-✔ for which type of system
+**2. What questions should you ask first in a system design interview?**
+> What is the business goal? What are latency/throughput requirements? What data is available? What is the scale?
 
-✔ why that model fits
+**3. How do you choose between batch and real-time inference?**
+> **Batch**: High throughput, can use heavy models, daily/hourly predictions. **Real-time**: Low latency, needs optimized models, on-demand predictions.
 
-✔ variations you can propose during interviews
+**4. What is the Two-Stage pattern?**
+> **Retrieval**: Fast filtering of millions to thousands (ANN search). **Ranking**: Precise scoring of candidates with heavy model.
 
-***
+**5. Why not just use one model for everything?**
+> Scale. Can't run a heavy model on millions of items per request. Two-stage balances speed and accuracy.
 
-## ✅ ML Models Useful for ML System Design Interviews
+---
 
-_(Grouped by real-world use cases)_
+## Recommendation Systems
 
-***
+**6. Design a YouTube-like video recommendation system.**
+> **Candidate Gen**: Two-Tower embeddings for user/video. **Ranking**: Deep model with user history, video features, context. **Objective**: Maximize watch time, not clicks.
 
-## 1. PII Detection / Sensitive-Info Redaction
+**7. What features would you use for video recommendations?**
+> User: watch history, demographics, time of day. Video: embeddings, duration, category, freshness. Context: device, location.
 
-Used in systems for anonymization, document processing, compliance (GDPR/CCPA).
+**8. How do you handle the cold-start problem?**
+> For new users: content-based, popular items, explicit preferences. For new items: content features, creator popularity.
 
-#### 🔹 Models
+**9. What is Collaborative Filtering?**
+> Recommend based on similar users (User-User) or co-consumed items (Item-Item). Matrix Factorization (ALS, SVD).
 
-*   NER Models (SpaCy / BERT-NER / RoBERTa-NER) \[named entity recognition]
+**10. What is Content-Based Filtering?**
+> Recommend items similar to what user liked based on item attributes.
 
-    Extract entities like names, addresses, email, phone numbers.
-*   LayoutLM / LayoutLMv3
+**11. What is a Two-Tower model?**
+> Separate networks for user and item. Compute dot product of embeddings for similarity. Efficient for large catalogs.
 
-    For PII detection in PDFs, scans, forms.
-*   RCNN / Faster-RCNN _(for images containing PII)_
+**12. What is Approximate Nearest Neighbor (ANN)?**
+> Algorithms (Faiss, HNSW) for fast similarity search. Trade small accuracy for huge speedup.
 
-    Detect passport numbers, license plates, addresses in scanned IDs.
-*   CRFs (Conditional Random Fields)
+**13. How do you evaluate recommendations offline?**
+> Recall@K, Precision@K, NDCG, Mean Reciprocal Rank (MRR).
 
-    Traditional but still used for structured documents like invoices.
+**14. How do you evaluate recommendations online?**
+> A/B testing with CTR, watch time, session length, user retention.
 
-Why it’s good for interviews
+---
 
-Shows ability to combine text + vision for redaction systems.
+## Search & Ranking
 
-***
+**15. Design a search ranking system.**
+> **Query Understanding**: Spell check, query expansion. **Retrieval**: BM25 + Dense. **Ranking**: Cross-encoder or LTR model.
 
-## 2. Recommendation Systems
+**16. What is BM25?**
+> Probabilistic ranking function based on term frequency. Better than TF-IDF for retrieval.
 
-Used in YouTube, Netflix, Amazon, Instagram ranking.
+**17. What is a Bi-Encoder vs Cross-Encoder?**
+> **Bi-Encoder**: Encode query and doc separately. Fast. **Cross-Encoder**: Encode (query, doc) together. Accurate but slow.
 
-#### 🔹 Models
+**18. What is Learning to Rank (LTR)?**
+> Train model to rank documents. Pointwise, Pairwise (RankNet), Listwise (LambdaMART).
 
-* Matrix Factorization (ALS, BPR)
-* Neural Collaborative Filtering (NCF)
-* Wide & Deep Models
-* DeepFM / xDeepFM
-*   Graph Neural Networks (PinSage / GAT)
+**19. What is NDCG?**
+> Normalized Discounted Cumulative Gain. Measures ranking quality with position-aware discounting.
 
-    For connections between users, items.
+**20. How do you handle Positional Bias?**
+> Users click top results regardless of relevance. Include position as feature in training, set to fixed value at inference.
 
-#### Why it’s good
+---
 
-Every ML SD interview includes some recommendation component.
+## Fraud & Anomaly Detection
 
-***
+**21. Design a credit card fraud detection system.**
+> **Real-time**: Fast model (XGBoost) for immediate decisioning. **Features**: Velocity, amount deviation, location. **Feedback**: Human review provides labels.
 
-## 3. Search & Query Understanding Systems
+**22. Why is fraud detection challenging?**
+> Extreme class imbalance (<0.1% fraud), adversarial (fraudsters adapt), high cost of false negatives.
 
-Used in search engines, conversational systems, chatbots.
+**23. What metrics do you use for fraud?**
+> Precision-Recall AUC. Optimize for recall (catch fraud) with acceptable precision (don't block legit users).
 
-#### 🔹 Models
+**24. What features are useful for fraud?**
+> Velocity (transactions in last hour), amount vs history, device fingerprint, location anomaly, time patterns.
 
-* BM25 (baseline)
-* Bi-Encoders (Sentence-BERT, MiniLM)
-* Cross-Encoders (BERT rankers)
-* ColBERT v2
-* RAG (Retrieval-Augmented Generation)
-* Hybrid Search (Dense + Sparse)
+**25. How do you handle concept drift in fraud?**
+> Fraudsters evolve tactics. Retrain frequently, monitor feature distributions, use online learning.
 
-#### When to use
+---
 
-For designing Google-like search or semantic search.
+## Content Moderation
 
-***
+**26. Design a content moderation system for social media.**
+> **Text**: BERT classifier. **Image**: CLIP or ResNet. **Rules**: Hashlist for known bad content. **Human review**: Queue for edge cases.
 
-## 4. Spam Detection / Fraud Detection
+**27. What's the recall vs precision trade-off here?**
+> **High recall**: Catch more harmful content but more false positives (user frustration). Balance depends on severity (violence vs spam).
 
-Used by Gmail, payment systems, ad fraud teams.
+**28. How do you handle multi-modal content?**
+> Separate models for text, image, video. Fuse predictions via rules or meta-classifier.
 
-#### 🔹 Models
+---
 
-* Random Forest / XGBoost / LightGBM (industry standard)
-* Graph Neural Networks (fraud rings)
-* Autoencoders (anomaly detection)
-* Isolation Forest
+## Production & MLOps
 
-#### Why strong for interviews
+**29. What is Data Drift?**
+> Input feature distributions change over time. Detect with PSI, K-S test.
 
-Demonstrates ability to handle imbalanced & adversarial data.
+**30. What is Concept Drift?**
+> Relationship between features and target changes. Harder to detect—monitor model performance.
 
-***
+**31. What is Train-Serve Skew?**
+> Differences between training and serving data/logic. Use Feature Store, same preprocessing code.
 
-## 5. Content Moderation (Toxicity, Violence, NSFW)
+**32. How do you monitor models in production?**
+> Prediction distribution, feature distributions, latency, error rates, business metrics decay.
 
-Used in social media, online safety, community guidelines.
+**33. What is a Feature Store?**
+> Centralized system for storing, versioning, and serving features consistently for training and inference.
 
-#### 🔹 Text Moderation
+**34. What is Canary Deployment?**
+> Release new model to small % of traffic, monitor, gradually expand if healthy.
 
-* RoBERTa-Toxicity
-* DistilBERT toxic classifiers
-* GPT-based safety classifiers
+**35. What is Shadow Mode?**
+> New model runs in parallel with production, logs predictions, but doesn't affect users. Compare before launch.
 
-#### 🔹 Image/Video Moderation
+**36. What is Model A/B Testing?**
+> Split traffic between models, measure business metrics, statistical significance.
 
-* YOLOv8 / EfficientDet (objectionable content)
-* CLIP-based zero-shot classifiers
-* 3D-CNNs / SlowFast (video violence detection)
+**37. How long should you run an A/B test?**
+> Until you reach required sample size for statistical power (usually 80%) and significance level (5%).
 
-***
+---
 
-## 6. Image Recognition / Computer Vision
+## Advanced Design Questions
 
-Used in e-commerce tagging, visual search, manufacturing QA.
+**38. How would you design a model to predict customer churn?**
+> **Features**: Usage patterns, support tickets, payment history. **Model**: XGBoost or survival analysis. **Evaluation**: Precision at top K (focus on high-risk).
 
-#### 🔹 Models
+**39. How would you design a spam email filter?**
+> **Features**: Sender reputation, text content, links, attachments. **Model**: Logistic Regression or GBM. **False positive cost**: High (don't miss important emails).
 
-* CNNs (ResNet, EfficientNet)
-* Vision Transformers (ViT, Swin Transformer)
-* Faster-RCNN, Mask-RCNN (detection & segmentation)
-* YOLO series (real-time detection)
+**40. How would you design a demand forecasting system?**
+> **Time series**: ARIMA, Prophet, or TFT (Temporal Fusion Transformer). **Features**: Holidays, promotions, weather. **Evaluation**: MAPE, RMSE.
 
-***
+**41. How would you design an ad click prediction system?**
+> **Latency**: <10ms. **Model**: Logistic Regression or light GBM. **Features**: User, ad, context embeddings. **Calibration**: Critical for bidding.
 
-## 7. Document Understanding / OCR Systems
-
-Used in fintech onboarding, receipt parsing, OCR pipelines.
-
-#### 🔹 Models
-
-* Tesseract + Language Model
-* TrOCR (transformer OCR)
-* Donut (OCR-free document model)
-* LayoutLM (forms, invoices)
-
-***
-
-## 8. NLP Classification / Sequence Tasks
-
-Used in ticket routing, topic classification, sentiment systems.
-
-#### 🔹 Models
-
-* BERT, DistilBERT, RoBERTa
-* XLNet, ELECTRA
-* Hierarchical Attention Networks (HAN) for long documents
-* LSTMs / Bi-LSTMs (legacy but interview-friendly)
-
-***
-
-## 9. Forecasting & Time-Series Models
-
-Used in demand forecasting, pricing, inventory, trading.
-
-#### 🔹 Models
-
-* ARIMA / SARIMA
-* Prophet
-* LSTM / GRU forecasting models
-* Temporal Fusion Transformer (TFT)
-* N-BEATS
-
-***
-
-## 10. ML for Ads / Ranking Systems (CTR, CVR, etc.)
-
-Used in Meta/Google Ads pipelines.
-
-#### 🔹 Models
-
-* Logistic Regression + wide features (industry baseline)
-* GBDTs + LR (Facebook’s approach)
-* Deep CTR models (Wide & Deep, DIN, DIEN)
-* Sequential models (Transformers)
-
-***
-
-## 11. Speech / Voice Assistants
-
-Used in Alexa, Siri, Google Assistant.
-
-#### 🔹 Models
-
-* Whisper
-* Conformer
-* RNN-Transducer
-* Wav2Vec 2.0
-
-***
-
-## 12. Reinforcement Learning Systems
-
-Used in ranking, ads bidding, robotics, auto-ML.
-
-#### 🔹 Models
-
-* Deep Q-Networks (DQN)
-* PPO (Proximal Policy Optimization)
-* A3C / A2C
-* AlphaZero-style architectures
-
-***
-
-## 13. Generative Models (text + image)
-
-Used in synthetic data, augmentation, ad-copy generation, coding assistants.
-
-#### 🔹Models
-
-* GPT family
-* LLaMA / Mistral / Falcon
-* Diffusion Models (Stable Diffusion, DDPM)
-* GANs (CycleGAN, StyleGAN)
-
-***
-
-## 14. ML for Privacy / Security
-
-Used in privacy-preserving ML, PII hiding, anomaly detection.
-
-#### 🔹 Models
-
-* DP-SGD (Differential privacy training)
-* Homomorphic Encryption ML
-* Autoencoders for data anonymization
-* CNN/RCNN for image PII hiding
-* Named-entity transformers for text redaction
-
-***
-
-## 15. Ranking & Scoring Systems
-
-Used in search, recommendations, feeds.
-
-#### 🔹 Models
-
-* Learning-to-Rank (LambdaMART, RankNet, ListNet)
-* Pointwise, Pairwise, Listwise ranking models
-* Transformer rankers
-
-***
-
-## 👉 Want this turned into a cheat-sheet PDF?
-
-<br>
-
-I can convert this into a 2-page interview-ready PDF with:
-
-* Model categories
-* When to use which
-* Interview phrases to justify your choice
-* Diagram examples
-* Use-case snippets
-
-<br>
-
-Just say “make it a PDF”.
+**42. How would you design a price prediction system for real estate?**
+> **Features**: Location, size, amenities, market trends. **Model**: GBM or neural net. **Evaluation**: MAPE. **Explain**: Use SHAP for interpretability.

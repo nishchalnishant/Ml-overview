@@ -1,6 +1,48 @@
-# Machine learning design interview
+# Machine Learning System Design: Master Framework
 
-## Chapter 1 – Machine Learning Primer covers the foundations required for ML system-design interviews.
+> [!IMPORTANT]
+> **The ML System Design Interview Checklist**
+>
+> Use this 7-step framework to lead any ML design discussion. 
+> 
+> 1. **Clarification & Scoping:**
+>    - [] What is the core business objective? (e.g., maximize clicks, minimize churn).
+>    - [] Success Metrics: Online (CTR, revenue) vs. Offline (AUC, nDCG).
+>    - [] Constraints: Latency (P99 < 100ms), Scale (1B users), fresh data frequency.
+> 
+> 2. **Data & Labels:**
+>    - [] Label generation (Explicit vs. Implicit).
+>    - [] Handling data imbalance (resampling, class weights).
+>    - [] Sampling strategy (Negative sampling, Importance sampling).
+> 
+> 3. **Feature Engineering:**
+>    - [] Categorical (One-hot, Hashing, Embeddings).
+>    - [] Numerical (Scaling, Binning, Interaction features).
+>    - [] Feature Store logic (consistent training/serving).
+> 
+> 4. **Model Architecture:**
+>    - [] Baseline (Logistic Regression, GBDT).
+>    - [] Candidate Generation (Two-tower, ANN search).
+>    - [] Ranking (Deep Cross Networks, Transformers).
+> 
+> 5. **Training Pipeline:**
+>    - [] Loss functions (Cross-entropy, Weighted MSE, Pairwise Hinge).
+>    - [] Evaluation strategy (Time-series split, Rolling window).
+> 
+> 6. **Serving & Infrastructure:**
+>    - [] Online vs. Batch inference.
+>    - [] Model compression (Quantization, Distillation).
+>    - [] Caching (Redis) for high-frequency features.
+> 
+> 7. **Post-Production:**
+>    - [] Monitoring for Data/Concept Drift.
+>    - [] A/B testing & Shadow deployments.
+>    - [] Continual learning/retraining strategy.
+
+---
+
+## Chapter 1: Machine Learning Primer
+This chapter covers the foundations required for ML system-design interviews.
 
 1. Feature Selection & Engineering
    * One-Hot Encoding – definition, issues (tree models & sparsity), best practices, usage at Uber.
@@ -36,7 +78,7 @@ Here are the detailed notes of Chapter 2 – Common Recommendation System Compon
 
 ***
 
-### 🧠 Chapter 2 – Common Recommendation System Components
+### Chapter 2 – Common Recommendation System Components
 
 1\. Overview
 
@@ -241,7 +283,7 @@ Sample design questions:
 
 ***
 
-#### 📚 Summary
+#### Summary
 
 * Recommendation systems = Candidate Generation + Ranking + Re-ranking
 * Must balance accuracy, freshness, diversity, and fairness
@@ -263,7 +305,7 @@ Here are the detailed notes of Chapter 3 – Search System Design from _Machine 
 
 <br>
 
-#### 1️⃣  Introduction
+#### 1⃣  Introduction
 
 <br>
 
@@ -294,7 +336,7 @@ High-level pipeline
 
 ***
 
-#### 2️⃣  Keyword vs. Semantic Search
+#### 2⃣  Keyword vs. Semantic Search
 
 | Aspect         | Keyword (Lexical)                      | Semantic (Embedding-based)           |
 | -------------- | -------------------------------------- | ------------------------------------ |
@@ -311,7 +353,7 @@ Example – Onebar semantic search
 
 ***
 
-#### 3️⃣  Core ML Building Blocks
+#### 3⃣  Core ML Building Blocks
 
 | Step                | Purpose                                                                 | Example                     |
 | ------------------- | ----------------------------------------------------------------------- | --------------------------- |
@@ -323,7 +365,7 @@ Example – Onebar semantic search
 
 ***
 
-#### 4️⃣  Ad / Search Ranking Example
+#### 4⃣  Ad / Search Ranking Example
 
 <br>
 
@@ -349,7 +391,7 @@ Feature update issue
 
 ***
 
-#### 5️⃣  Training–Serving Skew
+#### 5⃣  Training–Serving Skew
 
 <br>
 
@@ -369,7 +411,7 @@ _Spotify example:_ four-month bug fixed via feature logging + validation.
 
 ***
 
-#### 6️⃣  Scaling Retrieval Service
+#### 6⃣  Scaling Retrieval Service
 
 <br>
 
@@ -382,7 +424,7 @@ Scalability patterns
 
 ***
 
-#### 7️⃣  LinkedIn Talent Search Case Study
+#### 7⃣  LinkedIn Talent Search Case Study
 
 <br>
 
@@ -403,7 +445,7 @@ Key improvements
 
 ***
 
-#### 8️⃣  Embedding Serving at LinkedIn (“Pensive”)
+#### 8⃣  Embedding Serving at LinkedIn (“Pensive”)
 
 | Layer             | Function                                             |
 | ----------------- | ---------------------------------------------------- |
@@ -414,7 +456,7 @@ Key improvements
 
 ***
 
-#### 9️⃣  Airbnb Search Ranking Case
+#### 9⃣  Airbnb Search Ranking Case
 
 <br>
 
@@ -432,7 +474,7 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ***
 
-#### 🔟  Common Challenges & Remedies
+#### Common Challenges & Remedies
 
 | Challenge             | Mitigation                             |
 | --------------------- | -------------------------------------- |
@@ -445,7 +487,7 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ***
 
-#### 1️⃣1️⃣  Interview Angles
+#### 1⃣1⃣  Interview Angles
 
 1. Design LinkedIn-like talent search ranking.
 2. How to combine keyword and semantic retrieval results?
@@ -456,7 +498,7 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ***
 
-#### 🧩  Key Takeaways
+#### Key Takeaways
 
 | Concept         | Summary                                     |
 | --------------- | ------------------------------------------- |
@@ -772,7 +814,7 @@ Here are the detailed notes of Chapter 5 – Feed Ranking System from _“Machin
 
 ***
 
-### 📰 Chapter 5 — Feed Ranking System
+### Chapter 5 — Feed Ranking System
 
 <br>
 
@@ -1111,7 +1153,7 @@ Key components:
 
 ***
 
-#### 🧩 Key Takeaways
+#### Key Takeaways
 
 | Concept          | Summary                                          |
 | ---------------- | ------------------------------------------------ |
@@ -1127,7 +1169,7 @@ Here are the detailed notes of Chapter 6 – Ads Ranking System from _“Machine
 
 ***
 
-### 💰 Chapter 6 — Ads Ranking System
+### Chapter 6 — Ads Ranking System
 
 <br>
 
@@ -1194,7 +1236,7 @@ A: bid = 2, pCTR = 0.1 → score = 0.2
 B: bid = 3, pCTR = 0.05 → score = 0.15
 ```
 
-➡ A wins, pays (0.15 / 0.1) = $1.5 per click.
+ A wins, pays (0.15 / 0.1) = $1.5 per click.
 
 ***
 

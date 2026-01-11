@@ -2,7 +2,7 @@
 
 Here are detailed notes on the most common loss functions used in deep learning, organized by the type of problem you're solving.
 
-#### 📜 What is a Loss Function?
+#### What is a Loss Function?
 
 A loss function (or cost function) is a way to measure how "wrong" your model's prediction is compared to the actual target. It's a single number that quantifies the error for a given set of weights.
 
@@ -119,7 +119,7 @@ This is a common point of confusion. What if an input can have _multiple_ correc
 
 ***
 
-#### 🚀 Quick Summary: How to Choose
+#### Quick Summary: How to Choose
 
 | **Problem Type**                                            | **Model's Last Layer**         | **Loss Function to Use**                                                                                       |
 | ----------------------------------------------------------- | ------------------------------ | -------------------------------------------------------------------------------------------------------------- |

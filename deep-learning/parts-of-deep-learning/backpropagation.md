@@ -2,7 +2,7 @@
 
 Here are detailed notes on common hidden layers and regularization techniques used in deep learning.
 
-### 🧠 Part 1: Types of Hidden Layers
+### Part 1: Types of Hidden Layers
 
 These layers are the "brains" of the network, designed to find patterns in specific types of data.
 
@@ -78,7 +78,7 @@ These layers are the "brains" of the network, designed to find patterns in speci
 
 ***
 
-### 🔒 Part 2: Regularization Techniques
+### Part 2: Regularization Techniques
 
 These are not "layers" that learn, but _techniques_ (often implemented as layers) that are added to a network to prevent overfitting. Overfitting is when your model "memorizes" the training data but fails to generalize to new, unseen data.
 
@@ -118,7 +118,7 @@ These are not "layers" that learn, but _techniques_ (often implemented as layers
 
 ***
 
-#### 🚀 Summary: When to Use What
+#### Summary: When to Use What
 
 | **Technique** | **Type**       | **Use For...**                                                                                    |
 | ------------- | -------------- | ------------------------------------------------------------------------------------------------- |
