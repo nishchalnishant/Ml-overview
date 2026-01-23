@@ -2,7 +2,7 @@
 
 Here are detailed notes on the models used in Natural Language Processing (NLP), from foundational statistical methods to modern Transformer architectures.
 
-#### What is an NLP Model?
+#### <mark style="color:$danger;">What is an NLP Model?</mark>
 
 In NLP, a "model" is a system designed to understand, interpret, and generate human language. The primary challenge is converting "words" (which are ambiguous and context-dependent) into a numerical format that a computer can process.
 
@@ -15,11 +15,11 @@ The evolution of these models is a story of capturing context:
 
 ***
 
-#### 1.  Foundational Statistical Models
+#### <mark style="color:$danger;">1. Foundational Statistical Models</mark>
 
 These models are "classic," fast, and work well for simple tasks. They treat text as a "bag" or collection of words, ignoring order.
 
-**### Bag-of-Words (BoW)**
+<mark style="color:yellow;">**### Bag-of-Words (BoW)**</mark>
 
 * How it Works: Creates a vector for a document by counting the frequency of every word.
 * Use Case: Basic text classification (e.g., spam vs. not-spam), document clustering.
@@ -31,7 +31,7 @@ These models are "classic," fast, and work well for simple tasks. They treat tex
   * Huge, sparse vectors: The vector size is the entire vocabulary (100,000+ words), and most entries are zero.
   * Gives too much weight to common words (like "the," "is," "a").
 
-**### TF-IDF (Term Frequency - Inverse Document Frequency)**
+<mark style="color:yellow;">**### TF-IDF (Term Frequency - Inverse Document Frequency)**</mark>
 
 * How it Works: An upgrade to BoW. It still counts words (Term Frequency) but then _down-weights_ words that are common across _all_ documents (Inverse Document Frequency).
 * Core Idea: A word is important if it appears _frequently_ in one document but _rarely_ in all other documents.
@@ -44,11 +44,11 @@ These models are "classic," fast, and work well for simple tasks. They treat tex
 
 ***
 
-#### 2.  Word Embedding Models
+#### <mark style="color:$danger;">2. Word Embedding Models</mark>
 
 These models were a breakthrough, as they learned to represent the _meaning_ and _relationships_ of words.
 
-**### Word2Vec & GloVe**
+<mark style="color:yellow;">**### Word2Vec & GloVe**</mark>
 
 * How it Works: Both are algorithms that create a "word embedding"—a dense vector (e.g., 300 dimensions) for every word in the vocabulary. Words with similar meanings are "plotted" close together in this vector space.
 * Key Feature: They enable vector math for words. The classic example is: `Vector("King") - Vector("Man") + Vector("Woman") ≈ Vector("Queen")`.
@@ -62,11 +62,11 @@ These models were a breakthrough, as they learned to represent the _meaning_ and
 
 ***
 
-#### 3.  Sequential Models
+#### <mark style="color:red;">3. Sequential Models</mark>
 
 These models were the first to treat language as a _sequence_, where order matters.
 
-**### RNN, LSTM, & GRU**
+<mark style="color:yellow;">**### RNN, LSTM, & GRU**</mark>
 
 * RNN (Recurrent Neural Network): A layer with a "loop" that processes one word at a time, passing a "memory" (hidden state) to the next step.
 * LSTM & GRU (Long Short-Term Memory & Gated Recurrent Unit): Sophisticated RNNs that use "gates" to control this memory. They can decide what to _forget_, what to _remember_, and what to _output_.
@@ -82,17 +82,17 @@ Here is a detailed explanation of the inner workings of RNNs, LSTMs, and GRUs.
 
 ***
 
-#### 1. Simple Recurrent Neural Network (RNN)
+#### <mark style="color:red;">1. Simple Recurrent Neural Network (RNN)</mark>
 
 This is the most basic version and the foundation for the others.
 
-** The Core Idea: The Loop**
+\*\* The Core Idea: The Loop\*\*
 
 An RNN cell processes one item from a sequence (e.g., one word) and combines it with a "memory" of the _previous_ item. It then passes this updated memory to the next step.
 
 Think of it as a person reading a sentence one word at a time, constantly updating their "summary" of what they've read so far.
 
-** How It Works**
+\*\* How It Works\*\*
 
 At each time step `t`, the RNN cell performs two simple tasks:
 
@@ -107,7 +107,7 @@ At each time step `t`, the RNN cell performs two simple tasks:
 
 This new hidden state $$ $h_t$ $$ is then passed as the "memory" to the next time step, $$ $t+1$ $$. The _same set of weights_ ($$ $W_{xh}$ $$, $$ $W_{hh}$ $$, etc.) is used at every single step.
 
-** The Fatal Flaw: The Vanishing Gradient Problem**
+\*\* The Fatal Flaw: The Vanishing Gradient Problem\*\*
 
 An RNN's memory is very short. To train the network, you use "backpropagation through time," which is just regular backpropagation unrolled across the sequence.
 
@@ -117,17 +117,17 @@ An RNN's memory is very short. To train the network, you use "backpropagation th
 
 ***
 
-#### 2. Long Short-Term Memory (LSTM)
+#### <mark style="color:red;">2. Long Short-Term Memory (LSTM)</mark>
 
 LSTMs were designed _specifically_ to solve the vanishing gradient problem.
 
-** The Core Idea: A "Conveyor Belt" Memory**
+\*\* The Core Idea: A "Conveyor Belt" Memory\*\*
 
 An LSTM introduces a dedicated, separate "memory line" called the Cell State ($$ $c_t$ $$). Think of this as a conveyor belt that carries information down the sequence.
 
 The LSTM has special "gates" that can _learn_ to add information to this belt, or remove information from it. This system gives it a stable, long-term memory.
 
-** How It Works**
+\*\* How It Works\*\*
 
 An LSTM cell has two states it passes to the next step:
 
@@ -136,51 +136,59 @@ An LSTM cell has two states it passes to the next step:
 
 It uses three "gates" (which are just small sigmoid neural networks) to control this memory. A sigmoid function outputs a number between 0 (block everything) and 1 (let everything through).
 
-1.  Forget Gate:
-   * Question: "What parts of the _old_ long-term memory ($$ $c_{t-1}$ $$) should I forget?"
-   * How: It looks at the new input $$ $x_t$ $$ and the last hidden state $$ $h_{t-1}$ $$.
-   * Example: If it sees a new sentence subject (e.g., "A new dog..."), it might learn to "forget" the _previous_ sentence's subject. It outputs a "forget vector" (e.g., `[1, 1, 0, ...]`) to multiply with $$ $c_{t-1}$ $$.
-2.  Input Gate:
-   * Question: "What _new_ information from the current input should I add to the long-term memory?"
-   * How: It has two parts:
-     * An "input" sigmoid gate decides _which_ values to update.
-     * A `tanh` layer creates a "candidate" vector of new information ($$ $\tilde{c}_t$ $$) to be added.
-   * Example: If it sees the word "dog," the candidate vector is the "dog" information. The input gate decides to "add" this information.
-3.  Output Gate:
-   * Question: "What part of my long-term memory is relevant for my output _right now_?"
-   * How: It looks at the new input $$ $x_t$ $$ and last hidden state $$ $h_{t-1}$ $$ to decide what to output from the _newly updated_ cell state $$ $c_t$ $$.
-   * Example: The cell state might hold "brown dog, female." The _current_ task might only need to know "dog." The output gate learns to filter the cell state and produce the final hidden state $$ $h_t$ $$ (the "working memory").
+1. Forget Gate:
+
+* Question: "What parts of the _old_ long-term memory ($$ $c_{t-1}$ $$) should I forget?"
+* How: It looks at the new input $$ $x_t$ $$ and the last hidden state $$ $h_{t-1}$ $$.
+* Example: If it sees a new sentence subject (e.g., "A new dog..."), it might learn to "forget" the _previous_ sentence's subject. It outputs a "forget vector" (e.g., `[1, 1, 0, ...]`) to multiply with $$ $c_{t-1}$ $$.
+
+2. Input Gate:
+
+* Question: "What _new_ information from the current input should I add to the long-term memory?"
+* How: It has two parts:
+  * An "input" sigmoid gate decides _which_ values to update.
+  * A `tanh` layer creates a "candidate" vector of new information ($$ $\tilde{c}_t$ $$) to be added.
+* Example: If it sees the word "dog," the candidate vector is the "dog" information. The input gate decides to "add" this information.
+
+3. Output Gate:
+
+* Question: "What part of my long-term memory is relevant for my output _right now_?"
+* How: It looks at the new input $$ $x_t$ $$ and last hidden state $$ $h_{t-1}$ $$ to decide what to output from the _newly updated_ cell state $$ $c_t$ $$.
+* Example: The cell state might hold "brown dog, female." The _current_ task might only need to know "dog." The output gate learns to filter the cell state and produce the final hidden state $$ $h_t$ $$ (the "working memory").
 
 Why this works: The cell state "conveyor belt" has very simple math (just addition and multiplication). This allows the gradient to flow back _almost unchanged_, protected by the gates. The gates _learn_ when to open and close, so the gradient doesn't vanish.
 
 ***
 
-#### 3. Gated Recurrent Unit (GRU)
+#### <mark style="color:$danger;">3. Gated Recurrent Unit (GRU)</mark>
 
 A GRU is a (newer) simplified version of an LSTM. It's the "sleek, modern" version that achieves the same goal with less complexity.
 
-** The Core Idea: Combine and Simplify**
+\*\* The Core Idea: Combine and Simplify\*\*
 
 A GRU works by merging the LSTM's Cell State and Hidden State into a _single_ state $$ $h_t$ $$. It also combines the "forget" and "input" gates into a single gate.
 
-** How It Works**
+\*\* How It Works\*\*
 
 A GRU has only two gates:
 
-1.  Reset Gate ($$ $r_t$ $$):
-   * Question: "How much of the _past_ memory should I ignore when creating my new 'candidate' memory?"
-   * How: It looks at the new input $$ $x_t$ $$ and last hidden state $$ $h_{t-1}$ $$.
-   * Action: This gate decides how much of $$ $h_{t-1}$ $$ to use. If $$ $r_t$ $$ is 0, it _completely ignores_ the past memory, effectively "resetting" for a new context.
-2.  Update Gate ($$ $z_t$ $$):
-   * Question: "What's the balance? How much of the _old_ memory ($$ $h_{t-1}$ $$) should I keep, and how much of the _new_ candidate memory ($$ $\tilde{h}_t$ $$) should I add?"
-   * How: This is the key. It outputs a single value $$ $z_t$ $$ (e.g., 0.8).
-   * Action: It uses $$ $z_t$ $$ to control the new memory:
-     * $$ $h_t = (1 - z_t) \cdot h_{t-1} + z_t \cdot \tilde{h}_t$ $$
-   * Example: If $$ $z_t = 0.8$ $$, the new state is 80% new information and 20% old information. If $$ $z_t = 0.1$ $$, the new state is 10% new information and 90% old information (it's just "carrying over" the old memory).
+1. Reset Gate ($$ $r_t$ $$):
+
+* Question: "How much of the _past_ memory should I ignore when creating my new 'candidate' memory?"
+* How: It looks at the new input $$ $x_t$ $$ and last hidden state $$ $h_{t-1}$ $$.
+* Action: This gate decides how much of $$ $h_{t-1}$ $$ to use. If $$ $r_t$ $$ is 0, it _completely ignores_ the past memory, effectively "resetting" for a new context.
+
+2. Update Gate ($$ $z_t$ $$):
+
+* Question: "What's the balance? How much of the _old_ memory ($$ $h_{t-1}$ $$) should I keep, and how much of the _new_ candidate memory ($$ $\tilde{h}_t$ $$) should I add?"
+* How: This is the key. It outputs a single value $$ $z_t$ $$ (e.g., 0.8).
+* Action: It uses $$ $z_t$ $$ to control the new memory:
+  * $$ $h_t = (1 - z_t) \cdot h_{t-1} + z_t \cdot \tilde{h}_t$ $$
+* Example: If $$ $z_t = 0.8$ $$, the new state is 80% new information and 20% old information. If $$ $z_t = 0.1$ $$, the new state is 10% new information and 90% old information (it's just "carrying over" the old memory).
 
 ***
 
-#### Summary: LSTM vs. GRU vs. RNN
+#### <mark style="color:$danger;">Summary: LSTM vs. GRU vs. RNN</mark>
 
 | **Feature**  | **Simple RNN**                                        | **LSTM (Long Short-Term Memory)**                                                      | **GRU (Gated Recurrent Unit)**                                                  |
 | ------------ | ----------------------------------------------------- | -------------------------------------------------------------------------------------- | ------------------------------------------------------------------------------- |
@@ -193,13 +201,13 @@ A GRU has only two gates:
 
 ***
 
-#### 4.  Transformer-Based Models (The Modern Era)
+#### <mark style="color:$danger;">4. Transformer-Based Models (The Modern Era)</mark>
 
 This architecture (from the 2017 paper "Attention Is All You Need") revolutionized NLP by getting rid of sequential processing and using self-attention.
 
 Core Idea: Instead of a slow, one-word-at-a-time loop, self-attention allows the model to look at _all_ words in the sentence at once and calculate a "relevance score" for every word relative to every other word.
 
-**### BERT (Encoder-Only)**
+<mark style="color:yellow;">**### BERT (Encoder-Only)**</mark>
 
 * Stands For: Bidirectional Encoder Representations from Transformers.
 * How it Works: It's a "stack of encoders" designed to _understand_ text. It reads the entire sentence at once, using self-attention to see both left-and-right context (it's "bidirectional").
@@ -215,7 +223,7 @@ Core Idea: Instead of a slow, one-word-at-a-time loop, self-attention allows the
   * Not a text generator: It's an "encoder," not a "decoder." It's not designed to write new text.
   * Very large and computationally expensive.
 
-**### GPT (Decoder-Only)**
+<mark style="color:yellow;">**### GPT (Decoder-Only)**</mark>
 
 * Stands For: Generative Pre-trained Transformer.
 * How it Works: It's a "stack of decoders" designed to _generate_ text. It's "autoregressive," meaning it only looks at the text from _left-to-right_ (it can't "see the future").
@@ -231,7 +239,7 @@ Core Idea: Instead of a slow, one-word-at-a-time loop, self-attention allows the
   * Can "hallucinate": It's trained to be _plausible_, not _truthful_. It will confidently make up facts.
   * Its "one-way" (unidirectional) nature makes it less suitable for deep understanding tasks than BERT.
 
-**### T5 (Encoder-Decoder)**
+<mark style="color:yellow;">**### T5 (Encoder-Decoder)**</mark>
 
 * Stands For: Text-to-Text Transfer Transformer.
 * How it Works: A "complete" Transformer that has both an Encoder (to understand input) and a Decoder (to generate output).

@@ -2,7 +2,7 @@
 
 Here are detailed notes on the most common optimizers used in deep learning, complete with their pros, cons, and typical use cases.
 
-#### What is an Optimizer?
+#### <mark style="color:$danger;">What is an Optimizer?</mark>
 
 In deep learning, an optimizer is an algorithm used to change the attributes of your neural network, such as weights and learning rates, to minimize the loss function.
 
@@ -10,7 +10,7 @@ The loss function measures how far your model's prediction is from the actual ta
 
 ***
 
-#### 1. Stochastic Gradient Descent (SGD)
+#### <mark style="color:yellow;">1. Stochastic Gradient Descent (SGD)</mark>
 
 This is the most fundamental optimization algorithm. It's the basis for many others.
 
@@ -30,7 +30,7 @@ This is the most fundamental optimization algorithm. It's the basis for many oth
 
 ***
 
-#### 2. SGD with Momentum
+#### <mark style="color:yellow;">2. SGD with Momentum</mark>
 
 This is an improvement on standard SGD that helps it converge faster and more reliably.
 
@@ -49,7 +49,7 @@ This is an improvement on standard SGD that helps it converge faster and more re
 
 ***
 
-#### 3. Adagrad (Adaptive Gradient Algorithm)
+#### <mark style="color:yellow;">3. Adagrad (Adaptive Gradient Algorithm)</mark>
 
 Adagrad is an "adaptive" optimizer, meaning it adapts the learning rate for _each parameter_ individually.
 
@@ -65,7 +65,7 @@ Adagrad is an "adaptive" optimizer, meaning it adapts the learning rate for _eac
 
 ***
 
-#### 4. RMSprop (Root Mean Square Propagation)
+#### <mark style="color:yellow;">4. RMSprop (Root Mean Square Propagation)</mark>
 
 RMSprop was developed to solve Adagrad's "dying learning rate" problem.
 
@@ -82,7 +82,7 @@ RMSprop was developed to solve Adagrad's "dying learning rate" problem.
 
 ***
 
-#### 5. Adam (Adaptive Moment Estimation)
+#### <mark style="color:yellow;">5. Adam (Adaptive Moment Estimation)</mark>
 
 Adam is the most common and popular optimizer today. It essentially combines the best parts of RMSprop and Momentum.
 
@@ -102,7 +102,7 @@ Adam is the most common and popular optimizer today. It essentially combines the
 
 ***
 
-#### 6. AdamW (Adam with Weight Decay)
+#### <mark style="color:yellow;">6. AdamW (Adam with Weight Decay)</mark>
 
 AdamW is a _correction_ to the way Adam handles L2 regularization (also known as "weight decay").
 
@@ -119,7 +119,7 @@ AdamW is a _correction_ to the way Adam handles L2 regularization (also known as
 
 ***
 
-#### Summary: Which Optimizer Should I Choose?
+#### <mark style="color:red;">Summary: Which Optimizer Should I Choose?</mark>
 
 * Start with Adam or AdamW: For most problems, Adam (or AdamW if you are using weight decay) will give you the fastest results and is the easiest to tune.
 * For Computer Vision: If you're not getting the generalization you want from Adam, try SGD with Momentum (or Nesterov Momentum). It often requires a lot more tuning of the learning rate and a "warm-up" schedule, but it can lead to a final model with better test accuracy.

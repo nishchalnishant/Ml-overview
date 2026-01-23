@@ -2,7 +2,7 @@
 
 Here are detailed notes on the activation functions used in deep learning, including what they do, when to use them, and their pros and cons.
 
-#### What is an Activation Function?
+#### <mark style="color:red;">What is an Activation Function?</mark>
 
 An activation function is a mathematical "gate" applied to the output of a neuron (or a layer of neurons). Its primary job is to introduce non-linearity into the network.
 
@@ -14,11 +14,11 @@ Think of it as a "dimmer switch" or "gatekeeper" that decides how much of a neur
 
 ***
 
-#### 1. Functions for Hidden Layers
+#### <mark style="color:red;">1. Functions for Hidden Layers</mark>
 
 These are the functions you use _between_ the input and output layers.
 
-**### ReLU (Rectified Linear Unit)**
+<mark style="color:yellow;">**### ReLU (Rectified Linear Unit)**</mark>
 
 This is the most popular and widely used activation function today.
 
@@ -38,7 +38,7 @@ This is the most popular and widely used activation function today.
 
 ***
 
-**### Leaky ReLU**
+<mark style="color:yellow;">**### Leaky ReLU**</mark>
 
 This is a popular variant of ReLU designed to fix the "Dying ReLU" problem.
 
@@ -57,7 +57,7 @@ This is a popular variant of ReLU designed to fix the "Dying ReLU" problem.
 
 ***
 
-**### ELU (Exponential Linear Unit)**
+<mark style="color:yellow;">**### ELU (Exponential Linear Unit)**</mark>
 
 This is another ReLU variant that aims to be a "best of all worlds" function.
 
@@ -75,7 +75,7 @@ This is another ReLU variant that aims to be a "best of all worlds" function.
 
 ***
 
-**### Tanh (Hyperbolic Tangent)**
+<mark style="color:yellow;">**### Tanh (Hyperbolic Tangent)**</mark>
 
 This was a popular "classic" activation function before ReLU.
 
@@ -90,7 +90,7 @@ This was a popular "classic" activation function before ReLU.
 
 ***
 
-**### Sigmoid (or Logistic)**
+<mark style="color:yellow;">**### Sigmoid (or Logistic)**</mark>
 
 This is the _other_ "classic" function, famous for its "S" shape.
 
@@ -106,11 +106,11 @@ This is the _other_ "classic" function, famous for its "S" shape.
 
 ***
 
-#### 2. Functions for the Output Layer
+#### <mark style="color:$danger;">2. Functions for the Output Layer</mark>
 
 These are special-purpose functions you use _only_ in the final layer of your network. The one you choose depends entirely on your problem.
 
-**### Linear**
+<mark style="color:yellow;">**### Linear**</mark>
 
 * How it Works: It's just $$ $f(x) = x$ $$. It does nothing.
 * Pros:
@@ -122,7 +122,7 @@ These are special-purpose functions you use _only_ in the final layer of your ne
 
 ***
 
-**### Sigmoid**
+<mark style="color:yellow;">**### Sigmoid**</mark>
 
 * How it Works: Squashes the output to be between 0 and 1.
 * When to Use:
@@ -131,7 +131,7 @@ These are special-purpose functions you use _only_ in the final layer of your ne
 
 ***
 
-**### Softmax**
+<mark style="color:yellow;">**### Softmax**</mark>
 
 * How it Works: Takes a vector of _N_ numbers (one for each class) and converts it into a probability distribution. This means each number will be between 0 and 1, and all _N_ numbers will sum up to 1.
 * Pros:
@@ -143,16 +143,16 @@ These are special-purpose functions you use _only_ in the final layer of your ne
 
 ***
 
-#### Summary: How to Choose
+#### <mark style="color:red;">Summary: How to Choose</mark>
 
 Here is a simple rule-of-thumb:
 
-1. For all your Hidden Layers:
+1. <mark style="color:yellow;">For all your Hidden Layers:</mark>
    * Start with ReLU. It's fast, simple, and usually works very well.
    * If your model is slow to train or you suspect "Dying ReLU," switch to Leaky ReLU.
    * If you have extra compute time and want to try for a performance boost, try ELU.
    * _Never_ use Sigmoid or Tanh in hidden layers (unless you're using RNNs).
-2. For your Output Layer:
+2. <mark style="color:yellow;">For your Output Layer:</mark>
    * Regression (predicting a number): Linear
    * Binary Classification (A or B): Sigmoid (1 neuron)
    * Multi-Class Classification (A or B or C...): Softmax (N neurons)

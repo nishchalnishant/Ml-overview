@@ -1,22 +1,21 @@
-# Supervised Learning: From Regression to Ensembles
+# Supervised Learning
 
-> [!TIP]
-> **Supervised Learning Quick Reference**
-> 
-> | **Algorithm** | **Task** | **Complexity (Train)** | **Key Metric** | **Best For** |
-> |---------------|----------|-------------------------|----------------|--------------|
-> | **Linear Reg.** | Regression | $O(p^2 n + p^3)$ | MSE, $R^2$ | Simple, interpretable trends. |
-> | **Logistic Reg.** | Classification | $O(np)$ | Log Loss | Probability estimation, baseline. |
-> | **SVM** | Both | $O(n^2)$ to $O(n^3)$ | Hinge Loss | High-dim, clear margins. |
-> | **Random Forest** | Both | $O(n \log n \cdot p \cdot k)$ | Gini/Entropy | Robust, handles non-linearities. |
-> | **XGBoost/LGBM** | Both | $O(n \log n \cdot p)$ | Log Loss/MSE | SOTA for tabular data. |
-> | **KNN** | Both | $O(1)$ (Lazy) | Accuracy | Small data, complex boundaries. |
-> 
-> *n = samples, p = features, k = trees*
+\[!TIP] **Supervised Learning Quick Reference**
 
----
+| **Algorithm**     | **Task**       | **Complexity (Train)**        | **Key Metric** | **Best For**                      |
+| ----------------- | -------------- | ----------------------------- | -------------- | --------------------------------- |
+| **Linear Reg.**   | Regression     | $O(p^2 n + p^3)$              | MSE, $R^2$     | Simple, interpretable trends.     |
+| **Logistic Reg.** | Classification | $O(np)$                       | Log Loss       | Probability estimation, baseline. |
+| **SVM**           | Both           | $O(n^2)$ to $O(n^3)$          | Hinge Loss     | High-dim, clear margins.          |
+| **Random Forest** | Both           | $O(n \log n \cdot p \cdot k)$ | Gini/Entropy   | Robust, handles non-linearities.  |
+| **XGBoost/LGBM**  | Both           | $O(n \log n \cdot p)$         | Log Loss/MSE   | SOTA for tabular data.            |
+| **KNN**           | Both           | $O(1)$ (Lazy)                 | Accuracy       | Small data, complex boundaries.   |
 
-### **Algorithm**
+> _n = samples, p = features, k = trees_
+
+***
+
+### <mark style="color:$danger;">**Algorithm**</mark>
 
 * **Linear regression**
   * Used to predict a continuous value (such as a price or a probability) based on a set of independent variables.
@@ -42,8 +41,6 @@
     * Linear regression is also sensitive to outliers and may not handle categorical variables well, requiring them to be encoded as numerical values before they can be used as input features.
   *   Maths
 
-
-
       **The Mathematical Model** The basic linear regression model is represented by the equation:
 
       ```
@@ -57,8 +54,6 @@
       * **β0:** The intercept (the value of Y when X is 0).
       * **β1:** The slope (the rate of change of Y with respect to X).
       * **ε:** The error term (the difference between the actual Y value and the predicted Y value).
-
-
 
       **Finding the Best-Fitting Line**
 
@@ -92,15 +87,13 @@
           **Key Concepts**
 
           * **Correlation:** Measures the strength and direction of the linear relationship between two variables.
-          * <mark style="color:red;">**R-squared:**</mark> <mark style="color:red;"></mark><mark style="color:red;">A statistical measure that represents the proportion of the variance in the dependent variable that is explained by the independent variable(s)</mark>
-          * <mark style="color:red;">**Residuals:**</mark> <mark style="color:red;"></mark><mark style="color:red;">The differences between the actual Y values and the predicted Y values.</mark>
+          * <mark style="color:red;">**R-squared:**</mark> <mark style="color:red;">A statistical measure that represents the proportion of the variance in the dependent variable that is explained by the independent variable(s)</mark>
+          * <mark style="color:red;">**Residuals:**</mark> <mark style="color:red;">The differences between the actual Y values and the predicted Y values.</mark>
           * **Assumptions of Linear Regression:**
             * Linearity: The relationship between the variables is linear.
             * Independence: The observations are independent of each other.
             * Homoscedasticity: The variance of the3 residuals is constant across all values of the independent4 variable(s).
             * Normality: The residuals are normally distributed.
-
-
 
 {% code overflow="wrap" fullWidth="true" %}
 ```python
@@ -150,98 +143,37 @@ if __name__ == "__main__":
 ```
 {% endcode %}
 
-
-
 ### <mark style="color:purple;">Metrics</mark>
 
 * <mark style="color:yellow;">**Mean absolute error \[MAE]**</mark>
-  *   **Where**:
-
-      * ( N ) is the total number of observation or data points
-        * ( O\_i ) is the actual or observed value
-        * ( P\_i ) is the predicted value
-      * Measures the average absolute difference between predicted and actual values.
-      * It gives you a sense of how far off your predictions are from the actual values on average.
-      * Unlike Mean Squared Error (MSE), which squares the differences, MAE treats all differences equally, regardless of whether they are overestimations or underestimations.
-      * MAE is less sensitive to outliers compared to MSE because it doesn't amplify large errors.
-      *   **Mathematical Definition:**
-
-          MAE is calculated as the average of the absolute differences between the predicted values and the actual values. Mathematically,1 it's represented as:
-
-          ```
-          MAE = (1/n) * Σ|y_i - ŷ_i| 
-          ```
-
-          Where:
-
-          * `n`: is the number of data points
-          * `y_i`: is the actual value of the i-th data point
-          * `ŷ_i`: is the predicted value of the i-th data point2
-          * `Σ`: denotes the summation over all data points
-
-          **Key Points:**
-
-          * **Absolute Value:** The use of the absolute value function (`|...|`) ensures that all errors are treated as positive, regardless of whether the prediction is overestimated or underestimated. This makes MAE less sensitive to outliers compared to Mean Squared Error (MSE).
-          * **Average Error:** MAE provides a single, interpretable value that represents the average magnitude of the errors made by the model.
-          * **Scale-Dependent:** MAE is measured in the same units as the target variable. This makes it easier to understand the practical significance of the errors.
-
-          **Example:**
-
-          Let's say we have the following actual values and predicted values:
-
-          | Actual (y\_i) | Predicted (ŷ\_i) |
-          | ------------- | ---------------- |
-          | 5             | 4                |
-          | 8             | 9                |
-          | 2             | 3                |
-          | 10            | 8                |
-
-          Calculating MAE:
-
-          1. Calculate the absolute differences: |5 - 4| = 1, |8 - 9| = 1, |2 - 3| = 1, |10 - 8| = 2
-          2. Sum the absolute differences: 1 + 1 + 1 + 2 = 5
-          3. Divide by the number of data points: 5 / 4 = 1.25
-
-          Therefore, the MAE for this example is 1.25.
-
-          **In essence, MAE provides a straightforward and robust measure of the average error magnitude in a regression model, making it a valuable tool for evaluating model performance.**
-
-
-*   <mark style="color:yellow;">**Mean squared error \[MSE]**</mark>
-
-    * **Where**:
-      * ( N ) is the total number of data points
-      * ( Y\_i ) is the actual value of the dependent variables for the ith data point
-      * ( \hat{Y\_i} ) is the predicted value of the dependent variable for the ith data point
-    * Commonly used metric in regression analysis that measures the average of the squared differences between predicted and actual values.
-    * Provides a measure of how well a regression model is able to approximate the relationship between the independent and dependent variables.
-    *   Here's what MSE represents:
-
-        * It quantifies the average of the squared differences between predicted and actual values. Larger errors contribute more to the metric due to the squaring operation.
-        * It <mark style="color:red;">provides a way to penalize large errors more heavily than smaller ones.</mark>
-        * It is always a non-negative value, with lower values indicating better model performance.
-
-
+  * **Where**:
+    * ( N ) is the total number of observation or data points
+      * ( O\_i ) is the actual or observed value
+      * ( P\_i ) is the predicted value
+    * Measures the average absolute difference between predicted and actual values.
+    * It gives you a sense of how far off your predictions are from the actual values on average.
+    * Unlike Mean Squared Error (MSE), which squares the differences, MAE treats all differences equally, regardless of whether they are overestimations or underestimations.
+    * MAE is less sensitive to outliers compared to MSE because it doesn't amplify large errors.
     *   **Mathematical Definition:**
 
-        MSE is calculated as the average of the squared differences between the predicted values and the actual values. Mathematically, it's represented as:
+        MAE is calculated as the average of the absolute differences between the predicted values and the actual values. Mathematically,1 it's represented as:
 
         ```
-        MSE = (1/n) * Σ(y_i - ŷ_i)^2
+        MAE = (1/n) * Σ|y_i - ŷ_i| 
         ```
 
         Where:
 
         * `n`: is the number of data points
         * `y_i`: is the actual value of the i-th data point
-        * `ŷ_i`: is the predicted value of the i-th data point1
+        * `ŷ_i`: is the predicted value of the i-th data point2
         * `Σ`: denotes the summation over all data points
 
         **Key Points:**
 
-        * **Squared Differences:** The squaring of the differences between actual and predicted values emphasises larger errors, making MSE more sensitive to outliers compared to Mean Absolute Error (MAE).
-        * **Average Error:** MSE provides a single, interpretable value representing the average squared error of the model's predictions.
-        * **Scale-Dependent:** MSE is measured in squared units of the target variable, which might not be directly interpretable in the same context as the original data.
+        * **Absolute Value:** The use of the absolute value function (`|...|`) ensures that all errors are treated as positive, regardless of whether the prediction is overestimated or underestimated. This makes MAE less sensitive to outliers compared to Mean Squared Error (MSE).
+        * **Average Error:** MAE provides a single, interpretable value that represents the average magnitude of the errors made by the model.
+        * **Scale-Dependent:** MAE is measured in the same units as the target variable. This makes it easier to understand the practical significance of the errors.
 
         **Example:**
 
@@ -254,73 +186,117 @@ if __name__ == "__main__":
         | 2             | 3                |
         | 10            | 8                |
 
-        Calculating MSE:
+        Calculating MAE:
 
-        1. Calculate the squared differences: (5 - 4)^2 = 1, (8 - 9)^2 = 1, (2 - 3)^2 = 1, (10 - 8)^2 = 4
-        2. Sum the squared differences: 1 + 1 + 1 + 4 = 7
-        3. Divide by the number of data points: 7 / 4 = 1.75
+        1. Calculate the absolute differences: |5 - 4| = 1, |8 - 9| = 1, |2 - 3| = 1, |10 - 8| = 2
+        2. Sum the absolute differences: 1 + 1 + 1 + 2 = 5
+        3. Divide by the number of data points: 5 / 4 = 1.25
 
-        Therefore, the MSE for this example is 1.75.
+        Therefore, the MAE for this example is 1.25.
 
-        **In essence, MSE provides a measure of the average squared error in a regression model, emphasizing larger errors. It's commonly used as a loss function in linear regression due to its mathematical properties that make it easier to optimize.**
+        **In essence, MAE provides a straightforward and robust measure of the average error magnitude in a regression model, making it a valuable tool for evaluating model performance.**
+* <mark style="color:yellow;">**Mean squared error \[MSE]**</mark>
+  * **Where**:
+    * ( N ) is the total number of data points
+    * ( Y\_i ) is the actual value of the dependent variables for the ith data point
+    * ( \hat{Y\_i} ) is the predicted value of the dependent variable for the ith data point
+  * Commonly used metric in regression analysis that measures the average of the squared differences between predicted and actual values.
+  * Provides a measure of how well a regression model is able to approximate the relationship between the independent and dependent variables.
+  * Here's what MSE represents:
+    * It quantifies the average of the squared differences between predicted and actual values. Larger errors contribute more to the metric due to the squaring operation.
+    * It <mark style="color:red;">provides a way to penalize large errors more heavily than smaller ones.</mark>
+    * It is always a non-negative value, with lower values indicating better model performance.
+  *   **Mathematical Definition:**
 
+      MSE is calculated as the average of the squared differences between the predicted values and the actual values. Mathematically, it's represented as:
 
-*   <mark style="color:yellow;">**Root mean squared error \[RMSE]**</mark>
+      ```
+      MSE = (1/n) * Σ(y_i - ŷ_i)^2
+      ```
 
-    * **Where**:
-      * ( N ) is the total number of data points
-      * ( Y\_i ) is the actual value of the dependent variable for the ith data point
-      * ( \hat{Y\_i} ) is the predicted value of the dependent variable for the ith data point
-    * Widely used metric in regression analysis that provides a measure of the average magnitude of the error between predicted and actual values.
-    * It p<mark style="color:red;">rovides an error measure in the same units as the target variable, making it easy to interpret.</mark>
-    * It quantifies the typical or root average error between the predicted and actual values.
+      Where:
 
+      * `n`: is the number of data points
+      * `y_i`: is the actual value of the i-th data point
+      * `ŷ_i`: is the predicted value of the i-th data point1
+      * `Σ`: denotes the summation over all data points
 
+      **Key Points:**
 
-    *   **Mathematical Definition:**
+      * **Squared Differences:** The squaring of the differences between actual and predicted values emphasises larger errors, making MSE more sensitive to outliers compared to Mean Absolute Error (MAE).
+      * **Average Error:** MSE provides a single, interpretable value representing the average squared error of the model's predictions.
+      * **Scale-Dependent:** MSE is measured in squared units of the target variable, which might not be directly interpretable in the same context as the original data.
 
-        RMSE is the square root of the average of the squared differences between the predicted values and the actual values. Mathematically,1 it's represented as:
+      **Example:**
 
-        ```
-        RMSE = √[(1/n) * Σ(y_i - ŷ_i)^2]
-        ```
+      Let's say we have the following actual values and predicted values:
 
-        Where:
+      | Actual (y\_i) | Predicted (ŷ\_i) |
+      | ------------- | ---------------- |
+      | 5             | 4                |
+      | 8             | 9                |
+      | 2             | 3                |
+      | 10            | 8                |
 
-        * `n`: is the number of data points
-        * `y_i`: is the actual value of the i-th data point
-        * `ŷ_i`: is the predicted value of the i-th data point2
-        * `Σ`: denotes the summation over all data points
+      Calculating MSE:
 
-        **Key Points:**
+      1. Calculate the squared differences: (5 - 4)^2 = 1, (8 - 9)^2 = 1, (2 - 3)^2 = 1, (10 - 8)^2 = 4
+      2. Sum the squared differences: 1 + 1 + 1 + 4 = 7
+      3. Divide by the number of data points: 7 / 4 = 1.75
 
-        * **Squared Differences:** Similar to MSE, RMSE emphasises larger errors due to the squaring of the differences.
-        * **Square Root:** Taking the square root of the mean squared error brings the units of RMSE back to the same units as the target variable, making it more interpretable.
-        * **Sensitivity to Outliers:** Like MSE, RMSE is sensitive to outliers.
+      Therefore, the MSE for this example is 1.75.
 
-        **Example:**
+      **In essence, MSE provides a measure of the average squared error in a regression model, emphasizing larger errors. It's commonly used as a loss function in linear regression due to its mathematical properties that make it easier to optimize.**
+* <mark style="color:yellow;">**Root mean squared error \[RMSE]**</mark>
+  * **Where**:
+    * ( N ) is the total number of data points
+    * ( Y\_i ) is the actual value of the dependent variable for the ith data point
+    * ( \hat{Y\_i} ) is the predicted value of the dependent variable for the ith data point
+  * Widely used metric in regression analysis that provides a measure of the average magnitude of the error between predicted and actual values.
+  * It p<mark style="color:red;">rovides an error measure in the same units as the target variable, making it easy to interpret.</mark>
+  * It quantifies the typical or root average error between the predicted and actual values.
+  *   **Mathematical Definition:**
 
-        Let's use the same example as in the MSE explanation:
+      RMSE is the square root of the average of the squared differences between the predicted values and the actual values. Mathematically,1 it's represented as:
 
-        | Actual (y\_i) | Predicted (ŷ\_i) |
-        | ------------- | ---------------- |
-        | 5             | 4                |
-        | 8             | 9                |
-        | 2             | 3                |
-        | 10            | 8                |
+      ```
+      RMSE = √[(1/n) * Σ(y_i - ŷ_i)^2]
+      ```
 
-        Calculating RMSE:
+      Where:
 
-        1. Calculate the squared differences: (5 - 4)^2 = 1, (8 - 9)^2 = 1, (2 - 3)^2 = 1, (10 - 8)^2 = 4
-        2. Sum the squared differences: 1 + 1 + 1 + 4 = 7
-        3. Divide by the number of data points: 7 / 4 = 1.75
-        4. Take the square root: √1.75 ≈ 1.32
+      * `n`: is the number of data points
+      * `y_i`: is the actual value of the i-th data point
+      * `ŷ_i`: is the predicted value of the i-th data point2
+      * `Σ`: denotes the summation over all data points
 
-        Therefore, the RMSE for this example is approximately 1.32.
+      **Key Points:**
 
-        **In essence, RMSE provides a measure of the average error magnitude in the same units as the target variable, making it a widely used metric for evaluating the performance of regression models.**
+      * **Squared Differences:** Similar to MSE, RMSE emphasises larger errors due to the squaring of the differences.
+      * **Square Root:** Taking the square root of the mean squared error brings the units of RMSE back to the same units as the target variable, making it more interpretable.
+      * **Sensitivity to Outliers:** Like MSE, RMSE is sensitive to outliers.
 
+      **Example:**
 
+      Let's use the same example as in the MSE explanation:
+
+      | Actual (y\_i) | Predicted (ŷ\_i) |
+      | ------------- | ---------------- |
+      | 5             | 4                |
+      | 8             | 9                |
+      | 2             | 3                |
+      | 10            | 8                |
+
+      Calculating RMSE:
+
+      1. Calculate the squared differences: (5 - 4)^2 = 1, (8 - 9)^2 = 1, (2 - 3)^2 = 1, (10 - 8)^2 = 4
+      2. Sum the squared differences: 1 + 1 + 1 + 4 = 7
+      3. Divide by the number of data points: 7 / 4 = 1.75
+      4. Take the square root: √1.75 ≈ 1.32
+
+      Therefore, the RMSE for this example is approximately 1.32.
+
+      **In essence, RMSE provides a measure of the average error magnitude in the same units as the target variable, making it a widely used metric for evaluating the performance of regression models.**
 * **R&#x20;**<mark style="color:yellow;">**squared**</mark>
   * **Where**:
     * <mark style="color:red;">( SSR ) is the sum of squared residuals (the differences between predicted and actual values).</mark>
@@ -330,19 +306,16 @@ if __name__ == "__main__":
   * A statistical measure used in regression analysis to evaluate the goodness of fit of a model to the data.
   * It provides insights into how well the model explains the variance in the dependent variable.
   * It should be used in conjunction with other metrics and domain knowledge to gain a comprehensive understanding of the model's performance.
-  * <mark style="color:red;">**R-squared**</mark> <mark style="color:red;"></mark><mark style="color:red;">is a value between 0 and 1, where:</mark>
+  * <mark style="color:red;">**R-squared**</mark> <mark style="color:red;">is a value between 0 and 1, where:</mark>
     * 0: The model does not explain any of the variability in the dependent variable.
     * 1: The model perfectly explains the variability in the dependent variable.
   * **What R-squared represents**:
     * <mark style="color:red;">It measures the proportion of the variance in the dependent variable that is predictable from the independent variable(s) in the model.</mark>
     * A higher R-squared value indicates a better fit, meaning that a larger proportion of the variability in the dependent variable is explained by the model.
-  *   **R-Squared limitations**:
-
-      * It can be artificially inflated by adding more independent variables to the model, even if they don't have a meaningful relationship with the dependent variable.
-      * It doesn't indicate the causality of relationships; it only measures the strength of association.
-      * It may not be the best metric for models with non-linear relationships or complex patterns.
-
-
+  * **R-Squared limitations**:
+    * It can be artificially inflated by adding more independent variables to the model, even if they don't have a meaningful relationship with the dependent variable.
+    * It doesn't indicate the causality of relationships; it only measures the strength of association.
+    * It may not be the best metric for models with non-linear relationships or complex patterns.
   *   <mark style="color:yellow;">**R-squared (R²)**</mark>
 
       R-squared is a statistical measure that represents the proportion of the variance in the dependent variable that is predictable from the independent variable(s).1 In simpler terms, it tells us how well our regression model fits the observed data.
@@ -371,7 +344,7 @@ if __name__ == "__main__":
       **Interpretation:**
 
       * **R² ranges from 0 to 1:**
-        * <mark style="color:red;">**R² = 0:**</mark> <mark style="color:red;"></mark><mark style="color:red;">The model explains none of the variability in the dependent variable.</mark>
+        * <mark style="color:red;">**R² = 0:**</mark> <mark style="color:red;">The model explains none of the variability in the dependent variable.</mark>
         * **R² = 1:** The model explains all of the variability in <mark style="color:red;">the dependent variable.2</mark>
       * <mark style="color:red;">**Higher R² values generally indicate a better fit:**</mark> A higher R² suggests that the model is better at predicting the dependent variable based on the independent variables.
 
@@ -406,58 +379,47 @@ if __name__ == "__main__":
       Therefore, the R² for this example is approximately 0.807, which means that the model explains about 80.7% of the variability in the dependent variable.
 
       **In essence, R-squared provides a valuable metric for assessing the goodness-of-fit of a regression model by quantifying the proportion of variance explained by the model.**
-*   <mark style="color:yellow;">**Adjusted R squared**</mark>
+* <mark style="color:yellow;">**Adjusted R squared**</mark>
+  * **Where**:
+  * ( R^2 ) is the standard R-value
+  * ( N ) is the number of observations or data points
+  * ( K ) is the number of independent variables in the model
+  * Modified version of the standard R-squared (coefficient of determination) that takes into account the number of independent variables in a regression model.
+  * It is particularly useful when comparing models with different numbers of predictors.
+  * Here's what adjusted R-squared represents:
+    * <mark style="color:red;">It provides a more accurate measure of the model's goodness of fit, especially when comparing models with different numbers of predictors.</mark>
+    * It penalizes the addition of unnecessary independent variables to the model. As ( K ) increases, the penalty term ( \frac{(N-1)}{(N-K-1)} ) decreases, which means that Adjusted R-squared becomes closer to R-squared.
+  * The main difference between R-squared and Adjusted R-squared is that the latter takes into account the complexity of the model. It provides a more conservative estimate of the proportion of variance explained by the independent variables.
+  * While Adjusted R-squared is a useful metric, it should be used in conjunction with other evaluation criteria and domain knowledge to make informed decisions about model selection and performance.
+  * Maths --
+    * R-squared is a valuable metric for assessing the goodness-of-fit of a regression model, but it has a limitation: it tends to increase as you add more independent variables to the model, even if those variables don't actually improve the model's predictive power.
+    * This can lead to overfitting, where the model performs well on the training data but poorly on new, unseen data.
+    * **Adjusted R-squared addresses this limitation by penalizing the model for including irrelevant predictors.**
+    *   **Mathematical Definition:**
 
-    * **Where**:
-    * ( R^2 ) is the standard R-value
-    * ( N ) is the number of observations or data points
-    * ( K ) is the number of independent variables in the model
-    * Modified version of the standard R-squared (coefficient of determination) that takes into account the number of independent variables in a regression model.
-    * It is particularly useful when comparing models with different numbers of predictors.
-    * Here's what adjusted R-squared represents:
-      * <mark style="color:red;">It provides a more accurate measure of the model's goodness of fit, especially when comparing models with different numbers of predictors.</mark>
-      * It penalizes the addition of unnecessary independent variables to the model. As ( K ) increases, the penalty term ( \frac{(N-1)}{(N-K-1)} ) decreases, which means that Adjusted R-squared becomes closer to R-squared.
-    * The main difference between R-squared and Adjusted R-squared is that the latter takes into account the complexity of the model. It provides a more conservative estimate of the proportion of variance explained by the independent variables.
-    * While Adjusted R-squared is a useful metric, it should be used in conjunction with other evaluation criteria and domain knowledge to make informed decisions about model selection and performance.
+        ```
+        Adjusted R² = 1 - [(1 - R²) * (n - 1) / (n - k - 1)]
+        ```
 
+        Where:
 
+        * `R²`: is the regular R-squared value
+          * `n`: is the number of data points
+          * `k`: is the number of independent variables in the model1
+    * **̵Key Points:**
+      * <mark style="color:red;">**Penalizes for Irrelevant Predictors:**</mark> <mark style="color:red;">T</mark>he adjusted R-squared value will only increase if the new predictor improves the model's fit more than would be expected by chance. If a predictor doesn't significantly improve the model, the adjusted R-squared may actually decrease.
+      * <mark style="color:red;">**More Conservative:**</mark> Adjusted R-squared is generally more conservative than regular R-squared, providing a more realistic assessment of the model's true predictive power.
+      * <mark style="color:red;">**Useful for Model Comparison:**</mark> Adjusted R-squared is particularly useful when comparing models with different numbers of predictors. It helps to avoid selecting models that simply have more variables but don't necessarily have better predictive performance.
+    *   <mark style="color:red;">**In essence, adjusted R-squared provides a more reliable measure of the goodness-of-fit of a regression model, especially when dealing with multiple predictors, by accounting for the number of predictors and preventing overfitting.**</mark>
 
-    * Maths --
-      * R-squared is a valuable metric for assessing the goodness-of-fit of a regression model, but it has a limitation: it tends to increase as you add more independent variables to the model, even if those variables don't actually improve the model's predictive power.&#x20;
-      * This can lead to overfitting, where the model performs well on the training data but poorly on new, unseen data.
-      * **Adjusted R-squared addresses this limitation by penalizing the model for including irrelevant predictors.**
-      *   **Mathematical Definition:**
+        **Example:**
 
-          ```
-          Adjusted R² = 1 - [(1 - R²) * (n - 1) / (n - k - 1)]
-          ```
+        Let's say you have two models:
 
-          Where:
+        * **Model A:** R-squared = 0.8, 3 independent variables
+        * **Model B:** R-squared = 0.85, 5 independent variables
 
-          * `R²`: is the regular R-squared value
-            * `n`: is the number of data points
-            * `k`: is the number of independent variables in the model1
-
-
-      *   **̵Key Points:**
-
-          * <mark style="color:red;">**Penalizes for Irrelevant Predictors:**</mark> <mark style="color:red;"></mark><mark style="color:red;">T</mark>he adjusted R-squared value will only increase if the new predictor improves the model's fit more than would be expected by chance. If a predictor doesn't significantly improve the model, the adjusted R-squared may actually decrease.
-          * <mark style="color:red;">**More Conservative:**</mark> Adjusted R-squared is generally more conservative than regular R-squared, providing a more realistic assessment of the model's true predictive power.
-          * <mark style="color:red;">**Useful for Model Comparison:**</mark> Adjusted R-squared is particularly useful when comparing models with different numbers of predictors. It helps to avoid selecting models that simply have more variables but don't necessarily have better predictive performance.
-
-
-      *   <mark style="color:red;">**In essence, adjusted R-squared provides a more reliable measure of the goodness-of-fit of a regression model, especially when dealing with multiple predictors, by accounting for the number of predictors and preventing overfitting.**</mark>
-
-          **Example:**
-
-          Let's say you have two models:
-
-          * **Model A:** R-squared = 0.8, 3 independent variables
-          * **Model B:** R-squared = 0.85, 5 independent variables
-
-          <mark style="color:red;">While Model B has a slightly higher R-squared, its adjusted R-squared might be lower than Model A's if the two additional variables don't significantly improve the model's predictive power. In this case, the adjusted R-squared would suggest that Model A is a better fit despite having fewer predictors.</mark>
-
-
+        <mark style="color:red;">While Model B has a slightly higher R-squared, its adjusted R-squared might be lower than Model A's if the two additional variables don't significantly improve the model's predictive power. In this case, the adjusted R-squared would suggest that Model A is a better fit despite having fewer predictors.</mark>
 
 \######################### Classification ############################
 
@@ -492,9 +454,7 @@ Maths
 
 * **Logistic Regression: A Deep Dive into the Mathematics**
 * **1. The Core Idea**
-  *   Logistic regression is a powerful statistical method used to model the probability of a binary outcome (e.g., success/failure, yes/no) based on one or more predictor variables. It achieves this by transforming the linear combination of predictors into a probability value between 0 and 1.
-
-
+  * Logistic regression is a powerful statistical method used to model the probability of a binary outcome (e.g., success/failure, yes/no) based on one or more predictor variables. It achieves this by transforming the linear combination of predictors into a probability value between 0 and 1.
 * **2. The Logistic Function**
   *   The heart of logistic regression lies in the logistic function (also known as the sigmoid function):
 
@@ -508,12 +468,8 @@ Maths
         * `z`: The linear combination of predictors and their coefficients: `z = b0 + b1*x1 + b2*x2 + ... + bn*xn`
 
       The logistic function maps any real-valued input `z` to a value between 0 and 1, making it suitable for representing probabilities.
-
-
 * **3. Estimating the Coefficients**
-  *   The primary goal in logistic regression is to estimate the coefficients (b0, b1, b2, ..., bn) that best fit the data. This is typically done using the maximum likelihood estimation (MLE) method.
-
-
+  * The primary goal in logistic regression is to estimate the coefficients (b0, b1, b2, ..., bn) that best fit the data. This is typically done using the maximum likelihood estimation (MLE) method.
 * **4. Maximum Likelihood Estimation (MLE)**
   *   MLE aims to find the coefficients that maximize the likelihood of observing the given data. The likelihood function for logistic regression is:
 
@@ -531,25 +487,16 @@ Maths
       ```
       log L(b0, b1, ..., bn) = Σ [y_i * log(P(y_i = 1 | x_i)) + (1 - y_i) * log(1 - P(y_i = 1 | x_i))]
       ```
-
-
 *   **5. Optimisation Algorithms**
 
     Various optimisation algorithms can be used to find the coefficients that <mark style="color:red;">maximize the log-likelihood,</mark> such as:
 
     * **Gradient Descent:** An iterative algorithm that adjusts the coefficients in the direction of the steepest ascent of the log-likelihood function.
     * **Newton-Raphson Method:** A more advanced optimisation algorithm that can converge faster than gradient descent.
-
-
 * **6. Making Predictions**
-  *   <mark style="color:red;">Once the coefficients are estimated, we can use the logistic function to predict the probability of the positive class for new data points.</mark> A common decision rule is to classify a data point as positive if the predicted probability is greater than 0.5.
-
-
-*   **7. Key Points**
-
-    * **In summary, logistic regression provides a robust framework for modeling the relationship between predictor variables and a binary outcome. By understanding the underlying mathematics, you can gain a deeper appreciation for its strengths and limitations.**
-
-
+  * <mark style="color:red;">Once the coefficients are estimated, we can use the logistic function to predict the probability of the positive class for new data points.</mark> A common decision rule is to classify a data point as positive if the predicted probability is greater than 0.5.
+* **7. Key Points**
+  * **In summary, logistic regression provides a robust framework for modeling the relationship between predictor variables and a binary outcome. By understanding the underlying mathematics, you can gain a deeper appreciation for its strengths and limitations.**
 * The logistic function transforms the linear combination of predictors into probabilities between 0 and 1.
 * MLE is commonly used to estimate the coefficients.
 * Various optimisation algorithms can be employed to find the optimal coefficients.
@@ -613,8 +560,6 @@ Maths
       * The actual gradient calculation for logistic regression involves the sigmoid function and can be derived using calculus.
 
       This example demonstrates the core idea of using gradient descent to find the optimal parameters for a logistic regression model. By iteratively adjusting the weights in the direction that minimizes the cost function, gradient descent helps the model learn to accurately predict the probability of the positive class for new data.
-
-
 
 {% code overflow="wrap" fullWidth="true" %}
 ```python
@@ -752,9 +697,7 @@ if __name__ == "__main__":
 * The formula penalizes confident and incorrect predictions more heavily. Predicting a low probability for the actual class incurs a small loss, while predicting a high probability for the actual class incurs a much larger loss.
 * Lower Log Loss values indicate better model performance.
 
-
-
-\################  both regression and classification ############################
+\################ both regression and classification ############################
 
 ## <mark style="color:purple;">Naive Bayes</mark>
 
@@ -762,9 +705,6 @@ if __name__ == "__main__":
 * It is based on **Bayes' theorem**, which relates the probability of a hypothesis (or event) to the probabilities of the evidence (or observations) that support it.
 * In classification, Naive Bayes assumes that each feature is independent of all other features, given the class label. This "naive" assumption simplifies the calculation of probabilities, making the algorithm computationally efficient.
 * The algorithm computes the **posterior probability** of each class label given the observed features, selecting the class label with the highest probability as the predicted class.
-
-
-
 *   **Naive Bayes: A Mathematical Dive**
 
     **1. Core Concept**
@@ -961,8 +901,6 @@ if __name__ == "__main__":
 ```
 {% endcode %}
 
-
-
 ## <mark style="color:purple;">Support Vector Machines (SVMs)</mark>
 
 * Support Vector Machines (SVMs) are a popular machine learning algorithm used for both classification and regression tasks.
@@ -1036,8 +974,6 @@ if __name__ == "__main__":
     * ( C ) is a hyperparameter controlling the trade-off between margin maximization and classification error.
 5. **Weight and Bias Calculation**:
    * Once the optimal values of the L
-
-
 
 {% code fullWidth="true" %}
 ```python
@@ -1244,8 +1180,6 @@ if __name__ == "__main__":
   * Error reduction is the difference between parent and child node errors.
 
 The choice of split criteria depends on the characteristics of the data and the task at hand. Entropy and Gini index are more sensitive to class distribution, while classification error focuses on class number changes.
-
-
 
 {% code fullWidth="true" %}
 ```python
@@ -1458,8 +1392,6 @@ if __name__ == "__main__":
 * **Biased towards categorical features**: May lead to overfitting and suboptimal performance for continuous features.
 * **Limited extrapolation ability**: A local model that may not generalize well outside the range of the training data.
 
-
-
 ```python
 import numpy as np
 from collections import Counter
@@ -1551,8 +1483,6 @@ if __name__ == "__main__":
 * <mark style="color:yellow;">**Extra Trees**</mark><mark style="color:yellow;">:</mark> Similar to Random Forest, but it uses extremely randomized trees. It selects the split points randomly to increase model diversity.
 * <mark style="color:yellow;">**Bootstrapped SVM**</mark><mark style="color:yellow;">:</mark> Uses support vector machines (SVMs) as base models, trained on bootstrapped samples of data and combines their predictions by averaging.
 * <mark style="color:yellow;">**Bagging Ensemble Clustering**</mark><mark style="color:yellow;">:</mark> Uses clustering algorithms as base models, trained on different subsets of the data, and combines their predictions by taking the majority vote.
-
-
 
 ## <mark style="color:purple;">Boosting Methods</mark>
 
@@ -2250,13 +2180,7 @@ class CatBoostRegressor:
             #
 ```
 
-
-
-
-
 ## TIME SERIES
-
-
 
 Time series forecasting is a specialized field of machine learning that deals with data points indexed in temporal order. Unlike standard regression, time series data has a "temporal dependency," meaning the value at time $$ $t$ $$ is often correlated with the value at $$ $t-1$ $$.
 
@@ -2291,23 +2215,15 @@ Here is the detailed breakdown of these foundational models.
 
 An AR model assumes that the current value of the series depends linearly on its own previous values (lags).<sup>1</sup> It is essentially a regression of the variable against itself.
 
-<a class="button secondary"></a>
-
 *   The Math: An $AR(p)$ model is defined as:
 
     \$$Y\_t = c + \phi\_1 Y\_{t-1} + \phi\_2 Y\_{t-2} + \dots + \phi\_p Y\_{t-p} + \epsilon\_t\$$
 
     Where 2$p$ is the "order" (number of lags), 3$\phi$ are the coefficients, and 4$\epsilon\_t$ is white noise.5
-*   Identification: We use the Partial Autocorrelation Function (PACF) plot.<sup>6</sup> If the PACF "shuts off" or drops to zero after lag $$ $p$ $$, it suggests an $$ $AR(p)$ $$ model.
-
-    <a class="button secondary"></a>
+* Identification: We use the Partial Autocorrelation Function (PACF) plot.<sup>6</sup> If the PACF "shuts off" or drops to zero after lag $$ $p$ $$, it suggests an $$ $AR(p)$ $$ model.
 * Assumptions: The data must be stationary. If there is a trend, the AR model will fail.
-*   Pros: Very effective for data with high "momentum" or "memory" (e.g., daily temperatures).<sup>7</sup>
-
-    <a class="button secondary"></a>
-*   Cons: Cannot handle shocks or sudden changes that aren't related to past values.<sup>8</sup>
-
-    <a class="button secondary"></a>
+* Pros: Very effective for data with high "momentum" or "memory" (e.g., daily temperatures).<sup>7</sup>
+* Cons: Cannot handle shocks or sudden changes that aren't related to past values.<sup>8</sup>
 
 ***
 
@@ -2330,8 +2246,6 @@ Contrary to what the name suggests, this is not a simple "rolling average." An M
 #### 3. ARMA (AutoRegressive Moving Average)
 
 The ARMA model is a "hybrid" that combines both the past values (AR) and the past errors (MA).<sup>12</sup> This is used when the data shows both momentum and sensitivity to shocks.
-
-<a class="button secondary"></a>
 
 *   The Math: An $ARMA(p, q)$ model:
 
@@ -2449,4 +2363,3 @@ Imagine you are forecasting the daily sales of a retail store for the next 30 da
 5. Evaluation: You use MAE (Mean Absolute Error) to see how many dollars, on average, your forecast is off.
 
 Would you like me to provide a Python code snippet using a specific model (like Prophet or XGBoost) to demonstrate this?
-

@@ -2,7 +2,7 @@
 
 Here are detailed notes on the attention mechanism, a concept that has become arguably the most important and powerful idea in modern deep learning.
 
-#### What is an Attention Mechanism?
+#### <mark style="color:red;">What is an Attention Mechanism?</mark>
 
 At its core, an attention mechanism is a way for a neural network to mimic human attention.
 
@@ -16,7 +16,7 @@ It can then focus on the most relevant parts when making a prediction.
 
 ***
 
-#### The Problem: The Fixed-Size Bottleneck
+#### <mark style="color:red;">The Problem: The Fixed-Size Bottleneck</mark>
 
 Before attention, the main way to handle sequences was with Recurrent Neural Networks (RNNs) in a "Seq2Seq" (Sequence-to-Sequence) model.
 
@@ -27,7 +27,7 @@ This was a massive bottleneck. Imagine trying to summarize a 50-word sentence or
 
 ***
 
-#### How Attention Works: The Query, Key, and Value (QKV) Model
+#### <mark style="color:$danger;">How Attention Works: The Query, Key, and Value (QKV) Model</mark>
 
 Attention solved this by getting rid of the single context vector. Instead, it allows the decoder to "look back" at _all_ the hidden states of the encoder at _every step_ of its output.
 
@@ -50,11 +50,11 @@ This _new_ context vector, which is "custom-built" for the current step, is then
 
 ***
 
-#### Types of Attention Mechanisms
+#### <mark style="color:$danger;">Types of Attention Mechanisms</mark>
 
 Here are the most important types of attention, from the original concept to the one that powers everything today.
 
-**1. Self-Attention (Intra-Attention)**
+<mark style="color:yellow;">**1. Self-Attention (Intra-Attention)**</mark>
 
 This is the most important type and the engine behind the Transformer (the architecture of models like GPT, BERT, and most modern AI).
 
@@ -69,7 +69,7 @@ This is the most important type and the engine behind the Transformer (the archi
 * Cons:
   * Computationally Expensive: The "all-to-all" comparison has a computational cost of $$ $O(n^2)$ $$, where $$ $n$ $$ is the sequence length. This makes it very difficult to use on extremely long sequences (e.t., 100,000 words).
 
-**2. Cross-Attention (Encoder-Decoder Attention)**
+<mark style="color:yellow;">**2. Cross-Attention (Encoder-Decoder Attention)**</mark>
 
 This is the "classic" form of attention described in the QKV example. It's also used in the Transformer.
 
@@ -83,7 +83,7 @@ This is the "classic" form of attention described in the QKV example. It's also 
 * Cons:
   * Still requires a separate encoder/decoder structure. (Though this is a feature, not a bug, for tasks like translation).
 
-**3. Additive (Bahdanau) vs. Multiplicative (Luong) Attention**
+<mark style="color:yellow;">**3. Additive (Bahdanau) vs. Multiplicative (Luong) Attention**</mark>
 
 This is a sub-classification that describes _how_ the Score (Step 1) is calculated in Cross-Attention.
 
@@ -96,7 +96,7 @@ This is a sub-classification that describes _how_ the Score (Step 1) is calculat
   * Pros: Very fast and computationally efficient.
   * Cons: Can be less expressive than additive, and the scale of the dot-product needs to be controlled (which is why the Transformer "scales" it by dividing by the square root of the dimension).
 
-**4. Hard vs. Soft Attention**
+<mark style="color:yellow;">**4. Hard vs. Soft Attention**</mark>
 
 This is a more conceptual distinction.
 
@@ -112,7 +112,7 @@ This is a more conceptual distinction.
 
 ***
 
-#### Why Attention is the Most Important Idea in Modern AI
+#### <mark style="color:$danger;">Why Attention is the Most Important Idea in Modern AI</mark>
 
 The invention of Self-Attention led directly to the Transformer architecture in 2017 ("Attention is All You Need").
 

@@ -22,7 +22,6 @@
     * [NLP](deep-learning/deep-learning-methods/nlp.md)
     * [Time series](deep-learning/deep-learning-methods/time-series.md)
     * [Generative models](deep-learning/deep-learning-methods/generative-models.md)
-    * [Page 1](deep-learning/deep-learning-methods/page-1.md)
   * [MCP](deep-learning/mcp.md)
 * [LLMs](llms/README.md)
   * [Training Lifecycle](llms/training-process.md)

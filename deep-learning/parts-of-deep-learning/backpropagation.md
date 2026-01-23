@@ -2,11 +2,11 @@
 
 Here are detailed notes on common hidden layers and regularization techniques used in deep learning.
 
-### Part 1: Types of Hidden Layers
+### <mark style="color:red;">Part 1: Types of Hidden Layers</mark>
 
 These layers are the "brains" of the network, designed to find patterns in specific types of data.
 
-#### 1. Convolutional Layer (CNN)
+#### <mark style="color:yellow;">1. Convolutional Layer (CNN)</mark>
 
 * What it is: A layer that uses a "filter" or "kernel" (a small matrix of weights) to slide across the input data. It performs a "convolution" operation, looking for specific, localized patterns (like edges, corners, or textures).
 * When to Use:
@@ -24,7 +24,7 @@ These layers are the "brains" of the network, designed to find patterns in speci
 
 ***
 
-#### 2. Recurrent Neural Network Layer (Simple RNN)
+#### <mark style="color:yellow;">2. Recurrent Neural Network Layer (Simple RNN)</mark>
 
 * What it is: A layer with a "loop." It processes one item in a sequence (e.g., a word) and feeds its output (a "hidden state") _back into itself_ to help process the _next_ item. This gives it a basic form of "memory."
 * When to Use:
@@ -38,7 +38,7 @@ These layers are the "brains" of the network, designed to find patterns in speci
 
 ***
 
-#### 3. Long Short-Term Memory Layer (LSTM)
+#### <mark style="color:yellow;">3. Long Short-Term Memory Layer (LSTM)</mark>
 
 * What it is: A sophisticated type of RNN layer, specifically designed to solve the vanishing gradient problem. It's a complex unit that has its own internal "cell state" (the long-term memory) and three "gates" (input, forget, output) to carefully control what information is stored, updated, or removed from this memory.
 * Analogy: Think of it as a computer's memory.
@@ -61,7 +61,7 @@ These layers are the "brains" of the network, designed to find patterns in speci
 
 ***
 
-#### 4. Gated Recurrent Unit Layer (GRU)
+#### <mark style="color:yellow;">4. Gated Recurrent Unit Layer (GRU)</mark>
 
 * What it is: A more modern and simplified version of the LSTM. It also solves the vanishing gradient problem but with a simpler design.
 * How it's simpler: It combines the "forget" and "input" gates into a single "update gate." It also merges the cell state and hidden state. It's a streamlined LSTM.
@@ -78,11 +78,11 @@ These layers are the "brains" of the network, designed to find patterns in speci
 
 ***
 
-### Part 2: Regularization Techniques
+### <mark style="color:$danger;">Part 2: Regularization Techniques</mark>
 
 These are not "layers" that learn, but _techniques_ (often implemented as layers) that are added to a network to prevent overfitting. Overfitting is when your model "memorizes" the training data but fails to generalize to new, unseen data.
 
-#### 1. Dropout Layer
+#### <mark style="color:yellow;">1. Dropout Layer</mark>
 
 * What it is: A technique where, during each training step, a random fraction (e.g., 30%) of neurons in a layer are "dropped out" (temporarily ignored and set to zero).
 * Analogy: Imagine training a team of "experts" (neurons) to work together. If you randomly "silence" some of the experts at every meeting, the remaining ones are forced to become more capable and less reliant on any single "superstar" expert. This makes the whole team more robust.
@@ -98,18 +98,18 @@ These are not "layers" that learn, but _techniques_ (often implemented as layers
 
 ***
 
-#### 2. L1 and L2 Regularization
+#### <mark style="color:yellow;">2. L1 and L2 Regularization</mark>
 
 * What it is: A technique that adds a penalty to the model's loss function. This penalty discourages the model's weights from becoming too large. A model with large weights is often "overconfident" and overfitted.
 * Analogy: You're telling the model, "Find the answer, but you get penalized for every 'complex' or 'large' step you take. Keep your solution as simple as possible."
 
-**### L2 Regularization (Weight Decay or "Ridge")**
+<mark style="color:blue;">**### L2 Regularization (Weight Decay or "Ridge")**</mark>
 
 * How it works: Adds a penalty equal to the _sum of the squares_ of the weights.
 * Effect: It forces all weights to be _small_, but rarely _exactly zero_. It creates a "diffuse" model where many small weights contribute.
 * When to Use: This is the most common and generally the default choice for regularization. It's a great all-purpose tool for preventing overfitting.
 
-**### L1 Regularization ("Lasso")**
+<mark style="color:blue;">**### L1 Regularization ("Lasso")**</mark>
 
 * How it works: Adds a penalty equal to the _sum of the absolute values_ of the weights.
 * Effect: This has a "spiky" mathematical property that pushes many unimportant weights to become _exactly zero_.
@@ -120,18 +120,7 @@ These are not "layers" that learn, but _techniques_ (often implemented as layers
 
 #### Summary: When to Use What
 
-| **Technique** | **Type**       | **Use For...**                                                                                    |
-| ------------- | -------------- | ------------------------------------------------------------------------------------------------- |
-| CNN           | Layer          | Spatial Data: Images, text (1D), time series (1D).                                                |
-| RNN           | Layer          | (Legacy) Sequential data. _Better to use LSTM/GRU._                                               |
-| LSTM          | Layer          | Complex Sequences: Long-term memory is critical (long text, speech).                              |
-| GRU           | Layer          | Standard Sequences: A faster, simpler default for sequential data.                                |
-| Dropout       | Regularization | Preventing Overfitting: Your go-to, all-purpose regularizer.                                      |
-| L1/L2         | Regularization | Preventing Overfitting: A penalty on weight complexity (L2 is default, L1 for feature selection). |
-
-
-
-
+<table data-header-hidden><thead><tr><th width="123.58331298828125"></th><th width="149.06591796875"></th><th></th></tr></thead><tbody><tr><td><strong>Technique</strong></td><td><strong>Type</strong></td><td><strong>Use For...</strong></td></tr><tr><td>CNN</td><td>Layer</td><td>Spatial Data: Images, text (1D), time series (1D).</td></tr><tr><td>RNN</td><td>Layer</td><td>(Legacy) Sequential data. <em>Better to use LSTM/GRU.</em></td></tr><tr><td>LSTM</td><td>Layer</td><td>Complex Sequences: Long-term memory is critical (long text, speech).</td></tr><tr><td>GRU</td><td>Layer</td><td>Standard Sequences: A faster, simpler default for sequential data.</td></tr><tr><td>Dropout</td><td>Regularization</td><td>Preventing Overfitting: Your go-to, all-purpose regularizer.</td></tr><tr><td>L1/L2</td><td>Regularization</td><td>Preventing Overfitting: A penalty on weight complexity (L2 is default, L1 for feature selection).</td></tr></tbody></table>
 
 Yes, absolutely. Beyond the CNN/RNN families, there are several other fundamental layers that act as the "plumbing" and "scaffolding" for most deep learning models.
 
@@ -139,11 +128,11 @@ Here are detailed notes on these other essential layers.
 
 ***
 
-#### 1. Core & Utility Layers
+#### <mark style="color:yellow;">1. Core & Utility Layers</mark>
 
 These are the most common layers used for basic data manipulation and learning.
 
-**### Dense Layer (or Fully Connected Layer)**
+<mark style="color:blue;">**### Dense Layer (or Fully Connected Layer)**</mark>
 
 * What it is: This is the most basic layer in a neural network. Each neuron in a dense layer is connected to _every single_ neuron in the previous layer. It learns global patterns from all its inputs.
 * When to Use:
@@ -158,7 +147,7 @@ These are the most common layers used for basic data manipulation and learning.
 
 ***
 
-**### Pooling Layer (MaxPool, AvgPool, GlobalPool)**
+<mark style="color:blue;">**### Pooling Layer (MaxPool, AvgPool, GlobalPool)**</mark>
 
 * What it is: A layer that downsamples its input, typically a feature map from a CNN. It slides a window over the input and takes either the maximum value (MaxPool) or the average value (AvgPool) from that window.
 * When to Use:
@@ -172,7 +161,7 @@ These are the most common layers used for basic data manipulation and learning.
 
 ***
 
-**### Flatten Layer**
+<mark style="color:blue;">**### Flatten Layer**</mark>
 
 * What it is: A simple utility layer that unrolls a multi-dimensional tensor into a single, one-dimensional vector.
 * When to Use:
@@ -182,11 +171,11 @@ These are the most common layers used for basic data manipulation and learning.
 
 ***
 
-#### 2. Normalization Layers
+#### <mark style="color:yellow;">2. Normalization Layers</mark>
 
 These layers don't learn data features but instead stabilize the network, leading to much faster and more reliable training.
 
-**### Batch Normalization (BatchNorm)**
+<mark style="color:blue;">**### Batch Normalization (BatchNorm)**</mark>
 
 * What it is: A layer that normalizes the activations of the previous layer _across the current batch_. It standardizes the inputs (to have a mean of 0 and a variance of 1) and then uses two learned parameters (gamma and beta) to scale and shift them to an optimal range.
 * When to Use:
@@ -201,7 +190,7 @@ These layers don't learn data features but instead stabilize the network, leadin
 
 ***
 
-**### Layer Normalization (LayerNorm)**
+<mark style="color:blue;">**### Layer Normalization (LayerNorm)**</mark>
 
 * What it is: An alternative to BatchNorm. Instead of normalizing _across the batch_, it normalizes _across the features_ for a _single_ training example.
 * When to Use:
@@ -213,9 +202,9 @@ These layers don't learn data features but instead stabilize the network, leadin
 
 ***
 
-#### 3. Data Representation Layers
+#### <mark style="color:yellow;">3. Data Representation Layers</mark>
 
-**### Embedding Layer**
+<mark style="color:blue;">**### Embedding Layer**</mark>
 
 * What it is: This is essentially a _lookup table_ that is learned by the model. It maps positive integers (indices) to dense, floating-point vectors.
 * When to Use:
@@ -229,9 +218,9 @@ These layers don't learn data features but instead stabilize the network, leadin
 
 ***
 
-#### 4. Advanced & Specialized Layers
+#### <mark style="color:yellow;">4. Advanced & Specialized Layers</mark>
 
-**### Transposed Convolution (or "Deconvolution")**
+<mark style="color:blue;">**### Transposed Convolution (or "Deconvolution")**</mark>
 
 * What it is: The "opposite" of a convolution. Instead of mapping a large input to a smaller one, it upsamples a small feature map into a larger one. It learns to "paint" or "fill in" details.
 * When to Use:
@@ -241,7 +230,7 @@ These layers don't learn data features but instead stabilize the network, leadin
 
 ***
 
-**### Graph Convolutional Layer (GCN, GAT, etc.)**
+<mark style="color:blue;">**### Graph Convolutional Layer (GCN, GAT, etc.)**</mark>
 
 * What it is: A specialized layer designed to operate on graph-structured data (nodes connected by edges). A GCN layer learns features for a node by "aggregating" information from its immediate neighbors in the graph.
 * When to Use:

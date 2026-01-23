@@ -1,8 +1,8 @@
 # MCP
 
-## MCP artitecture&#x20;
+## <mark style="color:red;">MCP artitecture</mark>
 
-#### Core Architecture (0:43 - 1:27)
+#### <mark style="color:yellow;">Core Architecture (0:43 - 1:27)</mark>
 
 * Host: The main LLM application or environment (e.g., Claude desktop, Cursor, Windsurf) where the user interacts. It's responsible for managing clients and connections to servers.
 * Client: Lives inside the Host. It manages the connection to an MCP server and is responsible for finding and using the tools, resources, and prompts the server offers.
@@ -11,7 +11,7 @@
 
 ***
 
-#### Key Primitives (Fundamental Pieces of the Protocol) (1:36 - 3:10)
+#### <mark style="color:yellow;">Key Primitives (Fundamental Pieces of the Protocol) (1:36 - 3:10)</mark>
 
 | **Primitive**    | **Description**                                                                                                                               | **Analogy/Use Case**                                                                                              |
 | ---------------- | --------------------------------------------------------------------------------------------------------------------------------------------- | ----------------------------------------------------------------------------------------------------------------- |
@@ -24,7 +24,7 @@
 
 ***
 
-#### SDK and Declaration (7:58 - 10:05)
+#### <mark style="color:yellow;">SDK and Declaration (7:58 - 10:05)</mark>
 
 * MCP provides Software Development Kits (SDKs) for building clients and servers (Python SDK is used in the course).
 * Tools are declared by decorating a function, passing in arguments, and defining a return value to generate the tool schema.
@@ -33,7 +33,7 @@
 
 ***
 
-#### Communication and Transport (10:08 - 14:50)
+#### <mark style="color:yellow;">Communication and Transport (10:08 - 14:50)</mark>
 
 * Communication Lifecycle:
   1. Initialization: Client connects, requests and capabilities are exchanged.
@@ -41,23 +41,17 @@
   3. Termination: Connection is closed.
 * Transport: Handles the mechanics of how messages (JSON-RPC 2.0 format) are sent between client and server.
 
-| **Transport**                   | **Use Case**                  | **Mechanism**                                                                                | **Key Notes**                                               |
-| ------------------------------- | ----------------------------- | -------------------------------------------------------------------------------------------- | ----------------------------------------------------------- |
-| Standard IO (stdio)             | Local servers, CLIs.          | Client launches server as a subprocess; communication over standard in/out.                  | Simplest, most common for local use.                        |
-| HTTP + Server-Sent Events (SSE) | Remote servers.               | Opens a stateful connection (messages are remembered).                                       | Server can send events back to the client. Older transport. |
-| Streamable HTTP                 | Remote servers (recommended). | Supports both stateful (using SSE) and stateless (using standard HTTP GET/POST) connections. | Newer, more flexible, and allows for stateless deployments. |
+<table data-header-hidden><thead><tr><th width="120.60247802734375"></th><th width="129.10418701171875"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Transport</strong></td><td><strong>Use Case</strong></td><td><strong>Mechanism</strong></td><td><strong>Key Notes</strong></td></tr><tr><td>Standard IO (stdio)</td><td>Local servers, CLIs.</td><td>Client launches server as a subprocess; communication over standard in/out.</td><td>Simplest, most common for local use.</td></tr><tr><td>HTTP + Server-Sent Events (SSE)</td><td>Remote servers.</td><td>Opens a stateful connection (messages are remembered).</td><td>Server can send events back to the client. Older transport.</td></tr><tr><td>Streamable HTTP</td><td>Remote servers (recommended).</td><td>Supports both stateful (using SSE) and stateless (using standard HTTP GET/POST) connections.</td><td>Newer, more flexible, and allows for stateless deployments.</td></tr></tbody></table>
 
+## <mark style="color:red;">Chatbot example</mark>
 
-
-## Chatbot example
-
-#### 1. Introduction & Goal
+#### <mark style="color:yellow;">1. Introduction & Goal</mark>
 
 * Goal: Build a simple chatbot and code its tools to gain a foundation in tool use and prompting Large Language Models (LLMs) before moving to Model Context Protocol (MCP) servers.
 * The application will use a chatbot to search for papers on arXiv (an open-source repository for published papers across domains like science and math).
 * _Note:_ The instructor mentions if you are familiar with this, you can skip to the next lesson on building your first MCP server.
 
-#### 2. Required Libraries and Setup
+#### <mark style="color:yellow;">2. Required Libraries and Setup</mark>
 
 * Libraries Imported:
   * `arxiv` SDK: For searching for papers.
@@ -68,7 +62,7 @@
 * Constant Defined:
   * `paper_directory`: Set to the string `"papers"`. This is used for saving information to the local file system.
 
-#### 3. Tool Functions
+#### <mark style="color:yellow;">3. Tool Functions</mark>
 
 The lesson defines two key Python functions that will be exposed as tools to the LLM:
 
@@ -93,7 +87,7 @@ The lesson defines two key Python functions that will be exposed as tools to the
   3. If not found, returns a string indicating no saved information for that ID.
 * Example Use: Calling the function with a specific paper ID to get its title, PDF URL, and summary.
 
-#### 4. Tool Definition for the LLM
+#### <mark style="color:yellow;">4. Tool Definition for the LLM</mark>
 
 * A `tools` list is defined for Anthropic's Claude model.
 * Each tool definition includes:
@@ -102,7 +96,7 @@ The lesson defines two key Python functions that will be exposed as tools to the
   * `schema`: (Defines the required and optional arguments, like `topic` or `paper_id`.)
 * Crucial Point: The LLM does _not_ call the functions itself; the developer must write the execution code to call the actual Python functions and pass the results back to the model.
 
-#### 5. Chatbot Logic & Tool Execution
+#### <mark style="color:yellow;">5. Chatbot Logic & Tool Execution</mark>
 
 * Tool Mapping: A dictionary is set up to map the tool names (e.g., `"search_papers"`) to their corresponding Python functions. This is a helper for executing the correct function when the LLM requests a tool.
 * Client Setup: Environment variables (API keys) are loaded, and an instance of the Anthropic client is created.
@@ -121,24 +115,20 @@ The lesson defines two key Python functions that will be exposed as tools to the
   3. The user asks to "extract information on the first two" IDs. The model calls `extract_info` twice, gets the data, and then uses that data to generate a summary for the user.
 * Important Note: The current implementation does not have persistent memory. Each conversation must be thought of as a new one, so IDs must be passed back to the model when needed. The loop ends when the user types `"quit"`.
 
-#### 6. Next Steps
+#### <mark style="color:yellow;">6. Next Steps</mark>
 
 * The next lesson will focus on refactoring this existing code to convert the functions into MCP tools (Model Context Protocol).
 * This refactoring will allow the tools to be exposed via a server, which will then be tested.
 
+## <mark style="color:red;">Creating a MCP server</mark>
 
-
-## Creating a MCP server&#x20;
-
-
-
- Refactoring Chatbot Tools into an MCP Server with FastMCP
+Refactoring Chatbot Tools into an MCP Server with FastMCP
 
 This lesson details the process of migrating existing chatbot tools (`search_papers` and `extract_info`) into a dedicated Model Context Protocol (MCP) server using the FastMCP library and the Standard IO (stdio) transport.
 
 ***
 
-#### Key Steps & Implementation
+#### <mark style="color:yellow;">Key Steps & Implementation</mark>
 
 1. Refactoring Goal: Abstract the definition and schema of the existing chatbot functions (tools) and wrap them in an MCP server for standardized access by LLMs/clients.
 2. FastMCP Initialization:
@@ -154,7 +144,7 @@ This lesson details the process of migrating existing chatbot tools (`search_pap
 
 ***
 
-#### Environment Setup & Testing
+#### <mark style="color:yellow;">Environment Setup & Testing</mark>
 
 1. File Creation: The code is executed to write a file named `ResearchServer.py`.
 2. Terminal Setup: A new terminal is opened, and the environment is set up.
@@ -178,30 +168,24 @@ This entire process demonstrates how to cleanly separate tool logic into a compl
 
 For a visual guide on this entire process, you can watch Turn ANY Python Function into an MCP Tool Instantly (FastMCP Demo). This video demonstrates how to use FastMCP to instantly turn Python functions into MCP tools.
 
+## <mark style="color:$danger;">Creating a MCP client</mark>
 
-
-## Creating a MCP client&#x20;
-
-
-
- Time to get that MCP client wired up! This lesson focuses on the "under the hood" mechanics of creating an MCP client within your chatbot to talk to the server you built previously. It's the essential bridge for tool use.
+Time to get that MCP client wired up! This lesson focuses on the "under the hood" mechanics of creating an MCP client within your chatbot to talk to the server you built previously. It's the essential bridge for tool use.
 
 Here are the detailed notes for your lesson:
 
 ***
 
-## Creating an MCP Client in Your Chatbot Host
-
-#### Goal
+## <mark style="color:red;">Creating an MCP Client in Your Chatbot Host</mark>
 
 To build a host (your chatbot) that contains an MCP client. This client connects to the running MCP server, gets access to the server's tool definitions, and sends tool execution requests back to the server.
 
-#### 1. Revisiting the Chatbot Structure
+#### <mark style="color:yellow;">1. Revisiting the Chatbot Structure</mark>
 
 * The chatbot (e.g., in `mcp_chatbot.py`) initially uses the Anthropic SDK and Claude 3.7 Sonnet for conversation and tool-use logic.
 * Key Difference: Unlike a standalone chatbot where tools are defined locally, this chatbot will not define any tools. Those are all managed by the MCP server.
 
-#### 2. The MCP Client Essentials
+#### <mark style="color:yellow;">2. The MCP Client Essentials</mark>
 
 The client's main jobs are:
 
@@ -213,22 +197,22 @@ The client's main jobs are:
 * Lower-Level Focus: The code is more focused on the core library imports (`ClientSession`, `StdioServerParameters`, `stdio_client`, etc.) to show how the connection is fundamentally established. This is important for understanding what clients like Claude Desktop or Cursor are doing behind the scenes.
 * Async Nature: Since the client might not want to block while waiting for the server, Python's `async` and `await` are heavily used.
 
-#### 3. Key Code Components
+#### <mark style="color:yellow;">3. Key Code Components</mark>
 
-**A. Server Parameters**
+<mark style="color:blue;">**A. Server Parameters**</mark>
 
 * You must specify how the client should start the server as a subprocess.
   * This includes the command (e.g., `uv run research_server.py`) and any necessary environment variables.
   * Concept: The client is responsible for _launching_ and _communicating_ with the server process, typically over Standard I/O (stdio).
 
-**B. Connection and Session Management**
+<mark style="color:blue;">**B. Connection and Session Management**</mark>
 
 * A context manager (often within an `async` function named `run` or `connect_to_server_and_run`) is used to manage the connection lifecycle.
 * The `stdio_client` function starts the server as a subprocess and provides a read and write stream for communication.
 * The `ClientSession` class takes these read/write streams to establish the higher-level MCP session.
 * Handshake: Call `session.initialize()` to perform the initial connection handshake.
 
-**C. Tool Discovery and Use**
+<mark style="color:blue;">**C. Tool Discovery and Use**</mark>
 
 * List Tools: Call `session.list_tools()` to get the available tool definitions from the server.
   * The client then passes these definitions to the LLM (Claude) so it knows what it can use.
@@ -237,23 +221,23 @@ The client's main jobs are:
   * The server executes the tool's logic (defined in the previous lesson) and returns the result to the client.
   * The client then passes the result back to the LLM for a final, contextual response.
 
-**D. Execution Environment**
+<mark style="color:blue;">**D. Execution Environment**</mark>
 
 * Since the entire client-server process is now `async`, you move from `mcp.run()` to `asyncio.run(main_function)` to start the main application loop.
 * Dependency: The library `nest_asyncio` is often required to ensure compatibility with Python's event loop across different operating systems.
 
 ***
 
-## Running the Chatbot (`mcp_chatbot.py`)
+## <mark style="color:$danger;">Running the Chatbot (</mark><mark style="color:$danger;">`mcp_chatbot.py`</mark><mark style="color:$danger;">)</mark>
 
-#### Setup Steps
+#### <mark style="color:yellow;">Setup Steps</mark>
 
 1. Navigate to your project folder (e.g., `L5/mcp_project`).
 2. Activate the virtual environment: `source .venv/bin/activate`.
 3. Install Dependencies: You'll need the Anthropic SDK, `python-dotenv`, and `nest_asyncio` to make this work smoothly.
    * _Slightly cheeky tip: Typing `pip install anthropic python-dotenv nest_asyncio` is faster than waiting for a single dependency to install._
 
-#### Execution and Interaction
+#### <mark style="color:yellow;">Execution and Interaction</mark>
 
 1. Run the Client: Use `uv run mcp_chatbot.py`.
 2. Connection: The client automatically:
@@ -267,7 +251,7 @@ The client's main jobs are:
    * Communication: You see a `call_tool_request` being sent from the client to the server.
    * Result: The server executes the search, returns the results, and Claude uses that context to generate a summarized response.
 
-#### The Bigger Picture
+#### <mark style="color:yellow;">The Bigger Picture</mark>
 
 This process is the foundation for powerful agents:
 
@@ -278,11 +262,11 @@ Exit: You can type `quit` to exit the chatbot and gracefully close the connectio
 
 ***
 
-## Connecting to Multiple Reference Servers
+## <mark style="color:$danger;">Connecting to Multiple Reference Servers</mark>
 
 This lesson focuses on updating the MCP Chatbot client to dynamically connect to multiple MCP servers, including the custom server you built previously and Anthropic's official Reference Servers. This mirrors how professional AI tools like Claude Desktop or Cursor operate.
 
-#### I. The Ecosystem of MCP Servers
+#### <mark style="color:yellow;">I. The Ecosystem of MCP Servers</mark>
 
 * Goal: Move beyond a 1-to-1 client-server connection to an entire ecosystem where one client can talk to multiple servers simultaneously.
 * Anthropic Reference Servers: These are official, open-source servers provided by the Anthropic team on GitHub to showcase the Model Context Protocol (MCP) features.
@@ -290,7 +274,7 @@ This lesson focuses on updating the MCP Chatbot client to dynamically connect to
 
 ***
 
-#### II. Key Reference Servers
+#### <mark style="color:yellow;">II. Key Reference Servers</mark>
 
 The lesson introduces two crucial reference servers:
 
@@ -312,7 +296,7 @@ The lesson introduces two crucial reference servers:
 
 ***
 
-#### III. Server Configuration using JSON
+#### <mark style="color:yellow;">III. Server Configuration using JSON</mark>
 
 To avoid hardcoding server parameters (name, command, arguments), you will configure all servers using a JSON file (e.g., `server_config.json`).
 
@@ -324,21 +308,15 @@ To avoid hardcoding server parameters (name, command, arguments), you will confi
 
 ***
 
-#### IV. Updating the MCP Chatbot Code
+#### <mark style="color:yellow;">IV. Updating the MCP Chatbot Code</mark>
 
 The MCP Chatbot needs significant updates to handle reading the JSON configuration and managing multiple concurrent connections.
 
-| **Component**        | **Description**                                                                                                                                                                                                                                                   |
-| -------------------- | ----------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| `connect_to_servers` | Function to read the `server_config.json`, parse the JSON into a dictionary, and iterate over each server, calling `connect_to_server` for each.                                                                                                                  |
-| `AsyncExitStack`     | A powerful Python utility from `contextlib` used to manage multiple asynchronous context managers (`async with...`). It ensures all server connections are gracefully and reliably closed when the main application exits, regardless of errors.                  |
-| Tool Mapping         | The chatbot must maintain a list of all discovered tools and, crucially, a map to link each tool back to the specific `ClientSession` (i.e., the server) that provides it. This ensures the correct server is called when the LLM decides to use a specific tool. |
-| Connection Logic     | The connection logic is updated to use the `AsyncExitStack`'s `enter_async_context()` method to keep the `stdio_transport` (communication channel) and the `ClientSession` alive for the entire duration of the chat.                                             |
-| Tool Execution       | The chat loop's logic is updated to first look up the tool in the map to find the correct `session` before executing the tool call on the appropriate server.                                                                                                     |
+<table data-header-hidden><thead><tr><th width="175.79681396484375"></th><th></th></tr></thead><tbody><tr><td><strong>Component</strong></td><td><strong>Description</strong></td></tr><tr><td><code>connect_to_servers</code></td><td>Function to read the <code>server_config.json</code>, parse the JSON into a dictionary, and iterate over each server, calling <code>connect_to_server</code> for each.</td></tr><tr><td><code>AsyncExitStack</code></td><td>A powerful Python utility from <code>contextlib</code> used to manage multiple asynchronous context managers (<code>async with...</code>). It ensures all server connections are gracefully and reliably closed when the main application exits, regardless of errors.</td></tr><tr><td>Tool Mapping</td><td>The chatbot must maintain a list of all discovered tools and, crucially, a map to link each tool back to the specific <code>ClientSession</code> (i.e., the server) that provides it. This ensures the correct server is called when the LLM decides to use a specific tool.</td></tr><tr><td>Connection Logic</td><td>The connection logic is updated to use the <code>AsyncExitStack</code>'s <code>enter_async_context()</code> method to keep the <code>stdio_transport</code> (communication channel) and the <code>ClientSession</code> alive for the entire duration of the chat.</td></tr><tr><td>Tool Execution</td><td>The chat loop's logic is updated to first look up the tool in the map to find the correct <code>session</code> before executing the tool call on the appropriate server.</td></tr></tbody></table>
 
 ***
 
-#### V. Demonstration
+#### <mark style="color:yellow;">V. Demonstration</mark>
 
 1. Setup: The chatbot is run using `uv run mcp_chatbot.py` after activating the virtual environment.
 2. Connection: The output shows successful connection to all three servers:
@@ -356,15 +334,15 @@ This update allows the chatbot to harness the diverse capabilities of multiple, 
 
 ***
 
-## Adding Resources and Prompt Templates to Your Chatbot
+## <mark style="color:red;">Adding Resources and Prompt Templates to Your Chatbot</mark>
 
 The goal of this lesson is to upgrade the server to provide read-only data (Resources) and pre-engineered prompts (Prompt Templates), and then update the client (chatbot) to discover and expose these new features to the user.
 
-#### I. Server-Side Implementation (The Research Server)
+#### <mark style="color:yellow;">I. Server-Side Implementation (The Research Server)</mark>
 
 The server is updated to offer two new primitives in addition to its existing tools.
 
-**1. Resources (`@mcp.resource`)**
+<mark style="color:blue;">**1. Resources (**</mark><mark style="color:blue;">**`@mcp.resource`**</mark><mark style="color:blue;">**)**</mark>
 
 * Definition: Resources are read-only data that the application (client) can choose to use or pass directly to the LLM. They are the MCP equivalent of an HTTP `GET` request.
 * Implementation: Resources are defined by decorating a function with `@mcp.resource` and assigning it a URI (Uniform Resource Identifier).
@@ -376,7 +354,7 @@ The server is updated to offer two new primitives in addition to its existing to
     * Purpose: To fetch specific information or content about a particular topic (e.g., `papers://math`).
   * Implementation Details: The decorated functions handle string manipulation, reading data from a JSON file (e.g., `papers_info.json`), and returning the content as text, including necessary error handling.
 
-**2. Prompt Templates (`@mcp.prompt`)**
+<mark style="color:blue;">**2. Prompt Templates (**</mark><mark style="color:blue;">**`@mcp.prompt`**</mark><mark style="color:blue;">**)**</mark>
 
 * Definition: Prompt templates are battle-tested, pre-written prompts created on the server and sent to the client. Their purpose is to help the user avoid complex prompt engineering by providing dynamic, high-quality instructions.
 * Implementation: Prompts are defined by decorating a function with `@mcp.prompt`. The function returns the prompt template itself.
@@ -386,11 +364,11 @@ The server is updated to offer two new primitives in addition to its existing to
 
 ***
 
-#### II. Client-Side Implementation (The MCP Chatbot)
+#### <mark style="color:$danger;">II. Client-Side Implementation (The MCP Chatbot)</mark>
 
 The chatbot client must be updated to discover, manage, and present these new primitives to the user.
 
-**1. Server Connection and Discovery**
+<mark style="color:blue;">**1. Server Connection and Discovery**</mark>
 
 * The `connect_to_server` function is updated to use the established `ClientSession` to list all available primitives:
   * `session.list_tools()`
@@ -402,17 +380,13 @@ The chatbot client must be updated to discover, manage, and present these new pr
   * Available Resource URIs.
 * Robustness: Error handling is included to manage servers that do not provide these new primitives.
 
-**2. User Interface and Presentation (Client Logic)**
+<mark style="color:blue;">**2. User Interface and Presentation (Client Logic)**</mark>
 
 The lecture emphasizes that the presentation is entirely up to the developer of the host and client. MCP only dictates the _data_ format, not the UI . The chatbot uses simple string conventions for the command-line interface (CLI):
 
-| **Command**                | **Purpose**       | **Client Action**                                                                                                        |
-| -------------------------- | ----------------- | ------------------------------------------------------------------------------------------------------------------------ |
-| `@<URI>`                   | Access a Resource | The client parses the URI, calls `session.read_resource(uri)`, and prints the raw content to the user.                   |
-| `/prompts`                 | List Prompts      | Lists all available prompt templates and their required arguments (from all connected servers).                          |
-| `/prompt <name> <arg=val>` | Execute a Prompt  | The client parses the command to extract the prompt name and key-value arguments, then calls the prompt execution logic. |
+<table data-header-hidden><thead><tr><th width="177.08154296875"></th><th width="179.05810546875"></th><th></th></tr></thead><tbody><tr><td><strong>Command</strong></td><td><strong>Purpose</strong></td><td><strong>Client Action</strong></td></tr><tr><td><code>@&#x3C;URI></code></td><td>Access a Resource</td><td>The client parses the URI, calls <code>session.read_resource(uri)</code>, and prints the raw content to the user.</td></tr><tr><td><code>/prompts</code></td><td>List Prompts</td><td>Lists all available prompt templates and their required arguments (from all connected servers).</td></tr><tr><td><code>/prompt &#x3C;name> &#x3C;arg=val></code></td><td>Execute a Prompt</td><td>The client parses the command to extract the prompt name and key-value arguments, then calls the prompt execution logic.</td></tr></tbody></table>
 
-**3. Prompt Execution Flow**
+<mark style="color:blue;">**3. Prompt Execution Flow**</mark>
 
 1. User enters `/prompt Generate Search Prompt topic=math num_papers=10`.
 2. The client's `execute_prompt` function finds the correct prompt template and session.
@@ -420,7 +394,7 @@ The lecture emphasizes that the presentation is entirely up to the developer of 
 4. The final, fully-formed prompt text is generated.
 5. This prompt text is sent to the LLM (e.g., Claude) as the content of the message for processing.
 
-#### III. Demonstration Summary (Bringing it Together)
+#### <mark style="color:$danger;">III. Demonstration Summary (Bringing it Together)</mark>
 
 The demo showcases the integrated system:
 
@@ -441,11 +415,11 @@ This setup completes the core primitives of the MCP, demonstrating a powerful, c
 
 ***
 
-## Integrating Your MCP Server with Claude Desktop
+## <mark style="color:$danger;">Integrating Your MCP Server with Claude Desktop</mark>
 
 This lesson focuses on how developers can abstract away the low-level client code (the networking, session management, and UI building you did previously) by connecting your custom MCP servers to an existing, compliant AI application like Claude Desktop.
 
-#### I. Preparing the Local MCP Server
+#### <mark style="color:yellow;">I. Preparing the Local MCP Server</mark>
 
 1. Project Setup: The developer navigates to the folder containing the custom server (e.g., `research_server.py`).
 2. Environment Setup: The standard virtual environment steps are followed:
@@ -454,25 +428,25 @@ This lesson focuses on how developers can abstract away the low-level client cod
    * Install necessary dependencies (e.g., `pip install arxiv mcp`).
 3. Server Execution: Crucially, the server is not run manually in the terminal. The client application (Claude Desktop) will manage the server's lifecycle via a subprocess.
 
-#### II. Configuring Claude Desktop as an MCP Client
+#### <mark style="color:yellow;">II. Configuring Claude Desktop as an MCP Client</mark>
 
 Claude Desktop (and many other compliant clients) uses a configuration file to discover and launch local MCP servers using the `stdio` (standard input/output) transport.
 
-1. Accessing the Config File:
+1. <mark style="color:blue;">Accessing the Config File:</mark>
    * Navigate to Settings $$ $\to$ $$ Developer $$ $\to$ $$ Edit Config in Claude Desktop.
    * This opens a JSON configuration file (e.g., `claude_desktop_config.json`).
-2. Adding the Server Configuration:
+2. <mark style="color:blue;">Adding the Server Configuration:</mark>
    * The developer pastes the server configuration into the JSON file.
    * The configuration specifies:
      * Name: A friendly name for the server (e.g., `"research_server"`).
      * Command: The executable used to run the server (e.g., `"python"` or the full path to the Python environment).
      * Arguments (`args`): The path to the server file and any required startup arguments.
        * Key Detail: For local servers, the exact file path (absolute path) to the server file (`research_server.py`) is specified so the client knows exactly what to launch.
-3. Connection and Discovery:
+3. <mark style="color:blue;">Connection and Discovery:</mark>
    * The developer must Close and Reopen Claude Desktop to force the application to read the new configuration and establish the connections.
    * On restart, Claude Desktop launches the servers as subprocesses and lists all discovered Tools, Resources, and Prompts in its own user interface.
 
-#### III. Using MCP Primitives in the Client UI
+#### <mark style="color:yellow;">III. Using MCP Primitives in the Client UI</mark>
 
 Once connected, Claude Desktop abstracts away the low-level code, providing a ready-made interface for the primitives you created:
 
@@ -480,19 +454,19 @@ Once connected, Claude Desktop abstracts away the low-level code, providing a re
 * Resources: Available for Claude to fetch read-only data (like the papers directory list).
 * Prompts: Available to the user/model to leverage pre-engineered instructions (like the `Generate Search Prompt`).
 
-#### IV. The Power of MCP: Interoperability and Agentic Frameworks
+#### <mark style="color:yellow;">IV. The Power of MCP: Interoperability and Agentic Frameworks</mark>
 
 The core benefit is demonstrated by combining tools from multiple sources to achieve a complex, agentic task.
 
-1. Multi-Server Coordination: A single prompt triggers a chain reaction:
+1. <mark style="color:blue;">Multi-Server Coordination: A single prompt triggers a chain reaction:</mark>
    * Prompt: Ask the LLM to research a topic, summarize papers, and generate a quiz.
    * Tool 1 (Fetch Server): Use the `fetch` tool to visit a website (e.g., DeepLearning.AI) to get a current topic (e.g., multi-modal LLMs).
    * Tool 2 (Local Research Server): Use the `search_papers` tool to find and store relevant papers based on the discovered topic.
-2. Artifact Generation: Claude Desktop's built-in Artifacts feature is used to visualize the final output.
+2. <mark style="color:blue;">Artifact Generation: Claude Desktop's built-in Artifacts feature is used to visualize the final output.</mark>
    * The LLM uses the summarized information to generate a web-based quiz (HTML/JS/React) and displays it in a separate, interactive window.
    * This shows the seamless integration of custom-built tools (MCP servers) with native client features (Artifacts) for a powerful, user-facing result.
 
-#### V. Ecosystem Overview
+#### <mark style="color:yellow;">V. Ecosystem Overview</mark>
 
 The Model Context Protocol is designed for broad adoption, supported by a wide range of applications:
 
@@ -509,14 +483,14 @@ That lecture was all about taking your local Model Context Protocol (MCP) server
 
 Here are the detailed notes:
 
-#### 1.  Modifying the MCP Server for Remote Access (0:25)
+#### <mark style="color:yellow;">1. Modifying the MCP Server for Remote Access (0:25)</mark>
 
 * Goal: To allow the server to be accessed remotely, which requires a change in the communication transport.
 * Configuration: The core server logic (tools, resources, prompts) remains the same. The primary change is in specifying the transport.
 * Transport: Since the Python SDK at the time didn't fully support HTTP streamable, the server was configured to use SSE (Server-Sent Events).
   * _Note:_ The speaker mentioned that switching to the newer HTTP streamable transport should be a quick change once it's fully supported in the SDKs.
 
-#### 2.  Testing the Remote Server with the Inspector (1:05)
+#### <mark style="color:yellow;">2. Testing the Remote Server with the Inspector (1:05)</mark>
 
 * The server is assumed to be running at a specific URL.
 * Tool Used: The MCP Inspector tool is used to connect to and test the remote server.
@@ -529,7 +503,7 @@ Here are the detailed notes:
      * Input the server's SSE URL.
   4. Verification (2:01): Once connected, you can list the server's primitives (resources, prompts, tools) to confirm the connection is initialized and functional.
 
-#### 3.  Deploying the Server to Render (2:29)
+#### <mark style="color:yellow;">3. Deploying the Server to Render (2:29)</mark>
 
 The server is deployed to Render to make it publicly accessible. This requires using Git/GitHub for deployment.
 
@@ -579,13 +553,13 @@ This walkthrough is a great, step-by-step guide for taking a project from a loca
 
 You can learn more about deploying MCP servers to remote platforms like Render by watching [Exposing Your MCP Tools Remotely Using Server-Sent Events (SSE)](https://www.google.com/search?q=https://www.youtube.com/watch%3Fv%3DkYJ5XyI_52g).
 
-## MCP: Beyond the Basics - Your Detailed Lecture Notes
+## <mark style="color:$danger;">MCP: Beyond the Basics - Your Detailed Lecture Notes</mark>
 
 Congratulations on completing the core concepts of the Model Context Protocol (MCP)! This final lesson covered advanced features and the exciting roadmap for the protocol's future, focusing on security, new primitives, and agentic architectures.
 
 ***
 
-#### Authentication with OAuth 2.1 (0:56)
+#### <mark style="color:yellow;">Authentication with OAuth 2.1 (0:56)</mark>
 
 * Core Method: The Model Context Protocol (MCP) adopted OAuth 2.1 in the March specification update as the primary means for authentication with remote servers.
 * Purpose: It allows clients and servers to authenticate securely and send authorized requests to data sources.
@@ -598,11 +572,11 @@ Congratulations on completing the core concepts of the Model Context Protocol (M
 
 ***
 
-#### Client-Exposed Primitives (2:09)
+#### <mark style="color:yellow;">Client-Exposed Primitives (2:09)</mark>
 
 While you've learned about server primitives (tools, resources, prompts), clients can also expose capabilities to servers.
 
-**1. Roots (2:17)**
+<mark style="color:blue;">**1. Roots (2:17)**</mark>
 
 * Definition: A URI (Uniform Resource Identifier) that a client suggests the server should operate within.
 * Function: It's a way for the client to declare specific, relevant file paths (e.g., local folders) or other valid URIs (e.g., HTTP URLs) where the server should look for files or data.
@@ -610,7 +584,7 @@ While you've learned about server primitives (tools, resources, prompts), client
   * Security Limitations: It helps set a clear scope for the server.
   * Focus: Keeps the server concentrated on a relevant file path or location, preventing it from searching the entire file system or network.
 
-**2. Sampling (3:03)**
+<mark style="color:blue;">**2. Sampling (3:03)**</mark>
 
 * Definition: This primitive reverses the typical flow, allowing a server to request inference from a Large Language Model (LLM) via the client.
 * Scenario Example: A server collecting performance logs and metrics (server logs, error logs, etc.) can send this data to the LLM via the client, asking the model to diagnose performance issues.
@@ -621,15 +595,15 @@ While you've learned about server primitives (tools, resources, prompts), client
 
 ***
 
-#### The Future: Agentic Capabilities and Discovery
+#### <mark style="color:yellow;">The Future: Agentic Capabilities and Discovery</mark>
 
-**Multi-Agent Architecture (4:16)**
+<mark style="color:blue;">**Multi-Agent Architecture (4:16)**</mark>
 
 * Composability: MCP's design is composable and recursive, meaning a single agent can act as both an MCP client and an MCP server.
 * Flow: An application and LLM can communicate with one agent, which can, in turn, connect to other specialized agents (for analysis, coding, research) that also operate as MCP servers/clients.
 * Goal: To create architectures where multiple specialized agents all communicate using the same standardized protocol (MCP).
 
-**Unified Registry API (5:47)**
+<mark style="color:blue;">**Unified Registry API (5:47)**</mark>
 
 * The Problem: The open-source community will see dozens of MCP servers for popular tools (like Google Drive or GitHub), which creates risks of malicious code and makes discovery difficult.
 * The Solution: The Unified Registry API aims to be the centralized and standardized way for discovering, centralizing, and verifying trusted MCP servers, similar to NPM or PyPI for packages.
@@ -642,7 +616,7 @@ While you've learned about server primitives (tools, resources, prompts), client
 
 ***
 
-#### Roadmap Highlights (8:08)
+#### <mark style="color:blue;">Roadmap Highlights (8:08)</mark>
 
 * HTTP Streamable Support: Aiming for a smoother transition between stateful and stateless capabilities.
 * Collision Prevention: Addressing naming conflicts when multiple MCP servers use generic tool names (e.g., `fetch_users`). This requires creating logical groups for tools or servers.
@@ -658,6 +632,3 @@ This video provides a deep dive into the MCP client, which is where the new prim
 Model Context Protocol - Part 5 of 10 - Client Deep Dive | Client Primitives Explained
 
 Would you like a summary of a specific feature, like Sampling or the Unified Registry API, or do you have any other questions about the Model Context Protocol?
-
-
-

@@ -2,13 +2,13 @@
 
 Here are detailed notes on autoencoders, their various types, and their pros and cons.
 
-#### What is an Autoencoder?
+#### <mark style="color:$danger;">What is an Autoencoder?</mark>
 
 An autoencoder is an unsupervised artificial neural network designed to learn efficient, compressed representations (codings) of data. It's "unsupervised" (or more accurately, "self-supervised") because it doesn't need labeled data. Its "label" is the input data itself.
 
 The primary goal is to learn a compressed latent-space representation (an "encoding") of the input, and then use that representation to reconstruct the original input as closely as possible.
 
-**The Core Architecture**
+<mark style="color:blue;">**The Core Architecture**</mark>
 
 An autoencoder always consists of three main parts:
 
@@ -20,11 +20,11 @@ The network is trained by minimizing a reconstruction loss (like Mean Squared Er
 
 ***
 
-#### Types of Autoencoders
+#### <mark style="color:$danger;">Types of Autoencoders</mark>
 
 While the basic structure is simple, different "types" of autoencoders use clever constraints to force the network to learn _useful_ features, not just "memorize" the data.
 
-**1. Undercomplete Autoencoder**
+<mark style="color:blue;">**1. Undercomplete Autoencoder**</mark>
 
 This is the simplest, most "classic" type.
 
@@ -41,13 +41,13 @@ This is the simplest, most "classic" type.
 
 ***
 
-**2. Sparse Autoencoder**
+<mark style="color:blue;">**2. Sparse Autoencoder**</mark>
 
 This type forces sparsity in the _activations_, not in the architecture.
 
 * How it Works: The bottleneck layer can be _larger_ than the input. The "compression" comes from a sparsity penalty added to the loss function. This penalty punishes the network for "activating" too many neurons in the hidden layer.
 * How the Penalty Works:
-  * L1 Regularization: Adds a penalty based on the _absolute value_ of the activations. This encourages most activations to become exactly zero.
+  * L1 Regularisation: Adds a penalty based on the _absolute value_ of the activations. This encourages most activations to become exactly zero.
   * KL Divergence: A more formal method. It forces the _average activation_ of each neuron (e.g., 0.05) to be close to a small "sparsity parameter" $$ $\rho$ $$.
 * Pros:
   * Feature Disentanglement: By forcing only a few neurons to fire for any given input, the model learns to associate specific neurons with specific features.
@@ -60,7 +60,7 @@ This type forces sparsity in the _activations_, not in the architecture.
 
 ***
 
-**3. Denoising Autoencoder**
+<mark style="color:blue;">**3. Denoising Autoencoder**</mark>
 
 This type is forced to learn robust features by "cleaning" noisy data.
 
@@ -81,7 +81,7 @@ This type is forced to learn robust features by "cleaning" noisy data.
 
 ***
 
-**4. Contractive Autoencoder**
+<mark style="color:blue;">**4. Contractive Autoencoder**</mark>
 
 This type forces the latent representation to be "insensitive" to tiny, irrelevant changes in the input.
 
@@ -98,7 +98,7 @@ This type forces the latent representation to be "insensitive" to tiny, irreleva
 
 ***
 
-**5. Variational Autoencoder (VAE)**
+<mark style="color:blue;">**5. Variational Autoencoder (VAE)**</mark>
 
 This is the most advanced type. It's a generative model, meaning it can create _new_ data.
 
@@ -121,7 +121,7 @@ This is the most advanced type. It's a generative model, meaning it can create _
   * Understanding complex data distributions.
   * Data augmentation.
 
-#### Summary: Which Autoencoder to Use?
+#### <mark style="color:blue;">Summary: Which Autoencoder to Use?</mark>
 
 | **Autoencoder Type** | **Key Idea**                          | **Main Use Case**                                    |
 | -------------------- | ------------------------------------- | ---------------------------------------------------- |

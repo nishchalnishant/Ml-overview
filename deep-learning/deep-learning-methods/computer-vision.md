@@ -2,7 +2,7 @@
 
 Here are detailed notes on Computer Vision (CV), its primary tasks, and the key models used for each, including their pros and cons.
 
-#### What is Computer Vision?
+#### <mark style="color:$danger;">What is Computer Vision?</mark>
 
 Computer Vision (CV) is a field of artificial intelligence (AI) that enables computers and systems to "see," interpret, and understand visual information from the world, just as humans do. It aims to extract meaningful information from digital images, videos, and other visual inputs.
 
@@ -16,11 +16,11 @@ At its core, CV is about pattern recognition.
 
 ***
 
-#### Models Based on Use Case
+#### <mark style="color:red;">Models Based on Use Case</mark>
 
 Here are the primary tasks in CV, the models that solve them, and their trade-offs.
 
-#### 1.  Image Classification
+#### <mark style="color:yellow;">1. Image Classification</mark>
 
 This is the most fundamental CV task. The goal is to assign a single label to an entire image.
 
@@ -35,7 +35,7 @@ This is the most fundamental CV task. The goal is to assign a single label to an
 
 ***
 
-#### 2.  Object Detection
+#### <mark style="color:yellow;">2. Object Detection</mark>
 
 This is the next step up. The goal is to find multiple objects in an image and draw a bounding box around each one.
 
@@ -60,7 +60,7 @@ These models predict the bounding boxes and class labels in a single pass.
 
 ***
 
-#### 3.  Image Segmentation
+#### <mark style="color:yellow;">3. Image Segmentation</mark>
 
 This is the most detailed CV task. The goal is to classify every single pixel in an image.
 
@@ -74,7 +74,7 @@ This is the most detailed CV task. The goal is to classify every single pixel in
 
 ***
 
-#### 4.  Generative Models
+#### <mark style="color:yellow;">4. Generative Models</mark>
 
 This is a different branch of CV. The goal is not to _understand_ an image, but to create new images.
 

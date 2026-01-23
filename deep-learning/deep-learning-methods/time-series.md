@@ -1,6 +1,6 @@
 # Time series
 
-#### What is Time Series Data?
+#### <mark style="color:red;">What is Time Series Data?</mark>
 
 First, time series data (or time series forecasting) is a type of problem where you use a sequence of historical data points (e.g., sales per day, stock price per hour) to predict future values.
 
@@ -15,11 +15,11 @@ The models we use are designed to capture these properties. They fall into three
 
 ***
 
-#### 1. Classical Statistical Models
+#### <mark style="color:red;">1. Classical Statistical Models</mark>
 
 These models are the traditional workhorses of time series forecasting. They are "univariate," meaning they typically use only the past values of the target variable to make a prediction.
 
-**### ARIMA (AutoRegressive Integrated Moving Average)**
+<mark style="color:yellow;">**### ARIMA (AutoRegressive Integrated Moving Average)**</mark>
 
 * How it Works: This is a combination of three components, defined by three parameters (p, d, q):
   * AR (AutoRegressive - p): Assumes the current value is a linear combination of its _own past values_. (e.g., "Today's sales are 90% of yesterday's sales + 10% of the day before's sales").
@@ -39,7 +39,7 @@ These models are the traditional workhorses of time series forecasting. They are
 
 ***
 
-**### Prophet**
+<mark style="color:yellow;">**### Prophet**</mark>
 
 * How it Works: Developed by Facebook, this is an automated forecasting tool based on a decomposable additive model: $$ $y(t) = g(t) + s(t) + h(t) + \epsilon_t$ $$
   * $$ $g(t)$ $$: Trend (modeled as piecewise linear or logistic growth).
@@ -58,7 +58,7 @@ These models are the traditional workhorses of time series forecasting. They are
 
 ***
 
-#### 2. Machine Learning (Feature-Based) Models
+#### <mark style="color:red;">2. Machine Learning (Feature-Based) Models</mark>
 
 This approach completely changes the problem. Instead of a "sequence" model, you convert the time series into a standard tabular (supervised learning) problem.
 
@@ -82,11 +82,11 @@ This approach completely changes the problem. Instead of a "sequence" model, you
 
 ***
 
-#### 3. Deep Learning (Sequence) Models
+#### <mark style="color:red;">3. Deep Learning (Sequence) Models</mark>
 
 These models are designed to learn patterns from raw sequential data, automatically learning the features that ML models need to be _given_.
 
-**### RNN / LSTM / GRU**
+<mark style="color:yellow;">**### RNN / LSTM / GRU**</mark>
 
 * How it Works:
   * RNN (Recurrent Neural Network): A basic neural network with a "loop" that maintains a "memory" (hidden state) of past information. (Suffers from short-term memory / vanishing gradients).
@@ -101,7 +101,7 @@ These models are designed to learn patterns from raw sequential data, automatica
   * Slow to Train: The recurrent (step-by-step) nature is sequential and hard to parallelize.
   * Complex to Tune: Many hyperparameters (layers, hidden units, etc.) to get right.
 
-**### Transformers**
+<mark style="color:yellow;">**### Transformers**</mark>
 
 * How it Works: The new state-of-the-art. Instead of a recurrent loop, Transformers use a Self-Attention Mechanism. This allows the model to look at _all_ time steps at once and "pay attention" to the most relevant past values, even those hundreds of steps in the past.
 * Pros:
@@ -114,12 +114,6 @@ These models are designed to learn patterns from raw sequential data, automatica
   * Very Complex: A "black box" that is hard to tune and interpret.
   * Computational Overkill: Using a Transformer on a simple monthly sales dataset is unnecessary and will likely perform _worse_ than ARIMA.
 
-#### How to Choose
+#### <mark style="color:$danger;">How to Choose</mark>
 
-| **Model Family** | **When to Use**                                                                                                                                               |
-| ---------------- | ------------------------------------------------------------------------------------------------------------------------------------------------------------- |
-| ARIMA / SARIMA   | Your baseline. Start here. Use when you have clear, simple data (e.g., < 5,000 points), a single variable, and clear seasonality/trend.                       |
-| Prophet          | When you need a fast, pretty-good, automated forecast with multiple seasonalities (e.g., weekly, yearly) and a list of holidays. Great for business analysts. |
-| XGBoost / ML     | When your forecast depends on many other variables (e.g., price, weather, ads) and the relationships are non-linear. This is a powerful, flexible approach.   |
-| LSTM / GRU       | When you have lots of data, complex non-linear patterns, and believe long-term memory is key. Good for sensor data, stock volatility, etc.                    |
-| Transformer      | When you have a massive, complex dataset (e.g., minute-by-minute financial data, weather forecasting) and need the absolute SOTA performance.                 |
+<table data-header-hidden><thead><tr><th width="151.17449951171875"></th><th></th></tr></thead><tbody><tr><td><strong>Model Family</strong></td><td><strong>When to Use</strong></td></tr><tr><td>ARIMA / SARIMA</td><td>Your baseline. Start here. Use when you have clear, simple data (e.g., &#x3C; 5,000 points), a single variable, and clear seasonality/trend.</td></tr><tr><td>Prophet</td><td>When you need a fast, pretty-good, automated forecast with multiple seasonalities (e.g., weekly, yearly) and a list of holidays. Great for business analysts.</td></tr><tr><td>XGBoost / ML</td><td>When your forecast depends on many other variables (e.g., price, weather, ads) and the relationships are non-linear. This is a powerful, flexible approach.</td></tr><tr><td>LSTM / GRU</td><td>When you have lots of data, complex non-linear patterns, and believe long-term memory is key. Good for sensor data, stock volatility, etc.</td></tr><tr><td>Transformer</td><td>When you have a massive, complex dataset (e.g., minute-by-minute financial data, weather forecasting) and need the absolute SOTA performance.</td></tr></tbody></table>

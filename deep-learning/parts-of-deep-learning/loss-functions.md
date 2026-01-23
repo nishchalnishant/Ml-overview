@@ -2,7 +2,7 @@
 
 Here are detailed notes on the most common loss functions used in deep learning, organized by the type of problem you're solving.
 
-#### What is a Loss Function?
+#### <mark style="color:red;">What is a Loss Function?</mark>
 
 A loss function (or cost function) is a way to measure how "wrong" your model's prediction is compared to the actual target. It's a single number that quantifies the error for a given set of weights.
 
@@ -12,11 +12,11 @@ The entire goal of training a deep learning model is to find the set of weights 
 
 ***
 
-#### 1. Regression Losses (Predicting a Continuous Value)
+#### <mark style="color:red;">1. Regression Losses (Predicting a Continuous Value)</mark>
 
 Use these when your model is predicting a number, like the price of a house, the temperature tomorrow, or the age of a person in a photo.
 
-**### Mean Squared Error (MSE) / L2 Loss**
+<mark style="color:yellow;">**### Mean Squared Error (MSE) / L2 Loss**</mark>
 
 This is the "default" and most common loss function for regression problems.
 
@@ -31,7 +31,7 @@ This is the "default" and most common loss function for regression problems.
   * This should be your starting point for any regression problem.
   * Use it when outliers are rare or you _want_ to penalize large errors significantly.
 
-**### Mean Absolute Error (MAE) / L1 Loss**
+<mark style="color:yellow;">**### Mean Absolute Error (MAE) / L1 Loss**</mark>
 
 * How it Works: It calculates the _average_ of the _absolute_ (positive) differences between the predicted value and the true value.
 * Pros:
@@ -43,7 +43,7 @@ This is the "default" and most common loss function for regression problems.
 * When to Use:
   * When your dataset has a lot of outliers (e.g., financial data, sensor readings) that you don't want to dominate the training.
 
-**### Huber Loss (Smooth L1 Loss)**
+<mark style="color:yellow;">**### Huber Loss (Smooth L1 Loss)**</mark>
 
 * How it Works: It's a hybrid of MSE and MAE. It's quadratic (like MSE) for small errors and linear (like MAE) for large errors. You define a "delta" ($$ $\delta$ $$) threshold to decide what's "small" vs. "large."
 * Pros:
@@ -55,11 +55,11 @@ This is the "default" and most common loss function for regression problems.
 
 ***
 
-#### 2. Classification Losses (Predicting a Category)
+#### <mark style="color:$danger;">2. Classification Losses (Predicting a Category)</mark>
 
 Use these when your model is predicting a discrete label, like "Cat" vs. "Dog" or "Spam" vs. "Not Spam". These losses work by comparing the predicted _probability distribution_ from the model to the true distribution.
 
-**### Binary Cross-Entropy (BCE) / Log Loss**
+<mark style="color:yellow;">**### Binary Cross-Entropy (BCE) / Log Loss**</mark>
 
 This is the standard for binary classification (two classes).
 
@@ -78,7 +78,7 @@ This is the standard for binary classification (two classes).
   * Any binary classification problem: Spam detection, medical diagnosis (positive/negative), etc.
   * Also used for multi-label classification (see below).
 
-**### Categorical Cross-Entropy (CCE)**
+<mark style="color:yellow;">**### Categorical Cross-Entropy (CCE)**</mark>
 
 This is the standard for multi-class classification (more than two classes, where only one is correct).
 
@@ -93,7 +93,7 @@ This is the standard for multi-class classification (more than two classes, wher
 * When to Use:
   * Any multi-class problem where only one answer is correct (e.g., CIFAR-10 image classification, digit recognition on MNIST).
 
-**### Sparse Categorical Cross-Entropy (SCCE)**
+<mark style="color:yellow;">**### Sparse Categorical Cross-Entropy (SCCE)**</mark>
 
 * How it Works:
   * This is mathematically the _exact same_ loss as CCE.
@@ -108,7 +108,7 @@ This is the standard for multi-class classification (more than two classes, wher
 
 ***
 
-#### Wait, what about Multi-Label Classification?
+#### <mark style="color:$danger;">Wait, what about Multi-Label Classification?</mark>
 
 This is a common point of confusion. What if an input can have _multiple_ correct labels? (e.g., a movie's genres: `[Action, Comedy, Sci-Fi]`).
 

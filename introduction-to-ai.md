@@ -4,44 +4,34 @@
 
 **Definition:** Artificial Intelligence (AI) is the field of computer science focused on creating systems capable of performing tasks that typically require human intelligence, such as learning, reasoning, problem-solving, perception, and language understanding.
 
-### Core Learning Paradigms
+### <mark style="color:yellow;">Core Learning Paradigms</mark>
 
 AI systems learn patterns and make decisions through various approaches:
 
-* **Statistical Machine Learning** - Uses mathematical and probabilistic methods to find patterns in data:
+* <mark style="color:$danger;">**Statistical Machine Learning**</mark> - Uses mathematical and probabilistic methods to find patterns in data:
   * Creates decision boundaries, hyperplanes, or hierarchical splits to divide data
   * Examples: Linear/logistic regression, SVMs, decision trees, random forests
-* **Deep Learning** - Mimics human neural networks to learn complex patterns through iterative optimization:
+* <mark style="color:$danger;">**Deep Learning**</mark> - Mimics human neural networks to learn complex patterns through iterative optimization:
   * Learns hierarchical feature representations automatically
   * Excels at unstructured data (images, text, audio)
   * Examples: CNNs, RNNs, Transformers
-* **Generative AI** - Creates new data samples after learning from existing data:
+* <mark style="color:$danger;">**Generative AI**</mark> <mark style="color:$danger;"></mark><mark style="color:$danger;">-</mark> Creates new data samples after learning from existing data:
   * Examples: GANs, VAEs, Diffusion Models (DALL-E, Stable Diffusion)
-* **Reinforcement Learning** - Learns through interaction with an environment via rewards and penalties:
+* <mark style="color:$danger;">**Reinforcement Learning**</mark> - Learns through interaction with an environment via rewards and penalties:
   * Agent learns optimal actions through trial and error
   * Examples: Game playing (AlphaGo), robotics, recommendation systems
 
-### Key Challenges in Machine Learning
+### <mark style="color:yellow;">Key Challenges in Machine Learning</mark>
 
-* **Data Representation** - How to encode and feed data to ML models (feature engineering, embeddings)
-* **Performance Monitoring** - Tracking model progress during training (loss curves, validation metrics)
-* **Generalization** - Ensuring models learn the right patterns and perform well on unseen data
-* **Interpretability** - Understanding how models make decisions
-* **Scalability** - Handling large datasets and deploying models in production
+* <mark style="color:$danger;">**Data Representation**</mark> - How to encode and feed data to ML models (feature engineering, embeddings)
+* <mark style="color:$danger;">**Performance Monitoring**</mark> - Tracking model progress during training (loss curves, validation metrics)
+* <mark style="color:$danger;">**Generalization**</mark> - Ensuring models learn the right patterns and perform well on unseen data
+* <mark style="color:$danger;">**Interpretability**</mark> - Understanding how models make decisions
+* <mark style="color:$danger;">**Scalability**</mark> - Handling large datasets and deploying models in production
 
-### Machine Learning vs Deep Learning
+### <mark style="color:yellow;">Machine Learning vs Deep Learning</mark>
 
-| **Aspect**              | **Machine Learning**                               | **Deep Learning**                           |
-| ----------------------- | -------------------------------------------------- | ------------------------------------------- |
-| **Approach**            | Statistical and probabilistic methods              | Neural networks with multiple hidden layers |
-| **Data Requirements**   | Works well with smaller datasets (1K-100K samples) | Requires large datasets (100K-1M+ samples)  |
-| **Computation**         | Lower computational cost, can run on CPUs          | High computational cost, requires GPUs/TPUs |
-| **Feature Engineering** | Manual feature engineering required                | Automatic feature learning                  |
-| **Training Time**       | Minutes to hours                                   | Hours to days/weeks                         |
-| **Interpretability**    | High (e.g., decision trees, linear models)         | Low (black-box models)                      |
-| **Use Cases**           | Tabular data, structured problems, limited data    | Images, text, audio, unstructured data      |
-| **Performance Scaling** | Plateaus with more data                            | Improves with more data and model size      |
-| **Hardware Needs**      | Standard CPU sufficient                            | GPUs/TPUs often necessary                   |
+<table data-header-hidden><thead><tr><th width="154.6163330078125"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Aspect</strong></td><td><strong>Machine Learning</strong></td><td><strong>Deep Learning</strong></td></tr><tr><td><strong>Approach</strong></td><td>Statistical and probabilistic methods</td><td>Neural networks with multiple hidden layers</td></tr><tr><td><strong>Data Requirements</strong></td><td>Works well with smaller datasets (1K-100K samples)</td><td>Requires large datasets (100K-1M+ samples)</td></tr><tr><td><strong>Computation</strong></td><td>Lower computational cost, can run on CPUs</td><td>High computational cost, requires GPUs/TPUs</td></tr><tr><td><strong>Feature Engineering</strong></td><td>Manual feature engineering required</td><td>Automatic feature learning</td></tr><tr><td><strong>Training Time</strong></td><td>Minutes to hours</td><td>Hours to days/weeks</td></tr><tr><td><strong>Interpretability</strong></td><td>High (e.g., decision trees, linear models)</td><td>Low (black-box models)</td></tr><tr><td><strong>Use Cases</strong></td><td>Tabular data, structured problems, limited data</td><td>Images, text, audio, unstructured data</td></tr><tr><td><strong>Performance Scaling</strong></td><td>Plateaus with more data</td><td>Improves with more data and model size</td></tr><tr><td><strong>Hardware Needs</strong></td><td>Standard CPU sufficient</td><td>GPUs/TPUs often necessary</td></tr></tbody></table>
 
 **When to Use Machine Learning:**
 
@@ -59,9 +49,9 @@ AI systems learn patterns and make decisions through various approaches:
 * Performance is priority over interpretability
 * Sufficient computational resources available
 
-## Machine Learning Fundamentals
+## <mark style="color:yellow;">Machine Learning Fundamentals</mark>
 
-### Bias-Variance Trade-off
+### <mark style="color:red;">Bias-Variance Trade-off</mark>
 
 One of the most important concepts in machine learning - understanding this is critical for interviews.
 
@@ -75,7 +65,7 @@ Expected Loss = Bias² + Variance + Irreducible Error
 E[(y - ŷ)²] = Bias² + Variance + σ²
 ```
 
-**Definitions:**
+<mark style="color:$danger;">**Definitions**</mark>**:**
 
 * **Bias** - Error from incorrect assumptions in the learning algorithm
   * Measures how far off the average model prediction is from the true value
@@ -87,36 +77,27 @@ E[(y - ŷ)²] = Bias² + Variance + σ²
   * Example: Deep decision tree memorizing training data
 * **Irreducible Error** - Noise in the data that cannot be reduced (σ²)
 
-**Visual Understanding:**
+<mark style="color:red;">**Visual Understanding:**</mark>
 
 ```
 High Bias, Low Variance:    Low Bias, High Variance:    Optimal:
   Consistent but wrong        Close but inconsistent      Accurate & consistent
-  
-                                                             
-                                                           
+                              
                                                            
   (Underfitting)              (Overfitting)                   (Balanced)
 ```
 
-**The Trade-off:**
+<mark style="color:$danger;">**The Trade-off:**</mark>
 
 * Reducing bias typically increases variance (more complex model)
 * Reducing variance typically increases bias (simpler model)
 * Goal: Find the sweet spot that minimizes total error
 
-**Factors Affecting Bias and Variance:**
+<mark style="color:$danger;">**Factors Affecting Bias and Variance:**</mark>
 
-| **Factor**          | **Effect on Bias** | **Effect on Variance** |
-| ------------------- | ------------------ | ---------------------- |
-| More training data  | No change          | Decreases ↓            |
-| More features       | Decreases ↓        | Increases ↑            |
-| More complex model  | Decreases ↓        | Increases ↑            |
-| Regularization (↑λ) | Increases ↑        | Decreases ↓            |
-| Feature selection   | May increase ↑     | Decreases ↓            |
-| Ensemble methods    | Decreases ↓        | Decreases ↓            |
+<table data-header-hidden><thead><tr><th width="190.94879150390625"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Factor</strong></td><td><strong>Effect on Bias</strong></td><td><strong>Effect on Variance</strong></td></tr><tr><td>More training data</td><td>No change</td><td>Decreases ↓</td></tr><tr><td>More features</td><td>Decreases ↓</td><td>Increases ↑</td></tr><tr><td>More complex model</td><td>Decreases ↓</td><td>Increases ↑</td></tr><tr><td>Regularization (↑λ)</td><td>Increases ↑</td><td>Decreases ↓</td></tr><tr><td>Feature selection</td><td>May increase ↑</td><td>Decreases ↓</td></tr><tr><td>Ensemble methods</td><td>Decreases ↓</td><td>Decreases ↓</td></tr></tbody></table>
 
-**How to Reduce High Bias (Underfitting):**
+<mark style="color:$danger;">**How to Reduce High Bias (Underfitting):**</mark>
 
 * Use more complex model (e.g., polynomial features, deeper network)
 * Add more relevant features
@@ -124,7 +105,7 @@ High Bias, Low Variance:    Low Bias, High Variance:    Optimal:
 * Remove noise from data
 * Increase model capacity
 
-**How to Reduce High Variance (Overfitting):**
+<mark style="color:$danger;">**How to Reduce High Variance (Overfitting):**</mark>
 
 * Collect more training data
 * Feature selection / dimensionality reduction
@@ -136,11 +117,11 @@ High Bias, Low Variance:    Low Bias, High Variance:    Optimal:
 
 **Interview Tip:** Be ready to explain with a concrete example: _"If I use linear regression on data with a quadratic relationship, I'll have high bias because the model can't capture the curve. If I use a 20-degree polynomial, I'll have high variance because it'll fit every noise point in my training data."_
 
-### Regularization Techniques
+### <mark style="color:yellow;">Regularization Techniques</mark>
 
 Regularization adds a penalty term to the loss function to prevent overfitting:
 
-*   **L1 Regularization (Lasso):**
+*   <mark style="color:$danger;">**L1 Regularization (Lasso):**</mark>
 
     ```
     Loss = MSE + α × Σ|w|
@@ -149,7 +130,7 @@ Regularization adds a penalty term to the loss function to prevent overfitting:
     * Produces sparse models (some weights become exactly 0)
     * Useful for feature selection
     * Less stable with correlated features
-*   **L2 Regularization (Ridge):**
+*   <mark style="color:$danger;">**L2 Regularization (Ridge):**</mark>
 
     ```
     Loss = MSE + α × Σw²
@@ -158,7 +139,7 @@ Regularization adds a penalty term to the loss function to prevent overfitting:
     * Shrinks all weights but doesn't zero them out
     * More stable with correlated features
     * Preferred when all features are relevant
-*   **Elastic Net:**
+*   <mark style="color:$danger;">**Elastic Net:**</mark>
 
     ```
     Loss = MSE + α₁ × Σ|w| + α₂ × Σw²
@@ -172,17 +153,17 @@ Regularization adds a penalty term to the loss function to prevent overfitting:
 * <mark style="color:red;">L1: When you suspect many features are irrelevant and want feature selection</mark>
 * <mark style="color:red;">L2: When you believe most features contribute and want to avoid instability</mark>
 
-### Train/Validation/Test Split
+### <mark style="color:yellow;">Train/Validation/Test Split</mark>
 
 **Purpose:** Properly evaluate model performance and prevent overfitting
 
-**Standard Split Ratios:**
+<mark style="color:red;">**Standard Split Ratios:**</mark>
 
 * **Training Set (60-80%):** Used to fit the model
 * **Validation Set (10-20%):** Used for hyperparameter tuning and model selection
 * **Test Set (10-20%):** Used ONLY for final evaluation
 
-**Best Practices:**
+<mark style="color:red;">**Best Practices:**</mark>
 
 * **Stratification:** Maintain class distribution in splits for imbalanced data
 * **Time-based split:** For time series, always split chronologically
@@ -202,11 +183,11 @@ X_train, X_val, y_train, y_val = train_test_split(
 )
 ```
 
-### Cross-Validation
+### <mark style="color:yellow;">Cross-Validation</mark>
 
 **Purpose:** Better utilize limited data and get more reliable performance estimates
 
-**K-Fold Cross-Validation:**
+<mark style="color:$danger;">**K-Fold Cross-Validation:**</mark>
 
 * Split data into K folds
 * Train on K-1 folds, validate on 1 fold
@@ -236,7 +217,7 @@ print(f"Average Accuracy: {scores.mean():.3f} (+/- {scores.std() * 2:.3f})")
 
 <mark style="color:red;">**Interview Tip:**</mark> <mark style="color:red;"></mark><mark style="color:red;">Mention that CV is computationally expensive (K times the cost) but gives more robust estimates.</mark>
 
-### Ensemble Methods
+### <mark style="color:$warning;">Ensemble Methods</mark>
 
 Combine multiple models to improve performance:
 
@@ -255,13 +236,13 @@ Combine multiple models to improve performance:
 
 \-------------------------------------------------------------------------------------------------------
 
-## Machine Learning Algorithms
+## <mark style="color:yellow;">Machine Learning Algorithms</mark>
 
-### Supervised Learning
+### <mark style="color:red;">Supervised Learning</mark>
 
 Supervised learning uses labeled data (input-output pairs) to learn a mapping function.
 
-#### Regression Algorithms (Continuous Output)
+#### <mark style="color:blue;">Regression Algorithms (Continuous Output)</mark>
 
 | **Algorithm**         | **Time Complexity**   | **Key Assumptions**                       | **When to Use**                            |
 | --------------------- | --------------------- | ----------------------------------------- | ------------------------------------------ |
@@ -275,7 +256,7 @@ Supervised learning uses labeled data (input-output pairs) to learn a mapping fu
 
 _n = samples, p = features, t = trees_
 
-#### Classification Algorithms (Categorical Output)
+#### <mark style="color:blue;">Classification Algorithms (Categorical Output)</mark>
 
 | **Algorithm**           | **Time Complexity** | **Key Strengths**                        | **Common Issues**                         |
 | ----------------------- | ------------------- | ---------------------------------------- | ----------------------------------------- |
@@ -295,27 +276,27 @@ _n = samples, p = features, t = trees_
 * **Boosting (XGBoost, AdaBoost, GBM):** Reduces bias, sequential training
 * **Stacking:** Combines diverse models with meta-learner
 
-#### Algorithm Selection Guide
+#### <mark style="color:blue;">Algorithm Selection Guide</mark>
 
 **Start with these baselines:**
 
-1. **Regression:** Linear Regression → Random Forest → XGBoost
-2. **Classification:** Logistic Regression → Random Forest → XGBoost
+1. <mark style="color:red;">**Regression**</mark>**:** Linear Regression → Random Forest → XGBoost
+2. <mark style="color:red;">**Classification**</mark>**:** Logistic Regression → Random Forest → XGBoost
 
-**Choose based on constraints:**
+<mark style="color:blue;">**Choose based on constraints:**</mark>
 
-* **Need interpretability:** Linear/Logistic Regression, Decision Tree
-* **Have high-dimensional data:** Lasso, Ridge, Random Forest
-* **Have categorical features:** CatBoost, LightGBM
-* **Limited data:** Naive Bayes, Regularized Linear Models
-* **Need fast predictions:** Linear models, Naive Bayes
-* **Maximum accuracy on tabular data:** XGBoost, LightGBM, CatBoost
+* <mark style="color:red;">**Need interpretability:**</mark> Linear/Logistic Regression, Decision Tree
+* <mark style="color:red;">**Have high-dimensional data:**</mark> Lasso, Ridge, Random Forest
+* <mark style="color:red;">**Have categorical features:**</mark> CatBoost, LightGBM
+* <mark style="color:red;">**Limited data:**</mark> Naive Bayes, Regularized Linear Models
+* <mark style="color:red;">**Need fast predictions:**</mark> Linear models, Naive Bayes
+* <mark style="color:red;">**Maximum accuracy on tabular data:**</mark> XGBoost, LightGBM, CatBoost
 
-### Unsupervised Learning
+### <mark style="color:blue;">Unsupervised Learning</mark>
 
 Unsupervised learning finds patterns in unlabeled data.
 
-#### Clustering Algorithms
+#### <mark style="color:red;">Clustering Algorithms</mark>
 
 | **Algorithm**    | **Time Complexity** | **Best For**                        | **Limitations**                       |
 | ---------------- | ------------------- | ----------------------------------- | ------------------------------------- |
@@ -326,7 +307,7 @@ Unsupervised learning finds patterns in unlabeled data.
 
 _k = clusters, i = iterations_
 
-#### Dimensionality Reduction
+#### <mark style="color:red;">Dimensionality Reduction</mark>
 
 | **Algorithm**    | **Type**   | **Preserves**              | **Use Case**                          |
 | ---------------- | ---------- | -------------------------- | ------------------------------------- |
@@ -336,18 +317,11 @@ _k = clusters, i = iterations_
 | **LDA**          | Supervised | Class separability         | Feature extraction for classification |
 | **Autoencoders** | Non-linear | Learned features           | Complex non-linear reductions         |
 
-## Evaluation Metrics
+## <mark style="color:$warning;">Evaluation Metrics</mark>
 
-### Regression Metrics
+### <mark style="color:red;">Regression Metrics</mark>
 
-| **Metric**      | **Formula**                | **Range**   | **When to Use**                 |
-| --------------- | -------------------------- | ----------- | ------------------------------- |
-| **MAE**         | (1/n) Σ\|y - ŷ\|           | \[0, ∞)     | Robust to outliers              |
-| **MSE**         | (1/n) Σ(y - ŷ)²            | \[0, ∞)     | Penalizes large errors          |
-| **RMSE**        | √MSE                       | \[0, ∞)     | Same units as target            |
-| **R²**          | 1 - (SS\_res / SS\_tot)    | (-∞, 1]     | Explains variance, 1 is perfect |
-| **Adjusted R²** | 1 - \[(1-R²)(n-1)/(n-p-1)] | (-∞, 1]     | Accounts for # of features      |
-| **MAPE**        | (100/n) Σ\|                | (y - ŷ)/y\| |                                 |
+<table data-header-hidden><thead><tr><th width="117.490478515625"></th><th width="243.3116455078125"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Metric</strong></td><td><strong>Formula</strong></td><td><strong>Range</strong></td><td><strong>When to Use</strong></td></tr><tr><td><strong>MAE</strong></td><td>(1/n) Σ|y - ŷ|</td><td>[0, ∞)</td><td>Robust to outliers</td></tr><tr><td><strong>MSE</strong></td><td>(1/n) Σ(y - ŷ)²</td><td>[0, ∞)</td><td>Penalizes large errors</td></tr><tr><td><strong>RMSE</strong></td><td>√MSE</td><td>[0, ∞)</td><td>Same units as target</td></tr><tr><td><strong>R²</strong></td><td>1 - (SS_res / SS_tot)</td><td>(-∞, 1]</td><td>Explains variance, 1 is perfect</td></tr><tr><td><strong>Adjusted R²</strong></td><td>1 - [(1-R²)(n-1)/(n-p-1)]</td><td>(-∞, 1]</td><td>Accounts for # of features</td></tr><tr><td><strong>MAPE</strong></td><td>(100/n) Σ|</td><td>(y - ŷ)/y|</td><td></td></tr></tbody></table>
 
 **Key Insights:**
 
@@ -358,7 +332,7 @@ _k = clusters, i = iterations_
 
 **Interview Tip:** "I'd use RMSE when large errors are particularly bad (e.g., predicting hospital demand), and MAE when all errors matter equally (e.g., pricing)."
 
-### Classification Metrics
+### <mark style="color:red;">Classification Metrics</mark>
 
 **Confusion Matrix Foundation:**
 
@@ -421,7 +395,7 @@ High Precision, Low Recall:     High Recall, Low Precision:
    * ROC-AUC: Balanced datasets
    * PR-AUC: Imbalanced datasets (focuses on positive class performance)
 
-### Handling Imbalanced Data
+### <mark style="color:$danger;">Handling Imbalanced Data</mark>
 
 **Techniques:**
 
@@ -448,13 +422,13 @@ model = RandomForestClassifier(class_weight='balanced')
 model = RandomForestClassifier(class_weight={0: 1, 1: 10})  # 10x penalty for class 1
 ```
 
-## Deep Learning
+## <mark style="color:yellow;">Deep Learning</mark>
 
 Deep learning uses neural networks with multiple layers To learn hierarchical feature representations from data.
 
-### Core Components
+### <mark style="color:$danger;">Core Components</mark>
 
-#### 1. Neural Network Layers
+#### <mark style="color:blue;">1. Neural Network Layers</mark>
 
 | **Layer Type**                 | **Purpose**                                   | **Common Use**                         |
 | ------------------------------ | --------------------------------------------- | -------------------------------------- |
@@ -467,7 +441,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 | **Batch/Layer Normalization**  | Stabilizes training                           | Faster convergence, better performance |
 | **Embedding**                  | Converts discrete tokens to vectors           | NLP, categorical features              |
 
-#### 2. Activation Functions
+#### <mark style="color:blue;">2. Activation Functions</mark>
 
 | **Function**   | **Formula**       | **Range** | **Pros**                    | **Cons**                  |
 | -------------- | ----------------- | --------- | --------------------------- | ------------------------- |
@@ -486,7 +460,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 
 **Dead ReLU Problem:** When ReLU units always output 0 (negative input), they stop learning. Solutions: Leaky ReLU, careful weight initialization, lower learning rate.
 
-#### 3. Loss Functions
+#### <mark style="color:blue;">3. Loss Functions</mark>
 
 | **Loss Function**             | **Formula**                   | **Use Case**                    |
 | ----------------------------- | ----------------------------- | ------------------------------- |
@@ -498,7 +472,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 | **Hinge Loss**                | max(0, 1-y·ŷ)                 | SVMs, margin-based learning     |
 | **Huber Loss**                | Hybrid MSE/MAE                | Robust regression               |
 
-#### 4. Optimizers
+#### <mark style="color:blue;">4. Optimizers</mark>
 
 | **Optimizer**      | **Key Feature**                           | **When to Use**                          |
 | ------------------ | ----------------------------------------- | ---------------------------------------- |
@@ -511,9 +485,9 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 
 **Interview Tip:** "I'd start with Adam or AdamW for most problems. For fine-tuning, SGD with momentum often gives better final performance."
 
-### Modern Architectures
+### <mark style="color:red;">Modern Architectures</mark>
 
-#### Computer Vision
+#### <mark style="color:blue;">Computer Vision</mark>
 
 | **Architecture**             | **Year** | **Key Innovation**                        | **Use Case**                   |
 | ---------------------------- | -------- | ----------------------------------------- | ------------------------------ |
@@ -526,7 +500,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 | **EfficientNet**             | 2019     | Compound scaling (depth/width/resolution) | SOTA efficiency                |
 | **Vision Transformer (ViT)** | 2020     | Transformers for images                   | Current SOTA, large datasets   |
 
-#### Natural Language Processing
+#### <mark style="color:blue;">Natural Language Processing</mark>
 
 | **Architecture** | **Year**  | **Key Innovation**                  | **Use Case**                       |
 | ---------------- | --------- | ----------------------------------- | ---------------------------------- |
@@ -539,7 +513,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 | **T5**           | 2019      | Text-to-text framework              | Unified NLP tasks                  |
 | **GPT-3/4**      | 2020/2023 | Massive scale (175B+ params)        | Few-shot learning, general tasks   |
 
-#### Generative Models
+#### <mark style="color:blue;">Generative Models</mark>
 
 | **Model Type**       | **How It Works**                  | **Use Case**                         |
 | -------------------- | --------------------------------- | ------------------------------------ |
@@ -548,9 +522,9 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
 | **Diffusion Models** | Iterative denoising process       | DALL-E, Stable Diffusion, Midjourney |
 | **Autoregressive**   | Predicts next token sequentially  | GPT, language models                 |
 
-### Training Techniques
+### <mark style="color:$danger;">Training Techniques</mark>
 
-#### Preventing Overfitting
+#### <mark style="color:blue;">Preventing Overfitting</mark>
 
 1. **Dropout** (p=0.2-0.5)
    * Randomly deactivate neurons during training
@@ -568,7 +542,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
    * Vision: rotation, flipping, cropping, color jitter
    * NLP: back-translation, synonym replacement
 
-#### Optimization Techniques
+#### <mark style="color:blue;">Optimization Techniques</mark>
 
 1. **Learning Rate Scheduling**
    * Step decay: Reduce LR at intervals
@@ -582,7 +556,7 @@ Deep learning uses neural networks with multiple layers To learn hierarchical fe
    * Use FP16 for speed, FP32 for stability
    * Reduces memory, speeds up training
 
-#### Transfer Learning & Fine-tuning
+#### <mark style="color:blue;">Transfer Learning & Fine-tuning</mark>
 
 **Transfer Learning:**
 
@@ -615,7 +589,7 @@ model = Sequential([
 * Similar domain to pre-trained model
 * Faster training than from scratch
 
-### Common Interview Topics
+### <mark style="color:blue;">Common Interview Topics</mark>
 
 #### Vanishing/Exploding Gradients
 
@@ -638,7 +612,7 @@ model = Sequential([
   * Lower learning rate
   * Batch normalisation
 
-#### Batch vs Layer Normalization
+#### <mark style="color:yellow;">Batch vs Layer Normalization</mark>
 
 | **Aspect**                | **Batch Norm**            | **Layer Norm**                    |
 | ------------------------- | ------------------------- | --------------------------------- |
@@ -647,7 +621,7 @@ model = Sequential([
 | **Training/Inference**    | Different behavior        | Same behavior                     |
 | **Batch Size Dependency** | Yes (needs large batches) | No (works with batch=1)           |
 
-#### Common Interview Questions
+#### <mark style="color:yellow;">Common Interview Questions</mark>
 
 1. **"Why do we need activation functions?"**
    * Without them, stacked linear layers = single linear layer (no expressiveness)
@@ -667,7 +641,7 @@ model = Sequential([
    * No vanishing gradient problem
    * Scales better with data and compute
 
-### Hardware & Scalability
+### <mark style="color:yellow;">Hardware & Scalability</mark>
 
 **Training Considerations:**
 
@@ -684,9 +658,9 @@ model = Sequential([
 * Knowledge distillation (train smaller model from large model)
 * ONNX runtime, TensorRT for fast inference
 
-## Model Development Best Practices
+## <mark style="color:yellow;">Model Development Best Practices</mark>
 
-### Model Debugging Checklist
+### <mark style="color:$danger;">Model Debugging Checklist</mark>
 
 **Model Underperforming:**
 
@@ -731,9 +705,9 @@ model = Sequential([
 * Remove noise from data
 * Ensemble methods (boosting)
 
-### Production Considerations
+### <mark style="color:yellow;">Production Considerations</mark>
 
-#### Model Serving
+#### <mark style="color:$danger;">Model Serving</mark>
 
 **Batch Inference:**
 
@@ -759,7 +733,7 @@ Options:
 4. Edge deployment (TensorFlow Lite, ONNX)
 ```
 
-#### Model Monitoring & Drift Detection
+#### <mark style="color:$danger;">Model Monitoring & Drift Detection</mark>
 
 **Data Drift:**
 
@@ -788,7 +762,7 @@ Options:
 * Latency increases >2x
 * Error rate >1%
 
-#### A/B Testing
+#### <mark style="color:red;">A/B Testing</mark>
 
 **Purpose:** Validate new model performs better than current production model
 
@@ -805,7 +779,7 @@ Options:
 * Model metrics (accuracy, latency)
 * User experience metrics
 
-#### Model Versioning & Reproducibility
+#### <mark style="color:red;">Model Versioning & Reproducibility</mark>
 
 **Essential Practices:**
 
@@ -828,9 +802,9 @@ with mlflow.start_run():
     mlflow.sklearn.log_model(model, "model")
 ```
 
-## Common Interview Questions & Answers
+## <mark style="color:yellow;">Common Interview Questions & Answers</mark>
 
-### Conceptual Questions
+### <mark style="color:$danger;">Conceptual Questions</mark>
 
 **1. "Explain bias-variance trade-off with an example"**
 
@@ -852,7 +826,7 @@ with mlflow.start_run():
 
 > "Dropout randomly deactivates a percentage of neurons during each training iteration. This prevents the network from relying too heavily on any specific neuron, forcing it to learn robust, distributed representations. It's effectively like training an ensemble of different network architectures simultaneously. At inference, we use all neurons but scale their outputs appropriately. It's particularly effective for preventing overfitting in deep neural networks."
 
-### Practical Questions
+### <mark style="color:$danger;">Practical Questions</mark>
 
 **6. "Your model has 99% accuracy but stakeholders are unhappy. What's wrong?"**
 
