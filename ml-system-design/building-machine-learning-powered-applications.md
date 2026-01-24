@@ -1,29 +1,29 @@
-# Building ML-Powered Applications: Strategic Summary
+# Building machine learning powered applications
 
-> [!TIP]
-> **The ML Product Engineer's Checklist**
-> 
+> \[!TIP] **The ML Product Engineer's Checklist**
+>
 > 1. **Rule-Based Baseline:** Can you solve 80% of the problem with a simple regex or nested `if` statements? Do it first to establish a rigorous baseline.
 > 2. **Evaluation Alignment:** Does your offline metric (e.g., F1 score) actually move the product KPI (e.g., higher user retention)?
 > 3. **The "Microscope" Pattern:** Use interpretable features (lengths, counts, presence of keywords) in your first model iteration to understand the data signal.
-> 4. **Micro-Iterations:** Focus on one change at a time: 
->    - Fix labeling inconsistency.
->    - Add one feature interaction.
->    - Tune one hyperparameter.
+> 4. **Micro-Iterations:** Focus on one change at a time:
+>    * Fix labeling inconsistency.
+>    * Add one feature interaction.
+>    * Tune one hyperparameter.
 > 5. **Deployment Safety:** Use "Shadow Mode" for your prototype to compare model predictions with existing heuristics without affecting users.
 > 6. **Error Analysis:** Manually inspect the 100 worst-performing samples to find systematic data gaps.
 
----
+***
 
-### Chapter Summaries
-- [Chapter 1: From Goal to Framing](#chapter-1-from-product-goal-to-ml-framing)
-- [Chapter 2: Evaluating & Scoping](#chapter-2-evaluating-and-scoping-an-ml-problem)
-- [Chapter 3: Building a Prototype](#chapter-3-designing-and-building-an-ml-powered-prototype)
-- [Chapter 4: Iterating on Models/Data](#chapter-4-iterating-on-models-and-data)
+## <mark style="color:$danger;">Chapter Summaries</mark>
 
----
+* [Chapter 1: From Goal to Framing](building-machine-learning-powered-applications.md#chapter-1-from-product-goal-to-ml-framing)
+* [Chapter 2: Evaluating & Scoping](building-machine-learning-powered-applications.md#chapter-2-evaluating-and-scoping-an-ml-problem)
+* [Chapter 3: Building a Prototype](building-machine-learning-powered-applications.md#chapter-3-designing-and-building-an-ml-powered-prototype)
+* [Chapter 4: Iterating on Models/Data](building-machine-learning-powered-applications.md#chapter-4-iterating-on-models-and-data)
 
-## Chapter 1: From Product Goal to ML Framing
+***
+
+## <mark style="color:yellow;">Chapter 1: From Product Goal to ML Framing</mark>
 
 #### 1. Core Idea
 
@@ -43,8 +43,6 @@ This chapter explains how to:
 
 * Traditional Programming: Involves explicit instructions and deterministic logic.
 * ML Approach: Uses examples (data) to learn probabilistic mappings between input and output.
-
-
 
 Example:
 
@@ -231,9 +229,7 @@ Here are detailed notes for Chapter 2 — “Evaluating and Scoping an ML Proble
 
 ***
 
-
-
-## Chapter 2: Evaluating and Scoping an ML Problem
+## <mark style="color:yellow;">Chapter 2: Evaluating and Scoping an ML Problem</mark>
 
 #### 1. Objective of the Chapter
 
@@ -393,7 +389,7 @@ If human editors make 15% errors in classifying question clarity, your model doe
 
 ***
 
-### 9. Error Analysis and Continuous Evaluation
+#### 9. Error Analysis and Continuous Evaluation
 
 ML is iterative — performance must be continuously monitored.
 
@@ -411,7 +407,7 @@ If your question-writing assistant mislabels technical queries as poor quality, 
 
 ***
 
-### 10. Scoping Data Collection
+#### 10. Scoping Data Collection
 
 Once you know your metric and target, scope the data requirements:
 
@@ -429,7 +425,7 @@ Tip: High-quality small data often beats massive noisy data.
 
 ***
 
-### 11. Example: Writing Assistant Case Study
+#### 11. Example: Writing Assistant Case Study
 
 Goal: Help users write better questions.
 
@@ -452,7 +448,7 @@ Compare model predictions to real-world user outcomes (e.g., more answers receiv
 
 ***
 
-### 12. Practical Framework for Evaluating ML Problems
+#### 12. Practical Framework for Evaluating ML Problems
 
 | Step | Action                         | Outcome                         |
 | ---- | ------------------------------ | ------------------------------- |
@@ -466,7 +462,7 @@ Compare model predictions to real-world user outcomes (e.g., more answers receiv
 
 ***
 
-### 13. Interview Insight (Monica Rogati)
+#### 13. Interview Insight (Monica Rogati)
 
 _(This section features advice from Monica Rogati, ex-LinkedIn data scientist.)_
 
@@ -479,7 +475,7 @@ Key lessons:
 
 ***
 
-### 14. Key Takeaways from Chapter 2
+#### 14. Key Takeaways from Chapter 2
 
 1. ML evaluation must start from product goals, not model scores.
 2. Choose metrics that align business outcomes with model behavior.
@@ -510,7 +506,7 @@ This chapter follows the first two (which focused on framing and evaluating an M
 
 ***
 
-### Chapter 3: Designing and Building an ML-Powered Prototype
+## <mark style="color:yellow;">Chapter 3: Designing and Building an ML-Powered Prototype</mark>
 
 #### 1. Objective of the Chapter
 
@@ -773,7 +769,7 @@ This chapter also includes practical advice from engineers at companies like Sti
 
 ***
 
-### 12. Key Takeaways
+#### 12. Key Takeaways
 
 1. Prototyping is experimentation, not perfection.
 2. Build the simplest end-to-end working version before optimizing any part.
@@ -784,7 +780,7 @@ This chapter also includes practical advice from engineers at companies like Sti
 
 ***
 
-### Chapter 3 Summary Table
+## <mark style="color:yellow;">Chapter 3 Summary Table</mark>
 
 | Concept             | Description                     | Example                                       |
 | ------------------- | ------------------------------- | --------------------------------------------- |
@@ -850,7 +846,7 @@ A successful workflow cycles through these steps:
 
 ***
 
-### 3. Analyzing Model Performance
+#### 3. Analyzing Model Performance
 
 #### A. Establish a Baseline
 
@@ -878,7 +874,7 @@ Understanding _why_ the model failed determines what to fix.
 
 ***
 
-### 4. Diagnosing Model vs Data Problems
+#### 4. Diagnosing Model vs Data Problems
 
 #### A. Signs of a Model Problem
 
@@ -914,7 +910,7 @@ Fixes:
 
 ***
 
-### 5. Error Analysis: Your Iteration Compass
+#### 5. Error Analysis: Your Iteration Compass
 
 Error analysis helps you systematically understand model weaknesses.
 
@@ -938,7 +934,7 @@ Thus, targeted improvements are made efficiently.
 
 ***
 
-### 6. Data Iteration Strategies
+#### 6. Data Iteration Strategies
 
 ML models evolve as data improves. The chapter emphasizes data iteration as a first-class citizen.
 
@@ -981,7 +977,7 @@ Each dataset version affects results.
 
 ***
 
-### 7. Model Iteration Strategies
+#### 7. Model Iteration Strategies
 
 While data drives most improvement, models still matter — but should be approached systematically.
 
@@ -1018,7 +1014,7 @@ Combine multiple models for improved stability and accuracy (bagging, boosting, 
 
 ***
 
-### 8. Establishing an Iteration Workflow
+#### 8. Establishing an Iteration Workflow
 
 A disciplined iteration workflow includes:
 
@@ -1036,7 +1032,7 @@ A disciplined iteration workflow includes:
 
 ***
 
-### 9. Measuring Iteration Impact
+#### 9. Measuring Iteration Impact
 
 When an experiment improves metrics, ensure it translates to real product impact.
 
@@ -1050,7 +1046,7 @@ Remember: improving offline metrics ≠ improving user experience.
 
 ***
 
-### 10. Example: Writing Assistant (Continued)
+#### 10. Example: Writing Assistant (Continued)
 
 | Issue                            | Diagnosis          | Action                           | Result                         |
 | -------------------------------- | ------------------ | -------------------------------- | ------------------------------ |
@@ -1063,7 +1059,7 @@ Through multiple iterations, the product gradually improves.
 
 ***
 
-### 11. Knowing When to Stop Iterating
+#### 11. Knowing When to Stop Iterating
 
 Continuous iteration is good, but diminishing returns are real.
 
@@ -1078,7 +1074,7 @@ At this point, shift focus from research → productionization, which is covered
 
 ***
 
-### 12. Common Pitfalls in Iteration
+#### 12. Common Pitfalls in Iteration
 
 | Pitfall                             | Description                          | Avoid By                   |
 | ----------------------------------- | ------------------------------------ | -------------------------- |
@@ -1090,7 +1086,7 @@ At this point, shift focus from research → productionization, which is covered
 
 ***
 
-### 13. Key Mindset Shifts
+#### 13. Key Mindset Shifts
 
 * Treat data as code — version, review, and document it.
 * Think like a scientist — form hypotheses, test, analyze.
@@ -1100,7 +1096,7 @@ At this point, shift focus from research → productionization, which is covered
 
 ***
 
-### 14. Chapter Summary Table
+#### 14. Chapter Summary Table
 
 | Concept             | Description                                     | Example                       |
 | ------------------- | ----------------------------------------------- | ----------------------------- |
@@ -1113,7 +1109,7 @@ At this point, shift focus from research → productionization, which is covered
 
 ***
 
-### 15. Key Takeaways
+#### 15. Key Takeaways
 
 1. Iteration is the core of ML progress. Every great ML system is the result of hundreds of structured experiments.
 2. Data beats algorithms. 80% of improvements come from better data and features, not deeper models.
@@ -1129,7 +1125,7 @@ This chapter transitions from experimentation to production — it shows how to 
 
 ***
 
-### Chapter 5: Deploying ML Systems
+## <mark style="color:yellow;">Chapter 5: Deploying ML Systems</mark>
 
 ***
 
@@ -1154,7 +1150,7 @@ This chapter focuses on:
 
 ***
 
-### 2. Why Deployment is Harder for ML Than Traditional Software
+#### 2. Why Deployment is Harder for ML Than Traditional Software
 
 Deploying ML models is fundamentally different from deploying regular code because:
 
@@ -1167,7 +1163,7 @@ Deploying ML models is fundamentally different from deploying regular code becau
 
 ***
 
-### 3. The ML System Lifecycle
+#### 3. The ML System Lifecycle
 
 A real-world ML system involves multiple feedback cycles between training, serving, and monitoring.
 
@@ -1184,7 +1180,7 @@ These phases repeat continuously.
 
 ***
 
-### 4. Designing a Deployment Strategy
+#### 4. Designing a Deployment Strategy
 
 Before deployment, define:
 
@@ -1257,7 +1253,7 @@ Drawbacks:
 
 ***
 
-### 5. Core Components of an ML Production System
+#### 5. Core Components of an ML Production System
 
 Emmanuel Ameisen defines the key layers of an ML system as follows:
 
@@ -1275,7 +1271,7 @@ A production-ready ML pipeline integrates all these layers cohesively.
 
 ***
 
-### 6. Deployment Workflow
+#### 6. Deployment Workflow
 
 #### Step 1. Packaging the Model
 
@@ -1318,7 +1314,7 @@ POST /predict
 
 ***
 
-### 7. Versioning and Reproducibility
+#### 7. Versioning and Reproducibility
 
 #### Model Versioning
 
@@ -1343,7 +1339,7 @@ This allows rebuilding any model snapshot for debugging.
 
 ***
 
-### 8. Monitoring Deployed Models
+#### 8. Monitoring Deployed Models
 
 Monitoring is critical because models degrade over time.
 
@@ -1368,7 +1364,7 @@ Set thresholds that trigger retraining or investigation.
 
 ***
 
-### 9. Retraining and Continuous Learning
+#### 9. Retraining and Continuous Learning
 
 #### Retraining Strategies
 
@@ -1388,7 +1384,7 @@ Keep a human-in-the-loop — review retrained models before deployment.
 
 ***
 
-### 10. Testing ML Systems
+#### 10. Testing ML Systems
 
 Testing ML systems involves multiple layers beyond traditional code testing:
 
@@ -1402,7 +1398,7 @@ Testing ML systems involves multiple layers beyond traditional code testing:
 
 ***
 
-### 11. Ethical and Responsible Deployment
+#### 11. Ethical and Responsible Deployment
 
 * Evaluate for bias and fairness.
 * Avoid deploying models that discriminate unintentionally.
@@ -1412,7 +1408,7 @@ Testing ML systems involves multiple layers beyond traditional code testing:
 
 ***
 
-### 12. Example: Writing Assistant Deployment
+#### 12. Example: Writing Assistant Deployment
 
 | Component     | Implementation                                  | Notes                     |
 | ------------- | ----------------------------------------------- | ------------------------- |
@@ -1426,7 +1422,7 @@ This setup ensures continuous improvement and real-world reliability.
 
 ***
 
-### 13. The Feedback Loop in Production
+#### 13. The Feedback Loop in Production
 
 Deployed systems generate valuable feedback:
 
@@ -1444,7 +1440,7 @@ Collect these signals to:
 
 ***
 
-### 14. Collaboration Between Teams
+#### 14. Collaboration Between Teams
 
 Successful ML deployment involves multiple disciplines:
 
@@ -1460,7 +1456,7 @@ Strong collaboration prevents silos and ensures that the ML system serves produc
 
 ***
 
-### 15. Chapter Summary Table
+#### 15. Chapter Summary Table
 
 | Concept             | Description                      | Tools/Examples            |
 | ------------------- | -------------------------------- | ------------------------- |
@@ -1475,7 +1471,7 @@ Strong collaboration prevents silos and ensures that the ML system serves produc
 
 ***
 
-### 16. Key Takeaways
+#### 16. Key Takeaways
 
 1.  Deployment is not the finish line — it’s continuous.
 
@@ -1498,19 +1494,11 @@ Strong collaboration prevents silos and ensures that the ML system serves produc
 
 ***
 
-Here are detailed notes for Chapter 6 — “Maintaining and Improving ML Systems” from _Building Machine Learning Powered Applications: Going from Idea to Product_ by Emmanuel Ameisen.
-
-<br>
-
-This chapter is a continuation of Chapter 5’s deployment discussion — but it moves beyond initial rollout to cover the long-term health, scalability, and continuous improvement of machine learning systems in production.
+## <mark style="color:yellow;">Chapter 6: Maintaining and Improving ML Systems</mark>
 
 ***
 
-## Chapter 6: Maintaining and Improving ML Systems
-
-***
-
-#### 1. Objective of the Chapter
+#### <mark style="color:red;">1. Objective of the Chapter</mark>
 
 Once your ML model is deployed, the real challenge begins.
 
@@ -1526,7 +1514,7 @@ This chapter explains:
 
 ***
 
-### 2. The Challenge of Maintaining ML Systems
+#### <mark style="color:$danger;">2. The Challenge of Maintaining ML Systems</mark>
 
 #### A. Model Performance Decay
 
@@ -1552,7 +1540,7 @@ ML systems combine data pipelines, model logic, monitoring, and feedback loops �
 
 ***
 
-### 3. The Continuous Learning Lifecycle
+#### <mark style="color:$danger;">3. The Continuous Learning Lifecycle</mark>
 
 Maintaining ML systems is an ongoing cycle:
 
@@ -1564,7 +1552,7 @@ Each step ensures that the model evolves along with the environment.
 
 ***
 
-### 4. Monitoring ML Systems in Production
+#### <mark style="color:$danger;">4. Monitoring ML Systems in Production</mark>
 
 Monitoring = the first defense against model decay.
 
@@ -1596,7 +1584,7 @@ Monitoring = the first defense against model decay.
 
 ***
 
-### 5. Diagnosing Problems in Deployed Models
+#### <mark style="color:$danger;">5. Diagnosing Problems in Deployed Models</mark>
 
 When performance drops, isolate whether the issue is:
 
@@ -1612,7 +1600,7 @@ When performance drops, isolate whether the issue is:
 
 ***
 
-### 6. Retraining Strategies
+#### <mark style="color:$danger;">6. Retraining Strategies</mark>
 
 Once an issue is detected, decide how to retrain.
 
@@ -1628,7 +1616,7 @@ Automate retraining triggers but keep human review before redeployment.
 
 ***
 
-### 7. Feedback Loops
+#### <mark style="color:$danger;">7. Feedback Loops</mark>
 
 The best ML systems learn from their own predictions.
 
@@ -1653,7 +1641,7 @@ Fix this by:
 
 ***
 
-### 8. Versioning and Reproducibility
+#### <mark style="color:$danger;">8. Versioning and Reproducibility</mark>
 
 Tracking changes is essential to debug and rollback if a model underperforms.
 
@@ -1673,7 +1661,7 @@ Tools:
 
 ***
 
-### 9. Automating Maintenance — MLOps
+#### <mark style="color:$danger;">9. Automating Maintenance — MLOps</mark>
 
 To scale ML maintenance, adopt MLOps practices — combining DevOps principles with ML lifecycle management.
 
@@ -1693,7 +1681,7 @@ To scale ML maintenance, adopt MLOps practices — combining DevOps principles w
 
 ***
 
-10\. Scaling ML Systems
+#### <mark style="color:$danger;">10. Scaling ML Systems</mark>
 
 As the product and user base grow, ML systems must scale technically and organizationally.
 
@@ -1711,7 +1699,7 @@ B. Organizational Scaling
 
 ***
 
-11\. Human-in-the-Loop Systems
+#### <mark style="color:$danger;">11. Human-in-the-Loop Systems</mark>
 
 Even mature ML systems should allow for human oversight — especially for:
 
@@ -1730,7 +1718,7 @@ This ensures reliability, transparency, and safety.
 
 ***
 
-12\. Debugging Production ML
+#### <mark style="color:$danger;">12. Debugging Production ML</mark>
 
 Debugging deployed ML is often about finding silent failures — wrong predictions that don’t trigger errors.
 
@@ -1750,7 +1738,7 @@ Tools:
 
 ***
 
-13\. Fairness, Bias, and Ethical Maintenance
+#### <mark style="color:$danger;">13. Fairness, Bias, and Ethical Maintenance</mark>
 
 ML systems must be continuously checked for bias and fairness drift — biases can emerge over time as data changes.
 
@@ -1765,7 +1753,7 @@ Best Practices
 
 ***
 
-14\. Case Study: Writing Assistant in Production
+#### <mark style="color:$danger;">14. Case Study: Writing Assistant in Production</mark>
 
 | Challenge        | Issue                       | Fix                                           |
 | ---------------- | --------------------------- | --------------------------------------------- |
@@ -1779,7 +1767,7 @@ This continuous maintenance cycle ensures consistent performance and user trust.
 
 ***
 
-15\. When to Retire or Replace a Model
+#### <mark style="color:$danger;">15. When to Retire or Replace a Model</mark>
 
 Sometimes, the best maintenance decision is to replace or sunset a model.
 
@@ -1794,7 +1782,7 @@ Retirement must be planned with rollback and data archive policies.
 
 ***
 
-16\. Documentation and Transparency
+#### <mark style="color:$danger;">16. Documentation and Transparency</mark>
 
 Document everything:
 
@@ -1808,7 +1796,7 @@ This builds organizational memory and trust — especially in regulated industri
 
 ***
 
-17\. Chapter Summary Table
+#### <mark style="color:$danger;">17. Chapter Summary Table</mark>
 
 | Concept             | Description                                     | Example / Tools                      |
 | ------------------- | ----------------------------------------------- | ------------------------------------ |
@@ -1824,7 +1812,7 @@ This builds organizational memory and trust — especially in regulated industri
 
 ***
 
-18\. Key Takeaways
+#### <mark style="color:$danger;">18. Key Takeaways</mark>
 
 1.  Maintenance is not optional — it’s survival.
 
@@ -1850,19 +1838,11 @@ This builds organizational memory and trust — especially in regulated industri
 
 ***
 
-Here are detailed notes for Chapter 7 — “Designing Human-Centered ML Products” from _Building Machine Learning Powered Applications: Going from Idea to Product_ by Emmanuel Ameisen.
-
-This final chapter ties the entire book together — showing how to build ML systems that are not just accurate or scalable, but useful, intuitive, and trusted by real users.
-
-It focuses on the human side of machine learning: interpretability, trust, user feedback, and designing experiences around intelligent systems.
+## <mark style="color:red;">Chapter 7: Designing Human-Centered ML Products</mark>
 
 ***
 
-### Chapter 7: Designing Human-Centered ML Products
-
-***
-
-1\. Objective of the Chapter
+<mark style="color:yellow;">1. Objective of the Chapter</mark>
 
 Machine learning success is not measured by model accuracy alone — it’s measured by user adoption, satisfaction, and trust.
 
@@ -1876,7 +1856,7 @@ This chapter explores:
 
 ***
 
-2\. Why “Human-Centered” Design Matters
+<mark style="color:yellow;">2. Why “Human-Centered” Design Matters</mark>
 
 Traditional ML focuses on performance metrics (accuracy, F1, loss).
 
@@ -1892,7 +1872,7 @@ Human-centered ML ensures the product’s intelligence feels empowering, not con
 
 ***
 
-3\. The Human–ML Interaction Spectrum
+<mark style="color:yellow;">3. The Human–ML Interaction Spectrum</mark>
 
 Different ML systems require different levels of user interaction and trust.
 
@@ -1908,7 +1888,7 @@ Choose the right level of autonomy for your product — don’t over-automate wh
 
 ***
 
-4\. Principles of Human-Centered ML Design
+<mark style="color:yellow;">4. Principles of Human-Centered ML Design</mark>
 
 Ameisen outlines key design principles for successful ML-driven products:
 
@@ -2162,7 +2142,7 @@ Design Trade-offs
 
 ***
 
-### 15. Chapter Summary Table
+#### 15. Chapter Summary Table
 
 | Concept           | Description                                           | Example                          |
 | ----------------- | ----------------------------------------------------- | -------------------------------- |
@@ -2178,7 +2158,7 @@ Design Trade-offs
 
 ***
 
-### 16. Key Takeaways
+#### 16. Key Takeaways
 
 1. Human-centered design transforms ML systems from technical tools into trusted partners.
 2. Interpretability and transparency are essential for adoption and trust.
@@ -2189,4 +2169,3 @@ Design Trade-offs
 7. Success = human value delivered, not just predictive performance.
 
 ***
-

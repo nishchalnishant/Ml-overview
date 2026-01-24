@@ -1,47 +1,41 @@
-# Machine Learning System Design: Master Framework
+# Machine learning design interview
 
-> [!IMPORTANT]
-> **The ML System Design Interview Checklist**
+> \[!IMPORTANT] **The ML System Design Interview Checklist**
 >
-> Use this 7-step framework to lead any ML design discussion. 
-> 
+> Use this 7-step framework to lead any ML design discussion.
+>
 > 1. **Clarification & Scoping:**
->    - [] What is the core business objective? (e.g., maximize clicks, minimize churn).
->    - [] Success Metrics: Online (CTR, revenue) vs. Offline (AUC, nDCG).
->    - [] Constraints: Latency (P99 < 100ms), Scale (1B users), fresh data frequency.
-> 
+>    * \[] What is the core business objective? (e.g., maximize clicks, minimize churn).
+>    * \[] Success Metrics: Online (CTR, revenue) vs. Offline (AUC, nDCG).
+>    * \[] Constraints: Latency (P99 < 100ms), Scale (1B users), fresh data frequency.
 > 2. **Data & Labels:**
->    - [] Label generation (Explicit vs. Implicit).
->    - [] Handling data imbalance (resampling, class weights).
->    - [] Sampling strategy (Negative sampling, Importance sampling).
-> 
+>    * \[] Label generation (Explicit vs. Implicit).
+>    * \[] Handling data imbalance (resampling, class weights).
+>    * \[] Sampling strategy (Negative sampling, Importance sampling).
 > 3. **Feature Engineering:**
->    - [] Categorical (One-hot, Hashing, Embeddings).
->    - [] Numerical (Scaling, Binning, Interaction features).
->    - [] Feature Store logic (consistent training/serving).
-> 
+>    * \[] Categorical (One-hot, Hashing, Embeddings).
+>    * \[] Numerical (Scaling, Binning, Interaction features).
+>    * \[] Feature Store logic (consistent training/serving).
 > 4. **Model Architecture:**
->    - [] Baseline (Logistic Regression, GBDT).
->    - [] Candidate Generation (Two-tower, ANN search).
->    - [] Ranking (Deep Cross Networks, Transformers).
-> 
+>    * \[] Baseline (Logistic Regression, GBDT).
+>    * \[] Candidate Generation (Two-tower, ANN search).
+>    * \[] Ranking (Deep Cross Networks, Transformers).
 > 5. **Training Pipeline:**
->    - [] Loss functions (Cross-entropy, Weighted MSE, Pairwise Hinge).
->    - [] Evaluation strategy (Time-series split, Rolling window).
-> 
+>    * \[] Loss functions (Cross-entropy, Weighted MSE, Pairwise Hinge).
+>    * \[] Evaluation strategy (Time-series split, Rolling window).
 > 6. **Serving & Infrastructure:**
->    - [] Online vs. Batch inference.
->    - [] Model compression (Quantization, Distillation).
->    - [] Caching (Redis) for high-frequency features.
-> 
+>    * \[] Online vs. Batch inference.
+>    * \[] Model compression (Quantization, Distillation).
+>    * \[] Caching (Redis) for high-frequency features.
 > 7. **Post-Production:**
->    - [] Monitoring for Data/Concept Drift.
->    - [] A/B testing & Shadow deployments.
->    - [] Continual learning/retraining strategy.
+>    * \[] Monitoring for Data/Concept Drift.
+>    * \[] A/B testing & Shadow deployments.
+>    * \[] Continual learning/retraining strategy.
 
----
+***
 
-## Chapter 1: Machine Learning Primer
+## <mark style="color:yellow;">Chapter 1: Machine Learning Primer</mark>
+
 This chapter covers the foundations required for ML system-design interviews.
 
 1. Feature Selection & Engineering
@@ -78,7 +72,7 @@ Here are the detailed notes of Chapter 2 – Common Recommendation System Compon
 
 ***
 
-### Chapter 2 – Common Recommendation System Components
+## <mark style="color:yellow;">Chapter 2 – Common Recommendation System Components</mark>
 
 1\. Overview
 
@@ -301,11 +295,11 @@ Here are the detailed notes of Chapter 3 – Search System Design from _Machine 
 
 ***
 
-### Chapter 3 — Search System Design
+## Chapter 3 — Search System Design
 
 <br>
 
-#### 1⃣  Introduction
+#### 1⃣ Introduction
 
 <br>
 
@@ -336,7 +330,7 @@ High-level pipeline
 
 ***
 
-#### 2⃣  Keyword vs. Semantic Search
+#### 2⃣ Keyword vs. Semantic Search
 
 | Aspect         | Keyword (Lexical)                      | Semantic (Embedding-based)           |
 | -------------- | -------------------------------------- | ------------------------------------ |
@@ -353,7 +347,7 @@ Example – Onebar semantic search
 
 ***
 
-#### 3⃣  Core ML Building Blocks
+#### 3⃣ Core ML Building Blocks
 
 | Step                | Purpose                                                                 | Example                     |
 | ------------------- | ----------------------------------------------------------------------- | --------------------------- |
@@ -365,7 +359,7 @@ Example – Onebar semantic search
 
 ***
 
-#### 4⃣  Ad / Search Ranking Example
+#### 4⃣ Ad / Search Ranking Example
 
 <br>
 
@@ -391,7 +385,7 @@ Feature update issue
 
 ***
 
-#### 5⃣  Training–Serving Skew
+#### 5⃣ Training–Serving Skew
 
 <br>
 
@@ -411,7 +405,7 @@ _Spotify example:_ four-month bug fixed via feature logging + validation.
 
 ***
 
-#### 6⃣  Scaling Retrieval Service
+#### 6⃣ Scaling Retrieval Service
 
 <br>
 
@@ -424,7 +418,7 @@ Scalability patterns
 
 ***
 
-#### 7⃣  LinkedIn Talent Search Case Study
+#### 7⃣ LinkedIn Talent Search Case Study
 
 <br>
 
@@ -445,7 +439,7 @@ Key improvements
 
 ***
 
-#### 8⃣  Embedding Serving at LinkedIn (“Pensive”)
+#### 8⃣ Embedding Serving at LinkedIn (“Pensive”)
 
 | Layer             | Function                                             |
 | ----------------- | ---------------------------------------------------- |
@@ -456,7 +450,7 @@ Key improvements
 
 ***
 
-#### 9⃣  Airbnb Search Ranking Case
+#### 9⃣ Airbnb Search Ranking Case
 
 <br>
 
@@ -487,7 +481,7 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ***
 
-#### 1⃣1⃣  Interview Angles
+#### 1⃣1⃣ Interview Angles
 
 1. Design LinkedIn-like talent search ranking.
 2. How to combine keyword and semantic retrieval results?
@@ -511,19 +505,13 @@ Challenges: large candidate pool, < 200 ms latency.
 
 ***
 
-### Chapter 4 — Fraud Detection System
-
-<br>
+## Chapter 4 — Fraud Detection System
 
 #### 1. Overview
-
-<br>
 
 Fraud detection systems aim to identify abnormal or malicious behaviors in transactions, signups, reviews, etc., while minimizing false positives that affect user experience.
 
 Fraud detection = a real-time classification + graph-based pattern recognition problem.
-
-<br>
 
 Examples:
 
@@ -567,9 +555,7 @@ Challenges
 
 #### 4. ML Pipeline Overview
 
-<br>
-
-**Step 1.**&#x20;
+**Step 1.**
 
 **Label Generation**
 
@@ -577,9 +563,7 @@ Challenges
 * Delay between fraud occurrence and confirmation → label delay.
 * To reduce delay: Use proxy labels (e.g., user banned within 7 days).
 
-<br>
-
-**Step 2.**&#x20;
+**Step 2.**
 
 **Feature Engineering**
 
@@ -588,9 +572,7 @@ Challenges
 * Transaction-level: frequency, amount deviation, velocity features.
 * User-level: account age, historical rejection rate.
 
-<br>
-
-**Step 3.**&#x20;
+**Step 3.**
 
 **Feature Storage**
 
@@ -617,8 +599,6 @@ Label Imbalance Handling
 
 #### 6. Graph-Based Fraud Detection
 
-<br>
-
 **A. Why Graphs?**
 
 Fraudsters collaborate → form hidden entity clusters (shared IP, email, phone, or payment methods).
@@ -628,14 +608,10 @@ Represent system as heterogeneous graph with:
 * Nodes: users, devices, IPs, credit cards.
 * Edges: transactions, logins, ownership.
 
-<br>
-
 **B. GNN Models**
 
 * GraphSAGE, R-GCN, or GAT (Graph Attention Networks).
 * Learn embeddings that capture neighbor behavior and structural signals.
-
-<br>
 
 Industry Examples
 
@@ -647,8 +623,6 @@ Industry Examples
 
 #### 7. Real-Time Fraud Detection Architecture
 
-<br>
-
 **Typical Flow:**
 
 1. Event ingestion → Kafka stream (e.g., payment, login, signup).
@@ -656,8 +630,6 @@ Industry Examples
 3. Model serving → compute fraud probability.
 4. Decision Engine → rules + ML output to approve/block/review.
 5. Feedback loop → store labeled outcomes for retraining.
-
-<br>
 
 **Tech Stack:**
 
@@ -761,7 +733,7 @@ Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“veloc
 
 <br>
 
-**1.**&#x20;
+**1.**
 
 **PayPal**
 
@@ -770,7 +742,7 @@ Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“veloc
 
 <br>
 
-**2.**&#x20;
+**2.**
 
 **Airbnb**
 
@@ -779,7 +751,7 @@ Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“veloc
 
 <br>
 
-**3.**&#x20;
+**3.**
 
 **Facebook**
 
@@ -814,7 +786,7 @@ Here are the detailed notes of Chapter 5 – Feed Ranking System from _“Machin
 
 ***
 
-### Chapter 5 — Feed Ranking System
+## Chapter 5 — Feed Ranking System
 
 <br>
 
@@ -1070,7 +1042,7 @@ A/B Testing:
 
 <br>
 
-**A.**&#x20;
+**A.**
 
 **Facebook Feed**
 
@@ -1080,7 +1052,7 @@ A/B Testing:
 
 <br>
 
-**B.**&#x20;
+**B.**
 
 **LinkedIn Feed**
 
@@ -1090,7 +1062,7 @@ A/B Testing:
 
 <br>
 
-**C.**&#x20;
+**C.**
 
 **Twitter Timeline**
 
@@ -1099,7 +1071,7 @@ A/B Testing:
 
 <br>
 
-**D.**&#x20;
+**D.**
 
 **TikTok For You Feed**
 
@@ -1169,7 +1141,7 @@ Here are the detailed notes of Chapter 6 – Ads Ranking System from _“Machine
 
 ***
 
-### Chapter 6 — Ads Ranking System
+## Chapter 6 — Ads Ranking System
 
 <br>
 
@@ -1236,7 +1208,7 @@ A: bid = 2, pCTR = 0.1 → score = 0.2
 B: bid = 3, pCTR = 0.05 → score = 0.15
 ```
 
- A wins, pays (0.15 / 0.1) = $1.5 per click.
+A wins, pays (0.15 / 0.1) = $1.5 per click.
 
 ***
 
@@ -1244,7 +1216,7 @@ B: bid = 3, pCTR = 0.05 → score = 0.15
 
 <br>
 
-**A.**&#x20;
+**A.**
 
 **CTR Model (Click-Through Rate)**
 
@@ -1257,7 +1229,7 @@ Predicts probability of click.
 
 <br>
 
-**B.**&#x20;
+**B.**
 
 **CVR Model (Conversion Rate)**
 
@@ -1269,7 +1241,7 @@ Predicts probability of conversion given click.
 
 <br>
 
-**C.**&#x20;
+**C.**
 
 **pCTR × pCVR (Expected Conversion)**
 
@@ -1277,7 +1249,7 @@ Compute expected ROI to advertisers.
 
 <br>
 
-**D.**&#x20;
+**D.**
 
 **Ad Quality / Relevance Models**
 
@@ -1436,7 +1408,7 @@ Key Formulas
 
 <br>
 
-**A.**&#x20;
+**A.**
 
 **Google Ads**
 
@@ -1446,7 +1418,7 @@ Key Formulas
 
 <br>
 
-**B.**&#x20;
+**B.**
 
 **Facebook Ads (Meta)**
 
@@ -1456,7 +1428,7 @@ Key Formulas
 
 <br>
 
-**C.**&#x20;
+**C.**
 
 **Alibaba**
 
@@ -1465,7 +1437,7 @@ Key Formulas
 
 <br>
 
-**D.**&#x20;
+**D.**
 
 **LinkedIn Ads**
 
@@ -1499,6 +1471,3 @@ Key Formulas
 | Leaders       | Google Ads, Facebook Ads, Alibaba, LinkedIn                     |
 
 ***
-
-
-

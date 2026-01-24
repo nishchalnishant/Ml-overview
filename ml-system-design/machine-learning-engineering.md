@@ -1,11 +1,11 @@
-# Machine Learning Engineering: Production-Ready Notes
+# Machine learning engineering
 
-> [!IMPORTANT]
-> **Executive Summary for ML Engineers**
-> 
-> Production ML is 10% modeling and 90% engineering. This guide summarizes Andriy Burkov's *Machine Learning Engineering*, focusing on building reliable, scalable, and maintainable systems.
+> \[!IMPORTANT] **Executive Summary for ML Engineers**
+>
+> Production ML is 10% modeling and 90% engineering. This guide summarizes Andriy Burkov's _Machine Learning Engineering_, focusing on building reliable, scalable, and maintainable systems.
 >
 > **Core Engineering Principles:**
+>
 > 1. **Data over Algorithms:** A simple model with clean, high-quality data beats a complex model with noisy data.
 > 2. **Baseline First:** Never build a complex neural net without a simple heuristic or linear baseline to measure incremental value.
 > 3. **Avoid Silent Failures:** ML models don't "crash"; they degrade. Use distribution monitoring (PSI, K-S test) to detect data drift.
@@ -13,16 +13,16 @@
 > 5. **Iterative Deployment:** Use Shadow Mode (predict but don't serve) or Canary deployments to validate models on live traffic.
 > 6. **Human-in-the-Loop:** Bridge the gap between low-confidence predictions and high-stakes decisions with manual review tiers.
 
----
+***
 
 ### Table of Contents (Chapter Summaries)
-- [Chapter 1: Introduction & Life Cycle](#chapter-1--introduction)
-- [Chapter 2: Prioritization & Impact vs Cost](#chapter-2-before-the-project-starts)
-- [Chapter 3: Problem Framing & Metrics](#chapter-3-framing-the-problem-and-project)
-- [Chapter 4: Data Collection & Labeling](#chapter-4-data-definition-and-collection)
-... (Full notes below)
 
----
+* [Chapter 1: Introduction & Life Cycle](machine-learning-engineering.md#chapter-1--introduction)
+* [Chapter 2: Prioritization & Impact vs Cost](machine-learning-engineering.md#chapter-2-before-the-project-starts)
+* [Chapter 3: Problem Framing & Metrics](machine-learning-engineering.md#chapter-3-framing-the-problem-and-project)
+* [Chapter 4: Data Collection & Labeling](machine-learning-engineering.md#chapter-4-data-definition-and-collection) ... (Full notes below)
+
+***
 
 ### Chapter 1 – Introduction
 
@@ -226,7 +226,7 @@ Stages:
 8. Model monitoring
 9. Model maintenance
 
- Loops exist to collect more data or re-engineer features if needed.
+Loops exist to collect more data or re-engineer features if needed.
 
 ***
 
@@ -310,7 +310,7 @@ The cost of an ML project depends on three key factors:
    * You must balance acceptable accuracy with cost.
    * Cost of errors must be compared with the cost of perfection.
 
- Rule of thumb:
+Rule of thumb:
 
 Going from 90% → 99% accuracy often multiplies the cost several times.
 
@@ -330,7 +330,7 @@ Before starting, you usually don’t know:
 * What model size or architecture is required.
 * How much time training and experimentation will take.
 
->  If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
+> If required accuracy > 99%, expect significant complications — often due to lack of labeled data or data imbalance.
 
 Benchmark:
 
@@ -351,7 +351,7 @@ To make complexity estimation manageable:
 3. Use pilot projects.
    * Small-scale pilots reveal whether full-scale implementation is worth it.
 
- Note: As the number of classes grows, the required data grows _superlinearly_.
+Note: As the number of classes grows, the required data grows _superlinearly_.
 
 ***
 
@@ -543,7 +543,7 @@ Before collecting data or building models, you must:
 * Understand how predictions are used.
 * Specify measurable objectives.
 
->  The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
+> The quality of an ML system is directly dependent on how well the problem is framed at the beginning.
 
 A poorly framed problem leads to:
 
@@ -608,8 +608,8 @@ Features are input variables (x₁, x₂, …, xₙ) used for prediction.
 Example:
 
 * Predicting flight delays.
-  *  Use: weather forecasts, aircraft type, route.
-  *  Don’t use: actual arrival time.
+  * Use: weather forecasts, aircraft type, route.
+  * Don’t use: actual arrival time.
 
 ***
 
@@ -660,7 +660,7 @@ Baselines are critical because:
 * They reveal whether your ML model truly adds value.
 * They act as a sanity check for initial experiments.
 
->  If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
+> If your ML model doesn’t outperform the baseline, revisit feature design or problem framing.
 
 ***
 
@@ -710,7 +710,7 @@ The metric must align with the business objective.
 * Exposes model to live users.
 * Measures impact on KPIs like conversion or engagement.
 
->  Best practice: use both — offline to validate technically, online to validate business value.
+> Best practice: use both — offline to validate technically, online to validate business value.
 
 ***
 
@@ -894,7 +894,7 @@ Good data satisfies multiple dimensions of quality:
 | Timeliness         | Data reflects current conditions.    | Real-time transaction logs.                |
 | Representativeness | Matches the production environment.  | Distribution of regions/cities is similar. |
 
->  Always measure and monitor these quality metrics before model training.
+> Always measure and monitor these quality metrics before model training.
 
 ***
 
@@ -922,7 +922,7 @@ Data can come from multiple sources, depending on the problem.
   * Privacy preservation.
   * Testing edge cases.
 
->  Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
+> Synthetic data must resemble the _real data distribution_; otherwise, it can mislead the model.
 
 ***
 
@@ -970,7 +970,7 @@ When one class appears much less frequently (e.g., 1% fraud, 99% normal).
    * Assign class weights inversely proportional to frequency.
    * Use metrics robust to imbalance (AUC, F1, Precision-Recall).
 
->  The chosen technique depends on the problem’s cost of false negatives vs. false positives.
+> The chosen technique depends on the problem’s cost of false negatives vs. false positives.
 
 ***
 
@@ -1076,7 +1076,7 @@ Typical stages in the data pipeline:
 6. Access
    * Enable secure queries and sampling for model training.
 
->  Use automated validation and monitoring to detect anomalies early.
+> Use automated validation and monitoring to detect anomalies early.
 
 ***
 
@@ -1181,7 +1181,7 @@ Data cleaning fixes errors, inconsistencies, and missing values.
      * KNN or regression-based imputation
   3. Special category: assign “Unknown” for categorical features.
 
->  Imputation introduces bias if not done carefully — especially if data is not missing at random.
+> Imputation introduces bias if not done carefully — especially if data is not missing at random.
 
 **5.3.3 Detecting Outliers**
 
@@ -1250,8 +1250,6 @@ Types of encoding:
 3. Target / Mean Encoding:
    * Replace each category with the average of the target variable.
    * Useful for high-cardinality features.
-
-
 
 > Use with caution — target encoding can lead to overfitting; apply regularization or cross-fold encoding.
 
@@ -1914,7 +1912,7 @@ Proper data splitting is fundamental to unbiased model evaluation.
 | Validation Set | Tune hyperparameters, prevent overfitting. | Helps model selection.     |
 | Test Set       | Final unbiased evaluation.                 | Used only once at the end. |
 
->  Never use test data during model development — it invalidates your evaluation.
+> Never use test data during model development — it invalidates your evaluation.
 
 ***
 
@@ -3247,7 +3245,7 @@ It discusses the moral, social, and legal implications of AI models and outlines
 
 ***
 
-### 10.1 The Importance of Ethics in Machine Learning
+#### 10.1 The Importance of Ethics in Machine Learning
 
 <br>
 
@@ -3266,7 +3264,7 @@ Hence, ethical ML is not optional — it’s a core engineering responsibility.
 
 ***
 
-### 10.2 Defining AI Ethics
+#### 10.2 Defining AI Ethics
 
 <br>
 
@@ -3284,7 +3282,7 @@ Ensure ML systems help more than they harm, and their decisions can be understoo
 
 ***
 
-### 10.3 Core Ethical Principles
+#### 10.3 Core Ethical Principles
 
 | Principle       | Definition                                           | Example Violation                    |
 | --------------- | ---------------------------------------------------- | ------------------------------------ |
@@ -3298,7 +3296,7 @@ Ensure ML systems help more than they harm, and their decisions can be understoo
 
 ***
 
-### 10.4 Fairness in Machine Learning
+#### 10.4 Fairness in Machine Learning
 
 <br>
 
@@ -3330,7 +3328,7 @@ ML models learn from historical data, which often carries systemic bias.
 
 ***
 
-### 10.5 Addressing Fairness
+#### 10.5 Addressing Fairness
 
 <br>
 
@@ -3365,7 +3363,7 @@ IBM AI Fairness 360, Google What-If Tool, Fairlearn (Microsoft).
 
 ***
 
-### 10.6 Transparency and Explainability
+#### 10.6 Transparency and Explainability
 
 <br>
 
@@ -3402,7 +3400,7 @@ Explainability = Understanding model decisions.
 
 ***
 
-### 10.7 Accountability in ML Systems
+#### 10.7 Accountability in ML Systems
 
 <br>
 
@@ -3429,7 +3427,7 @@ Humans must remain responsible for AI outcomes.
 
 ***
 
-### 10.8 Privacy in Machine Learning
+#### 10.8 Privacy in Machine Learning
 
 <br>
 
@@ -3455,7 +3453,7 @@ ML often requires large amounts of data, much of it personal. Protecting privacy
 
 ***
 
-### 10.9 Techniques for Privacy Preservation
+#### 10.9 Techniques for Privacy Preservation
 
 | Technique                     | Purpose                                                       | Example                                  |
 | ----------------------------- | ------------------------------------------------------------- | ---------------------------------------- |
@@ -3470,7 +3468,7 @@ ML often requires large amounts of data, much of it personal. Protecting privacy
 
 ***
 
-### 10.10 Legal and Regulatory Frameworks
+#### 10.10 Legal and Regulatory Frameworks
 
 <br>
 
@@ -3494,7 +3492,7 @@ GDPR Key Rights:
 
 ***
 
-### 10.11 Security in ML Systems
+#### 10.11 Security in ML Systems
 
 <br>
 
@@ -3520,7 +3518,7 @@ Security breaches can compromise both the data and the model.
 
 ***
 
-### 10.12 Social Impacts of Machine Learning
+#### 10.12 Social Impacts of Machine Learning
 
 <br>
 
@@ -3550,7 +3548,7 @@ ML systems shape human behavior and societal structures.
 
 ***
 
-### 10.13 Building Ethical ML Systems
+#### 10.13 Building Ethical ML Systems
 
 <br>
 
@@ -3573,7 +3571,7 @@ Best Practices:
 
 ***
 
-### 10.14 Responsible AI Frameworks
+#### 10.14 Responsible AI Frameworks
 
 <br>
 
@@ -3597,7 +3595,7 @@ All emphasize:
 
 ***
 
-### 10.15 The Role of the ML Engineer
+#### 10.15 The Role of the ML Engineer
 
 <br>
 
@@ -3623,7 +3621,7 @@ An ethical ML engineer is:
 
 ***
 
-### 10.16 Key Takeaways
+#### 10.16 Key Takeaways
 
 1. Ethics and privacy are as critical as accuracy or scalability.
 2. Fairness must be quantified and enforced using metrics.
@@ -3635,7 +3633,7 @@ An ethical ML engineer is:
 
 ***
 
-### 10.17 Chapter Summary
+#### 10.17 Chapter Summary
 
 * ML systems have moral and societal implications beyond technical boundaries.
 * Fairness, transparency, privacy, and accountability must guide every ML decision.

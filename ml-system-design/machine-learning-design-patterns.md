@@ -1,33 +1,23 @@
-# Machine Learning Design Patterns: Quick Reference
+# Machine learning design patterns
 
-> [!TIP]
-> **High-Frequency Patterns for System Design Interviews**
-> 
-> | **Pattern** | **Problem** | **Solution** |
-> |-------------|-------------|--------------|
-> | **Hashed Feature** | High cardinality categories. | Use deterministic hashing to map into fixed buckets. |
-> | **Embeddings** | Sparse high-dim data. | Learn dense, continuous vector representations. |
-> | **Feature Cross** | Non-linear interactions. | Create a new feature by concatenating/crossing two features. |
-> | **Multimodal Input** | Mixed data (text+image). | Separate specialized encoders with a late-fusion head. |
-> | **Reframing** | Hard classification. | Change to regression (probability) or ranking. |
-> | **Rebalancing** | Imbalanced datasets. | Weighted loss or resampling (SMOTE / Undersampling). |
-> | **Ensemble** | Single model weak signals. | Bagging (Variance), Boosting (Bias), or Stacking. |
-> | **Cascade** | Hierarchical decisions. | Chain models sequentially (e.g., Object Detection -> OCR). |
-> | **Transfer Learning** | Low data / High compute. | Leverage pretrained models and fine-tune on target data. |
+> \[!TIP] **High-Frequency Patterns for System Design Interviews**
 
----
+<table data-header-hidden><thead><tr><th width="164.3211669921875"></th><th width="235.6917724609375"></th><th></th></tr></thead><tbody><tr><td><strong>Pattern</strong></td><td><strong>Problem</strong></td><td><strong>Solution</strong></td></tr><tr><td><strong>Hashed Feature</strong></td><td>High cardinality categories.</td><td>Use deterministic hashing to map into fixed buckets.</td></tr><tr><td><strong>Embeddings</strong></td><td>Sparse high-dim data.</td><td>Learn dense, continuous vector representations.</td></tr><tr><td><strong>Feature Cross</strong></td><td>Non-linear interactions.</td><td>Create a new feature by concatenating/crossing two features.</td></tr><tr><td><strong>Multimodal Input</strong></td><td>Mixed data (text+image).</td><td>Separate specialized encoders with a late-fusion head.</td></tr><tr><td><strong>Reframing</strong></td><td>Hard classification.</td><td>Change to regression (probability) or ranking.</td></tr><tr><td><strong>Rebalancing</strong></td><td>Imbalanced datasets.</td><td>Weighted loss or resampling (SMOTE / Undersampling).</td></tr><tr><td><strong>Ensemble</strong></td><td>Single model weak signals.</td><td>Bagging (Variance), Boosting (Bias), or Stacking.</td></tr><tr><td><strong>Cascade</strong></td><td>Hierarchical decisions.</td><td>Chain models sequentially (e.g., Object Detection -> OCR).</td></tr><tr><td><strong>Transfer Learning</strong></td><td>Low data / High compute.</td><td>Leverage pretrained models and fine-tune on target data.</td></tr></tbody></table>
+
+***
 
 ### Chapter Summaries
-- [Chapter 1: The Need for Patterns](#chapter-1-the-need-for-machine-learning-design-patterns)
-- [Chapter 2: Data Representation](#chapter-2-data-representation-design-patterns)
-- [Chapter 3: Problem Representation](#chapter-3-problem-representation-design-patterns)
-- [Chapter 4: Model Training Patterns](#chapter-4-model-training-design-patterns)
 
----
+* [Chapter 1: The Need for Patterns](machine-learning-design-patterns.md#chapter-1-the-need-for-machine-learning-design-patterns)
+* [Chapter 2: Data Representation](machine-learning-design-patterns.md#chapter-2-data-representation-design-patterns)
+* [Chapter 3: Problem Representation](machine-learning-design-patterns.md#chapter-3-problem-representation-design-patterns)
+* [Chapter 4: Model Training Patterns](machine-learning-design-patterns.md#chapter-4-model-training-design-patterns)
 
-## Chapter 1: The Need for Machine Learning Design Patterns
+***
 
-#### 1. Introduction
+## <mark style="color:red;">Chapter 1: The Need for Machine Learning Design Patterns</mark>
+
+#### 1. <mark style="color:yellow;">Introduction</mark>
 
 * Engineering disciplines use design patterns to capture best practices and recurring solutions.
 * These patterns codify expert knowledge into reusable advice for practitioners.
@@ -35,7 +25,7 @@
 
 ***
 
-#### 2. What Are Design Patterns?
+#### <mark style="color:yellow;">2. What Are Design Patterns?</mark>
 
 * Originated in architecture from _Christopher Alexander’s_ book _A Pattern Language (1977)_.
 * Later applied to software engineering in _Design Patterns: Elements of Reusable Object-Oriented Software_ (Gamma et al., 1994).
@@ -50,7 +40,7 @@
 
 ***
 
-#### 3. How to Use This Book
+#### <mark style="color:yellow;">3. How to Use This Book</mark>
 
 * The book serves as a catalog rather than a linear tutorial.
 * You can:
@@ -66,7 +56,7 @@
 
 ***
 
-#### 4. Machine Learning Terminology
+#### <mark style="color:yellow;">4. Machine Learning Terminology</mark>
 
 **Models and Frameworks**
 
@@ -89,7 +79,7 @@
 
 ***
 
-**Data and Feature Engineering**
+<mark style="color:blue;">**Data and Feature Engineering**</mark>
 
 * Datasets:
   * Training data: Used to learn patterns.
@@ -108,7 +98,7 @@
 
 ***
 
-**Machine Learning Process**
+<mark style="color:blue;">**Machine Learning Process**</mark>
 
 1. Training: Model learns from data.
 2. Evaluation: Measure performance on validation/test sets.
@@ -121,7 +111,7 @@
 
 ***
 
-**Data and Model Tooling (Google Cloud Examples)**
+<mark style="color:blue;">**Data and Model Tooling (Google Cloud Examples)**</mark>
 
 * BigQuery: For scalable SQL-based data analysis.
 * BigQuery ML: For training and evaluating ML models directly in SQL.
@@ -131,7 +121,7 @@
 
 ***
 
-**Roles in Machine Learning**
+<mark style="color:blue;">**Roles in Machine Learning**</mark>
 
 * Data Scientist: Focuses on data analysis, feature engineering, and model building.
 * Data Engineer: Builds data ingestion and processing pipelines.
@@ -142,9 +132,9 @@
 
 ***
 
-#### 5. Common Challenges in Machine Learning
+#### <mark style="color:yellow;">5. Common Challenges in Machine Learning</mark>
 
-**A. Data Quality**
+<mark style="color:blue;">**A. Data Quality**</mark>
 
 “Garbage in, garbage out.”
 
@@ -157,7 +147,7 @@
 
 ***
 
-**B. Reproducibility**
+<mark style="color:blue;">**B. Reproducibility**</mark>
 
 * ML has randomness due to weight initialization and stochastic training.
 * Ensuring reproducibility requires:
@@ -168,7 +158,7 @@
 
 ***
 
-**C. Data Drift**
+<mark style="color:blue;">**C. Data Drift**</mark>
 
 * Data distribution changes over time.
 * Causes:
@@ -183,7 +173,7 @@
 
 ***
 
-**D. Scale**
+<mark style="color:blue;">**D. Scale**</mark>
 
 * Scaling challenges occur in:
   1. Data processing: Handling millions of rows efficiently.
@@ -193,7 +183,7 @@
 
 ***
 
-**E. Multiple Objectives**
+<mark style="color:blue;">**E. Multiple Objectives**</mark>
 
 * Different stakeholders optimize for different goals:
   * Data scientist → minimize loss.
@@ -204,7 +194,7 @@
 
 ***
 
-#### 6. Summary
+#### <mark style="color:$danger;">6. Summary</mark>
 
 * Design patterns are reusable best practices to standardize ML problem-solving.
 * Major ML challenges:
@@ -219,13 +209,11 @@
 
 Would you like me to create chapter-wise flashcards or Q\&A-style revision questions from this chapter next?
 
-
-
 Here are detailed notes for Chapter 2 — “Data Representation Design Patterns” from _Machine Learning Design Patterns_ by Valliappa Lakshmanan, Sara Robinson, and Michael Munn.\*
 
 ***
 
-## Chapter 2: Data Representation Design Patterns
+## <mark style="color:yellow;">Chapter 2: Data Representation Design Patterns</mark>
 
 #### 1. Introduction
 
@@ -306,8 +294,8 @@ x2 = (babyweight < 3)
 
 This chapter introduces four major data representation patterns:
 
-| Pattern Name         | Purpose                                                                 |
-| -------------------- | ----------------------------------------------------------------------- |
+| Pattern Name        | Purpose                                                                 |
+| ------------------- | ----------------------------------------------------------------------- |
 | 1⃣ Hashed Feature   | Represent high-cardinality categorical data efficiently                 |
 | 2⃣ Embeddings       | Learn dense, continuous representations for categorical or textual data |
 | 3⃣ Feature Cross    | Combine multiple features to capture interactions                       |
@@ -764,7 +752,7 @@ Adjust data or loss to balance the learning process.
 
 ***
 
-### 10. Chapter Summary
+#### 10. Chapter Summary
 
 | Pattern       | Purpose                                | Core Benefit                      | Typical Use Case                    |
 | ------------- | -------------------------------------- | --------------------------------- | ----------------------------------- |
@@ -788,8 +776,6 @@ Adjust data or loss to balance the learning process.
 ***
 
 Would you like me to make a condensed “exam revision sheet” (one-pager summary + 15 key Q\&A from Chapter 3) next — similar to what we did for Chapter 1 and 2?
-
-
 
 ***
 
@@ -826,8 +812,6 @@ This chapter introduces design patterns to make training:
 | 15        | Regularization      | Prevent overfitting by adding constraints or penalties              |
 
 ***
-
-
 
 #### Pattern 11 — Transform
 
@@ -1053,7 +1037,7 @@ Add constraints or penalties to discourage overly complex models.
 
 ***
 
-### 6. Summary Table
+#### 6. Summary Table
 
 | Pattern             | Goal            | Core Idea                  | Example Use Case                               |
 | ------------------- | --------------- | -------------------------- | ---------------------------------------------- |
@@ -1065,7 +1049,7 @@ Add constraints or penalties to discourage overly complex models.
 
 ***
 
-### 7. Practical Insights and Best Practices
+#### 7. Practical Insights and Best Practices
 
 1.  Keep transformations consistent
 
@@ -1088,7 +1072,7 @@ Add constraints or penalties to discourage overly complex models.
 
 ***
 
-### 8. Key Takeaways
+#### 8. Key Takeaways
 
 * The training phase defines how effectively the model learns generalizable patterns.
 * The five design patterns in this chapter address reliability, efficiency, and robustness of training.
@@ -1098,8 +1082,6 @@ Add constraints or penalties to discourage overly complex models.
 ***
 
 Would you like me to now give you Chapter 5 (Model Evaluation Design Patterns) detailed notes next — continuing this same level of structured depth and clarity?
-
-
 
 ***
 
@@ -1442,7 +1424,7 @@ Detect and mitigate bias during evaluation using fairness metrics and balanced d
 
 ***
 
-### 7. Best Practices
+#### 7. Best Practices
 
 1.  Use multiple complementary metrics
 
@@ -1465,7 +1447,7 @@ Detect and mitigate bias during evaluation using fairness metrics and balanced d
 
 ***
 
-### 8. Key Takeaways
+#### 8. Key Takeaways
 
 * Metrics define success — choose them wisely based on the problem.
 * Slicing and bias analysis ensure fairness and robustness.
@@ -1474,6 +1456,3 @@ Detect and mitigate bias during evaluation using fairness metrics and balanced d
 * Evaluation must be holistic: technical + ethical + business dimensions.
 
 ***
-
-
-
