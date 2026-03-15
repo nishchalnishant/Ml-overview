@@ -12,6 +12,9 @@ Core building blocks of neural networks and modern architectures:
 - **[Transformers](transformers.md)** — Encoder/decoder and decoder-only LLM architectures.
 - **[Pretraining, fine-tuning, RLHF](pretraining-finetuning-rlhf.md)** — How modern LLMs are trained and aligned.
 - **[Autoencoders](autoencoders.md)** — Unsupervised representation learning.
+- **[Self-supervised learning](self-supervised-learning.md)** — Contrastive learning (SimCLR, BYOL, DINO), masked prediction (MAE).
+- **[Mixture of experts (MoE)](mixture-of-experts.md)** — Sparse routing, Switch Transformer, scalable capacity.
+- **[Architectures beyond transformers](architectures-beyond-transformers.md)** — State space models (SSM), Mamba, alternative sequence models.
 
 Each topic includes key formulas, intuition, and connections to modern AI. See **Quick revision** at the end of each page for summaries.
 

@@ -34,6 +34,8 @@
 
 
 
+* **[Reinforcement Learning](reinforcement-learning.md)** — MDP, value-based and policy-based methods, RLHF.
+
 ## key terms
 
 

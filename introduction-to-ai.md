@@ -38,9 +38,9 @@
       * Bias -
         * inability of a model to learn from the training data .
         * It can be high or low , so high bias is the high inability of a model to learn from the training data \[ like linear regression trying to learn a polynomial data set ] and low bias is lower inability of a model to learn on the training data .
-        * BHU -- high bias thus under fitting\
+        * High bias — underfitting thus under fitting\
           &#x20;
-      *   Varriance  --
+      *   Variance  --
 
           * Variability in the prediction if we use different portion of data
           * it is the difference in fits between the data set is called variance .
@@ -78,7 +78,7 @@
     * Regression \[ number ]
       * Linear regression
       * Support vector regression
-      * Descision tree
+      * Decision tree
       * Random forest
       * K nearest neighbours&#x20;
     * Classification \[ class ]
@@ -87,10 +87,10 @@
       * Xgboost
       * Support vector classifier
       * K nearest neighbours
-      * Descision tree
+      * Decision tree
       * Random forest
   * Unsupervised
-    * Clusturing
+    * Clustering
       * K means clusturing
       * T-sne
 * Metrics based on use case

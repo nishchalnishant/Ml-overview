@@ -17,6 +17,10 @@ Core building blocks and training machinery:
 - **[Attention](parts-of-deep-learning/attention.md)** — Mechanism to focus on relevant parts of the input; core of transformers.
 - **[Transformers](parts-of-deep-learning/transformers.md)** — Encoder/decoder and decoder-only architectures underlying LLMs.
 - **[Autoencoders](parts-of-deep-learning/autoencoders.md)** — Unsupervised models that learn compact representations.
+- **[Self-supervised learning](parts-of-deep-learning/self-supervised-learning.md)** — Contrastive (SimCLR, BYOL, DINO) and masked (MAE) pretraining.
+- **[Mixture of experts](parts-of-deep-learning/mixture-of-experts.md)** — Sparse routing, Switch Transformer, scalable capacity.
+- **[Architectures beyond transformers](parts-of-deep-learning/architectures-beyond-transformers.md)** — State space models, Mamba, alternative sequence models.
+- **[Interpretability](interpretability.md)** — Mechanistic interpretability, neuron analysis, sparse autoencoders.
 
 ---
 
@@ -27,7 +31,8 @@ Application areas:
 - **[Computer vision](deep-learning-methods/computer-vision.md)** — CNNs, ViT, detection, segmentation.
 - **[NLP](deep-learning-methods/nlp.md)** — From RNNs to transformers and LLMs.
 - **[Time series](deep-learning-methods/time-series.md)** — Forecasting and representation learning.
-- **[Generative models](deep-learning-methods/generative-models.md)** — VAEs, GANs, diffusion, autoregressive LLMs.
+- **[Generative models](deep-learning-methods/generative-models.md)** — Diffusion, latent diffusion, GANs (StyleGAN), autoregressive.
+- **[Multimodal AI](deep-learning-methods/multimodal-ai.md)** — Vision–language models, CLIP, image–text alignment, audio/video–language.
 
 ---
 

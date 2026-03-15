@@ -1,11 +1,9 @@
 # How to train Your Dragon (LLM)
 
-<figure><img src="../.gitbook/assets/image (5).png" alt=""><figcaption></figcaption></figure>
-
 Overview:
 
 * What is a LLM?
-* Transform artitecture
+* Transformer architecture
 * Overall process
 
 ## What is a LLM?
@@ -13,12 +11,12 @@ Overview:
 * Large language models
 * New era for NLP as earlier we had traditional methods which underperformed in tasks that demanded complex understanding and generation abilities.
 * ex— they were not able to write email from a list of keywords.
-* LLMs are trained on vast quantites of data, the sucess lies behind transformer architecture that underpins many LLMs and vast amount of data on which LLMs are trained on which allows them to capture wide variety of linguistic nuances, contexts and patterns that is challenging to encode manually.
-* These have billions of parameters which are adjustable weights in the network that are optimized during training to predict the next word in the sequece.
-* The transformer artitecture allows them to pay selective attention to different parts of input when making predictions making them especially adept at handling the nuances and complexities of human language.
+* LLMs are trained on vast quantities of data, the success lies behind transformer architecture that underpins many LLMs and vast amount of data on which LLMs are trained on which allows them to capture wide variety of linguistic nuances, contexts and patterns that is challenging to encode manually.
+* These have billions of parameters which are adjustable weights in the network that are optimized during training to predict the next word in the sequence.
+* The transformer architecture allows them to pay selective attention to different parts of input when making predictions making them especially adept at handling the nuances and complexities of human language.
 * LLMs can be categorised as an intersection between Deep learning and GenAI.
 * custom built LLMs those are tailored for specific tasks or domains can outperform general purpose LLMs such as ChatGPT.
-* THe pretrained model ChatGPT serve as a foundational resource that can be further refined through fine tuning, a process where the model is specifically trained on a narrower dataset that is more specific to a particular tasks.
+* The pretrained model ChatGPT serve as a foundational resource that can be further refined through fine tuning, a process where the model is specifically trained on a narrower dataset that is more specific to a particular tasks.
 * LLMs user self-supervised learning where the model generated its own labels from the input data.
 
 ## Transformer artitecture
@@ -28,8 +26,8 @@ Overview:
     * processes the input text and encodes it into a series of numerical representations or vectors that capture the contextual information of the input.
   * Decoder&#x20;
     * takes the encoded vectors and generated the output text.
-* Both the encoder and decoder consists of many layers connected by so called self-attention mechanism, which allows the model to weigh the importatnce of difference words or toekns in a sequence relative to each other.
-* this enables the model to cpture long rage dependencies and contextual relationships withing the input data, enhancing its ability to generate coherent and contextually relevant output.
+* Both the encoder and decoder consists of many layers connected by so called self-attention mechanism, which allows the model to weigh the importance of different words or tokens in a sequence relative to each other.
+* this enables the model to capture long range dependencies and contextual relationships within the input data, enhancing its ability to generate coherent and contextually relevant output.
 * Steps
   * encoder&#x20;
     * input text — input text to be translated
@@ -49,9 +47,9 @@ Overview:
   * Receives incomplete text
   * Learns to generate one word at a time
   * designed for generative tasks and producing coherent text sequence
-  * can solve various tasks based on their inputs without needing retraining, fintuning or task specific model artitecture changes.
+  * can solve various tasks based on their inputs without needing retraining, fine-tuning or task specific model architecture changes.
 * Transformers vs LLMs
-  * Todays LLMs are based on transformer artitecture.
+  * Today's LLMs are based on transformer architecture.
   * But these can be used for computer vision&#x20;
 * Training dataset&#x20;
   *   token is a unit of text that a model
@@ -100,9 +98,7 @@ Overview:
 
 ## Overall Process on Building the large Language model
 
-<figure><img src="../.gitbook/assets/image.png" alt=""><figcaption></figcaption></figure>
-
-1.  **Building Your LLM \[ implementing artitecture and data preparation process]**
+1.  **Building Your LLM \[ implementing architecture and data preparation process]**
 
 
 
@@ -131,33 +127,23 @@ Overview:
       * there are several algorithms and frameworks which can be used to generate word embeddings. ex — Word2Vec, text embedding ada-002
       * Word2vec is a trained neural network to generate word embedding by predicting the context of a word given the target word or viceversa. which gives us the two dimensional word embeddings for visualisation similar terms are clustured together.
       * A higher dimensionality captures more nuanced relationships but at the cost of computation
-        *
-
-            <figure><img src="../.gitbook/assets/image (1).png" alt=""><figcaption></figcaption></figure>
       * But now the LLMs commonly produce their own embeddings that are part of the input layer and are updated during training. The advantage of optimising the embeddings as part of LLM training instead of using Word2Vec is that embeddings are optimized to the specific tasks and data at hand.
-      * WHile using with LLMs we use embeddings with much high dimensionality, it is a tradeoff between the performance and efficiency.
+      * While using with LLMs we use embeddings with much high dimensionality, it is a tradeoff between the performance and efficiency.
       * Steps required for preparing the embeddings
         * converting the word into token
           * split text into individual tokens, these can be individual words or special characters, including punctuation marks
           * Whole embedding process can be&#x20;
-          * input text > tokenised text ( individual words, special charachters ) > token IDs > token embeddings
+          * input text > tokenised text ( individual words, special characters ) > token IDs > token embeddings
           *   ex -— we have text size of 20,479 characters which we will turn them into embeddings for LLM training
 
               * Divide the text based on space including spl charachters
               * Remove the whitespace
-              *
-
-                  <figure><img src="../.gitbook/assets/image (2).png" alt=""><figcaption></figcaption></figure>
-
 
 
 
         * turning the tokens into token ID( embedding vectors)
           * Now we convert these tokens from a python string to integer representation to produce the token ID.
           * To do this each unique token is added to the vocabulary in alphabetical order.
-          *
-
-              <figure><img src="../.gitbook/assets/image (3).png" alt=""><figcaption></figcaption></figure>
   * Attention Mechanism
     * Simplified self-attention
     * self-attention

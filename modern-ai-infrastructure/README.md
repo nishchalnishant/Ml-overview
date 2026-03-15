@@ -41,6 +41,8 @@ Choose by scale, latency, filtering needs, and ops preference (managed vs self-h
 - **Efficiency**: Mixed precision (FP16/BF16), gradient checkpointing, and efficient kernels (FlashAttention, etc.) to train large transformers.
 - **Orchestration**: Kubernetes with GPU nodes; Slurm or cloud job schedulers for long training runs.
 
+**Distributed and model parallelism:** Data parallel (DDP), FSDP (shard params/grads/optimizer), tensor parallelism (split layers), pipeline parallelism (split layers across devices), 3D parallelism for very large models. **Inference optimization:** Continuous batching, KV-cache, PagedAttention, quantization (INT8/INT4), speculative decoding, kernel fusion (TensorRT, torch.compile). **Model serving:** vLLM, TGI, TensorRT-LLM; replicas, auto-scaling, cost per token.
+
 ---
 
 ## Quick revision

@@ -14,7 +14,7 @@
 
 ### What is RAG?
 
-<figure><img src="../.gitbook/assets/image (4).png" alt=""><figcaption></figcaption></figure>
+*(Diagram: RAG = Indexing → Retrieval → Augmentation → Generation.)*
 
 * LLM + external resources which were not included in their training
   * i.e. Any LLM (gpt-4o, Gemini, llama) + internal document, service now ticket etc
@@ -34,9 +34,7 @@
   * Augmentation&#x20;
     * The retrieved data is combined with user's request using a template with additional formatting and instructions to create a prompt.
     * This augmentation can be of three types. Iterative, recursice and Adaptive
-    *
-
-        <figure><img src="../.gitbook/assets/image (1) (1).png" alt=""><figcaption></figcaption></figure>
+    *(Diagram: iterative / recursive / adaptive augmentation.)*
   * Generation&#x20;
     * The prompt is passed to the LLMs which then generates a response to the query
 * Types of RAG
@@ -46,9 +44,7 @@
 
 
 
-Summary of RAG ecosystem
-
-<figure><img src="../.gitbook/assets/image (3) (1).png" alt=""><figcaption></figcaption></figure>
+Summary of RAG ecosystem: indexing (chunk + embed), retrieval (vector/keyword/hybrid), augmentation (prompt template), generation (LLM). See sections below for evaluation, latency, scaling.
 
 ---
 
@@ -137,6 +133,13 @@ Summary of RAG ecosystem
 - **Retrieval**: Vector DB scaling (replicas, partitioning); consider approximate search (ANN) vs exact for huge collections.
 - **Generation**: Scale LLM serving (batching, multiple replicas); consider smaller/faster models for simple queries.
 - **Freshness**: Incremental indexing and periodic full rebuild; TTL or versioning if documents change often.
+
+---
+
+## When to use RAG instead of fine-tuning
+
+- **Use RAG when:** Knowledge must be **up-to-date** or **proprietary** (internal docs, tickets); you need **citations**; data changes often (fine-tuning would require frequent retraining); you have **many distinct knowledge sources** or **low per-source volume**; you want to avoid **catastrophic forgetting** of base model capabilities.
+- **Use fine-tuning when:** Task is **behavioral** (format, style, instruction following) or **task-specific** (classification, NER) with stable labels; you have **enough task-specific data**; you need **minimal latency** (no retrieval step) and **no retrieval failures**. **Combine both:** Fine-tune for behavior and use RAG for knowledge; e.g. instruction-tuned model + RAG over company docs.
 
 ---
 

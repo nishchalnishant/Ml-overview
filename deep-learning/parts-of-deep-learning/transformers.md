@@ -40,7 +40,28 @@ Sinusoidal functions so the model knows token order:
 \[
 PE_{(pos, 2i)} = \sin(pos / 10000^{2i/d}), \quad PE_{(pos, 2i+1)} = \cos(pos / 10000^{2i/d})
 \]
-Many modern models use **learned** positional embeddings instead.
+Many modern models use **learned** positional embeddings. **Post-2020:** **RoPE (Rotary Position Embedding)** and **ALiBi (Attention with Linear Biases)** allow better length extrapolation and are standard in LLaMA, GPT-NeoX, and others.
+
+**RoPE:** Encode position by rotating query and key vectors in a structured way so that attention scores depend on relative position; supports longer contexts at test time.  
+**ALiBi:** Add a linear bias to attention scores that decays with distance; no positional embeddings in the input; good for long-context extrapolation.
+
+---
+
+## Scaling laws
+
+**Scaling laws** (Kaplan et al., OpenAI; Chinchilla) describe how loss improves with model size (parameters), dataset size (tokens), and compute:
+
+- **Loss** decreases as a power law in **N** (parameters), **D** (data), and **compute**. Overfitting can occur if data is too small for model size.
+- **Chinchilla:** For a given compute budget, optimal performance often uses **larger data** and **smaller models** than naive scaling (e.g. 4× more data, ~same params). Training “compute-optimal” models affects how to scale LLMs.
+- **Emergent abilities:** Some capabilities appear only beyond a scale threshold (e.g. few-shot, chain-of-thought).
+
+---
+
+## Foundation models and large-scale pretraining
+
+- **Foundation model:** A model pretrained on broad data (text, multimodal) and adapted via fine-tuning or prompting for many tasks. Examples: GPT-3/4, LLaMA, PaLM, BERT.
+- **Large-scale pretraining:** Train on hundreds of billions of tokens with hundreds of millions to billions of parameters; use distributed training (data and model parallelism), mixed precision, and careful optimization (AdamW, warmup + cosine LR).
+- **Evolution:** From encoder-only (BERT) and encoder–decoder (T5) to **decoder-only** dominance for general-purpose LLMs; then multimodal (vision–language) and agentic use (tools, planning).
 
 ---
 

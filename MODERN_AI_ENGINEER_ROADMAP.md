@@ -54,6 +54,14 @@ A progression from **ML fundamentals** to **modern AI systems** (LLMs, RAG, agen
 
 ---
 
+## Phase 7: Post-2020 extensions (optional depth)
+
+- **Topics**: Multimodal AI (CLIP, VLMs); generative models (diffusion, latent diffusion, GANs); self-supervised learning (SimCLR, MAE); mixture of experts; long-context (Flash Attention, SSM); architectures beyond transformers (Mamba); AI for science; interpretability; AI safety and alignment.
+- **Resources**: [Generative models](deep-learning/deep-learning-methods/generative-models.md), [Computer vision](deep-learning/deep-learning-methods/computer-vision.md), [Multimodal AI](deep-learning/deep-learning-methods/multimodal-ai.md), [Self-supervised learning](deep-learning/parts-of-deep-learning/self-supervised-learning.md), [Mixture of experts](deep-learning/parts-of-deep-learning/mixture-of-experts.md), [Long-context models](llm-applications/long-context-models.md), [Architectures beyond transformers](deep-learning/parts-of-deep-learning/architectures-beyond-transformers.md), [AI for science](ai-for-science/README.md), [Interpretability](deep-learning/interpretability.md), [AI safety and alignment](llm-applications/ai-safety-and-alignment.md).
+- **Project**: Pick one area (e.g. fine-tune a small diffusion model, or build a simple VLM pipeline) and go deep.
+
+---
+
 ## Practical exercises (quick list)
 
 1. **Linear regression from scratch** (NumPy): gradient descent, MSE, R².
@@ -71,10 +79,11 @@ A progression from **ML fundamentals** to **modern AI systems** (LLMs, RAG, agen
 | Phase | Focus | Outcome |
 |-------|--------|--------|
 | 1 | Classical ML | Solid base in regression, classification, ensembles, clustering |
-| 2 | Deep learning | Neural nets, PyTorch, training loops |
-| 3 | Transformers / LLMs | Attention, tokenization, pretraining, alignment |
+| 2 | Deep learning | Neural nets, PyTorch, training loops, optimizers, regularization |
+| 3 | Transformers / LLMs | Attention, tokenization, pretraining, alignment, in-context learning |
 | 4 | RAG / vectors | Retrieval, embeddings, chunking, evaluation |
 | 5 | Agents | Tools, reasoning loop, orchestration |
 | 6 | Systems | End-to-end apps, latency, scale, infrastructure |
+| 7 | Post-2020 | Multimodal, generative, SSL, MoE, long context, new arch, safety, interpretability |
 
-Use this repo as your **knowledge base** and the projects/exercises as **hands-on checkpoints** on the path to modern AI engineering.
+Use this repo as your **knowledge base** and the projects/exercises as **hands-on checkpoints** on the path from classical ML to **complete modern AI engineering** (including all major developments after 2020).

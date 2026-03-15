@@ -11,6 +11,15 @@ Production LLM systems involve **prompt engineering**, **context and tokenizatio
 - **Few-shot**: Include 1–3 (input, output) examples in the prompt to steer behavior without fine-tuning.
 - **Chain-of-thought (CoT)**: Ask for “step-by-step” reasoning to improve accuracy on math and reasoning tasks.
 - **Structured output**: Request JSON or a schema (e.g. tool calls, parsed fields) and optionally validate or parse with a grammar.
+- **Alignment**: Instruction-tuned and RLHF/DPO-aligned models follow instructions and refuse harmful requests; prompt design still matters for edge cases.
+
+---
+
+## In-context learning
+
+- **In-context learning (ICL):** The model performs a task using only the prompt (and optional few-shot examples), without gradient updates. Emerges at scale in decoder-only LMs.
+- **Mechanism:** Attention over the prompt and examples; the model effectively "programs" itself via the sequence. Quality depends on example selection, order, and format.
+- **When to use:** Quick prototyping, low-data settings, or when fine-tuning is not feasible. For production, fine-tuning or RAG often outperforms pure ICL.
 
 ---
 
