@@ -2240,7 +2240,7 @@ class DecisionTreeRegressor:
         Returns:
             Predicted class labels (numpy array).
         """
-        predictions =
+        predictions = []
         for x in X:
             predictions.append(self._predict_single(x, self.tree_))
         return np.array(predictions)
@@ -2274,15 +2274,24 @@ class CatBoostRegressor:
         self.min_samples_split = min_samples_split
         self.gamma = gamma 
         self.iterations = iterations 
-        self.trees_ =
+        self.trees_ = []
 
     def fit(self, X, y):
         y_pred = np.zeros(len(y))
         for _ in range(self.n_estimators):
             residuals = y - y_pred
-
-            #
+            # Fit tree to residuals, update y_pred (simplified)
+            pass  # Full implementation would add tree and update predictions
 ```
+
+---
+
+## Quick revision
+
+- **Regression**: Linear regression (least squares / gradient descent), metrics MAE, MSE, RMSE, R². **Classification**: Logistic regression, metrics accuracy, precision, recall, F1, ROC-AUC, confusion matrix.
+- **Key algorithms**: Naive Bayes (probability), SVM (margin, kernels), KNN (neighbors), decision trees (splits, impurity), ensembles (bagging → Random Forest, boosting → AdaBoost, GBM, XGBoost).
+- **Strengths**: Linear/logistic interpretable and fast; trees handle non-linearity; ensembles reduce variance (bagging) or bias (boosting). **Weaknesses**: Linear models assume linearity; trees overfit without pruning; SVM slow on large scale.
+- **Use cases**: Forecasting (regression), spam/classification (logistic, NB), recommendation/collaborative (KNN), tabular (trees/ensembles), high-dimensional sparse (SVM).
 
 
 

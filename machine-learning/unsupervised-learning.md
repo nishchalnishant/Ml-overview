@@ -152,3 +152,13 @@ class KMeans:
         self.cluster_centers_ = centroids
 ```
 
+---
+
+## Quick revision
+
+- **Clustering** groups unlabeled data by similarity (K-means, hierarchical, DBSCAN). **Association** finds relationships between variables.
+- **Dimensionality reduction** (PCA, t-SNE) reduces features for visualization, compression, or downstream supervised learning.
+- **K-means**: minimize within-cluster sum of squares (inertia); needs predefined K; sensitive to initialization; good for spherical clusters.
+- **K-means vs KNN**: K-means is unsupervised clustering; KNN is supervised classification/regression using k nearest neighbors.
+- **Use cases**: customer segmentation, image segmentation, anomaly detection (clustering); exploratory visualization, feature extraction (PCA/t-SNE).
+
