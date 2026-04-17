@@ -1,6 +1,10 @@
 # Machine Learning Glossary: Quick Revision Guide
 
-A high-signal, "cheat sheet" style glossary for rapid technical revision. Each term includes definitions, formulas, practical applications, and interview key points.
+**How to use this:** Treat it like **liner notes** — skim the letters you’re rusty on before a call. Entries stay dense on purpose: definitions, formulas, **when a metric lies in production**, and interview sound bites.
+
+**DevOps cheat:** If a term maps to something you already run, you’ve won half the battle — **A/B testing** is still A/B testing; **drift** is “silent dependency rot,” but for **data**.
+
+Each term below still follows the cheat-sheet pattern: definitions, formulas, practical applications, and interview key points.
 
 ---
 

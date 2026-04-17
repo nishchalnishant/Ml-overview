@@ -1,69 +1,104 @@
-# AI & ML Interview Master Revision Guide (Cheat Sheet)
+# AI & ML revision guide — *the night-before edition*
 
-This is a high-yield revision hub designed for the **last 24 hours before an interview**. It condenses the most critical "Gold Standard" patterns into a single-page rapid-fire reference.
-
----
-
-## 🚀 1. The "Golden Rules" of ML Logic
-- **Overfitting?** -> High Variance. Add data, L1/L2 Regularization, Dropout, Early Stopping, or simplify architecture.
-- **Underfitting?** -> High Bias. Increase model capacity, feature engineering, reduce regularization.
-- **Data Imbalance?** -> Use PR-AUC or F1 (never Accuracy). SMOTE, Class Weights, or Focal Loss.
-- **Vanishing Gradients?** -> Use ReLU/Leaky ReLU, Batch Norm, Residual Connections, or switch to LSTM/Transformer.
-- **Exploding Gradients?** -> Gradient Clipping or Weight Regularization.
+**For:** Someone who lives in Azure and DevOps, has taste, and does not have patience for textbook fog.  
+**Use:** Skim in 20 minutes, deep-read in an hour, screenshot the tables before you walk in.
 
 ---
 
-## 🏗️ 2. Architectural Patterns (The "How it Works")
+## 0. Azure / DevOps ↔ ML (one mental model)
 
-| Topic | Key Mechanism | Why it Matters |
+| You already do… | In ML land… |
+|-----------------|-------------|
+| **CI pipeline** | Training + eval + tests on *data* and *code* |
+| **Artifact / package** | Model weights + config + preprocessor |
+| **Staging → prod** | Registry stage → canary / A-B → full traffic |
+| **Health probes** | Latency, errors, *and* accuracy / drift |
+| **Config + secrets** | Hyperparameters, feature flags, API keys for LLMs |
+
+**Mnemonic:** *Build (train) → sign-off (metrics) → deploy (serve) → monitor (SLIs + model health) → rollback or retrain.*
+
+---
+
+## 1. Golden rules (when the interviewer says “debug this”)
+
+- **Overfitting** — Model memorized the training set (**high variance**). *Fix:* more/better data, L1/L2, dropout, early stopping, or a simpler architecture. *DevOps parallel:* tuning so hot that you’re overfitting your **staging** logs — cool the system.
+- **Underfitting** — Model too simple to learn the pattern (**high bias**). *Fix:* more capacity, richer features, less regularization.
+- **Class imbalance** — Don’t brag about **accuracy**. Use PR-AUC, F1, or business-weighted cost. Resample, class weights, focal loss.
+- **Vanishing gradients** — Signal dies in deep nets. ReLU family, batch norm, **residual** paths, or sequence models (LSTM/Transformer).
+- **Exploding gradients** — Clip gradients; check learning rate; stabilize loss.
+
+**Quick thought experiment:** *You’re rolling out a new API version. What metric proves it’s “better” if “errors” are rare but catastrophic?* That’s the imbalance problem in interview clothing.
+
+---
+
+## 2. Architectures — the headline act
+
+| Topic | Mechanism (one breath) | Why interviewers care |
 | :--- | :--- | :--- |
-| **Transformer** | Self-Attention ($O(N^2)$) | Parallelism + Global Context. |
-| **RAG** | Retrieval + Augmented Prompting | Fixes Hallucination & Knowledge Cutoff. |
-| **LoRA** | Low-Rank (A $\times$ B) Adaptation | Fine-tune 100B models on consumer GPUs. |
-| **RLHF/DPO** | Preference Alignment | Makes models helpful/safe vs. just "next-token." |
-| **Agents** | Loop: Perceive -> Plan -> Tool Call | Autonomous problem solving. |
+| **Transformer** | Self-attention — compare every token to every other (**$O(N^2)$**). | Parallel training + **global** context. |
+| **RAG** | Retrieve docs → stuff into prompt → generate. | Cuts hallucinations; updates **facts** without retraining the whole model. |
+| **LoRA** | Low-rank matrices **A × B** on top of frozen weights. | Fine-tune huge models without huge GPUs — like **patching** a service without forking the monolith. |
+| **RLHF / DPO** | Learn from human (or model) **preferences**. | “Helpful / harmless” isn’t the same as “low loss.” |
+| **Agents** | Perceive → plan → **tool** call → loop. | Automation with guardrails — your **orchestration** diagram with an LLM brain. |
+
+**Ghazal hook (NLP / RNN intuition):** In a line of poetry, the word that hits hardest often depends on **what came before** — not the dictionary definition in isolation. Sequence models live for that dependency; attention makes the dependencies explicit and parallelizable.
 
 ---
 
-## 📐 3. Math & Derivations (Whiteboard Ready)
+## 3. Math you can scribble on a whiteboard
 
-- **Backprop:** $\frac{\partial L}{\partial w} = \frac{\partial L}{\partial a} \cdot \frac{\partial a}{\partial z} \cdot \frac{\partial z}{\partial w}$ (Chain Rule).
-- **Attention:** $\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$ (Scaling by $\sqrt{d_k}$ prevents vanishing gradients).
-- **Sigmoid Derivative:** $\sigma(z)(1 - \sigma(z))$ (Max value is 0.25, leading to signal decay).
-- **Adam:** Combines momentum (mean) & scaling by variance (RMSProp) + Bias Correction.
-- **Cross-Entropy Gradient:** $\hat{y} - y$ (Linear error signal makes it ideal for classification).
+- **Backprop:** $\frac{\partial L}{\partial w}$ via **chain rule** — gradients flow backward like post-incident blame, but useful.
+- **Attention:** $\text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$ — scaling by $\sqrt{d_k}$ keeps dot products from blowing up so softmax doesn’t go flat (**vanishing** updates).
+- **Sigmoid derivative:** $\sigma(z)(1-\sigma(z))$ — max **0.25**, so deep sigmoid stacks **starve** the signal (classic “vanishing”).
+- **Adam:** Momentum + adaptive scaling + bias correction — **not** exotic, just robust default for many nets.
+- **Cross-entropy + softmax:** Gradient simplifies; you’ll hear **“linear error”** intuition in good explanations.
 
----
-
-## 🏛️ 4. System Design & Infrastructure
-
-- **3D Parallelism:** DP (Data) + TP (Tensor) + PP (Pipeline). Required for models > 1 GPU memory.
-- **Quantization:** FP16 -> INT8/INT4. Reduces VRAM $2\times$ to $4\times$.
-- **Inference Speed:** Use KV-Caching, Speculative Decoding, and Flash Attention 2.
-- **Evaluation:** G-Eval (LLM-as-a-judge), RAGAS (faithfulness), and standardized benchmarks (MMLU).
+**Mini pop quiz:** *Why is $\sqrt{d_k}$ in the denominator?*  
+→ Stabilize variance of dot products as dimension grows (keeps softmax in a trainable range).
 
 ---
 
-## 🚩 5. Common Interview "Gotchas"
+## 4. System design & infra (where seniors earn the title)
 
-1. **RAG vs. Fine-tuning?** RAG for facts/knowledge; Fine-tuning for behavior/style.
-2. **Why $\sqrt{d_k}$ in Attention?** Prevents the dot product from exploding, which would push softmax into the flat region where gradients vanish.
-3. **Difference between Batch Norm & Layer Norm?** BN works across samples (bad for small batches); LN works across features (standard for Transformers).
-4. **Data Leakage via ID?** Sequential IDs often correlate with target. Always drop IDs.
-5. **Precision vs. Recall?** Precision = quality (avoid false positives); Recall = quantity (avoid false negatives).
+- **3D parallelism:** **DP** (split batch), **TP** (split tensors), **PP** (split layers) — combine when one GPU is a costume, not a wardrobe.
+- **Quantization:** FP16 → INT8/INT4 — smaller memory, faster inference; watch accuracy.
+- **Inference speed:** KV-cache, speculative decoding, Flash Attention–class kernels — **latency** is a feature.
+- **Evals for LLMs:** G-Eval, RAGAS (for RAG), benchmarks (e.g. MMLU-style) — **your** test pyramid for non-deterministic systems.
 
----
-
-## 🔗 6. Deep Dive Specialized Hubs
-
-- [🧠 LLM Fundamentals](llm-interview-notes/llm-fundamentals.md)
-- [🏗️ AI System Design](llm-interview-notes/ai-system-design.md)
-- [📐 Math Derivations](ml-interview-notes/math-derivations.md)
-- [🛠️ Practical Scenarios](ml-interview-notes/practical-ml-scenarios.md)
-- [🛡️ AI Safety & Ethics](llm-interview-notes/ai-safety-ethics-and-responsible-ai-what.md)
+**Fashion / CV analogy (feature extraction):** A vision model doesn’t “see” an outfit the way you do — it builds a hierarchy: edges → textures → shapes → **composition**. That’s your **feature hierarchy**: detail to silhouette, thread to collection.
 
 ---
 
-> [!IMPORTANT]
-> **The Senior Answer Frame:**
-> *"The direct answer is [Fact]. The intuition is [Analogy]. However, in real-world production, the tradeoff is usually [Cost/Latency/Scale]."*
+## 5. Gotchas (they *will* ask)
+
+1. **RAG vs fine-tuning?** RAG for **updating knowledge** and citations; fine-tuning for **behavior**, tone, task format.
+2. **Batch Norm vs Layer Norm?** BN: normalize across **batch** dimension (tricky for small / variable batch). LN: normalize across **features** — default in Transformers.
+3. **Data leakage via ID?** IDs often carry time or cohort signal — **drop** or encode carefully.
+4. **Precision vs recall?** Precision = trust positives; recall = don’t miss positives — pick based on **business** cost.
+5. **$\sqrt{d_k}$?** Already your party trick from section 3.
+
+---
+
+## 6. Deep-dive hubs (when you have a quiet evening)
+
+- [LLM fundamentals](llm-interview-notes/llm-fundamentals.md)
+- [AI system design](llm-interview-notes/ai-system-design.md)
+- [Math derivations](ml-interview-notes/math-derivations.md)
+- [MLOps — full notes](mlops.md)
+
+---
+
+## 7. “Deploy this in Azure Pipelines” — 30-second sketch
+
+**Prompt:** *You have a sklearn model and a weekly data refresh. Outline the pipeline.*
+
+**Skeleton answer:** Trigger (schedule or data landing) → **validate** data (schema / drift checks) → **train** in Azure ML / container job → **evaluate** vs threshold → register in **model registry** → deploy to **AKS** or managed endpoint → **monitor** metrics + drift → alert + **rollback** or retrain. Same story as always: **gates**, **artifacts**, **observability**.
+
+---
+
+> **Senior frame (memorize the rhythm):**  
+> *“The direct answer is ___ . The intuition is ___ . In production, the tradeoff is usually ___ .”*
+
+---
+
+**Field-placement analogy (optimization):** Training isn’t one heroic bowl — it’s **adjusting the field** every few balls: learning rate schedules, early stopping, maybe a different optimizer when the pitch (loss landscape) changes. Same patience as a captain who won’t panic after one expensive over — but **will** change the plan when the radar shows drift.

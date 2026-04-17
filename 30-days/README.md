@@ -1,5 +1,9 @@
 # 30 Days to ML Mastery: The Interview Roadmap
 
+**Reality check:** Thirty days is a **training block**, not a magic spell — same as prepping for a big release or a season opener. Show up daily, keep notes short, and tie each topic back to something you already ship (pipelines, rollbacks, observability).
+
+**Pair with:** [AI_ML_REVISION_GUIDE.md](../AI_ML_REVISION_GUIDE.md) for the **night-before** sprint, and [mlops.md](../mlops.md) when the conversation turns to **production**.
+
 This roadmap is designed for high-intensity interview preparation. It leverages the repository's **Gold Standard Hubs** to ensure you move from foundations to production-ready system design in 30 days.
 
 ---

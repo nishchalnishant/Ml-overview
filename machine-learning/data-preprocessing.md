@@ -1,75 +1,77 @@
-# Data Preprocessing & Engineering (Deep-Dive)
+# Data preprocessing & engineering (deep-dive)
 
-This module explores the critical transition from raw data to model-ready features. In production, 80% of model performance is often determined by the quality of this stage.
+**Cold open:** Models eat **what you feed them**. In production, the “bug” is often **train ≠ serve**, **leakage**, or **drift** — same class of pain as deploying config that only worked on your laptop.
 
----
-
-# 1. 🔹 Prevention of Data Leakage
-
-## Q1: Why is leakage the "silent killer" of production models?
-
-### 🔹 Direct Answer
-Data leakage occurs when information from the future (the target) or information from the test set "leaks" into the training process. This leads to artificially high offline metrics that crash in production.
-
-### 🔹 Practical Workflow
-1. **Split First:** Always split into `X_train` and `X_test` BEFORE any processing.
-2. **Fit on Train Only:** Scalers, Imputers, and Encoders must `fit()` on the training set.
-3. **Transform Both:** Use the fitted parameters to `transform()` both sets.
+**Pipeline analogy (Azure-friendly):** Raw data is **untrusted input**. Preprocessing is **validation + transformation stages** — `fit` on train is **defining the release policy**; `transform` on test/prod is **applying** it. Never **fit** on the test set unless you want fake confidence.
 
 ---
 
-# 2. 🔹 Handling Missing Data
+## 1. Data leakage — the silent prod killer
 
-## Q2: When is deletion acceptable vs. imputation?
+### Q: Why does leakage wreck “amazing” offline metrics?
 
-### 🔹 Comparison Table
+**Direct answer:** Information from the **future**, the **label**, or the **test fold** sneaks into training. The model **cheats** on the exam; production has no answer key → metrics **collapse**.
 
-| Method | Technique | When to Use | Risk |
+**Workflow (memorize this order):**
+1. **Split first** — `train` / `val` / `test` before transforms that peek at distribution.
+2. **Fit on train only** — scalers, imputers, encoders learn stats from **training** rows.
+3. **Transform everywhere** — apply the **same** fitted params to val/test/prod.
+
+**Mini pop quiz:** *You scale using mean/std from **all** data before split. What broke?* → Information from test leaked into training via global statistics.
+
+---
+
+## 2. Missing data — delete, fill, or flag?
+
+### Q: When is deletion OK vs. imputation?
+
+| Move | Technique | Use when | Risk |
 | :--- | :--- | :--- | :--- |
-| **Deletion** | Drop rows/cols | Missing >50% or non-MCAR data. | Can introduce bias if not careful. |
-| **Imputation** | Mean/Median/Mode | Low-to-medium missingness. | Median is safer for skewed data. |
-| **Advanced** | MICE / KNN | Complex feature dependencies. | Computationally expensive. |
-| **Indicator** | Missingness Flag | If missingness itself is a signal. | Adds feature dimensionality. |
+| **Drop** | Rows/columns | Missingness is huge or MNAR mess | Biased sample if missingness carries signal |
+| **Impute** | Mean / median / mode | Low–moderate missing, MCAR/MAR-ish | Mean lies on skewed columns — prefer **median** |
+| **Fancy** | MICE, k-NN impute | Features correlate | Cost + complexity |
+| **Indicator** | “Was missing?” flag | Missingness **predicts** the target | More dimensions to manage |
+
+**Styling analogy:** Deleting rows is **throwing out** damaged samples — fast, but maybe you threw out the **statement piece** (signal).
 
 ---
 
-# 3. 🔹 Numerical Transformations
+## 3. Scaling — standardize vs. normalize
 
-## Q3: Standardization vs. Normalization.
+### Q: Standardization vs. normalization?
 
-### 🔹 Direct Answer
-- **Standardization (Z-Score):** Centers data at 0 with unit variance. Best for models assuming Gaussian distribution (SVM, LogReg, PCA).
-- **Normalization (Min-Max):** Scales data to [0, 1]. Best for Neural Networks and distance-based models (KNN) where output bounds matter.
+- **Z-score (standardize):** Zero mean, unit variance — friends with **SVM, logistic regression, PCA** (Gaussian-ish assumptions / distance fairness).
+- **Min–max [0,1]:** Bounded range — often seen with **neural nets** and some distance models where scale matters to bounded activations.
 
-### 🔹 Handling Outliers (The IQR Method)
-- **IQR** = Q3 - Q1
-- **Bounds:** $[Q1 - 1.5 \times IQR, \quad Q3 + 1.5 \times IQR]$
-- **Strategy:** Capping (Winsorization) is often better than deletion as it preserves the sample size while neutralizing the outlier impact.
-
----
-
-# 4. 🔹 Categorical Encoding
-
-## Q4: How do you handle High Cardinality (e.g., 10,000 cities)?
-
-### 🔹 Strategies
-1. **One-Hot Encoding:** Creates a sparse matrix. Good for low cardinality ($< 50$ categories).
-2. **Target Encoding:** Replaces category with the mean target value. 
-    - *Danger:* Extreme overfitting. Use **Laplace Smoothing**.
-3. **Feature Hashing:** Uses a hash function to map categories to fixed-size indices. Good for online learning.
+**Outliers — IQR quick fix:**
+- $\text{IQR} = Q3 - Q1$
+- Fences: $[Q1 - 1.5 \times \text{IQR},\; Q3 + 1.5 \times \text{IQR}]$
+- **Winsorize / cap** often beats blind delete — keeps sample size, dulls extremes.
 
 ---
 
-# 5. 🔹 Production Realities: Data Drift
+## 4. High-cardinality categories (10k cities, anyone?)
 
-## Q5: How do you know when to retraining?
+### Q: Strategies without blowing up dimensionality?
 
-### 🔹 Direct Answer
-By monitoring **Covariate Shift**—when the distribution of input features $(P(X))$ changes over time.
-- **Detection:** Population Stability Index (PSI) or Kolmogorov-Smirnov (K-S) tests.
-- **Action:** If the test set distribution deviates significantly from the training distribution, the preprocessing pipeline or model needs a refresh.
+1. **One-hot** — fine when categories are **few**; explodes when cardinality is huge.
+2. **Target encoding** — category → mean target; **danger:** overfit. Use **CV within train**, smoothing, regularization.
+3. **Hashing** — fixed-size buckets; collisions trade off noise vs. memory — common in **streaming / online** setups.
+
+**Thought experiment:** *Target encoding on full train before CV — what happens?* → The model **inhales** label info per category; **leakage-style** optimism. Always encode **inside** CV folds.
 
 ---
 
-> [!TIP]
-> **Implementation Note:** For Python pipeline code (Sklearn `Pipeline` and `ColumnTransformer`), see the [ML Coding Patterns Hub](../ml-interview-notes/coding.md).
+## 5. Drift — when to retrain (or fix the pipe)
+
+### Q: How do you know it’s time to refresh?
+
+**Direct answer:** Watch **covariate shift** — $P(X)$ changes (inputs drift) even if the **old** $P(y|X)$ story might too (**concept drift**). Offline model ages; **monitoring** tells you when.
+
+**Detection (common):** PSI, K-S tests, compare **recent** vs. **training** distributions on key features.
+
+**Action ladder:** Retrain → fix data **upstream** → change **features** → change **objective** — same triage as “is it code, config, or infra?”
+
+---
+
+> **Code path:** For sklearn `Pipeline` + `ColumnTransformer` patterns, see [ML coding patterns](../ml-interview-notes/coding.md) — one artifact, reproducible stages, fewer “works on my machine” ghosts.

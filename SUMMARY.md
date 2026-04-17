@@ -1,7 +1,8 @@
 # Table of contents
 
-* [🚀 Welcome!](README.md)
-* [🧠 AI & ML Revision Hub](AI_ML_REVISION_GUIDE.md)
+* [🚀 Welcome!](README.md) — *Senior prep framed for Azure/DevOps folks; fast read.*
+* [🧠 AI & ML Revision Hub](AI_ML_REVISION_GUIDE.md) — *Night-before cheat sheet: golden rules, architectures, math, infra, gotchas.*
+* [🛠️ MLOps — full notes](mlops.md) — *Lifecycle, CI/CD for ML, deployment — same content, engaging tone + Azure bridges.*
 * [🗓️ 30 Days to ML Mastery](30-days/README.md)
 
 ---

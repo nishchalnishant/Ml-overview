@@ -1,34 +1,101 @@
-# ML interview notes
+# ML Interview Notes
 
-Structured interview prep for classical ML, deep learning, NLP/CV, probability, coding, and system design.
+Welcome to the version of ML notes that does **not** sound like a sleepy university PDF.
 
-The notes in this folder were rewritten to be more interview-ready:
+If you come from **Azure + DevOps**, here is the cheat code:
 
-1. Start with a concise answer you can say out loud
-2. Add the intuition or mechanism that shows real understanding
-3. Mention the main tradeoff, pitfall, or production caveat
-4. Include code only where it helps in coding rounds
+- **Data prep** = your ingestion + validation stage
+- **Training** = the build pipeline
+- **Evaluation** = quality gates
+- **Inference** = runtime service
+- **MLOps** = CI/CD + observability + rollback, but for models
 
-The goal is depth without turning every answer into a textbook chapter.
+Think of the ML lifecycle like an **Azure DevOps release flow**, except the artifact is not just code. It is:
 
-**Files in this folder**
+- code
+- data
+- features
+- model weights
+- infra
+- monitoring logic
 
-| File | Focus |
-|------|-------|
-| `fundamentals-of-machine-learning.md` | Core ML terminology, losses, regularization, RL basics |
-| `algorithms.md` | Trees, ensembles, regression, clustering, SVM, PCA |
-| `optimization.md` | GD/SGD, learning rates, optimizers, tuning, fairness, quantization |
-| `model-evaluation.md` | Classification, regression, clustering, recommendation, A/B testing |
-| `data-preprocessing-and-feature-engineering.md` | Missing data, scaling, encoding, splits, imbalance |
-| `probability-and-statistics.md` | Distributions, hypothesis testing, Bayes, MLE/MAP, bootstrap |
-| `maths.md` | Eigenvalues, SVD/PCA, chain rule, PSD matrices |
-| `additional-ml-interview-topics.md` | Leakage, SMOTE, calibration, SHAP, time-series validation, PU learning |
-| `deep-learning.md` | Neural nets, activations, normalization, CNN/RNN/Transformer, generative models |
-| `nlp.md` | Classical NLP, embeddings, seq2seq, transformers, summarization |
-| `large-language-model.md` | LLM architecture, tokenization, attention, context, RAG vs fine-tuning |
-| `computer-vision.md` | Segmentation, detection, OCR, CNNs, ViTs, augmentation |
-| `coding.md` | Interview coding implementations plus what to explain while writing them |
-| `system-design-and-mlops.md` | ML system design, deployment, drift, feature stores, compression |
-| `behavioral-and-scenario-based-questions.md` | STAR framing, failure handling, disagreement, limited-label projects |
+If one of those drifts, your “deployment” can still go live and still fail.
 
-Use this folder as the quick-answer layer. For deeper study, pair it with the longer notes elsewhere in the repo.
+That is pure DevOps heartbreak.
+
+---
+
+## Start Here First
+
+If you want the **most important notes first**, begin in this order:
+
+1. `fundamentals-of-machine-learning.md`
+2. `model-evaluation.md`
+3. `optimization.md`
+4. `deep-learning.md`
+5. `system-design-and-mlops.md`
+6. `large-language-model.md`
+
+That set gives you:
+
+- the language of ML
+- how models learn
+- how to tell if they are actually good
+- how to ship them without drama
+- how modern AI systems are built
+
+---
+
+## What’s In This Folder
+
+| File | Why it matters |
+|------|----------------|
+| `fundamentals-of-machine-learning.md` | The IPL powerplay of ML. Must-haves. |
+| `model-evaluation.md` | Where “99% accuracy” gets exposed. |
+| `optimization.md` | Training knobs, optimizer behavior, tuning instincts. |
+| `deep-learning.md` | Neural nets, CNNs, RNNs, Transformers. |
+| `system-design-and-mlops.md` | Azure/DevOps bridge. This should feel like home. |
+| `large-language-model.md` | LLM basics, prompt vs RAG vs fine-tune. |
+| `algorithms.md` | Trees, boosting, clustering, SVM, PCA. |
+| `data-preprocessing-and-feature-engineering.md` | Feature work, leakage, scaling, encoding. |
+| `probability-and-statistics.md` | Interview math without the pain. |
+| `nlp.md` | Classical NLP to Transformers. |
+| `computer-vision.md` | Detection, segmentation, OCR, ViTs. |
+| `coding.md` | Implementations plus what to say while coding. |
+| `behavioral-and-scenario-based-questions.md` | The human round. Still important. |
+
+---
+
+## How To Read These Notes
+
+Each strong answer should do four things fast:
+
+1. **Say the idea cleanly**
+2. **Explain why it works**
+3. **Call out where it breaks**
+4. **Connect it to shipping**
+
+That last part matters.
+
+Because an ML model without deployment thinking is like a couture outfit with no stitching.
+Looks fabulous on paper. Falls apart on first movement.
+
+---
+
+## Quick Thought Experiment
+
+If someone says:
+
+> “We trained a great model.”
+
+Your DevOps brain should instantly ask:
+
+- On what data?
+- With what versioned features?
+- Evaluated using which metric?
+- Deployed how?
+- Monitored where?
+- Rolled back how?
+
+If those answers are fuzzy, the model is not “great.”
+It is just unemployed.
