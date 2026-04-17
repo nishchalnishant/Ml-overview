@@ -1,467 +1,189 @@
 # Data Preprocessing and Feature Engineering
 
+For many ML interviews, this topic matters more than model choice. Strong answers explain how preprocessing affects leakage, model assumptions, robustness, and production behavior.
+
 ---
 
 # Q1: What is Feature Engineering?
 
-## 1. 🔹 Direct Answer
-**Feature engineering** is creating **inputs** (transformations, combinations, domain signals) that make learning **easier**—better than raw fields alone. It encodes **prior knowledge** and **structure**.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Models learn patterns faster when features **align** with the generative process (e.g., ratios capture scale invariance).
+Feature engineering is the process of transforming raw data into inputs that make the learning problem easier for the model to solve. In practice, that means encoding domain knowledge, exposing signal more clearly, reducing noise, and aligning the representation with the model's assumptions. A good interview answer should make clear that feature engineering is not only "creating more columns"; it includes cleaning, aggregation, normalization, temporal logic, interaction features, and even choosing what information should not be included to avoid leakage.
 
-## 3. 🔹 Deep Dive
-- Examples: **log1p** for skew, **interaction** terms, **binning**, **time** features (hour, cyclical sin/cos), **aggregates** per user.
-- **Leakage**: future aggregates into past rows—fatal.
+**Why it matters**
 
-## 4. 🔹 Practical Perspective
-- Deep nets can learn some raw features but **tabular** still benefits from engineering.
-- **Document** features for reproducibility in Feature Store.
-
-## 5. 🔹 Code Snippet
-```python
-df["log_price"] = np.log1p(df["price"])
-df["hour_sin"] = np.sin(2 * np.pi * df["hour"] / 24)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** AutoFeat vs manual? **A:** Start domain features; automate search second.
-
-## 7. 🔹 Common Mistakes
-Thousands of arbitrary interactions without regularization—overfits.
-
-## 8. 🔹 Comparison / Connections
-Representation learning, embeddings, PCA.
-
-## 9. 🔹 One-line Revision
-Feature engineering encodes domain structure into columns—watch leakage and complexity.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+- Better features can improve simple models more than switching to a more complex algorithm.
+- Good features often improve interpretability and training stability.
+- In production systems, feature definitions need to be consistent offline and online.
 
 ---
 
 # Q2: What is one-hot encoding? When should you use it?
 
-## 1. 🔹 Direct Answer
-**One-hot** maps each category to a **binary vector** with one 1—**no ordinal** meaning. Use for **nominal** categories with **low cardinality** going into linear models / NNs expecting numeric input.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Each category gets its own switch—distance in one-hot space is uniform across different categories.
+One-hot encoding converts a categorical variable into binary indicator columns, one per category. It works well when the number of categories is modest and there is no meaningful ordinal relationship between them. It is especially appropriate for linear models and neural networks that need numeric inputs, but it can become inefficient when cardinality is very high because the representation becomes sparse and wide.
 
-## 3. 🔹 Deep Dive
-- **Sparse** matrices for many columns.
-- **Dummy trap**: drop one column for linear models with intercept to avoid collinearity.
+**Good nuance**
 
-## 4. 🔹 Practical Perspective
-- **High cardinality** → blowup (memory, overfit)—use **embeddings**, **target encoding**, **hashing**.
-
-## 5. 🔹 Code Snippet
-```python
-import pandas as pd
-X_oh = pd.get_dummies(df["city"], prefix="city")
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Tree models? **A:** Often label encoding OK; depends on implementation.
-
-## 7. 🔹 Common Mistakes
-One-hot **ordinal** grades (loses order)—use ordinal or scores.
-
-## 8. 🔹 Comparison / Connections
-Target encoding, embeddings, frequency encoding.
-
-## 9. 🔹 One-line Revision
-One-hot for nominal low-cardinality categories; avoid on high-cardinality without compression.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
+- It is a safe default for low-cardinality nominal variables.
+- It is usually unnecessary for many tree-based models if they support categorical handling or can work from label-encoded splits safely.
+- For high-cardinality features such as user IDs or ZIP-plus-household combinations, embeddings, hashing, or target statistics are often more practical.
 
 ---
 
 # Q3: How do you deal with missing data?
 
-## 1. 🔹 Direct Answer
-First ask **why** missing (MCAR/MAR/MNAR). Strategies: **drop** if few, **impute** (mean/median/mode, **KNN**, **MICE**), **model** missingness as feature, or use models handling **NaN** (XGBoost) with care.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Missingness often **carries signal**—“unknown income” may mean something.
+I first try to understand why the data is missing, because the treatment depends on the missingness mechanism. If values are missing completely at random, simple imputation may be sufficient. If missingness itself carries signal, then I would usually keep that information by adding a missing indicator along with the imputed value. In production, the key goal is to use a strategy that is leakage-safe, stable, and reproducible at serving time.
 
-## 3. 🔹 Deep Dive
-- **Indicator** column `is_missing` can help MAR.
-- **Don’t** leak test statistics into train without CV pipeline.
+**Common approaches**
 
-## 4. 🔹 Practical Perspective
-Document imputation; **sensitivity** analysis if MNAR.
+- Drop rows or columns only when missingness is limited and not informative.
+- Impute with mean, median, mode, or a constant for simple baselines.
+- Use model-based imputation when the added complexity is justified.
+- Add missing flags when absence may carry meaning.
 
-## 5. 🔹 Code Snippet
-```python
-from sklearn.impute import SimpleImputer
-imp = SimpleImputer(strategy="median")
-```
+**Common pitfall**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** MNAR? **A:** Imputation biased—model missing mechanism or collect data.
-
-## 7. 🔹 Common Mistakes
-Dropping all rows with any NA without checking bias.
-
-## 8. 🔹 Comparison / Connections
-Semi-supervised learning, data quality monitoring.
-
-## 9. 🔹 One-line Revision
-Understand missingness mechanism; impute with pipelines; add indicators when informative.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+Fitting the imputer before the train-validation split leaks information.
 
 ---
 
 # Q4: How do you handle Outliers?
 
-## 1. 🔹 Direct Answer
-**Detect** via z-score, IQR, isolation forest; **decide** if error (fix/remove), legitimate heavy tail (keep + **robust** model), or influential point (**winsorize**, **transform**). Avoid blind deletion.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Outliers skew mean-based models; sometimes they **are** the signal (fraud).
+I do not remove outliers automatically. First I determine whether they are data errors, rare but valid events, or the very cases the business cares about. If they are errors, I fix or exclude them. If they are valid but destabilize the model, I might use robust scaling, winsorization, log transforms, or a loss function less sensitive to extreme values. The answer should show that outlier handling depends on domain context, not just statistics.
 
-## 3. 🔹 Deep Dive
-- **Robust scalers**, **Huber** loss, **quantile** transforms.
-- **Multivariate** outliers: Mahalanobis (careful with estimation).
+**What to mention**
 
-## 4. 🔹 Practical Perspective
-Plot **per feature** and **joint**; slice by segment—global outlier may be normal in niche.
-
-## 5. 🔹 Code Snippet
-```python
-q1, q99 = df["x"].quantile([0.01, 0.99])
-df["x_clip"] = df["x"].clip(q1, q99)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Tree models? **A:** Less sensitive to monotonic transforms; still check data bugs.
-
-## 7. 🔹 Common Mistakes
-Removing all “far” points that represent real rare events.
-
-## 8. 🔹 Comparison / Connections
-Anomaly detection, robust statistics.
-
-## 9. 🔹 One-line Revision
-Treat outliers as data bugs vs real extremes—use robust losses/transforms or domain rules.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+- Tree models are often less sensitive to outliers than linear or distance-based models.
+- For skewed positive variables, log transforms are often better than blunt clipping.
+- In fraud or anomaly settings, "outliers" may be the target behavior and should be preserved.
 
 ---
 
 # Q5: Explain Feature Scaling. Why is it needed?
 
-## 1. 🔹 Direct Answer
-**Scaling** maps features to comparable ranges (**standardize** zero mean unit var, **min-max** [0,1], **robust** by median/IQR). Needed for **gradient descent**, **distance** methods (kNN, SVM, NNs), **regularization** fairness across dimensions.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-If one feature is in millions and another in 0–1, optimizers and distances are dominated by the large scale.
+Feature scaling puts numerical variables on comparable ranges so that optimization and distance computations behave sensibly. It matters for models like logistic regression, SVMs, KNN, k-means, PCA, and neural networks because these methods are sensitive to magnitude. Without scaling, a feature with a large numeric range can dominate the loss or the distance metric even if it is not the most informative feature.
 
-## 3. 🔹 Deep Dive
-- **Fit scaler on train only**—transform val/test.
-- **Trees**: splitting invariant to monotone transforms—often **not** required.
+**Typical choices**
 
-## 4. 🔹 Practical Perspective
-Sparse/interpretability: sometimes keep raw + separate scale per feature group.
+- Standardization: zero mean and unit variance
+- Min-max scaling: map values to a bounded interval
+- Robust scaling: use median and IQR for outlier-heavy data
 
-## 5. 🔹 Code Snippet
-```python
-from sklearn.preprocessing import StandardScaler
-scaler = StandardScaler().fit(X_train)
-X_val_t = scaler.transform(X_val)
-```
+**Good nuance**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Normalize vs standardize? **A:** Min-max bounded; z-score for unbounded gaussian-like.
-
-## 7. 🔹 Common Mistakes
-Fitting on full dataset before split—leakage.
-
-## 8. 🔹 Comparison / Connections
-BatchNorm in NNs (different purpose but scale normalization).
-
-## 9. 🔹 One-line Revision
-Fit scaling on training data for distance/gradient methods—trees often skip.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
+Tree-based methods usually do not require scaling, but pipelines may still standardize features when multiple model families are being compared.
 
 ---
 
 # Q6: One-Hot, Label, Target, and K-Fold Target Encoding
 
-## 1. 🔹 Direct Answer
-- **One-hot**: sparse binary columns per category.
-- **Label encoding**: integer per category—**implies order** (risky for linear models).
-- **Target encoding**: replace category with **mean target**—strong signal, **leakage** risk.
-- **K-fold target encoding**: compute mean **out-of-fold** to reduce leakage.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Target encoding borrows **supervised** strength from the label; vanilla version **cheats** by using val labels.
+These encoding methods represent categorical variables in different ways and have very different failure modes. One-hot encoding is safest and most transparent for low-cardinality nominal features. Label encoding maps categories to integers, but unless the model treats them purely as identifiers, it can accidentally impose a false order. Target encoding replaces each category with a statistic derived from the target, which can be very powerful for high-cardinality features but is highly leakage-prone unless done carefully. K-fold target encoding reduces that leakage by computing category statistics out-of-fold rather than on the full training set.
 
-## 3. 🔹 Deep Dive
-- Add **smoothing** (Bayesian) toward global mean for rare categories.
-- **Regularization**: noise, CV schemes.
+**How to talk about tradeoffs**
 
-## 4. 🔹 Practical Perspective
-High-cardinality categoricals: **target encoding** + regularization often beats one-hot in linear/boosted models.
-
-## 5. 🔹 Code Snippet
-```text
-for each fold: mean_y per category on train_fold only -> map val_fold
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Why leakage? **A:** Category mean includes target from same row in global calc.
-
-## 7. 🔹 Common Mistakes
-Plain target encode on full train before CV—optimistic scores.
-
-## 8. 🔹 Comparison / Connections
-Embeddings, hashing trick.
-
-## 9. 🔹 One-line Revision
-Use OOF target encoding or smoothing for high-cardinality cats—never leak validation labels.
-
-## 10. 🔹 Difficulty Tag
-🟣 Hard
+- One-hot: simple, safe, sparse, does not scale well to huge cardinality
+- Label encoding: fine for tree methods in some cases, dangerous for linear models
+- Target encoding: compact and powerful, but requires smoothing and leakage-safe computation
+- K-fold target encoding: better validation discipline, but more pipeline complexity
 
 ---
 
 # Q7: How do you handle Categorical Features?
 
-## 1. 🔹 Direct Answer
-Pick by **cardinality** and **model**: low → one-hot; medium → **ordinal** if true order; high → **target encoding**, **hashing**, **embeddings** (NN), **frequency** encoding. Always handle **unseen** cats at inference.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Categories aren’t numbers—encoding defines **geometry** in feature space.
+My approach depends on cardinality, model family, and how stable the categories are in production. For low-cardinality variables, one-hot encoding is usually enough. For high-cardinality IDs or text-like categories, I consider target statistics, hashing, embeddings, or models with native categorical support such as CatBoost. I also think about unseen categories at inference time, because a preprocessing strategy that looks fine offline can break once new values appear in production.
 
-## 3. 🔹 Deep Dive
-- **Embeddings**: learn dense vectors—great for NN + large data.
-- **Leakage-free** target stats via nested CV.
+**Good things to mention**
 
-## 4. 🔹 Practical Perspective
-**Default** or **UNK** bucket for rare; **drop** ultra-rare with care.
-
-## 5. 🔹 Code Snippet
-```python
-df["cat"] = df["cat"].astype("category")
-unk = "UNK"
-df["cat"] = df["cat"].cat.add_categories([unk]).fillna(unk)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** String similarity? **A:** Embeddings from language models or hand features.
-
-## 7. 🔹 Common Mistakes
-Label encode 1000 categories and feed to linear regression without regularization.
-
-## 8. 🔹 Comparison / Connections
-Mixed data types, feature hashing.
-
-## 9. 🔹 One-line Revision
-Match encoding to cardinality and model; handle rare/unseen and avoid target leakage.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+- Frequency-based grouping for rare categories
+- Explicit handling for unknown values
+- Leakage-safe target statistics
+- Domain semantics, such as whether the category is nominal or ordinal
 
 ---
 
 # Q8: Explain feature selection vs feature extraction.
 
-## 1. 🔹 Direct Answer
-**Selection** picks a **subset** of original features (filter/wrapper/embedded). **Extraction** builds **new** axes (PCA, autoencoders) that combine originals—**dimensionality reduction** / denoising.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Selection = “which columns matter?” Extraction = “what new coordinates summarize variance?”
+Feature selection keeps a subset of the original features, while feature extraction creates new features by transforming the original space. Selection is about deciding which columns to keep; extraction is about building a new representation. Selection is often preferred when interpretability matters, whereas extraction is powerful when the original features are noisy, redundant, or too high-dimensional.
 
-## 3. 🔹 Deep Dive
-- **Filter**: correlation, mutual information—fast.
-- **Wrapper**: forward/backward—expensive.
-- **Embedded**: L1, tree importance.
-- **PCA**: unsupervised—may not align with label.
+**Examples**
 
-## 4. 🔹 Practical Perspective
-Interpretability often favors **selection**; **compression** or **collinearity** → extraction.
+- Feature selection: L1 regularization, mutual information, tree-based importance, recursive elimination
+- Feature extraction: PCA, autoencoders, learned embeddings, topic models
 
-## 5. 🔹 Code Snippet
-```python
-from sklearn.feature_selection import SelectKBest, f_classif
-X2 = SelectKBest(f_classif, k=20).fit_transform(X, y)
-```
+**Good nuance**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** PCA before linear model? **A:** Loses interpretability; removes multicollinearity.
-
-## 7. 🔹 Common Mistakes
-PCA on full data before CV—leakage.
-
-## 8. 🔹 Comparison / Connections
-Autoencoders, mutual information, SHAP.
-
-## 9. 🔹 One-line Revision
-Selection keeps original features; extraction creates new components—choose for interpretability vs compression.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+These are not mutually exclusive. A common workflow is to engineer features, remove clearly weak ones, and then use a learned representation for a downstream model.
 
 ---
 
 # Q9: How would you create new features from existing ones?
 
-## 1. 🔹 Direct Answer
-**Domain**: ratios, differences, logs, **lags**, rolling stats, **counts** per entity, **binning** continuous, **interactions**, **polynomials** (careful). Validate with **ablation** and **stability** across time.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Good features **linearize** relationships or expose **invariances** the model would struggle to learn from raw fields.
+I start from the prediction task and the data-generating process. Then I look for transformations that expose stable signal: ratios, interactions, lags, rolling aggregates, recency features, counts, domain thresholds, and group-level summaries. In interviews, it helps to say that I prefer features that reflect business logic or time structure rather than arbitrary polynomial expansion, because engineered features should improve both predictive power and interpretability.
 
-## 3. 🔹 Deep Dive
-- **Leakage**: rolling mean including current row’s label.
-- **Regularize** when exploding dimensionality.
+**Useful examples**
 
-## 4. 🔹 Practical Perspective
-Start **simple** (3–5 strong features) before **kitchen sink**.
+- Transactions: spend in last 7, 30, and 90 days
+- Recommenders: user-item interaction counts and recency
+- Operations: rolling averages, volatility, and change relative to baseline
+- Geography: density, distance, neighborhood aggregates
 
-## 5. 🔹 Code Snippet
-```python
-df["ctr"] = df["clicks"] / (df["impressions"] + 1e-6)
-```
+**Common pitfall**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Automated? **A:** Featuretools—watch cross-validation and runtime.
-
-## 7. 🔹 Common Mistakes
-Ratios without handling zero denominator.
-
-## 8. 🔹 Comparison / Connections
-Feature crosses in deep learning.
-
-## 9. 🔹 One-line Revision
-Combine domain ratios, time windows, and aggregates—validate without leakage.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+Aggregations are a major source of leakage if they use future information or include the validation period.
 
 ---
 
 # Q10: How do you approach a dataset with highly imbalanced classes?
 
-## 1. 🔹 Direct Answer
-**Metrics**: PR-AUC, F1, recall at precision—not accuracy. **Resampling**: undersample majority, **SMOTE**, oversample minority; **class weights** in loss; **threshold** tuning; **anomaly** framing if extreme imbalance.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Standard training **chases majority**—you must **pay** for minority errors.
+I treat imbalance as a modeling and evaluation issue together. First I choose metrics that reflect the minority class, such as precision, recall, F1, PR-AUC, recall at a target precision, or cost-weighted utility. Then I compare interventions such as class weighting, threshold tuning, better sampling, focal loss, or specialized objectives. If the minority class is extremely rare, I also question whether the problem is better framed as anomaly detection or ranking.
 
-## 3. 🔹 Deep Dive
-- **SMOTE** risks **noise**—clean data first.
-- **Stratified** CV and **calibration** after reweight.
+**Important detail**
 
-## 4. 🔹 Practical Perspective
-**Cost-sensitive** learning matches business FP/FN costs.
-
-## 5. 🔹 Code Snippet
-```python
-from sklearn.utils.class_weight import compute_class_weight
-weights = compute_class_weight("balanced", classes=np.unique(y), y=y)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** SMOTE on test? **A:** Never—only train.
-
-## 7. 🔹 Common Mistakes
-Reporting accuracy on 99% negative class data.
-
-## 8. 🔹 Comparison / Connections
-Focal loss, precision-recall curve.
-
-## 9. 🔹 One-line Revision
-Change metrics, weights, sampling, and thresholds—never trust accuracy alone on imbalance.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+Resampling should only be done on the training set. Validation and test should reflect the real deployment distribution whenever possible.
 
 ---
 
 # Q11: How do you select features for a model?
 
-## 1. 🔹 Direct Answer
-Combine **domain** knowledge, **univariate** screens (MI, χ²), **model-based** importance (trees, L1), **stability** across folds/time, and **ablation**—balance **performance** vs **complexity** and **latency**.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Fewer, stronger features **generalize** better and simplify debugging.
+I combine domain knowledge with empirical testing. I usually start by removing features that are obviously unavailable at prediction time, duplicated, constant, or clearly leaky. Then I look at correlation, redundancy, sparsity, and missingness. After that I evaluate features through model-based experiments, ablations, and slice analysis rather than trusting a single importance score. The point is not just to reduce dimensionality, but to keep a robust, interpretable, and maintainable set of inputs.
 
-## 3. 🔹 Deep Dive
-- **Wrapper** methods (RFE) costly but accurate.
-- **Multicollinearity**: drop redundant to stabilize linear models.
+**Good interview nuance**
 
-## 4. 🔹 Practical Perspective
-**Monitor** feature **drift** in prod—selection is not one-time.
-
-## 5. 🔹 Code Snippet
-```python
-from sklearn.feature_selection import RFE
-from sklearn.linear_model import LogisticRegression
-rfe = RFE(LogisticRegression(max_iter=1000), n_features_to_select=10).fit(X, y)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Correlation filter threshold? **A:** Heuristic—check VIF for linear.
-
-## 7. 🔹 Common Mistakes
-Selecting on **test** set performance—double-dips.
-
-## 8. 🔹 Comparison / Connections
-SHAP, permutation importance.
-
-## 9. 🔹 One-line Revision
-Use domain + statistical screens + model importance + stability—validate with nested CV.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+- The best feature set depends on the model family.
+- Correlation alone is not enough to decide what to drop.
+- Feature importance should be interpreted carefully, especially with correlated features.
 
 ---
 
 # Q12: Why and how do you split data into train, test, and validation sets?
 
-## 1. 🔹 Direct Answer
-**Train** fits parameters; **validation** tunes hyperparameters / early stopping; **test** estimates **generalization** once—**never** tune on test. **Random** split i.i.d. data; **time/entity** split for leakage-prone domains.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-If you peek at test during model selection, you **overfit** the benchmark.
+We split data so that model fitting, model selection, and final evaluation remain separate. The training set is used to learn parameters, the validation set is used for model choice and hyperparameter tuning, and the test set is held back for a final unbiased estimate. A strong interview answer should go beyond the textbook definition and say that the split strategy must match the real deployment setting: time-based splits for time series, group-based splits for repeated entities, and stratification when label balance matters.
 
-## 3. 🔹 Deep Dive
-- Ratios e.g. 70/15/15 or CV for small data.
-- **Group** split: same user not in train and test.
+**What strong candidates mention**
 
-## 4. 🔹 Practical Perspective
-**Stratify** classification; **multiple** seeds for stability.
-
-## 5. 🔹 Code Snippet
-```python
-from sklearn.model_selection import train_test_split
-X_tr, X_te, y_tr, y_te = train_test_split(X, y, test_size=0.2, stratify=y, random_state=42)
-X_tr, X_val, y_tr, y_val = train_test_split(X_tr, y_tr, test_size=0.15, stratify=y_tr, random_state=42)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Only train/val? **A:** Use nested CV or final holdout for unbiased estimate.
-
-## 7. 🔹 Common Mistakes
-Random split for time-series—future leaks into past.
-
-## 8. 🔹 Comparison / Connections
-Cross-validation, bootstrap.
-
-## 9. 🔹 One-line Revision
-Train/val/test separates fitting, tuning, and honest evaluation—match split to data dependencies.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
+- Build preprocessing inside the training pipeline
+- Avoid duplicate entities across splits
+- Keep the test set untouched until the end
+- Revisit the split design if the production setting changes

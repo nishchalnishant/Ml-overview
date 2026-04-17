@@ -1,38 +1,34 @@
 # ML interview notes
 
-Structured interview prep for **classical ML, deep learning, NLP/CV, probability, coding, and system design**. Each question uses a consistent template:
+Structured interview prep for classical ML, deep learning, NLP/CV, probability, coding, and system design.
 
-1. Direct Answer  
-2. Intuition  
-3. Deep Dive  
-4. Practical Perspective  
-5. Code Snippet (where applicable)  
-6. Interview Follow-ups (with brief answers)  
-7. Common Mistakes  
-8. Comparison / Connections  
-9. One-line Revision  
-10. Difficulty Tag (Easy / Medium / Hard)
+The notes in this folder were rewritten to be more interview-ready:
 
-Some topic files **group related short questions** into a single section (for example, multiple named probability distributions or related CNN concepts) to keep the document navigable; every **original bullet question** from the source lists is covered.
+1. Start with a concise answer you can say out loud
+2. Add the intuition or mechanism that shows real understanding
+3. Mention the main tradeoff, pitfall, or production caveat
+4. Include code only where it helps in coding rounds
+
+The goal is depth without turning every answer into a textbook chapter.
 
 **Files in this folder**
 
-| File | Topics (abbrev.) |
-|------|-------------------|
-| `fundamentals-of-machine-learning.md` | Epochs, loss, regularization, RL basics, metrics, MTL losses |
-| `algorithms.md` | Trees, ensembles, boosting, SVM, kNN, k-means, PCA, logistic regression |
-| `optimization.md` | GD/SGD, Adam, learning rates, HPO, quantization (opt context), fairness |
-| `model-evaluation.md` | Classification/regression metrics, CV, ROC/PR, clustering/recsys eval, A/B |
-| `data-preprocessing-and-feature-engineering.md` | Encoding, scaling, missing data, imbalance, splits |
-| `probability-and-statistics.md` | Distributions, CLT, hypothesis testing, Bayes, MLE/MAP, bootstrap |
-| `maths.md` | Eigenvalues/eigenvectors, **SVD & PCA**, **chain rule / backprop**, **PSD / covariance** |
-| `additional-ml-interview-topics.md` | **Leakage**, **SMOTE**, **BN vs LN**, **boosting libraries**, **DBSCAN**, **recsys**, **calibration**, **time-series CV**, **KL/CE**, **permutation vs SHAP**, **label smoothing**, **P@k/MAP**, **PU learning** |
-| `deep-learning.md` | MLP, CNN/RNN/Transformer, GAN/VAE, training |
-| `nlp.md` | Transformers, tokenization, classical NLP |
-| `large-language-model.md` | LLM training, attention, RAG vs fine-tune, inference |
-| `computer-vision.md` | CNN, detection, segmentation, ViT |
-| `coding.md` | MSE, linear/logistic regression, KNN, activations, CV |
-| `system-design-and-mlops.md` | End-to-end systems, MLOps, feature stores, deployment |
-| `behavioral-and-scenario-based-questions.md` | STAR, failure stories, disagreements |
+| File | Focus |
+|------|-------|
+| `fundamentals-of-machine-learning.md` | Core ML terminology, losses, regularization, RL basics |
+| `algorithms.md` | Trees, ensembles, regression, clustering, SVM, PCA |
+| `optimization.md` | GD/SGD, learning rates, optimizers, tuning, fairness, quantization |
+| `model-evaluation.md` | Classification, regression, clustering, recommendation, A/B testing |
+| `data-preprocessing-and-feature-engineering.md` | Missing data, scaling, encoding, splits, imbalance |
+| `probability-and-statistics.md` | Distributions, hypothesis testing, Bayes, MLE/MAP, bootstrap |
+| `maths.md` | Eigenvalues, SVD/PCA, chain rule, PSD matrices |
+| `additional-ml-interview-topics.md` | Leakage, SMOTE, calibration, SHAP, time-series validation, PU learning |
+| `deep-learning.md` | Neural nets, activations, normalization, CNN/RNN/Transformer, generative models |
+| `nlp.md` | Classical NLP, embeddings, seq2seq, transformers, summarization |
+| `large-language-model.md` | LLM architecture, tokenization, attention, context, RAG vs fine-tuning |
+| `computer-vision.md` | Segmentation, detection, OCR, CNNs, ViTs, augmentation |
+| `coding.md` | Interview coding implementations plus what to explain while writing them |
+| `system-design-and-mlops.md` | ML system design, deployment, drift, feature stores, compression |
+| `behavioral-and-scenario-based-questions.md` | STAR framing, failure handling, disagreement, limited-label projects |
 
-Use alongside other interview tracks in this book (e.g. LLM-focused notes under `llm-interview-notes/` if present).
+Use this folder as the quick-answer layer. For deeper study, pair it with the longer notes elsewhere in the repo.

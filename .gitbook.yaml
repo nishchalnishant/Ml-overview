@@ -1,0 +1,10 @@
+# GitBook content configuration (Git Sync)
+# Ensures the published space uses README.md + SUMMARY.md as the single source of truth
+# so all pages listed in SUMMARY.md appear in the sidebar.
+# Docs: https://docs.gitbook.com/getting-started/git-sync/content-configuration
+
+root: ./
+
+structure:
+  readme: README.md
+  summary: SUMMARY.md

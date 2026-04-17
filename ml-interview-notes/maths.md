@@ -1,164 +1,101 @@
 # Maths
 
+These notes are written for interview delivery: start with the first paragraph, then use the bullet points if the interviewer asks you to go deeper.
+
 ---
 
 # Q1: Eigenvalues and Eigenvectors
 
-## 1. 🔹 Direct Answer
-For a square matrix **A**, a non-zero vector **v** is an **eigenvector** if **Av = λv** for some scalar **λ** (the **eigenvalue**). Eigenvectors are directions that **A** only **scales**; eigenvalues are those scale factors.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Think of **A** as a linear transformation: most vectors both rotate and stretch. Eigenvectors are the special directions that **stay on the same line**—only their length changes by **λ**. Like pushing a spring along its axis vs sideways.
+For a square matrix `A`, an eigenvector `v` is a non-zero vector whose direction is preserved by the linear transform, and the corresponding eigenvalue `lambda` tells you how much that direction is stretched or shrunk: `Av = lambda v`. In interviews, the key intuition is that eigenvectors reveal the "natural directions" of a transformation. That matters because many ML methods, especially PCA and spectral methods, look for the dominant directions in the data.
 
-## 3. 🔹 Deep Dive
-- Solve **det(A − λI) = 0** for eigenvalues **λ**; for each **λ**, solve **(A − λI)v = 0** for **v**.
-- **Symmetric** real matrices have real eigenvalues and orthogonal eigenvectors (PCA uses this).
-- **Spectral theorem**: diagonalizable **A = QΛQ⁻¹** (when enough independent eigenvectors).
+**Go deeper if asked**
 
-## 4. 🔹 Practical Perspective
-- **PCA**: eigenvectors of covariance matrix = principal directions; eigenvalues = variance explained.
-- **PageRank / graph spectra**, stability analysis, ODE linear systems **dx/dt = Ax**.
-- **When not primary**: non-square matrices use **SVD** instead (generalizes eigen decomposition).
+- Most vectors change both direction and magnitude under a matrix; eigenvectors are the special directions that only scale.
+- You find eigenvalues by solving `det(A - lambda I) = 0`, then solve `(A - lambda I)v = 0` for the corresponding eigenvectors.
+- For symmetric matrices, eigenvalues are real and eigenvectors for different eigenvalues are orthogonal. That is why covariance matrices are so convenient in ML.
+- Large positive eigenvalues usually correspond to directions with strong signal or high variance; very small eigenvalues often correspond to redundant directions.
 
-## 5. 🔹 Code Snippet
-```python
-import numpy as np
-A = np.array([[2.0, 1.0], [1.0, 2.0]])
-w, V = np.linalg.eig(A)  # w = eigenvalues, columns of V = eigenvectors
-# verify: A @ V[:,0] ≈ w[0] * V[:,0]
-```
+**Why interviewers care**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Relation to SVD? **A:** SVD works for any rectangular **A**; for PSD matrices, eigenvalues of **AᵀA** relate to singular values squared.
-2. **Q:** Defective matrix? **A:** Not full set of eigenvectors—Jordan form instead of full diagonalization.
-3. **Q:** PCA—why eigenvectors of covariance? **A:** They maximize variance **vᵀΣv** subject to **||v||=1** (Rayleigh quotient).
+- In PCA, eigenvectors of the covariance matrix give the principal directions.
+- In graph ML and spectral clustering, eigenvectors of graph Laplacians capture structure.
+- In optimization, eigenvalues of the Hessian tell you about curvature and conditioning.
 
-## 7. 🔹 Common Mistakes
-- Confusing eigenvalues with singular values for general non-symmetric **A**.
-- Forgetting eigenvectors are defined up to scale (normalize for numerics).
+**Common pitfall**
 
-## 8. 🔹 Comparison / Connections
-SVD, PCA, spectral clustering, matrix conditioning, power iteration for top eigenvector.
-
-## 9. 🔹 One-line Revision
-Eigenpairs **(λ, v)** satisfy **Av = λv**; power PCA, spectra, and understanding linear maps along invariant directions.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+Do not confuse eigenvalues with singular values. Singular values come from SVD and work for rectangular matrices; eigenvalues are defined for square matrices.
 
 ---
 
 # Q2: What is the Singular Value Decomposition (SVD), and how does it relate to PCA?
 
-## 1. 🔹 Direct Answer
-Any **m×n** matrix **A** admits **SVD**: **A = U Σ Vᵀ** with **U** (m×m) and **V** (n×n) orthogonal, **Σ** diagonal with **singular values σᵢ ≥ 0**. **PCA** of **centered data matrix **X** is closely related: **principal directions** are **right singular vectors** **V**; **variance** along each component is **σᵢ²/(n−1)** for sample covariance **XᵀX/(n−1)**.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-SVD finds the **best low-rank** approximation of **A** (Eckart–Young): keep top **k** singular values for denoising and compression.
+SVD factorizes any matrix `X` as `U Sigma V^T`, where `U` and `V` are orthonormal matrices and `Sigma` contains the singular values. In ML, SVD is important because it gives the best low-rank approximation of a matrix, which makes it useful for compression, denoising, latent factor models, and dimensionality reduction. PCA is closely related: if your data matrix is centered, the principal directions are the right singular vectors in `V`, and the variance explained by each principal component is proportional to the squared singular values.
 
-## 3. 🔹 Deep Dive
-- **Economy SVD**: only non-zero σ’s—efficient for rank-**r** matrices.
-- **AᵀA** eigenvalues = **σᵢ²**; **AAᵀ** shares non-zero σ’s.
+**Go deeper if asked**
 
-## 4. 🔹 Practical Perspective
-**Truncated SVD** for **LSI**, **recommendations** (matrix factorization), **numerical** rank determination.
+- SVD works for any `m x n` matrix, unlike eigendecomposition which requires a square matrix.
+- Truncating SVD to the top `k` singular values gives the best rank-`k` approximation in least-squares sense.
+- If `X` is centered, then `X^T X / (n - 1)` is the covariance matrix. Its eigenvectors are PCA directions, and its eigenvalues equal `sigma_i^2 / (n - 1)`.
+- In practice, PCA is often implemented through SVD because it is numerically stable.
 
-## 5. 🔹 Code Snippet
-```python
-import numpy as np
-U, s, Vt = np.linalg.svd(X, full_matrices=False)
-X_k = (U[:, :k] * s[:k]) @ Vt[:k, :]  # rank-k approximation
-```
+**Where it shows up**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** PCA without centering? **A:** First PCA component may track mean direction—not “variance” in usual sense.
+- PCA and latent semantic analysis
+- Recommender systems and matrix factorization
+- Compression of embeddings or dense feature matrices
 
-## 7. 🔹 Common Mistakes
-Confusing **singular values** of **X** with **eigenvalues** of **X** (square) without squaring relationship via **XᵀX**.
+**Common pitfall**
 
-## 8. 🔹 Comparison / Connections
-Eigendecomposition (square symmetric PSD), random projection.
-
-## 9. 🔹 One-line Revision
-SVD generalizes eigen-decomposition to rectangular matrices; PCA on centered data follows from **XᵀX** spectrum via **V** and **σ²**.
-
-## 10. 🔹 Difficulty Tag
-🟣 Hard
+If the data is not centered before PCA, the first component can partly capture the mean rather than the directions of variation you actually care about.
 
 ---
 
 # Q3: How does the chain rule apply in backpropagation for neural networks?
 
-## 1. 🔹 Direct Answer
-**Loss L** depends on **weights** through a **composition** of layers **L = L(h_L(…h₁(x)))**. **∂L/∂w** = **∂L/∂h** · **∂h/∂…** … **chain** of Jacobians. **Reverse-mode** autodiff (backprop) applies chain rule **once** per weight by reusing upstream gradient **∂L/∂h**—**efficient** for scalar **L** and many parameters.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-Blame flows **backward**: how much did this weight change the loss **through every path** that uses it?
+Backpropagation is just the chain rule applied efficiently to a composition of functions. A neural network is a stack of layers, so the loss depends on each parameter through many intermediate computations. Instead of differentiating each parameter independently from scratch, backprop starts at the loss and propagates gradients backward through the computation graph, reusing intermediate results. That is why training deep networks is computationally feasible.
 
-## 3. 🔹 Deep Dive
-For vector **h = f(Wx)**, **∂L/∂W = (∂L/∂h) xᵀ** (outer product form for linear layer). **Vanishing** if many Jacobians have singular values **smaller than 1** so the long chain product shrinks.
+**Go deeper if asked**
 
-## 4. 🔹 Practical Perspective
-Frameworks build **computation graphs**; you rarely differentiate by hand—**know** **shapes** for debugging.
+- If `z = Wx + b`, `a = sigma(z)`, and `L` depends on `a`, then `dL/dW` is obtained by combining `dL/da`, `da/dz`, and `dz/dW`.
+- Reverse-mode autodiff is efficient when you have one scalar output, such as loss, and many parameters.
+- The backward pass is usually the same order of complexity as the forward pass, but it needs stored activations, so memory becomes a major constraint.
+- Vanishing and exploding gradients come from repeatedly multiplying by Jacobians whose norms are much smaller or much larger than 1.
 
-## 5. 🔹 Code Snippet
-```python
-# PyTorch autograd handles this
-loss.backward()  # dL/dW populated for all requires_grad=True
-```
+**Good interview framing**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Forward-mode JVPs? **A:** One column of Jacobian at a time—useful for Hessian-vector products.
+If asked for intuition, say: "The forward pass computes predictions; the backward pass assigns credit or blame to every parameter for the final error."
 
-## 7. 🔹 Common Mistakes
-Thinking backprop is **O(1)**—same asymptotic order as forward, but **memory** stores activations.
+**Common pitfall**
 
-## 8. 🔹 Comparison / Connections
-Adjoint methods, manual backprop through softmax+CE (clean gradient).
-
-## 9. 🔹 One-line Revision
-Backprop is reverse-mode chain rule on the computation graph—efficient scalar-to-many-parameter gradients.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
+Backprop is not the optimizer. Backprop computes gradients; SGD, Adam, and related methods use those gradients to update parameters.
 
 ---
 
 # Q4: What does it mean for a matrix to be positive semi-definite (PSD), and why does the covariance matrix have this property?
 
-## 1. 🔹 Direct Answer
-**Symmetric** **A** is **PSD** if **xᵀAx ≥ 0** for all **x** (equivalently all **eigenvalues ≥ 0**). **Covariance** **Σ = E[(X−μ)(X−μ)ᵀ]** is PSD because **xᵀΣx = Var(xᵀX) ≥ 0**—variance of any linear combination is nonnegative.
+**Interview-ready answer**
 
-## 2. 🔹 Intuition
-No direction in feature space has **negative** variance under the data distribution.
+A symmetric matrix `A` is positive semi-definite if `x^T A x >= 0` for every vector `x`. Intuitively, that means the matrix never produces negative quadratic energy. Covariance matrices are PSD because for any direction `x`, the quantity `x^T Sigma x` is exactly the variance of the projection of the data onto that direction, and variance can never be negative.
 
-## 3. 🔹 Deep Dive
-**Gram matrices** **G = XᵀX** are PSD; **kernel** matrices in kernel methods are PSD (Mercer).
+**Go deeper if asked**
 
-## 4. 🔹 Practical Perspective
-**Cholesky** requires PSD (strictly PD for numerical stability); **Mahalanobis** distance uses **Σ⁻¹**.
+- For symmetric matrices, being PSD is equivalent to saying all eigenvalues are non-negative.
+- Covariance is `Sigma = E[(X - mu)(X - mu)^T]`. Then `x^T Sigma x = Var(x^T X)`, which proves PSD directly.
+- Gram matrices like `X^T X` are also PSD, which is why kernels and similarity matrices often have this property.
+- In practice, sample covariance matrices can appear slightly non-PSD because of numerical issues, so people often add a small `epsilon I` term.
 
-## 5. 🔹 Code Snippet
-```python
-import numpy as np
-C = np.cov(X, rowvar=False)
-assert np.all(np.linalg.eigvalsh(C) >= -1e-8)  # PSD up to numerics
-```
+**Why it matters in ML**
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Not PSD empirically? **A:** Finite sample / numerical error—regularize **C + εI**.
+- PCA relies on the covariance matrix being PSD.
+- Kernel methods require PSD kernels.
+- Gaussian models use covariance matrices, and optimization or inference can fail if they are not numerically well-behaved.
 
-## 7. 🔹 Common Mistakes
-Using covariance without **centering** data first.
+**Common pitfall**
 
-## 8. 🔹 Comparison / Connections
-Kernel PCA, Gaussian processes.
-
-## 9. 🔹 One-line Revision
-PSD matrices generalize nonnegative scalars; covariance is PSD because it is variance of linear projections.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
+Positive semi-definite allows zero eigenvalues; positive definite means all eigenvalues are strictly positive, which is a stronger condition.
