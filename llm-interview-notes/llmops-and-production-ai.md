@@ -1,3 +1,25 @@
+# LLMOps & Production AI
+
+This hub covers the operationalization of LLM systems, focusing on reliability, observability, and the unique challenges of non-deterministic models.
+
+---
+
+## 🔹 The LLM Lifecycle (CI/CD/CE)
+
+```mermaid
+graph LR
+    A[Design/Prompt] --> B[Golden Set Eval]
+    B --> C{Pass?}
+    C -- Yes --> D[Canary Deploy]
+    C -- No --> A
+    D --> E[Production]
+    E --> F[Observability/Metrics]
+    F --> G[Feedback Loop]
+    G --> A
+```
+
+---
+
 # Q1: Explain the AI product lifecycle from ideation to production.
 
 ## 1. 🔹 Direct Answer

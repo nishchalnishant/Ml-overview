@@ -1,3 +1,35 @@
+# Prompt Engineering
+
+This hub documents the strategies and best practices for designing high-performance prompts that ensure reliability, safety, and adherence to complex task requirements.
+
+---
+
+## 🔹 The Prompt Hierarchy (Structural Priority)
+
+```mermaid
+graph TD
+    subgraph "High Priority"
+    A[System Instructions / Persona]
+    B[Policy & Safety Guardrails]
+    end
+    subgraph "Middle Priority"
+    C[Few-Shot Demonstrations]
+    D[Retrieved Evidence / Context]
+    end
+    subgraph "Input Layer"
+    E[User Query]
+    F[Dynamic Variables]
+    end
+    A --> G[Final Constructed Prompt]
+    B --> G
+    C --> G
+    D --> G
+    E --> G
+    F --> G
+```
+
+---
+
 # Q1: What is prompt engineering, and why is it critical for AI applications?
 
 ## 1. 🔹 Direct Answer

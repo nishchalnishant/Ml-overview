@@ -1,3 +1,23 @@
+# AI Safety, Ethics & Responsible AI
+
+This hub covers the critical guardrails and alignment techniques required to deploy AI systems that are safe, unbiased, and compliant with global regulations.
+
+---
+
+## 🔹 AI Safety & Guardrails Pipeline
+
+```mermaid
+graph LR
+    User[User Input] --> IG[Input Guardrails]
+    IG --> |Pass| LLM[LLM / Agent]
+    IG --> |Reject| Block[Blocked / Refuse]
+    LLM --> OG[Output Guardrails]
+    OG --> |Safe| Final[Safe Output]
+    OG --> |Unsafe| Repair[Repair / Fallback]
+```
+
+---
+
 # Q1: What are hallucinations in LLMs, and how do you mitigate them?
 
 ## 1. 🔹 Direct Answer

@@ -1,3 +1,28 @@
+# Multi-modal AI
+
+This hub covers models that process and reason across multiple data types, including text, images, audio, and video.
+
+---
+
+## 🔹 Multi-modal Alignment: CLIP (Contrastive Architecture)
+
+```mermaid
+graph TD
+    subgraph "Encoders"
+    A[Image] --> B[Vision Encoder]
+    C[Text] --> D[Text Encoder]
+    end
+    B --> E[Image Vector Vi]
+    D --> F[Text Vector Tj]
+    subgraph "Contrastive Matrix"
+    E --> G[Similarity Score Sij]
+    F --> G
+    end
+    G --> H[Maximize Diagonal / Minimize Off-Diagonal]
+```
+
+---
+
 # Q1: What are multi-modal AI models, and how do they process different types of data?
 
 ## 1. 🔹 Direct Answer

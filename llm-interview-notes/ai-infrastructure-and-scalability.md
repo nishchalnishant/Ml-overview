@@ -1,3 +1,33 @@
+# AI Infrastructure & Scalability
+
+This hub focuses on the hardware and software orchestration required to train and serve massive AI models at scale.
+
+---
+
+## 🔹 The 3D Parallelism Hierarchy
+
+```mermaid
+graph TD
+    subgraph "Data Parallelism (DP)"
+    A[Data Batch 1]
+    B[Data Batch 2]
+    end
+    subgraph "Node 1"
+    C[Pipeline Stage 1] --> D[Pipeline Stage 2]
+    end
+    subgraph "Node 2"
+    E[Pipeline Stage 1] --> F[Pipeline Stage 2]
+    end
+    subgraph "TP (Inside Layer)"
+    G[Weight Shard 1]
+    H[Weight Shard 2]
+    end
+    A --> C
+    B --> E
+```
+
+---
+
 # Q1: LLM optimization techniques
 
 ## 1. 🔹 Direct Answer

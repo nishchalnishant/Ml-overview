@@ -1,3 +1,27 @@
+# AI System Design
+
+This hub contains end-to-end architectural patterns for building robust, scalable, and safe AI applications.
+
+---
+
+## 🔹 Modern Core Architecture: Agentic RAG
+
+```mermaid
+graph TD
+    A[User Query] --> B[Intent Classifier]
+    B -- Support --> C[RAG Pipeline]
+    B -- Action --> D[Tool Executor]
+    C --> E[Contextual Prompt]
+    D --> E
+    E --> F[LLM Generation]
+    F --> G[Safety Guardrails]
+    G --> H[Final Response]
+    H --> I[Observability/Feedback]
+    I --> B
+```
+
+---
+
 # Q1: Design an AI-powered customer support chatbot.
 
 ## 1. 🔹 Direct Answer

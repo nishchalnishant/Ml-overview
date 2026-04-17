@@ -147,7 +147,28 @@ If it sees the word "bank", it doesn't just guess its meaning. It instantly shoo
   4. **Feed-Forward Networks (FFN):** Processes the output of the attention mechanism non-linearly to build deeper representations.
   5. **Residual Connections & LayerNorm:** Solves vanishing gradients, allowing the network to be stacked hundreds of layers deep.
 
-## 4. 🔹 Practical Perspective
+## 4. 🔹 Architecture Visualization
+```mermaid
+graph TD
+    Input[Input Tokens] --> Embed[Input Embedding]
+    Embed --> Pos[Positional Encoding]
+    Pos --> MultiHead[Multi-Head Attention]
+    MultiHead --> AddNorm1[Add & Norm]
+    AddNorm1 --> FFN[Feed Forward Network]
+    FFN --> AddNorm2[Add & Norm]
+    AddNorm2 --> Linear[Linear Layer]
+    Linear --> Softmax[Softmax]
+    Softmax --> Output[Output Probabilities]
+    
+    subgraph "Transformer Block (Repeated N times)"
+        MultiHead
+        AddNorm1
+        FFN
+        AddNorm2
+    end
+```
+
+## 5. 🔹 Practical Perspective
 - **Real-world use cases:** Almost every major AI breakthrough since 2018 is a Transformer. BERT (Encoder only) powers Google Search. GPT-4 (Decoder only) powers ChatGPT. AlphaFold uses a Transformer derivative for protein folding. ViT (Vision Transformer) powers modern image classification.
 - **Trade-offs:** 
   - *Pros:* Exceptional scaling, massive representational capacity, parallelizable training.

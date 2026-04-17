@@ -1,213 +1,89 @@
-# Algorithms
+# ML Algorithms: From Trees to Ensembles
 
-These are the answers you would actually say in an interview: definition first, then the mechanism, then the tradeoff.
-
----
-
-# Q1: How does a Decision Tree algorithm work?
-
-**Interview-ready answer**
-
-A decision tree recursively splits the feature space into regions that are increasingly pure with respect to the target. At each node, it chooses the feature and threshold that most reduce impurity, such as Gini or entropy for classification and variance or MSE for regression. The final leaves store a prediction, such as the majority class or the average target value. The key strength is interpretability and the ability to model non-linear interactions without much preprocessing.
-
-**Tradeoff to mention**
-
-Single trees are easy to overfit because they have high variance, which is why ensembles like random forests and boosting usually outperform them.
+These notes follow the **Gold Standard** for interview preparation: providing direct answers, geometric intuition, and the critical tradeoffs that set senior candidates apart.
 
 ---
 
-# Q2: Explain how Decision Trees make splits and handle categorical features.
+# 1. Tree-Based Models
 
-**Interview-ready answer**
+## Q1: How does a Decision Tree work?
 
-Decision trees search for the split that gives the largest reduction in impurity. For numeric features that usually means testing thresholds. For categorical features, the tree needs a way to partition category values into child nodes. Different libraries handle this differently: some rely on one-hot encoding, while others support native category handling or ordered target statistics. The important interview point is that categorical handling is not just preprocessing; it affects both performance and leakage risk.
+### 🔹 Direct Answer
+A Decision Tree recursively partitions the feature space into regions by choosing the split that maximizes **Information Gain** (or minimizes impurity). At each node, it selects a feature and threshold that best separates the target classes (Gini/Entropy for classification) or reduces variance (MSE for regression).
 
-**Good nuance**
+### 🔹 Intuition
+Imagine playing "20 Questions." You want to ask the most informative question first (e.g., "Is it alive?") to rule out the most possibilities. The tree does exactly this: it finds the "questions" (feature thresholds) that resolve the most uncertainty about the target.
 
-- High-cardinality categories can explode under one-hot encoding.
-- Native categorical support, as in CatBoost, can be much better behaved.
-- Missing values may be routed using learned default directions or surrogate splits.
+### 🔹 Deep Dive: Gini vs. Entropy
+- **Gini Impurity:** $1 - \sum p_i^2$. Measures the probability of a random element being misclassified if labeled according to the distribution. It is slightly faster to compute.
+- **Entropy:** $-\sum p_i \log_2(p_i)$. Measures the average "information" or "surprise." It is more sensitive to changes in probability but slightly more computationally expensive.
 
----
+## Q2: Random Forest vs. Gradient Boosting (XGBoost)
 
-# Q3: How does Random Forest work? How does it improve over Decision Trees? How does it reduce variance?
+### 🔹 Comparison Table
 
-**Interview-ready answer**
+| Feature | Random Forest (Bagging) | XGBoost (Boosting) |
+| :--- | :--- | :--- |
+| **Strategy** | Parallel; independent trees. | Sequential; trees correct past errors. |
+| **Goal** | Reduces **Variance**. | Reduces **Bias** (and variance via reg). |
+| **Hyperparameters** | Hard to overfit; "plug and play". | Highly sensitive; requires tuning. |
+| **Handling Noise** | Robust to outliers and noise. | Can overfit to noise if not regularized. |
 
-Random forest trains many decision trees on bootstrap samples of the data and adds randomness in the feature selection at each split. Each individual tree is high variance, but when you average many decorrelated trees, the overall prediction becomes much more stable. That is why random forests usually outperform a single deep tree: the averaging reduces variance without increasing bias too much.
-
-**What strong candidates add**
-
-- Out-of-bag samples provide a built-in validation estimate.
-- Random feature selection matters because averaging highly correlated trees gives less variance reduction.
-- Random forests are robust tabular baselines but can become less interpretable and heavier at inference time.
-
----
-
-# Q4: Explain Ensemble Methods. Why are they powerful?
-
-**Interview-ready answer**
-
-Ensemble methods combine multiple models so the final predictor is better than any single one. They work because different models make different errors. Bagging mainly reduces variance, boosting mainly reduces bias, and stacking learns how to combine complementary model strengths. In interviews, the best way to sound strong here is to connect ensembles to the bias-variance tradeoff rather than just naming techniques.
+### 🔹 Deep Dive: Why "Random" Forest?
+1. **Bagging (Bootstrap Aggregation):** Each tree sees a random subset of *rows*.
+2. **Feature Subsampling:** At each node split, each tree sees a random subset of *features* (usually $\sqrt{d}$).
+**Result:** These two mechanisms decorrelate the trees. Averaging decorrelated high-variance models is the mathematical secret to variance reduction.
 
 ---
 
-# Q5: What is the difference between bagging and boosting?
+# 2. Linear & Discriminative Models
 
-**Interview-ready answer**
+## Q3: Explain Logistic Regression (Geometric & Probabilistic)
 
-Bagging trains models independently, usually on resampled versions of the data, and then averages them. That makes it mainly a variance-reduction technique. Boosting trains models sequentially, where each new learner focuses on correcting the errors of the current ensemble. That makes it mainly a bias-reduction technique. Bagging is usually more stable and easier to parallelize, while boosting is often more accurate but more sensitive to hyperparameters and noise.
+### 🔹 Direct Answer
+Despite its name, Logistic Regression is a **linear classification** model. It assumes the **log-odds** of the probability are a linear combination of the features: $\log(\frac{p}{1-p}) = w^Tx + b$.
 
----
+### 🔹 Intuition
+- **Geometric:** It finds the hyperplane that best separates two classes.
+- **Probabilistic:** It models the probability of class membership. If the score is $>0$ (log-odds), the probability is $>0.5$.
 
-# Q6: What is Gradient Boosting? How does XGBoost work?
+### 🔹 Code Snippet
+```python
+import numpy as np
+def sigmoid(z):
+    return 1 / (1 + np.exp(-z))
+# Prediction
+p = sigmoid(np.dot(X, w) + b)
+```
 
-**Interview-ready answer**
+## Q4: How does SVM handle non-linear data? (The Kernel Trick)
 
-Gradient boosting builds an additive model stage by stage, where each new tree is fit to the negative gradient of the loss with respect to the current predictions. You can think of it as functional gradient descent in tree space. XGBoost is an optimized implementation of gradient boosting that adds regularization, efficient split finding, sparse-aware handling, missing-value support, and strong engineering for speed and scalability. That is why it became a dominant baseline for structured tabular data.
+### 🔹 Direct Answer
+Support Vector Machines (SVMs) find the "maximum margin hyperplane." When data isn't linearly separable, they use the **Kernel Trick** to map data into a higher-dimensional space where it *is* separable, without actually computing the coordinates in that space.
 
-**Good nuance**
-
-- Lower learning rate with more trees often generalizes better.
-- Early stopping is usually essential.
-- XGBoost is strong because it combines statistical performance with production-grade optimization.
-
----
-
-# Q7: What are the key hyperparameters for XGBoost?
-
-**Interview-ready answer**
-
-The most important hyperparameters are learning rate, number of trees, max depth, min child weight, subsample, column subsample, and regularization terms. Learning rate and number of trees interact strongly: smaller learning rates usually require more boosting rounds. Depth and min child weight control complexity, while row and column subsampling help reduce overfitting. In practice, I tune these together with early stopping rather than in isolation.
-
----
-
-# Q8: Explain Gradient Boosting and its advantages over Random Forests.
-
-**Interview-ready answer**
-
-Gradient boosting often outperforms random forests when the signal is complex and you are willing to tune carefully, because it corrects residual errors stage by stage instead of simply averaging independent trees. That makes it better at reducing bias. Random forests are usually more robust, easier to parallelize, and less sensitive to hyperparameters. So the practical answer is that boosting often wins on leaderboard-style accuracy, while random forests are excellent low-maintenance baselines.
+### 🔹 Deep Dive: Common Kernels
+- **Linear:** Fast, no extra params.
+- **RBF (Gaussian):** Maps to infinite-dimensional space. The $\gamma$ parameter controls the "reach" of a single training point.
 
 ---
 
-# Q9: Explain how Logistic Regression differs from Linear Regression.
+# 3. Dimensionality Reduction & Clustering
 
-**Interview-ready answer**
+## Q5: How does K-Means work, and how do you choose 'K'?
 
-Linear regression predicts a continuous value, while logistic regression models the probability of a class, usually through the log-odds. Linear regression assumes a roughly linear relationship between features and a continuous target and is typically trained with squared error. Logistic regression applies a sigmoid to a linear score and is usually trained with log loss. So despite the name, logistic regression is a classification model whose output is probabilistic rather than continuous.
+### 🔹 Direct Answer
+K-Means is an iterative algorithm that partitions data into $K$ clusters by:
+1. Assigning points to the nearest centroid.
+2. Updating centroids to be the mean of assigned points.
 
----
+### 🔹 How to choose K?
+1. **Elbow Method:** Plot Inertia (Within-Cluster Sum of Squares) vs. K; look for the "inflection point."
+2. **Silhouette Score:** Measures how similar a point is to its own cluster compared to others. Range (-1, 1).
 
-# Q10: How does logistic regression work?
+## Q6: PCA (Principal Component Analysis)
 
-**Interview-ready answer**
+### 🔹 Direct Answer
+PCA finds the orthogonal directions (principal components) that capture the maximum variance in the data. It is an unsupervised technique used for compression, denoising, and visualization.
 
-Logistic regression computes a linear score `w^T x + b` and passes it through the sigmoid function to produce a probability between 0 and 1. The model is then trained by maximizing likelihood, which is equivalent to minimizing cross-entropy loss. The decision boundary is linear in feature space, but the output is non-linear in probability space. A strong interview answer should also mention that the coefficients are interpretable in terms of log-odds changes.
-
-**Common pitfall**
-
-Do not say logistic regression assumes the target is linear. The linearity is in the log-odds.
-
----
-
-# Q11: Explain R-squared and adjusted R-squared.
-
-**Interview-ready answer**
-
-R-squared measures the fraction of variance in the target explained by the model relative to a mean baseline. It is useful as a summary of fit for regression, but it tends to increase as you add more predictors, even if they are not truly helpful. Adjusted R-squared corrects for that by penalizing unnecessary features. That is why adjusted R-squared is better for comparing linear models with different numbers of predictors.
-
-**Good nuance**
-
-Neither metric tells you whether the model is unbiased, well-calibrated, or suitable for out-of-sample prediction.
-
----
-
-# Q12: How do you check for multicollinearity in regression models?
-
-**Interview-ready answer**
-
-I look for highly correlated predictors, unstable coefficients, inflated standard errors, and large variance inflation factors. Multicollinearity does not necessarily hurt prediction, but it makes coefficient estimates less stable and harder to interpret. If interpretability matters, I might drop redundant variables, combine them, regularize with ridge regression, or use PCA-like dimensionality reduction.
-
----
-
-# Q13: How does K-Nearest Neighbors (KNN) work?
-
-**Interview-ready answer**
-
-KNN is a non-parametric method that predicts using the labels or values of the closest training points under a chosen distance metric. For classification, it typically uses majority vote; for regression, it averages nearby targets. Its simplicity is its main advantage, but it pushes complexity to inference time because prediction requires searching the training set. It is also very sensitive to feature scaling, irrelevant dimensions, and the choice of `k`.
-
----
-
-# Q14: Explain K-Means Clustering. How does it work? Limitations?
-
-**Interview-ready answer**
-
-K-means partitions data into `k` clusters by alternating between assigning each point to the nearest centroid and recomputing centroids from the assigned points. It is simple, fast, and often useful as a baseline clustering method. But it assumes compact, roughly spherical clusters and depends heavily on the distance metric and initialization. It also requires `k` in advance and is sensitive to scaling and outliers.
-
-**Good nuance**
-
-Mention k-means++ initialization and the fact that the objective is minimizing within-cluster squared distance.
-
----
-
-# Q15: Explain Support Vector Machines (SVM). What is the kernel trick?
-
-**Interview-ready answer**
-
-An SVM tries to find the decision boundary that maximizes the margin between classes. The idea is that a larger margin often leads to better generalization. For non-linear problems, the kernel trick lets the model operate as if the data were mapped into a higher-dimensional space without explicitly computing that mapping. This makes it possible to learn non-linear boundaries while still solving the optimization problem in terms of dot products.
-
-**Tradeoff**
-
-SVMs can be very strong on medium-sized structured problems, but they become expensive at large scale and are less convenient than modern boosted trees or deep models for many production settings.
-
----
-
-# Q16: What is the decision boundary in classifiers?
-
-**Interview-ready answer**
-
-The decision boundary is the surface in feature space where the classifier changes its predicted class. In a linear model it is a hyperplane. In a non-linear model it can be much more complex. The key point is that understanding the decision boundary helps explain model capacity: simpler models draw smoother, more constrained boundaries, while complex models can fit intricate boundaries and therefore risk overfitting.
-
----
-
-# Q17: Explain Naive Bayes.
-
-**Interview-ready answer**
-
-Naive Bayes applies Bayes' theorem and makes the simplifying assumption that features are conditionally independent given the class. That assumption is often false, but the model still works surprisingly well, especially in high-dimensional sparse settings like text classification. Its strengths are speed, simplicity, and low data requirements; its weakness is that the independence assumption can limit performance when feature interactions matter.
-
----
-
-# Q18: What is Dimensionality Reduction?
-
-**Interview-ready answer**
-
-Dimensionality reduction means representing data using fewer variables while trying to preserve the important structure. The motivation can be better visualization, reduced noise, faster training, lower storage cost, or mitigation of the curse of dimensionality. There are two broad approaches: feature selection, which keeps some original variables, and feature extraction, which builds a lower-dimensional representation such as PCA components or learned embeddings.
-
----
-
-# Q19: Explain PCA (Principal Component Analysis). How does it work? When would you use it?
-
-**Interview-ready answer**
-
-PCA finds orthogonal directions that capture the maximum variance in the data. Operationally, after centering the data, it computes principal components from the covariance structure or equivalently from the SVD of the data matrix. The first component explains as much variance as possible, the second explains the most remaining variance subject to orthogonality, and so on. I would use PCA when I want compression, decorrelation, denoising, or visualization, especially for numeric features with redundancy.
-
-**Good nuance**
-
-PCA is unsupervised, so the directions of highest variance are not always the directions most useful for prediction.
-
----
-
-# Q20: Explain Gradient Descent and its variants.
-
-**Interview-ready answer**
-
-Gradient descent updates parameters using the negative gradient of the loss. The main variants differ in how they estimate and scale that gradient. Batch gradient descent uses the whole dataset, SGD uses one example or a mini-batch, momentum smooths updates across steps, and adaptive methods like Adagrad, RMSprop, and Adam adjust the step size per parameter. The best interview answer explains why the variants exist: to improve speed, stability, and behavior under noisy or ill-conditioned optimization.
-
----
-
-# Q21: What is the ROC-AUC curve, and how is it interpreted?
-
-**Interview-ready answer**
-
-The ROC curve plots true positive rate against false positive rate across all classification thresholds. AUC summarizes that curve as the probability that the model ranks a randomly chosen positive example above a randomly chosen negative example. It is useful because it measures ranking quality independent of a specific threshold. But in heavily imbalanced settings, ROC-AUC can look deceptively good, so I would often pair it with PR-AUC and threshold-specific business metrics.
+### 🔹 Implementation Nuance
+You **must** center and scale your data before PCA. If one feature is measured in "kilometers" and another in "millimeters," the "millimeters" feature will dominate the variance calculation solely due to scale.

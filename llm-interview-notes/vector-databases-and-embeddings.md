@@ -1,3 +1,34 @@
+# Vector Databases & Embeddings
+
+This hub contains core concepts and systems for storing, indexing, and retrieving high-dimensional vector data for AI search and RAG.
+
+---
+
+## 🔹 ANN Indexing: HNSW (Hierarchical Navigable Small Worlds)
+
+```mermaid
+graph TD
+    subgraph "Layer 2 (Coarse)"
+    L2_1[Node A] --- L2_2[Node B]
+    end
+    subgraph "Layer 1 (Medium)"
+    L1_1[Node A] --- L1_2[Node B]
+    L1_1 --- L1_3[Node C]
+    L1_2 --- L1_4[Node D]
+    end
+    subgraph "Layer 0 (Dense)"
+    L0_1[Node A] --- L0_2[Node B]
+    L0_1 --- L0_3[Node C]
+    L0_2 --- L0_4[Node D]
+    L0_3 --- L0_5[Node E]
+    L0_4 --- L0_6[Node F]
+    end
+    L2_1 -.-> L1_1
+    L1_1 -.-> L0_1
+```
+
+---
+
 # Q1: What are embeddings in the context of AI engineering?
 
 ## 1. 🔹 Direct Answer

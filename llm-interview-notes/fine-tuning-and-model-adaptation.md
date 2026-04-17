@@ -1,3 +1,25 @@
+# Fine-tuning & Model Adaptation
+
+This hub covers the techniques used to specialize foundation models for specific tasks, domains, or human preferences.
+
+---
+
+## 🔹 PEFT Architecture: LoRA (Low-Rank Adaptation)
+
+```mermaid
+graph LR
+    X[Input x] --> W[Frozen Weights W]
+    X --> A[Matrix A (Rank r)]
+    A --> B[Matrix B (Rank r)]
+    W --> Y[Output y]
+    B --> Y_prime[Update Δy]
+    Y --> Sum[+ Sum]
+    Y_prime --> Sum
+    Sum --> Out[Final Output]
+```
+
+---
+
 # Q1: What is fine-tuning, and when should you fine-tune an LLM?
 
 ## 1. 🔹 Direct Answer

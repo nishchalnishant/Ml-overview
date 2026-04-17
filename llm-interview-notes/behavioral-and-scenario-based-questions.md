@@ -1,3 +1,20 @@
+# Behavioral & Scenario-Based Questions
+
+This hub prepares you for the "soft-skill" and architectural decision-making components of the interview. The goal is to demonstrate ownership, judgment, and the ability to operate in high-growth AI production environments.
+
+---
+
+## 🔹 The STAR Methodology for Decision Scenarios
+
+```mermaid
+graph TD
+    S[Situation: Context/Problem] --> T[Task: Goal/Metric]
+    T --> A[Action: What YOU explicitly did]
+    A --> R[Result: Numbers/Learnings]
+```
+
+---
+
 # Q1: What is AI Engineering, and how does it differ from Machine Learning Engineering?
 
 ## 1. 🔹 Direct Answer
