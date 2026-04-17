@@ -1,60 +1,79 @@
-# Generative models
+# Generative Models
 
-Generative models learn the underlying probability distribution of the training data $(P(x))$ to generate new, similar samples.
+Generative models try to learn what data looks like well enough to create new examples.
 
-***
+That is why they feel magical.
 
-## <mark style="color:$danger;">Core Architectures</mark>
+It is also why they can become very expensive, unstable, or gloriously overhyped if you are not careful.
 
-### <mark style="color:yellow;">1. Variational Autoencoders (VAEs)</mark>
+---
 
-* **Mechanism:** Maps input to a latent space (mean and variance) and samples from a Gaussian distribution to reconstruct the data.
-* **Likelihood:** Optimizes the Evidence Lower Bound (ELBO).
-* **Pros:** Smooth latent space, great for interpolation.
-* **Cons:** Often produces blurry images.
+# 1. VAE
 
-### <mark style="color:yellow;">2. Generative Adversarial Networks (GANs)</mark>
+Variational Autoencoders learn a probabilistic latent space.
 
-* **Mechanism:** Two networks—a **Generator** (creates fake data) and a **Discriminator** (tries to spot fakes)—compete in a zero-sum game.
-* **Loss:** Minimax loss function.
-* **Pros:** Produces sharp, realistic images.
-* **Cons:** Unstable training, "Mode Collapse" (generating the same sample repeatedly).
+Why they matter:
 
-### <mark style="color:yellow;">3. Diffusion Models</mark>
+- generation
+- interpolation
+- structured latent representations
 
-* **Mechanism:** Gradually adds noise to data until it's pure Gaussian noise, then learns to reverse the process (denoising).
-* **SOTA:** Powers DALL-E 3, Midjourney, and Stable Diffusion.
-* **Pros:** Stable training, high-quality diverse samples.
-* **Cons:** Slow inference (requires many denoising steps).
+Tradeoff:
 
-### <mark style="color:yellow;">4. Autoregressive Models (LLMs)</mark>
+- smoother latent space
+- often blurrier outputs than more aggressive generative methods
 
-* **Mechanism:** Predicts the next token/pixel based on all previous ones.
-* **Examples:** GPT-4, Llama 3, PixelCNN.
-* **Pros:** Excellent for discrete data (text).
+---
 
-***
+# 2. GAN
 
-## <mark style="color:$danger;">Discriminative vs. Generative</mark>
+GANs use:
 
-| Feature     | **Discriminative** | **Generative**      |
-| ----------- | ------------------ | ------------------- |
-| **Goal**    | Learn $P(y         | x)$ (Boundary)      |
-| **Output**  | Label / Class      | New Data Sample     |
-| **Example** | SVM, Random Forest | GAN, VAE, Diffusion |
+- a generator
+- a discriminator
 
-***
+The generator tries to fool the discriminator.
 
-## <mark style="color:$danger;">Interview Questions</mark>
+The discriminator tries to spot fake samples.
 
-**1. "What is Mode Collapse in GANs and how to fix it?"**
+Why GANs became famous:
 
-> Mode collapse is when the generator produces a very limited set of outputs that "fool" the discriminator but lack diversity. Fixes: Unrolled GANs, Wasserstein GAN (WGAN), or Mini-batch discrimination.
+- sharp image generation
 
-**2. "Why are Diffusion models preferred over GANs now?"**
+Why they became infamous:
 
-> Diffusion models provide much better sample diversity, more stable training (no adversarial game), and state-of-the-art image quality, despite being slower at inference.
+- unstable training
+- mode collapse
 
-**3. "Explain the Reparameterization Trick in VAEs."**
+Very glamorous.
+Very temperamental.
 
-> Backpropagation cannot go through a random sampling step. Instead of sampling $z \sim N(\mu, \sigma)$, we sample $\epsilon \sim N(0, 1)$ and compute $z = \mu + \sigma \cdot \epsilon$. This makes the sampling step differentiable with respect to $\mu$ and $\sigma$.
+---
+
+# 3. Diffusion Models
+
+Diffusion models learn to reverse a gradual noise process.
+
+They became dominant in image generation because they often produce:
+
+- strong quality
+- stable training
+- very flexible generation behavior
+
+Tradeoff:
+
+- slower sampling than some alternatives
+
+---
+
+# 4. Autoregressive Models
+
+These generate one token or piece at a time.
+
+Very common in:
+
+- language generation
+- code models
+- some multimodal settings
+
+They are strong because likelihood-based training is clean and scalable.

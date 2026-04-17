@@ -42,7 +42,7 @@ So instead of:
 
 you say:
 
-- “Here are 10 million examples. Learn the mapping.”
+- "Here are 10 million examples. Learn the mapping."
 
 **Why this matters**
 
@@ -63,7 +63,7 @@ Examples:
 - house price prediction
 - churn prediction
 
-**Azure-style mental model:** supervised learning is like training from a ticket history where the “correct resolution” is already attached.
+**Azure-style mental model:** supervised learning is like training from a ticket history where the "correct resolution" is already attached.
 
 ## Unsupervised Learning
 
@@ -75,20 +75,20 @@ The goal is to discover structure:
 - patterns
 - compressed representations
 
-**Think:** grouping outfits by style, fabric, silhouette, and season even if nobody labeled them “minimalist”, “bridal”, or “streetwear.”
+**Think:** grouping outfits by style, fabric, silhouette, and season even if nobody labeled them "minimalist", "bridal", or "streetwear."
 
 ## Reinforcement Learning
 
 An agent learns from **rewards** over time.
 
-Not “here is the right answer.”
+Not "here is the right answer."
 More like:
 
 - take action
 - get feedback
 - adjust
 
-**Cricket analogy:** a captain tweaks field placement over after over. You do not get a clean label saying “this exact field is correct.” You infer from outcome, pressure, batter behavior, and scoreboard context.
+**Cricket analogy:** a captain tweaks field placement over after over. You do not get a clean label saying "this exact field is correct." You infer from outcome, pressure, batter behavior, and scoreboard context.
 
 ---
 
@@ -302,7 +302,7 @@ Think of fine model training like remastering a classic romantic track.
 You want it cleaner, richer, sharper.
 Not overprocessed until all warmth disappears.
 
-Regularization is what stops you from “polishing” the signal into artificial nonsense.
+Regularization is what stops you from "polishing" the signal into artificial nonsense.
 
 ---
 
@@ -346,7 +346,7 @@ Imagine turning outfits into style coordinates:
 - silhouette
 - occasion
 
-Now two outfits that “feel similar” sit close together in this style space even if they are not literally identical.
+Now two outfits that "feel similar" sit close together in this style space even if they are not literally identical.
 
 That is what embeddings do for tokens, products, users, and more.
 
@@ -382,13 +382,13 @@ That last part matters.
 
 A model saying:
 
-- “I’m 51% sure”
+- "I'm 51% sure"
 
 and being wrong is one thing.
 
 A model saying:
 
-- “I’m 99.9% sure”
+- "I'm 99.9% sure"
 
 and being wrong is far worse.
 
@@ -408,7 +408,7 @@ This gives you a more stable estimate of how the model behaves.
 
 It is like testing your deployment across multiple environments instead of saying:
 
-> “Worked once on my machine. Ship it.”
+> "Worked once on my machine. Ship it."
 
 Absolutely not.
 
@@ -450,11 +450,11 @@ Useful when both matter.
 
 Precision is like saying:
 
-> “When I go for a risky shot, how often do I actually get boundary value?”
+> "When I go for a risky shot, how often do I actually get boundary value?"
 
 Recall is:
 
-> “Of all scoring opportunities, how many did I capitalize on?”
+> "Of all scoring opportunities, how many did I capitalize on?"
 
 F1 is the balanced batter who is neither reckless nor timid.
 
@@ -481,7 +481,7 @@ Think of it like monitoring unusual deployment behavior:
 - odd CPU pattern
 - weird error burst
 
-You may not have labeled every future failure mode, but you know what “normal” looks like.
+You may not have labeled every future failure mode, but you know what "normal" looks like.
 
 ---
 
@@ -503,7 +503,7 @@ Learn the action strategy directly.
 
 Instead of scoring every move first, you directly learn:
 
-> “Given this state, what should I do?”
+> "Given this state, what should I do?"
 
 **Easy way to remember**
 
@@ -567,7 +567,7 @@ Before choosing the algorithm, what do you lock down first?
 
 If your brain said:
 
-> “metric + split + feature availability”
+> "metric + split + feature availability"
 
 excellent.
 

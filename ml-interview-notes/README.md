@@ -19,7 +19,7 @@ Think of the ML lifecycle like an **Azure DevOps release flow**, except the arti
 - infra
 - monitoring logic
 
-If one of those drifts, your “deployment” can still go live and still fail.
+If one of those drifts, your "deployment" can still go live and still fail.
 
 That is pure DevOps heartbreak.
 
@@ -46,12 +46,12 @@ That set gives you:
 
 ---
 
-## What’s In This Folder
+## What's In This Folder
 
 | File | Why it matters |
 |------|----------------|
 | `fundamentals-of-machine-learning.md` | The IPL powerplay of ML. Must-haves. |
-| `model-evaluation.md` | Where “99% accuracy” gets exposed. |
+| `model-evaluation.md` | Where "99% accuracy" gets exposed. |
 | `optimization.md` | Training knobs, optimizer behavior, tuning instincts. |
 | `deep-learning.md` | Neural nets, CNNs, RNNs, Transformers. |
 | `system-design-and-mlops.md` | Azure/DevOps bridge. This should feel like home. |
@@ -86,7 +86,7 @@ Looks fabulous on paper. Falls apart on first movement.
 
 If someone says:
 
-> “We trained a great model.”
+> "We trained a great model."
 
 Your DevOps brain should instantly ask:
 
@@ -97,5 +97,5 @@ Your DevOps brain should instantly ask:
 - Monitored where?
 - Rolled back how?
 
-If those answers are fuzzy, the model is not “great.”
+If those answers are fuzzy, the model is not "great."
 It is just unemployed.

@@ -1,62 +1,73 @@
-# Math Derivations for ML Interviews
+# Math Derivations
 
-Many senior interviews will ask you to "Get on the whiteboard and derive...". Here are the most common derivations.
+This file is for the whiteboard part of the interview where elegance matters more than showing off every symbol you have ever met.
 
----
+The rule:
 
-## 1. The Bias-Variance Decomposition
-**Objective:** Decompose Mean Squared Error (MSE).
+- define the setup
+- derive the key expression
+- explain why it matters
 
-Given $y = f(x) + \epsilon$ and a model $\hat{f}(x)$.
-- **Error:** $E[(y - \hat{f})^2]$
-- **Derivation Steps:**
-  1. Add and subtract $E[\hat{f}]$ inside the square.
-  2. Expand $(a + b)^2$.
-  3. Simplify terms using the property that $E[\epsilon] = 0$ and $f(x)$ is deterministic.
-- **Result:**
-  $$\text{MSE} = \text{Bias}[\hat{f}]^2 + \text{Var}[\hat{f}] + \sigma^2$$
-  *Where $\sigma^2$ is irreducible noise.*
+That is enough to sound sharp.
 
 ---
 
-## 2. Gradient of Logistic Regression (Binary Cross-Entropy)
-**Objective:** Show how the weights update.
+## 1. Backpropagation
 
-- **Loss:** $J(\theta) = -[y \log(\hat{y}) + (1-y) \log(1-\hat{y})]$
-- **Sigmoid:** $\hat{y} = \sigma(z) = \frac{1}{1 + e^{-z}}$
-- **Derivative of Sigmoid:** $\sigma'(z) = \sigma(z)(1 - \sigma(z))$
-- **Using Chain Rule:** $\frac{\partial J}{\partial \theta} = \frac{\partial J}{\partial \hat{y}} \cdot \frac{\partial \hat{y}}{\partial z} \cdot \frac{\partial z}{\partial \theta}$
-- **Result:**
-  $$\nabla_\theta J = (\hat{y} - y)x$$
-  *Insight: Same form as Linear Regression, but $\hat{y}$ is a probability.*
+If:
 
----
+- `z = wx + b`
+- `a = sigma(z)`
+- `L = Loss(a, y)`
 
-## 3. Backpropagation (Simple Chain Rule)
-**Objective:** Derive the update for shared weights.
+Then:
 
-For $L = f(g(h(x)))$:
-- $\frac{\partial L}{\partial x} = \frac{\partial L}{\partial f} \cdot \frac{\partial f}{\partial g} \cdot \frac{\partial g}{\partial h} \cdot \frac{\partial h}{\partial x}$
-- **Interview Key:** Explain why we store the **intermediate activations** (cache). We need them for the backward pass to avoid $O(N^2)$ re-computation.
+- `dL/dw = dL/da * da/dz * dz/dw`
 
----
+And since:
 
-## 4. PCA: Maximizing Variance
-**Objective:** Explain why we use Eigenvectors.
+- `dz/dw = x`
 
-- We want a unit vector $u$ that maximizes $\text{Var}(X u)$.
-- $\text{Var}(X u) = u^T \Sigma u$ (where $\Sigma$ is the covariance matrix).
-- Using **Lagrange Multipliers** to constrain $||u||=1$: $L = u^T \Sigma u - \lambda(u^T u - 1)$.
-- $\frac{\partial L}{\partial u} = 2\Sigma u - 2\lambda u = 0 \rightarrow \Sigma u = \lambda u$.
-- **Result:** The vector that maximizes variance is the **Principal Eigenvector** of the covariance matrix.
+You get the classic result:
+
+- gradient is upstream error times local input
+
+That is the heart of backprop.
 
 ---
 
-## 5. Normal Equation (Closed-form Solution for Linear Reg)
-**Objective:** Derive $\theta = (X^T X)^{-1} X^T y$.
+## 2. Logistic Regression Gradient
 
-- **Loss:** $J = ||X\theta - y||^2 = (X\theta - y)^T (X\theta - y)$
-- **Expand:** $\theta^T X^T X \theta - 2y^T X \theta + y^T y$
-- **Gradient:** $\nabla_\theta J = 2X^T X \theta - 2X^T y = 0$
-- **Solve:** $X^T X \theta = X^T y \rightarrow \theta = (X^T X)^{-1} X^T y$
-- **Catch:** This is only solvable if $X^T X$ is invertible (no perfect multicollinearity).
+For binary cross-entropy with sigmoid output, the gradient simplifies to:
+
+- `(y_hat - y) * x`
+
+Why this matters:
+
+It is a beautifully clean result and one reason cross-entropy is such a natural loss for classification.
+
+---
+
+## 3. Attention Gradient Intuition
+
+You usually do not need to derive the full attention gradient under pressure.
+
+What matters:
+
+- softmax couples outputs
+- scaling by `sqrt(d_k)` keeps scores numerically sane
+- attention weights decide how values are mixed
+
+That level of understanding is often enough.
+
+---
+
+## 4. Adam Bias Correction
+
+Adam tracks moving averages that start at zero, so the early estimates are biased low.
+
+Bias correction fixes that startup distortion.
+
+That is the important intuition.
+
+You do not need to perform a full ritual derivation unless specifically asked.

@@ -2,7 +2,7 @@
 
 This file exists to save you from the most common ML interview disaster:
 
-> “The model has 98% accuracy.”
+> "The model has 98% accuracy."
 
 Lovely.
 Now tell me whether that number means anything.
@@ -13,7 +13,7 @@ Now tell me whether that number means anything.
 
 If training is your **build pipeline**, evaluation is your **release gate**.
 
-A model is not “good” because it trained successfully.
+A model is not "good" because it trained successfully.
 A model is good if it survives the right checks:
 
 - correct metric
@@ -34,7 +34,7 @@ How often is the model correct overall?
 Great when classes are balanced.
 Dangerous when they are not.
 
-If fraud is only 1% of transactions, a model predicting “not fraud” every time gets **99% accuracy**.
+If fraud is only 1% of transactions, a model predicting "not fraud" every time gets **99% accuracy**.
 Which is technically impressive and practically embarrassing.
 
 ## Precision
@@ -138,7 +138,7 @@ This is why log loss matters for:
 **DevOps analogy**
 
 Accuracy is like checking whether a deployment passed or failed.
-Log loss is like also checking how close the deployment was to catastrophe even when it “passed.”
+Log loss is like also checking how close the deployment was to catastrophe even when it "passed."
 
 ---
 
@@ -163,7 +163,7 @@ Big mistakes get punished much more heavily.
 
 Square root of MSE.
 
-Same “big error penalty” behavior, but easier to interpret because it is back in the original unit.
+Same "big error penalty" behavior, but easier to interpret because it is back in the original unit.
 
 **Fashion analogy**
 
@@ -172,7 +172,7 @@ If it is off by 7 inches, chaos.
 
 RMSE and MSE are the metrics that say:
 
-> “Big misses deserve extra consequences.”
+> "Big misses deserve extra consequences."
 
 ---
 
@@ -182,11 +182,11 @@ This is where interview answers become senior-level.
 
 Do not just say:
 
-> “I would use F1.”
+> "I would use F1."
 
 Say:
 
-> “I would choose the metric based on business cost and operational behavior.”
+> "I would choose the metric based on business cost and operational behavior."
 
 Ask:
 
@@ -210,7 +210,7 @@ Ask:
 
 Calibration means:
 
-If the model says “80% probability,” then about 80 out of 100 such cases should really be positive.
+If the model says "80% probability," then about 80 out of 100 such cases should really be positive.
 
 This matters a lot in:
 
@@ -269,7 +269,7 @@ Common fixes:
 
 The key idea:
 
-Do not “solve” imbalance by only changing the training data.
+Do not "solve" imbalance by only changing the training data.
 Often the biggest fix is choosing the right metric and threshold first.
 
 ---
@@ -346,11 +346,11 @@ Use it when you want to know:
 - ramp strategy
 - rollback path
 
-If you say “I would A/B test it” and stop there, that sounds junior.
+If you say "I would A/B test it" and stop there, that sounds junior.
 
 If you say:
 
-> “I would define the primary metric, guardrails, minimum detectable effect, and ramp plan”
+> "I would define the primary metric, guardrails, minimum detectable effect, and ramp plan"
 
 that sounds like someone trusted with production.
 

@@ -1,331 +1,178 @@
-# Master Q\&A Bank
+# Top ML Interview Questions
 
-***
+This is the fast question bank.
 
-## Level 1: Foundations (Entry-Level / Junior)
+Not every answer needs a mini-essay.
+But every answer should show:
 
-### Machine Learning Basics
+- concept
+- intuition
+- tradeoff
 
-**1. What is Machine Learning?**
+That is the pattern.
 
-> ML is a subset of AI where systems learn patterns from data to make predictions or decisions without being explicitly programmed.
+---
 
-**2. What's the difference between Supervised, Unsupervised, and Reinforcement Learning?**
+## 1. What is Machine Learning?
 
-> **Supervised**: Learns from labeled data (X→y). **Unsupervised**: Finds structure in unlabeled data. **Reinforcement**: Learns from environment feedback (rewards).
+Learning patterns from data instead of hard-coding every rule manually.
 
-**3. What is the Bias-Variance Trade-off?**
+---
 
-> Bias = error from simplifying assumptions (underfitting). Variance = error from sensitivity to noise (overfitting). Goal: minimize total error.
+## 2. Supervised vs Unsupervised vs Reinforcement Learning
 
-**4. What is Overfitting? How do you prevent it?**
+- supervised = labeled data
+- unsupervised = structure without labels
+- reinforcement = learn from reward over time
 
-> Model learns noise in training data. Prevent with: regularization, more data, cross-validation, early stopping, dropout.
+---
 
-**5. What is Underfitting?**
+## 3. Bias-Variance Tradeoff
 
-> Model is too simple to capture patterns. Fix with: more features, less regularization, more complex model.
+Simple models underfit.
+Complex models overfit.
+The goal is lowest generalization error, not lowest training error.
 
-**6. Why do we split data into Train/Validation/Test?**
+---
 
-> Train: learn patterns. Validation: tune hyperparameters. Test: final unbiased evaluation.
+## 4. Overfitting
 
-**7. What is Cross-Validation?**
+Model memorizes noise or quirks of training data and fails on new data.
 
-> Split data into k folds, train on k-1, validate on 1, repeat k times. Gives robust performance estimate.
+Common fixes:
 
-<mark style="color:$danger;">**8. What is a Hyperparameter vs a Parameter?**</mark>
+- regularization
+- more data
+- early stopping
+- simpler model
 
-> **Parameter**: learned from data (weights). **Hyperparameter**: set before training (learning rate, k in KNN).
+---
 
-**9. What is Feature Scaling? Why is it important?**
+## 5. Train / Validation / Test Split
 
-> Normalize features to similar ranges. Important for gradient-based algorithms and distance-based methods.
+- train = learn
+- validation = tune
+- test = final honest check
 
-**10. What is One-Hot Encoding?**
+---
 
-> Convert categorical variables to binary columns. One column per category.
+## 6. Hyperparameter vs Parameter
 
-### Regression
+- parameter = learned from data
+- hyperparameter = chosen before training
 
-**11. What is Linear Regression?**
+---
 
-> Predicts continuous output as a linear combination of features: $y = w^Tx + b$.
+## 7. Feature Scaling
 
-**12. What are the assumptions of Linear Regression?**
+Important for:
 
-> Linearity, independence, homoscedasticity (constant variance), normality of errors.
+- KNN
+- SVM
+- logistic regression
+- neural nets
 
-<mark style="color:$danger;">**13. What is R-squared?**</mark>
+Usually not crucial for trees.
 
-> Proportion of variance explained: $R^2 = 1 - \frac{SS\_{res\}}{SS\_{tot\}}$. Higher is better (max 1).
+---
 
-**14. What is the difference between MAE and MSE?**
+## 8. Logistic Regression
 
-> **MAE**: Mean Absolute Error. Robust to outliers. **MSE**: Mean Squared Error. Penalizes large errors more.
+Linear classifier that models class probability through sigmoid / log-odds.
 
-**15. What is Polynomial Regression?**
+---
 
-> Fits a polynomial curve by adding polynomial features ($x^2, x^3$, etc.) to linear regression.
+## 9. Precision vs Recall
 
-### Classification
+- precision = how trustworthy positive predictions are
+- recall = how much of the positive class you catch
 
-**16. What is Logistic Regression?**
+---
 
-> Classification algorithm using sigmoid function to output probabilities. Decision boundary is linear.
+## 10. ROC-AUC vs PR-AUC
 
-**17. Why is it called "Regression" if it's for classification?**
+- ROC-AUC = general separability
+- PR-AUC = often better for rare positive classes
 
-> It "regresses" to a probability value, then thresholds for classification.
+---
 
-**18. What is the Sigmoid function?**
+## 11. Bagging vs Boosting
 
-> $\sigma(z) = \frac{1}{1 + e^{-z\}}$. Maps any real number to (0, 1).
+- bagging = parallel averaging, reduce variance
+- boosting = sequential correction, reduce bias
 
-**19. What is Cross-Entropy Loss?**
+---
 
-> $L = -\[y\log(\hat{y}) + (1-y)\log(1-\hat{y})]$. Penalizes confident wrong predictions heavily.
+## 12. Random Forest vs XGBoost
 
-**20. What is a Confusion Matrix?**
+- Random Forest = stable, robust baseline
+- XGBoost = stronger when tuned well, more sensitive
 
-> Table showing TP, TN, FP, FN. Used to calculate precision, recall, F1.
+---
 
-**21. What is Precision?**
+## 13. Backpropagation
 
-> $\frac{TP}{TP + FP}$. Of all predicted positive, how many were actually positive?
+Efficient chain-rule-based gradient computation across layers.
 
-**22. What is Recall (Sensitivity)?**
+---
 
-> $\frac{TP}{TP + FN}$. Of all actual positives, how many did we catch?
+## 14. BatchNorm
 
-**23. What is F1-Score?**
+Stabilizes training and often allows higher learning rates.
 
-> Harmonic mean of Precision and Recall: $\frac{2 \cdot P \cdot R}{P + R}$. Balances both.
+---
 
-**24. When do you use ROC-AUC vs PR-AUC?**
+## 15. Why ReLU?
 
-> **ROC-AUC**: Balanced datasets. **PR-AUC**: Imbalanced datasets (focuses on positive class).
+Simple, fast, and easier to optimize than sigmoid/tanh in deep networks.
 
-**25. What is a Decision Boundary?**
+---
 
-> The surface that separates different classes in feature space.
+## 16. Transformer vs LSTM
 
-***
+Transformer:
 
-## Level 2: Intermediate (Mid-Level / L4)
+- more parallelizable
+- better long-range context at scale
 
-### Model Comparison & Selection
+LSTM:
 
-**26. L1 vs L2 Regularization?**
+- more sequential
+- smaller-scale sequence modeling
 
-> **L1 (Lasso)**: Adds $\sum|w|$. Creates sparse weights (feature selection). **L2 (Ridge)**: Adds $\sum w^2$. Shrinks weights smoothly.
+---
 
-**27. When to use Random Forest vs XGBoost?**
+## 17. Class Imbalance
 
-> **RF**: Robust baseline, less tuning. **XGBoost**: Higher accuracy, needs tuning, prone to overfit.
+Do not rely on accuracy.
 
-**28. What is Bagging vs Boosting?**
+Use:
 
-> **Bagging**: Parallel independent models, reduces variance. **Boosting**: Sequential models correcting errors, reduces bias.
+- precision
+- recall
+- F1
+- PR-AUC
+- cost-aware thresholds
 
-**29. What is the Kernel Trick in SVM?**
+---
 
-> Implicitly maps data to higher dimensions without computing the transformation. Enables non-linear boundaries.
+## 18. Model Drift
 
-**30. How does Naive Bayes work?**
+Model performance degrades because data distribution or input-target relationship changes over time.
 
-> Applies Bayes' theorem assuming features are independent given the class. Works well for text.
+---
 
-**31. What are Decision Tree splitting criteria?**
+## 19. Candidate Generation vs Ranking
 
-> **Gini**: $1 - \sum p\_i^2$. **Entropy**: $-\sum p\_i \log p\_i$. Lower impurity = better split.
+Use retrieval to narrow millions to hundreds.
+Then use a heavier ranker for precision.
 
-**32. How does Random Forest reduce variance?**
+That is a very common large-scale pattern.
 
-> Bagging + random feature selection at each split decorrelates trees.
+---
 
-**33. What is Gradient Boosting?**
+## 20. Why Cross-Validate?
 
-> Sequentially adds trees that predict the residual errors of previous trees.
+Because one split can lie to you.
 
-**34. What is the difference between Hard and Soft Voting?**
-
-> **Hard**: Majority class wins. **Soft**: Average probabilities, pick highest.
-
-**35. What is Stacking?**
-
-> Use predictions of multiple models as features for a meta-model.
-
-### Deep Learning Basics
-
-**36. What is Backpropagation?**
-
-> Algorithm to compute gradients using chain rule, propagating error from output to input.
-
-**37. What is Gradient Descent?**
-
-> Iteratively update weights in direction of negative gradient: $w = w - \alpha \nabla L$.
-
-**38. SGD vs Adam optimizer?**
-
-> **SGD**: Simple, noisy. **Adam**: Adaptive learning rates per parameter, faster convergence.
-
-**39. What is Batch Normalization?**
-
-> Normalizes layer inputs to zero mean, unit variance. Speeds up training, allows higher LR.
-
-**40. What causes Vanishing Gradients?**
-
-> Sigmoid/Tanh derivatives become very small in deep nets. Fix: ReLU, ResNets, BatchNorm.
-
-**41. What is Dropout?**
-
-> Randomly zeroes neurons during training with probability p. Regularization technique.
-
-**42. What are Skip Connections?**
-
-> $y = F(x) + x$. Allows gradients to flow directly, enabling very deep networks.
-
-**43. What is the difference between Epoch, Batch, and Iteration?**
-
-> **Epoch**: One pass through entire dataset. **Batch**: Subset of data. **Iteration**: One weight update.
-
-**44. Why ReLU over Sigmoid?**
-
-> ReLU: No vanishing gradient (for positive), faster to compute. Sigmoid: Vanishing gradient, expensive.
-
-**45. What is Early Stopping?**
-
-> Stop training when validation loss stops improving. Prevents overfitting.
-
-### Evaluation & Metrics
-
-**46. How do you handle class imbalance?**
-
-> Resampling (SMOTE), class weights, different metrics (F1, PR-AUC), anomaly detection.
-
-**47. What is Stratified K-Fold?**
-
-> Ensures each fold has same class distribution as original data.
-
-**48. What is Log-Loss?**
-
-> Cross-entropy loss. Measures how well probabilities match true labels.
-
-**49. What is AUC-ROC?**
-
-> Area under ROC curve. <mark style="color:blue;">Measures ability to distinguish classes across all thresholds.</mark>
-
-<mark style="color:$danger;">**50. What is the Matthews Correlation Coefficient?**</mark>
-
-> Balanced metric for binary classification: $\frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)\}}$.
-
-***
-
-## Level 3: Advanced (Senior / L5+)
-
-### Architecture & Theory
-
-<mark style="color:$danger;">**51. Explain the Attention mechanism mathematically.**</mark>
-
-> $Attention(Q,K,V) = Softmax(\frac{QK^T}{\sqrt{d\_k\}})V$. Q=Query, K=Key, V=Value. Scaled dot-product.
-
-<mark style="color:$danger;">**52. Why divide by $\sqrt{d\_k}$ in attention?**</mark>
-
-> Prevents dot products from growing too large, which would saturate softmax and kill gradients.
-
-**53. What is Multi-Head Attention?**
-
-> Run attention h times with different projections, concatenate. Captures different relationships.
-
-**54. Encoder vs Decoder in Transformers?**
-
-> **Encoder**: Bidirectional attention, sees all tokens. **Decoder**: Causal attention, sees only past.
-
-<mark style="color:$danger;">**55. BERT vs GPT?**</mark>
-
-> **BERT**: Encoder-only, bidirectional, for understanding. **GPT**: Decoder-only, autoregressive, for generation.
-
-**56. What is the Reparameterization Trick?**
-
-> $z = \mu + \sigma \cdot \epsilon$ where $\epsilon \sim N(0,1)$. Makes sampling differentiable in VAEs.
-
-**57. How do GANs train?**
-
-> Minimax game: Generator creates fakes, Discriminator distinguishes real/fake. Both improve.
-
-**58. What is Mode Collapse in GANs?**
-
-> Generator produces limited variety of outputs. Fix: Wasserstein GAN, spectral normalization.
-
-<mark style="color:$danger;">**59. What is KL-Divergence?**</mark>
-
-> $D\_{KL}(P||Q) = \sum P(x) \log \frac{P(x)}{Q(x)}$. Measures how one distribution differs from another.
-
-<mark style="color:$danger;">**60. What is Perplexity?**</mark>
-
-> $PPL = e^{H(p,q)}$ where H is cross-entropy. Lower = model is less "confused".
-
-### Production & MLOps
-
-**61. What is Data Drift?**
-
-> Input distribution changes over time. Detect with PSI, K-S test.
-
-<mark style="color:$danger;">**62. What is Concept Drift?**</mark>
-
-> Relationship between features and target changes. Harder to detect.
-
-**63. What is Train-Serve Skew?**
-
-> Difference between training and serving data/logic. Causes production failures.
-
-**64. How do you handle A/B testing for ML?**
-
-> Split traffic, monitor business metrics, statistical significance testing, gradual rollout.
-
-**65. What is a Feature Store?**
-
-> Centralized repository for storing, versioning, and serving features consistently.
-
-**66. Batch vs Real-time Inference?**
-
-> **Batch**: Periodic, high throughput. **Real-time**: On-demand, low latency.
-
-**67. How do you monitor model performance in production?**
-
-> Track prediction distributions, latency, error rates, business metrics, feature drift.
-
-**68. What is Model Quantization?**
-
-> Reduce precision (FP32 → INT8/FP16) to speed up inference and reduce memory.
-
-<mark style="color:$danger;">**69. What is Knowledge Distillation?**</mark>
-
-> Train a small "student" model to mimic a large "teacher" model's outputs.
-
-**70. What is Canary Deployment?**
-
-> Release new model to small percentage of traffic, monitor, then gradually expand.
-
-### Advanced Scenarios
-
-**71. How do you debug a model that works in training but fails in production?**
-
-> Check data leakage, train-serve skew, feature drift, preprocessing differences.
-
-**72. How do you handle fairness in ML?**
-
-> Audit for bias, use fairness metrics (demographic parity, equalized odds), debias data/model.
-
-**73. What is Positional Bias in recommendations?**
-
-> Users click top items regardless of relevance. Include position as feature in training.
-
-**74. How do you handle cold-start in recommendations?**
-
-> Content-based features, popular items, ask user preferences, multi-armed bandits.
-
-**75. What is the "Exploitation vs Exploration" trade-off?**
-
-> **Exploit**: Use current best. **Explore**: Try new options. Balance with epsilon-greedy, UCB, Thompson Sampling.
+Cross-validation gives a more stable estimate of performance.

@@ -1,201 +1,119 @@
-# Statistics & Probability
+# Statistics and Probability
 
-***
+This is the fast stats file for interviews.
 
-## Probability Fundamentals
+You do not need to become a probability opera singer.
 
-**1. What is Bayes' Theorem?**
+You do need to explain the main ideas clearly and not misuse p-values with great confidence.
 
-> $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates prior belief given new evidence.
+---
 
-**2. Give a practical example of Bayes' Theorem.**
+## 1. Core Distributions
 
-> Disease testing: If 1% have disease, test is 90% accurate, 5% false positive. Positive result → only \~15% chance of disease due to low base rate.
+- Bernoulli = one binary event
+- Binomial = number of successes in fixed trials
+- Poisson = event count in interval
+- Exponential = time between Poisson events
+- Normal = bell curve, everywhere
 
-<mark style="color:$danger;">**3. What is the difference between Prior and Posterior?**</mark>
+If you know when to use each, you are in good shape.
 
-> **Prior**: Belief before seeing data. **Posterior**: Updated belief after seeing data.
+---
 
-**4. What is Conditional Probability?**
+## 2. Mean, Variance, Standard Deviation
 
-> $P(A|B)$ = Probability of A given B has occurred.
+- mean = average
+- variance = spread in squared units
+- standard deviation = spread in original units
 
-**5. What is the Law of Total Probability?**
+Variance is math-friendly.
+Standard deviation is people-friendly.
 
-> $P(A) = \sum\_i P(A|B\_i)P(B\_i)$ where $B\_i$ partition the sample space.
+---
 
-**6. What is Independence?**
+## 3. Correlation vs Causation
 
-> Events A and B are independent if $P(A \cap B) = P(A) \cdot P(B)$.
+Correlation means variables move together.
+Causation means one changes the other.
 
-<mark style="color:$danger;">**7. What is Marginal Probability?**</mark>
+Predictive ML often uses correlation well.
+Decision-making and intervention require more care.
 
-> Probability of a single event regardless of other variables: $P(A) = \sum\_B P(A,B)$.
+That is a strong sentence to remember.
 
-***
+---
 
-## Distributions
+## 4. P-Value
 
-**8. Describe the Normal (Gaussian) distribution.**
+A p-value is the probability of observing data this extreme or more, assuming the null hypothesis is true.
 
-> Bell curve. Defined by mean $\mu$ and std $\sigma$. 68-95-99.7 rule.
+It is **not**:
 
-**9. What is the Central Limit Theorem?**
+- the probability the null is true
+- the chance your idea is correct
 
-> Sum/mean of many independent random variables approaches Normal, regardless of original distribution.
+That mistake is common and very fixable.
 
-**10. What is a Bernoulli distribution?**
+---
 
-> Single binary trial with probability p. $E\[X] = p$, $Var(X) = p(1-p)$.
+## 5. Confidence Interval
 
-**11. What is a Binomial distribution?**
+A confidence interval gives a plausible range for an estimate.
 
-> Number of successes in n independent Bernoulli trials. $E\[X] = np$.
+Very useful because it gives more information than a point estimate alone.
 
-**12. What is a Poisson distribution?**
+---
 
-> Models rare events in fixed interval. $P(X=k) = \frac{\lambda^k e^{-\lambda\}}{k!}$.
+## 6. Type I vs Type II Error
 
-**13. When do you use Poisson?**
+- Type I = false positive
+- Type II = false negative
 
-> Count data: clicks per minute, errors per hour, arrivals per day.
+Courtroom analogy still works:
 
-**14. What is an Exponential distribution?**
+- Type I = convict innocent
+- Type II = free guilty
 
-> Time between Poisson events. Memoryless property.
+---
 
-**15. What is a Uniform distribution?**
+## 7. Bayes' Theorem
 
-> All outcomes equally likely. Continuous or discrete.
+Bayes updates belief after seeing evidence.
 
-**16. What is a Beta distribution?**
+That is the main idea.
 
-> Distribution over probabilities (0,1). Prior for Bernoulli. Params: $\alpha$, $\beta$.
+It matters for:
 
-***
+- Naive Bayes
+- Bayesian inference
+- uncertainty-aware reasoning
 
-## Hypothesis Testing
+---
 
-**17. What is a Null Hypothesis?**
+## 8. MLE vs MAP
 
-> Default assumption of no effect. $H\_0$: "Model A = Model B".
+MLE:
 
-**18. What is a p-value?**
+- use data only
 
-> Probability of observing data (or more extreme) if null hypothesis is true.
+MAP:
 
-**19. What does p < 0.05 mean?**
+- use data plus prior
 
-> Less than 5% chance of seeing this result if null is true. Reject $H\_0$.
+Very useful ML connection:
 
-**20. What is Type I Error?**
+regularization often looks like MAP with a prior.
 
-> <mark style="color:$warning;">False Positive.</mark> Rejecting $H\_0$ when it's true. Controlled by $\alpha$ (significance level).
+---
 
-**21. What is Type II Error?**
+## 9. CLT vs LLN
 
-> <mark style="color:$warning;">False Negative.</mark> Failing to reject $H\_0$ when it's false. Related to power.
+LLN:
 
-**22. What is Statistical Power?**
+- sample mean converges to true mean
 
-> Probability of correctly rejecting false $H\_0$. Power = 1 - Type II error rate.
+CLT:
 
-**23. What is a Confidence Interval?**
+- sampling distribution of the mean becomes approximately normal
 
-> Range likely to contain true parameter. 95% CI: If repeated 100 times, \~95 would contain truth.
-
-**24. Difference between p-value and confidence interval?**
-
-> **p-value**: Probability of data given $H\_0$. **CI**: Range of plausible parameter values.
-
-**25. What is the t-test?**
-
-> Compares means of two groups. Assumes normally distributed data.
-
-<mark style="color:$danger;">**26. What is the Chi-squared test?**</mark>
-
-> Tests independence between categorical variables.
-
-**27. What is ANOVA?**
-
-> Compares means across 3+ groups. Extension of t-test.
-
-***
-
-## Statistical Concepts for ML
-
-<mark style="color:$danger;">**28. What is Expectation?**</mark>
-
-> $E\[X] = \sum x\_i P(x\_i)$. The average value.
-
-**29. What is Variance?**
-
-> $Var(X) = E\[(X - E\[X])^2]$. Measures spread.
-
-**30. What is Standard Deviation?**
-
-> $\sigma = \sqrt{Var(X)}$. Same units as data.
-
-**31. What is Covariance?**
-
-> $Cov(X,Y) = E\[(X-\mu\_X)(Y-\mu\_Y)]$. How X and Y change together.
-
-**32. What is Correlation?**
-
-> $\rho = \frac{Cov(X,Y)}{\sigma\_X \sigma\_Y}$. Normalized covariance. Range \[-1, 1].
-
-**33. Correlation vs Causation?**
-
-> Correlation = statistical relationship. Causation = one causes the other. Correlation ≠ causation.
-
-**34. What is MLE (Maximum Likelihood Estimation)?**
-
-> Find parameter $\theta$ that maximizes probability of observed data: $\hat{\theta} = \arg\max \prod P(x\_i|\theta)$.
-
-**35. Derive MLE for Gaussian mean.**
-
-> Log-likelihood → derivative w.r.t. $\mu$ → set to 0 → $\hat{\mu} = \frac{1}{n}\sum x\_i$ (sample mean).
-
-**36. What is MAP (Maximum A Posteriori)?**
-
-> Like MLE but includes prior: $\hat{\theta} = \arg\max P(\theta|X) \propto P(X|\theta)P(\theta)$.
-
-**37. What is the Law of Large Numbers?**
-
-> Sample mean converges to population mean as sample size increases.
-
-***
-
-## A/B Testing & Experimentation
-
-**38. How do you determine sample size for A/B test?**
-
-> Based on: effect size, baseline rate, significance level ($\alpha$), power ($1-\beta$). Use power analysis.
-
-**39. What is the Minimum Detectable Effect (MDE)?**
-
-> Smallest effect size you can reliably detect with given sample size and power.
-
-**40. Why is "peeking" at A/B results bad?**
-
-> Inflates false positive rate. You'll stop early on noise. Use sequential testing if you need to peek.
-
-**41. What is Multiple Testing Correction?**
-
-> When running many tests, false positives accumulate. Use Bonferroni or FDR correction.
-
-**42. What is Bootstrapping?**
-
-> <mark style="color:$warning;">Resample with replacement to estimate statistics.</mark> Useful for CIs without assumptions.
-
-**43. What is the difference between Parametric and Non-parametric tests?**
-
-> **Parametric**: Assumes distribution (t-test). **Non-parametric**: No assumptions (Mann-Whitney).
-
-<mark style="color:$danger;">**44. What is Simpson's Paradox?**</mark>
-
-> Trend appears in subgroups but reverses when combined. Always segment your analysis.
-
-**45. What is Selection Bias?**
-
-> Sample is not representative of population. Invalidates conclusions.
+These get mixed up a lot, so getting them clean is a nice interview win.
