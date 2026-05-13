@@ -28,7 +28,8 @@ The answer "it depends" is always correct — but only if you say what it depend
 | [ML Engineering & Production](machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. The most comprehensive file. |
 | [Building ML-Powered Applications](building-machine-learning-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
 | [Design Interview Case Studies](machine-learning-design-interview.md) | Structured walkthroughs of common system design prompts |
-| [ML Design Patterns](machine-learning-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
+| [ML Design Patterns](system-design/machine-learning-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
+| [Recommended Books](books.md) | Essential reading list for MLOps and production ML engineering |
 
 ---
 

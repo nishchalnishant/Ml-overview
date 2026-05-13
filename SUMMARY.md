@@ -28,8 +28,9 @@
 ## 03 — Deep Learning
 
 * [Overview](03-deep-learning/README.md)
-* [PyTorch Fundamentals](03-deep-learning/pytorch-fundamentals.md)
-* [PyTorch Foundations](03-deep-learning/pytorch-foundations.md)
+* [PyTorch](03-deep-learning/pytorch-README.md)
+  * [PyTorch Foundations](03-deep-learning/pytorch-foundations.md)
+  * [PyTorch Fundamentals](03-deep-learning/pytorch-fundamentals.md)
 * [MCP & Agentic Tool Use](03-deep-learning/mcp.md)
 
 ### Components
@@ -86,6 +87,12 @@
 * [Multimodal AI](05-llms/applications/multimodal.md)
 * [How to Train Your LLM](05-llms/applications/how-to-train-your-dragon-llm.md)
 
+### Book Notes
+
+* [Overview](05-llms/books/README.md)
+* [Hands-On Large Language Models](05-llms/books/handson-large-language-models-jay_alammar.md)
+* [Agentic Design Patterns](05-llms/books/agentic-design-pattern.md)
+
 ### Interview Notes
 
 * [Overview](05-llms/interview-notes/README.md)
@@ -114,6 +121,7 @@
 * [Overview](06-production-ml/README.md)
 * [MLOps — Full Notes](06-production-ml/mlops.md)
 * [Model Governance](06-production-ml/model-governance.md)
+* [Recommended Books](06-production-ml/books.md)
 
 ### System Design
 
