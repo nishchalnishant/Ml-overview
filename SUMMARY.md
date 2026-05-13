@@ -1,107 +1,231 @@
 # Table of contents
 
-* [🚀 Welcome!](README.md) — *Senior prep framed for Azure/DevOps folks; fast read.*
-* [🧠 AI & ML Revision Hub](AI_ML_REVISION_GUIDE.md) — *Night-before cheat sheet: golden rules, architectures, math, infra, gotchas.*
-* [🛠️ MLOps — full notes](mlops.md) — *Lifecycle, CI/CD for ML, deployment — same content, engaging tone + Azure bridges.*
-* [🗓️ 30 Days to ML Mastery](30-days/README.md)
+* [🚀 Welcome!](README.md)
+* [🧠 AI & ML Revision Hub](01-foundations/AI_ML_REVISION_GUIDE.md) — *Night-before cheat sheet.*
+* [📖 Glossary](01-foundations/ml-glossary.md)
 
 ---
 
-## 📋 TRACK 1: The Interview Blueprint
-*High-yield, rapid-fire nodes for senior-level preparation.*
+## 01 — Foundations
 
-* [Master Q&A Bank](interview/top-ml-interview-questions.md)
-* [ML Interview Command Center](ml-interview-notes/README.md)
-  * [Fundamentals of Machine Learning](ml-interview-notes/fundamentals-of-machine-learning.md)
-  * [Math Derivations (Master Hub)](ml-interview-notes/math-derivations.md)
-  * [Practical ML Scenarios](ml-interview-notes/practical-ml-scenarios.md)
-  * [Algorithms & Theory](ml-interview-notes/algorithms.md)
-  * [Probability & Statistics](ml-interview-notes/probability-and-statistics.md)
-  * [Calculus & Linear Algebra](ml-interview-notes/maths.md)
-  * [Deep Learning Essentials](ml-interview-notes/deep-learning.md)
-  * [NLP & Transformers](ml-interview-notes/nlp.md)
-  * [Computer Vision](ml-interview-notes/computer-vision.md)
-  * [ML System Design & MLOps](ml-interview-notes/system-design-and-mlops.md)
-  * [Data Preprocessing](ml-interview-notes/data-preprocessing-and-feature-engineering.md)
-  * [Model Evaluation](ml-interview-notes/model-evaluation.md)
-  * [ML Coding Patterns](ml-interview-notes/coding.md)
-  * [Large Language Models (Bridge)](ml-interview-notes/large-language-model.md)
-  * [Additional Topics](ml-interview-notes/additional-ml-interview-topics.md)
-
-* [LLM Specialist Command Center](llm-interview-notes/README.md)
-  * [LLM Fundamentals — Deep](llm-interview-notes/llm-fundamentals.md)
-  * [LLM Fundamentals — Snappy](llm-interview-notes/llm-fundamentals-snappy.md)
-  * [Prompt Engineering — Deep](llm-interview-notes/prompt-engineering.md)
-  * [Prompt Engineering — Snappy](llm-interview-notes/prompt-engineering-snappy.md)
-  * [RAG — Deep](llm-interview-notes/retrieval-augmented-generation-rag.md)
-  * [RAG — Snappy](llm-interview-notes/retrieval-augmented-generation-rag-snappy.md)
-  * [AI Agents & Agentic Systems — Deep](llm-interview-notes/ai-agents-and-agentic-systems.md)
-  * [AI Agents & Agentic Systems — Snappy](llm-interview-notes/ai-agents-and-agentic-systems-snappy.md)
-  * [Fine-Tuning & Adaptation — Deep](llm-interview-notes/fine-tuning-and-model-adaptation.md)
-  * [Fine-Tuning & Adaptation — Snappy](llm-interview-notes/fine-tuning-and-model-adaptation-snappy.md)
-  * [Vector Databases & Embeddings — Deep](llm-interview-notes/vector-databases-and-embeddings.md)
-  * [Vector Databases & Embeddings — Snappy](llm-interview-notes/vector-databases-and-embeddings-snappy.md)
-  * [AI System Design — Deep](llm-interview-notes/ai-system-design.md)
-  * [AI System Design — Snappy](llm-interview-notes/ai-system-design-snappy.md)
-  * [LLMOps & Production AI — Deep](llm-interview-notes/llmops-and-production-ai.md)
-  * [LLMOps & Production AI — Snappy](llm-interview-notes/llmops-and-production-ai-snappy.md)
-  * [Evaluation & Testing — Deep](llm-interview-notes/evaluation-and-testing.md)
-  * [Evaluation & Testing — Snappy](llm-interview-notes/evaluation-and-testing-snappy.md)
-  * [Responsible AI & Ethics — Deep](llm-interview-notes/ai-safety-ethics-and-responsible-ai-what.md)
-  * [Responsible AI & Ethics — Snappy](llm-interview-notes/ai-safety-ethics-and-responsible-ai-what-snappy.md)
-  * [Multi-Modal AI — Deep](llm-interview-notes/multi-modal-ai.md)
-  * [Multi-Modal AI — Snappy](llm-interview-notes/multi-modal-ai-snappy.md)
-  * [Infrastructure & Scalability — Deep](llm-interview-notes/ai-infrastructure-and-scalability.md)
-  * [Infrastructure & Scalability — Snappy](llm-interview-notes/ai-infrastructure-and-scalability-snappy.md)
-  * [Coding Practical — Deep](llm-interview-notes/coding-and-practical-implementation.md)
-  * [Coding Practical — Snappy](llm-interview-notes/coding-and-practical-implementation-snappy.md)
-  * [Behavioral & Scenario Questions — Deep](llm-interview-notes/behavioral-and-scenario-based-questions.md)
-  * [Behavioral & Scenario Questions — Snappy](llm-interview-notes/behavioral-and-scenario-based-questions-snappy.md)
-  * [Additional LLM Topics — Deep](llm-interview-notes/additional-llm-interview-topics.md)
-  * [Additional LLM Topics — Snappy](llm-interview-notes/additional-llm-interview-topics-snappy.md)
-  * [Efficient LLM Deployment — Deep](llm-interview-notes/efficient-llm-deployment.md)
-  * [Efficient LLM Deployment — Snappy](llm-interview-notes/efficient-llm-deployment-snappy.md)
-  * [Advanced Alignment & Reasoning — Deep](llm-interview-notes/advanced-alignment-and-reasoning.md)
-  * [Advanced Alignment & Reasoning — Snappy](llm-interview-notes/advanced-alignment-and-reasoning-snappy.md)
+* [Introduction to AI](01-foundations/introduction-to-ai.md)
+* [AI & ML Revision Guide](01-foundations/AI_ML_REVISION_GUIDE.md)
+* [ML Glossary](01-foundations/ml-glossary.md)
 
 ---
 
-## 📚 TRACK 2: The Deep-Dive Library
-*Textbook-style foundational study for in-depth mastery.*
+## 02 — Classical ML
 
-* [Machine Learning Foundation](machine-learning/README.md)
-  * [Overview — Snappy](machine-learning/README-snappy.md)
-  * [Supervised Learning — Deep](machine-learning/supervised-learning.md)
-  * [Supervised Learning — Snappy](machine-learning/supervised-learning-snappy.md)
-  * [Unsupervised Learning — Deep](machine-learning/unsupervised-learning.md)
-  * [Unsupervised Learning — Snappy](machine-learning/unsupervised-learning-snappy.md)
-  * [Data Preprocessing — Deep](machine-learning/data-preprocessing.md)
-  * [Data Preprocessing — Snappy](machine-learning/data-preprocessing-snappy.md)
-* [Deep Learning Foundation](deep-learning/README.md)
-  * [PyTorch Foundations](deep-learning/pytorch-foundations.md)
-  * [Activation Functions](deep-learning/parts-of-deep-learning/activation-functions.md)
-  * [Loss Functions](deep-learning/parts-of-deep-learning/loss-functions.md)
-  * [Optimisers](deep-learning/parts-of-deep-learning/optimisers.md)
-  * [Backpropagation](deep-learning/parts-of-deep-learning/backpropagation.md)
-  * [Regularization](deep-learning/parts-of-deep-learning/regularization.md)
-  * [Attention & Transformers](deep-learning/parts-of-deep-learning/attention.md)
+* [Overview](02-classical-ml/README.md) | [Snappy](02-classical-ml/README-snappy.md)
+* [Supervised Learning](02-classical-ml/supervised-learning.md) | [Snappy](02-classical-ml/supervised-learning-snappy.md)
+* [Unsupervised Learning](02-classical-ml/unsupervised-learning.md) | [Snappy](02-classical-ml/unsupervised-learning-snappy.md)
+* [Data Preprocessing](02-classical-ml/data-preprocessing.md) | [Snappy](02-classical-ml/data-preprocessing-snappy.md)
+* [When Classical ML Wins](02-classical-ml/when-classical-ml-wins.md)
+* [Calibration & Uncertainty](02-classical-ml/calibration-and-uncertainty.md)
 
 ---
 
-## 🏗️ Specialized Engineering
-* [ML Design Patterns](ml-system-design/machine-learning-design-patterns.md)
-* [ML Engineering & Production](ml-system-design/machine-learning-engineering.md)
-* [Design Interview Case Studies](ml-system-design/machine-learning-design-interview.md)
+## 03 — Deep Learning
+
+* [Overview](03-deep-learning/README.md)
+* [PyTorch Fundamentals](03-deep-learning/pytorch-fundamentals.md)
+* [PyTorch Foundations](03-deep-learning/pytorch-foundations.md)
+* [MCP & Agentic Tool Use](03-deep-learning/mcp.md)
+
+### Components
+
+* [Overview](03-deep-learning/components/README.md)
+* [Activation Functions](03-deep-learning/components/activation-functions.md)
+* [Attention](03-deep-learning/components/attention.md)
+* [Autoencoders](03-deep-learning/components/autoencoders.md)
+* [Backpropagation](03-deep-learning/components/backpropagation.md)
+* [Hidden Layers](03-deep-learning/components/hidden-layers.md)
+* [Loss Functions](03-deep-learning/components/loss-functions.md)
+* [Model Compression](03-deep-learning/components/model-compression.md)
+* [Optimisers](03-deep-learning/components/optimisers.md)
+* [Regularization](03-deep-learning/components/regularization.md)
+* [Transformers](03-deep-learning/components/transformers.md)
+
+### Methods
+
+* [Overview](03-deep-learning/methods/README.md)
+* [Computer Vision](03-deep-learning/methods/computer-vision.md)
+* [Generative Models](03-deep-learning/methods/generative-models.md)
+* [NLP](03-deep-learning/methods/nlp.md)
+* [Time Series](03-deep-learning/methods/time-series.md)
 
 ---
 
-## 🔬 Training & Research
-* [Research Paper Summaries](research-papers/README.md)
-* [LLM Training Lifecycle](llms/training-process.md)
-* [LLM Scaling Laws](llms/scaling-and-data.md)
+## 04 — Specialized Domains
+
+* [Overview](04-specialized-domains/README.md)
+* [Reinforcement Learning](04-specialized-domains/reinforcement-learning/README.md)
+* [Recommender Systems](04-specialized-domains/recommender-systems/README.md)
+* [Graph Neural Networks](04-specialized-domains/graph-neural-networks/README.md)
 
 ---
 
-## 🔖 Resources & Glossary
-* [Book Notes Catalog](book-notes/README.md)
-* [The ML Glossary](ml-glossary.md)
+## 05 — LLMs
+
+* [Overview](05-llms/README.md)
+* [Architecture Deep Dive](05-llms/architecture-deep-dive.md)
+* [Training Process](05-llms/training-process.md)
+* [Training Stability](05-llms/training-stability.md)
+* [Scaling & Data](05-llms/scaling-and-data.md)
+* [Evaluation & Benchmarks](05-llms/evaluation-benchmarks.md)
+* [Interview Questions](05-llms/interview-questions.md)
+
+### Applications
+
+* [Overview](05-llms/applications/README.md)
+* [RAG](05-llms/applications/rag.md)
+* [Agentic Workflows](05-llms/applications/agentic-workflows.md)
+* [Tuning & Optimization](05-llms/applications/tuning-optimization.md)
+* [Inference Optimization](05-llms/applications/inference-optimization.md)
+* [Speculative Decoding](05-llms/applications/speculative-decoding.md)
+* [Multimodal AI](05-llms/applications/multimodal.md)
+* [How to Train Your LLM](05-llms/applications/how-to-train-your-dragon-llm.md)
+
+### Interview Notes
+
+* [Overview](05-llms/interview-notes/README.md)
+* [LLM Fundamentals — Deep](05-llms/interview-notes/llm-fundamentals.md) | [Snappy](05-llms/interview-notes/llm-fundamentals-snappy.md)
+* [Prompt Engineering — Deep](05-llms/interview-notes/prompt-engineering.md) | [Snappy](05-llms/interview-notes/prompt-engineering-snappy.md)
+* [RAG — Deep](05-llms/interview-notes/retrieval-augmented-generation-rag.md) | [Snappy](05-llms/interview-notes/retrieval-augmented-generation-rag-snappy.md)
+* [AI Agents — Deep](05-llms/interview-notes/ai-agents-and-agentic-systems.md) | [Snappy](05-llms/interview-notes/ai-agents-and-agentic-systems-snappy.md)
+* [Fine-Tuning — Deep](05-llms/interview-notes/fine-tuning-and-model-adaptation.md) | [Snappy](05-llms/interview-notes/fine-tuning-and-model-adaptation-snappy.md)
+* [Vector DBs & Embeddings — Deep](05-llms/interview-notes/vector-databases-and-embeddings.md) | [Snappy](05-llms/interview-notes/vector-databases-and-embeddings-snappy.md)
+* [AI System Design — Deep](05-llms/interview-notes/ai-system-design.md) | [Snappy](05-llms/interview-notes/ai-system-design-snappy.md)
+* [LLMOps — Deep](05-llms/interview-notes/llmops-and-production-ai.md) | [Snappy](05-llms/interview-notes/llmops-and-production-ai-snappy.md)
+* [Evaluation & Testing — Deep](05-llms/interview-notes/evaluation-and-testing.md) | [Snappy](05-llms/interview-notes/evaluation-and-testing-snappy.md)
+* [Responsible AI — Deep](05-llms/interview-notes/ai-safety-ethics-and-responsible-ai-what.md) | [Snappy](05-llms/interview-notes/ai-safety-ethics-and-responsible-ai-what-snappy.md)
+* [AI Infrastructure — Deep](05-llms/interview-notes/ai-infrastructure-and-scalability.md) | [Snappy](05-llms/interview-notes/ai-infrastructure-and-scalability-snappy.md)
+* [Efficient Deployment — Deep](05-llms/interview-notes/efficient-llm-deployment.md) | [Snappy](05-llms/interview-notes/efficient-llm-deployment-snappy.md)
+* [Multimodal AI — Deep](05-llms/interview-notes/multi-modal-ai.md) | [Snappy](05-llms/interview-notes/multi-modal-ai-snappy.md)
+* [Coding & Implementation — Deep](05-llms/interview-notes/coding-and-practical-implementation.md) | [Snappy](05-llms/interview-notes/coding-and-practical-implementation-snappy.md)
+* [Advanced Alignment — Deep](05-llms/interview-notes/advanced-alignment-and-reasoning.md) | [Snappy](05-llms/interview-notes/advanced-alignment-and-reasoning-snappy.md)
+* [Behavioral Questions — Deep](05-llms/interview-notes/behavioral-and-scenario-based-questions.md) | [Snappy](05-llms/interview-notes/behavioral-and-scenario-based-questions-snappy.md)
+* [Additional Topics — Deep](05-llms/interview-notes/additional-llm-interview-topics.md) | [Snappy](05-llms/interview-notes/additional-llm-interview-topics-snappy.md)
+
+---
+
+## 06 — Production ML
+
+* [Overview](06-production-ml/README.md)
+* [MLOps — Full Notes](06-production-ml/mlops.md)
+* [Model Governance](06-production-ml/model-governance.md)
+
+### System Design
+
+* [ML Engineering & Production](06-production-ml/system-design/machine-learning-engineering.md)
+* [Building ML-Powered Applications](06-production-ml/system-design/building-machine-learning-powered-applications.md)
+* [Design Interview Case Studies](06-production-ml/system-design/machine-learning-design-interview.md)
+* [ML Design Patterns](06-production-ml/system-design/machine-learning-design-patterns.md)
+
+---
+
+## 07 — Interview Prep
+
+### ML Interview Notes
+
+* [Overview](07-interview-prep/ml/README.md)
+* [ML Fundamentals](07-interview-prep/ml/fundamentals-of-machine-learning.md)
+* [Math Derivations (Master Hub)](07-interview-prep/ml/math-derivations.md)
+* [Practical ML Scenarios](07-interview-prep/ml/practical-ml-scenarios.md)
+* [Algorithms & Theory](07-interview-prep/ml/algorithms.md)
+* [Probability & Statistics](07-interview-prep/ml/probability-and-statistics.md)
+* [Calculus & Linear Algebra](07-interview-prep/ml/maths.md)
+* [Deep Learning Essentials](07-interview-prep/ml/deep-learning.md)
+* [NLP & Transformers](07-interview-prep/ml/nlp.md)
+* [Computer Vision](07-interview-prep/ml/computer-vision.md)
+* [ML System Design & MLOps](07-interview-prep/ml/system-design-and-mlops.md)
+* [Data Preprocessing](07-interview-prep/ml/data-preprocessing-and-feature-engineering.md)
+* [Model Evaluation](07-interview-prep/ml/model-evaluation.md)
+* [ML Coding Patterns](07-interview-prep/ml/coding.md)
+* [LLM Bridge](07-interview-prep/ml/large-language-model.md)
+* [Privacy & Fairness](07-interview-prep/ml/privacy-and-fairness.md)
+* [Additional Topics](07-interview-prep/ml/additional-ml-interview-topics.md)
+* [Behavioral Questions](07-interview-prep/ml/behavioral-and-scenario-based-questions.md)
+* [Optimization](07-interview-prep/ml/optimization.md)
+
+### General Interview
+
+* [Overview](07-interview-prep/llm/README.md)
+* [Top ML Interview Questions](07-interview-prep/llm/top-ml-interview-questions.md)
+* [ML Revision](07-interview-prep/llm/ml-revision.md)
+* [Statistics & Probability](07-interview-prep/llm/statistics-probability.md)
+* [DL Architectures](07-interview-prep/llm/dl-architectures.md)
+* [NLP & Transformers](07-interview-prep/llm/nlp-transformers.md)
+* [ML System Design](07-interview-prep/llm/ml-system-design.md)
+* [Scenario-Based Questions](07-interview-prep/llm/scenario-based-questions.md)
+* [ML Coding Patterns](07-interview-prep/llm/ml-coding-patterns.md)
+* [Math Derivations](07-interview-prep/llm/math-derivations.md)
+* [Machine Learning Interviews](07-interview-prep/llm/machine-learning-interviews.md)
+
+---
+
+## 08 — Emerging Topics
+
+* [Emerging Trends 2023–2025](08-emerging-topics/emerging-trends/README.md)
+* [2025 Frontier Models](08-emerging-topics/emerging-trends/2025-frontier-models.md)
+* [Interpretability & XAI](08-emerging-topics/interpretability-and-xai/README.md)
+* [Experimentation & Causal Inference](08-emerging-topics/experimentation-and-causal-inference/README.md)
+
+---
+
+## 09 — Study Plans
+
+* [30-Day Overview](09-study-plans/README.md)
+* [Week 1 — Foundations (Days 1-7)](09-study-plans/week-1-foundations/README.md)
+  * [Days 1-2: Introduction to ML](09-study-plans/week-1-foundations/day-1-2-introduction-to-machine-learning.md)
+  * [Days 3-4: Data Preprocessing](09-study-plans/week-1-foundations/day-3-4-data-preprocessing-techniques.md)
+  * [Days 5-7: EDA](09-study-plans/week-1-foundations/day-5-7-exploratory-data-analysis-eda.md)
+* [Week 2 — Algorithms (Days 8-21)](09-study-plans/week-2-algorithms/README.md)
+  * [Days 8-9: Supervised Learning](09-study-plans/week-2-algorithms/day-8-9-supervised-learning-algorithms.md)
+  * [Days 10-11: Unsupervised Learning](09-study-plans/week-2-algorithms/day-10-11-unsupervised-learning-algorithms.md)
+  * [Days 12-14: Neural Networks](09-study-plans/week-2-algorithms/day-12-14-neural-networks.md)
+  * [Days 15-16: Evaluation Metrics](09-study-plans/week-2-algorithms/day-15-16-evaluation-metrics.md)
+  * [Days 17-18: Hyperparameter Tuning](09-study-plans/week-2-algorithms/day-17-18-hyperparameter-tuning.md)
+  * [Days 19-21: Specialized Techniques](09-study-plans/week-2-algorithms/day-19-21-specialized-techniques-nlp-cv.md)
+* [Week 3 — System Design (Days 22-25)](09-study-plans/week-3-system-design/README.md)
+  * [Day 22: ML System Design](09-study-plans/week-3-system-design/day-22-ml-system-design.md)
+  * [Day 23: Case Studies](09-study-plans/week-3-system-design/day-23-case-studies.md)
+  * [Days 24-25: Behavioral & Soft Skills](09-study-plans/week-3-system-design/day-24-25-behavioral-soft-skills.md)
+* [Week 4 — Final Prep (Days 26-30)](09-study-plans/week-4-final-prep/README.md)
+  * [Days 26-30: Final Prep](09-study-plans/week-4-final-prep/day-26-30-final-prep.md)
+
+---
+
+## 10 — References
+
+### Book Notes
+
+* [Overview](10-references/book-notes/README.md)
+* Deep Learning
+  * [Overview](10-references/book-notes/deep-learning/README.md)
+  * [Alice in Differentiable Wonderland](10-references/book-notes/deep-learning/alice-in-differentiable-wonderland.md)
+  * [Build an LLM from Scratch](10-references/book-notes/deep-learning/build-a-large-language-model-from-scratch.md)
+  * [Deep Learning: Practitioner Approach](10-references/book-notes/deep-learning/deep-learning-practitioner-approach.md)
+  * [Deep Learning with PyTorch](10-references/book-notes/deep-learning/deep-learning-with-pytorch.md)
+  * [Dive into Deep Learning](10-references/book-notes/deep-learning/dive-into-deep-learning.md)
+  * [Grokking Deep Learning](10-references/book-notes/deep-learning/grokking-deep-learning.md)
+* Machine Learning
+  * [Overview](10-references/book-notes/machine-learning/README.md)
+  * [ML Pocket Reference](10-references/book-notes/machine-learning/machine-learning-pocket-reference.md)
+* MLOps
+  * [Overview](10-references/book-notes/mlops/README.md)
+  * [Designing ML Systems](10-references/book-notes/mlops/designing-machine-learning-systems.md)
+  * [Keras to Kubernetes](10-references/book-notes/mlops/keras-to-kubernetes.md)
+  * [ML Design Patterns](10-references/book-notes/mlops/machine-learning-design-patterns.md)
+  * [ML Engineering](10-references/book-notes/mlops/machine-learning-engineering.md)
+
+### Research Papers
+
+* [Overview](10-references/research-papers/README.md)
+* [Classical ML Papers](10-references/research-papers/ml.md)
+* [MLOps Papers](10-references/research-papers/mlops.md)
+* Deep Learning Papers
+  * [Overview](10-references/research-papers/deep-learning/README.md)
+  * [Computer Vision Papers](10-references/research-papers/deep-learning/computer-vision.md)
+  * [LLM Papers](10-references/research-papers/deep-learning/llm.md)
+  * [Time Series Papers](10-references/research-papers/deep-learning/time-series.md)

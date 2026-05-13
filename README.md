@@ -1,44 +1,80 @@
 # AI & ML — Senior Prep, Without the Yawn
 
-You already ship software: pipelines, environments, rollouts, observability. **Machine learning is that same muscle** — except the “binary” you deploy is a model, and the bugs can drift in silently like a change in crowd noise at Wankhede.
+You already ship software: pipelines, environments, rollouts, observability. **Machine learning is that same muscle** — except the "binary" you deploy is a model, and the bugs can drift in silently like a change in crowd noise at Wankhede.
 
-This repo is your **two-track studio album**: fast interview-ready takes, and deeper “liner notes” when you want the full mix.
+This repo is your **two-track studio album**: fast interview-ready takes, and deeper "liner notes" when you want the full mix.
 
 ---
 
-## Track 1 — Interview blueprint (high tempo)
+## Repo Structure
+
+```
+01-foundations/          Intro to AI, glossary, revision guide
+02-classical-ml/         Supervised, unsupervised, preprocessing
+03-deep-learning/        Components + methods + PyTorch + MCP
+04-specialized-domains/  RL, RecSys, GNNs
+05-llms/                 Architecture, training, applications, interview notes
+06-production-ml/        MLOps, system design
+07-interview-prep/       ML + LLM interview Q&As, scenarios, coding
+08-emerging-topics/      Emerging trends, XAI, causal inference
+09-study-plans/          30-day week-by-week study plan
+10-references/           Book notes, research papers
+```
+
+---
+
+## Track 1 — Interview Blueprint (high tempo)
 
 **Where to start tonight**
 
-- **[AI & ML revision guide](AI_ML_REVISION_GUIDE.md)** — The “last over before the super over”: golden rules, architectures, math you can whiteboard, infra patterns, and gotchas. Written to feel like a conversation, not a chapter.
-- **[30-day roadmap](30-days/README.md)** — Structured reps from zero to “I can hold the room.”
-- **[Math derivations hub](ml-interview-notes/math-derivations.md)** — Chain rule to attention, with your pen, not your panic.
-- **[LLM specialist hub](llm-interview-notes/)** — RAG, agents, alignment, serving — the GenAI setlist.
+- **[AI & ML revision guide](01-foundations/AI_ML_REVISION_GUIDE.md)** — Golden rules, architectures, math you can whiteboard, infra patterns, gotchas.
+- **[30-day roadmap](09-study-plans/README.md)** — Structured reps from zero to "I can hold the room."
+- **[Math derivations hub](07-interview-prep/ml/math-derivations.md)** — Chain rule to attention, with your pen.
+- **[LLM interview notes](05-llms/interview-notes/README.md)** — RAG, agents, alignment, serving — the GenAI setlist.
+- **[ML interview notes](07-interview-prep/ml/README.md)** — Full classical + DL Q&A bank.
 
-**Azure / DevOps bridge (one line):** *Training is your build job; the model artifact is your release candidate; inference is the always-on service; MLOps is CI/CD when the “code” and the “data” both change.*
-
----
-
-## Track 2 — Deep-dive library (studio sessions)
-
-- **[ML foundations](machine-learning/README.md)** — Bias–variance, trees, the classics.
-- **[Deep learning](deep-learning/README.md)** — Activations, backprop, attention — the stack under the hype.
-- **[PyTorch foundations](deep-learning/pytorch-foundations.md)** — Tensors and autograd without tears.
+**Azure / DevOps bridge:** *Training is your build job; the model artifact is your release candidate; inference is the always-on service; MLOps is CI/CD when the "code" and the "data" both change.*
 
 ---
 
-## How these notes are written
+## Track 2 — Deep-Dive Library (studio sessions)
+
+| Section | What's inside |
+|---|---|
+| [Foundations](01-foundations/) | Intro to AI, glossary, revision guide |
+| [Classical ML](02-classical-ml/) | Bias–variance, trees, calibration, when classical beats DL |
+| [Deep Learning](03-deep-learning/) | Activations, backprop, attention, PyTorch, MCP |
+| [Computer Vision](03-deep-learning/methods/computer-vision.md) | CNNs, detection, ViT, CLIP, self-supervised |
+| [Generative Models](03-deep-learning/methods/generative-models.md) | VAE, GAN, DDPM/DDIM, Stable Diffusion, Flow Matching, DiT/FLUX |
+| [Time Series](03-deep-learning/methods/time-series.md) | ARIMA through Transformers, forecasting, anomaly detection |
+| [Reinforcement Learning](04-specialized-domains/reinforcement-learning/README.md) | MDPs, Q-learning, PPO, RLHF connection |
+| [Recommender Systems](04-specialized-domains/recommender-systems/README.md) | Collaborative filtering, two-tower, ranking |
+| [Graph Neural Networks](04-specialized-domains/graph-neural-networks/README.md) | GCN, GraphSAGE, knowledge graphs |
+| [LLMs](05-llms/README.md) | Architecture, training, scaling, evaluation |
+| [LLM Applications](05-llms/applications/README.md) | RAG, agents, tuning, inference optimization |
+| [Multimodal AI](05-llms/applications/multimodal.md) | CLIP, VLMs, fusion architectures, audio, video, deployment |
+| [Speculative Decoding](05-llms/applications/speculative-decoding.md) | Medusa, Eagle, standard SD, production trade-offs |
+| [LLM Training Stability](05-llms/training-stability.md) | Loss spikes, mixed precision, RLHF failure modes |
+| [Production ML](06-production-ml/README.md) | MLOps, CI/CD for ML, deployment |
+| [Model Governance](06-production-ml/model-governance.md) | Model registry, audit trails, GDPR, champion-challenger |
+| [ML System Design](06-production-ml/system-design/) | Design patterns, case studies, engineering |
+| [Interpretability & XAI](08-emerging-topics/interpretability-and-xai/README.md) | SHAP, LIME, mechanistic interpretability |
+| [Causal Inference](08-emerging-topics/experimentation-and-causal-inference/README.md) | A/B testing, causal graphs, uplift modeling |
+| [Emerging Trends 2023–2025](08-emerging-topics/emerging-trends/README.md) | Mamba, MoE, test-time scaling, synthetic data, long context |
+| [2025 Frontier Models](08-emerging-topics/emerging-trends/2025-frontier-models.md) | DeepSeek, Llama 4, Gemini 2.5, Claude 3.7, GPT-o3, Qwen3 |
+| [Model Compression](03-deep-learning/components/model-compression.md) | Quantization, distillation, pruning |
+| [Research Papers](10-references/research-papers/README.md) | 25 foundational LLM papers every ML interview cares about |
+
+---
+
+## How These Notes Are Written
 
 Each topic aims for a **senior answer in three beats**:
 
 1. **Direct line** — What you say in the first ten seconds.
-2. **Intuition** — An analogy that sticks (runway, remix, field placement — you’ll see).
+2. **Intuition** — An analogy that sticks.
 3. **Production** — Latency, cost, scale, and what breaks first.
-
-Diagrams (Mermaid) show up where a picture saves five paragraphs: agentic RAG, 3D parallelism, HNSW, CLIP-style alignment, and more.
 
 ---
 
-> **Cold open:** Production ML is a lot of engineering with a little bit of “magic.” This repo leans into the engineering — because that’s what keeps models out of the **Incident** channel.
-
-*“Jo baat kehne se pehle samajh aa jaaye, wahi asli explain karna hai.”* (If it lands before you finish the sentence, you’ve explained it.)
+> **Cold open:** Production ML is a lot of engineering with a little bit of "magic." This repo leans into the engineering — because that's what keeps models out of the **Incident** channel.
