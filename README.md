@@ -10,15 +10,16 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 
 ```
 01-foundations/          Intro to AI, glossary, revision guide
-02-classical-ml/         Supervised, unsupervised, preprocessing
-03-deep-learning/        Components + methods + PyTorch + MCP
+02-classical-ml/         Supervised, unsupervised, preprocessing, anomaly detection, active learning, Bayesian methods
+03-deep-learning/        Components + methods + transfer learning + video + 3D vision + PyTorch
 04-specialized-domains/  RL, RecSys, GNNs
 05-llms/                 Architecture, training, applications, interview notes
 06-production-ml/        MLOps, system design
 07-interview-prep/       ML + LLM interview Q&As, scenarios, coding
-08-emerging-topics/      Emerging trends, XAI, causal inference
+08-emerging-topics/      Emerging trends, XAI, causal inference, privacy-preserving ML, continual learning
 09-study-plans/          30-day week-by-week study plan
 10-references/           Book notes, research papers
+MIND-MAP.md              Full topic mind map + gap analysis
 ```
 
 ---
@@ -64,6 +65,15 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 | [2025 Frontier Models](08-emerging-topics/emerging-trends/2025-frontier-models.md) | DeepSeek, Llama 4, Gemini 2.5, Claude 3.7, GPT-o3, Qwen3 |
 | [Model Compression](03-deep-learning/components/model-compression.md) | Quantization, distillation, pruning |
 | [Research Papers](10-references/research-papers/README.md) | 25 foundational LLM papers every ML interview cares about |
+| [Anomaly Detection](02-classical-ml/anomaly-detection.md) | IForest, OCSVM, LOF, Autoencoders |
+| [Active Learning](02-classical-ml/active-learning.md) | Uncertainty sampling, QbC, Core-Set, BADGE |
+| [Bayesian Methods](02-classical-ml/bayesian-methods.md) | GPs, BNNs, variational inference, Bayesian optimization |
+| [Conformal Prediction](02-classical-ml/conformal-prediction.md) | Distribution-free coverage guarantees, CQR |
+| [Transfer Learning & Domain Adaptation](03-deep-learning/transfer-learning.md) | Fine-tuning, DANN, few-shot, MAML, zero-shot |
+| [Video Understanding](03-deep-learning/methods/video-understanding.md) | Two-stream, I3D, SlowFast, Video Transformers |
+| [3D Vision & Point Clouds](03-deep-learning/methods/3d-vision.md) | PointNet, PointNet++, NeRF, 3DGS, autonomous driving |
+| [Privacy-Preserving ML](08-emerging-topics/privacy-preserving-ml.md) | DP-SGD, Federated Learning, SMPC, HE |
+| [Continual Learning & NAS](08-emerging-topics/continual-learning.md) | Catastrophic forgetting, EWC, replay, DARTS |
 
 ---
 
