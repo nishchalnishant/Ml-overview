@@ -1,96 +1,150 @@
 # Scaling Laws and Training Data
 
-Understanding scaling laws tells you how to spend a compute budget optimally. Understanding data quality tells you why a 7B model trained on carefully curated data can outperform a 70B model trained on internet slop.
+---
+
+## 1. The Empirical Observation That Changed How Everyone Trains Models
+
+In 2022, DeepMind published the Chinchilla paper (Hoffmann et al., "Training Compute-Optimal Large Language Models"). The central result was not a theory — it was an observation: **GPT-3 is massively undertrained.** A 70B parameter model trained on 1.4T tokens (Chinchilla itself) achieves lower loss than GPT-3's 175B model trained on 300B tokens — at the same total training compute. You can build a better model at one-third the parameter count if you train it on enough data.
+
+This was not what the field had assumed. OpenAI's 2020 scaling laws (Kaplan et al.) had suggested that for a fixed compute budget, you should scale model size as aggressively as possible and accept fewer training tokens. Chinchilla found this was wrong because Kaplan et al. had not varied the training duration long enough to observe the data-scaling regime.
 
 ---
 
-## 1. The Neural Scaling Laws
+## 2. Kaplan vs. Chinchilla: What Each Got Right
 
-### Kaplan et al. (OpenAI, 2020)
+### Kaplan et al. (OpenAI, 2020): the first principles
 
-The original scaling laws showed that test loss follows a power law in model size $N$, dataset size $D$, and compute $C$:
+Kaplan ran experiments varying model size, dataset size, and compute independently and found that test loss follows power laws in each:
 
-$$L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N}, \quad L(D) \approx \left(\frac{D_c}{D}\right)^{\alpha_D}, \quad L(C) \approx \left(\frac{C_c}{C}\right)^{\alpha_C}$$
+$$L(N) \approx \left(\frac{N_c}{N}\right)^{\alpha_N}, \quad L(D) \approx \left(\frac{D_c}{D}\right)^{\alpha_D}$$
 
-Key finding: **parameters dominated**. For a fixed compute budget, scale the model as large as possible and train for fewer tokens.
+The key finding: parameters scale more efficiently than data — adding parameters to a fixed dataset reduces loss faster than adding data to a fixed parameter count. Conclusion: spend your compute on more parameters.
 
-This led to GPT-3 (175B parameters, trained on 300B tokens) — compute-optimal under Kaplan but severely under-trained relative to what we now know.
+This led to GPT-3: 175B parameters, only 300B training tokens (~1.7 tokens per parameter).
 
-### Chinchilla (DeepMind, 2022)
+### Chinchilla: the corrected picture
 
-Hoffmann et al. showed Kaplan's laws used a flawed compute model. Re-running with proper accounting:
+Hoffmann et al. ran a broader set of experiments, including models trained to genuine convergence rather than a fixed compute budget. They found that Kaplan's estimate of the compute cost of a forward pass was incorrect, and that data and parameters should be scaled equally.
+
+The compute approximation they used:
 
 $$C \approx 6ND$$
 
-For a compute-optimal training run, **model size and training tokens should scale equally**:
+(6 FLOPs per parameter per token: 2 for the forward pass, 4 for the backward pass). For a compute-optimal training run:
 
 $$N_{opt} \propto C^{0.5}, \quad D_{opt} \propto C^{0.5}$$
 
-**The ~20 tokens-per-parameter rule:** for every 1 parameter, train on approximately 20 tokens to be compute-optimal.
+**The practical rule of thumb**: ~20 training tokens per parameter for compute-optimal training. Chinchilla (70B parameters) was trained on 1.4T tokens: exactly 20 tokens per parameter.
 
-| Model | Parameters | Tokens | Tokens/Param | Status |
+### Working backward from the observation
+
+The insight is not "here is a formula." The insight is: Kaplan was right that both parameters and data matter, but wrong about their relative scaling. When Chinchilla ran properly controlled experiments across a wider range of parameter/data combinations, the crossover point where data scaling overtakes parameter scaling appeared much earlier than Kaplan suggested.
+
+---
+
+## 3. Why Everyone Ignores Compute-Optimal Training in Practice
+
+**The problem Chinchilla solves is the wrong problem for a product company.** Chinchilla optimizes for minimizing loss at fixed training compute. But once you've trained a model, you run inference on it billions of times. Inference cost scales with model size at every request. A 70B model costs roughly 10× more to serve than a 7B model per token. Training cost is paid once; inference cost is paid continuously.
+
+**The reframe**: if your goal is the best model for a given *inference* compute budget, you should use a smaller model and train it for much longer than Chinchilla-optimal. The smaller model is cheaper to serve; the extra training tokens make it more capable than a larger undertrained model at the same inference cost.
+
+| Model | Parameters | Tokens | Tokens/Param | Status under Chinchilla |
 | :--- | :--- | :--- | :--- | :--- |
-| GPT-3 | 175B | 300B | 1.7 | Severely under-trained |
+| GPT-3 | 175B | 300B | 1.7 | Severely undertrained |
 | Chinchilla | 70B | 1.4T | 20 | Compute-optimal |
-| LLaMA 2 7B | 7B | 2T | ~285 | Heavily over-trained for inference |
+| LLaMA 2 7B | 7B | 2T | ~285 | Deliberately overtrained |
 | LLaMA 3 70B | 70B | 15T | ~214 | Inference-optimized |
 
-**Why over-train beyond Chinchilla-optimal?** Inference cost scales with model size, not training compute. A smaller, well-trained model costs less to serve at scale. LLaMA 3 7B trained on 15T tokens outperforms compute-optimal 40B models at inference time.
+LLaMA 3 7B trained on 15T tokens outperforms Chinchilla-optimal models several times its size at identical inference compute. That's the point.
 
-### Emergent Abilities
+---
 
-Some capabilities appear abruptly at certain scales, not gradually:
+## 4. Emergent Abilities: Real Phenomenon or Measurement Artifact?
 
-| Ability | Emergence threshold (FLOP) |
+**The observation**: certain capabilities appear to jump discontinuously at a threshold model scale, rather than improving gradually. Models below ~$10^{22}$ training FLOPs cannot reliably do 3-digit arithmetic; models above that threshold can. The jump looks sharp enough to call "emergent."
+
+**The core insight (Schaeffer et al., 2023)**: emergent abilities are often an artifact of discontinuous evaluation metrics, not discontinuous model capabilities. The underlying probability of getting a problem right improves smoothly with scale. But if the metric is "exact match accuracy" (all-or-nothing credit), a model that is 70% right on each step of a 3-step problem has near-zero accuracy until it crosses ~90% per step, at which point accuracy jumps to ~73%. The discontinuity is in the evaluation, not the model.
+
+**What this means in practice**: use calibrated, continuous metrics where possible. Binary exact-match metrics can make your model look worse than it is at intermediate scales, which can lead you to incorrectly conclude that a capability has "not emerged yet" when it is actually improving gradually.
+
+| Claimed emergent ability | Threshold (training FLOPs) |
 | :--- | :--- |
 | 3-digit arithmetic | ~$10^{22}$ |
 | Multi-step reasoning (chain-of-thought) | ~$10^{23}$ |
 | Few-shot instruction following | ~$10^{23}$ |
 | Calibrated uncertainty | ~$10^{24}$ |
 
-**Caveat (Schaeffer et al., 2023):** emergent abilities may be artifacts of discontinuous metrics. Switching to smooth metrics often reveals gradual improvement. The discontinuity is in the evaluation, not necessarily the model.
+These thresholds should be read as "where exact-match metrics start showing clear improvement" not as genuine discontinuities in model capability.
 
 ---
 
-## 2. Scaling Beyond Text: Multi-Modal and Reasoning
+## 5. The Token Scarcity Problem
 
-### The Token Scarcity Problem
+**The problem**: the internet is finite. Epoch et al. estimated that high-quality English text on the web amounts to roughly $4-17 \times 10^{13}$ tokens. Frontier models have already consumed most of it. If the current scaling trajectory continues, data will be the bottleneck before compute is.
 
-High-quality human text on the internet is finite. Epoch et al. estimates 4–17 × 10^13 tokens of English web text exist; current frontier models have consumed most of it. Solutions:
+**What this actually means**: you can't simply collect more data — the high-quality, naturally-occurring English text roughly available to train on has a ceiling. The solutions all involve either generating new data or using other modalities.
 
-1. **Synthetic data:** generate training data using stronger models
-2. **Multi-modal data:** video, audio, scientific figures — far more abundant than text
-3. **Self-play and RL:** generate hard problems and solutions iteratively (AlphaProof-style)
-4. **Code and math:** structured data with ground-truth verification, excellent for reasoning
+### Synthetic data
 
-### Compute-Efficient Architectures
+Models trained purely on web text learn to imitate the average internet author. A capable teacher model generating synthetic training data produces cleaner reasoning chains, harder edge cases, and more consistent style than naturally-occurring text.
 
-| Architecture | Efficiency gain | Mechanism |
-| :--- | :--- | :--- |
-| **MoE (Mixture of Experts)** | Active params << total params | Route each token to top-k experts |
-| **Sparse attention** | $O(n \log n)$ vs $O(n^2)$ | Attend to limited token windows |
-| **State Space Models (Mamba)** | $O(n)$ inference | Selective state compression |
-| **Linear attention** | $O(n)$ | Approximate softmax with kernel trick |
+The quality ceiling: a model can't be significantly smarter than its teacher model purely from synthetic data without a verification signal. Verification changes this.
+
+**Verified synthetic data** (highest quality): generate candidate solutions, verify them programmatically or mathematically, keep only verified correct examples:
+
+```python
+def generate_verified_math_problem() -> dict | None:
+    problem = llm.complete("Generate a grade-8 algebra problem with a unique integer solution.")
+    solution_code = llm.complete(f"Write Python to solve: {problem}\nPrint the answer.")
+
+    try:
+        result = subprocess.run(["python", "-c", solution_code],
+                                capture_output=True, timeout=5)
+        if result.returncode == 0:
+            return {"problem": problem, "solution": result.stdout.decode()}
+    except Exception:
+        pass
+    return None  # Reject unverifiable problems
+```
+
+With verification, you can generate arbitrarily many correct math and code training examples. This is how DeepSeek-R1 and similar models bootstrapped their reasoning capabilities.
+
+### Constitutional AI and RLAIF
+
+Rather than human annotators, use the model itself to critique and revise responses:
+
+1. Sample a response from the SFT model
+2. Ask a stronger model (or the same model) to critique it against a list of principles
+3. Ask it to revise based on the critique
+4. Use (original response, revised response) as preference data for DPO/RLHF
+
+This scales alignment without human annotation. The risk: if the critic model has systematic biases, those biases propagate into the training data.
+
+### Multi-modal data
+
+Text tokens from the web are scarce; video frames are not. A single hour of video has far more information content than a comparable duration of text. Training on video, audio, and scientific figures provides data at orders of magnitude more volume — but requires solving harder alignment problems (how do you connect visual and textual representations?).
 
 ---
 
-## 3. Data Quality and Curation
+## 6. Data Quality: Why a 7B Model Can Beat a 70B Model
 
-Quality matters far more than quantity beyond a baseline. Phi-1 (1.3B) and LIMA (65B SFT) demonstrated that carefully curated small datasets can match or beat much larger models trained on raw internet data.
+**The problem**: raw internet text contains enormous amounts of low-value content — SEO spam, boilerplate, near-duplicate pages, machine-translated garbage, and low-quality forum posts. Training on this data forces the model to model noise, which consumes capacity that could be spent on signal.
 
-### The Data Pipeline
+**The empirical evidence**: Phi-1 (1.3B parameters, trained on "textbook quality" synthetic and curated data) matched or exceeded models 10× its size on coding benchmarks. LIMA (65B model SFT on 1,000 carefully curated examples) matched RLHF-aligned models. Quality dominates quantity past a baseline.
+
+### The data pipeline
 
 ```
 Raw sources (web, books, code, papers)
         │
         ▼
-URL/Domain filtering (block spam, adult, malware domains)
+URL/domain filtering (block spam, adult, malware domains)
         │
         ▼
 Language identification (fastText classifier)
         │
         ▼
-Quality filtering (perplexity threshold, heuristics)
+Quality filtering (perplexity-based + heuristics)
         │
         ▼
 Deduplication (exact + fuzzy, at paragraph level)
@@ -99,43 +153,41 @@ Deduplication (exact + fuzzy, at paragraph level)
 PII removal (names, phone numbers, emails)
         │
         ▼
-Mixing and sampling (set domain weights)
+Domain mixing (set weights per source type)
         │
         ▼
 Tokenization and sharding
 ```
 
-### Quality Filtering
+### Quality filtering
 
-**Heuristic filters (fast):**
-- Remove documents < 100 tokens or > 100k tokens
-- Filter by character-level repetition ratio (> 0.2 flagged as degenerate)
-- Remove lines that are mostly punctuation or numbers
-- Filter by word overlap with known-quality reference corpus
+**Heuristic filters** (fast, run first):
+- Remove documents shorter than 100 or longer than 100,000 tokens
+- Filter by character-level repetition ratio (> 20% flagged as degenerate)
+- Remove documents where most lines are punctuation or numbers
+- Filter by word overlap with a known-quality reference corpus
 
-**Classifier filters (accurate):**
+**Classifier filters** (accurate, run on heuristic survivors):
+
 ```python
 import fasttext
 
-# Train a binary classifier on Wikipedia (quality=1) vs random web (quality=0)
-model = fasttext.train_supervised(
-    input="quality_training_data.txt",  # format: __label__quality text
-    lr=0.1,
-    epoch=5,
-    wordNgrams=2,
-    dim=100,
+# Train a binary classifier: Wikipedia/books = quality, random web = noise
+quality_model = fasttext.train_supervised(
+    input="quality_training_data.txt",   # format: __label__quality text
+    lr=0.1, epoch=5, wordNgrams=2, dim=100,
 )
 
-def filter_quality(text: str, threshold: float = 0.7) -> bool:
-    label, prob = model.predict(text.replace("\n", " "))
+def passes_quality_filter(text: str, threshold: float = 0.7) -> bool:
+    label, prob = quality_model.predict(text.replace("\n", " "))
     return label[0] == "__label__quality" and prob[0] >= threshold
 ```
 
 ### Deduplication
 
-Training on duplicate data wastes compute and can cause memorization/privacy issues.
+**The problem**: near-duplicate documents waste compute (the model sees near-identical gradients multiple times) and cause memorization (the model can verbatim reproduce training text that appeared many times).
 
-**MinHash LSH for near-duplicate detection:**
+MinHash LSH handles fuzzy deduplication at scale:
 
 ```python
 from datasketch import MinHash, MinHashLSH
@@ -147,149 +199,89 @@ def create_minhash(text: str, num_perm: int = 128) -> MinHash:
     return m
 
 lsh = MinHashLSH(threshold=0.8, num_perm=128)
+kept = []
 
 for i, doc in enumerate(documents):
     m = create_minhash(doc)
-    result = lsh.query(m)
-    if not result:  # no near-duplicates found
+    if not lsh.query(m):        # no near-duplicates found
         lsh.insert(str(i), m)
-        keep.append(doc)
+        kept.append(doc)
     # else: near-duplicate, discard
 ```
 
-For large-scale deduplication (trillion-token corpora), exact deduplication uses SHA-256 hashing; fuzzy deduplication uses n-gram shingling + LSH.
+For trillion-token corpora: exact deduplication uses SHA-256 hashing at the document level; fuzzy deduplication uses the MinHash approach at the paragraph level.
 
-### Domain Mixing
+### Domain mixing
 
-Different domains contribute different capabilities. Mix weights are typically tuned empirically:
+Different source types contribute different capabilities. Mix weights are tuned empirically:
 
-| Domain | Contribution | Typical weight |
+| Domain | Primary contribution | Typical weight |
 | :--- | :--- | :--- |
-| Web text (filtered) | General knowledge, language fluency | 40-60% |
-| Books | Long-range coherence, structured reasoning | 10-20% |
-| Code (GitHub) | Code generation, logical reasoning | 10-20% |
-| Scientific papers (ArXiv) | STEM reasoning, specialized knowledge | 5-10% |
-| Wikipedia | Factual accuracy, clean prose | 5-10% |
-| Math (proofs, problems) | Mathematical reasoning | 1-5% |
+| Web text (filtered) | General knowledge, language fluency | 40–60% |
+| Books | Long-range coherence, structured reasoning | 10–20% |
+| Code (GitHub) | Code generation, logical/formal reasoning | 10–20% |
+| Scientific papers | STEM reasoning, specialized knowledge | 5–10% |
+| Wikipedia | Factual accuracy, clean prose | 5–10% |
+| Math (proofs, competition problems) | Mathematical reasoning | 1–5% |
 
-Upsampling high-quality domains disproportionately improves reasoning benchmarks.
-
----
-
-## 4. Synthetic Data
-
-### Why Synthetic Data Works
-
-Models trained purely on web text learn to imitate the average internet author. Synthetic data from capable models introduces:
-- Cleaner formatting and step-by-step reasoning
-- Harder edge cases than naturally occur in the wild
-- Consistent style aligned with the target task
-
-### Self-Instruct and Alpaca-style Generation
-
-```python
-import openai
-
-def generate_instruction_pairs(seed_instructions: list[str], n: int = 100) -> list[dict]:
-    """Generate (instruction, response) pairs for SFT."""
-    
-    prompt = f"""Generate {n} diverse instruction-response pairs for training an AI assistant.
-    
-Seed examples:
-{chr(10).join(f'- {inst}' for inst in seed_instructions[:5])}
-
-Requirements:
-- Varied difficulty and topics
-- Clear, complete responses
-- Mix of question types (explain, write, analyze, solve)
-
-Output JSON array: [{{"instruction": "...", "response": "..."}}]"""
-    
-    response = openai.chat.completions.create(
-        model="gpt-4o",
-        messages=[{"role": "user", "content": prompt}],
-        response_format={"type": "json_object"}
-    )
-    return json.loads(response.choices[0].message.content)["pairs"]
-```
-
-### Constitutional AI and RLAIF
-
-Instead of human feedback, use the model itself to critique and revise responses:
-
-1. Sample a response from the SFT model
-2. Ask the model to critique the response against a list of principles ("Is this helpful? Harmless? Honest?")
-3. Ask the model to revise the response based on the critique
-4. Use revised responses as preference data for DPO/RLHF
-
-This scales alignment cheaply without human annotators.
-
-### Verified Synthetic Data (Math/Code)
-
-The highest-quality synthetic data has **ground-truth verifiability**:
-
-```python
-def generate_math_problem() -> dict:
-    """Generate a math problem where the answer can be verified programmatically."""
-    problem = llm.complete("Generate a grade-8 algebra problem with a unique integer solution.")
-    
-    # Execute the solution in a Python interpreter to verify
-    solution_code = llm.complete(f"Write Python code to solve: {problem}\nPrint the answer.")
-    
-    try:
-        result = subprocess.run(["python", "-c", solution_code], 
-                              capture_output=True, timeout=5)
-        if result.returncode == 0:
-            return {"problem": problem, "solution": result.stdout.decode()}
-    except:
-        pass
-    return None  # Reject unverifiable problems
-```
+Upsampling code and math disproportionately improves reasoning benchmarks — these domains have high information density and ground-truth verifiability that teaches the model structured reasoning patterns.
 
 ---
 
-## 5. Scaling Inference: Test-Time Compute
+## 7. Test-Time Compute Scaling: The New Frontier
 
-Post-Chinchilla insight: you can trade inference compute for better answers.
+**The problem after Chinchilla**: you've trained the model optimally, served it cheaply. Is there any way to get more capability at inference time without training a bigger model?
 
-### Chain-of-Thought Scaling
+**The observation**: giving the model more tokens to "think" before producing an answer reliably improves performance on hard reasoning tasks. This is not a new insight about architecture — it follows directly from the fact that more computation produces better outputs. The question is whether you can systematically allocate more inference compute.
 
-More thinking tokens at inference → better reasoning:
+### Chain-of-thought
 
-$$\text{Performance} \propto \log(\text{thinking tokens})$$
+The simplest form: prompt the model to reason step by step before answering. The reasoning tokens are not in the final output but they change the distribution of the final token's context. Empirically:
 
-OpenAI o1, DeepSeek-R1, and Qwen-QwQ demonstrate that inference-time search substantially improves math and coding benchmarks.
+$$\text{Performance} \approx f(\log(\text{thinking tokens}))$$
 
-### Best-of-N Sampling
+The relationship is roughly logarithmic — doubling the reasoning tokens gives diminishing but real returns.
 
-Generate $N$ candidates, select the best using a verifier or reward model:
+### Best-of-N sampling
+
+Generate $N$ candidate responses, select the best using a reward model or verifier:
 
 ```python
-def best_of_n(prompt: str, n: int = 8, judge_model: str = "gpt-4o") -> str:
-    candidates = [llm.complete(prompt) for _ in range(n)]
-    
-    # Use a reward model or LLM judge to select best
+def best_of_n(prompt: str, model, reward_model, n: int = 8) -> str:
+    candidates = [model.complete(prompt) for _ in range(n)]
     scores = [reward_model.score(prompt, c) for c in candidates]
     return candidates[scores.index(max(scores))]
 ```
 
-**Effective compute scaling:** best-of-8 with a 7B model often matches best-of-1 with a 70B model at similar compute cost.
+Best-of-8 from a 7B model often matches best-of-1 from a 70B model at comparable total compute cost. The ratio of verification cost to generation cost determines the efficiency of this tradeoff.
 
-### Monte Carlo Tree Search (MCTS) for Reasoning
+**What breaks**: best-of-N only works if the verifier is accurate. A weak reward model will select the response that games the reward model, not the genuinely best response.
 
-Explore multiple reasoning paths, backpropagate correctness signals, prune poor branches. Used in AlphaProof to solve IMO problems. Expensive but effective for very hard mathematical reasoning.
+### Monte Carlo Tree Search for reasoning
+
+For formal reasoning tasks (mathematical proof, verified code), explore multiple reasoning paths as a tree, backpropagate correctness signals, and prune poor branches. Used in AlphaProof to solve International Mathematical Olympiad problems. Expensive but qualitatively beyond what best-of-N achieves on hard structured problems.
 
 ---
 
-## 6. The Scaling Frontier
+## 8. Compute-Efficient Architectures: Scaling the Capability/FLOPs Ratio
 
-| Dimension | Current frontier | Open problems |
+When scaling token count hits data walls and scaling parameters hits memory walls, architectural improvements become the marginal gains.
+
+| Architecture | Core efficiency mechanism | Tradeoff |
 | :--- | :--- | :--- |
-| **Parameters** | ~1-2T (GPT-4 speculated) | Memory wall, communication overhead |
-| **Context length** | 1M tokens (Gemini 1.5) | "Lost in the middle" attention decay |
-| **Training tokens** | ~15T (LLaMA 3) | Token scarcity — approaching internet exhaustion |
-| **Reasoning** | Test-time compute (o1, R1) | Reliable multi-step verification |
-| **Modalities** | Text + image + audio (GPT-4o) | Video, 3D, physical world grounding |
+| MoE (Mixture of Experts) | Active parameters << total; sparse routing | Memory unchanged; routing overhead; load balancing |
+| Sparse attention | $O(T \log T)$ vs $O(T^2)$ | Loses global context per layer |
+| State Space Models (Mamba) | $O(T)$ inference via selective state | Weaker at in-context learning than attention |
+| Linear attention | $O(T)$ via kernel approximation | Quality gap vs softmax attention in practice |
 
-> [!TIP]
-> **Interview structure:** Scaling = three levers (parameters, data, compute). Chinchilla showed data matters as much as size. Inference efficiency inverts the optimal tradeoff — smaller, overtrained models win in production. Test-time compute is the new frontier for capability improvements without training new models.
+---
+
+## 9. The Scaling Frontier
+
+| Dimension | Current frontier | Binding constraint |
+| :--- | :--- | :--- |
+| Parameters | ~1–2T (estimated for GPT-4) | Memory, communication overhead |
+| Context length | 1M tokens (Gemini 1.5) | "Lost in the middle" attention degradation |
+| Training tokens | ~15T (LLaMA 3) | High-quality web text near exhaustion |
+| Reasoning (inference-time) | Extended thinking (o1, R1, DeepSeek) | Verification accuracy at hard problems |
+| Modalities | Text + image + audio (GPT-4o) | Video, 3D, physical-world grounding |

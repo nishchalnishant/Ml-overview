@@ -1,589 +1,241 @@
 # Context Window Extension
 
-Techniques for scaling transformer context beyond native training length — from position encoding tricks to sparse attention, memory-efficient kernels, and architectural alternatives.
+---
+
+## The Core Problem
+
+**The problem:** transformer attention computes every pair of token interactions. For a sequence of length n that produces n² dot-products per layer. At n=8192 that is 67 million per layer; at n=128k it is 16 billion. This manifests as:
+
+- **Memory:** the attention matrix must be materialized in GPU high-bandwidth memory — at n=32k in float16, roughly 2 GB per layer.
+- **Compute:** FLOPs scale quadratically, making long-context inference slow even when memory holds.
+
+But there is a third problem independent of both: a model trained up to length L will fail at length L' > L — not because of memory or compute, but because the **position encoding values seen at test time are out of the training distribution**. These three problems (memory, compute, generalization) require independent solutions.
 
 ---
 
-## 1. The Problem
+## Positional Encodings
 
-Transformers compute attention over all pairs of tokens: for a sequence of length n, the attention matrix is n×n, giving **O(n²) time and memory complexity**. At n=128k, that matrix alone is ~65 billion entries.
+### The Problem They Solve
 
-**Where limits bite:**
-- Long documents (legal, scientific, books)
-- Multi-turn dialogue accumulated over many exchanges
-- Code repositories where cross-file context matters
-- RAG pipelines that want to stuff many retrieved chunks in-context
-
-**Two separate bottlenecks:**
-
-| Bottleneck | Cause | Consequence |
-|---|---|---|
-| Compute | O(n²) FLOPs in attention | Slow inference / training |
-| Memory (HBM) | Full n×n attention matrix materialized | OOM at long context |
-| Generalization | Model trained up to length L, tested at L' > L | Positional OOD, degraded output |
-
-All three must be addressed independently. A model can have efficient attention but still fail at lengths beyond its training distribution.
+A transformer has no inherent notion of token order — attention is a set operation. Without positional information, "the cat sat on the mat" and "the mat sat on the cat" produce identical attention patterns. Positional encodings inject order so the model can distinguish position 3 from position 103. The challenge is making encodings that generalize beyond training lengths.
 
 ---
 
-## 2. Position Encoding Strategies
+### RoPE (Rotary Position Embedding)
 
-### 2.1 RoPE — Rotary Position Embedding
+**The problem:** absolute positional embeddings assign a fixed vector to each position index. A model trained to position 4096 has no learned representation for position 4097 — that embedding was never updated. Absolute position is also less useful than relative position for most reasoning: whether token i is 5 positions before token j matters more than what their absolute positions are.
 
-**Core idea:** Instead of adding a positional vector, *rotate* the query and key vectors in 2D subspaces by an angle proportional to position. The dot-product between Q and K then depends only on their *relative* position.
+**The core insight:** instead of adding a positional vector to token embeddings, rotate the query and key vectors in 2D subspaces by an angle proportional to position. The dot product between a rotated Q and a rotated K then depends only on the relative offset between them — not their absolute positions. This follows from the geometry of rotation: `(R(m)q)ᵀ(R(n)k) = qᵀR(n-m)k`.
 
-For position m, dimension pair (2i, 2i+1), the rotation matrix is:
+**The mechanics:** for position m and dimension pair (2i, 2i+1), the rotation angle is `mθᵢ` where `θᵢ = 10000^(-2i/d)`. High-frequency dimensions (small θ) encode fine-grained local position; low-frequency dimensions encode coarse long-range structure. Attention scores naturally decay with distance because high-frequency terms cancel for large position gaps.
 
-```
-R(m, θᵢ) = [[cos(mθᵢ), -sin(mθᵢ)],
-             [sin(mθᵢ),  cos(mθᵢ)]]
-
-where θᵢ = 10000^(-2i/d)
-```
-
-**Key properties:**
-- Relative position appears naturally in Q·K: `(R(m)q)ᵀ(R(n)k) = qᵀR(n-m)k`
-- **Long-term decay**: high-frequency dimensions (small θᵢ) oscillate fast and cancel for large |m-n|; low-frequency dimensions carry coarse structure. Attention score naturally decays with distance.
-- No learned parameters — pure geometric construction
-- Used in: LLaMA family, Mistral, GPT-NeoX, Falcon, Gemma
-
-```python
-import torch
-import torch.nn as nn
-
-def precompute_freqs_cis(dim: int, seq_len: int, theta: float = 10000.0):
-    """Precompute complex exponentials for RoPE."""
-    # Frequency for each dimension pair
-    freqs = 1.0 / (theta ** (torch.arange(0, dim, 2).float() / dim))
-    # Position indices
-    t = torch.arange(seq_len)
-    # Outer product: (seq_len, dim/2)
-    freqs = torch.outer(t, freqs)
-    # Convert to complex form: cos + i*sin
-    freqs_cis = torch.polar(torch.ones_like(freqs), freqs)
-    return freqs_cis
-
-
-def apply_rotary_emb(xq: torch.Tensor, xk: torch.Tensor,
-                     freqs_cis: torch.Tensor):
-    """Apply rotary embeddings to queries and keys.
-
-    Args:
-        xq: (batch, seq_len, n_heads, head_dim)
-        xk: (batch, seq_len, n_kv_heads, head_dim)
-        freqs_cis: (seq_len, head_dim/2) complex tensor
-    """
-    # View real tensor as complex: pairs (2i, 2i+1) become one complex number
-    xq_ = torch.view_as_complex(xq.float().reshape(*xq.shape[:-1], -1, 2))
-    xk_ = torch.view_as_complex(xk.float().reshape(*xk.shape[:-1], -1, 2))
-
-    # Broadcast freqs_cis over batch and heads: (1, seq_len, 1, head_dim/2)
-    freqs_cis = freqs_cis.unsqueeze(0).unsqueeze(2)
-
-    # Element-wise complex multiplication = rotation
-    xq_out = torch.view_as_real(xq_ * freqs_cis).flatten(3)
-    xk_out = torch.view_as_real(xk_ * freqs_cis).flatten(3)
-    return xq_out.type_as(xq), xk_out.type_as(xk)
-
-
-# Usage
-dim = 128          # head_dim
-seq_len = 4096
-freqs_cis = precompute_freqs_cis(dim, seq_len)
-
-batch, n_heads = 2, 8
-xq = torch.randn(batch, seq_len, n_heads, dim)
-xk = torch.randn(batch, seq_len, n_heads, dim)
-xq_rot, xk_rot = apply_rotary_emb(xq, xk, freqs_cis)
-print(xq_rot.shape)  # (2, 4096, 8, 128)
-```
-
-### 2.2 ALiBi — Attention with Linear Biases
-
-**Core idea:** Remove positional embeddings entirely. Instead, subtract a linear bias proportional to distance directly in the attention score:
-
-```
-Attention(Q, K, V) = softmax(QKᵀ/√d  -  m · |i - j|) · V
-```
-
-Where `m` is a head-specific slope (geometric sequence: 2^(-8/n_heads), 2^(-16/n_heads), ...).
-
-**Why it works for extrapolation:**
-- The model sees biases during training; at test time with longer sequences, the same bias formula applies — no OOD position indices
-- Steeper slopes (larger m) encode local attention; shallower slopes encode longer-range
-- No parameters added
-
-**Limitation:** ALiBi shows degraded performance at very long contexts compared to RoPE-based methods, and the linear decay assumption doesn't always match what tasks need.
-
-Used in: BLOOM, MPT, Baichuan
-
-### 2.3 Position Interpolation
-
-When extending a RoPE-trained model from length L to L', the naive approach applies positions 0..L'-1 — but the model was only trained on 0..L-1, so positions L..L'-1 are out of distribution.
-
-**Linear interpolation:** Scale all position indices by L/L':
-
-```
-m' = m · (L / L')
-```
-
-This squeezes the new longer sequence into the trained position range. Requires brief fine-tuning (~1000 steps) to adapt.
-
-**NTK-aware interpolation:** Linear interpolation uniformly compresses all frequency components, including high-frequency ones that the model uses for local structure. NTK-aware interpolation modifies the base θ instead:
-
-```
-θ'ᵢ = θᵢ · (L'/L)^(d/(d-2))
-```
-
-This leaves high-frequency dimensions mostly unchanged (local structure preserved) and compresses only low-frequency dimensions. Works with *zero* fine-tuning for moderate extension ratios.
+**What breaks:** the model is still trained up to some maximum length. Positions beyond that produce rotation angles the model has never seen — positionally out-of-distribution even though the formula still applies. This is what the length extension methods below address.
 
 ---
 
-## 3. RoPE Scaling Methods
+### ALiBi (Attention with Linear Biases)
 
-### 3.1 Linear Scaling
+**The problem:** even with RoPE, extending beyond the training length requires either fine-tuning or interpolation. Position indices out of the training range remain a problem.
 
-Simplest approach: divide all position indices by a scale factor s = L'/L.
+**The core insight:** remove positional embeddings entirely. Instead, subtract a fixed linear penalty proportional to token distance directly from the attention score before softmax:
 
-```python
-# In model config or at inference time
-def apply_linear_scaling(freqs_cis, scale_factor):
-    """Scale down position angles to stay within training range."""
-    # freqs_cis shape: (seq_len, head_dim/2)
-    # Reconstructing angles, scaling, recomputing
-    angles = torch.angle(freqs_cis)
-    scaled_freqs_cis = torch.polar(torch.ones_like(angles), angles / scale_factor)
-    return scaled_freqs_cis
+```
+score(i, j) = QᵢKⱼ/√d − m·(i−j)
 ```
 
-Works without fine-tuning up to ~2x extension. Degrades at higher ratios because squished positions create confusion between nearby tokens.
+where `m` is a head-specific slope. The penalty grows linearly with distance. Because the penalty formula involves only the distance `(i−j)` and is identical at any sequence length, the model sees nothing "new" when the sequence grows. There are no out-of-distribution position indices.
 
-### 3.2 Dynamic NTK Scaling
-
-Apply NTK-aware base scaling dynamically at runtime, adjusting based on actual sequence length seen:
-
-```python
-def get_ntk_alpha(original_max_position: int, current_length: int, head_dim: int):
-    """Compute NTK scaling alpha given current sequence length."""
-    if current_length <= original_max_position:
-        return 1.0
-    ratio = current_length / original_max_position
-    alpha = ratio ** (head_dim / (head_dim - 2))
-    return alpha
-
-def precompute_freqs_cis_ntk(dim: int, seq_len: int,
-                               original_max_len: int = 4096,
-                               theta: float = 10000.0):
-    alpha = get_ntk_alpha(original_max_len, seq_len, dim)
-    # Scale the base frequency
-    theta_scaled = theta * alpha
-    freqs = 1.0 / (theta_scaled ** (torch.arange(0, dim, 2).float() / dim))
-    t = torch.arange(seq_len)
-    freqs = torch.outer(t, freqs)
-    return torch.polar(torch.ones_like(freqs), freqs)
-```
-
-### 3.3 YaRN — Yet Another RoPE extensioN
-
-YaRN (Peng et al., 2023) combines three ideas:
-
-1. **NTK-by-parts interpolation**: Different frequency bands get different treatment
-   - High frequency (small wavelength): no interpolation, left unchanged
-   - Low frequency (large wavelength): pure linear interpolation
-   - Medium frequency: interpolate proportional to wavelength
-
-2. **Attention temperature correction**: Longer contexts increase the entropy of attention distributions, making them more uniform. YaRN corrects with a scaling factor `√(1/t)` applied to the attention scores, where t is derived from the extension ratio.
-
-3. **Fine-tuning on long sequences**: A small amount of continued pretraining on long documents (~400 steps) to consolidate the adjustments.
-
-YaRN achieves strong perplexity at 128k context on LLaMA with minimal compute. Used in Mistral's long-context variants.
-
-### 3.4 LongRoPE
-
-LongRoPE (Ding et al., 2024) finds non-uniform rescaling factors per dimension via evolutionary search, then applies a two-stage extension:
-1. Extend to 256k using found factors
-2. Fine-tune at 256k, then recover short-context performance by using original RoPE for sequences ≤ original_max_len
-
-Key insight: different RoPE dimensions have different sensitivity to length extension — one uniform scale factor is suboptimal.
+**What breaks:** the linear decay assumption may not match task requirements. A fact 10,000 tokens ago is penalized proportionally to its distance even if highly relevant. ALiBi also plateaus in quality at very long contexts compared to RoPE-based methods with good scaling.
 
 ---
 
-## 4. Sparse Attention Patterns
+## RoPE Length Extension
 
-Full attention is O(n²). Sparse attention restricts which tokens can attend to which, reducing to O(n·w) for window size w.
+These methods address the generalization problem: how to use a RoPE-trained model at lengths beyond its training distribution.
 
-### 4.1 Longformer
+### Linear Scaling (Position Interpolation)
 
-**Three attention pattern types:**
+**The problem:** a model trained on positions 0..L-1, when given positions L..L'-1, encounters values it has never seen. Naive application degrades output.
 
-| Pattern | Which tokens | Cost |
-|---|---|---|
-| Sliding window | Every token attends to ±w/2 neighbors | O(n·w) |
-| Dilated window | Every token attends to ±w/2 at stride d | O(n·w) |
-| Global tokens | Attend to/from ALL tokens | O(n·g) where g = #global |
+**The core insight:** compress the longer sequence's positions back into the trained range. Scale every position index by `L/L'` so the longest sequence still uses only positions 0..L-1.
 
-Global tokens are placed on [CLS], [SEP], or task-specific tokens. They aggregate global information that the window attention cannot carry across long spans.
+**The mechanics:** at inference, replace position m with `m × (L/L')`. Requires ~1000 steps of fine-tuning to adapt the model to the new spacing. Works to roughly 2–4× extension.
 
-```python
-from transformers import LongformerModel, LongformerTokenizer
-import torch
-
-tokenizer = LongformerTokenizer.from_pretrained("allenai/longformer-base-4096")
-model = LongformerModel.from_pretrained("allenai/longformer-base-4096")
-
-# Longformer can handle up to 4096 tokens
-text = "Your very long document here..." * 100  # simulate long input
-encoding = tokenizer(
-    text,
-    return_tensors="pt",
-    max_length=4096,
-    truncation=True,
-)
-
-input_ids = encoding["input_ids"]
-attention_mask = encoding["attention_mask"]
-
-# Global attention mask: 0 = local window, 1 = global
-# Put global attention on first token ([CLS])
-global_attention_mask = torch.zeros_like(input_ids)
-global_attention_mask[:, 0] = 1  # CLS attends globally
-
-with torch.no_grad():
-    outputs = model(
-        input_ids=input_ids,
-        attention_mask=attention_mask,
-        global_attention_mask=global_attention_mask,
-    )
-
-# outputs.last_hidden_state: (batch, seq_len, hidden_size)
-cls_embedding = outputs.last_hidden_state[:, 0, :]
-print(cls_embedding.shape)  # (1, 768)
-
-# For classification tasks, use LongformerForSequenceClassification
-from transformers import LongformerForSequenceClassification
-
-clf_model = LongformerForSequenceClassification.from_pretrained(
-    "allenai/longformer-base-4096",
-    num_labels=2,
-)
-logits = clf_model(
-    input_ids=input_ids,
-    attention_mask=attention_mask,
-    global_attention_mask=global_attention_mask,
-).logits
-```
-
-### 4.2 BigBird
-
-BigBird (Zaheer et al., 2020) proves that sparse attention with three components is Turing-complete and can approximate full attention:
-
-1. **Random attention**: each query attends to r randomly selected keys (long-range links)
-2. **Window attention**: sliding window of size w (local structure)
-3. **Global tokens**: g tokens attend to/from all (information hubs)
-
-Total complexity: O(n · (r + w + g)) which is O(n) for fixed r, w, g.
-
-**Theoretical result**: BigBird can simulate any function computable by full attention, given sufficient global tokens. Random edges create small-world graph properties — diameter O(log n) instead of O(n).
-
-### 4.3 Streaming LLM
-
-**StreamingLLM** (Xiao et al., 2023) addresses a different problem: *infinite-length* inference with a fixed KV cache budget, without re-encoding past context.
-
-**Observation**: Attention sinks — the first few tokens (often [BOS]) accumulate disproportionate attention mass regardless of content. Removing them from the KV cache catastrophically degrades performance, but their *values* matter less than their *presence* as attention anchors.
-
-**Solution:** Keep two sets of KV cache entries:
-- **Sink tokens**: first 4 tokens (hardcoded attention sinks)
-- **Recent window**: last W tokens (sliding window)
-
-```
-KV cache = [sink_tokens | recent_window]
-           [    4       |      W        ]
-```
-
-When the window overflows, evict the oldest non-sink token. This allows indefinitely long generation with O(1) memory growth (bounded by 4 + W).
-
-**Limitation:** The model cannot recall tokens that fell out of the window — it is not a memory mechanism, just a stable inference mechanism.
+**What breaks:** uniform compression treats all frequency bands equally. High-frequency RoPE dimensions that encode local syntax are compressed as aggressively as low-frequency ones that encode long-range structure — degrading local representations.
 
 ---
 
-## 5. Memory-Efficient Attention
+### NTK-Aware Interpolation
 
-### 5.1 FlashAttention
+**The problem:** linear scaling breaks high-frequency dimensions disproportionately. The model uses high-frequency RoPE components to distinguish nearby tokens; squishing those frequencies confuses local structure.
 
-**The memory bottleneck:** Standard attention materializes the full n×n matrix in HBM (GPU high-bandwidth memory) to compute softmax. At n=8192, that's 256MB per layer per head in float16.
+**The core insight:** instead of scaling positions, scale the base frequency θ. Changing θ affects low-frequency dimensions strongly (their wavelength is proportional to θ) while high-frequency dimensions are nearly unchanged. Local structure is preserved while range is extended.
 
-**FlashAttention** (Dao et al., 2022) restructures the computation to avoid ever materializing the full matrix:
+**The mechanics:** replace `θᵢ = 10000^(-2i/d)` with `θ'ᵢ = (10000 · (L'/L)^(d/(d-2)))^(-2i/d)`. Requires **zero fine-tuning** for moderate extension ratios (up to ~4×) and minimal fine-tuning for larger ones.
 
-**Tiling algorithm:**
-1. Divide Q, K, V into blocks that fit in SRAM (fast on-chip memory)
-2. For each block of Q, iterate over all blocks of K, V
-3. Maintain running statistics (max, sum) for numerically stable online softmax
-4. Accumulate output block without writing intermediate attention matrix to HBM
-
-```
-Memory:  O(n)    instead of O(n²)
-FLOPs:   same    (still O(n²) math, but done in SRAM — much faster)
-Speedup: 2–4×    wall-clock on A100 for typical lengths
-```
-
-The key insight: HBM bandwidth is the bottleneck, not raw FLOPs. Keeping the n×n intermediate in SRAM avoids expensive HBM reads/writes.
-
-**IO complexity:** FlashAttention performs O(n²/M) HBM accesses where M is SRAM size, versus O(n²) for standard attention.
-
-### 5.2 FlashAttention-2
-
-Improvements over v1:
-- Better work partitioning across warps within a thread block (less synchronization)
-- Separate forward/backward parallelization strategy
-- Supports causal masking, multi-query attention (MQA), grouped-query attention (GQA)
-- ~2× faster than FlashAttention-1 on A100
-
-```python
-# FlashAttention-2 via the flash_attn package
-from flash_attn import flash_attn_func
-import torch
-
-batch, seq_len, n_heads, head_dim = 2, 8192, 32, 128
-q = torch.randn(batch, seq_len, n_heads, head_dim, dtype=torch.float16, device="cuda")
-k = torch.randn(batch, seq_len, n_heads, head_dim, dtype=torch.float16, device="cuda")
-v = torch.randn(batch, seq_len, n_heads, head_dim, dtype=torch.float16, device="cuda")
-
-# causal=True for autoregressive models
-out = flash_attn_func(q, k, v, causal=True)
-print(out.shape)  # (2, 8192, 32, 128)
-
-# Compared to standard attention (for illustration):
-# Standard would do: scores = (q @ k.transpose(-2,-1)) / sqrt(head_dim)
-# This creates a (2, 32, 8192, 8192) tensor in HBM — ~4GB in float16
-# FlashAttention never creates this tensor
-```
-
-### 5.3 Ring Attention
-
-For sequences longer than a single GPU's memory allows, **Ring Attention** (Liu et al., 2023) distributes the sequence across devices:
-
-- Each device holds a chunk of Q and a chunk of K, V
-- Devices form a ring; K, V blocks rotate around the ring
-- Each device computes its contribution to the output using the FlashAttention online softmax trick across all received K, V blocks
-
-This allows sequence lengths proportional to `n_devices × per_device_memory`, achieving nearly linear scaling of context with GPU count. Compute-communication overlap hides most of the ring communication cost.
+**What breaks:** at large extension ratios the approximation breaks down. NTK-aware scaling without fine-tuning degrades noticeably past ~8× extension.
 
 ---
 
-## 6. Retrieval-Augmented Approaches
+### YaRN
 
-Instead of fitting everything into the context window, retrieve only what is needed.
+**The problem:** NTK-aware scaling applies a single global modification. Different frequency bands have different sensitivities to length extension — one scalar cannot optimally handle all of them.
 
-### 6.1 KNN-LM
+**The core insight:** treat the frequency spectrum in three bands. High-frequency dimensions (local structure): leave completely unchanged. Low-frequency dimensions (global structure): apply linear interpolation. Medium-frequency: interpolate proportionally to wavelength. Additionally, longer contexts increase softmax entropy (attention spreads more uniformly), so apply a temperature correction to re-sharpen attention.
 
-**kNN-LM** (Khandelwal et al., 2019): At inference, maintain a datastore of (hidden_state, next_token) pairs from a large corpus. For each query, find the k nearest neighbors by hidden state distance, interpolate their next-token distributions with the model's prediction:
-
-```
-P_final = λ · P_kNN + (1 - λ) · P_LM
-```
-
-No retraining required — plugs into any frozen LM. Effective for domain adaptation (build a domain-specific datastore).
-
-### 6.2 RETRO
-
-**RETRO** (Borgeaud et al., 2022): Retrieval during *training*, not just inference. The model architecture includes cross-attention layers that attend to retrieved chunks:
-
-- Input is split into chunks of 64 tokens
-- For each chunk, retrieve k similar chunks from a 2 trillion token corpus via approximate nearest neighbor search
-- Special RETRO cross-attention layers inject retrieved context
-- At 7B parameters, matches performance of 25× larger models without retrieval
-
-### 6.3 RAG as Alternative to Long Context
-
-For tasks like "answer questions about a 500-page PDF," RAG is often preferable to long context even when long context is available:
-
-| Dimension | Long Context | RAG |
-|---|---|---|
-| Latency | High (full attention over all tokens) | Lower (only retrieved chunks in context) |
-| Cost | Scales with full doc length | Scales with retrieved chunk size |
-| Recall | Perfect — nothing missed | Depends on retrieval quality |
-| Lost-in-middle | Affected | Not affected |
-| Dynamic updates | Re-encode entire doc | Update index incrementally |
-
-**When to use long context:** When retrieval recall is critical, document structure matters (tables, cross-references), or the task requires synthesizing across many parts simultaneously.
+**What breaks:** requires ~400 steps of fine-tuning on long documents to consolidate. The hyperparameters (band boundaries, temperature correction factor) require tuning per model family.
 
 ---
 
-## 7. Recurrent and State-Space Alternatives
+### LongRoPE
 
-These architectures achieve **O(n) training complexity** and **O(1) inference state** (fixed recurrent state), trading some expressiveness for efficiency.
+**The problem:** the frequency band boundaries in YaRN are set by hand. Optimal per-dimension rescaling factors cannot be derived analytically for a specific trained model.
 
-### 7.1 Mamba (Selective State Space Models)
+**The core insight:** search for optimal per-dimension rescaling factors using an evolutionary algorithm, then apply a two-stage extension — first to 256k tokens, then fine-tune, then restore original RoPE for sequences shorter than the original max length so short-context quality is not degraded.
 
-**S4 / Mamba** (Gu & Dao, 2023) frames sequence modeling as a continuous-time state space system:
-
-```
-h'(t) = A·h(t) + B·x(t)
-y(t)  = C·h(t)
-```
-
-Discretized for sequences:
-```
-hₜ = Ā·hₜ₋₁ + B̄·xₜ
-yₜ = C·hₜ
-```
-
-**Selective SSM (Mamba's key innovation):** Make B, C, and Δ (discretization step) *input-dependent*. This lets the model selectively remember or forget based on content — something fixed-parameter RNNs cannot do.
-
-- Training: parallel scan (efficient on GPUs), O(n) time
-- Inference: pure recurrence, O(1) state update per token
-- Scales to very long sequences without attention
-- Weakness: fundamentally harder to do "in-context lookup" — retrieving a specific earlier token requires it to be preserved in the compressed state
-
-### 7.2 RWKV
-
-RWKV reformulates attention as a linear recurrence, making it RNN-like at inference but trainable like a transformer. The key-value interaction is:
-
-```
-WKV_t = (Σ exp(w·(t-i) + kᵢ) · vᵢ) / (Σ exp(w·(t-i) + kᵢ))
-```
-
-Where w is a learnable per-channel decay. This is computable as a recurrence in O(1) state per step. Used in RWKV-4/5/6 with competitive performance to similarly-sized transformers.
-
-### 7.3 RetNet
-
-RetNet (Microsoft, 2023) replaces softmax attention with a retention mechanism that has three equivalent representations:
-- **Parallel** (training): matrix form, O(n²) like attention but with a decay mask
-- **Recurrent** (inference): O(1) state, constant memory
-- **Chunkwise** (training efficiency): process chunks in parallel, propagate state between chunks
-
-**Retention vs Attention:** Retention applies an explicit exponential decay γ^(m-n) instead of softmax normalization. This loses the ability to attend uniformly to distant tokens, but gains stable recurrent inference.
+**What breaks:** the evolutionary search is expensive to run. The resulting factors are model-specific and do not transfer to other model families.
 
 ---
 
-## 8. Context Compression
+## Sparse Attention
 
-Instead of extending the window or retrieving, *compress* the context itself.
+### The Problem They Solve
 
-### 8.1 AutoCompressor
-
-**AutoCompressor** (Chevalier et al., 2023): Fine-tune an LLM to recursively summarize its own context. The model processes a segment and produces "summary tokens" — soft tokens in embedding space that summarize that segment. These summary tokens are prepended to the next segment.
-
-```
-Segment 1 → [summary_tokens_1]
-Segment 2 + summary_tokens_1 → [summary_tokens_12]
-Segment 3 + summary_tokens_12 → answer
-```
-
-Compression ratio ~20x (1000 tokens → 50 summary tokens). Requires fine-tuning.
-
-### 8.2 Gist Tokens
-
-**Gist tokens** (Mu et al., 2023): Train a model to compress a long prompt (e.g., system prompt or instructions) into a small number of learned "gist" tokens. At inference, cache the gist token KV representations and reuse across many queries sharing the same prefix.
-
-- Trained with a masking strategy: the model sees gist tokens instead of the full prompt during supervised fine-tuning
-- Achieves ~26x compression of instruction prompts with minimal task performance degradation
-- Directly reduces KV cache size for repeated prompt prefixes
-
-### 8.3 LLMLingua
-
-**LLMLingua** (Jiang et al., 2023): Token-level prompt compression using a small proxy LM to identify low-perplexity (redundant) tokens for removal.
-
-**Algorithm:**
-1. Use a small LM (e.g., LLaMA-7B) to compute perplexity of each token conditioned on the prompt so far
-2. Tokens with low perplexity (highly predictable) are redundant — prune them
-3. Apply a budget-aware allocation across prompt segments (instructions get higher budget than examples)
-
-```python
-# LLMLingua (conceptual usage — requires llmlingua package)
-from llmlingua import PromptCompressor
-
-compressor = PromptCompressor(
-    model_name="NousResearch/Llama-2-7b-hf",
-    device_map="cuda",
-)
-
-long_prompt = "..." * 500  # very long prompt
-
-compressed = compressor.compress_prompt(
-    long_prompt,
-    instruction="Answer the question.",
-    question="What is the main conclusion?",
-    ratio=0.5,           # target 50% compression
-    rank_method="llmlingua",
-)
-
-print(f"Original tokens: {compressed['origin_tokens']}")
-print(f"Compressed tokens: {compressed['compressed_tokens']}")
-print(f"Ratio: {compressed['ratio']}")
-print(compressed['compressed_prompt'])
-```
-
-**LongLLMLingua** extends this to emphasize tokens most relevant to the question (coarse-to-fine compression) — up to 5x compression with <5% performance drop on NLP benchmarks.
+Even with perfect positional encodings, full attention is O(n²) in both memory and compute. At n=128k, the attention matrix is 16 billion entries — past the limits of any current GPU for a single layer. The question is whether something close to full attention can be computed without materializing the full n×n matrix.
 
 ---
 
-## 9. Evaluation
+### Longformer
 
-### 9.1 RULER Benchmark
+**The problem:** for most tokens, nearly all of the n×n attention matrix is low-information noise — distant, unrelated tokens. Only nearby tokens and a small set of globally important tokens receive meaningful attention weight.
 
-**RULER** (Hsieh et al., 2024) is a synthetic benchmark specifically designed to measure long-context capability with configurable difficulty:
+**The core insight:** replace full attention with two complementary patterns. Every token attends to its ±w/2 nearest neighbors (capturing local syntax and coreference). A small set of designated global tokens (CLS, task tokens) attend to and from all tokens (propagating information across the document despite the window restriction).
 
-- **NIAH (Needle In A Haystack)**: Single/multi-hop fact retrieval from injected sentences buried in a long document
-- **Variable tracking**: Follow a chain of variable assignments across many tokens
-- **Aggregation**: Count occurrences of a word across a long document
-- **QA**: Answer questions requiring synthesis across the full document
+Cost: O(n·w) instead of O(n²). Global tokens are the bottleneck through which long-range information flows.
 
-RULER revealed that models claiming 128k context windows often degrade sharply past 32k in practice.
-
-### 9.2 Needle-in-a-Haystack Test
-
-**NIAH test** directly measures whether a model can retrieve a specific fact injected at an arbitrary position in a long context:
-
-```
-"The magic word is PINEAPPLE."  ← injected at position p% through document
-[... long filler text ...]
-"What is the magic word?"
-```
-
-Results are plotted as a heatmap over (document length, injection depth). Most models show:
-- High retrieval accuracy at the beginning and end (primacy/recency effects)
-- Degraded retrieval in the middle
-- Abrupt failure cliff at some length threshold
-
-### 9.3 Lost-in-the-Middle Phenomenon
-
-**Lost-in-the-Middle** (Liu et al., 2023): Even with sufficient context length, LLMs perform significantly worse when relevant information appears in the middle of the context versus the beginning or end.
-
-Tested on multi-document QA: performance follows a U-shaped curve over position. The effect persists across GPT-3.5, GPT-4, Claude, and open-source models.
-
-**Implications:**
-- For RAG: put the most relevant retrieved chunks first or last, not in the middle
-- For long-context fine-tuning: training examples where the answer is in the middle are underrepresented; explicit position augmentation helps
-- Cause: attention patterns during pretraining create implicit primacy/recency bias that survives instruction tuning
+**What breaks:** information can only flow from distant parts of the document through global tokens. If global tokens are not positioned or trained to aggregate the right information, distant cross-document reasoning fails. Longformer is a pretrained architecture, not a plug-in for existing models.
 
 ---
 
-## 10. Key Interview Points
+### BigBird
 
-**On the core tradeoff:**
-> "Long context vs retrieval vs compression are three strategies for the same goal — getting relevant information to the model. Long context has perfect recall but quadratic cost; RAG has sublinear cost but imperfect retrieval; compression has bounded cost but lossy information. In practice, you combine them."
+**The core insight:** add random attention (each token attends to a random subset of all tokens) on top of window + global attention. This creates a small-world graph structure: local edges from the window, global edges from global tokens, random long-range edges. BigBird proves this combination is Turing-complete and can approximate full attention.
 
-**On RoPE vs ALiBi:**
-> "RoPE encodes relative position through geometry — dot products naturally reflect distance. ALiBi encodes it through explicit linear bias. ALiBi extrapolates more cleanly without fine-tuning but tends to plateau in quality; RoPE with NTK scaling or YaRN achieves better perplexity at very long contexts with light fine-tuning."
+**What breaks:** random attention is non-deterministic — different runs sample different edges. For tasks requiring precise long-range recall, random edges may miss the critical token. Theoretical guarantees require sufficient global tokens.
 
-**On FlashAttention:**
-> "FlashAttention doesn't reduce FLOPs — it's still O(n²) math. What it reduces is HBM memory traffic by keeping the attention computation in SRAM and using tiling. The result is 2–4× wall-clock speedup and O(n) memory instead of O(n²)."
+---
 
-**On sparse attention:**
-> "Longformer and BigBird reduce complexity to O(n·w) through sliding window attention. The key design choice is global tokens — without them, information can't flow between distant parts of the document. StreamingLLM is different: it's not about training, it's about stable KV cache eviction for unbounded inference."
+### StreamingLLM
 
-**On SSMs vs attention:**
-> "Mamba achieves O(n) training and O(1) inference via selective state space models. The tradeoff is expressiveness — transformers can do exact copying and in-context lookup trivially; SSMs must compress history into a fixed state, making that harder. Hybrid models (Mamba + attention layers) try to get the best of both."
+**The problem:** standard models are trained with a fixed context window. In streaming settings — indefinitely long conversations, live transcription — the context grows without bound. Re-encoding the full context on each new token is intractable.
 
-**On the lost-in-the-middle problem:**
-> "Extending context length doesn't automatically solve long-document understanding. Models exhibit primacy/recency bias: facts at the start and end of context are recalled better than facts in the middle. RULER and NIAH tests expose this. Fine-tuning with position-diverse examples and attention-modified architectures (e.g., YaRN's temperature correction) partially address it."
+**The core insight:** two empirical observations make stable streaming possible. First, most relevant context for current generation is recent. Second, the very first tokens in a sequence accumulate disproportionately large attention mass regardless of their content — they act as attention sinks, serving as numerical anchors for the softmax. Removing them from the KV cache catastrophically destabilizes generation even though they carry no semantic importance.
 
-**On context compression:**
-> "LLMLingua and Gist tokens approach compression differently. LLMLingua prunes tokens at the input level using a proxy model's perplexity — interpretable but lossy. Gist tokens compress prompts into continuous embeddings — not human-readable but potentially more information-dense. Both reduce KV cache pressure downstream."
+**The mechanics:** keep exactly two sets of KV cache entries — the first 4 tokens (attention sinks) and the most recent W tokens (sliding window). When the window is full, evict the oldest non-sink token.
 
-**On extending a deployed model:**
-> "For extending an existing RoPE model without training, NTK-aware interpolation is the first thing to try — zero fine-tuning, works up to ~4× extension with minimal degradation. For production quality at 8–16× extension, YaRN with ~400 steps of long-context fine-tuning is the current best practice. LongRoPE adds per-dimension optimization on top."
+**What breaks:** tokens that slide out of the window are permanently lost. The model cannot recall anything more than W tokens ago. This is a stable inference mechanism, not a long-term memory mechanism.
+
+---
+
+## Memory-Efficient Attention
+
+### FlashAttention
+
+**The problem:** standard attention writes the full n×n score matrix to GPU high-bandwidth memory (HBM) for softmax, then reads it back for the weighted sum of values. At n=8192 in float16, this is ~256 MB of HBM traffic per attention layer per head. HBM bandwidth (~2 TB/s on A100) is the bottleneck — the arithmetic units idle while waiting for memory transfers.
+
+**The core insight:** the n×n matrix is a transient intermediate result. It does not need to exist as a complete tensor in HBM. It can be computed tile by tile in SRAM (fast on-chip memory, ~192 KB on A100), with softmax maintained via running max and running sum statistics (online softmax). The output is accumulated without ever writing the full matrix to HBM.
+
+**The mechanics (tiling):**
+1. Divide Q, K, V into blocks that fit in SRAM.
+2. For each Q block, iterate over all K and V blocks.
+3. Maintain running softmax statistics to combine results across blocks.
+4. Accumulate the output — the full n×n matrix is never in HBM.
+
+Memory: O(n) instead of O(n²). FLOPs are unchanged (still O(n²) arithmetic). Speedup comes from reduced HBM reads/writes: IO complexity drops from O(n²) to O(n²/M) where M is SRAM size.
+
+**What breaks:** requires custom CUDA kernels — cannot be expressed as standard PyTorch operations. Hardware-specific: tiling must fit SRAM, which differs across GPU generations. FlashAttention-2 improved work partitioning across warps. FlashAttention-3 adds pipeline overlap for H100's asynchronous memory units.
+
+---
+
+### Ring Attention
+
+**The problem:** even FlashAttention is bounded by a single GPU's SRAM. For sequences longer than a single GPU's memory can handle even with tiling, the sequence must be distributed across devices.
+
+**The core insight:** each GPU holds a chunk of Q and a chunk of K, V. The K, V blocks rotate around a ring of GPUs. Each GPU computes its part of the output using the online softmax trick across all K, V blocks it receives. No device ever needs the full sequence — each device sees one K, V chunk at a time.
+
+**What breaks:** ring communication adds latency. Compute-communication overlap mitigates this but requires careful implementation. Sequence length must be divisible by the number of devices.
+
+---
+
+## Context Compression
+
+### The Problem They Solve
+
+Long context is expensive to process: O(n²) attention over a 100k token prompt is slow. For many tasks, most of that context is irrelevant to the current query — only a fraction matters. Compression removes the irrelevant parts before generation.
+
+---
+
+### LLMLingua
+
+**The problem:** the full prompt must be processed even if most of it is redundant for the specific query.
+
+**The core insight:** a small proxy language model can measure how predictable (low perplexity) each token is given surrounding context. Predictable tokens are redundant — if the reader can predict them, they carry little new information. Remove the low-perplexity tokens.
+
+**The mechanics:**
+1. Use a small LM to compute perplexity of each token.
+2. Rank tokens by perplexity — low perplexity = remove, high perplexity = keep.
+3. Apply budget-aware allocation: instructions and question tokens get higher budgets than background tokens.
+4. LongLLMLingua extends this to weight tokens by relevance to the specific question.
+
+**What breaks:** the proxy model may not agree with the target model about which tokens matter. Compression can remove tokens that are low perplexity but causally necessary for the answer. Quality must be evaluated on the specific task, not just on prompt perplexity.
+
+---
+
+### Gist Tokens
+
+**The problem:** many queries share the same long system prompt or instruction prefix. Re-encoding that prefix for every query wastes compute.
+
+**The core insight:** fine-tune the model to compress a long prompt into a small set of learned "gist" token embeddings that capture the prompt's semantic content. Cache the gist tokens' KV representations and reuse them across all queries sharing the prefix.
+
+**The mechanics:** during fine-tuning, mask out the original prompt tokens and train the model to perform tasks conditioned only on gist tokens. At inference, compute gist tokens once, cache their KV pairs, and never re-encode the original prompt.
+
+**What breaks:** gist tokens are not human-readable. If the original prompt changes, gist tokens must be recomputed. The compression is lossy — nuance in the original prompt may be lost.
+
+---
+
+## Evaluation
+
+### Needle-in-a-Haystack (NIAH)
+
+**The problem:** a model may claim to support 128k context but fail to retrieve a specific fact buried in the middle of a 128k document. Perplexity on long documents does not capture this — a model can have low perplexity while missing retrievable facts.
+
+**The core insight:** inject a single specific fact ("the magic word is PINEAPPLE") at a known position in a long document. Ask the model to retrieve it. Plot retrieval accuracy as a heatmap over (document length, injection position). The model either retrieves it or it does not.
+
+**What breaks:** NIAH tests only single-fact retrieval. A model can ace NIAH while failing at multi-hop reasoning over long contexts. RULER extends NIAH to variable tracking, aggregation, and multi-hop QA to expose these failures.
+
+---
+
+### Lost-in-the-Middle
+
+**The problem:** even models that pass NIAH often fail when relevant information is in the middle of the context rather than at the beginning or end. This U-shaped recall pattern is documented across GPT-3.5, GPT-4, Claude, and open-source models.
+
+**The core insight:** attention patterns during pretraining create an implicit primacy/recency bias — the first and last tokens are consistently attended to more than middle tokens. This survives instruction tuning because it is baked into learned attention weights, not just surface behavior.
+
+**Practical implication:** for RAG systems, put the most relevant retrieved chunks first or last, not in the middle. For long-context fine-tuning, oversample examples where the answer appears in the middle of the context.
+
+---
+
+## Recurrent and State-Space Alternatives
+
+### Mamba (Selective State Space Models)
+
+**The problem:** even with all the above techniques, transformers are fundamentally O(n²) in training due to full attention. For sequences of millions of tokens, this is prohibitive regardless of engineering.
+
+**The core insight:** model sequences as a continuous-time state space system: `h'(t) = A·h(t) + B·x(t)`, `y(t) = C·h(t)`. Discretized to: `hₜ = Ā·hₜ₋₁ + B̄·xₜ`, `yₜ = C·hₜ`. Training parallelizes via parallel scan — O(n) on GPUs. Inference is pure recurrence — O(1) state update per new token.
+
+Mamba's key innovation: make B, C, and the discretization step Δ input-dependent. This lets the model choose what to retain in state based on content, which fixed-parameter RNNs cannot do.
+
+**What breaks:** the fixed-size state is a bottleneck. Transformers can do exact in-context lookup by attending to any earlier token. Mamba must compress all history into a fixed state vector. A critical fact processed 50,000 tokens ago may not survive many subsequent state updates. Hybrid models (alternating Mamba and attention layers) are the current practical compromise.
 
 ---
 

@@ -1,208 +1,172 @@
-# Normalization Techniques in Deep Learning
-
-Normalization layers stabilize training by controlling the distribution of activations. Different variants suit different architectures and batch sizes.
+# Normalization
 
 ---
 
-## Why Normalize?
+## Internal Covariate Shift
 
-Without normalization:
-- Internal covariate shift: distribution of layer inputs shifts as weights update
-- Deep networks saturate activations (tanh/sigmoid → zero gradients)
-- Training requires careful learning rate tuning and initialization
+**The problem**: during training, a layer's weights update based on the distribution of its inputs. But the layer below is also updating — so the input distribution shifts with every gradient step. Layer $l$ adapts to distribution $D_t$, but by the next step, the layer below has changed and now produces distribution $D_{t+1}$. Layer $l$ must perpetually chase a moving target. This slows learning and requires lower learning rates to prevent instability.
+
+**The core insight**: after each layer's transformation, explicitly re-normalize the activations to have controlled statistics. This removes the distributional drift, decouples the optimization of different layers, and allows higher learning rates.
+
+**What breaks** without normalization: activations drift into saturation regions (tanh/sigmoid gradients vanish), training requires very careful initialization and learning rate tuning, and deep networks often fail to converge at all.
 
 ---
 
-## Batch Normalization (BatchNorm)
+## Batch Normalization
 
-Introduced by Ioffe & Szegedy (2015). Normalizes each feature across the **batch** dimension.
+**The problem**: the most natural "controlled statistics" would be zero mean and unit variance across the feature dimension. But how do you estimate mean and variance? A single example gives noisy statistics. Use the batch.
 
-For a mini-batch of activations `{x_1, ..., x_m}` for a single feature:
+**The core insight**: for each feature, normalize across all examples in the mini-batch simultaneously. This gives stable statistics (many data points) without needing the full dataset.
 
-```
-μ_B = (1/m) Σ x_i
-σ²_B = (1/m) Σ (x_i - μ_B)²
-x̂_i = (x_i - μ_B) / √(σ²_B + ε)
-y_i = γ x̂_i + β    ← learned scale and shift (γ and β are trainable)
-```
+**The mechanics**: for a mini-batch $\{x_1, \ldots, x_m\}$, for each feature independently:
+
+$$\mu_B = \frac{1}{m} \sum_i x_i, \quad \sigma_B^2 = \frac{1}{m} \sum_i (x_i - \mu_B)^2$$
+
+$$\hat{x}_i = \frac{x_i - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}, \quad y_i = \gamma \hat{x}_i + \beta$$
+
+$\gamma$ and $\beta$ are learned per-feature scale and shift — they let the network undo the normalization if needed. $\epsilon$ prevents division by zero.
+
+At inference, batch statistics are unavailable (or noisy for batch size 1). BatchNorm uses a running mean and variance accumulated during training via exponential moving average.
 
 ```python
-# 2D (after Linear layer)
-bn = nn.BatchNorm1d(num_features)
-
-# 4D (after Conv2d): normalizes over (N, H, W) for each channel C
-bn = nn.BatchNorm2d(num_channels)
-
-# Training vs Inference behavior difference
-model.train()   # uses batch statistics for μ, σ²
-model.eval()    # uses running mean/var accumulated during training
+model.train()  # uses batch statistics
+model.eval()   # uses running statistics — CRITICAL to call before inference
 ```
 
-**Key properties:**
-- Running statistics (exponential moving average of μ and σ²) used at inference
-- `momentum` parameter controls how fast running stats update (default 0.1 in PyTorch)
-- Acts as regularizer — slightly reduces need for Dropout
-
-**Problems:**
-- Fails with small batch sizes (statistics noisy)
-- Cannot be used with sequence batches of variable length (per-element statistics meaningless)
-- Non-causal in time series (future statistics leak into past)
+**What breaks**: with small batch sizes ($< 8$ or so), the per-batch mean and variance estimates are noisy. The "normalization" introduces more noise than it removes. Single-example inference with batch-norm statistics is wrong unless you call `model.eval()` — a common and silent bug. BatchNorm also breaks for variable-length sequences where padding means different batch elements have different numbers of meaningful tokens.
 
 ---
 
-## Layer Normalization (LayerNorm)
+## Layer Normalization
 
-Normalizes across **all features** for each single sample. Batch-independent.
+**The problem**: BatchNorm requires a batch to compute statistics, but many settings have batch size 1 (autoregressive generation), variable-length sequences (NLP), or small batches where batch statistics are unreliable. You need a normalization that works sample-by-sample.
 
-```
-For sample x of dimension d:
-μ = (1/d) Σ x_j
-σ² = (1/d) Σ (x_j - μ)²
-x̂ = (x - μ) / √(σ² + ε)
-y = γ ⊙ x̂ + β    ← per-feature scale and shift
-```
+**The core insight**: normalize across the *feature* dimension for each sample independently. Each sample is self-normalized — no other samples needed.
 
-```python
-ln = nn.LayerNorm(normalized_shape)   # e.g., embed_dim for Transformers
-# normalized_shape = [d] → normalizes last d dimensions
-# normalized_shape = [H, W] → normalizes spatial dims for each (N, C) independently
-```
+**The mechanics**: for a single sample $x \in \mathbb{R}^d$:
 
-**Used in:** Transformers (BERT, GPT, T5), RNNs, ViTs.  
-**Works for any batch size, including 1.** Consistent train/inference behavior (no running stats).
+$$\mu = \frac{1}{d} \sum_j x_j, \quad \sigma^2 = \frac{1}{d} \sum_j (x_j - \mu)^2$$
 
----
+$$\hat{x} = \frac{x - \mu}{\sqrt{\sigma^2 + \epsilon}}, \quad y = \gamma \odot \hat{x} + \beta$$
 
-## Instance Normalization (InstanceNorm)
+$\gamma$, $\beta$ are learned per-feature. No dependence on batch size or other samples.
 
-Normalizes each sample and each channel independently over **spatial dimensions** (H, W). No batch statistics involved.
+Train/inference behavior is identical — no running statistics needed.
 
-```python
-# 2D: normalizes over (H, W) for each (N, C) independently
-inst = nn.InstanceNorm2d(num_channels, affine=True)
-```
+**What breaks**: LayerNorm normalizes over all features of a single sample. If features have very different natural scales or semantics, forcing them to share the same mean and variance destroys structure. This is generally not a problem in Transformer embeddings (all dimensions are treated symmetrically), but can be an issue for heterogeneous feature spaces.
 
-**Used in:** Style transfer (AdaIN — Adaptive Instance Normalization). Removes style while preserving content structure.
-
-**Limitation:** Ignores batch-wide statistics and cross-channel relationships.
+Used in: BERT, GPT, T5, LLaMA, virtually all Transformer architectures.
 
 ---
 
-## Group Normalization (GroupNorm)
+## RMSNorm
 
-Divides channels into G groups; normalizes over (C/G, H, W) for each sample. Batch-independent.
+**The problem**: LayerNorm computes both the mean and variance. Subtracting the mean is an additional operation. Does the mean subtraction actually matter for training stability?
 
-```python
-# G=1 → equivalent to LayerNorm over spatial dims
-# G=C → equivalent to InstanceNorm
-gn = nn.GroupNorm(num_groups=32, num_channels=256)
-```
+**The core insight**: empirically, most of LayerNorm's benefit comes from the variance scaling, not the mean centering. If you just divide by the root mean square, you get almost the same quality at lower computational cost.
 
-**Used in:** Object detection (FPN, Mask R-CNN), segmentation, video models where batch size is small (1-4 per GPU).
+**The mechanics**:
 
-**Rule of thumb:** 32 channels per group typical. Outperforms BatchNorm when batch size < 16.
+$$\text{RMS}(x) = \sqrt{\frac{1}{d} \sum_j x_j^2}, \quad y = \frac{x}{\text{RMS}(x)} \cdot \gamma$$
 
----
+No mean subtraction. $\gamma$ is a learned per-feature scale (no $\beta$ shift needed since there is no mean centering to undo).
 
-## Root Mean Square Normalization (RMSNorm)
+**What breaks**: if the mean of $x$ is significantly non-zero, RMSNorm does not remove it. The representation retains a mean shift. This is generally tolerable because the next layer's bias and the subsequent operations absorb the mean. But if mean shifts accumulate through many layers, optimization can be slightly less stable than with full LayerNorm.
 
-Simplified LayerNorm: omits mean centering, only scales by RMS.
-
-```
-RMS(x) = √((1/d) Σ x_j²)
-y = (x / RMS(x)) × γ
-```
-
-```python
-class RMSNorm(nn.Module):
-    def __init__(self, dim, eps=1e-8):
-        super().__init__()
-        self.scale = nn.Parameter(torch.ones(dim))
-        self.eps = eps
-    
-    def forward(self, x):
-        rms = x.pow(2).mean(-1, keepdim=True).add(self.eps).sqrt()
-        return x / rms * self.scale
-```
-
-**Used in:** LLaMA, Mistral, Gemma — replacing LayerNorm in modern LLMs. Faster (no mean computation), nearly identical performance.
+Used in LLaMA, Mistral, Gemma, and most modern LLMs.
 
 ---
 
-## Adaptive Instance Normalization (AdaIN)
+## Instance Normalization
 
-Normalizes content feature statistics to match style feature statistics.
+**The problem**: in style transfer, you want to separate an image's *content* (spatial structure, edges) from its *style* (color distribution, texture statistics). The style is encoded in the per-channel mean and variance across spatial positions. If you normalize those statistics, you remove the style while preserving content.
 
-```
-AdaIN(x, y) = σ(y) × ((x - μ(x)) / σ(x)) + μ(y)
-```
+**The core insight**: normalize each channel of each image independently over its spatial dimensions. This removes the channel's mean and variance — erasing style information.
 
-where `y` is the style feature map. Core of fast neural style transfer (Huang & Belongie, 2017).
+**The mechanics**: for input $x \in \mathbb{R}^{N \times C \times H \times W}$, compute $\mu$ and $\sigma^2$ over $(H, W)$ for each $(N, C)$ independently:
 
----
+$$y_{nchw} = \frac{x_{nchw} - \mu_{nc}}{\sigma_{nc}}$$
 
-## Weight Normalization
+**Adaptive Instance Normalization (AdaIN)**: normalize the content feature statistics, then re-scale and shift by the style's statistics:
 
-Reparameterize weights: `w = g / ‖v‖ × v`. Separates magnitude `g` from direction `v`.
+$$\text{AdaIN}(x_\text{content}, x_\text{style}) = \sigma(x_\text{style}) \cdot \frac{x_\text{content} - \mu(x_\text{content})}{\sigma(x_\text{content})} + \mu(x_\text{style})$$
 
-```python
-layer = nn.Linear(...)
-torch.nn.utils.weight_norm(layer, name='weight')
-```
+This transfers style by replacing content statistics with style statistics.
 
-**Advantage:** No batch statistics; works at step 1 of training. Used in flow models, WaveNet.
+**What breaks**: normalizing over only $H \times W$ gives noisy statistics for small spatial dimensions (e.g., $1 \times 1$ feature maps in a deep network). InstanceNorm is inappropriate for classification tasks where per-sample mean and variance carry discriminative information.
 
 ---
 
-## Spectral Normalization
+## Group Normalization
 
-Constrains the Lipschitz constant of each layer by dividing weights by their spectral norm (largest singular value).
+**The problem**: BatchNorm degrades at small batch sizes. LayerNorm normalizes over all channels simultaneously, which may not be appropriate for CNNs where different channel groups learn different types of features. You want something batch-independent but still respects channel structure.
 
-```python
-layer = nn.utils.spectral_norm(nn.Linear(in_features, out_features))
-```
+**The core insight**: normalize within groups of channels, per sample. Larger than InstanceNorm's per-channel normalization (more statistics), but smaller than LayerNorm's cross-channel normalization (preserves some channel structure).
 
-**Used in:** GAN discriminators to stabilize training (prevents discriminator from becoming too powerful).
+**The mechanics**: divide $C$ channels into $G$ groups. For each sample and each group, normalize over $(C/G, H, W)$:
+
+- $G = 1$: equivalent to LayerNorm (over all channels)
+- $G = C$: equivalent to InstanceNorm (one channel per group)
+- $G = 32$: typical setting in detection/segmentation networks
+
+**What breaks**: choosing $G$ requires the channel count to be divisible by $G$. Performance depends on group size — too many groups (each with few channels) and statistics become noisy; too few groups and channel-level structure is destroyed.
+
+Used in: object detection (FPN, Mask R-CNN), video models, any setting where batch sizes are small per GPU.
 
 ---
 
 ## Pre-Norm vs Post-Norm
 
-Refers to where normalization sits relative to the residual connection in Transformers.
+**The problem**: in Transformers, where does normalization go — before or after the attention/FFN sublayer? The original "Attention is All You Need" paper placed it after the residual addition (Post-Norm). Later models moved it before (Pre-Norm). Why?
 
-**Post-Norm (original Transformer):**
-```
-x = LayerNorm(x + Sublayer(x))
-```
-Harder to train deep networks; gradient signal can vanish.
+**Post-Norm** (original Transformer):
 
-**Pre-Norm (modern standard — GPT-2+, LLaMA):**
-```
-x = x + Sublayer(LayerNorm(x))
-```
-More stable gradients; easier to train very deep networks; preferred in practice.
+$$x = \text{LayerNorm}(x + \text{Sublayer}(x))$$
 
----
+The residual is added first; normalization is applied after. The gradient must flow through the normalization layer to reach the residual stream — this adds a scaling step that can destabilize gradients in very deep networks.
 
-## Summary Comparison
+**Pre-Norm** (modern default — GPT-2+, LLaMA, most LLMs):
 
-| Method | Normalizes over | Batch-independent | Use case |
-|--------|----------------|------------------|---------|
-| BatchNorm | Batch + spatial | No | CNN training, large batches |
-| LayerNorm | Features per sample | Yes | Transformers, NLP, RNNs |
-| InstanceNorm | Spatial per sample+channel | Yes | Style transfer |
-| GroupNorm | Groups of channels | Yes | Small-batch training (detection) |
-| RMSNorm | Features per sample (no mean) | Yes | Modern LLMs (LLaMA, Gemma) |
-| WeightNorm | Weight vectors | Yes | Generative models, flow models |
-| SpectralNorm | Weight matrices | Yes | GAN discriminators |
+$$x = x + \text{Sublayer}(\text{LayerNorm}(x))$$
+
+Normalization is applied to the input *before* the sublayer. The residual stream $x$ receives the sublayer's output without any normalization on the skip path. The gradient flows directly through the residual addition with gradient magnitude 1 — no normalization scaling in the gradient path of the residual stream.
+
+**What breaks** with Pre-Norm: the final residual stream values are not normalized before the output head. This requires a final LayerNorm before the output linear layer, which all Pre-Norm architectures include. Without this final norm, the logit magnitudes can vary widely across positions.
 
 ---
 
-## Key Interview Points
+## Weight Normalization
 
-- BatchNorm has different train/eval behavior — `.eval()` switches to running statistics. Forgetting this is a common bug.
-- LayerNorm is batch-independent: works with batch size 1, variable-length sequences, autoregressive generation.
-- GroupNorm outperforms BatchNorm for small batches (<16); common in detection/segmentation where images don't fit in large batches.
-- RMSNorm = LayerNorm without mean centering — faster and used in all modern LLMs.
-- Pre-Norm (normalize before sublayer) stabilizes deep Transformer training; post-Norm (original) is harder to train.
-- AdaIN = normalize by content statistics, re-scale/shift by style statistics — key to fast style transfer.
+**The problem**: BatchNorm, LayerNorm, and their variants normalize *activations* — but the instability could also be addressed by normalizing the *weights* themselves, decoupling their magnitude from their direction.
+
+**The core insight**: reparameterize each weight vector as a direction $v$ and a magnitude $g$: $w = g \cdot v / \|v\|$. Optimization over $g$ controls magnitude; optimization over $v$ controls direction. No batch statistics needed.
+
+**What breaks**: weight normalization does not remove internal covariate shift — it only removes the scaling degree of freedom from weights. LayerNorm is generally preferred for deep networks.
+
+Used in: WaveNet, normalizing flow models where batch statistics would break the invertibility guarantee.
+
+---
+
+## Spectral Normalization
+
+**The problem**: in GANs, the discriminator can become arbitrarily large in magnitude — its gradients can explode, destabilizing the entire training dynamic. You need the discriminator to be Lipschitz-constrained.
+
+**The core insight**: constrain each layer's largest singular value (spectral norm) to 1. A matrix with spectral norm 1 is 1-Lipschitz. This bounds how much the discriminator can amplify signals.
+
+**The mechanics**: divide each weight matrix by its spectral norm, estimated efficiently via power iteration during each forward pass.
+
+**What breaks**: spectral normalization reduces the expressiveness of the discriminator. A very tight Lipschitz constraint may prevent the discriminator from distinguishing real from fake examples effectively, slowing or stalling GAN training. The constraint is a regularizer — like all regularizers, too much hurts performance.
+
+---
+
+## Normalization Summary
+
+| Method | Normalizes over | Batch-independent | Primary use |
+| :--- | :--- | :--- | :--- |
+| **BatchNorm** | Batch dim per feature | No | CNNs, large-batch training |
+| **LayerNorm** | Features per sample | Yes | Transformers, all NLP |
+| **RMSNorm** | Features per sample (no mean) | Yes | Modern LLMs |
+| **InstanceNorm** | Spatial dims per sample+channel | Yes | Style transfer |
+| **GroupNorm** | Channel groups per sample | Yes | Small-batch detection |
+| **WeightNorm** | Weight vector magnitude | Yes | Flow models |
+| **SpectralNorm** | Weight matrix spectral norm | Yes | GAN discriminators |

@@ -1,339 +1,217 @@
 # Agentic Workflows
 
-An agentic workflow turns an LLM from a one-shot text generator into a system that observes state, decides actions, calls tools, and loops until a goal is met. The LLM is the reasoning engine; everything else — tools, memory, routing, stopping rules — is engineering.
+---
+
+## Chain-of-Thought (CoT)
+
+**The problem:** LLMs produce a final answer from a single forward pass over the prompt. For multi-step problems, any error in the implicit reasoning is invisible and unrecoverable — the wrong intermediate state propagates directly into the answer, and the model produces a confident wrong output with no way to identify where things broke.
+
+**The core insight:** intermediate steps are both verifiable checkpoints and self-supplied context. When the model writes out a reasoning step, that step enters its own context window, making subsequent tokens conditioned on the (hopefully correct) intermediate result rather than reconstructed from distributed weights alone.
+
+**The mechanics:**
+- Zero-shot: append "Let's think step by step." — the model imitates reasoning patterns from training data.
+- Few-shot: provide 2–5 worked examples with explicit step-by-step traces. The model imitates the pattern.
+- The generated scratchpad becomes part of the model's own context for the final answer.
+
+**What breaks:** the trace can look structurally correct while being factually wrong. The model can hallucinate a coherent step sequence that arrives at a wrong answer confidently. High-confidence wrong reasoning is more dangerous than admitted uncertainty. CoT reduces multi-step error rate; it does not eliminate it.
 
 ---
 
-## 1. The Core Loop
+## ReAct (Reasoning + Acting)
 
+**The problem:** CoT keeps reasoning inside the model's parametric memory. Any question requiring current facts, live data, or external computation will either be refused or hallucinated — the model cannot discover facts it does not already know, no matter how well it reasons.
+
+**The core insight:** interleave thoughts with actions. Let the model emit a `Thought:` (what it needs), an `Action:` (a tool call), then an `Observation:` (the tool's actual result) — then reason again from that grounded observation. The model provides only reasoning about what to ask and how to interpret results; factual content comes from the tool.
+
+**The mechanics:**
 ```
-Observe → Think → Act → Observe → ... → Stop
-```
-
-Concretely:
-
-1. **Input:** user request + context (conversation history, tool results, memory)
-2. **Plan:** LLM reasons about what to do next (Chain-of-Thought or structured output)
-3. **Tool call:** LLM invokes a function with structured arguments
-4. **Observation:** tool result appended to context
-5. **Repeat** until the LLM emits a final answer or a stopping condition triggers
-
----
-
-## 2. Prompting Patterns
-
-### Chain-of-Thought (CoT)
-
-Encourage the model to reason step by step before answering:
-
-```
-Q: If a store has 3 packs of 8 apples and sells 5, how many remain?
-A: Let me think step by step.
-   3 packs × 8 apples = 24 apples total.
-   24 - 5 = 19 apples remain.
-```
-
-**Zero-shot CoT:** append "Let's think step by step." to the prompt. Works surprisingly well on GPT-4-class models.
-
-**Few-shot CoT:** provide 2–5 worked examples in the prompt. Better for smaller models or domain-specific reasoning.
-
-**Limitations:** reasoning traces can look correct while being wrong. High-confidence incorrect reasoning is dangerous in production.
-
-### ReAct (Reasoning + Acting)
-
-Interleaves chain-of-thought with tool calls:
-
-```
-Thought: I need to find the current stock price of AAPL.
+Thought: I need the current AAPL price.
 Action: search_web(query="AAPL stock price today")
 Observation: AAPL is trading at $189.42 as of 2:30 PM EST.
-Thought: Now I can answer the user's question.
+Thought: Now I can answer.
 Answer: AAPL is currently trading at $189.42.
 ```
 
-ReAct reduces hallucination on factual tasks by grounding reasoning in tool observations. Key paper: Yao et al. (2022).
-
-### Reflection / Self-Critique
-
-After generating an answer, prompt the model to critique and revise it:
-
-```python
-# First pass
-answer = llm.complete(f"Solve: {problem}")
-
-# Reflection
-critique = llm.complete(f"""
-Problem: {problem}
-Proposed solution: {answer}
-Identify any errors or gaps in this solution.
-""")
-
-# Revision
-final_answer = llm.complete(f"""
-Problem: {problem}
-Solution: {answer}
-Critique: {critique}
-Provide a corrected final answer.
-""")
-```
-
-Useful for code generation, math, and multi-step tasks. Costs 2–3× more tokens.
-
-### Tree of Thought (ToT)
-
-Explore multiple reasoning branches in parallel and select the best path. Useful for search-like problems. Expensive — generally reserved for hard reasoning tasks where accuracy justifies the cost.
+**What breaks:** the model can hallucinate tool names or arguments that do not exist. It can loop — each observation spawns a new action indefinitely. Long observation strings consume the context window. Every tool call is a latency and cost hit; chains of 10+ calls are common for complex tasks.
 
 ---
 
-## 3. Tool Use
+## Reflection and Self-Critique
 
-Tool use is the most reliable way to move from "fancy autocomplete" to a useful system.
+**The problem:** a model's first response is its best guess. That guess may contain errors, but calling the same model with the same prompt will produce the same answer. There is no intrinsic correction mechanism.
 
-### Function Calling (OpenAI-style)
+**The core insight:** critiquing an existing solution is a lower-difficulty task than producing a perfect solution from scratch. It is easier to notice a flaw in a proposed answer than to produce a flawless answer in one pass. Making the critique explicit surfaces the error in context, which the model can then use to produce a revised answer.
 
-Define tools as JSON schemas; the model outputs structured call arguments:
+**The mechanics:**
+1. Generate a first answer.
+2. Pass the problem and first answer back to the model with instructions to identify errors or gaps.
+3. Pass the problem, first answer, and critique back for a revised answer.
 
-```python
-import openai
-import json
+This costs 2–3× more tokens. Revision is not guaranteed to improve the answer.
 
-tools = [
-    {
-        "type": "function",
-        "function": {
-            "name": "get_weather",
-            "description": "Get current weather for a city",
-            "parameters": {
-                "type": "object",
-                "properties": {
-                    "city": {"type": "string", "description": "City name"},
-                    "units": {"type": "string", "enum": ["celsius", "fahrenheit"]}
-                },
-                "required": ["city"]
-            }
-        }
-    }
-]
-
-response = client.chat.completions.create(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "What's the weather in London?"}],
-    tools=tools,
-    tool_choice="auto"
-)
-
-if response.choices[0].message.tool_calls:
-    call = response.choices[0].message.tool_calls[0]
-    args = json.loads(call.function.arguments)
-    result = get_weather(**args)   # your actual function
-```
-
-### Tool Design Principles
-
-1. **Narrow scope:** each tool should do one thing well
-2. **Idempotency:** safe to call multiple times (avoid side effects when possible)
-3. **Structured outputs:** return JSON, not prose — the model needs to parse results
-4. **Error messages:** be specific; "City not found" helps the model retry; "Error 400" does not
-5. **Rate limits and timeouts:** always set hard limits — infinite tool loops will happen
+**What breaks:** the model can agree with its own errors ("the solution looks correct to me") when the error is subtle or in a domain where the model is systematically miscalibrated. Self-critique is most reliable for code — where execution can be traced mentally — and least reliable for subtle factual errors.
 
 ---
 
-## 4. Memory Systems
+## Tree of Thought (ToT)
 
-| Memory type | What it stores | Implementation |
-| :--- | :--- | :--- |
-| **In-context** | Recent conversation turns | Sliding window of messages |
-| **External short-term** | Session state across API calls | Redis, in-memory store |
-| **Long-term semantic** | Facts, preferences, past interactions | Vector database (retrieval by similarity) |
-| **Structured state** | Task progress, workflow variables | JSON / database rows |
+**The problem:** reflection is linear — one critique, one revision. For problems with multiple plausible solution paths (planning, combinatorial tasks), a single path may be a local optimum. The model commits to a direction early and cannot backtrack.
 
-### Semantic Memory with Vector Store
+**The core insight:** convert generation from a greedy linear walk to a best-first search over the reasoning space. Generate several candidate next-steps at each node, score their promise, prune, and expand only the best branches. This recovers from early bad choices.
 
-```python
-from langchain.memory import VectorStoreRetrieverMemory
-from langchain.vectorstores import Chroma
-from langchain.embeddings import OpenAIEmbeddings
+**The mechanics:**
+1. From the current state, generate k possible next reasoning steps.
+2. Score each step (using the model as an evaluator or a heuristic).
+3. Expand only the top-scoring branches.
+4. Continue until a complete answer is reached or the compute budget is exhausted.
 
-vectorstore = Chroma(embedding_function=OpenAIEmbeddings())
-retriever = vectorstore.as_retriever(search_kwargs={"k": 5})
-memory = VectorStoreRetrieverMemory(retriever=retriever)
-
-# Save an interaction
-memory.save_context(
-    {"input": "My budget for the project is $10k"},
-    {"output": "Noted. I'll keep the $10k budget in mind."}
-)
-
-# Retrieve relevant context before responding
-relevant = memory.load_memory_variables({"prompt": "How much can I spend?"})
-```
+**What breaks:** cost scales exponentially with branching factor and depth. This is only practical when accuracy justifies running the model dozens of times per query. The evaluation step is itself unreliable — a model that produces wrong reasoning can also misjudge which reasoning branch is better.
 
 ---
 
-## 5. Multi-Agent Patterns
+## Tool Use
 
-### Orchestrator + Subagent
+**The problem:** an LLM generates text. It cannot read from a database, execute code, call an API, or look up a live fact. Generation can describe what should happen, but it cannot cause things to happen.
 
-A central orchestrator agent decomposes tasks and delegates to specialized subagents:
+**The core insight:** give the model a set of callable functions with typed schemas. The model emits structured call requests as part of its output; a host process executes them; results come back as context. The model stays in the text-in, text-out paradigm it was trained on. The tools handle all real-world interaction.
 
-```
-User request
-    │
-    ▼
-Orchestrator (GPT-4o)
-    ├── Research Agent  → web search, doc retrieval
-    ├── Code Agent      → code execution, testing
-    └── Writer Agent    → drafts, edits, formats
-```
+**The mechanics (OpenAI function calling):**
+- Define tools as JSON schemas (name, description, parameter types, required fields).
+- Pass tool definitions alongside the prompt.
+- The model outputs a structured tool-call object instead of prose when it decides a tool is needed.
+- The host parses the call, executes the function, appends the result as a message, and calls the model again.
 
-**When to use:** tasks with distinct specializations that would overload a single context window.
-
-**Cost:** 2–4× more LLM calls, more latency, more coordination complexity.
-
-### Supervisor / Worker (LangGraph style)
-
-```python
-from langgraph.graph import StateGraph, END
-from typing import TypedDict, Annotated
-import operator
-
-class AgentState(TypedDict):
-    messages: Annotated[list, operator.add]
-    next_agent: str
-
-def supervisor(state):
-    # Decides which worker to call next, or END
-    ...
-
-def researcher(state):
-    # Retrieves information
-    ...
-
-def writer(state):
-    # Generates final answer
-    ...
-
-workflow = StateGraph(AgentState)
-workflow.add_node("supervisor", supervisor)
-workflow.add_node("researcher", researcher)
-workflow.add_node("writer", writer)
-workflow.set_entry_point("supervisor")
-workflow.add_conditional_edges("supervisor", lambda s: s["next_agent"])
-workflow.add_edge("researcher", "supervisor")
-workflow.add_edge("writer", END)
-
-app = workflow.compile()
-```
-
-### Debate / Critic Pattern
-
-Two agents argue opposite sides of a question; a judge synthesizes. Useful for decisions where confirmation bias is a risk. Expensive — use sparingly.
+**What breaks:**
+- **Hallucinated tool calls:** the model invents a tool name or argument not in the schema. Mitigated by strict schema validation with required fields and enum constraints.
+- **Wrong argument values:** the model infers the right tool but the wrong parameter (wrong city, wrong date). Mitigated by unambiguous parameter descriptions.
+- **Cascade errors:** a wrong tool call returns a bad observation; the model reasons correctly from bad data and produces a confidently wrong answer.
+- **Infinite loops:** the model calls tools indefinitely without concluding. Always enforce a hard maximum iteration limit.
 
 ---
 
-## 6. Routing
+## Memory Systems
 
-Not every query needs the same workflow. A router classifies the request and dispatches to the appropriate path:
+**The problem:** each LLM API call is stateless — the model starts fresh every time. A user who stated their preferences in a prior session cannot rely on the model remembering them. The context window is finite, expensive, and old messages eventually fall off.
 
+**The core insight:** different kinds of "memory" have different retrieval patterns and lifetimes, and need different storage backends. Relevant past context is surfaced into the current context window at query time — the model does not "remember"; it reads.
+
+**The mechanics:**
+
+| Memory type | What it holds | Implementation |
+|:---|:---|:---|
+| In-context | Recent turns | Sliding message window |
+| Short-term external | Session state, task progress | Redis or in-memory key-value store |
+| Long-term semantic | Past interactions, user facts | Vector database (retrieve by similarity) |
+| Structured state | Workflow variables, task steps | Relational DB or document store |
+
+For semantic memory: embed each interaction summary, store in a vector index. At the start of each new query, retrieve the top-k most relevant past items and prepend them to the context.
+
+**What breaks:** retrieved memories can be stale (old facts that are no longer true), irrelevant (retrieved by surface similarity but not actually useful), or contradictory. Without TTL (time-to-live) policies and freshness scoring, semantic memory accumulates outdated context the model will treat as current.
+
+---
+
+## Multi-Agent Patterns
+
+**The problem:** some tasks exceed the scope of a single context window. A task like "research this topic, write a report, then write code to analyze the findings" requires different capabilities and more context than fits in one pass. Stuffing everything into one context causes quality degradation and cost explosion.
+
+**The core insight:** decompose the task into roles and route each subtask to a specialized agent. An orchestrator holds the high-level plan; worker agents execute bounded subtasks and return results. Agents communicate through structured messages rather than shared state.
+
+**The mechanics:**
+
+*Orchestrator + subagents:* the orchestrator receives the goal, decomposes it into steps, dispatches each to a specialist (research, code, writing), receives results, and assembles final output.
+
+*Supervisor / worker (LangGraph style):* a central supervisor node in a state graph decides which worker to invoke next based on current state. Workers update state and return control to the supervisor. The graph terminates when the supervisor emits a stop signal.
+
+*Debate / critic:* two agents argue opposing positions; a third judges. Useful for decisions where confirmation bias is a risk.
+
+**What breaks:**
+- Multi-agent systems multiply every single-agent failure mode. One bad tool call in a subagent poisons the orchestrator's context.
+- Coordination adds latency: 2–4× more LLM calls than a single agent.
+- Inter-agent communication formats must be precise. If subagent A returns prose and subagent B expects JSON, the system breaks silently.
+- Attribution is hard: tracing which agent introduced an error requires full-trace observability.
+
+---
+
+## Routing
+
+**The problem:** not every query needs the same treatment. A question answerable from the model's training data does not need retrieval. A simple factual lookup does not need a 10-step reasoning chain. Sending every query through the most expensive path wastes time and money.
+
+**The core insight:** classify the query first, then dispatch to the appropriate handler. A cheap classifier — even a small-model prompt with a constrained output — can save the cost of retrieval or tool calls on the majority of queries that do not need them.
+
+**The mechanics:**
 ```python
-from enum import Enum
-
 class Route(str, Enum):
-    RAG = "rag"           # needs document retrieval
-    CODE = "code"         # needs code execution
-    SEARCH = "search"     # needs web search
-    DIRECT = "direct"     # model can answer from weights
-
-def route_query(query: str) -> Route:
-    response = llm.complete(f"""
-    Classify this query into one routing category:
-    - rag: needs information from internal documents
-    - code: needs code to be written or executed
-    - search: needs current web information
-    - direct: general question answerable from training knowledge
-
-    Query: {query}
-    Category:""")
-    return Route(response.strip().lower())
+    RAG = "rag"       # needs document retrieval
+    CODE = "code"     # needs code execution
+    SEARCH = "search" # needs web search
+    DIRECT = "direct" # answerable from model weights
 ```
+The router classifies the query and dispatches to the matching handler. The router itself should be fast — a fine-tuned small model or a structured LLM call with constrained output.
 
-Routing is one of the cheapest optimizations — a fast classifier (even a fine-tuned small model) can save significant cost by avoiding expensive retrieval or tool calls.
+**What breaks:** router errors are invisible in the final output. If a query that needs retrieval is misclassified as DIRECT, the model answers from potentially stale parametric memory with no warning. Router accuracy degrades on queries that legitimately span multiple categories.
 
 ---
 
-## 7. Guardrails and Safety
+## Guardrails and Safety
 
-Every production agentic system needs hard limits:
+**The problem:** agentic systems run autonomously. A bug in the stopping condition, a misbehaving tool, or adversarial input can send the system into an infinite loop, cause irreversible real-world actions (sending emails, deleting files), or produce harmful outputs — all without human notice until damage is done.
 
-| Guardrail | Why it matters | Implementation |
-| :--- | :--- | :--- |
-| **Max steps** | Prevent infinite loops | Counter in state; raise after N steps |
-| **Timeout** | Prevent hung agents | Per-tool and per-run timeouts |
-| **Output validation** | Catch malformed tool calls | Pydantic schemas on tool outputs |
-| **Content filters** | Prevent harmful outputs | Input/output classifiers (Llama Guard, etc.) |
-| **Human-in-the-loop** | High-stakes decisions | Pause and await approval before irreversible actions |
-| **Sandboxed execution** | Code runs don't compromise the host | Docker containers, E2B sandboxes |
+**The core insight:** enumerate the ways the system can fail catastrophically, then enforce hard limits that cannot be overridden by the model's own reasoning. The model should not be able to escape guardrails by generating clever arguments for why it should.
 
-```python
-MAX_ITERATIONS = 15
+**The mechanics:**
 
-for step in range(MAX_ITERATIONS):
-    result = agent.step(state)
-    if result.is_final:
-        return result.answer
-    state = result.next_state
+| Guardrail | Failure it prevents | Implementation |
+|:---|:---|:---|
+| Max steps | Infinite loops | Counter in state; raise after N steps |
+| Per-tool timeout | Hung tool calls | Timeout decorator on every tool |
+| Output schema validation | Malformed tool arguments | Pydantic models on all tool inputs/outputs |
+| Content classifiers | Harmful output | Input/output filter (Llama Guard, etc.) |
+| Human-in-the-loop | Irreversible high-stakes actions | Pause execution and require explicit approval |
+| Sandboxed code execution | Host compromise from generated code | Docker / E2B containers |
 
-# If we exit the loop without finishing:
-return fallback_response("Agent exceeded step limit. Please rephrase your request.")
-```
+**What breaks:** guardrails that are too strict make the system useless for legitimate tasks. Guardrails that are too loose let dangerous actions through. The right calibration requires red-teaming — deliberately trying to break the guardrails — before deployment.
 
 ---
 
-## 8. Observability
+## Observability
 
-Multi-step systems fail at multi-step boundaries. You need traces, not just logs.
+**The problem:** multi-step systems fail at multi-step boundaries. A wrong answer from a 10-step agent could have originated at step 2, 5, or 9. Without a trace of every LLM call and tool call, debugging is guessing. Logs that record only the final output are useless.
 
-**What to instrument:**
-- Every LLM call: model, prompt tokens, completion tokens, latency
-- Every tool call: name, inputs, output, latency, success/fail
-- Full agent trace: step sequence, decisions, final answer
-- Cost: token cost per run
+**The core insight:** instrument the full trace, not just the output. Every LLM call, every tool call, every routing decision, and every state transition must be recorded with inputs, outputs, latency, and cost. A trace viewer lets you replay the exact event sequence that led to a failure.
 
-**Tooling options:** LangSmith, Weights & Biases Weave, Phoenix (Arize), custom OpenTelemetry traces.
+**The mechanics:**
+- Every LLM call: record model name, prompt tokens, completion tokens, latency, full output.
+- Every tool call: record tool name, input arguments, output, latency, success/failure.
+- Full agent trace: record the sequence of steps, state at each step, and final answer.
+- Cost: sum token costs across all LLM calls in a run.
 
-```python
-import langsmith
+Tooling: LangSmith, Weights & Biases Weave, Arize Phoenix, or custom OpenTelemetry traces.
 
-@langsmith.traceable(run_type="chain")
-def run_agent(query: str):
-    # All nested LLM and tool calls are automatically traced
-    return agent.run(query)
-```
+**What breaks:** high-cardinality tracing increases storage cost non-linearly at scale. Sampling strategies (log 100% of failures, 1% of successes) help. PII in traces is a compliance risk — sanitize before logging.
 
 ---
 
-## 9. Production Failure Modes
+## Production Failure Modes
 
 | Failure | Cause | Fix |
-| :--- | :--- | :--- |
-| **Infinite loops** | No stopping condition, weak goal detection | Max step limit + explicit termination prompt |
-| **Tool hallucination** | Model invents tool names or arguments | Strict function calling schema validation |
-| **Context overflow** | Long tool outputs fill context window | Summarize observations before adding to context |
-| **Stale memory** | Retrieved memories are outdated | TTL on memory entries, freshness scoring |
-| **Cascade failures** | One bad tool call poisons downstream steps | Tool output validation, graceful error handling |
-| **Prompt injection** | Tool output contains adversarial instructions | Sanitize all external inputs before adding to context |
+|:---|:---|:---|
+| Infinite loops | No stopping condition; goal never detected as met | Hard max-step limit + explicit termination prompt |
+| Tool hallucination | Model invents tool names or arguments not in schema | Schema validation; constrained output format |
+| Context overflow | Long tool outputs fill the context window | Summarize observations before appending to context |
+| Stale memory | Retrieved past memories contain outdated facts | TTL on memory entries; freshness scoring |
+| Cascade failures | One bad tool call poisons all downstream reasoning | Per-step output validation; graceful error handling |
+| Prompt injection | Tool output contains adversarial instructions | Sanitize all external inputs before adding to context |
 
 ---
 
-## 10. Frameworks Overview
+## Frameworks
 
 | Framework | Strengths | Best for |
-| :--- | :--- | :--- |
-| **LangChain / LangGraph** | Comprehensive, large ecosystem | Complex multi-step workflows with state |
-| **LlamaIndex** | Strong retrieval, document ingestion | RAG-heavy agentic systems |
-| **AutoGen (Microsoft)** | Multi-agent conversations | Research and multi-agent experiments |
-| **CrewAI** | Role-based agent definition | Team-style multi-agent tasks |
-| **Direct API** | Full control, no abstractions | Simple tool-use, production-critical paths |
+|:---|:---|:---|
+| LangChain / LangGraph | Comprehensive; explicit state graphs | Complex multi-step workflows |
+| LlamaIndex | Strong retrieval and document ingestion | RAG-heavy agentic systems |
+| AutoGen (Microsoft) | Multi-agent conversations | Research, multi-agent experiments |
+| CrewAI | Role-based agent definition | Team-style task decomposition |
+| Direct API | Full control, no abstractions | Simple tool use; production-critical paths |
 
-> [!TIP]
-> **Interview structure:** For any agentic system question — explain (1) the loop: observe/think/act/stop, (2) how tools work, (3) memory strategy, (4) failure modes and guardrails. The last two separate candidates who have shipped agents from those who have only read about them.
+*Related: [RAG](rag.md) | [Hallucination Mitigation](hallucination-mitigation.md) | [Tuning and Optimization](tuning-optimization.md)*

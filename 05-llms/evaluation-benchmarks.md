@@ -1,84 +1,142 @@
 # LLM Evaluation and Benchmarks
 
-Evaluating LLMs is hard because language is open-ended. A correct answer can be stated in many ways, safety failures are subtle, and benchmark contamination inflates scores. This file covers: standard benchmarks, automated metrics, LLM-as-judge, human evaluation, and domain-specific evaluation design.
+---
+
+## 1. The Core Problem: What Does "Better" Even Mean?
+
+**The problem**: a model outputs a string. You want to know if that string is good. But "good" is not a well-defined function. "Good" depends on whether the answer is factually correct, whether it's in the right format, whether it's appropriate for the audience, whether it avoids harms, whether the reasoning is sound. No single number captures all of this.
+
+Every evaluation method makes a tradeoff: automated metrics are fast and reproducible but miss nuance; human evaluation is ground truth but slow and expensive; LLM judges scale cheaply but inherit the judge model's biases. The sophistication in evaluation is knowing which method is appropriate for which question, and knowing the failure modes of each.
 
 ---
 
-## 1. Standard Benchmarks
+## 2. Standard Benchmarks: Knowledge and Reasoning
 
-### Knowledge and Reasoning
+Standard benchmarks use multiple-choice or short-answer formats so that "correctness" can be defined unambiguously. This makes them fast and reproducible — but also gameable through contamination.
 
-| Benchmark | Task | Metric | Notes |
-| :--- | :--- | :--- | :--- |
-| **MMLU** | 57-subject multiple-choice (57k questions) | Accuracy | GPT-4: ~86%, Llama 3 70B: ~82% |
-| **BIG-Bench Hard** | 23 hard reasoning tasks (symbolic, logical) | Exact match | Resistant to scaling — models plateau |
-| **ARC-Challenge** | Grade-school science multiple-choice | Accuracy | Requires reasoning beyond facts |
-| **HellaSwag** | Complete the next sentence | Accuracy | Tests world-model commonsense |
-| **WinoGrande** | Coreference resolution with common sense | Accuracy | Adversarially filtered |
+### MMLU (Massive Multitask Language Understanding)
 
-### Math and Code
+57 academic subjects, 57,000 multiple-choice questions from undergraduate and professional exams. Tests breadth of knowledge, not depth. A model can score high on MMLU by pattern-matching to the most plausible-sounding answer without understanding the material.
 
-| Benchmark | Task | Metric | Notes |
-| :--- | :--- | :--- | :--- |
-| **GSM8K** | Grade-school math word problems (8.5k) | Exact match | Tests multi-step reasoning chains |
-| **MATH** | Competition-level mathematics | Exact match | Harder than GSM8K; requires symbolic reasoning |
-| **HumanEval** | 164 Python coding problems | pass@k | Measures functional correctness; k usually 1,10,100 |
-| **MBPP** | 374 crowd-sourced Python problems | pass@k | More diverse than HumanEval |
-| **SWE-Bench** | Real GitHub issues with test suites | % resolved | Reflects actual software engineering ability |
+Use it for: coarse ranking of general knowledge across models. Don't use it for: measuring reasoning ability or domain expertise.
 
-**pass@k formula:**
+### BIG-Bench Hard
+
+A subset of BIG-Bench tasks chosen specifically because they resisted the original scaling trend — performance plateaued even as models got larger. The 23 tasks include symbolic reasoning, logical deduction, and unusual word problems. Harder to game via scale alone.
+
+Use it for: testing genuine reasoning rather than knowledge recall.
+
+### ARC-Challenge
+
+Grade-school science questions, but specifically the subset that a word-frequency baseline gets wrong. A model that just matches the question to the most common words in the answer can't solve these.
+
+### HellaSwag
+
+Complete the next sentence from a situation description. The wrong answers are generated adversarially to be plausible. Tests commonsense world model — the implicit understanding that fire is hot, chairs are for sitting, and so on.
+
+### WinoGrande
+
+Coreference resolution: fill in a blank in a sentence where the correct answer depends on commonsense reasoning ("The trophy doesn't fit in the suitcase because ___ is too large"). Adversarially filtered to remove questions that simple heuristics can answer.
+
+---
+
+## 3. Standard Benchmarks: Math and Code
+
+### GSM8K
+
+8,500 grade-school math word problems requiring multi-step arithmetic reasoning. Ground truth is a single integer. Tests the ability to decompose a problem and execute a chain of steps correctly.
+
+**Why it's still useful despite being "solved"**: at lower scales (< 7B), performance varies meaningfully. The failure mode it tests — losing track of state across multi-step reasoning — is real.
+
+### MATH
+
+Competition-level mathematics (AMC, AIME, Olympiad problems). Requires symbolic manipulation and multi-step proof construction. Much harder than GSM8K — GPT-4 levels performance on GSM8K is approximately GPT-3 levels on MATH.
+
+### HumanEval and MBPP
+
+HumanEval: 164 Python coding problems from OpenAI. Given a function signature and docstring, generate a function body. Tested with unit tests.
+
+MBPP: 374 crowd-sourced Python problems. More diverse task types.
+
+The **pass@k** metric: how likely is it that at least one of $k$ generated samples passes all tests?
 
 $$\text{pass@}k = 1 - \frac{\binom{n-c}{k}}{\binom{n}{k}}$$
 
-where $n$ total samples are drawn and $c$ pass the tests. Estimates probability that at least one of $k$ samples passes.
+where $n$ total samples are generated and $c$ pass all tests. At $k=1$: this is just the pass rate. At $k=10$: measures whether the model can find a correct solution in 10 tries — more forgiving, better for capability assessment.
 
-### Long Context
+**What breaks**: HumanEval problems are simple (write a function to count vowels) and many have appeared verbatim in public discussions of the benchmark. A model that memorized the answers can score high without being able to code.
 
-| Benchmark | Task | Notes |
-| :--- | :--- | :--- |
-| **SCROLLS** | Summarization, QA over long documents | Tests 10k-100k token context |
-| **RULER** | Synthetic long-context tasks (needle-in-haystack variants) | Separates context length from reasoning |
-| **LongBench** | 6 task categories over 16 datasets | Multilingual long-context understanding |
+### SWE-Bench
 
-**Needle-in-a-haystack:** embed a single fact in a long irrelevant document, ask the model to retrieve it. Reveals positional attention decay — most models degrade at the middle of long contexts.
-
-### Alignment and Safety
-
-| Benchmark | What it measures | Notes |
-| :--- | :--- | :--- |
-| **TruthfulQA** | Factual accuracy under adversarial queries | Common misconceptions; models often fail |
-| **BBQ** | Social bias in QA (ambiguous contexts) | Measures demographic bias direction and magnitude |
-| **BOLD** | Toxicity in open-ended completions | Fairness across demographic groups |
-| **MT-Bench** | Multi-turn instruction following (80 questions, 8 categories) | GPT-4 judges on 1-10 scale |
+Real GitHub issues with corresponding test suites. The model is given a repository and an issue description; success is measured by whether the modified code passes the test suite. This actually reflects software engineering ability. Scoring significantly lower here than on HumanEval is a signal that the model can write functions but can't reason about a codebase.
 
 ---
 
-## 2. Automated Text Metrics
+## 4. Long Context Benchmarks
 
-### BLEU (Bilingual Evaluation Understudy)
+**The problem that emerges at scale**: models trained on long contexts don't uniformly use the entire context. Attention decays — tokens at the beginning and end of a document are better attended than tokens in the middle. A model that "supports 128K tokens" may perform poorly on information that appears in the middle of a 128K document.
 
-$$\text{BLEU} = \text{BP} \cdot \exp\left(\sum_{n=1}^{N} w_n \log p_n\right)$$
+### Needle-in-a-Haystack
 
-where $p_n$ is modified n-gram precision, $w_n = 1/N$, and BP is a brevity penalty. Scores between 0-1 (higher = better).
+The simplest probe: embed a single fact ("The secret word is 'banana'") at a specific position in a long irrelevant document, then ask the model to retrieve it. Plot retrieval accuracy as a function of fact position within the document. Most models show a characteristic U-shape: high accuracy near the beginning and end, degraded accuracy in the middle.
 
-**Limitations:** rewards n-gram overlap, misses synonyms and paraphrases. A 0.3 BLEU on MT is decent; a 0.1 BLEU on summarization may be competitive.
+This benchmark is almost too simple — retrieving a single fact is far easier than real long-document reasoning — but it quickly reveals whether a model has genuine long-context attention or just claims to.
 
-### ROUGE (Recall-Oriented Understudy for Gisting Evaluation)
+### RULER
 
-- **ROUGE-N:** n-gram recall between hypothesis and reference
-- **ROUGE-L:** longest common subsequence-based F1
+Synthetic tasks that separate "can the model use long context" from "can the model solve the underlying reasoning problem." Tests: multi-hop retrieval (fact A points to fact B points to the answer), aggregation (find all instances of a pattern), and ordering (place events from the document in sequence).
 
-$$\text{ROUGE-L} = \frac{(1+\beta^2) R_{lcs} P_{lcs}}{R_{lcs} + \beta^2 P_{lcs}}$$
+### SCROLLS and LongBench
 
-ROUGE is standard for summarization evaluation. Does not capture semantic meaning.
+Naturalistic tasks: summarization and QA over long documents. More realistic than synthetic needles but harder to analyze — poor performance could be due to insufficient context use, poor summarization ability, or domain mismatch.
+
+---
+
+## 5. Alignment and Safety Benchmarks
+
+### TruthfulQA
+
+817 questions designed to probe common human misconceptions — areas where the statistically likely answer is wrong. Categories include health myths, historical distortions, and common scientific misunderstandings. A model trained to predict likely text often confidently states these misconceptions. TruthfulQA measures whether alignment training has corrected this.
+
+**What breaks**: it's possible to score well on TruthfulQA by being overly cautious — refusing to answer or adding excessive hedges to everything. This is "truthful" in a degenerate sense. The benchmark doesn't penalize unhelpful non-answers well.
+
+### BBQ (Bias Benchmark for QA)
+
+Questions set in ambiguous social contexts where the correct answer is "not enough information," but models often default to stereotyped responses. Measures bias direction and magnitude across demographic groups. Identifies whether a model treats different groups asymmetrically.
+
+### MT-Bench
+
+80 carefully designed multi-turn questions across 8 categories: writing, roleplay, extraction, reasoning, math, coding, STEM, humanities. A GPT-4 judge scores each response 1–10. The multi-turn structure tests whether the model can maintain coherence across a conversation — harder to fake than single-turn responses.
+
+---
+
+## 6. Automated Text Metrics: When to Use Them and When Not To
+
+Automated metrics are fast and reproducible but correlate poorly with human judgment for generative tasks. Use them as lightweight signals, not ground truth.
+
+### BLEU
+
+Measures n-gram overlap between a generated translation and reference translations:
+
+$$\text{BLEU} = \text{BP} \cdot \exp\!\left(\sum_{n=1}^{N} w_n \log p_n\right)$$
+
+where $p_n$ is modified n-gram precision and BP is a brevity penalty. Designed for machine translation where exact phrasing matters.
+
+**The problem**: BLEU rewards lexical similarity, not semantic correctness. "The dog bit the man" and "The man bit the dog" have identical BLEU relative to either reference. For summarization and open-ended generation, BLEU correlates poorly with human quality judgments. Treat BLEU scores as a filter (detecting very bad outputs) not an evaluator.
+
+### ROUGE
+
+ROUGE-L measures the longest common subsequence between hypothesis and reference. Standard for summarization evaluation.
+
+$$\text{ROUGE-L} = \frac{(1+\beta^2)\, R_{lcs}\, P_{lcs}}{R_{lcs} + \beta^2 P_{lcs}}$$
+
+Better than BLEU for summarization because it measures coverage (recall-oriented), but still misses semantic equivalence.
 
 ### BERTScore
 
-Uses contextual embeddings from BERT to compute token similarity:
+Uses contextual embeddings to compute semantic similarity between hypothesis and reference tokens. Correlates meaningfully better with human judgment than BLEU or ROUGE:
 
-$$P_{\text{BERT}} = \frac{1}{|\hat{y}|} \sum_{\hat{y}_j \in \hat{y}} \max_{y_i \in y} \mathbf{x}_{\hat{y}_j}^\top \mathbf{x}_{y_i}$$
-
-BERTScore correlates better with human judgment than BLEU/ROUGE. Expensive — requires a BERT forward pass per example.
+$$P_{\text{BERT}} = \frac{1}{|\hat{y}|} \sum_{\hat{y}_j \in \hat{y}} \max_{y_i \in y}\, \mathbf{x}_{\hat{y}_j}^\top \mathbf{x}_{y_i}$$
 
 ```python
 from bert_score import score
@@ -87,41 +145,44 @@ P, R, F1 = score(
     cands=["The cat sat on the mat"],
     refs=["A feline rested on the rug"],
     lang="en",
-    verbose=True
 )
 print(f"BERTScore F1: {F1.mean():.4f}")
+# Handles semantic equivalence that BLEU would score near-zero
 ```
+
+Cost: requires a BERT forward pass per example. For large-scale evaluation this adds up.
 
 ### Perplexity
 
-$$\text{PPL}(X) = \exp\left(-\frac{1}{T} \sum_{t=1}^{T} \log P_\theta(x_t \mid x_{<t})\right)$$
+$$\text{PPL}(X) = \exp\!\left(-\frac{1}{T} \sum_{t=1}^{T} \log P_\theta(x_t \mid x_{<t})\right)$$
 
-Lower perplexity = the model assigns higher probability to the test sequence. Measures language model quality, not task performance. GPT-2: ~29 PPL on WikiText-103; GPT-3: ~20 PPL.
+Lower perplexity means the model assigns higher probability to the test sequence. Measures how well the model fits a distribution — not how good the model's outputs are for a task. Useful for: comparing model checkpoints during pretraining, measuring domain adaptation. Not useful for: comparing models of different families, since they use different tokenizers and vocabularies.
 
 ---
 
-## 3. LLM-as-Judge
+## 7. LLM-as-Judge: Scalable Evaluation With Known Biases
 
-Human evaluation is expensive and slow. A strong LLM (typically GPT-4 or Claude Opus) grades outputs instead.
+**The problem with human evaluation**: it requires annotators, is slow (hours per task), is expensive, and is hard to reproduce exactly. For rapid iteration during development, you need something faster.
 
-### Absolute Scoring
+**The core insight**: a capable LLM can assess response quality on many dimensions — factual accuracy, clarity, helpfulness, appropriateness — better than automated metrics, and much faster than humans. The cost is that the judge model has its own biases.
+
+### Absolute scoring
 
 ```python
-import openai
-import json
+import openai, json
 
 def llm_judge_absolute(question: str, answer: str, criteria: list[str]) -> dict:
     criteria_str = "\n".join(f"- {c}" for c in criteria)
-    prompt = f"""You are evaluating a model's answer to a question.
+    prompt = f"""Rate the following answer on each criterion from 1 (poor) to 5 (excellent).
 
 Question: {question}
 Answer: {answer}
 
-Rate on each criterion from 1 (poor) to 5 (excellent):
+Criteria:
 {criteria_str}
 
 Return JSON: {{"scores": {{"criterion": score}}, "reasoning": "..."}}"""
-    
+
     response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}],
@@ -130,21 +191,20 @@ Return JSON: {{"scores": {{"criterion": score}}, "reasoning": "..."}}"""
     return json.loads(response.choices[0].message.content)
 ```
 
-### Pairwise Comparison (Arena-style)
+### Pairwise comparison
+
+More reliable than absolute scoring because it avoids the need to calibrate a scale. The judge only needs to decide which of two responses is better:
 
 ```python
 def llm_judge_pairwise(question: str, answer_a: str, answer_b: str) -> str:
-    prompt = f"""Compare two answers to the question below.
+    prompt = f"""Which answer is better? Consider accuracy, helpfulness, and clarity.
 
 Question: {question}
-
 Answer A: {answer_a}
-
 Answer B: {answer_b}
 
-Which answer is better? Consider: accuracy, helpfulness, clarity, and completeness.
 Reply with only 'A', 'B', or 'tie'."""
-    
+
     response = openai.chat.completions.create(
         model="gpt-4o",
         messages=[{"role": "user", "content": prompt}]
@@ -152,74 +212,71 @@ Reply with only 'A', 'B', or 'tie'."""
     return response.choices[0].message.content.strip()
 ```
 
-### MT-Bench (Multi-Turn Evaluation)
+### Known biases in LLM judges
 
-80 carefully designed questions across 8 categories: writing, roleplay, extraction, reasoning, math, coding, STEM, humanities. Each conversation has two turns.
-
-```
-Turn 1: "What is the difference between deep copy and shallow copy in Python?"
-Turn 2: "How would this behavior differ with a custom class that overrides __copy__?"
-```
-
-GPT-4 judges each answer on a 1-10 scale. The multi-turn aspect tests coherence and memory across context.
-
-### Biases in LLM Judges
-
-| Bias | Description | Mitigation |
+| Bias | What it does | Mitigation |
 | :--- | :--- | :--- |
-| **Self-preference** | Model favors answers that match its own style | Use a different judge model |
-| **Position bias** | Prefers answer A when listed first | Swap order, average both results |
-| **Verbosity bias** | Prefers longer answers regardless of quality | Explicit length-irrelevant scoring criteria |
-| **Sycophancy** | Agrees with stated human opinion | Use neutral prompts without stated preferences |
+| Self-preference | Model favors outputs stylistically similar to its own | Use a different model family as judge |
+| Position bias | Prefers the first answer when presented A vs B | Run both orderings (A,B) and (B,A), take majority |
+| Verbosity bias | Prefers longer answers regardless of quality | Explicit instruction: "do not consider length" |
+| Sycophancy | Agrees when prompted "isn't answer A clearly better?" | Use neutral, opinionated-free prompts |
+
+**Position bias is the most dangerous for systematic evaluation**: if you always put candidate A first, the judge will be biased toward A. Always randomize order and average both orderings.
 
 ---
 
-## 4. LMSYS Chatbot Arena
+## 8. LMSYS Chatbot Arena: Ground-Truth Human Preference at Scale
 
-Anonymous side-by-side comparisons where users chat with two models simultaneously and vote on which is better. Elo ratings are computed from win/loss outcomes.
+**The problem with curated benchmarks**: they measure performance on a fixed set of questions chosen by researchers. Real users ask different questions, care about different things, and have different thresholds for what counts as "good." Benchmark performance may not predict user satisfaction.
 
-$$\text{Expected score} = \frac{1}{1 + 10^{(R_B - R_A)/400}}$$
+**The design**: anonymous side-by-side comparisons. Users interact with two unknown models simultaneously, then vote on which was better. Elo ratings are computed from win/loss outcomes.
 
-**Why it matters:** captures nuance, tone, formatting preferences, and user satisfaction that static benchmarks miss. Reflects real-world user preference distribution.
+$$\text{Expected score}(A) = \frac{1}{1 + 10^{(R_B - R_A)/400}}$$
 
-**Limitations:** subject to selection bias (who votes), prompt distribution may not match deployment domain, strategic users can game rankings.
+**Why it matters**: Arena captures preferences over the actual distribution of questions users ask — not researcher-designed problems. It measures tone, formatting, personality, and response style in addition to accuracy. Models that score high on MMLU but have awkward response styles may rank lower in Arena than their benchmark scores predict.
 
----
-
-## 5. Benchmark Contamination
-
-A critical validity threat: test questions appearing in pretraining corpora.
-
-**Detection methods:**
-1. **N-gram overlap:** check if test examples appear in training data (requires access to pretraining corpus)
-2. **Membership inference attacks:** probe whether the model has "memorized" specific test examples
-3. **Canonical vs. paraphrased versions:** if performance drops sharply on paraphrased but semantically equivalent questions, contamination is likely
-4. **Chronological splits:** train only on data before a cutoff date; test on questions released after
-
-**Example:** GSM8K questions appearing verbatim on math tutoring forums that were crawled into Common Crawl. Models may achieve high scores by memorizing answers rather than reasoning.
+**What breaks**: Arena is subject to selection bias — the user population that visits the Arena website is not representative of all users or all deployment domains. A model optimized for Arena users may not be optimal for medical or legal applications. Also, strategic voting (users who know which model they're testing) can inflate ratings.
 
 ---
 
-## 6. Domain-Specific Evaluation
+## 9. Benchmark Contamination: The Validity Threat Nobody Likes Talking About
 
-Standard benchmarks do not reflect performance in specialized domains. Design domain evals when:
-- Facts are highly specialized (medical, legal, financial)
-- Errors have asymmetric costs (false negatives in cancer screening vs. false positives)
+**The problem**: a test that has been in the training set is not a test. It's a recall exercise. If GSM8K problems appeared verbatim on math tutoring forums crawled into Common Crawl, and your model trained on Common Crawl, your GSM8K score measures memorization as much as reasoning.
+
+**Why this is hard to detect**: you'd need to check every test example against the full training corpus. Most organizations don't publicly release their training data, making independent verification impossible.
+
+**Detection methods available without training data access**:
+
+1. **Canonical vs. paraphrased**: test on semantically equivalent rephrased versions of benchmark questions. If performance drops significantly on the paraphrase but not the original, contamination is likely.
+
+2. **Chronological splits**: train only on data before a cutoff date; evaluate on questions released after. The model can't have seen questions that didn't exist when training data was collected.
+
+3. **Membership inference**: probe whether the model assigns unusually high probability to benchmark questions relative to similarly-constructed non-benchmark questions. High probability is evidence (not proof) of memorization.
+
+4. **Novel benchmarks**: benchmarks released after a model's training cutoff are less likely to be contaminated. LiveCodeBench (continuously updated coding problems) and similar "living" benchmarks are designed to resist contamination.
+
+**The practical implication**: treat benchmark numbers as upper bounds on true capability, especially for widely-publicized benchmarks. When two models score within 1–2% of each other on a contaminated benchmark, the difference is likely noise.
+
+---
+
+## 10. Domain-Specific Evaluation: Why Standard Benchmarks Fail in Production
+
+**The problem**: a model deployed for medical documentation is not evaluated by how well it solves grade-school math problems. MMLU has a medicine subset, but clinical documentation requires accuracy on very specific factual claims, adherence to formatting standards, and avoidance of harmful advice — none of which MMLU tests.
+
+**When to build a custom eval**:
+- Errors have asymmetric costs (a false negative in a cancer screening context is far worse than a false positive)
+- Facts are highly specialized (cardiology drug interactions vs. general medical knowledge)
 - Style and format requirements are strict
 
-### Evaluation Stack for Domain Models
+### RAG evaluation (RAGAS)
+
+For retrieval-augmented generation, you need to separately evaluate: did the retriever find relevant chunks? Did the model use those chunks faithfully? Did the answer actually address the question?
 
 ```python
 from ragas import evaluate
-from ragas.metrics import (
-    faithfulness,
-    answer_relevancy,
-    context_precision,
-    context_recall
-)
+from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
 from datasets import Dataset
 
-# Collect (question, generated answer, retrieved context, ground truth) tuples
 eval_data = Dataset.from_dict({
     "question": questions,
     "answer": model_answers,
@@ -228,39 +285,32 @@ eval_data = Dataset.from_dict({
 })
 
 results = evaluate(eval_data, metrics=[
-    faithfulness,         # answer grounded in context?
-    answer_relevancy,     # answer addresses the question?
-    context_precision,    # retrieved chunks are relevant?
-    context_recall,       # context contains necessary information?
+    faithfulness,         # Is the answer grounded in the retrieved context?
+    answer_relevancy,     # Does the answer address the question?
+    context_precision,    # Are the retrieved chunks actually relevant?
+    context_recall,       # Does the context contain the necessary information?
 ])
 ```
 
-### Medical Domain Checklist
-
-| Aspect | Metric | Tool |
-| :--- | :--- | :--- |
-| Clinical accuracy | Physician agreement rate | Expert annotation |
-| Factual groundedness | Citation accuracy | Manual fact-check |
-| Harm avoidance | Dangerous advice rate | Red-team annotation |
-| Benchmark | PubMedQA, MedQA-USMLE accuracy | Standard benchmarking |
+Faithfulness is the most important metric for safety-critical applications — a model that makes up information not in the context is dangerous regardless of how relevant or fluent the answer is.
 
 ---
 
-## 7. Evaluation Design Principles
+## 11. Evaluation Design Principles
 
-**1. Never evaluate on the training distribution.** Use a held-out test set that was collected after training cutoff or kept strictly separate.
+**Never evaluate on the training distribution.** This is obvious but violated constantly — test sets that were collected before the training cutoff, released publicly, and then crawled into training data are compromised.
 
-**2. Use multiple complementary metrics.** No single metric captures everything. At minimum: task accuracy + LLM-judge quality + safety evaluation.
+**Use multiple complementary metrics.** Task accuracy tells you if the model is right; LLM-judge quality tells you if it's helpful and well-formatted; safety evaluation tells you if it's harmful. Any single metric is gameable.
 
-**3. Calibration matters more than accuracy for decision-critical uses.** A model that says "90% confident" should be right 90% of the time.
+**Calibration matters more than accuracy for decision-critical uses.** A model that says "90% confident" should be right 90% of the time. A model with 80% accuracy but perfect calibration is more useful in a high-stakes setting than a model with 85% accuracy that is confidently wrong 30% of the time.
 
-**4. Evaluate failure modes, not just average performance.** Slice metrics by demographic groups, input length, topic, and edge cases.
+**Slice by subgroup, not just average.** Aggregate performance hides demographic disparities, domain-specific failures, and distribution-shift vulnerabilities. A model with 85% average accuracy might have 60% accuracy on the specific input types that appear in your production traffic.
 
-**5. Set a regression baseline.** Before deploying an updated model, verify it doesn't regress on categories that the current model handles well.
+**Set a regression baseline before each deployment.** Verify the new model doesn't regress on categories the current model handles well:
 
 ```python
 def regression_check(baseline_scores: dict, new_scores: dict, threshold: float = 0.02) -> list:
-    """Returns categories where new model regresses by more than threshold."""
+    """Returns categories where the new model regresses by more than threshold."""
     regressions = []
     for category, baseline in baseline_scores.items():
         new = new_scores.get(category, 0)
@@ -274,5 +324,4 @@ def regression_check(baseline_scores: dict, new_scores: dict, threshold: float =
     return regressions
 ```
 
-> [!TIP]
-> **Interview structure:** When asked about LLM evaluation — (1) distinguish automated benchmarks (task-specific, reproducible) from human evaluation (ground truth but slow) from LLM judges (scalable but biased), (2) name benchmark contamination as a validity threat, (3) explain why domain evals require custom design. The sophistication is in knowing the limitations of each approach.
+A 2% regression on a critical category can matter far more than a 5% improvement on aggregate metrics.

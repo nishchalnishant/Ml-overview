@@ -1,369 +1,240 @@
 # Retrieval-Augmented Generation (RAG)
 
-RAG grounds LLM responses in external documents retrieved at query time. Instead of relying on knowledge baked into model weights during training, the system fetches relevant context and passes it to the model as part of the prompt.
+---
+
+## The Core Problem
+
+**The problem:** a language model's knowledge is frozen at training time. It cannot access facts that postdate its training cutoff, it cannot access private or proprietary documents, and even for facts it did know at training time, it has no mechanism to verify whether a recalled fact is accurate or confabulated — both look identical to the model's generation process. Asking the model to "remember" a fact is asking it to reconstruct a specific piece of information from billions of compressed parameters, with no error signal if the reconstruction is wrong.
+
+**The core insight:** ground the generation in retrieved documents the model must attend to. Now there is a verifiable source, and if the context contains the answer, the model is much more likely to return it accurately — because it is attending to an explicit source rather than reconstructing from distributed weights. The source is also updatable without retraining.
 
 **When to use RAG:**
-- Facts change frequently (news, product docs, internal wikis)
-- Answers must be attributed to specific sources
-- Domain is too narrow or proprietary to justify retraining
-- Knowledge needs to be updateable without GPU budget
+- Facts change frequently and the model needs current information
+- Answers must be attributed to specific source documents
+- The domain is proprietary or too narrow to justify retraining
+- Knowledge needs to be updatable without GPU budget
 
-**When NOT to use RAG:**
-- The problem is behavioral (tone, format, style) — use fine-tuning
-- Latency budget cannot absorb retrieval overhead
-- The knowledge is static and already in pretraining data
-
----
-
-## 1. Architecture
-
-```
-User Query
-    │
-    ▼
-Query Rewriting (optional)
-    │
-    ▼
-Embedding Model → Query Vector
-    │
-    ▼
-Vector Store ──── ANN Search ────► Top-K Chunks
-    │                                    │
-    │                               Reranker (optional)
-    │                                    │
-    └─────────────────────────────► Context Assembly
-                                         │
-                                         ▼
-                                   Prompt + Context
-                                         │
-                                         ▼
-                                        LLM
-                                         │
-                                         ▼
-                                   Final Answer + Citations
-```
+**When not to use RAG:**
+- The problem is behavioral (tone, format, style) — fine-tune instead
+- The latency budget cannot absorb retrieval overhead (50–300ms)
+- The knowledge is static and already well-covered in pretraining data
 
 ---
 
-## 2. Document Ingestion
+## Document Ingestion
 
-### Chunking Strategies
+**The problem:** documents come in at arbitrary length. A PDF chapter cannot be retrieved as a unit — it is too long to fit in a prompt, and its retrieval score would be diluted by all the parts irrelevant to the query. The document must be split into retrievable units.
+
+**The core insight:** the size of the retrievable unit determines the precision-context tradeoff. Smaller chunks retrieve more precisely (the retrieved chunk is more likely to be entirely relevant) but provide less context (the answer may span chunk boundaries). Larger chunks provide more context but score lower on retrieval because most of the chunk is off-topic for any given query.
+
+**The mechanics — chunking strategies:**
 
 | Strategy | When to use | Tradeoff |
-| :--- | :--- | :--- |
-| **Fixed-size (tokens)** | Simple, fast baseline | Splits mid-sentence |
-| **Sentence splitting** | Coherent retrievable units | Short chunks, less context |
-| **Recursive character** | General-purpose (LangChain default) | Respects paragraph → sentence → word hierarchy |
-| **Semantic chunking** | High-quality retrieval | Expensive embedding per chunk |
-| **Document-structure-aware** | Markdown, PDFs with headers | Preserves logical sections |
+|:---|:---|:---|
+| Fixed-size (token count) | Simple baseline | Splits mid-sentence |
+| Sentence splitting | Coherent retrievable units | Short chunks, less context |
+| Recursive character | General-purpose default | Respects paragraph → sentence hierarchy |
+| Semantic chunking | High-quality retrieval | Expensive (embed each chunk boundary candidate) |
+| Structure-aware | Markdown, PDFs with headers | Preserves logical sections |
 
-**Chunk size guidance:**
-- 256–512 tokens: precise retrieval, may lack context
-- 512–1024 tokens: good default for most use cases
-- 1024–2048 tokens: more context per chunk, noisier retrieval
+Chunk size guidance: 256–512 tokens for precise retrieval; 512–1024 tokens as a general default; 1024–2048 tokens when answers often span multiple paragraphs. Overlap of 50–100 tokens between adjacent chunks prevents answers from falling in the gap between chunks.
 
-**Overlap:** typically 50–100 token overlap between chunks to avoid splitting context across chunk boundaries.
+Attach metadata to each chunk before indexing: source filename, section header, date, document type. This enables filtered retrieval — "only search documents from Q4 2024" — reducing noise without semantic search.
 
-```python
-from langchain.text_splitter import RecursiveCharacterTextSplitter
-
-splitter = RecursiveCharacterTextSplitter(
-    chunk_size=512,
-    chunk_overlap=50,
-    length_function=len,
-    separators=["\n\n", "\n", ". ", " ", ""]
-)
-chunks = splitter.split_documents(documents)
-```
-
-### Metadata Enrichment
-
-Attach metadata to each chunk before indexing. This enables filtered retrieval:
-
-```python
-for chunk in chunks:
-    chunk.metadata.update({
-        "source": doc.metadata["source"],
-        "section": extract_section_header(chunk.page_content),
-        "date": doc.metadata.get("last_modified"),
-        "doc_type": classify_document(doc),
-    })
-```
+**What breaks:** poor chunking is the single most common cause of RAG failures. If the answer spans the boundary between two chunks and neither chunk contains the full answer, retrieval will return both chunks at lower scores — or miss the answer entirely. Chunk boundaries should respect semantic units (paragraphs, sections), not arbitrary token counts.
 
 ---
 
-## 3. Embedding Models
+## Embedding and Retrieval
 
-Embeddings map text to dense vectors in a semantic space. Retrieval finds the nearest vectors by cosine similarity.
+**The problem:** the query is text. The chunks are text. To find which chunks are relevant to the query, they must be comparable. Keyword matching (BM25) works for exact terms but fails for paraphrase, synonymy, and domain-specific language. Dense embedding-based retrieval handles semantic similarity but misses exact-match cases that keyword search handles trivially.
 
-### Model Selection
+**The core insight:** map both queries and chunks to dense vectors in a shared semantic space, then find nearest neighbors. Semantically similar content will be geometrically close even if the words differ. For cases where exact-match matters (proper nouns, technical identifiers), combine dense and sparse retrieval via Reciprocal Rank Fusion.
 
-| Model | Dimensions | Strengths | Context window |
-| :--- | :--- | :--- | :--- |
-| **text-embedding-3-small** | 1536 | Fast, cheap | 8191 tokens |
-| **text-embedding-3-large** | 3072 | Best OpenAI quality | 8191 tokens |
-| **BAAI/bge-m3** | 1024 | Multilingual, open-source | 8192 tokens |
-| **sentence-transformers/all-mpnet-base-v2** | 768 | Strong English, small | 512 tokens |
-| **Cohere embed-v3** | 1024 | Strong retrieval performance | 512 tokens |
+**The mechanics — three retrieval modes:**
 
-**Important:** use the same embedding model for indexing and querying. Model updates require re-indexing.
+Dense retrieval: embed query and chunks with the same model, retrieve by cosine similarity. Handles paraphrase and semantics.
 
-```python
-from langchain.embeddings import OpenAIEmbeddings
-from langchain.vectorstores import Chroma
-
-embeddings = OpenAIEmbeddings(model="text-embedding-3-small")
-
-vectorstore = Chroma.from_documents(
-    documents=chunks,
-    embedding=embeddings,
-    persist_directory="./chroma_db",
-    collection_metadata={"hnsw:space": "cosine"}
-)
+Sparse retrieval (BM25): keyword-based scoring. Fast and strong for exact-match queries, technical terms, and proper nouns.
 ```
+BM25(q, d) = Σ_{t∈q} IDF(t) · f(t,d)·(k₁+1) / (f(t,d) + k₁(1-b+b·|d|/avgdl))
+```
+where k₁ ≈ 1.5 and b ≈ 0.75 are tuning parameters.
+
+Hybrid search — Reciprocal Rank Fusion (RRF):
+```
+RRF(d) = Σ_{r∈rankers} 1 / (k + r(d))
+```
+where k=60 is a common default and r(d) is the rank of document d in each ranker. RRF combines rank lists from dense and sparse retrieval without requiring calibrated scores from each.
+
+**Embedding model selection:** use the same model for indexing and querying. Model updates require full re-indexing. Strong open-source options: BAAI/bge-m3 (multilingual, 8K context), sentence-transformers/all-mpnet-base-v2 (strong English, small). OpenAI text-embedding-3-large for highest quality at cost.
+
+**What breaks:** embedding model quality is the ceiling on retrieval quality. The semantic space may not align with the domain vocabulary of the retrieved documents — a medical embedding model will outperform a general-purpose one for medical retrieval. Model updates require full re-indexing, which is expensive at scale.
 
 ---
 
-## 4. Vector Databases
+## Vector Databases and ANN Search
 
-| Database | Deployment | Strengths | Notes |
-| :--- | :--- | :--- | :--- |
-| **Chroma** | Local / self-hosted | Simple, dev-friendly | Good for prototyping |
-| **Pinecone** | Managed cloud | Zero-ops, scalable | Paid |
-| **Weaviate** | Self-hosted / cloud | Hybrid search (BM25 + vector) | Good for production |
-| **Qdrant** | Self-hosted / cloud | Fast, Rust-based | Good filter performance |
-| **pgvector** | PostgreSQL extension | Keeps data in existing DB | Good for small-medium scale |
-| **FAISS** | In-memory library | Fastest for batch search | Not a full DB |
+**The problem:** finding exact nearest neighbors in a database of millions of 1536-dimensional vectors requires computing cosine similarity against every vector — O(n) per query. At millions of documents, this is too slow for real-time use.
 
-### ANN Algorithms
+**The core insight:** approximate nearest neighbor (ANN) algorithms sacrifice exact correctness for logarithmic query time by building an index structure over the vector space.
 
-**HNSW (Hierarchical Navigable Small World):** most common in production vector DBs.
-- Builds a multi-layer graph where higher layers have fewer, longer-range connections
-- Search: start at top layer, greedily navigate toward query, descend to finer layers
-- **Complexity:** $O(\log n)$ build, $O(\log n)$ query
-- **Tradeoff:** `ef_construction` (build quality) vs `ef` (query quality) vs speed
+**The mechanics — two main algorithms:**
 
-**IVF (Inverted File Index):** clusters vectors, searches only nearest clusters.
-- **IVFPQ:** combines IVF with Product Quantization for compressed storage
+HNSW (Hierarchical Navigable Small World): builds a multi-layer graph where higher layers have fewer, longer-range connections. Search starts at the top layer and greedily navigates toward the query, descending to finer layers. O(log n) query time. The `ef_construction` parameter controls build quality; `ef` controls query-time recall vs. speed.
 
-```python
-import faiss
-import numpy as np
+IVF (Inverted File Index): clusters vectors into k Voronoi cells, searches only the nearest cells. IVFPQ combines IVF with Product Quantization for compressed storage at the cost of recall.
 
-d = 1536  # embedding dimension
-n = 100000  # number of vectors
+**Vector database selection:**
 
-# HNSW index
-index = faiss.IndexHNSWFlat(d, 32)  # M=32 neighbors per layer
-index.hnsw.efConstruction = 200
-index.add(embeddings_matrix)
+| Database | Deployment | Strengths |
+|:---|:---|:---|
+| Chroma | Local / self-hosted | Simple, dev-friendly, good for prototyping |
+| Pinecone | Managed cloud | Zero-ops, scalable, paid |
+| Weaviate | Self-hosted / cloud | Native hybrid search (BM25 + vector) |
+| Qdrant | Self-hosted / cloud | Fast, Rust-based, good filter performance |
+| pgvector | PostgreSQL extension | Keeps data in existing database |
+| FAISS | In-memory library | Fastest for batch search, not a full DB |
 
-# Search
-query = np.array([query_embedding])
-distances, indices = index.search(query, k=10)
-```
+**What breaks:** ANN is approximate — some true nearest neighbors will be missed. The recall/speed tradeoff is controlled by index parameters (ef, nprobe) that must be tuned per workload. All-vector memory storage becomes a bottleneck at billions of documents — quantized indexes (IVFPQ) reduce memory at the cost of recall.
 
 ---
 
-## 5. Retrieval Strategies
+## Query Optimization
 
-### Dense Retrieval (Semantic)
-
-Standard embedding similarity search. Finds semantically similar chunks even with different wording.
-
-### Sparse Retrieval (BM25 / TF-IDF)
-
-Keyword-based. Fast and surprisingly strong for exact-match queries, technical terms, and proper nouns.
-
-**BM25 scoring:**
-
-$$\text{BM25}(q, d) = \sum_{t \in q} \text{IDF}(t) \cdot \frac{f(t,d) \cdot (k_1+1)}{f(t,d) + k_1(1-b+b\frac{|d|}{\text{avgdl}})}$$
-
-where $k_1 \approx 1.2–2.0$ and $b \approx 0.75$ are tuning parameters.
-
-### Hybrid Search
-
-Combine dense and sparse retrieval scores using Reciprocal Rank Fusion (RRF):
-
-$$\text{RRF}(d) = \sum_{r \in \text{rankers}} \frac{1}{k + r(d)}$$
-
-where $k=60$ is a common default and $r(d)$ is the rank of document $d$ in each ranker.
-
-```python
-from langchain.retrievers import BM25Retriever, EnsembleRetriever
-
-bm25_retriever = BM25Retriever.from_documents(chunks, k=10)
-vector_retriever = vectorstore.as_retriever(search_kwargs={"k": 10})
-
-ensemble_retriever = EnsembleRetriever(
-    retrievers=[bm25_retriever, vector_retriever],
-    weights=[0.3, 0.7]
-)
-```
-
----
-
-## 6. Query Optimization
+**The problem:** user queries are often short, ambiguous, or framed differently from how documents express the same information. A query like "AAPL Q3 revenue" may fail to retrieve a chunk saying "Apple reported third-quarter earnings of $..." because the lexical and semantic overlap is weak.
 
 ### Multi-Query Expansion
 
-Generate multiple reformulations of the query to improve recall:
-
-```python
-from langchain.retrievers.multi_query import MultiQueryRetriever
-
-retriever = MultiQueryRetriever.from_llm(
-    retriever=vectorstore.as_retriever(),
-    llm=llm
-)
-# Generates 3 variants of the user query, retrieves for each, deduplicates
-```
+**The core insight:** generate multiple reformulations of the original query to cover different phrasings of the same information need. Retrieve for each, then deduplicate results. Higher recall at the cost of more retrieval calls.
 
 ### HyDE (Hypothetical Document Embeddings)
 
-Generate a hypothetical answer first, embed it, then retrieve based on the richer semantic signal:
+**The core insight:** the embedding of a hypothetical answer to the query is closer in embedding space to actual answer-containing documents than the embedding of the short query itself. Generate a plausible answer first, embed it, retrieve using the richer embedding.
 
-```python
-def hyde_retrieve(query, vectorstore, llm, k=5):
-    hypothetical_doc = llm.complete(
-        f"Write a concise, factual answer to: {query}\n\nAnswer:"
-    )
-    # Embed the hypothetical answer instead of the raw query
-    hyp_embedding = embeddings.embed_query(hypothetical_doc)
-    return vectorstore.similarity_search_by_vector(hyp_embedding, k=k)
+```
+query → LLM generates hypothetical answer → embed hypothetical answer → retrieve
 ```
 
-Works especially well when the user query is short and the relevant documents are longer.
+Works best when the user query is short and vague and the relevant documents are detailed and specific.
 
 ### Step-Back Prompting
 
-Rewrite the query at a higher level of abstraction before retrieval:
+**The core insight:** rewrite the query at a higher level of abstraction before retrieval. A specific question may not match document language, but its generalized form will.
 
 ```
 User: "What are the side effects of metformin in elderly patients?"
 Step-back: "What are general considerations for metformin use?"
 ```
 
+**What breaks:** query optimization adds latency (one or more LLM calls before retrieval) and cost. Multi-query expansion multiplies retrieval calls by the number of variants. HyDE can generate a confidently wrong hypothetical answer that retrieves the wrong documents — the LLM hallucination problem now infects the retrieval step.
+
 ---
 
-## 7. Reranking
+## Reranking
 
-Initial retrieval returns candidates quickly. A **reranker** (cross-encoder) scores each candidate against the query more accurately, at the cost of more compute.
+**The problem:** ANN retrieval returns candidates quickly but imprecisely — it optimizes for speed, not exact relevance. The top-10 ANN results may include irrelevant chunks that happen to be geometrically close to the query embedding.
 
-**Bi-encoder (retrieval):** embed query and documents independently, dot product similarity. Fast but approximate.
+**The core insight:** a cross-encoder model that jointly processes the query and each candidate document can compute much more accurate relevance scores than embedding cosine similarity alone — at the cost of running a full model inference per candidate. Use ANN for broad recall, cross-encoder for precise ranking.
 
-**Cross-encoder (reranking):** concatenate query + document, run through transformer, output relevance score. Slow but accurate.
+**The mechanics — two-stage retrieval:**
+1. ANN retrieval: retrieve top 20 candidates fast.
+2. Cross-encoder reranking: score each of the 20 against the query, keep top 5.
 
-```python
-from sentence_transformers import CrossEncoder
+Bi-encoder (retrieval): embed query and document independently, dot product. Fast, approximate.
+Cross-encoder (reranking): concatenate query + document, run through transformer, output relevance score. Slow, accurate.
 
-reranker = CrossEncoder("cross-encoder/ms-marco-MiniLM-L-6-v2")
+**What breaks:** reranking adds latency proportional to the number of candidates × cross-encoder inference time. For low-latency applications, this step may be prohibitive. Cross-encoders are fixed-domain — a cross-encoder trained on MS-MARCO may not rank domain-specific technical documents well.
 
-# Score all candidates
-pairs = [(query, chunk.page_content) for chunk in candidates]
-scores = reranker.predict(pairs)
+---
 
-# Sort by score, keep top k
-reranked = sorted(zip(candidates, scores), key=lambda x: x[1], reverse=True)
-top_k = [chunk for chunk, score in reranked[:5]]
+## Context Assembly
+
+**The problem:** retrieved chunks must be assembled into a prompt, but their order affects how well the LLM uses them. LLMs have a U-shaped recall pattern over long contexts — information at the beginning and end is recalled better than information in the middle (lost-in-the-middle phenomenon).
+
+**The core insight:** place the most relevant retrieved chunk first in the assembled context. Avoid putting critical information in the middle of a long list of documents.
+
+**The mechanics — prompt structure:**
+```
+System: Answer using ONLY the provided context.
+        If the answer is not in the context, say so.
+        Cite sources using [Doc N].
+
+Context:
+[1] Source: quarterly-report-q3.pdf
+Apple reported third-quarter earnings of $89.5 billion...
+
+[2] Source: analyst-note-2024.pdf
+Revenue growth was driven primarily by services...
+
+Question: What was Apple's Q3 revenue?
 ```
 
-**Two-stage pattern:** retrieve top 20 with ANN → rerank → pass top 5 to LLM. Balances speed and precision.
+**What breaks:** lost-in-the-middle — the LLM ignores chunks in the middle of a long context. Conflicting retrieved passages cause hedging or arbitrary selection. A strict "answer only from context" instruction can make the model refuse to answer even when it could derive the answer with minimal inference.
 
 ---
 
-## 8. Context Assembly and Prompt Design
-
-```python
-from langchain.prompts import ChatPromptTemplate
-
-template = ChatPromptTemplate.from_messages([
-    ("system", """You are a helpful assistant. Answer questions using ONLY the provided context.
-If the answer is not in the context, say "I don't have enough information to answer that."
-Always cite your sources using [Source: filename]."""),
-    ("human", """Context:
-{context}
-
-Question: {question}
-
-Answer:""")
-])
-
-def format_context(chunks):
-    formatted = []
-    for i, chunk in enumerate(chunks):
-        source = chunk.metadata.get("source", "unknown")
-        formatted.append(f"[{i+1}] Source: {source}\n{chunk.page_content}")
-    return "\n\n".join(formatted)
-```
-
-**"Lost in the Middle" problem:** LLMs pay more attention to context at the beginning and end than the middle. When retrieving multiple chunks:
-- Put the most relevant chunk first
-- Or use RAG-Fusion: generate multiple hypothetical answers, rerank, present the top result prominently
-
----
-
-## 9. Advanced Patterns
+## Advanced Patterns
 
 ### Self-RAG
 
-The model decides when to retrieve, what to retrieve, and evaluates whether retrieved passages are relevant/grounded. Adds `[Retrieve]`, `[Relevant]`, `[Supported]` tokens to the generation.
+**The problem:** standard RAG retrieves for every query, even when retrieval is unnecessary or harmful (it introduces noise for queries the model can answer confidently from parametric knowledge).
+
+**The core insight:** let the model decide when to retrieve, evaluate whether retrieved passages are relevant, and assess whether its generated response is supported by the retrieved evidence. Add special tokens (`[Retrieve]`, `[Relevant]`, `[Supported]`) that the model learns to emit during fine-tuning.
+
+**What breaks:** requires fine-tuning the model on Self-RAG training data. The model's retrieval decisions may not align with actual information need.
 
 ### CRAG (Corrective RAG)
 
-Evaluates retrieval quality. If retrieval quality is low, falls back to web search. If quality is ambiguous, uses both retrieved docs and web results.
+**The core insight:** evaluate the quality of retrieved passages. If retrieval quality is low (none of the top-k chunks are relevant), fall back to web search. If quality is ambiguous, combine retrieved docs and web results. Prevents confident hallucination caused by irrelevant retrieved context.
+
+**What breaks:** the retrieval quality evaluator is itself imperfect. The web search fallback adds latency and introduces unverified external content.
 
 ### GraphRAG
 
-Extracts entities and relationships from documents, builds a knowledge graph, and answers multi-hop queries using graph traversal + LLM synthesis. Best for questions requiring reasoning across multiple facts: "How does entity A relate to entity B through entity C?"
+**The core insight:** for questions requiring reasoning across multiple entities and their relationships ("how does entity A relate to entity B through entity C?"), flat chunk retrieval may not surface all relevant facts. Build a knowledge graph from documents — extract entities and relationships — and answer multi-hop queries via graph traversal + LLM synthesis.
+
+**What breaks:** entity extraction and relationship extraction are imperfect. The graph construction pipeline is expensive. GraphRAG outperforms flat RAG on complex multi-hop questions; for simple single-document lookups it adds overhead without benefit.
 
 ---
 
-## 10. Evaluation
+## Evaluation
 
-Use automated evaluation to score at scale; human evaluation for ground truth.
+**The problem:** RAG systems have multiple failure modes at multiple stages: wrong document retrieved, right document retrieved but answer not extracted, answer extracted but unfaithfully stated. A single end-to-end metric cannot distinguish which component failed.
 
-### RAGAS Metrics
+**The core insight:** decompose evaluation into component metrics. Faithfulness measures whether the generated answer is grounded in the retrieved context. Context recall measures whether retrieval surfaced the necessary information. These require different ground truth and different correction strategies.
 
-| Metric | Measures | How |
-| :--- | :--- | :--- |
-| **Faithfulness** | Is the answer grounded in the retrieved context? | LLM decomposes answer into claims, checks each against context |
-| **Answer Relevancy** | Does the answer address the question? | Embed question vs generated answer, cosine similarity |
-| **Context Precision** | Are retrieved chunks relevant to the question? | LLM judges each chunk for relevance |
-| **Context Recall** | Did retrieval surface all necessary information? | Checks if ground-truth answer is derivable from context |
+**RAGAS metrics:**
 
-```python
-from ragas import evaluate
-from ragas.metrics import faithfulness, answer_relevancy, context_precision, context_recall
-from datasets import Dataset
+| Metric | What it measures | How |
+|:---|:---|:---|
+| Faithfulness | Is the answer grounded in retrieved context? | Decompose answer into atomic claims; check each against context |
+| Answer relevancy | Does the answer address the question? | Cosine similarity between question embedding and answer embedding |
+| Context precision | Are retrieved chunks relevant to the question? | LLM judges each chunk for relevance |
+| Context recall | Did retrieval surface all necessary information? | Check if ground-truth answer is derivable from context |
 
-eval_data = {
-    "question": questions,
-    "answer": answers,
-    "contexts": [[c.page_content for c in retrieved] for retrieved in all_retrieved],
-    "ground_truth": ground_truths,
-}
-
-result = evaluate(
-    Dataset.from_dict(eval_data),
-    metrics=[faithfulness, answer_relevancy, context_precision, context_recall]
-)
-print(result)
-```
+**What breaks:** RAGAS metrics use an LLM as the judge — the judge can be wrong. Faithfulness evaluation decomposes answers into claims and checks each against context; if the decomposition fails, the score is unreliable. Context recall requires ground-truth answers, which are expensive to collect.
 
 ---
 
-## 11. Production Considerations
+## Production Considerations
+
+**Debugging RAG failures:** wrong answers usually trace to one of four causes, in order of likelihood:
+1. Stale or missing documents — the answer is not in the index
+2. Poor chunking — the answer spans a chunk boundary and neither chunk scores highly
+3. Retrieval returning irrelevant chunks — embedding model mismatch with domain vocabulary
+4. Prompt not enforcing groundedness — model ignores context in favor of parametric memory
+
+Fix in this order before touching the generation model.
 
 | Challenge | Solution |
-| :--- | :--- |
-| **Index freshness** | Scheduled re-ingestion + delta updates |
-| **Embedding model changes** | Version-pin embeddings; plan full re-index when upgrading |
-| **Multi-tenant isolation** | Namespace/partition by tenant in vector DB |
-| **Latency** | Cache embeddings of frequent queries; use HNSW with tuned `ef` |
-| **Context window overflow** | Hard limit on retrieved chunks; summarize if needed |
-| **Hallucination despite context** | Stricter system prompt; faithfulness filter on output |
-| **Security** | Metadata filtering to scope retrieval to user's accessible docs |
+|:---|:---|
+| Index freshness | Scheduled re-ingestion + delta updates |
+| Embedding model changes | Version-pin embeddings; re-index when upgrading |
+| Multi-tenant isolation | Namespace/partition by tenant in vector DB |
+| Latency | Cache embeddings of frequent queries; tune ANN ef parameter |
+| Context overflow | Hard limit on retrieved chunks; summarize if needed |
+| Hallucination despite context | Stricter system prompt; faithfulness filter on output |
+| Security | Metadata filtering to scope retrieval to user's accessible documents |
 
-> [!TIP]
-> **Debugging RAG failures:** trace the pipeline — wrong answer usually traces back to (1) stale/missing documents, (2) poor chunking losing key context, (3) retrieval returning irrelevant chunks, (4) prompt not enforcing groundedness. Fix in this order before touching the generation model.
+*Related: [Hallucination Mitigation](hallucination-mitigation.md) | [Agentic Workflows](agentic-workflows.md) | [Tuning and Optimization](tuning-optimization.md)*

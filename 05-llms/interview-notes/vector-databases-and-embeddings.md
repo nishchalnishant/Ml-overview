@@ -1,961 +1,315 @@
-# Vector Databases & Embeddings
-
-This hub contains core concepts and systems for storing, indexing, and retrieving high-dimensional vector data for AI search and RAG.
+# Vector Databases and Embeddings — Interview Notes
 
 ---
 
-## 🔹 ANN Indexing: HNSW (Hierarchical Navigable Small Worlds)
+## What Embeddings Are and Why They Exist
 
-```mermaid
-graph TD
-    subgraph "Layer 2 (Coarse)"
-    L2_1[Node A] --- L2_2[Node B]
-    end
-    subgraph "Layer 1 (Medium)"
-    L1_1[Node A] --- L1_2[Node B]
-    L1_1 --- L1_3[Node C]
-    L1_2 --- L1_4[Node D]
-    end
-    subgraph "Layer 0 (Dense)"
-    L0_1[Node A] --- L0_2[Node B]
-    L0_1 --- L0_3[Node C]
-    L0_2 --- L0_4[Node D]
-    L0_3 --- L0_5[Node E]
-    L0_4 --- L0_6[Node F]
-    end
-    L2_1 -.-> L1_1
-    L1_1 -.-> L0_1
+**The problem**: semantic search requires comparing the meaning of a query against a large corpus. You cannot do this with exact string matching — "refund policy" and "how do I get my money back" mean the same thing but share no words. You need a representation where similar meanings are computationally close.
+
+**The core insight**: train a neural network to produce numerical vectors where semantically similar texts map to geometrically nearby points. Semantic similarity becomes a distance computation — fast, scalable, and language-independent.
+
+**The mechanics**: an embedding model takes a text span as input and outputs a fixed-size vector in R^d. The model is trained with a contrastive objective: positive pairs (semantically similar texts) are pushed close together; negative pairs are pushed apart. For retrieval specifically, training uses (query, relevant passage) pairs so the embedding space directly encodes retrieval relevance.
+
+At inference: query is embedded to q, documents are embedded to {d1, d2, ..., dN}, and similarity is computed as:
+- **Cosine similarity**: (q·d) / (||q|| ||d||) — measures directional alignment; scale-invariant
+- **Dot product**: q·d — equivalent to cosine if vectors are L2-normalized; faster if you skip normalization
+- **L2 distance**: ||q - d||² — finds absolute proximity; valid but less common for retrieval
+
+If an embedding model normalizes its output (most do), cosine and dot product are equivalent. Always match your similarity metric to what the model was trained with — using L2 on a model trained with cosine can degrade retrieval quality.
+
+**What breaks**: embeddings encode what was similar in the training distribution. Out-of-domain text (specialized legal or medical jargon, rare product codes, code in a non-English context) may not embed accurately because the training distribution did not represent it well. Embeddings are also insensitive to exact string matching — "SKU-7734-B" embeds near other product descriptions, not at the exact identifier. This is why hybrid search (dense + sparse) is necessary for enterprise use cases.
+
+**What the interviewer is testing**: do you understand that embeddings are trained representations, not a magic semantic lookup — and that their accuracy is bounded by the training distribution?
+
+**Common traps**: assuming high cosine similarity means factual correctness (semantic proximity ≠ factual entailment); not knowing that similarity metric must match the model's training (cosine vs. dot product vs. L2); confusing token embeddings (per-token, part of the model) with document embeddings (pooled representation, produced by a separate encoder).
+
+---
+
+## How Embedding Models Produce Vectors
+
+**The problem**: text is variable-length; a neural network needs fixed-size inputs. You need to transform an arbitrary-length sequence of tokens into a single vector that captures the overall meaning.
+
+**The core insight**: run a transformer encoder over the token sequence to produce one hidden state per token (each token is contextualized by attending to all others), then aggregate (pool) those hidden states into a single vector. The pooling step is the compression from sequence to fixed-size representation.
+
+**The mechanics**:
+
+1. Tokenize: text → subword token IDs using the model's tokenizer.
+2. Encode: pass token IDs through the transformer encoder. Output: one hidden state vector per token, each of size d_hidden.
+3. Pool: aggregate token hidden states into one vector.
+   - **Mean pooling**: average over all non-padding token positions. Most common.
+   - **CLS token pooling**: use the hidden state of the special [CLS] token (BERT-style). Designed for classification but used for embeddings in some models.
+   - **Attention pooling**: learn a weighted combination of token states. More expressive; rarely used in standard embedding models.
+4. Normalize: L2-normalize the output vector so cosine similarity equals dot product.
+
+**What breaks**: pooling over padding tokens without a mask inflates the average toward the padding token's representation. Mean pooling averages equally over all tokens — a 500-token document gives equal weight to the main claim and a boilerplate disclaimer. This can be addressed with weighted mean pooling or by using better chunking before embedding.
+
+**What the interviewer is testing**: whether you can explain where the vector comes from — specifically what pooling is and why it matters.
+
+**Common traps**: not knowing that different pooling strategies (mean vs. CLS) produce different representations with different quality profiles; forgetting L2 normalization (models trained with cosine loss expect normalized vectors; unnormalized vectors produce wrong similarity scores); using the same model but with different tokenizer truncation settings at ingestion vs. query time.
+
+---
+
+## Sparse vs. Dense Embeddings
+
+**The problem**: there are two fundamentally different ways to represent text for retrieval. Each works well in cases where the other fails. Choosing only one means accepting systematic failures on a subset of queries.
+
+**The core insight**: sparse representations (BM25/TF-IDF) are exact — they score documents by weighted term overlap with the query. Dense representations (neural embeddings) are semantic — they score by meaning proximity regardless of exact terms. Exact-match queries fail in dense search; paraphrase queries fail in sparse search.
+
+**The mechanics**:
+
+**Sparse (BM25)**: represents each document as a vector over the vocabulary where most entries are zero (only present terms are non-zero). BM25 score:
 ```
+score(D, Q) = Σ IDF(qi) · (f(qi, D) · (k1 + 1)) / (f(qi, D) + k1 · (1 - b + b · |D|/avgdl))
+```
+f(qi, D) = term frequency of query term i in document D. IDF = inverse document frequency. k1 and b are tuning parameters. Implemented efficiently via inverted index. Latency is O(|vocabulary terms in query|) per query.
+
+**Dense**: represents each document as a d-dimensional float vector. Similarity via cosine/dot product. Retrieved via ANN index (see HNSW below). Encodes semantics. Fails on rare terms, identifiers, exact strings.
+
+**Hybrid**: retrieve from both independently; merge candidate lists (typically with RRF). Gets the best of both: exact-match recall from BM25, semantic recall from dense. Standard in production systems handling mixed query types.
+
+**What breaks**: dense-only retrieval fails on product IDs, error codes, rare acronyms. Sparse-only retrieval fails on paraphrases, conceptual questions, cross-lingual queries. Neither failure mode is obvious from aggregate metrics — they appear as tail query failures.
+
+**What the interviewer is testing**: whether you know the specific failure mode of each retrieval type and can justify using hybrid search for production systems.
+
+**Common traps**: saying "dense search is always better because it understands semantics" (it systematically fails on exact-match queries); not being able to describe what BM25 does concretely; proposing hybrid search without being able to explain RRF.
 
 ---
 
-# Q1: What are embeddings in the context of AI engineering?
+## Vector Databases: What They Are and Why They Exist
 
-## 1. 🔹 Direct Answer
-Embeddings are dense vector representations of text (or other data) where semantic similarity becomes geometric closeness. They enable semantic search, clustering, and retrieval for RAG and agents.
+**The problem**: you have embedded 10 million documents. A user submits a query, which you embed into a vector q. You need to find the top-K most similar vectors. Brute-force scan (compute similarity against all 10M vectors) takes seconds and is unacceptable for production latency requirements. A relational database's B-tree index is designed for exact match and range queries — it provides no benefit for nearest-neighbor queries in high-dimensional space.
 
-## 2. 🔹 Intuition
-They map “meaning” into coordinates; similar concepts land near each other.
+**The core insight**: build a specialized index structure that partitions the vector space so that queries can be answered by examining a small fraction of the total vectors. Trade a small amount of recall (approximate nearest neighbor, not exact) for orders-of-magnitude speed improvement.
 
-## 3. 🔹 Deep Dive
-- Embedding model outputs `e ∈ R^d` for an input span.
-- Similarity is measured with cosine/dot/L2.
-- Training often uses contrastive objectives so positives are close and negatives are far.
+**The mechanics**: a vector database stores:
+- Embedding vectors (the float arrays)
+- Raw text or document IDs (references to the original content)
+- Metadata (source, date, tenant_id, access level, etc.)
 
-## 4. 🔹 Practical Perspective
-- **Use when:** you need paraphrase-robust matching and semantic retrieval.
-- **Avoid when:** exact lexical constraints are mandatory (hybrid often best).
-- **Trade-offs:** compute cost and potential embedding drift after model updates.
+And provides:
+- ANN index for fast similarity search (HNSW or IVF+PQ)
+- Metadata filtering (combine similarity search with structured predicates)
+- CRUD operations (upsert, delete, update)
 
-## 5. 🔹 Code Snippet
+Choices: Pinecone (managed, serverless), Weaviate (open-source, graph features), Qdrant (open-source, Rust-based, efficient filtering), pgvector (PostgreSQL extension, no new infrastructure), Milvus/Zilliz (high-scale, distributed).
+
+**What breaks**: vector databases are approximate — ANN search can miss the true nearest neighbor. Metadata filtering interacts with ANN search: some DBs pre-filter before ANN search (can reduce recall), others post-filter after ANN (can reduce effective top-K). Know which your database does. At very high dimensionality (>3000), ANN index quality degrades — the "curse of dimensionality" makes all vectors approximately equidistant.
+
+**What the interviewer is testing**: whether you understand the distinction between approximate and exact nearest neighbor search, and why approximate is necessary at scale.
+
+**Common traps**: treating vector DB similarity search as exact (it is approximate by design); not knowing about the pre-filter vs. post-filter difference (affects recall under strict metadata filters); using a relational DB with a cosine function (works at thousands of records, catastrophically slow at millions).
+
+---
+
+## HNSW: How ANN Indexing Works
+
+**The problem**: with 10 million vectors, brute-force nearest-neighbor search requires 10 million similarity computations per query. At d=768 dimensions, each computation is ~1536 floating point operations. Total: ~15 billion FLOPs per query. This is seconds, not milliseconds.
+
+**The core insight**: organize vectors into a hierarchical graph where long-distance traversal is possible at the top level (few nodes, long edges) and precise local search is possible at the bottom level (many nodes, short edges). Search starts at the top, finds an approximate region, then refines locally.
+
+**The mechanics — HNSW (Hierarchical Navigable Small World)**:
+
+HNSW builds a layered proximity graph:
+
+- **Layer 0 (base layer)**: all vectors, each connected to M nearest neighbors (dense connections)
+- **Layer 1**: a random subset of vectors (~1/e of layer 0), connected to M neighbors in this sparser subgraph
+- **Layer 2**: sparser still (~1/e of layer 1)
+- ... up to log(N) layers
+
+**Build**: each vector is assigned a random max layer. Starting from the top, greedily insert the vector by finding the M nearest neighbors at each layer (using greedy search within the layer) and adding bidirectional edges.
+
+**Query**: start at the top-layer entry point. Greedily traverse toward the query vector (follow edges to the nearest neighbor at each step). At each layer, find the best entry point for the layer below. At layer 0, perform beam search with a frontier of size ef (efSearch parameter) to find the top-K candidates.
+
+Key parameters:
+- **M**: connections per node. More connections = better recall, more memory. Typical: 16–64.
+- **efConstruction**: beam size during index build. Higher = better quality index, slower build. Typical: 100–400.
+- **efSearch**: beam size during query. Higher = better recall, slower query. Tune to meet recall SLA.
+
+Query complexity: approximately O(log N) expected, versus O(N) brute-force.
+
+**What breaks**: HNSW is memory-intensive — each node stores M connection lists. For 10M vectors at d=768 (fp32), the raw vectors use ~28 GB; HNSW index adds ~5–10 GB of graph structure. Inserts are O(log N) but require locking for concurrent updates. Deletes in HNSW are typically "soft deletes" — the vector is marked deleted but the graph structure is not rebuilt.
+
+**What the interviewer is testing**: whether you understand why ANN is necessary and the basic mechanism — coarse search at high layers, refine at low layers.
+
+**Common traps**: thinking HNSW guarantees finding the true nearest neighbor (it's approximate); not knowing that efSearch is a tunable query-time parameter that trades recall for speed; confusing HNSW with IVF (IVF partitions the space into Voronoi cells; HNSW builds a proximity graph — different structures with different tradeoffs).
+
+---
+
+## Embedding Dimensionality and Quantization
+
+**The problem**: you have 100M document embeddings at d=1536 dimensions (OpenAI ada-002 size), stored as float32. Storage: 100M × 1536 × 4 bytes = ~576 GB. This does not fit in GPU memory for fast ANN search, and the cost of storing and serving this index is significant.
+
+**The core insight**: most of the information in a high-dimensional float32 vector is recoverable from a lower-precision representation. You can sacrifice a small amount of retrieval accuracy for large reductions in memory footprint.
+
+**The mechanics — quantization approaches**:
+
+**Scalar quantization (INT8)**: map each float32 dimension to an 8-bit integer by linear scaling. 4× memory reduction (fp32 → int8). Typical recall degradation: <2% at top-5. This is the standard first optimization.
+
+**Binary quantization**: represent each dimension as a single bit (sign of the float). 32× memory reduction. Recall degradation is larger — best used with re-scoring: retrieve a large candidate set with binary vectors, then re-score with full precision. Works best for models trained with binary quantization in mind.
+
+**Product Quantization (PQ)**: divide the d-dimensional vector into M subspaces of d/M dimensions each. Independently quantize each subspace to one of K centroids. Store centroid index (typically log2(K) bits per subspace). Enables approximate distance computation without reconstructing the full vector. The FAISS library implements IVFPQ (IVF clustering combined with PQ compression).
+
+**Matryoshka Representation Learning (MRL)**: train the embedding model so that the first 256 dimensions alone carry most of the retrieval signal (the first 512 even more, the first 1024 more still). You can then truncate vectors to a shorter length (e.g., 256 from 1536) with modest recall loss. Used in OpenAI's text-embedding-3 models and BGE models.
+
+**What breaks**: quantization reduces recall. Always benchmark recall@K before and after quantization on your actual query distribution — generic benchmarks may not reflect your domain. After quantizing, ANN index parameters (M, efSearch) need retuning because quantization changes the neighborhood structure.
+
+**What the interviewer is testing**: whether you can explain the memory-recall tradeoff concretely and know which technique to apply when.
+
+**Common traps**: applying quantization without re-evaluating recall (you may have degraded a working system); not knowing about MRL as a model-level solution to the dimensionality problem; treating INT8 and binary quantization as equivalent (binary is much more aggressive; INT8 is usually the right first step).
+
+---
+
+## Choosing and Evaluating an Embedding Model
+
+**The problem**: there are dozens of embedding models. The MTEB leaderboard shows one model ranking #1. You deploy it, retrieval quality is worse than your baseline. Why? Because MTEB measures general retrieval quality across diverse benchmarks — your domain may be different.
+
+**The core insight**: embedding quality is task- and domain-specific. The only way to select a model for your production use case is to evaluate it on your actual query distribution against your actual document corpus. MTEB rankings are a useful filter, not a selection criterion.
+
+**The mechanics — evaluation protocol**:
+
+1. Create a retrieval evaluation set: 100–500 (query, relevant document IDs) pairs from your domain. Sources: human annotation, click logs, LLM-generated synthetic pairs.
+2. Embed all queries and all corpus documents with each candidate model.
+3. Compute retrieval metrics per model:
+   - **Recall@K**: fraction of queries where the relevant document appears in the top-K results. Most important for RAG.
+   - **MRR (Mean Reciprocal Rank)**: 1/rank of the first relevant result, averaged over queries. Penalizes relevant documents at lower ranks.
+   - **NDCG@K**: normalized discounted cumulative gain; useful when multiple relevance levels exist.
+4. Run end-to-end RAG faithfulness evaluation on a subset (not just retrieval metrics — poor embedding quality can produce good retrieval metrics but poor answer quality in edge cases).
+
+Key selection criteria:
+- **Max sequence length**: must equal or exceed your chunk size. If chunks are 512 tokens, models with 256-token max length will truncate your chunks.
+- **Dimensionality**: higher d → better recall ceiling, higher storage cost.
+- **Latency**: self-hosted GPU vs. API (cloud API adds network latency, sends data off-premise).
+- **Domain coverage**: models trained on domain-specific data (legal, biomedical, code) outperform general models in those domains.
+
+**What breaks**: evaluating on publicly available benchmarks without domain data can select the wrong model. Selecting a model based on average recall without inspecting its failure cases (which query types does it miss?) misses systematic gaps.
+
+**What the interviewer is testing**: whether you would run a domain-specific evaluation, not just defer to public rankings.
+
+**Common traps**: using MTEB rankings as the selection criterion without domain validation; selecting a model with max sequence length shorter than your chunk size (silent truncation degrades embeddings); not knowing that fine-tuning the embedding model (see below) is an option when off-the-shelf models underperform.
+
+---
+
+## Fine-Tuning an Embedding Model for a Domain
+
+**The problem**: your retrieval quality is poor despite good chunking and hybrid search. The embedding model simply doesn't understand what "relevant" means in your domain. Legal contract clauses, biomedical abstracts, proprietary product descriptions — the off-the-shelf model's geometry doesn't reflect domain-specific relevance.
+
+**The core insight**: the embedding model was trained to make documents similar if they are semantically similar according to its training data. Your domain has different relevance relationships. Fine-tuning with domain-specific positive and negative pairs re-calibrates the embedding space to match your domain's definition of relevance.
+
+**The mechanics**:
+
+1. Construct training data: (query, relevant document, hard negative) triples.
+   - Positives: known query-document relevant pairs (from human annotations, click logs, or LLM-generated synthetic queries for your documents).
+   - Hard negatives: documents that are superficially similar but not the correct answer (retrieve with BM25 or the current embedding model, take top results that are not the true relevant document). Hard negatives force the model to learn fine-grained distinctions.
+2. Apply contrastive loss (InfoNCE or MultipleNegativesRankingLoss):
+   ```
+   L = -log(exp(sim(q, d+)) / (exp(sim(q, d+)) + Σ exp(sim(q, d-))))
+   ```
+   This pulls (query, relevant doc) pairs together and pushes (query, hard negative) pairs apart.
+3. After training: re-embed all corpus documents with the new model. Rebuild the vector index.
+4. Evaluate recall@K before and after on a held-out evaluation set.
+
+**What breaks**: fine-tuning without hard negatives trains the model only on easy positives — recall improves slightly but precision does not (the model still cannot distinguish between plausible-but-wrong documents). Re-embedding the full corpus after fine-tuning is mandatory — skipping this produces an index where query vectors live in the new space and document vectors live in the old space, making retrieval worse than before.
+
+**What the interviewer is testing**: whether you understand the role of hard negatives and know that re-indexing after fine-tuning is not optional.
+
+**Common traps**: fine-tuning without hard negatives (the most common mistake); not rebuilding the index after fine-tuning (query and document spaces no longer align); treating embedding fine-tuning as the first optimization step (it should come after chunking, hybrid search, and re-ranking improvements — those have lower cost).
+
+---
+
+## Embedding Drift and Index Migration
+
+**The problem**: you update your embedding model (better performance on the new MTEB leaderboard, or domain fine-tuning improved recall). You update the query-time embedding. Retrieval quality crashes overnight. Why?
+
+**The core insight**: the embedding model defines a coordinate system. Every document in the index is represented in the coordinates of the old model. The query is now expressed in the coordinates of the new model. Different coordinate systems — the nearest neighbors in the new space are not the same as the nearest neighbors in the old space.
+
+**The mechanics — migration protocol**:
+
+1. Do not update the query embedding model without first rebuilding the index. These two changes must be atomic.
+2. Build the new index offline: re-embed all corpus documents using the new model; build a new ANN index; validate recall@K on the evaluation set.
+3. If the new model has different dimensionality: you must rebuild — there is no way to project old vectors to a different dimension without a learned mapping (and learned projections degrade quality).
+4. Dual-run migration: route a fraction of traffic to the new index while keeping the old index live. Compare recall@K, answer faithfulness, and latency. Switch fully when the new index is validated.
+5. Rollback procedure: keep the old index live until the new index has been validated in production.
+
+**Monitoring for drift**: track recall@K proxies (e.g., fraction of queries where the model's answer cites a retrieved chunk) and answer faithfulness on sampled queries. A sudden drop in these metrics often indicates an embedding version mismatch before it reaches incident severity.
+
+**What breaks**: in-place partial updates (re-embedding a subset of documents with the new model while the rest remain in old model coordinates) produce a mixed-space index that degrades retrieval for all queries. Always re-embed all documents atomically.
+
+**What the interviewer is testing**: whether you understand that the index and the query encoder must always be in the same embedding space — and that migration requires rebuilding, not patching.
+
+**Common traps**: updating the query encoder without rebuilding the index (most common production incident); attempting to project old-dimensional vectors into a new-dimensional space without a learned projection; not having a rollback plan before migrating.
+
+---
+
+## Multi-Tenant Vector Search and Access Control
+
+**The problem**: you have a single vector index serving multiple enterprise customers. Customer A's documents must not be retrievable by Customer B's queries, even if they are semantically similar. This is a hard security requirement that cannot be satisfied by prompting the LLM to "not reveal" information from other tenants.
+
+**The core insight**: access control must be enforced at the retrieval layer, not the generation layer. The LLM is not a security boundary. If unauthorized documents enter the context window, the model may use them regardless of instructions. Prevent unauthorized documents from being retrieved in the first place.
+
+**The mechanics**:
+
+1. **Metadata filtering**: store `tenant_id` and `access_level` with every document vector at ingestion time. At query time, pass the user's tenant and permission level as metadata filters — the vector DB enforces these before returning results.
+   ```python
+   chunks = vector_db.search(qv, top_k=8, filter={"tenant_id": tenant_id, "access_level": {"$in": user_permitted_levels}})
+   ```
+2. **Sharding by tenant**: for large enterprise deployments, give each tenant their own index shard. Queries are routed to the correct shard. No cross-tenant vectors in the same query scope.
+3. **Permission invalidation**: when a user's permissions change (role change, document reclassification), update the metadata in the vector DB and invalidate any cached results for that user. Do not cache retrieval results across permission changes.
+
+**What breaks**: pre-filter semantics vary across vector DB implementations. Some DBs first filter by metadata (may reduce recall if the filtered subset is small), then search by similarity within that subset. Others search by similarity first, then filter (may produce fewer than top-K results if many are filtered out). Know your DB's behavior and tune top-K accordingly.
+
+**What the interviewer is testing**: whether you know that access control must be enforced at the retrieval layer and can describe how metadata filtering works.
+
+**Common traps**: relying on the LLM to keep tenant data separate (the model is not a security boundary); not knowing that permission changes require cache invalidation; using a single index for all tenants without metadata filtering (every user gets access to all documents).
+
+---
+
+## Large-Scale Vector Search (Billions of Vectors)
+
+**The problem**: HNSW works well at 10–100M vectors. At 1B+ vectors, a single node cannot hold the entire index in RAM. Query latency increases and index build time becomes days.
+
+**The core insight**: at billion scale, the ANN index must be distributed. Partition the vector space across multiple nodes (shards), query each shard in parallel, and merge results. Add quantization to reduce per-node memory footprint.
+
+**The mechanics — system design levers**:
+
+**Sharding**: partition vectors across shards by tenant, domain, or random hash. Each query fans out to all shards, retrieves the shard-local top-K, and a merge step produces the global top-K. Sharding by tenant/domain also reduces search scope (tenant A's query only fans out to tenant A's shard).
+
+**Quantization**: INT8 reduces memory 4×; binary reduces 32×; PQ can reduce 16–32× depending on settings. This allows more vectors per node, reducing the number of nodes needed.
+
+**Replication**: each shard has replicas for read throughput and availability. Queries are routed to any replica.
+
+**Index parameter tuning**: increase efSearch to improve recall, but monitor latency per percentile. ANN index parameters must be tuned post-quantization — quantization changes the neighborhood structure.
+
+**Caching**: cache embeddings of frequent queries (not just results, because the same query text produces the same embedding). For high-volume production systems, 20–40% of queries may hit the embedding cache.
+
+**What breaks**: sharding requires a scatter-gather fan-out: more shards = more parallel requests, more network latency, more aggregation cost. Shard imbalance (hot shards vs. cold shards) creates latency outliers. ANN recall per shard must be high enough that global merging recovers the true global top-K.
+
+**What the interviewer is testing**: whether you can describe a distributed vector search architecture from first principles — not just name tools.
+
+**Common traps**: describing only quantization without addressing sharding (quantization alone doesn't solve the single-node capacity problem); not knowing that per-shard top-K must be tuned relative to global top-K; treating replication as primarily a fault-tolerance mechanism (it is also the read throughput mechanism).
+
+---
+
+## Short Query Failures and Query Expansion
+
+**The problem**: a user submits the query "pricing." The embedding of "pricing" is a general vector that matches many documents about prices, costs, fees, and rates. It does not strongly match the specific document about your product's pricing tier structure that the user actually wants. Short queries produce low-variance embeddings that retrieve broadly rather than precisely.
+
+**The core insight**: the embedding of the query should represent what a relevant document looks like, not what the query text looks like. A short query underspecifies the embedding; expanding the query to a fuller description better approximates the embedding of the relevant document.
+
+**The mechanics — query expansion techniques**:
+
+**HyDE (Hypothetical Document Embedding)**: ask the LLM to generate a hypothetical answer to the query. Embed the hypothetical answer (not the query). The hypothetical answer tends to share vocabulary and structure with relevant documents, so its embedding is more similar to relevant documents than the embedding of the short query.
+
 ```python
-e = embed_model.encode(["return policy"])  # -> (d,)
+hypothesis = llm.generate(f"Write a short passage that would answer: {query}")
+qv = embed_model.encode([hypothesis])[0]
 ```
 
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Do embeddings guarantee correct retrieval?  
-   **A:** No—geometry correlates with relevance but is not perfect; tune chunking, filters, reranking.
-2. **Q:** What’s the difference from token embeddings?  
-   **A:** Token embeddings are per token; document embeddings are pooled summaries over tokens.
+**Step-back prompting**: ask the LLM "What is the underlying concept or entity that this query is about?" and use the expanded concept as the query.
 
-## 7. 🔹 Common Mistakes
-- Assuming embedding similarity implies factual correctness.
+**Hybrid retrieval as a hedge**: BM25 handles the exact terms in short queries well; dense retrieval handles semantic paraphrases. For very short queries (1–3 words), BM25 often outperforms dense search.
 
-## 8. 🔹 Comparison / Connections
-- Connects to **representation learning** and **contrastive learning**.
+**What breaks**: HyDE can hallucinate content in the hypothetical document that drifts the embedding away from the true relevant document. This is particularly dangerous in factual domains — the hypothetical answer might describe the wrong product feature, retrieving documents about a different thing. Always test HyDE improvement on your evaluation set; it does not universally help.
 
-## 9. 🔹 One-line Revision
-Embeddings are learned vectors that turn semantic similarity into fast vector search.
+**What the interviewer is testing**: whether you can diagnose *why* short queries fail (underspecified embedding) and propose a principled fix (expand toward what a relevant document looks like).
 
-## 10. 🔹 Difficulty Tag
-🟢 Easy
-
----
-
-# Q2: How do embedding models convert text to vectors?
-
-## 1. 🔹 Direct Answer
-They tokenize the text, encode tokens with a neural network (often a transformer), and then **pool** token representations into a single fixed-size vector.
-
-## 2. 🔹 Intuition
-Read the words, summarize them into one “semantic coordinate.”
-
-## 3. 🔹 Deep Dive
-1. Tokenize → subword IDs.
-2. Run encoder → hidden states per token.
-3. Pool (mean/CLS/attention pooling) while masking padding.
-4. Optionally normalize for cosine similarity.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** you can keep the same preprocessing at both index and query time.
-- **Avoid when:** you change tokenization/pooling between training and serving.
-
-## 5. 🔹 Code Snippet
-```python
-tokens = tokenizer(text, return_tensors="pt", truncation=True)
-h = encoder(**tokens).last_hidden_state  # (seq, hidden)
-e = h.mean(dim=0)  # illustrative; use masked pooling in production
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Why normalization?  
-   **A:** Stabilizes cosine similarity and indexing behavior.
-
-## 7. 🔹 Common Mistakes
-- Pooling over padding tokens without masking.
-
-## 8. 🔹 Comparison / Connections
-- Connects to transformer encoder representations.
-
-## 9. 🔹 One-line Revision
-Embed by encoding tokens then pooling into a single vector.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
-
----
-
-# Q3: What is the difference between sparse and dense embeddings?
-
-## 1. 🔹 Direct Answer
-Sparse embeddings (TF-IDF/BM25) emphasize exact keyword overlap; dense embeddings are continuous vectors that capture semantic similarity across paraphrases.
-
-## 2. 🔹 Intuition
-Sparse = “word overlap”; dense = “meaning similarity.”
-
-## 3. 🔹 Deep Dive
-- Sparse similarity is typically based on term weights.
-- Dense similarity uses vector metrics (cosine/dot/L2).
-- Hybrid search combines both to improve robustness.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** queries include rare terms and also paraphrases.
-- **Trade-offs:** dense can miss exact IDs; sparse can miss synonyms.
-
-## 5. 🔹 Code Snippet
-```python
-tfidf_vec = tfidf.transform([query])         # sparse
-dense_vec = embed_model.encode([query])[0]  # dense
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Which is “better”?  
-   **A:** Depends; benchmark on your query distribution.
-
-## 7. 🔹 Common Mistakes
-- Picking one modality without testing on rare-term queries.
-
-## 8. 🔹 Comparison / Connections
-- Connects to **hybrid retrieval**.
-
-## 9. 🔹 One-line Revision
-Sparse captures exact tokens; dense captures semantics.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
-
----
-
-# Q4: Explain cosine similarity, dot product, and Euclidean distance for vector search.
-
-## 1. 🔹 Direct Answer
-Cosine similarity measures angle (direction), dot product measures direction + magnitude, and Euclidean distance measures geometric distance. With normalized vectors, cosine and dot product become equivalent up to scaling.
-
-## 2. 🔹 Intuition
-Cosine asks “are they pointing the same way?” Euclidean asks “how far apart are they?”
-
-## 3. 🔹 Deep Dive
-For vectors `u, v`:
-- Cosine: `(u·v)/(||u|| ||v||)`
-- Dot: `u·v`
-- Euclidean: `||u-v||^2`
-
-## 4. 🔹 Practical Perspective
-- **Use when:** you match the metric to your embedding training/normalization.
-- **Avoid when:** you assume cosine but index uses L2 without normalization.
-
-## 5. 🔹 Code Snippet
-```python
-def cosine(u,v,eps=1e-12):
-    return float((u@v) / (np.linalg.norm(u)*np.linalg.norm(v)+eps))
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to pick?  
-   **A:** Use your vector DB’s metric options and validate retrieval quality on eval data.
-
-## 7. 🔹 Common Mistakes
-- Using unnormalized vectors with cosine assumptions.
-
-## 8. 🔹 Comparison / Connections
-- Connects to vector DB indexing metric types.
-
-## 9. 🔹 One-line Revision
-Metric choice must align with embedding normalization and vector DB indexing behavior.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
-
----
-
-# Q5: What is a vector database, and how does it differ from a traditional database?
-
-## 1. 🔹 Direct Answer
-A vector database stores embeddings and supports fast similarity search using ANN/k-NN. Traditional databases support exact matching and structured queries (SQL) but aren’t optimized for high-dimensional similarity at scale.
-
-## 2. 🔹 Intuition
-Traditional DB finds exact records; vector DB finds the “nearest meaning.”
-
-## 3. 🔹 Deep Dive
-- Vector DB:
-  - embedding storage
-  - similarity search indexes (HNSW/IVF/PQ)
-  - metadata filtering and approximate retrieval
-- Traditional DB:
-  - indexes for exact keys
-  - joins/aggregations over structured data
-
-## 4. 🔹 Practical Perspective
-- **Use when:** semantic retrieval is required (RAG, semantic search).
-- **Trade-offs:** vector DB adds operational complexity and approximate retrieval semantics.
-
-## 5. 🔹 Code Snippet
-```python
-hits = vector_db.search(qv, top_k=5, filter={"tenant_id": tenant})
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Can it store documents too?  
-   **A:** Usually it stores text references/metadata; raw text often lives elsewhere.
-
-## 7. 🔹 Common Mistakes
-- Trying to use SQL scans for semantic search at large scale.
-
-## 8. 🔹 Comparison / Connections
-- Connects to RAG indexing and query-time retrieval.
-
-## 9. 🔹 One-line Revision
-Vector DB = embeddings + ANN similarity search + metadata filters.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
-
----
-
-# Q6: How do you choose the right embedding model for your use case?
-
-## 1. 🔹 Direct Answer
-Choose by measured retrieval quality (recall@k/MRR) on your domain, plus latency/cost constraints and compatibility with your vector store (dimension + metric). Ideally validate end-to-end RAG faithfulness too.
-
-## 2. 🔹 Intuition
-Embeddings are only good if they retrieve the evidence your users need.
-
-## 3. 🔹 Deep Dive
-1. Create a small evaluation set: queries + relevant doc/chunk IDs.
-2. Benchmark candidate embedding models for retrieval metrics.
-3. Run end-to-end RAG tests on a subset to measure faithfulness.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** you can iterate with labeled or weakly labeled eval sets.
-- **Avoid when:** relying on unrelated public benchmarks without domain validation.
-
-## 5. 🔹 Code Snippet
-```python
-def recall_at_k(embed_model, queries, gold_ids, k=5):
-    hits = 0
-    for q, gold in zip(queries, gold_ids):
-        qv = embed_model.encode([q])[0]
-        top = vector_db.search(qv, top_k=k)
-        hits += int(gold in top)
-    return hits/len(queries)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** No labels available?  
-   **A:** Use synthetic queries, click logs, or LLM-assisted labeling.
-
-## 7. 🔹 Common Mistakes
-- Optimizing embedding selection without testing chunking and filters.
-
-## 8. 🔹 Comparison / Connections
-- Connects to evaluation-driven ML and IR metrics.
-
-## 9. 🔹 One-line Revision
-Pick embeddings by domain-relevant retrieval metrics under your serving constraints.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q7: What is embedding dimensionality, and how does it affect performance and cost?
-
-## 1. 🔹 Direct Answer
-Dimensionality `d` is the vector length. Larger `d` can improve expressiveness but increases memory/storage, index overhead, and query compute time. It’s a quality–cost trade-off.
-
-## 2. 🔹 Intuition
-More coordinates = more detail but heavier “map storage and search.”
-
-## 3. 🔹 Deep Dive
-- Storage ~ `O(n * d)` (plus index overhead).
-- ANN index build/query cost grows with `d`.
-- The embedding model’s quality matters more than `d` alone.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** you have budgets and can validate retrieval recall.
-- **Avoid when:** you are memory-bound; consider lower precision/quantization.
-
-## 5. 🔹 Code Snippet
-```python
-bytes_est = n_vectors * d * 4  # float32
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to reduce memory?  
-   **A:** Quantize embeddings or use smaller `d` models.
-
-## 7. 🔹 Common Mistakes
-- Treating high dimension as always better.
-
-## 8. 🔹 Comparison / Connections
-- Connects to quantization and ANN index design.
-
-## 9. 🔹 One-line Revision
-Higher embedding dimension can help quality but increases storage and retrieval costs.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q8: How do you handle embedding drift when the embedding model is updated?
-
-## 1. 🔹 Direct Answer
-Embedding drift means the new model changes vector geometry so existing indexes no longer align. Handle it with **versioned indexes**, re-embedding/reindexing, and canary dual-run migrations with rollback.
-
-## 2. 🔹 Intuition
-Switching the encoder changes the coordinate system; old vectors must be recreated.
-
-## 3. 🔹 Deep Dive
-### Migration strategies
-- **Full re-embed** + rebuild index.
-- **Dual index + routing**: run old/new side by side and compare retrieval metrics.
-- Ensure consistent metric/normalization settings.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** embedding updates are planned releases.
-- **Avoid when:** you update query embedding but forget to rebuild stored vectors.
-
-## 5. 🔹 Code Snippet
-```python
-# dual-run idea
-old_hits = old_index.search(qv_old, top_k=5)
-new_hits = new_index.search(qv_new, top_k=5)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to detect drift early?  
-   **A:** Monitor recall@k proxies and answer faithfulness on sampled queries.
-
-## 7. 🔹 Common Mistakes
-- In-place partial updates that create query/index embedding mismatch.
-
-## 8. 🔹 Comparison / Connections
-- Connects to MLOps/versioning and RAG reliability.
-
-## 9. 🔹 One-line Revision
-Embedding drift is handled by versioned indexes and staged re-indexing with canary rollout.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q9: What are multi-modal embeddings, and how are they generated?
-
-## 1. 🔹 Direct Answer
-Multi-modal embeddings map different modalities (text, images, audio) into a shared vector space so you can retrieve cross-modally (e.g., image↔text). They’re generated by modality-specific encoders trained with contrastive or paired losses.
-
-## 2. 🔹 Intuition
-They align “same meaning across formats” into nearby vectors.
-
-## 3. 🔹 Deep Dive
-### CLIP-style (common)
-- Image encoder → image embedding
-- Text encoder → text embedding
-- Contrastive loss makes paired image/text close and unpaired far.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** you need cross-modal search and multimodal RAG.
-- **Trade-offs:** more complex data pipelines and evaluation.
-
-## 5. 🔹 Code Snippet
-```python
-img_vec = vision_encoder(image)
-txt_vec = text_encoder("a cat on a sofa")
-hits = vector_db.search(img_vec, top_k=5)  # if storing text vectors
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Contrastive vs generative?  
-   **A:** Contrastive aligns representations; generative models produce text but may be harder for retrieval.
-
-## 7. 🔹 Common Mistakes
-- Using different embedding spaces for query and index without alignment.
-
-## 8. 🔹 Comparison / Connections
-- Connects to CLIP and multimodal transformers.
-
-## 9. 🔹 One-line Revision
-Multi-modal embeddings align modalities into one vector space for cross-modal similarity.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q10: How do you index and query multi-tenant data in a vector database?
-
-## 1. 🔹 Direct Answer
-Index vectors with tenant/permission metadata (e.g., `tenant_id`, ACL groups) and enforce tenant isolation by passing metadata filters at query time. For very large systems, shard by tenant/domain.
-
-## 2. 🔹 Intuition
-Your vector index is a catalog; filtering ensures users only search within their catalog.
-
-## 3. 🔹 Deep Dive
-### Steps
-1. Upsert each embedding with metadata: tenant_id, doc type, access level.
-2. At query time, compute user permissions → filter vector DB retrieval.
-3. Optionally shard indices by tenant/domain for performance/security.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** enterprise security and multi-corpora exist.
-- **Avoid when:** relying on the LLM to “not mention” restricted info.
-
-## 5. 🔹 Code Snippet
-```python
-filter = {"tenant_id": tenant_id, "access_level": {"$in": user_levels}}
-chunks = vector_db.search(qv, top_k=8, filter=filter)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How do you handle permission changes?  
-   **A:** Update metadata and re-evaluate caches; avoid stale cache leakage.
-
-## 7. 🔹 Common Mistakes
-- Logging retrieved text content for restricted users.
-
-## 8. 🔹 Comparison / Connections
-- Connects to RAG access control and guardrails.
-
-## 9. 🔹 One-line Revision
-Multi-tenant vector search uses tenant/ACL metadata filters (and sometimes sharding) to prevent leakage.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q11: What is quantization of embeddings, and how does it reduce storage costs?
-
-## 1. 🔹 Direct Answer
-Quantization compresses embeddings by representing each dimension with fewer bits (e.g., float32 → INT8/INT4). This reduces storage and can improve latency, with some accuracy trade-off.
-
-## 2. 🔹 Intuition
-Store an approximate version of the vector instead of full precision.
-
-## 3. 🔹 Deep Dive
-### Examples
-- INT8: 8 bits per value
-- Product Quantization (PQ): compress distances by splitting vector into subspaces and quantizing each.
-### Trade-off
-- Approximation error may reduce recall.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** memory/storage limits bind.
-- **Avoid when:** you cannot tolerate retrieval quality degradation.
-
-## 5. 🔹 Code Snippet
-```python
-# Conceptual PQ index choice (library-specific)
-index = faiss.IndexIVFPQ(d, nlist=256, m=16, nbits=8)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How do you validate impact?  
-   **A:** Measure retrieval recall/answer faithfulness with your eval set.
-
-## 7. 🔹 Common Mistakes
-- Quantizing without tuning ANN parameters after compression.
-
-## 8. 🔹 Comparison / Connections
-- Connects to ANN index families and vector DB engineering.
-
-## 9. 🔹 One-line Revision
-Quantization compresses embeddings to fewer bits, cutting index storage and improving speed at some recall cost.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q12: How do you benchmark and evaluate embedding model quality?
-
-## 1. 🔹 Direct Answer
-Evaluate using retrieval metrics like **Recall@k**, MRR, or NDCG on a labeled dataset. For RAG, also measure end-to-end answer **relevance** and **faithfulness**.
-
-## 2. 🔹 Intuition
-Good embeddings retrieve the right evidence reliably—not just high similarity scores.
-
-## 3. 🔹 Deep Dive
-### Two-level evaluation
-1. **IR quality:** query→gold evidence ranking.
-2. **System quality:** answer correctness/faithfulness conditioned on retrieved chunks.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** you can label a small set or infer relevance.
-- **Trade-offs:** end-to-end evaluation is more expensive but more predictive of user impact.
-
-## 5. 🔹 Code Snippet
-```python
-def recall_at_k(ranked, gold_set, k=5):
-    top = set(ranked[:k])
-    return len(top & gold_set) / len(gold_set)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** What if you only have unlabeled data?  
-   **A:** Use proxy signals (clicks) and LLM-assisted judgment with human sampling.
-
-## 7. 🔹 Common Mistakes
-- Over-relying on ROUGE/BLEU for retrieval quality.
-
-## 8. 🔹 Comparison / Connections
-- Connects to evaluation-driven iteration in RAG.
-
-## 9. 🔹 One-line Revision
-Embedding quality is measured by retrieval metrics, and ideally end-to-end faithfulness for RAG.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q13: What is the role of metadata in vector databases?
-
-## 1. 🔹 Direct Answer
-Metadata enables filtering and governance: restrict retrieval to the correct tenant/domain, enforce ACLs, and narrow by time/language/type—improving relevance and safety.
-
-## 2. 🔹 Intuition
-Metadata is the “where to search” rule layered on top of similarity.
-
-## 3. 🔹 Deep Dive
-- Store metadata alongside vectors.
-- Apply filters during search (native filter in vector DB or pre-filter candidates).
-- Improve precision and prevent cross-domain contamination.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** multi-tenant enterprise settings.
-- **Trade-offs:** filtering can reduce recall; tune carefully.
-
-## 5. 🔹 Code Snippet
-```python
-hits = vector_db.search(qv, top_k=10, filter={"tenant_id": tenant_id})
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to debug filter-related issues?  
-   **A:** Log filter params and compare retrieval recall with/without filters.
-
-## 7. 🔹 Common Mistakes
-- Filtering too aggressively and getting empty evidence.
-
-## 8. 🔹 Comparison / Connections
-- Connects to RAG metadata filtering.
-
-## 9. 🔹 One-line Revision
-Metadata filters narrow retrieval to the right subset for precision, correctness, and access control.
-
-## 10. 🔹 Difficulty Tag
-🟢 Easy
-
----
-
-# Q14: How do you handle large-scale vector search with billions of vectors?
-
-## 1. 🔹 Direct Answer
-Use ANN indexing (HNSW/IVF/PQ), sharding and replication across nodes, quantization for memory, and parameter tuning to meet recall/latency SLAs. Cache frequent queries when safe.
-
-## 2. 🔹 Intuition
-At billion scale you cannot brute-force; you must use distributed indexes.
-
-## 3. 🔹 Deep Dive
-### System levers
-- ANN indexes: trade a bit of recall for huge latency gains.
-- Sharding: partition embeddings to reduce search space.
-- Replication: improve throughput/availability.
-- Tune index parameters (efSearch/nprobe).
-- Observe: track latency + retrieval quality proxies.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** enterprise or web-scale corpora.
-- **Avoid when:** your workload is small enough for simpler methods.
-
-## 5. 🔹 Code Snippet
-```python
-partial = []
-for shard in shards:
-    partial += shard.search(qv, top_k=50)
-top = rerank(query, partial, top_k=10)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to shard?  
-   **A:** Often by tenant/domain for security and reduced search space.
-
-## 7. 🔹 Common Mistakes
-- Ignoring reranking and prompt-token costs that also impact latency.
-
-## 8. 🔹 Comparison / Connections
-- Connects to RAG scaling.
-
-## 9. 🔹 One-line Revision
-Billion-scale vector search needs ANN + distributed sharding/replication + tuning and caching.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q15: What is hybrid search (combining keyword search with vector search)?
-
-## 1. 🔹 Direct Answer
-Hybrid search merges lexical (BM25/keyword) retrieval with dense vector similarity. It improves robustness when queries include both exact terms and semantic paraphrases.
-
-## 2. 🔹 Intuition
-Keyword search catches exact names/IDs; vector search catches semantic meaning.
-
-## 3. 🔹 Deep Dive
-- Retrieve from both indexes.
-- Merge (RRF or weighted scoring).
-- Optionally rerank merged candidates.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** mixed query types and jargon/IDs exist.
-- **Trade-offs:** extra compute for two retrieval paths.
-
-## 5. 🔹 Code Snippet
-```python
-merged = rrf_merge(vec_ids, bm25_ids)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How do you tune fusion?  
-   **A:** Validate recall@k and end-to-end faithfulness on eval set.
-
-## 7. 🔹 Common Mistakes
-- Choosing fusion weights without testing.
-
-## 8. 🔹 Comparison / Connections
-- Connects to ensemble retrieval and RAG quality.
-
-## 9. 🔹 One-line Revision
-Hybrid search combines lexical exactness with dense semantic matching for better retrieval.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q16: How do you fine-tune an embedding model for a specific domain?
-
-## 1. 🔹 Direct Answer
-Fine-tune embeddings using **contrastive learning** with domain-relevant positive pairs (query, relevant chunk) and hard negatives (top wrong results). Then re-index all corpus with the new embedding model version.
-
-## 2. 🔹 Intuition
-You’re teaching the embedding space what “relevance” means in your domain.
-
-## 3. 🔹 Deep Dive
-### Ingredients
-- Data: positives from labels/click logs; negatives from current retrieval.
-- Loss: InfoNCE/triplet loss to pull positives closer.
-- Training: embed query and chunk; optimize similarity.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** retrieval quality is poor in your domain even with good chunking/hybrid.
-- **Avoid when:** no reliable relevance signals; risk overfitting noise.
-
-## 5. 🔹 Code Snippet
-```python
-loss = info_nce(q_vecs, pos_vecs, neg_vecs)  # pseudocode
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Why hard negatives matter?  
-   **A:** They teach the model to separate confusing-but-incorrect items.
-
-## 7. 🔹 Common Mistakes
-- Updating embeddings without rebuilding the vector index.
-
-## 8. 🔹 Comparison / Connections
-- Connects to self-supervised/contrastive learning.
-
-## 9. 🔹 One-line Revision
-Domain embeddings improve via contrastive fine-tuning with positives + hard negatives, followed by re-indexing.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q17: Your vector database for RAG is consuming too much memory. How do you reduce it?
-
-## 1. 🔹 Direct Answer
-Reduce memory by quantizing embeddings (INT8/INT4/PQ), lowering vector precision, reducing metadata stored in the vector DB, compressing indexes, and removing redundant chunks via dedup/parent-child chunking.
-
-## 2. 🔹 Intuition
-Store a smaller, compressed representation of each vector and fewer vectors overall.
-
-## 3. 🔹 Deep Dive
-### Common levers
-- Quantization: float32 → INT8/INT4/PQ.
-- Lower dimension embeddings (if possible).
-- Store text outside the vector DB; keep IDs + minimal metadata.
-- Better chunking and dedup reduce count of vectors.
-
-## 4. 🔹 Practical Perspective
-- **Trade-offs:** memory saving can reduce recall; evaluate and tune ANN parameters afterward.
-
-## 5. 🔹 Code Snippet
-```python
-index = faiss.IndexIVFPQ(d, nlist=256, m=16, nbits=8)  # PQ compression
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to validate?  
-   **A:** Measure recall@k and answer faithfulness before/after.
-
-## 7. 🔹 Common Mistakes
-- Quantizing without recalibrating retrieval parameters.
-
-## 8. 🔹 Comparison / Connections
-- Connects to ANN indexing and quantization.
-
-## 9. 🔹 One-line Revision
-Memory reduction comes from quantization/compression, metadata minimization, and deduplicating chunk count.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q18: Your vector database cannot scale to millions of embeddings. How do you fix the bottleneck?
-
-## 1. 🔹 Direct Answer
-Fix by switching from brute-force to ANN indexes, sharding the index, batching upserts, tuning ANN parameters for your latency/recall SLA, and limiting reranker candidates. Use filters to shrink search space.
-
-## 2. 🔹 Intuition
-Don’t scan everything; build an index and search the most promising regions.
-
-## 3. 🔹 Deep Dive
-- Identify bottleneck: index size, query latency, upsert throughput, or memory.
-- Apply ANN + sharding.
-- Reduce candidate load into reranker.
-
-## 4. 🔹 Practical Perspective
-- **Trade-offs:** ANN may reduce recall slightly; validate with eval set.
-
-## 5. 🔹 Code Snippet
-```python
-ids = vector_db.search(qv, top_k=50)   # ANN candidates
-top = rerank(query, ids, top_k=5)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to tune ANN?  
-   **A:** Adjust ef/nprobe and re-measure recall@k.
-
-## 7. 🔹 Common Mistakes
-- Optimizing rerank while the vector search remains the true bottleneck.
-
-## 8. 🔹 Comparison / Connections
-- Connects to RAG retrieval speed and systems profiling.
-
-## 9. 🔹 One-line Revision
-Millions-scale requires ANN indexing, sharding, batching, and careful tuning/candidate reduction.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q19: Your new embedding model has different dimensions from the existing vectors in production. How do you handle the mismatch?
-
-## 1. 🔹 Direct Answer
-You must rebuild the index: vectors generated with one dimensionality cannot be searched in an index built for another dimensionality. Use versioned indexes and canary migration/dual-run, with full re-embedding of the corpus.
-
-## 2. 🔹 Intuition
-Different dimension = different coordinate system; old points can’t be used.
-
-## 3. 🔹 Deep Dive
-### Steps
-1. Create new index with new dimension.
-2. Re-embed chunks from source.
-3. Dual-run and compare retrieval quality.
-4. Switch traffic or route by embedding version.
-
-## 4. 🔹 Practical Perspective
-- **Trade-offs:** re-indexing cost and storage temporarily increase during migration.
-
-## 5. 🔹 Code Snippet
-```python
-new_vectors = embed_new.encode(chunks)
-new_index = build_index(new_vectors)  # new dim
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** Can you project old vectors to new space?  
-   **A:** Not reliably without a learned mapping; re-embedding is the standard approach.
-
-## 7. 🔹 Common Mistakes
-- Trying to upsert vectors into an index with incompatible dimension.
-
-## 8. 🔹 Comparison / Connections
-- Connects to versioning and schema evolution.
-
-## 9. 🔹 One-line Revision
-Handle dimension mismatch by re-embedding and rebuilding a versioned index with safe migration.
-
-## 10. 🔹 Difficulty Tag
-🔴 Hard
-
----
-
-# Q20: Your vector search returns irrelevant results despite high similarity scores. How do you fix it?
-
-## 1. 🔹 Direct Answer
-Irrelevant retrieval with high similarity usually means your embedding space doesn’t align to your relevance definition or your chunking/filters are wrong. Fix via domain-tuned embeddings, better chunking, hybrid search, reranking, and correct normalization/metric settings.
-
-## 2. 🔹 Intuition
-The system is “confident” in similarity, but similarity isn’t matching the question’s intent.
-
-## 3. 🔹 Deep Dive
-### Check
-- chunk size and boundaries
-- metadata filters (missing tenant/time constraints)
-- embedding normalization and similarity metric mismatch
-- reranking absent/insufficient
-
-## 4. 🔹 Practical Perspective
-- **Trade-offs:** reranking improves precision but costs latency.
-
-## 5. 🔹 Code Snippet
-```python
-cands = vector_db.search(qv, top_k=50)
-ranked = reranker.rank(query, cands)
-top = ranked[:5]
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How do you debug quickly?  
-   **A:** Inspect top retrieved chunks and compare with gold evidence; evaluate recall@k.
-
-## 7. 🔹 Common Mistakes
-- Trusting top similarity without verifying relevance.
-
-## 8. 🔹 Comparison / Connections
-- Connects to reranking and RAG debugging.
-
-## 9. 🔹 One-line Revision
-Improve relevance using domain alignment, hybrid retrieval, reranking, and chunk/filter engineering.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
----
-
-# Q21: You deployed a new embedding model, and search quality crashed overnight. How do you handle embedding drift?
-
-## 1. 🔹 Direct Answer
-Treat it as an incident: route traffic back (rollback), validate configuration (normalization/metric/dimensions), and rebuild/re-index using the correct embedding version. Then canary test the new index before full rollout.
-
-## 2. 🔹 Intuition
-Your new coordinate system doesn’t match the indexed points—or the geometry changed unexpectedly.
-
-## 3. 🔹 Deep Dive
-### Incident workflow
-1. Rollback/route to old index.
-2. Confirm no query/index mismatch: embedding model version and normalization.
-3. If necessary, re-embed the entire corpus for the new model.
-4. Compare retrieval metrics on a fixed eval set to quantify regression.
-
-## 4. 🔹 Practical Perspective
-- **Use when:** monitors catch sudden quality drops.
-- **Trade-offs:** rollback may temporarily reduce quality until the fix ships.
-
-## 5. 🔹 Code Snippet
-```python
-index = old_index if incident else new_index
-hits = index.search(qv, top_k=10)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** What if re-indexing was done but quality still drops?  
-   **A:** New embedding may not align to your domain; consider hybrid retrieval or training domain embeddings.
-
-## 7. 🔹 Common Mistakes
-- Attempting in-place updates that create inconsistent versions.
-
-## 8. 🔹 Comparison / Connections
-- Connects to MLOps observability and reliability engineering.
-
-## 9. 🔹 One-line Revision
-Embedding drift incidents require rollback, configuration validation, and versioned re-indexing with monitoring.
-
-## 10. 🔹 Difficulty Tag
-🔴 Hard
-
----
-
-# Q22: Your semantic search fails for short queries. How do you improve it?
-
-## 1. 🔹 Direct Answer
-Short queries are under-specified. Improve semantic search with query expansion (HyDE/step-back), hybrid retrieval, increasing candidate count and reranking, and using query-aware embedding models.
-
-## 2. 🔹 Intuition
-“Pricing” needs context; embeddings need better phrasing to retrieve the right passages.
-
-## 3. 🔹 Deep Dive
-### Techniques
-- **HyDE:** generate a hypothetical longer answer, embed it, search.
-- **Step-back:** ask for the underlying concept terms.
-- **Hybrid:** keyword helps with short terms.
-- **Candidate expansion:** retrieve more and rerank down.
-
-## 4. 🔹 Practical Perspective
-- **Trade-offs:** query expansion increases latency/cost; keep it conditional.
-
-## 5. 🔹 Code Snippet
-```python
-expanded = llm.generate(f"Expand this query with key terms:\n{query}")
-qv = embed_model.encode([expanded])[0]
-cands = vector_db.search(qv, top_k=50)
-return rerank(query, cands, top_k=5)
-```
-
-## 6. 🔹 Interview Follow-ups
-1. **Q:** How to avoid intent drift?  
-   **A:** Preserve entities extracted from the original query; constrain expansion to likely meanings.
-
-## 7. 🔹 Common Mistakes
-- Over-expansion that retrieves unrelated content.
-
-## 8. 🔹 Comparison / Connections
-- Connects to query transformation and RAG recall tuning.
-
-## 9. 🔹 One-line Revision
-Fix short-query failures with query expansion, hybrid retrieval, and reranking over larger candidate sets.
-
-## 10. 🔹 Difficulty Tag
-🟡 Medium
-
+**Common traps**: applying HyDE universally without testing (it degrades quality on some query distributions); not knowing that BM25 often outperforms dense search for very short exact-term queries; over-expanding queries in ways that introduce intent drift.

@@ -1,129 +1,96 @@
 # Adversarial Robustness
 
-A field studying how machine learning models fail under intentionally crafted inputs, and how to build models that resist such attacks.
+---
+
+## 1. The Problem
+
+In 2017, researchers placed a small printed sticker — a few centimeters wide — on a stop sign. A self-driving car's vision system, encountering the sign at road speed, classified it as a 45 mph speed limit sign. The sticker contained no text. It was designed to fool the model, not the human eye.
+
+To understand why this is possible, you have to look at what a neural network actually learns.
+
+A classifier trained on ImageNet sees 1.28 million labeled images and adjusts its weights to minimize cross-entropy loss. By the end of training, it can distinguish stop signs from speed limit signs at 95%+ accuracy. But the features it uses are not the features you think. Some are perceptually meaningful: the octagonal shape, the red color, the white text. Others are not: specific high-frequency texture patterns across groups of pixels, patterns that correlate with the correct label in the training set but are completely invisible to a human observer.
+
+The network uses both kinds equally. It has no mechanism to prefer robust features over brittle ones, because both reduce training loss. This is not a bug in any particular model — it is a consequence of optimizing for label prediction without any constraint on which features to use.
+
+The result: for any input `x` the model classifies correctly, there exists a nearby input `x'` — often within L∞ distance of 8/255 per pixel, a change undetectable to humans — that the model misclassifies with high confidence.
+
+These adversarial examples are not random noise. They are precisely engineered. And the engineering uses the same tool as training: the gradient.
 
 ---
 
-## 1. What Are Adversarial Examples
+## 2. The Core Insight
 
-Adversarial examples are inputs crafted by adding small, often imperceptible perturbations to clean data that cause a model to produce incorrect predictions with high confidence.
+The loss function `L(f_θ(x), y)` is differentiable with respect to the input `x`. Its gradient `∇_x L` points in the direction that increases the model's error fastest.
 
-**Key properties:**
-- The perturbation is bounded so the modified input looks identical (or nearly identical) to a human
-- The model's predicted class flips, often to a specific target class
-- They generalize across architectures and training procedures
+This gradient lives in the same pixel space as the image. Taking a small step in that direction gives you an input that looks nearly identical to the original but incurs higher loss — meaning the model is more wrong.
 
-### Threat Models (Perturbation Norms)
+The geometry explains why this works so effectively in high dimensions. In a d-dimensional space, moving ε in each dimension along the gradient sign produces a total L2 perturbation of magnitude ε√d. For a 32×32×3 CIFAR-10 image, d = 3072. At ε = 8/255, the total L2 perturbation is ~0.44 — a significant shift in activation space — even though no single pixel changes by more than 8/255.
 
-The attacker's budget is formalized as a constraint on the perturbation `δ = x' - x`:
+The adversarial examples problem reduces to: **the model's loss landscape is exploitable along directions that are invisible in pixel space but geometrically significant in activation space.** Three questions follow:
 
-| Norm | Formula | Effect |
-|------|---------|--------|
-| **L∞** | `max_i |δ_i| ≤ ε` | Limits max pixel change; uniform, hard to see |
-| **L2** | `√(Σ δ_i²) ≤ ε` | Limits Euclidean distance; allows large local changes if compensated |
-| **L0** | `‖δ‖_0 ≤ k` | Limits number of pixels changed; sparse, targeted pixel flips |
-
-L∞ is the most common in the literature (e.g., ε = 8/255 on ImageNet, ε = 0.3 on MNIST).
+1. How efficiently can an attacker find these directions? (Attack design)
+2. Can you train a model that doesn't have exploitable directions? (Defense design)
+3. Can you prove no exploitable direction exists within some radius? (Certification)
 
 ---
 
-## 2. FGSM — Fast Gradient Sign Method
+## 3. The Mechanics
 
-**Paper:** Goodfellow et al., "Explaining and Harnessing Adversarial Examples" (ICLR 2015)
+### Threat Model
 
-Single-step attack. Moves the input one step in the direction that maximally increases the loss, bounded by ε under L∞.
+First, define the attacker's budget — the constraint on the perturbation `δ = x' - x`:
 
-### Formula
+| Norm | Constraint | Effect |
+|------|-----------|--------|
+| **L∞** | `max_i |δ_i| ≤ ε` | Every pixel changes by at most ε; visually uniform |
+| **L2** | `√(Σ δ_i²) ≤ ε` | Euclidean budget; concentrated changes allowed |
+| **L0** | `‖δ‖_0 ≤ k` | At most k pixels changed; can be large changes |
+
+L∞ is standard. Standard budgets: ε = 8/255 on CIFAR-10 and ImageNet, ε = 0.3 on MNIST.
+
+---
+
+### FGSM — Fast Gradient Sign Method (Goodfellow et al., ICLR 2015)
+
+The most direct attack: take one step in the gradient sign direction, with step size ε.
 
 ```
 x' = x + ε · sign(∇_x L(f(x), y))
 ```
-
-- `L` is the cross-entropy loss
-- `∇_x L` is the gradient of the loss with respect to the input (not model parameters)
-- `sign(·)` takes the elementwise sign, giving each dimension ±1
-- `ε` is the perturbation budget
-
-### Code
 
 ```python
 import torch
 import torch.nn.functional as F
 
 def fgsm(model, x, y, epsilon):
-    """
-    Fast Gradient Sign Method attack.
-    
-    Args:
-        model: PyTorch model (in eval mode)
-        x: clean input tensor, shape (B, C, H, W), values in [0, 1]
-        y: true labels, shape (B,)
-        epsilon: L-inf perturbation budget
-    
-    Returns:
-        x_adv: adversarial examples clipped to [0, 1]
-    """
     x_adv = x.clone().detach().requires_grad_(True)
-
-    logits = model(x_adv)
-    loss = F.cross_entropy(logits, y)
+    loss = F.cross_entropy(model(x_adv), y)
     loss.backward()
-
     with torch.no_grad():
-        perturbation = epsilon * x_adv.grad.sign()
-        x_adv = x + perturbation
+        x_adv = x + epsilon * x_adv.grad.sign()
         x_adv = x_adv.clamp(0.0, 1.0)
-
     return x_adv.detach()
 ```
 
-**Limitation:** Single-step; often fooled by gradient masking defenses. Weak compared to iterative methods.
+One step is cheap but leaves accuracy on the table. The gradient at `x` is not the gradient at `x + δ`. For a non-linear loss surface, a single step misses the true worst-case perturbation.
 
 ---
 
-## 3. PGD — Projected Gradient Descent
+### PGD — Projected Gradient Descent (Madry et al., ICLR 2018)
 
-**Paper:** Madry et al., "Towards Deep Learning Models Resistant to Adversarial Attacks" (ICLR 2018)
-
-Multi-step version of FGSM. Each step is a small FGSM step; after each step the result is projected back onto the ε-ball around the original input. Considered the standard white-box attack.
-
-### Algorithm
+The natural fix: iterate FGSM with a smaller step size, projecting back onto the ε-ball after each step. Add a random start to escape local optima near the original input.
 
 ```
-x_0 = x + Uniform(-ε, ε)   # random start within ε-ball
+x_0 = x + Uniform(-ε, ε)
 
 for t in 1..T:
     x_t = x_{t-1} + α · sign(∇_x L(f(x_{t-1}), y))
-    x_t = Proj_{B_∞(x, ε)}(x_t)    # clip to [x-ε, x+ε]
-    x_t = clip(x_t, 0, 1)           # clip to valid image range
+    x_t = clip(x_t, x - ε, x + ε)    # project onto L∞ ε-ball
+    x_t = clip(x_t, 0, 1)             # valid pixel range
 ```
 
-- `α` is the step size (typically `ε / 4` or `2ε / T`)
-- Random start makes the attack stronger and avoids local gradient artifacts
-- Projection under L∞ is elementwise clipping to `[x - ε, x + ε]`
-
-### Code
-
 ```python
-import torch
-import torch.nn.functional as F
-
 def pgd(model, x, y, epsilon, alpha, num_steps, random_start=True):
-    """
-    PGD attack under L-inf constraint.
-
-    Args:
-        model: PyTorch model (eval mode)
-        x: clean input, shape (B, C, H, W), values in [0, 1]
-        y: true labels, shape (B,)
-        epsilon: L-inf budget
-        alpha: step size per iteration
-        num_steps: number of PGD steps
-        random_start: whether to initialize with a random perturbation
-
-    Returns:
-        x_adv: adversarial examples
-    """
     if random_start:
         delta = torch.empty_like(x).uniform_(-epsilon, epsilon)
         x_adv = (x + delta).clamp(0.0, 1.0).detach()
@@ -132,82 +99,46 @@ def pgd(model, x, y, epsilon, alpha, num_steps, random_start=True):
 
     for _ in range(num_steps):
         x_adv.requires_grad_(True)
-
-        logits = model(x_adv)
-        loss = F.cross_entropy(logits, y)
+        loss = F.cross_entropy(model(x_adv), y)
         loss.backward()
-
         with torch.no_grad():
             x_adv = x_adv + alpha * x_adv.grad.sign()
-            # Project back to epsilon-ball around original x
             x_adv = torch.max(torch.min(x_adv, x + epsilon), x - epsilon)
-            # Keep in valid image range
             x_adv = x_adv.clamp(0.0, 1.0)
 
     return x_adv.detach()
 ```
 
-**Standard settings:** ε = 8/255, α = 2/255, T = 20 or 40 steps on CIFAR-10.
+Standard settings: ε = 8/255, α = 2/255, T = 20–40 on CIFAR-10. PGD is the canonical white-box attack — strong enough to be the inner loop of adversarial training.
 
 ---
 
-## 4. C&W Attack — Carlini & Wagner
+### C&W Attack — Carlini & Wagner (IEEE S&P 2017)
 
-**Paper:** Carlini & Wagner, "Evaluating the Robustness of Neural Networks: An Adversarial Examples Perspective" (IEEE S&P 2017)
-
-Optimization-based attack that directly minimizes perturbation size subject to the example being misclassified. Stronger than PGD but computationally heavier.
-
-### Formulation (L2 variant)
+PGD maximizes cross-entropy loss. C&W directly minimizes the perturbation norm subject to misclassification:
 
 ```
 minimize   ‖δ‖_2 + c · f(x + δ)
-subject to  x + δ ∈ [0, 1]^n
-```
 
-Where `f(x')` is a custom objective that is negative when `x'` is successfully misclassified:
-
-```
 f(x') = max( max_{j ≠ t} Z(x')_j - Z(x')_t, -κ )
 ```
 
-- `Z(x')` are the logits
-- `t` is the target class
-- `κ` controls the confidence of the misclassification
-- `c` is found via binary search
+`Z` are the logits, `t` is the target class, `κ` controls confidence margin. Change of variables `δ = tanh(w) · (x_max - x_min)/2` enforces the box constraint without projection, enabling unconstrained Adam optimization. `c` is found via binary search.
 
-**Key trick:** change of variables `δ = tanh(w) · (x_max - x_min)/2` to enforce box constraint without projection, enabling unconstrained optimization with Adam.
-
-**Why stronger than PGD:**
-- Finds minimum-norm perturbations (more natural adversarial examples)
-- Directly optimizes the misclassification objective rather than maximizing cross-entropy
-- Bypasses gradient masking more reliably
+C&W finds minimum-norm adversarial examples. It is stronger than PGD and bypasses gradient masking more reliably because it directly optimizes the logit margin.
 
 ---
 
-## 5. AutoAttack — Parameter-Free Ensemble
+### AutoAttack — Reliable Evaluation (Croce & Hein, ICML 2020)
 
-**Paper:** Croce & Hein, "Reliable evaluation of adversarial robustness with an ensemble of diverse parameter-free attacks" (ICML 2020)
+A PGD run with wrong hyperparameters can make a broken defense look robust. AutoAttack eliminates evaluation brittleness by running four diverse attacks and reporting the fraction not broken by any:
 
-Ensemble of four attacks designed to give a reliable, parameter-free evaluation of adversarial robustness. The de facto standard for reporting robust accuracy.
-
-### Components
-
-| Attack | Type | Description |
+| Attack | Type | What it adds |
 |--------|------|-------------|
-| **APGD-CE** | White-box | Adaptive PGD with cross-entropy loss, automatic step size |
-| **APGD-DLR** | White-box | Adaptive PGD with difference-of-logits-ratio loss (avoids gradient masking) |
-| **FAB** | White-box | Fast Adaptive Boundary attack; finds minimum L∞/L2/L1 perturbation |
-| **Square Attack** | Black-box | Score-based attack using random square perturbations; no gradients |
-
-### DLR Loss (Difference of Logits Ratio)
-
-```
-L_DLR(x, y) = -(Z_y - max_{j≠y} Z_j) / (Z_π1 - Z_π3)
-```
-
-The denominator normalizes by the spread of top logits, making the loss scale-invariant and harder to defeat with output rescaling.
-
-### Usage
+| **APGD-CE** | White-box | Adaptive step size, cross-entropy |
+| **APGD-DLR** | White-box | Scale-invariant loss; defeats output rescaling |
+| **FAB** | White-box | Minimum-norm perturbation |
+| **Square Attack** | Black-box | No gradients; defeats gradient masking entirely |
 
 ```python
 from autoattack import AutoAttack
@@ -216,84 +147,58 @@ adversary = AutoAttack(model, norm='Linf', eps=8/255, version='standard')
 x_adv = adversary.run_standard_evaluation(x_test, y_test, bs=256)
 ```
 
-`version='standard'` runs APGD-CE + APGD-DLR + FAB + Square Attack sequentially on examples that have not yet been broken.
+The DLR loss is the key innovation for defeating output-space obfuscation:
+
+```
+L_DLR(x, y) = -(Z_y - max_{j≠y} Z_j) / (Z_π1 - Z_π3)
+```
+
+The denominator normalizes by the spread of top logits. Multiplying all logits by a constant (a common masking technique) does not change this loss.
 
 ---
 
-## 6. Adversarial Training — Madry et al.
+### Adversarial Training — The Defense That Works
 
-**Paper:** Madry et al., 2018 (same as PGD paper)
-
-Replace clean examples in standard training with PGD adversarial examples. The model minimizes worst-case loss over the ε-ball.
-
-### Objective
+Training on adversarial examples is the only defense that consistently withstands adaptive attacks. Instead of training on clean inputs, solve:
 
 ```
 min_θ  E_{(x,y)~D} [ max_{δ: ‖δ‖≤ε} L(f_θ(x + δ), y) ]
 ```
 
-Inner maximization: PGD attack (find worst-case perturbation).  
-Outer minimization: standard SGD on the adversarial examples.
-
-### Training Loop
+Inner maximization: PGD. Outer minimization: SGD on adversarial examples.
 
 ```python
 model.train()
 for x, y in dataloader:
     x, y = x.to(device), y.to(device)
-
-    # Inner maximization: generate adversarial examples
     x_adv = pgd(model, x, y, epsilon=8/255, alpha=2/255, num_steps=10)
-
-    # Outer minimization: update model on adversarial examples
     optimizer.zero_grad()
-    logits = model(x_adv)
-    loss = F.cross_entropy(logits, y)
+    loss = F.cross_entropy(model(x_adv), y)
     loss.backward()
     optimizer.step()
 ```
 
-### Robustness vs. Accuracy Trade-off
-
-Adversarial training consistently degrades clean accuracy (by ~10-15% on CIFAR-10). This is not purely a training artifact — it reflects a fundamental tension:
-
-- Robust features are less "predictive" in a standard sense
-- The model must be invariant to directions that normally carry signal
-- The Bayes-optimal robust classifier differs from the Bayes-optimal clean classifier
+The cost: adversarially trained models incur ~10–15% clean accuracy degradation on CIFAR-10. This is not an artifact of imperfect training. The Bayes-optimal robust classifier genuinely uses fewer non-robust features, and those features carry real predictive signal under the standard distribution.
 
 ---
 
-## 7. TRADES — Trade-off Inspired Adversarial Defense via Surrogate-Loss Minimization
+### TRADES — Better Pareto Efficiency (Zhang et al., ICML 2019)
 
-**Paper:** Zhang et al., "Theoretically Principled Trade-off between Robustness and Accuracy" (ICML 2019)
+Madry AT trains on adversarial examples labeled with the true class. This conflates two objectives: learning correct features, and being stable under perturbation.
 
-Decomposes the robust error into natural error + boundary error, then optimizes a regularized objective that controls both.
+TRADES decomposes the robust error explicitly:
 
-### Objective
+**Robust error = Natural error + Boundary error**
 
 ```
 min_θ  E[ L(f_θ(x), y) ]  +  (1/λ) · E[ max_{x': ‖x'-x‖≤ε} KL(f_θ(x) ‖ f_θ(x')) ]
 ```
 
-- First term: standard cross-entropy on clean examples
-- Second term: KL divergence between clean and adversarial predictions
-- `λ` controls the trade-off (smaller λ → more robust, less clean accuracy)
-
-### Key Insight
-
-TRADES does not directly train on adversarial labels. It pushes the model's output distribution to be stable around x, without requiring the adversarial example to be correctly classified. This tends to give better clean accuracy than Madry AT while achieving comparable robustness.
-
-### Code Sketch
+The second term penalizes output instability within the ε-ball — without requiring the adversarial example to be correctly labeled. This separation gives TRADES a better position on the accuracy-robustness Pareto frontier.
 
 ```python
-import torch.nn.functional as F
-
 def trades_loss(model, x, y, epsilon, alpha, num_steps, beta):
-    """
-    TRADES loss = CE(clean) + beta * KL(clean || adv)
-    """
     model.eval()
-    # Generate adversarial example by maximizing KL divergence
     x_adv = x.clone().detach() + 0.001 * torch.randn_like(x)
 
     for _ in range(num_steps):
@@ -309,9 +214,7 @@ def trades_loss(model, x, y, epsilon, alpha, num_steps, beta):
         x_adv = torch.max(torch.min(x_adv, x + epsilon), x - epsilon).clamp(0, 1)
 
     model.train()
-    # Natural loss on clean examples
     loss_natural = F.cross_entropy(model(x), y)
-    # Regularization: KL between clean and adversarial softmax outputs
     loss_robust = F.kl_div(
         F.log_softmax(model(x_adv), dim=1),
         F.softmax(model(x).detach(), dim=1),
@@ -322,191 +225,81 @@ def trades_loss(model, x, y, epsilon, alpha, num_steps, beta):
 
 ---
 
-## 8. Certified Defenses — Randomized Smoothing
+### Randomized Smoothing — Certified Defenses (Cohen et al., ICML 2019)
 
-**Paper:** Cohen et al., "Certified Adversarial Robustness via Randomized Smoothing" (ICML 2019)
+Adversarial training provides empirical robustness — it resists known attacks — but cannot certify that no attack exists within the ε-ball. Randomized smoothing provides a provable L2 radius.
 
-Provides a provable (certified) lower bound on the L2 radius within which the prediction cannot be changed by any attacker.
-
-### Core Idea
-
-Given a base classifier `f`, define the **smoothed classifier** `g`:
+The idea: wrap any base classifier `f` with Gaussian noise averaging:
 
 ```
 g(x) = argmax_c  P_{ε ~ N(0, σ²I)}[ f(x + ε) = c ]
 ```
 
-`g` returns the class that `f` most frequently predicts when x is corrupted with Gaussian noise.
-
-### Certification Theorem
-
-If `g(x) = c_A` and `p_A = P[f(x+ε) = c_A]`, then `g` is robust around `x` with certified radius:
+`g` returns the class `f` most often predicts when the input is corrupted by Gaussian noise. If the top-class probability is `p_A` and `p_A > 0.5`, the certified L2 radius is:
 
 ```
-R = (σ/2) · ( Φ⁻¹(p_A) - Φ⁻¹(p_B) )
+R = σ · Φ⁻¹(p_A)
 ```
 
-Where:
-- `Φ⁻¹` is the inverse normal CDF
-- `p_A` is the probability of the top class
-- `p_B` is the probability of the runner-up class
-- A simple lower bound: `R ≥ σ · Φ⁻¹(p_A)` when `p_A > 0.5`
-
-### Code
+Any perturbation within this radius cannot change `g`'s prediction — provably.
 
 ```python
 import torch
 import numpy as np
 from scipy.stats import norm
+from statsmodels.stats.proportion import proportion_confint
 
 def smooth_predict(model, x, sigma, num_samples, batch_size, device):
-    """
-    Randomized smoothing: majority vote over Gaussian-corrupted copies.
-
-    Returns:
-        counts: vote counts per class, shape (num_classes,)
-    """
     model.eval()
     counts = None
-
     with torch.no_grad():
         for _ in range(0, num_samples, batch_size):
             n = min(batch_size, num_samples)
             noise = torch.randn(n, *x.shape, device=device) * sigma
             noisy = (x.unsqueeze(0) + noise).clamp(0.0, 1.0)
-            logits = model(noisy)
-            preds = logits.argmax(dim=1)
-
+            preds = model(noisy).argmax(dim=1)
             if counts is None:
-                counts = torch.bincount(preds, minlength=logits.shape[1])
+                counts = torch.bincount(preds, minlength=model(noisy).shape[1])
             else:
-                counts += torch.bincount(preds, minlength=logits.shape[1])
-
+                counts += torch.bincount(preds, minlength=counts.shape[0])
     return counts
 
-
-def certify(model, x, y, sigma, num_samples, alpha, device):
-    """
-    Certify L2 robustness for a single example.
-
-    Args:
-        alpha: failure probability (e.g. 0.001)
-
-    Returns:
-        prediction: predicted class (-1 if abstain)
-        radius: certified L2 radius (0 if abstain)
-    """
-    from statsmodels.stats.proportion import proportion_confint
-
+def certify(model, x, sigma, num_samples, alpha, device):
     counts = smooth_predict(model, x, sigma, num_samples, batch_size=500, device=device)
     top2 = counts.topk(2)
-    c_A, c_B = top2.indices[0].item(), top2.indices[1].item()
-    n_A, n_B = top2.values[0].item(), top2.values[1].item()
-
-    # One-sided lower confidence bound on p_A
+    n_A = top2.values[0].item()
+    c_A = top2.indices[0].item()
     p_A_low, _ = proportion_confint(n_A, num_samples, alpha=2 * alpha, method='beta')
-
     if p_A_low > 0.5:
-        radius = sigma * norm.ppf(p_A_low)
-        return c_A, radius
-    else:
-        return -1, 0.0  # abstain
+        return c_A, sigma * norm.ppf(p_A_low)
+    return -1, 0.0  # abstain
 ```
 
-**Trade-offs:**
-- Higher σ → larger certified radius, but lower clean accuracy (predictions noisier)
-- Certification is exact but predictions are slow (need many samples)
-- Only provides L2 guarantees; L∞ certificates require different methods (interval bound propagation, etc.)
-
-**Other certified methods:**
-- **Interval Bound Propagation (IBP):** propagate input intervals through network layers; fast but loose
-- **CROWN / α-CROWN:** tighter linear relaxation bounds; state-of-the-art for verified L∞ robustness
-- **Lipschitz-constrained networks:** enforce ‖f(x) - f(x')‖ ≤ K‖x - x'‖ by design
+Higher σ → larger certified radius, lower clean accuracy. Other certified methods: Interval Bound Propagation (IBP) and CROWN/α-CROWN compute tighter bounds for L∞ via linear relaxations of network layers.
 
 ---
 
-## 9. Robustness Benchmarks
+### Practical Defenses (No Formal Guarantees)
 
-### RobustBench
+Input preprocessing destroys some adversarial structure before it reaches the model:
 
-`https://robustbench.github.io`
-
-Standardized leaderboard for adversarial robustness. All entries are evaluated with AutoAttack under fixed threat models.
-
-**Standard threat models:**
-- CIFAR-10: L∞ ε = 8/255
-- CIFAR-100: L∞ ε = 8/255
-- ImageNet: L∞ ε = 4/255
-
-**Top entries (as of 2024):**
-- CIFAR-10 L∞: ~71-73% robust accuracy (WideResNet + adversarial training variants)
-- ImageNet L∞: ~60-62% robust accuracy
-
-### AutoAttack Evaluation Protocol
-
-To claim robust accuracy on a new defense:
-
-1. Evaluate on the full test set (or 10,000 samples)
-2. Run `version='standard'` AutoAttack (all four attacks)
-3. Report the percentage of examples not broken by any attack
-4. Do NOT report accuracy against only FGSM or a single PGD run
-
-```python
-from autoattack import AutoAttack
-
-model.eval()
-adversary = AutoAttack(
-    model,
-    norm='Linf',
-    eps=8/255,
-    version='standard',
-    device=device
-)
-# Returns adversarial examples that break the model
-x_adv = adversary.run_standard_evaluation(x_test[:1000], y_test[:1000], bs=128)
-```
-
----
-
-## 10. Practical Defenses
-
-These defenses do not provide formal guarantees but are often used in deployed systems.
-
-### Input Preprocessing
-
-**JPEG Compression:**
 ```python
 from PIL import Image
-import io
+import io, numpy as np
 
 def jpeg_compress(x_np, quality=75):
-    """Apply JPEG compression to remove high-frequency adversarial noise."""
     img = Image.fromarray((x_np * 255).astype('uint8'))
     buf = io.BytesIO()
     img.save(buf, format='JPEG', quality=quality)
     buf.seek(0)
     return np.array(Image.open(buf)).astype('float32') / 255.0
-```
 
-**Feature Squeezing:** reduce color bit depth or apply spatial smoothing before inference.
-
-```python
 def bit_depth_reduction(x, bits=4):
-    """Reduce color depth to squeeze out adversarial perturbations."""
     max_val = 2 ** bits - 1
     return torch.round(x * max_val) / max_val
 ```
 
-**Limitations of preprocessing defenses:**
-- Adaptive attacks that account for the preprocessor break them reliably
-- BPDA (Backward Pass Differentiable Approximation): approximate gradient through non-differentiable preprocessor, then apply PGD
-- Should not be reported as certified robustness
-
-### Detection-Based Approaches
-
-Rather than correcting predictions, flag adversarial inputs and reject them.
-
-**Feature squeezing detection:** run model on original and squeezed input; high disagreement → adversarial.
+Detection: run model on original and preprocessed input; large output disagreement flags adversarial input.
 
 ```python
 def detect_adversarial(model, x, squeezed_x, threshold=0.05):
@@ -517,50 +310,32 @@ def detect_adversarial(model, x, squeezed_x, threshold=0.05):
     return distance > threshold
 ```
 
-**Limitations of detection:**
-- An adaptive attacker optimizes to evade the detector simultaneously
-- High false positive rates in practice
-- Does not help when the attacker knows the detector
+---
 
-### Other Practical Measures
+### Benchmarks — RobustBench
 
-- **Ensemble diversity:** models with different architectures are harder to transfer attacks across
-- **Input randomization:** random resizing and padding at inference time
-- **Distillation:** soft labels smooth the loss surface (broken by C&W)
+`https://robustbench.github.io` — standardized leaderboard evaluated with AutoAttack under fixed threat models.
+
+Standard threat models: CIFAR-10 L∞ ε = 8/255, CIFAR-100 L∞ ε = 8/255, ImageNet L∞ ε = 4/255.
+
+State of the art (2024): ~71–73% robust accuracy on CIFAR-10 L∞ vs. ~95%+ clean. Always report both.
 
 ---
 
-## 11. Transferability and the Black-Box Threat Model
+### Transferability and Black-Box Attacks
 
-### Transferability
-
-Adversarial examples crafted on model A often transfer to model B, even if B has a different architecture, training set, or training procedure.
-
-**Why it happens:**
-- Different models learn similar decision boundaries in input space
-- Adversarial perturbations exploit geometry of the data manifold, not model-specific artifacts
-
-**Factors increasing transferability:**
-- More attack iterations (stronger attacks transfer better)
-- Ensemble attacks (optimize against multiple models simultaneously)
-- Input diversity / translation-invariant attacks (avoid overfitting to source model)
-
-### Black-Box Attack Settings
+Adversarial examples crafted on model A often fool model B — different architectures, different training data. Different models learn similar decision boundary geometry in the input manifold. Perturbations exploit the data manifold, not model-specific artifacts.
 
 | Setting | Attacker Knows | Method |
 |---------|---------------|--------|
 | **White-box** | Architecture, weights, gradients | PGD, C&W, AutoAttack |
-| **Gray-box** | Architecture, not weights | Transfer from re-trained surrogate |
-| **Black-box (score)** | Output probabilities only | Square Attack, NES |
+| **Gray-box** | Architecture, not weights | Transfer from surrogate |
+| **Black-box (score)** | Output probabilities | Square Attack, NES |
 | **Black-box (decision)** | Hard label only | Boundary Attack, HopSkipJump |
 
-**Transfer attack pipeline:**
-1. Train or obtain a surrogate model on similar data
-2. Run white-box attack on surrogate to generate `x_adv`
-3. Query the target model with `x_adv`
+Ensemble attacks improve transferability by exploiting shared geometry:
 
 ```python
-# Ensemble transfer attack: maximize loss across multiple surrogate models
 def ensemble_fgsm(models, x, y, epsilon):
     x_adv = x.clone().detach().requires_grad_(True)
     loss = sum(F.cross_entropy(m(x_adv), y) for m in models) / len(models)
@@ -573,38 +348,29 @@ def ensemble_fgsm(models, x, y, epsilon):
 
 ---
 
-## 12. Key Interview Points
+## 4. What Breaks
 
-**Concepts**
+**The robustness-accuracy tradeoff is fundamental, not a training artifact.** The Bayes-optimal robust classifier differs from the standard one. Non-robust features carry real predictive signal under the clean distribution. Removing them costs accuracy. No training method eliminates this gap.
 
-- Adversarial examples exploit directions in input space that are highly predictive but imperceptible — they are a property of the geometry of high-dimensional data, not just model bugs
-- FGSM is one step; PGD is multi-step FGSM with projection; both are L∞ attacks
-- C&W minimizes perturbation norm directly; finds smaller, stronger perturbations than PGD
-- AutoAttack is the standard evaluation tool because it is parameter-free and uses diverse attack types including a score-based black-box component (Square Attack)
+**Gradient masking is not robustness.** Defenses that make gradients vanish (saturated activations, non-differentiable preprocessing) appear robust against gradient-based attacks but are not. AutoAttack specifically targets this: Square Attack needs no gradients at all; DLR loss defeats output-space rescaling. Never evaluate a defense only against the attack it was designed to defeat.
 
-**Training**
+**BPDA breaks preprocessing defenses.** For non-differentiable preprocessors: use the preprocessor in the forward pass but substitute a differentiable approximation in the backward pass. PGD runs end-to-end through the approximation. JPEG compression, feature squeezing, and bit-depth reduction are all broken by adaptive attacks using this technique.
 
-- Madry adversarial training solves a min-max problem: min over θ of max over perturbations of the loss
-- Adversarial training always incurs a robustness-accuracy trade-off; no free lunch
-- TRADES splits this into natural loss + KL regularization, giving better Pareto efficiency than Madry AT
-- Adversarial training is expensive: inner PGD adds 10-40× compute cost
+**Adversarial training is computationally expensive.** Inner PGD adds 10–40× compute over standard training. This is the primary reason most production models are not adversarially trained.
 
-**Defenses**
+**Randomized smoothing has fundamental limits at high accuracy.** At σ = 0.5 on ImageNet, clean accuracy falls to ~50%. The accuracy-radius tradeoff is architectural, not tunable away. Smoothing does not extend cleanly to L∞ — the certified L∞ radius via smoothing is trivial.
 
-- Randomized smoothing is the only practical method with provable L2 robustness guarantees at scale
-- Certified radius R = σ·Φ⁻¹(p_A); larger σ gives larger R but noisier predictions
-- Preprocessing defenses (JPEG, feature squeezing) are broken by adaptive attacks (BPDA)
-- Gradient masking — making gradients vanish or mislead — is not true robustness; AutoAttack specifically targets it with gradient-free (Square Attack) and loss-adapted (DLR) components
+**Transferability means black-box is not safe.** An attacker who trains a surrogate on the same distribution produces adversarial examples without access to your weights. Score-based attacks (Square Attack) require no surrogate at all — just query access.
 
-**Benchmarks**
+---
 
-- RobustBench uses AutoAttack as the standard evaluation; never trust results evaluated only against FGSM or 20-step PGD
-- Clean accuracy and robust accuracy are both reported; a defense that drops clean accuracy to 40% is not practical
-- State-of-the-art robust accuracy on CIFAR-10 L∞ (ε=8/255) is ~70-73% vs ~95%+ clean accuracy
+## Key Interview Points
 
-**Common Pitfalls**
-
-- Evaluating defense only against the attack it was designed to defeat (not adaptive)
-- Obfuscated gradients masquerading as robustness
-- Reporting robust accuracy without specifying the threat model (ε, norm)
-- Confusing robust accuracy (% correctly classified under attack) with certified accuracy (% with provable guarantee)
+- Adversarial examples arise because models use non-robust features — directions in pixel space that correlate with labels but are imperceptible to humans. High-dimensional gradient descent on pixel-space features makes this structural, not accidental.
+- FGSM is one step in the gradient sign direction. PGD is iterated FGSM with projection and random start. C&W minimizes perturbation norm directly. PGD is the canonical white-box attack and the inner loop of adversarial training.
+- AutoAttack is the evaluation standard: four attacks including the gradient-free Square Attack. Results against FGSM alone or single-run PGD are not trustworthy.
+- Adversarial training solves `min_θ E[max_{δ} L(f_θ(x+δ), y)]` — inner PGD, outer SGD. Always costs clean accuracy.
+- TRADES decomposes robust error into natural + boundary components. KL regularization between clean and adversarial outputs achieves better Pareto efficiency than Madry AT.
+- Randomized smoothing is the only method with provable L2 guarantees at scale. Certified radius R = σ·Φ⁻¹(p_A). Higher σ means larger radius but lower clean accuracy.
+- Gradient masking is not robustness. AutoAttack specifically targets it via Square Attack and DLR loss.
+- State-of-the-art: ~70–73% robust accuracy on CIFAR-10 L∞ ε=8/255 vs. ~95%+ clean. Report both.

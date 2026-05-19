@@ -1,9 +1,5 @@
 # MLOps — Machine Learning Operations
 
-**The pitch:** You already run pipelines, environments, and rollouts. MLOps is what happens when your **release artifact** isn’t only a container — it’s also **data lineage**, **model weights**, and **behavior under drift**. Think **Azure DevOps** meets **science**: same gates, messier inputs.
-
-**Quick Azure bridge:** *Azure ML jobs* ≈ build agents for training; *model registry* ≈ artifact feed; *managed endpoints / AKS* ≈ your serving tier; *Application Insights + custom metrics* ≈ SLIs for latency **and** quality.
-
 ---
 
 ## Table of Contents
@@ -13,586 +9,600 @@
 3. [Data Management](#data-management)
 4. [Model Development](#model-development)
 5. [Deployment Strategies](#deployment-strategies)
-6. [Monitoring & Observability](#monitoring--observability)
+6. [Monitoring and Observability](#monitoring-and-observability)
 7. [CI/CD for ML](#cicd-for-ml)
-8. [Infrastructure & Tools](#infrastructure--tools)
+8. [Infrastructure and Tools](#infrastructure-and-tools)
 9. [Best Practices](#best-practices)
 
 ---
 
 ## MLOps Overview
 
-**Definition:** MLOps is how DS + Ops ship models **reliably**: automate the path from data to production, keep experiments reproducible, and watch for the silent bugs (drift) that unit tests will never catch.
+### The problem
 
-**Fashion analogy (one line):** A model in prod is a **look** on a runway — lighting changes (data), trends move (distribution), and the same outfit can “fail” in a new season. MLOps is the **styling + fittings + backup plan** so the show doesn’t flop.
+You have a trained model. A data scientist ships it as a notebook. Three months later: the model is running on someone's laptop, nobody knows which version is in production, there are two copies with different preprocessing logic, the team cannot reproduce last month's results, and performance has silently degraded because nobody noticed the data distribution shifted.
 
-### Key Goals
-- **Automation:** Pipeline from data refresh → train → evaluate → register → deploy
-- **Reproducibility:** Same commit + data snapshot + seed → same-ish model
-- **Scalability:** Train big when needed; serve lean when traffic spikes
-- **Reliability:** SLAs for latency **and** model quality over time
-- **Collaboration:** Shared contracts on features, data, and release stages
+This is not a model problem. It is an engineering problem.
+
+### The core insight
+
+MLOps is DevOps applied to ML systems, with three additional dimensions that classic software does not have: the *training data* is a versioned artifact, the *model behavior* can degrade without any code change, and the *release criteria* include quality metrics over time, not just test pass/fail.
 
 ### MLOps vs DevOps
 
-| **Aspect** | **DevOps** | **MLOps** |
-|-----------|-----------|----------|
-| **Artifacts** | Code, binaries | Code + data + models |
-| **Testing** | Unit, integration tests | Data validation, model validation |
-| **Deployment** | Continuous deployment | Gradual rollout, A/B testing |
-| **Monitoring** | System metrics | Model performance, data drift |
-| **Versioning** | Code versions | Code + data + model versions |
-
-**Mini pop quiz:** *Name one thing you version in MLOps that classic DevOps rarely versions.* → **Training data** (or features, or eval sets).
+| Aspect | DevOps | MLOps |
+|--------|--------|-------|
+| Artifacts | Code, binaries | Code + data + models |
+| Testing | Unit, integration tests | Data validation, model validation |
+| Deployment | Continuous deployment | Gradual rollout, A/B testing |
+| Monitoring | System metrics | Model performance, data drift |
+| Versioning | Code versions | Code + data + model versions |
 
 ---
 
 ## ML Lifecycle
 
-**MI-style one-liner:** This isn’t one super over — it’s a **season**: define the game plan, train hard, pick the playing XI (deploy), then **read the pitch** every match (monitor) and swap players (retrain) before you lose the trophy.
+### The problem
 
-### 1. Problem Definition
-- Define business problem
-- Set success metrics (business + ML metrics)
-- Establish baselines
-- Determine data availability
+Without a defined lifecycle, ML projects run in circles: experiments overwrite each other, "the model from last Tuesday" cannot be reproduced, training and serving disagree on preprocessing, and the team does not know when to retrain.
 
-### 2. Data Collection & Preparation
-```
-Raw Data → Cleaning → Feature Engineering → Training Data
-```
-- Data validation
-- Missing value handling
-- Outlier detection
-- Feature transformations
-- Data versioning (DVC, Delta Lake)
+### The core insight
 
-### 3. Model Development
-```
-EDA → Feature Selection → Model Training → Hyperparameter Tuning → Evaluation
-```
-- Experiment tracking (MLflow, Weights & Biases)
-- Model versioning
-- Hyperparameter optimization
-- Cross-validation
+The ML lifecycle is a loop, not a pipeline. Every stage feeds back into the previous ones. Data quality problems discovered during evaluation send you back to data collection. Drift detected in production triggers retraining. The lifecycle only works if every stage is automated and instrumented.
 
-### 4. Model Deployment
-```
-Model Registry → Staging → A/B Testing → Production
-```
-- Model packaging
-- Containerization (Docker)
-- Deployment strategy (canary, blue-green)
-- API development (REST, gRPC)
+### The mechanics
 
-### 5. Monitoring & Maintenance
+**Stage 1: Problem definition**
+
+Define what the model must actually achieve in terms of a business decision. Not "predict churn" but "predict which users will churn within 30 days so we can target them with a retention offer." Set success metrics at two levels: business KPI (churn reduction) and ML proxy (precision/recall at the decision threshold).
+
+Establish a baseline before building anything: majority class, rule-based heuristic, or human performance. If your model cannot beat the baseline, revisit the problem framing.
+
+**Stage 2: Data collection and preparation**
+
 ```
-Performance Monitoring → Drift Detection → Retraining → Feedback Loop
+Raw Data -> Validation -> Cleaning -> Feature Engineering -> Training Data
 ```
-- Model performance metrics
-- Data drift / concept drift detection
-- Alerting and incident response
-- Continuous retraining
+
+Key requirements:
+- Schema validation before any transformation (fail fast on bad data)
+- Data versioning — snapshot the training set, not just the model
+- Point-in-time correctness — labels must only use features available before the event
+
+**Stage 3: Model development**
+
+```
+EDA -> Feature Selection -> Model Training -> Hyperparameter Tuning -> Evaluation
+```
+
+Track every experiment: hyperparameters, metrics, data version, code commit, environment. Without experiment tracking you cannot explain why the current model is better than the previous one.
+
+**Stage 4: Model deployment**
+
+```
+Model Registry -> Staging -> A/B Testing -> Production
+```
+
+Never deploy directly from an experiment. Register the artifact, validate it in staging, then route a controlled slice of production traffic to it.
+
+**Stage 5: Monitoring and maintenance**
+
+```
+Performance Monitoring -> Drift Detection -> Retraining -> Feedback Loop
+```
+
+Monitoring is not optional. Models degrade without any code change because the world changes. The monitoring loop closes the lifecycle.
 
 ---
 
 ## Data Management
 
-**Why this section hits different:** In DevOps, bad config is visible. In ML, **bad or shifted data** can look fine until revenue walks out the door. Version data like you version **infra-as-code** — because it *is* code for your model.
+### The problem
 
-### Data Versioning
-**Tools:** DVC, Delta Lake, lakeFS
+In software, a bad config file causes an immediate crash. In ML, bad or shifted data causes a silent accuracy degradation that may take weeks to surface in business metrics. By then, the root cause is buried under months of production traffic.
 
-**Why?**
-- Reproduce experiments
-- Track data lineage
-- Rollback to previous versions
+### The core insight
 
-**Example with DVC:**
+Data must be versioned with the same discipline as code. Every training run must be reproducible from a specific data snapshot plus a specific code commit. Data quality failures must be caught before training, not discovered after deployment.
+
+### The mechanics
+
+**Data versioning with DVC**
+
 ```bash
 # Initialize DVC
 dvc init
 
-# Track data
+# Track training data (DVC stores the file hash, git tracks the .dvc pointer)
 dvc add data/train.csv
 git add data/train.csv.dvc .gitignore
-git commit -m "Add training data"
+git commit -m "Add training data v1.0"
 
-# Push to remote storage
+# Push data to remote storage (S3, GCS, Azure Blob)
 dvc push
 
-# Pull data version
+# Reproduce exact dataset for a historical experiment
+git checkout <commit-hash>
 dvc pull
 ```
 
-### Data Quality Checks
-**Tools:** Great Expectations, Evidently
+*What breaks:* DVC tracks files by hash — if upstream data is regenerated with the same name but different content, the hash changes but the pointer file in git does not update automatically. You must explicitly re-add and commit the new `.dvc` file.
 
-**Checks:**
-- Schema validation (correct types, columns)
-- Range checks (min/max values)
-- Distribution checks (mean, std)
-- Missing value thresholds
-- Duplicate detection
+---
 
-**Example:**
+**Data quality checks with Great Expectations**
+
 ```python
 from great_expectations import DataContext
 
 context = DataContext()
+expectation_suite = context.create_expectation_suite("training_data_suite")
+batch = context.get_batch("training_data")
 
-# Define expectations
-expectation_suite = context.create_expectation_suite("my_suite")
-batch = context.get_batch("my_data")
-
-# Add expectations
+# Schema expectations
+batch.expect_column_to_exist("user_id")
 batch.expect_column_values_to_not_be_null("user_id")
-batch.expect_column_values_to_be_between("age", 0, 120)
-batch.expect_column_values_to_be_in_set("country", ["US", "UK", "CA"])
 
-# Validate
+# Range expectations
+batch.expect_column_values_to_be_between("age", min_value=0, max_value=120)
+
+# Set membership expectations
+batch.expect_column_values_to_be_in_set("country", ["US", "UK", "CA", "AU"])
+
+# Distribution expectations
+batch.expect_column_mean_to_be_between("purchase_amount", min_value=10, max_value=500)
+
+# Validate — fail the pipeline if expectations are violated
 results = context.run_validation_operator("action_list", batch)
+assert results["success"], f"Data validation failed: {results}"
 ```
 
-### Feature Stores
-**Tools:** Feast, Tecton, AWS SageMaker Feature Store
+*What breaks:* Expectations set on training data may not reflect production distribution changes. Expectations need to be updated when the legitimate data distribution evolves (e.g., new product lines, new geographies).
 
-**Benefits:**
-- Share features across teams
-- Consistent features (training vs serving)
-- Low-latency serving
-- Point-in-time correctness (no data leakage)
+---
+
+**Feature stores**
+
+The problem feature stores solve: the same feature is computed slightly differently in the training pipeline (Python, daily batch) and the serving pipeline (Java, real-time). The model trains on one distribution and is served another.
+
+Feature stores enforce a single definition for each feature, shared between training and serving:
+
+- **Offline store** (Parquet/Delta Lake): historical features for training, with point-in-time joins
+- **Online store** (Redis/DynamoDB): pre-materialized features for inference, < 10ms lookup
+
+Benefits:
+- Feature definitions are canonical — computed once, used everywhere
+- Point-in-time correctness prevents data leakage in training
+- Feature reuse across teams reduces duplicate computation
+- Consistent features between training and serving eliminates training-serving skew
 
 ---
 
 ## Model Development
 
-**Remaster analogy:** Training runs are like **remastering a classic track** — same song (objective), new mix (hyperparameters), and you A/B whether the audience actually likes the louder drums (metrics). Ship the mix that wins, not the one that *felt* clever in the studio.
+### The problem
 
-### Experiment Tracking
-**Tools:** MLflow, Weights & Biases, Neptune.ai
+Without experiment tracking, "the model we deployed last month" is whatever is on whoever's laptop. You cannot compare experiments fairly, you cannot reproduce a result, and you cannot explain to stakeholders why Model B outperforms Model A.
 
-**Track:**
-- Hyperparameters
-- Metrics (accuracy, loss)
-- Artifacts (models, visualizations)
-- Code version (git commit)
-- Environment (dependencies)
+### The core insight
 
-**MLflow Example:**
+Every experiment is a versioned artifact: code + data + hyperparameters + metrics + environment. If you cannot reproduce an experiment from its metadata, the experiment did not happen for production purposes.
+
+### The mechanics
+
+**MLflow experiment tracking**
+
 ```python
 import mlflow
 import mlflow.sklearn
+from sklearn.ensemble import RandomForestClassifier
 
-mlflow.set_experiment("my_experiment")
+mlflow.set_experiment("fraud_detection_v2")
 
 with mlflow.start_run():
-    # Log parameters
-    mlflow.log_param("learning_rate", 0.01)
+    # Log all hyperparameters
     mlflow.log_param("n_estimators", 100)
-    
-    # Train model
-    model = RandomForestClassifier(n_estimators=100)
+    mlflow.log_param("max_depth", 10)
+    mlflow.log_param("class_weight", "balanced")
+
+    # Train
+    model = RandomForestClassifier(n_estimators=100, max_depth=10,
+                                   class_weight="balanced")
     model.fit(X_train, y_train)
-    
+
     # Log metrics
-    accuracy = model.score(X_test, y_test)
-    mlflow.log_metric("accuracy", accuracy)
-    
-    # Log model
+    mlflow.log_metric("train_auc", roc_auc_score(y_train, model.predict_proba(X_train)[:, 1]))
+    mlflow.log_metric("val_auc", roc_auc_score(y_val, model.predict_proba(X_val)[:, 1]))
+    mlflow.log_metric("val_precision", precision_score(y_val, model.predict(X_val)))
+    mlflow.log_metric("val_recall", recall_score(y_val, model.predict(X_val)))
+
+    # Log model artifact and feature importance
     mlflow.sklearn.log_model(model, "model")
-    
-    # Log artifacts
     mlflow.log_artifact("feature_importance.png")
 ```
 
-### Model Registry
-**Purpose:** Centralized model storage with versioning and lifecycle management
+---
 
-**Stages:**
-- **Development:** Experimental models
-- **Staging:** Models ready for testing
-- **Production:** Models serving live traffic
-- **Archived:** Deprecated models
+**Model registry lifecycle**
 
-**MLflow Model Registry:**
 ```python
-# Register model
-mlflow.register_model("runs:/<run_id>/model", "my_model")
+from mlflow.tracking import MlflowClient
 
-# Transition to staging
-client = mlflow.tracking.MlflowClient()
+client = MlflowClient()
+
+# Register the best run's model
+run_id = best_run.info.run_id
+mlflow.register_model(f"runs:/{run_id}/model", "fraud_detector")
+
+# Lifecycle: None -> Staging -> Production -> Archived
 client.transition_model_version_stage(
-    name="my_model",
-    version=1,
-    stage="Staging"
+    name="fraud_detector", version=1, stage="Staging"
 )
 
-# Transition to production
+# After staging validation
 client.transition_model_version_stage(
-    name="my_model",
-    version=1,
-    stage="Production"
+    name="fraud_detector", version=1, stage="Production"
 )
 ```
+
+Registry stages:
+- **Development:** Experimental models, not validated
+- **Staging:** Validated offline, pending production testing
+- **Production:** Serving live traffic
+- **Archived:** Deprecated, kept for audit and rollback
+
+*What breaks:* Model registry lifecycle is only meaningful if promotion is gated by validation criteria. Without automated gates, "Production" becomes a meaningless label that humans set by hand without evidence.
 
 ---
 
 ## Deployment Strategies
 
-**Deploy = release strategy.** Batch is your **nightly batch job**; real-time is your **always-on API**. Canary / blue-green / shadow are the same ideas you already use — just add **model-specific** success metrics beside CPU and p99.
+### The problem
 
-### Batch Inference
-**When:** Process large datasets offline (e.g., daily recommendations, weekly reports)
+You have a new model that beats the current production model on your evaluation set. How do you replace the production model without breaking the service, and how do you verify it actually performs better on real users?
 
-**Architecture:**
+### The core insight
+
+Every deployment strategy trades safety against speed. The higher the risk of the change (new architecture, new feature schema, large distribution difference), the more conservative the rollout strategy should be.
+
+### The mechanics
+
+**Batch inference**
+
+When: process large datasets offline (daily recommendations, weekly credit scores, nightly reports)
+
 ```
-Batch Data → Prediction Job (Spark/Airflow) → Results Storage → Serving Layer
-```
-
-**Pros:** High throughput, can use complex models, cost-effective
-**Cons:** Not real-time, stale predictions
-
-**Tools:** Apache Airflow, AWS Batch, Google Cloud Dataflow
-
----
-
-### Real-time Inference
-**When:** Low latency required (< 100ms), request-response pattern
-
-**Architecture:**
-```
-User Request → API Gateway → Model Server → Response
+Batch Data -> Prediction Job (Spark/Airflow) -> Results Storage -> Serving Layer
 ```
 
-**Serving Options:**
+Pros: high throughput, can use complex/slow models, cost-effective
+Cons: predictions become stale between batch runs
 
-| **Option** | **Use Case** | **Latency** |
-|-----------|-------------|------------|
-| **REST API** | General purpose | 50-200ms |
-| **gRPC** | Low latency | 10-50ms |
-| **Serverless** | Variable traffic | 100-500ms |
-| **Edge** | Ultra-low latency | < 10ms |
+**Real-time inference**
 
-**Flask Example:**
+When: low latency required (< 100ms), user-facing request-response
+
 ```python
 from flask import Flask, request, jsonify
 import joblib
 
 app = Flask(__name__)
-model = joblib.load("model.pkl")
+pipeline = joblib.load("model_with_preprocessing.pkl")
 
 @app.route("/predict", methods=["POST"])
 def predict():
     data = request.json
-    features = data["features"]
-    prediction = model.predict([features])
-    return jsonify({"prediction": prediction[0]})
-
-if __name__ == "__main__":
-    app.run(host="0.0.0.0", port=5000)
+    prediction = pipeline.predict([data["features"]])
+    return jsonify({"prediction": int(prediction[0])})
 ```
 
----
+**Deployment patterns**
 
-### Deployment Patterns
-
-**1. Canary Deployment**
-- Gradually route traffic to new model (5% → 25% → 50% → 100%)
-- Monitor performance at each stage
-- Rollback if problems detected
-
-**2. Blue-Green Deployment**
-- Run old (blue) and new (green) models in parallel
-- Switch traffic instantly
-- Easy rollback
-
-**3. Shadow Mode**
-- New model receives traffic but doesn't serve responses
-- Compare predictions offline
-- Zero risk deployment
-
-**4. A/B Testing**
-- Split traffic between models (e.g., 50/50)
-- Measure business metrics
-- Choose winner based on data
+| Pattern | Mechanism | Risk | Recovery speed |
+|---------|-----------|------|----------------|
+| Canary | Gradual traffic shift (5% -> 100%) | Low | Fast (reduce traffic) |
+| Blue-green | Atomic environment swap | Medium | Instant (flip LB) |
+| Shadow | Parallel, predictions discarded | Zero | N/A |
+| A/B test | Split by user cohort | Low | Fast (stop experiment) |
 
 ---
 
-## Monitoring & Observability
+## Monitoring and Observability
 
-**Observability here means:** dashboards for **latency + errors** *and* **quality** (accuracy, calibration, business KPIs). Drift is your **“something changed upstream”** alert — like a silent dependency upgrade, but for the world.
+### The problem
 
-### Model Performance Monitoring
-**Metrics to Track:**
-- Accuracy, precision, recall, F1
-- Prediction latency (p50, p95, p99)
-- Throughput (requests/second)
-- Error rate
+A model that was 94% accurate at deployment is now 79% accurate six months later. No code changed. The degradation happened gradually. Nobody noticed because nobody was watching the right signals.
 
-**Tools:** Prometheus, Grafana, DataDog
+### The core insight
 
-**Example Alert:**
+ML monitoring has two layers that classic DevOps monitoring does not have: *data drift* (the inputs changed) and *model quality* (the input-to-output relationship changed). System metrics (latency, error rate) tell you the service is running. They do not tell you the model is still useful.
+
+### The mechanics
+
+**Model performance monitoring**
+
 ```yaml
-alert: ModelAccuracyDrop
-expr: model_accuracy < 0.85
-for: 5m
-annotations:
-  summary: "Model accuracy dropped below threshold"
+# Prometheus alert rule
+groups:
+  - name: ml_model_alerts
+    rules:
+      - alert: ModelAccuracyDrop
+        expr: model_accuracy_gauge < 0.85
+        for: 5m
+        annotations:
+          summary: "Model accuracy dropped below 0.85 threshold"
+      - alert: PredictionLatencyHigh
+        expr: histogram_quantile(0.99, model_prediction_duration_seconds) > 0.2
+        for: 2m
 ```
 
-### Data Drift Detection
-**Data Drift:** Input feature distributions change over time
+**Data drift detection**
 
-**Detection Methods:**
-- **PSI (Population Stability Index):** Measures distribution change
-- **KL Divergence:** Statistical distance between distributions
-- **Kolmogorov-Smirnov Test:** Statistical test for distribution difference
-
-**Tools:** Evidently AI, WhyLabs, Fiddler
-
-**Example with Evidently:**
 ```python
 from evidently.dashboard import Dashboard
-from evidently.tabs import DataDriftTab
+from evidently.tabs import DataDriftTab, CatTargetDriftTab
 
-dashboard = Dashboard(tabs=[DataDriftTab()])
-dashboard.calculate(reference_data, current_data)
+# Compare training reference data vs current production window
+dashboard = Dashboard(tabs=[DataDriftTab(), CatTargetDriftTab()])
+dashboard.calculate(reference_data=training_df, current_data=production_window_df)
 dashboard.save("drift_report.html")
 ```
 
-### Concept Drift Detection
-**Concept Drift:** Relationship between features and target changes
+Detection methods:
+- **PSI (Population Stability Index):** PSI < 0.1 stable, 0.1-0.2 monitor, > 0.2 retrain
+- **KL Divergence:** Statistical distance between distributions; sensitive to tail behavior
+- **Kolmogorov-Smirnov Test:** Non-parametric test for continuous feature distribution shift
 
-**Detection:**
-- Monitor model performance metrics over time
-- Compare predictions vs actuals
-- Alert when performance degrades
+**Concept drift detection**
 
-**Solutions:**
-- Retrain model with recent data
-- Online learning (incremental updates)
-- Ensemble with recent models
+Concept drift means the relationship between X and y has changed — not just the input distribution, but what the inputs mean for the prediction.
+
+Detection: monitor model performance metrics over time, compare predictions vs actuals, alert when performance degrades below threshold.
+
+Solutions:
+- Retrain model with recent data (scheduled or triggered by drift signal)
+- Online learning with a sliding window (incremental partial_fit)
+- Ensemble the current model with a recently-trained model
+
+*What breaks:* You need ground truth labels to detect concept drift, and labels often arrive with a delay. For a loan default prediction model, you may not know whether a borrower defaulted for 6-12 months. Use proxy signals (early payment behavior) or plan for delayed evaluation.
 
 ---
 
 ## CI/CD for ML
 
-**How would you wire this in Azure Pipelines?** Trigger on PR or schedule → **validate data** (Great Expectations-style) → **train** in a container or Azure ML job → **evaluate** vs thresholds → **register** model → optional **approval gate** → deploy to staging → **shadow or canary** → production. Same spine as app CI/CD — extra validation steps where the risk lives.
+### The problem
 
-### Continuous Integration
-**Steps:**
-1. Code commit (git push)
-2. Run tests (unit, integration)
-3. Data validation
-4. Model training
-5. Model validation
-6. Register model if metrics pass threshold
+Your training pipeline takes 4 hours to run. Your team manually evaluates the results, makes a judgment call about whether to deploy, and pushes to production by hand. This is not repeatable, not auditable, and does not scale.
 
-**Example with GitHub Actions:**
+### The core insight
+
+The ML CI/CD pipeline is a DevOps pipeline with three additional gates: data validation, model training, and model evaluation. The same discipline of "never deploy without passing all gates" applies — but the gates are different.
+
+### The mechanics
+
+**ML pipeline stages**
+
+1. Code commit triggers CI
+2. Unit tests (data processing logic, feature engineering)
+3. Data validation (schema checks, range checks, distribution checks)
+4. Model training (on versioned data snapshot)
+5. Model evaluation (vs threshold AND vs current production model)
+6. Register model if evaluation passes
+7. Optional: human approval gate for sensitive models
+8. Deploy to staging
+9. Shadow or canary deployment on production traffic
+10. Promote to full production
+
+**GitHub Actions example**
+
 ```yaml
 name: ML Pipeline
 
-on: [push]
+on:
+  push:
+    branches: [main]
+  schedule:
+    - cron: "0 2 * * *"  # Nightly retraining
 
 jobs:
   train-and-evaluate:
     runs-on: ubuntu-latest
     steps:
-      - uses: actions/checkout@v2
-      
+      - uses: actions/checkout@v3
+
       - name: Set up Python
-        uses: actions/setup-python@v2
+        uses: actions/setup-python@v4
         with:
-          python-version: 3.9
-      
+          python-version: "3.11"
+
       - name: Install dependencies
         run: pip install -r requirements.txt
-      
-      - name: Run tests
-        run: pytest tests/
-      
+
+      - name: Run unit tests
+        run: pytest tests/unit/ -v
+
       - name: Validate data
         run: python scripts/validate_data.py
-      
+        # Fails if Great Expectations suite fails
+
       - name: Train model
         run: python scripts/train.py
-      
+        env:
+          MLFLOW_TRACKING_URI: ${{ secrets.MLFLOW_TRACKING_URI }}
+
       - name: Evaluate model
-        run: python scripts/evaluate.py
-      
+        run: python scripts/evaluate.py --min-auc 0.85 --min-precision 0.80
+
       - name: Register model
         if: success()
-        run: python scripts/register_model.py
+        run: python scripts/register_model.py --stage Staging
 ```
 
-### Continuous Deployment
-**Automated Pipeline:**
-```
-Code Change → Tests → Train → Evaluate → Stage → A/B Test → Production
-```
-
-**Safety Checks:**
-- Minimum accuracy threshold
-- Performance regression tests
-- Shadow mode testing
-- Gradual rollout with monitoring
+*What breaks:* Nightly retraining without data freshness checks can train on stale or corrupted data. Always gate training on data validation. "If success" in the register step must check actual metric thresholds, not just that training completed.
 
 ---
 
-## Infrastructure & Tools
+**Safety checks before promotion to production**
 
-**Kubernetes angle:** Treat model servers like any other workload — replicas, probes, autoscaling — but add **GPU** node pools and **batching** where needed. Your **Helm chart** is just wrapping another stateless service — with bigger Docker images.
+- Minimum accuracy threshold vs baseline
+- No performance regression vs current production model
+- Shadow mode testing (at least 24 hours of shadow comparison)
+- Gradual rollout with monitoring at each step
 
-### Cloud Platforms
+---
 
-| **Platform** | **ML Services** | **Strengths** |
-|-------------|----------------|--------------|
-| **AWS** | SageMaker, EC2, Lambda | Mature ecosystem, broad services |
-| **GCP** | Vertex AI, AI Platform | TensorFlow integration, AutoML |
-| **Azure** | Azure ML, Databricks | Enterprise integration |
+## Infrastructure and Tools
 
-### Containerization
-**Docker for ML:**
+### The problem
+
+Every ML team rediscovers the same infrastructure problems: where do I store trained models, how do I scale training, how do I serve predictions under load, how do I track what is running in production?
+
+### The core insight
+
+The ML infrastructure stack mirrors the software infrastructure stack, with specialized components at each layer for the unique requirements of data and model management.
+
+### The mechanics
+
+**Cloud ML platforms**
+
+| Platform | ML Services | Best for |
+|----------|-------------|----------|
+| AWS | SageMaker, EC2, Lambda | Mature ecosystem, broad integrations |
+| GCP | Vertex AI, AI Platform | TensorFlow integration, AutoML |
+| Azure | Azure ML, Databricks | Enterprise Azure integration, MLflow native support |
+
+**Containerization for ML**
+
 ```dockerfile
-FROM python:3.9-slim
+FROM python:3.11-slim
 
 WORKDIR /app
 
 COPY requirements.txt .
 RUN pip install --no-cache-dir -r requirements.txt
 
-COPY model.pkl .
+# Copy model artifact AND preprocessing pipeline together
+COPY model_with_preprocessing.pkl .
 COPY app.py .
 
-EXPOSE 5000
+EXPOSE 8080
 
-CMD ["python", "app.py"]
+CMD ["gunicorn", "--workers", "4", "--bind", "0.0.0.0:8080", "app:app"]
 ```
 
-**Kubernetes for Orchestration:**
-- Scaling (replicas based on load)
-- Load balancing
-- Health checks and auto-restart
-- Resource management
+Key point: the model artifact and preprocessing pipeline must be in the same container image. If they are separate, version drift between model and preprocessing becomes possible.
 
-### Model Serving Platforms
+**Kubernetes for model serving**
 
-| **Tool** | **Best For** | **Features** |
-|---------|-------------|------------|
-| **TensorFlow Serving** | TensorFlow models | High performance, versioning |
-| **TorchServe** | PyTorch models | Multi-model serving |
-| **ONNX Runtime** | Cross-framework | Optimized inference |
-| **Seldon Core** | Kubernetes native | ML deployment on K8s |
-| **KFServing** | Cloud-native | Serverless, autoscaling |
+Treat model servers like any other stateless microservice:
+- Replicas based on traffic (HPA on CPU/GPU utilization)
+- Health checks: readiness (is the model loaded?) and liveness (is the server responding?)
+- Resource limits: GPU memory must be specified explicitly or pods will be evicted at runtime
+
+**Model serving platforms**
+
+| Tool | Best for | Key features |
+|------|----------|--------------|
+| TensorFlow Serving | TensorFlow models | High performance, versioning |
+| TorchServe | PyTorch models | Multi-model serving, model archiver |
+| ONNX Runtime | Cross-framework | Optimized inference, hardware acceleration |
+| Seldon Core | Kubernetes-native | Canary, A/B, shadow via CRD |
+| Triton Inference Server | Multi-model, GPU | Dynamic batching, concurrent models |
 
 ---
 
 ## Best Practices
 
-**Quick thought experiment:** *If tomorrow’s data silently shifts 5%, which practice saves you first — monitoring, versioning, or automated retrain?* (Trick question: you need **all three**, but **versioning + monitoring** buys you time to retrain calmly.)
+### Reproducibility
 
-### 1. Reproducibility
- Version everything: code, data, models, environment
- Use Docker for consistent environments
- Set random seeds
- Document dependencies (requirements.txt, conda env)
+The question "what model is in production and why?" must always be answerable. This requires:
+- Version code (git), data (DVC or snapshot hash), models (registry), environment (Docker)
+- Set random seeds in all training scripts
+- Log every experiment with full metadata (hyperparameters, data version, code commit)
+- Use Docker for consistent training environments — not conda environments on individual machines
 
-### 2. Testing
- Unit tests for data processing logic
- Integration tests for pipelines
- Model validation tests (accuracy thresholds)
- Data quality checks
+### Testing
 
-### 3. Monitoring
- Track model performance metrics
- Monitor data drift
- Set up alerts for degradation
- Log predictions for debugging
+ML systems need four categories of tests, not just one:
+- **Unit tests:** individual data processing functions, feature transformations
+- **Integration tests:** end-to-end pipeline from raw data to prediction
+- **Model validation tests:** accuracy thresholds, fairness checks, regression vs baseline
+- **Data quality checks:** schema, ranges, distributions, missing value rates
 
-### 4. Security
- Encrypt data at rest and in transit
- Use secrets management (AWS Secrets Manager, Vault)
- Implement access control (IAM, RBAC)
- Audit logging
+### Monitoring
 
-### 5. Cost Optimization
- Use spot instances for training
- Auto-scaling for inference
- Model compression (quantization, pruning)
- Batch similar requests
+Set up monitoring before deployment, not after the first incident:
+- Track model performance metrics (with lag-aware strategies for delayed labels)
+- Monitor data drift on all features with PSI/KS
+- Set up alerts for latency regression and error rate spikes
+- Log predictions with timestamps for offline analysis
+
+### Security
+
+- Encrypt data at rest and in transit
+- Use secrets management (AWS Secrets Manager, HashiCorp Vault) — never hardcode credentials
+- Implement access control (IAM, RBAC) on model endpoints and data stores
+- Audit logging: who deployed what model, when, with what approval
+
+### Cost optimization
+
+- Use spot instances for training jobs (tolerate interruption with checkpointing)
+- Auto-scaling for inference (scale to zero when idle, scale out on traffic)
+- Model compression (quantization, pruning, distillation) to reduce serving cost
+- Batch similar requests together for GPU efficiency
 
 ---
 
 ## MLOps Maturity Levels
 
-**Levels = crawl → walk → sprint.** Level 0 is “hero in a notebook.” Level 2+ is where your **Azure DevOps brain** finally feels at home: pipelines, gates, observability, **repeatable** change.
+### The problem
 
-### Level 0: Manual Process
-- Manual data preparation
-- Notebooks for training
-- Manual deployment
-- No monitoring
+Teams do not jump from "notebook in production" to "full automation" overnight. Understanding where you are on the maturity ladder tells you which problems to solve next.
 
-### Level 1: ML Pipeline Automation
-- Automated training pipeline
-- Experiment tracking
-- Model registry
-- Basic monitoring
+### Level 0: Manual process
 
-### Level 2: CI/CD Pipeline Automation
-- Automated testing
-- Automated deployment
-- Continuous monitoring
-- Automated retraining triggers
+Everything is manual: data preparation in notebooks, training by hand, deployment by copying files, no monitoring. The first production failure takes weeks to debug because there is no audit trail.
 
-### Level 3: Production-Grade MLOps
-- Advanced monitoring (drift detection)
-- Online learning
-- Multi-model management
-- Feature stores
-- Governance and compliance
+*Signal that you are here:* "The model" refers to a file on someone's laptop.
+
+### Level 1: ML pipeline automation
+
+Automated training pipeline, experiment tracking, model registry, basic monitoring. You can reproduce any experiment. You cannot continuously retrain or automatically deploy.
+
+*Signal that you are here:* Experiments are logged, but deployments are still manual.
+
+### Level 2: CI/CD pipeline automation
+
+Automated testing, automated deployment with approval gates, continuous monitoring, automated retraining triggers. New data triggers a training run; if the new model passes evaluation, it is staged for deployment automatically.
+
+*Signal that you are here:* The team is not involved in routine retraining — only in threshold calibration and incident response.
+
+### Level 3: Production-grade MLOps
+
+Advanced monitoring (drift detection, fairness monitoring), online learning for fast-moving distributions, multi-model management, feature stores, governance and compliance documentation. The ML system is self-healing for common failure modes.
+
+*Signal that you are here:* A model degradation event triggers automated diagnosis, retraining, validation, and deployment with no human in the loop for the happy path.
 
 ---
 
 ## Interview Topics
 
-**You’ve got this** — answer in three beats: **definition** → **mechanism** → **production tradeoff** (latency, cost, safety).
+**"Explain the difference between model drift and data drift"**
 
-**Common Questions:**
+Data drift: the input feature distribution P(X) changes — different users, different behavior, different time of year. Concept drift: the relationship P(Y|X) changes — the same features now predict a different outcome (e.g., features that predicted fraud one way now predict a different fraud pattern). Both require retraining, but they have different root causes and different detection signals. Data drift is detectable without labels (compare input distributions). Concept drift requires labels (compare model accuracy on recent data vs historical data).
 
-1. **"Explain the difference between model drift and data drift"**
-   > Data drift: Input distributions change. Concept drift: X→y relationship changes. Both require retraining.
+**"How would you deploy a model to production?"**
 
-2. **"How would you deploy a model to production?"**
-   > Containerize (Docker) → Model registry → Staging → A/B test → Gradual rollout → Monitor → Full deployment
+Start with shadow mode (zero risk, build confidence), move to canary (5% traffic, monitor business metrics for statistical significance), then full rollout. Package the model and preprocessing pipeline together. Define rollback triggers on accuracy drop, latency regression, and error rate spike. Monitor data drift from day one.
 
-3. **"How do you ensure reproducibility?"**
-   > Version code (git), data (DVC), models (registry), environment (Docker), set random seeds
+**"How do you ensure reproducibility?"**
 
-4. **"How would you detect if a model is degrading?"**
-   > Monitor performance metrics, track data drift, compare predictions vs actuals, set up alerts
+Version code (git tag or commit hash), data (DVC pointer or snapshot hash in S3), model (registry version), environment (Docker image hash with pinned dependencies). Set random seeds. Log all hyperparameters with MLflow. Store training data snapshot separately from the live dataset — do not retrain on data that may have been modified.
 
-5. **"Batch vs real-time inference trade-offs?"**
-   > Batch: Higher throughput, offline, complex models. Real-time: Low latency, online, simpler models.
+**"How would you detect if a model is degrading?"**
 
----
+Three layers of signals: input drift (PSI/KS on feature distributions, detectable within hours), prediction drift (output score distribution shifts, detectable within hours), and performance degradation (accuracy vs ground truth, detectable with label delay). Monitor all three. Do not wait for customer complaints.
 
-## Resources
+**"Batch vs real-time inference trade-offs?"**
 
-**Books:**
-- Building Machine Learning Powered Applications (Emmanuel Ameisen)
-- Machine Learning Engineering (Andriy Burkov)
-- Designing Machine Learning Systems (Chip Huyen)
-
-**Courses:**
-- Made With ML - MLOps
-- DeepLearning.AI - MLOps Specialization
-
-**Tools Repository:**
-- [Awesome MLOps](https://github.com/visenger/awesome-mlops)
-
-**Blogs:**
-- Google Cloud MLOps
-- AWS Machine Learning Blog
-- Neptune.ai Blog
+Batch: higher throughput, can use larger models, cost-effective, but predictions are stale by the time they are served. Real-time: low latency (target < 100ms), always fresh, but constrained model complexity and higher serving cost. The deciding factor is how quickly the ground truth changes and whether a stale prediction is still useful.

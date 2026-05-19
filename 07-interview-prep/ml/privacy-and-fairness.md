@@ -1,829 +1,603 @@
 # Privacy and Fairness in Machine Learning
 
-ML models are not just mathematical objects.
-They are systems that affect real people.
+## What This File Is For
 
-This file covers two questions that come up constantly in senior ML interviews:
+Two things happened that should not have happened.
 
-- How do you build models that do not expose private information?
-- How do you build models that treat people fairly?
+**Case 1.** A bank's loan approval model denied loans to applicants in certain zip codes at higher rates. ZIP code is not race. But in US cities shaped by redlining, ZIP code predicts race. The model never saw race in its features. It encoded it through a proxy. The harm was real and measurable.
 
-Both have deep technical answers. Both matter more as models get deployed at scale.
+**Case 2.** A facial recognition system deployed for law enforcement had a 0.8% error rate on light-skinned men and a 34.7% error rate on dark-skinned women (Buolamwini and Gebru, 2018). The system was not "biased" in any naive sense — it optimized overall accuracy. Overall accuracy was fine. Per-group accuracy was not.
 
----
+These cases are not failures of individual practitioners. They are failures that emerge predictably from standard ML practice when applied to real-world data about real-world people. Every concept in this file exists because of failures like these.
 
-# 1. Data Privacy Fundamentals
-
-Before talking about techniques, you need to understand what you are protecting and why.
-
----
-
-## 1.1 Personally Identifiable Information (PII)
-
-PII is any data that can be used to identify an individual.
-
-**Direct PII:**
-- Name
-- Email address
-- Phone number
-- Social security number
-- Passport number
-
-**Indirect PII (quasi-identifiers):**
-- ZIP code
-- Date of birth
-- Gender
-
-The famous re-identification study (Sweeney, 2000) showed that 87% of Americans could be uniquely identified by just three fields: ZIP code, date of birth, and gender.
-
-Even "anonymized" data is often not truly anonymous.
-
-**Why it matters for ML:**
-
-Your training data probably contains PII.
-Your model may memorize parts of it.
-Large language models have been shown to reproduce training data, including personal information.
+The structure for each topic:
+1. What the interviewer is actually testing — the underlying competency
+2. The reasoning structure — why first-principles thinkers approach it this way
+3. The pattern in action — a worked example
+4. Common traps — where people go wrong and why
 
 ---
 
-## 1.2 GDPR and Privacy Regulations
+# 1. Why ML Systems Fail People
 
-The General Data Protection Regulation (EU, 2018) is the most comprehensive privacy law affecting ML systems.
+## What the interviewer is actually testing
 
-**Core principles that affect ML:**
+Whether you can reason about failure modes before they occur — not just fix them after. Senior practitioners anticipate where standard ML practice generates harms. Junior practitioners react after harm is visible.
 
-**Lawful basis for processing**
-You need explicit consent or a legitimate interest to train on personal data.
+## The reasoning structure
 
-**Data minimization**
-Collect only what you need.
-This is in tension with the ML instinct to collect everything.
+Three failure mechanisms account for most privacy and fairness harms:
 
-**Purpose limitation**
-Data collected for one purpose cannot be freely used for another.
-You cannot train a recommendation model on data collected for fraud detection.
+**Proxy encoding.** Protected attributes (race, gender, disability) were legally excluded from decisions in many domains. But the world correlates protected attributes with ZIP codes, names, educational institutions, browsing behavior. A model trained to predict an outcome will use whatever features are predictive. If ZIP code is predictive because of historical segregation, the model learns and amplifies that correlation.
 
-**Storage limitation**
-You cannot store personal data indefinitely.
-This creates engineering challenges for models trained on historical data.
+**Representation failure.** A model trained on data that underrepresents a group will underperform for that group. The facial recognition case is the canonical example. Training data from stock photo databases skewed toward light-skinned faces. The model minimized average error. Average error does not expose per-group failure.
 
----
+**Feedback loops.** A predictive policing model sends more officers to flagged neighborhoods. More officers generate more arrests in those neighborhoods. The next model trains on that data and flags the same neighborhoods more strongly. The loop amplifies an initial skew until it is structurally self-reinforcing.
 
-## 1.3 Right to Erasure (Right to Be Forgotten)
+## The pattern in action
 
-Under GDPR, individuals can request that their personal data be deleted.
+The COMPAS recidivism risk tool, used across US courts, assigned risk scores predicting re-offense. ProPublica's 2016 analysis found:
+- Black defendants were nearly twice as likely to be falsely flagged as high-risk (false positive rate: 44.9% vs 23.5%)
+- White defendants were more likely to be falsely classified as low-risk (false negative rate: 47.7% vs 28.0%)
 
-**The ML problem**
+Northpointe (the COMPAS vendor) responded: the tool is calibrated — for a given risk score, the actual re-offense rate is the same across races.
 
-If your model was trained on someone's data, and they request erasure, what do you do?
+Both claims were true. They are measuring different things. They cannot both be satisfied simultaneously when base rates differ between groups.
 
-Simply deleting the training row is not enough.
-The model has potentially learned from it.
+## Common traps
 
-**Machine Unlearning**
+**"We didn't include protected attributes."** Proxy features do the work anyway. The fix is not excluding race — it is testing whether outcomes correlate with race.
 
-An active research area.
-The goal: efficiently update a trained model to "forget" specific training examples without full retraining.
+**"Our model is accurate."** Accurate on average does not mean accurate for your most vulnerable users. Always disaggregate metrics by relevant groups.
 
-**Approaches:**
-
-1. **Exact unlearning**: remove data and retrain from scratch. Correct but expensive.
-2. **Approximate unlearning**: apply targeted gradient updates to undo the influence of specific data points. Faster but harder to verify.
-3. **Data partitioning (SISA training)**: train on shards. When erasure is requested, only retrain the relevant shard.
-
-**Interview angle**
-
-This is an area where ML engineering meets legal compliance.
-Being able to articulate the challenge and the current solutions puts you ahead.
+**"Fairness is a post-deployment concern."** Fairness problems are data problems. They exist in training data before a model is ever trained. Auditing post-deployment is too late to prevent harm from the initial deployment.
 
 ---
 
-# 2. Differential Privacy
+# 2. Data Privacy Fundamentals
 
-Differential privacy is the gold standard for privacy-preserving computation.
+## What the interviewer is actually testing
 
-It gives a mathematical guarantee: an observer cannot determine whether any specific individual's data was used in a computation.
+Whether you understand that "removing PII" is not privacy. Anonymization is a claim that requires verification, not a property that removing a name column confers.
+
+## The reasoning structure
+
+**The re-identification problem.** Latanya Sweeney (2000) showed that 87% of Americans can be uniquely identified by three fields: ZIP code, date of birth, and sex. None of these are direct PII. Each is a quasi-identifier. Their combination is identifying.
+
+**Direct PII vs quasi-identifiers:**
+- Direct: name, email, phone number, SSN, passport number
+- Quasi-identifiers: ZIP code, date of birth, gender, job title, employer, medical condition, browser fingerprint
+
+A dataset can contain no direct PII and still be re-identifiable by linking quasi-identifiers against public records.
+
+**Why ML makes this worse.** Training a model introduces a second re-identification surface: the model itself. Large language models have been shown to reproduce training data verbatim, including email addresses and phone numbers. The model is not just a summary of the data — it can contain the data.
+
+**GDPR principles that constrain ML practice:**
+- Lawful basis for processing: need consent or legitimate interest to train on personal data
+- Data minimization: collect only what you need (in tension with "collect everything" ML instinct)
+- Purpose limitation: data collected for fraud detection cannot be repurposed to train a recommendation model
+- Storage limitation: personal data cannot be retained indefinitely, creating challenges for models trained on historical records
+- Right to erasure: individuals can request deletion of their data
+
+## The pattern in action
+
+Netflix released an "anonymized" dataset of user movie ratings for a prize competition. Researchers linked it to public IMDb ratings and re-identified 99% of records, exposing viewing history including politically sensitive films.
+
+The dataset contained no names. It contained a unique behavioral fingerprint.
+
+**What this means for ML practice:**
+- Anonymization requires k-anonymity (each record indistinguishable from at least k-1 others), l-diversity, t-closeness, or formal differential privacy guarantees
+- Simply removing identifying columns is not anonymization
+- Every dataset released from a company should be treated as potentially re-identifiable
+
+## Common traps
+
+**"We removed the name column."** Re-identification via quasi-identifier combinations. You need formal privacy guarantees, not column deletion.
+
+**"Our data is internal — not released publicly."** Internal datasets can be accessed by engineers, vendors, or breach attackers. Privacy-preserving techniques protect against internal exposure too.
+
+**"The model doesn't output individual records."** Models memorize training data. LLMs reproduce text verbatim. Privacy attacks against the model are privacy attacks against the training data.
 
 ---
 
-## 2.1 The Intuition
+# 3. Machine Unlearning and the Right to Be Forgotten
 
-**The census analogy**
+## What the interviewer is actually testing
 
-Imagine a national census.
-You want population statistics (average income, disease rates) without revealing any individual's answer.
+Whether you can translate a legal requirement (GDPR right to erasure) into a technical problem and reason about its difficulty honestly. This is a signal that you have thought about ML systems in production legal environments.
 
-Naive approach: collect all answers, compute statistics.
-Problem: the statistics can leak individual information.
+## The reasoning structure
 
-Differential privacy approach: each respondent adds random noise to their answer before submitting.
-Individually, each response is plausibly deniable.
-In aggregate, the noise cancels out and the statistics are still accurate.
+**The problem.** If Person X's data was in your training set and they request erasure, deleting their database record does not erase the model's learned parameters that were shaped by their data. Retraining from scratch works but costs O(entire training run). Neither option is practical at scale.
 
-The individual has plausible deniability: their noisy answer could have come from many different true values.
+**Machine unlearning** is the research area that aims to efficiently update a trained model to "forget" specific training examples.
 
-**The core guarantee**
+**Three approaches, ordered by correctness vs. cost:**
 
-A mechanism M is ε-differentially private if:
+**1. Exact unlearning — retrain from scratch.** Remove the data, retrain the model from initialization. Correct by definition. Cost: O(full training run per erasure request). Impractical for large models or frequent requests.
 
-For any two datasets D and D' that differ in exactly one record, and for any output set S:
+**2. Approximate unlearning — gradient-based.** Apply targeted gradient updates to reduce the influence of specific data points. Based on influence functions (Koh and Liang, 2017): compute how the model's parameters would change if training example i were removed. Use that to construct a targeted update. Faster than retraining. Harder to verify — the guarantee is approximate.
+
+**3. SISA training (Sharded, Isolated, Sliced, and Aggregated).** Partition the training set into shards. Train a sub-model on each shard. Final predictions are aggregated from sub-models. When erasure is requested for a data point in shard k, only retrain the sub-model on shard k. Cost: O(1/num_shards × full training run) per erasure. Correct for the affected shard. Requires architectural forethought before training.
+
+## The pattern in action
+
+A healthcare platform trains a diagnostic model on patient records. A patient exercises GDPR right to erasure.
+
+**What they cannot do:** delete the database row and declare compliance. The model's weights are shaped by that patient's records.
+
+**What they can do (SISA):**
+1. Before training: partition patient records into 100 shards of ~1% each
+2. Train 100 sub-models, one per shard
+3. Final prediction = majority vote or average across sub-models
+4. Erasure request: identify which shard contains the patient, retrain that sub-model only
+5. Cost per erasure: approximately 1% of full training run
+
+**Verifying unlearning:** run membership inference attacks against the updated model on the erased examples. If they are indistinguishable from non-training examples, unlearning succeeded.
+
+## Common traps
+
+**"We deleted the data so we're compliant."** The model still contains that data's influence. Regulators are increasingly aware of this.
+
+**"We'll just retrain when someone asks."** This works for small models. For a 70B parameter model trained for months, retraining on each erasure request is not a viable operational plan.
+
+**"Approximate unlearning is fine."** It may not satisfy regulators who require a verifiable guarantee. The verification gap between approximate unlearning and actual erasure is an open problem.
+
+---
+
+# 4. Differential Privacy
+
+## What the interviewer is actually testing
+
+Whether you can state the formal guarantee, explain what epsilon means intuitively, and know when DP is the right tool vs. when it is security theater. Many candidates can define DP; fewer can explain why the formal definition is the right one.
+
+## The reasoning structure
+
+**The motivating question.** You want to learn statistics about a population without learning anything about individuals. Is this possible?
+
+The naive answer is no — any statistic reveals something about the individuals who produced it. DP's answer: you can bound exactly how much an individual's participation reveals, and you can make that bound arbitrarily small.
+
+**The formal definition.** A randomized mechanism M is ε-differentially private if for any two datasets D and D' that differ in exactly one record, and for any output set S:
 
 ```
-P[M(D) ∈ S] ≤ e^ε * P[M(D') ∈ S]
+P[M(D) ∈ S] ≤ e^ε · P[M(D') ∈ S]
 ```
 
-**Plain English interpretation**
+**What this says.** The output distribution barely changes when one person's data is included or excluded. An observer cannot determine from the output whether any specific person participated.
 
-No matter what you observe from the output, you cannot determine with confidence whether any specific individual was in the dataset.
+**The privacy budget ε.**
+- ε = 0: perfectly private, completely useless (output is constant)
+- ε small (0.1–1): strong privacy, significant accuracy loss
+- ε = 1: industry academic standard for strong DP
+- ε = 10: Apple/Google range for telemetry; pragmatically private
+- ε large: weak guarantee, barely more than publishing raw data
 
-The output distribution barely changes when you include or exclude any single person.
+**Composition.** Running k ε-differentially private mechanisms gives total privacy loss at most k·ε (basic composition). Advanced composition gives √(2k ln(1/δ)) · ε for (ε,δ)-DP. The budget depletes with each query. You cannot run unlimited private queries.
 
----
+## The pattern in action
 
-## 2.2 The Privacy Budget ε
-
-ε (epsilon) is the privacy loss parameter.
-
-**Small ε (e.g., 0.1):** very strong privacy, but more noise, more accuracy loss.
-**Large ε (e.g., 10):** weaker privacy guarantee, but less noise.
-
-**Typical values in practice:**
-
-- Academic papers: ε = 1 (strong)
-- Industry deployments: ε = 10–50 (pragmatic)
-- Apple and Google deploy differential privacy with ε around 1–8 for certain use cases
-
-**Composition**
-
-If you run multiple differentially private queries, the total privacy loss accumulates.
-
-k mechanisms each with ε-DP → total privacy loss is at most k*ε (basic composition).
-
-Advanced composition gives tighter bounds for many queries.
-
-This is why you cannot just run unlimited private queries: the budget runs out.
-
----
-
-## 2.3 Laplace Mechanism
-
-For numeric queries, add Laplace noise calibrated to the query's sensitivity.
-
-**Sensitivity**
-
-The maximum change in query output that can result from adding or removing one individual's record.
-
-For average income with values in [0, 200K] and n people:
-- sensitivity = 200K / n
-
-**The mechanism**
+**Laplace mechanism for numeric queries:**
 
 ```
 M(D) = f(D) + Lap(sensitivity / ε)
 ```
 
-Where Lap(b) is noise from a Laplace distribution with scale b.
+Sensitivity = maximum change in f(D) from adding/removing one person.
 
-As ε increases, the scale decreases, and the noise is smaller.
+Average income query, values in [0, 200K], n = 10,000 people:
+- sensitivity = 200K / 10,000 = 20
+- ε = 1 → scale = 20/1 = 20 → standard deviation ≈ 28K
+- ε = 10 → scale = 2 → standard deviation ≈ 2.8K
 
-**When to use it**
+With n=10,000, the mean is robust enough that ε=10 adds imperceptible noise. Privacy cost: an observer cannot determine with confidence whether any specific person's income was in the dataset.
 
-Laplace is optimal for queries with bounded L1 sensitivity.
-Works well for numerical statistics: counts, averages, histograms.
-
----
-
-## 2.4 Gaussian Mechanism
-
-For vector-valued or high-dimensional queries, the Gaussian mechanism is often preferred.
+**Gaussian mechanism for (ε,δ)-DP:**
 
 ```
-M(D) = f(D) + N(0, σ^2 * I)
+M(D) = f(D) + N(0, σ² · I)
 ```
 
-Where σ is calibrated to the L2 sensitivity and ε, δ parameters.
+Provides (ε,δ)-DP: the guarantee fails with probability δ (e.g., 10⁻⁵). Useful for vector-valued queries (gradient updates in DP-SGD).
 
-**ε, δ differential privacy**
+## Common traps
 
-The Gaussian mechanism provides (ε, δ)-differential privacy, a slightly weaker guarantee:
+**"We used ε=100 so it's differentially private."** Technically true, practically meaningless. e^100 ≈ 2.7 × 10^43. The bound allows the output distribution to change by an astronomical factor. DP with large ε is privacy theater.
 
-```
-P[M(D) ∈ S] ≤ e^ε * P[M(D') ∈ S] + δ
-```
+**"DP protects against all privacy attacks."** DP bounds information leakage about individuals. It does not prevent membership inference (you can still learn statistical information), re-identification via external data, or model inversion. It bounds, it does not eliminate.
 
-δ is a small failure probability (e.g., 10^-5).
-This allows the Gaussian mechanism while maintaining strong practical privacy.
+**Forgetting composition.** Running 100 ε=1 mechanisms gives total privacy loss up to ε=100. You must track the privacy budget.
 
 ---
 
-## 2.5 DP-SGD: Private Machine Learning
+# 5. DP-SGD: Private Machine Learning
 
-The above mechanisms work for one-shot queries.
-Training a neural network involves many gradient updates — each of which could leak information.
+## What the interviewer is actually testing
 
-**DP-SGD (Abadi et al., 2016)** makes gradient descent differentially private.
+Whether you can extend DP from simple statistics to iterative optimization, and whether you understand why each step of DP-SGD is necessary — not just what the steps are.
 
-**Algorithm**
+## The reasoning structure
 
-1. Sample a minibatch of training examples.
-2. Compute the gradient for each example individually (per-sample gradients).
-3. Clip each per-sample gradient to a maximum L2 norm C (this bounds sensitivity).
-4. Add Gaussian noise calibrated to C and the privacy budget.
-5. Average the noisy clipped gradients.
-6. Update the model.
+**The problem with standard SGD.** Each gradient step uses a minibatch of training examples. The gradient aggregates information from that minibatch. A single example with extreme features can dominate the gradient update, and an observer watching the gradient updates can infer information about individual examples.
 
-**Why clip gradients?**
+**The solution has two parts:**
+1. **Bound the influence of any single example** — clip per-sample gradients to a maximum L2 norm C
+2. **Add calibrated noise** — add Gaussian noise to the clipped gradient, providing the DP guarantee
 
-Without clipping, a single example with large gradients can dominate the update.
-Clipping bounds the influence of any one example, which is required for bounded sensitivity.
+**DP-SGD algorithm (Abadi et al., 2016):**
 
-**The noise-accuracy tradeoff**
+1. Sample a minibatch of training examples
+2. Compute the gradient for each example individually (per-sample gradients, not minibatch average)
+3. Clip each per-sample gradient: g̃_i = g_i / max(1, ‖g_i‖₂/C)
+4. Add Gaussian noise: g̃ = (1/B) · Σ g̃_i + N(0, σ²C²I)
+5. Update the model: θ = θ - η · g̃
 
-More noise = stronger privacy = worse model.
-Less noise = weaker privacy = better model.
+**Why clip?** Without clipping, one example's gradient can be arbitrarily large. Clipping bounds the sensitivity — the maximum change in the gradient from adding or removing one example is 2C/B. The noise must be calibrated to this sensitivity.
 
-Finding the sweet spot requires tuning ε based on the sensitivity of the data and the acceptable accuracy degradation.
+**The privacy accountant.** Over T steps of DP-SGD, the total privacy loss is tracked using the moments accountant (Abadi et al.) or Rényi DP. The result: training for T steps with batch fraction q, noise multiplier σ, gives (ε, δ)-DP with ε that grows sublinearly in T.
 
-**Practical note**
+**The accuracy cost.** Noise added per step degrades gradient quality. Effect is worse for:
+- Large models (more dimensions → more total noise)
+- Small batch sizes (noise-to-signal ratio is higher)
+- Tight ε requirements (more noise needed)
 
-DP-SGD requires computing per-sample gradients, which is more expensive than standard minibatch gradients.
-Libraries like Opacus (PyTorch) make this efficient with vectorized per-sample gradient computation.
+## The pattern in action
 
-**Real-world use**
+Google trained a language model on Gboard keyboard data using DP-SGD. The data is sensitive (what people type). The deployed model needed to predict next words without any individual user's typing being recoverable.
 
-Google uses DP-SGD for training language models on keyboard data.
-Apple uses local differential privacy for usage statistics.
+Setting: ε=0.0065 per user per day (very tight, strong DP). The noise made training significantly noisier than standard SGD. But for federated keyboard prediction, a slightly less accurate model with strong privacy guarantees is the correct engineering tradeoff.
 
----
+Libraries: **Opacus** (PyTorch) and **TF Privacy** compute per-sample gradients efficiently using vectorized Jacobian computation. Without these, DP-SGD requires batch_size × forward passes per step, making it unusable.
 
-# 3. Federated Learning
+## Common traps
 
-Differential privacy keeps outputs private.
-Federated learning keeps the data itself private by never centralizing it.
+**"Per-sample gradients are just gradients on a batch of size 1."** Conceptually yes, but implementing it as a loop of batch-size-1 forward passes is 32× slower than a vectorized computation. Opacus uses hooks to extract per-sample gradients without this overhead.
 
----
+**"We clipped gradients so we have DP."** Clipping alone bounds sensitivity but provides no privacy. You also need calibrated noise. Both steps are required.
 
-## 3.1 The Core Problem
-
-**Standard ML:**
-
-Collect all data in one place → train a model → deploy.
-
-**Problem:** data may be sensitive (medical records, financial transactions, private messages).
-Centralizing it creates privacy risk, legal liability, and trust issues.
-
-**Federated learning:**
-
-Keep data on the devices or institutions where it was created.
-Train the model by sending it to the data, not the other way around.
+**Ignoring the privacy cost of hyperparameter tuning.** Every training run you do while selecting ε, batch size, and noise level consumes privacy budget. Tuning hyperparameters burns DP budget even before the final model is trained.
 
 ---
 
-## 3.2 FedAvg Algorithm
+# 6. Federated Learning
 
-The foundational federated learning algorithm (McMahan et al., 2017).
+## What the interviewer is actually testing
 
-**Round t:**
+Whether you understand when the architecture of federated learning provides value, and whether you can reason about its failure modes under real-world conditions (non-IID data, stragglers, communication cost).
 
-1. Server selects a random subset of K clients.
-2. Server sends the current global model weights to each selected client.
-3. Each client runs local SGD on their local data for E epochs.
-4. Each client sends their updated weights back to the server.
-5. Server aggregates the weights by weighted averaging:
-```
-w_{t+1} = Σ_k (n_k / n) * w_k
-```
-Where n_k is client k's data size and n is the total.
+## The reasoning structure
 
-**Why this works**
+**The motivating problem.** Standard ML collects all data centrally, trains, then deploys. This works when data can be collected. It fails when:
+- Data is legally or contractually impossible to centralize (HIPAA, GDPR, inter-hospital data sharing)
+- Data is physically too large to move (satellite imagery, medical imaging across 10,000 hospitals)
+- Users do not consent to sharing their raw data (mobile keyboard input, health sensors)
 
-Gradients/weights are shared, not raw data.
-The server learns model updates, not individual training examples.
+**Federated learning inverts the data flow.** Instead of moving data to the model, move the model to the data. Each participant trains locally. Only model updates are transmitted.
 
----
+**FedAvg (McMahan et al., 2017):**
 
-## 3.3 The Non-IID Problem
+Each round t:
+1. Server selects K clients
+2. Server sends current global weights w_t to each client
+3. Each client runs E epochs of SGD on local data: w_k = LocalUpdate(w_t, D_k)
+4. Clients return w_k to server
+5. Server aggregates: w_{t+1} = Σ_k (n_k / n) · w_k
 
-**IID** = Independent and Identically Distributed.
+The key insight: averaging weight updates from local SGD approximates SGD on the union of all data, without ever centralizing that data.
 
-Standard ML assumes your training data is IID from some underlying distribution.
+## The pattern in action
 
-Federated data is almost never IID.
+**The non-IID problem is the central challenge.** Standard ML assumes training data is IID — drawn independently from the same distribution. Federated data violates this by construction.
 
-**Why:** each client has data generated by their own behavior.
+Hospital A's patients are sicker (referral center). Hospital B's patients reflect a regional population. Hospital C sees mostly pediatric cases. Local models trained on these datasets will drift toward their local distributions. Averaging locally drifted models produces a global model that may be worse than centralizing the data.
 
-- A hospital's patient data reflects their patient population, not all patients globally.
-- A user's typing data reflects their vocabulary, not all vocabulary.
-- A city's traffic data reflects local patterns.
+**Mitigations:**
+- **FedProx**: add proximal term to local objective: minimize L_local(w) + (μ/2)‖w - w_t‖² — penalizes diverging from the global model
+- **SCAFFOLD**: control variates that correct for client drift — each client tracks a local correction term
+- **FedNova**: normalizes updates by number of local steps before aggregation — removes scale differences between clients
 
-**What goes wrong**
+**Communication cost at scale.** A 100M parameter model sends 400MB of float32 weights per round. With 10,000 clients per round and 1,000 rounds, total communication is 4 petabytes. **Gradient compression** (top-k sparse gradients, quantization to 8-bit or lower) reduces this by 10–100×.
 
-Local updates on non-IID data push the model toward each client's local distribution.
-Averaging these updates is noisy and can diverge.
+**Stragglers.** If round t waits for all K selected clients, one slow client blocks the round. Solutions: partial participation (proceed when 80% respond), asynchronous FL (accept updates as they arrive — but stale updates from slow clients can hurt convergence).
 
-Convergence is slower.
-Accuracy is lower than centralized training on the same data.
+**Secure aggregation.** The server sees individual client updates in standard FedAvg. Bonawitz et al. (2017) developed secure aggregation using pairwise random masks: clients mask their updates, masks cancel in the sum, server learns only the aggregate. Even the server cannot recover individual updates.
 
-**Mitigation approaches**
+## Common traps
 
-- **FedProx**: add a proximal term to penalize local updates that deviate too far from the global model.
-- **SCAFFOLD**: use control variates to correct for client drift.
-- **FedNova**: normalize local updates by the number of local steps.
-- **More rounds with fewer local steps**: reduces client drift but increases communication cost.
+**"Federated learning is private because the server never sees raw data."** The server sees gradient updates, which can leak information about local data. Gradient inversion attacks can approximately reconstruct training data from gradients. Federated learning is a step toward privacy, not sufficient for it.
 
----
+**"Non-IID is a minor issue."** In practice, non-IID data causes FedAvg to diverge or converge to a poor optimum on many tasks. It is the main accuracy challenge in federated learning.
 
-## 3.4 Communication Efficiency
-
-Sending full model weights every round is expensive.
-
-**Gradient compression**
-
-Instead of sending full gradients, send:
-- Top-k gradients (only the largest k updates)
-- Quantized gradients (fewer bits per value)
-- Random sparse updates with error feedback
-
-**Model compression for communication**
-
-Use structured updates: only learn low-rank weight updates and send those.
-
-**Why this matters at scale**
-
-If you have 10 million mobile clients and a 100MB model, sending weights naively is 1 petabyte per round.
-
-Practical federated learning requires aggressive communication optimization.
+**Ignoring communication cost in design.** At 10M mobile clients, naive FedAvg is infeasible. Communication budget must be a first-class constraint in the system design.
 
 ---
 
-## 3.5 Stragglers
+# 7. Fairness Metrics
 
-Not all clients are equally fast.
+## What the interviewer is actually testing
 
-Some clients have slow connections.
-Some are on low-battery.
-Some get interrupted mid-training.
+Whether you know the formal definitions AND can reason about which metric is appropriate for a given harm. Anyone can recite demographic parity. The test is whether you can explain why the COMPAS case required equalized odds rather than demographic parity, or why calibration alone was insufficient.
 
-**The straggler problem**
+## The reasoning structure
 
-If you wait for all selected clients, slow clients block progress.
-If you do not wait, some clients' updates are lost.
+**Start from the harm, not the metric.**
 
-**Approaches**
+The loan denial case: the harm is that creditworthy Black applicants are denied at higher rates than equally creditworthy white applicants. The relevant metric is equal true negative rates — denial of qualified applicants should be equal across groups.
 
-- **Asynchronous federated learning**: accept updates as they arrive. Risk: stale updates.
-- **Partial participation**: proceed when a sufficient fraction of selected clients respond.
-- **Client selection**: prefer fast, high-capacity clients. Risk: model skews toward certain client populations.
+The facial recognition case: the harm is that dark-skinned faces are misidentified at far higher rates. The harm is unequal error rates. The metric is equal false positive rates and false negative rates — equalized odds.
 
----
+**The five main metrics:**
 
-## 3.6 Secure Aggregation
-
-A deeper privacy concern with FedAvg: the server sees individual client updates.
-
-Even without raw data, updates can reveal information about a client's data.
-
-**Secure aggregation (Bonawitz et al., 2017)**
-
-Clients mask their updates with pairwise random seeds.
-The masks cancel out in the aggregate.
-The server only sees the sum of updates, not individual contributions.
-
-**Properties**
-
-- The server learns only the aggregate.
-- Even if the server is semi-honest or colluding with some clients, individual updates remain hidden.
-- Works even with client dropout.
-
----
-
-# 4. ML Fairness
-
-A model that is accurate on average can still systematically harm specific groups.
-
----
-
-## 4.1 Types of Bias
-
-**Historical bias**
-
-The world has historical inequalities.
-Data collected from that world reflects those inequalities.
-
-Training a hiring model on historical hiring decisions encodes past discrimination.
-Even if the data is "accurate," the patterns it captures are unfair.
-
-**Representation bias**
-
-If certain groups are underrepresented in your training data, the model performs worse for them.
-
-A face recognition system trained primarily on light-skinned faces will underperform on dark-skinned faces.
-This is not because of prejudice in the algorithm; it is because of who was in the dataset.
-
-**Measurement bias**
-
-The features used may be imperfect proxies that systematically disadvantage certain groups.
-
-Credit score as a proxy for financial reliability has been criticized for encoding historical access to credit, which was not equally distributed.
-
-**Aggregation bias**
-
-A model trained on a heterogeneous population applies uniform predictions to a diverse group.
-
-A diabetes risk model trained on a mixed population may underperform for specific ethnic groups that have different disease patterns.
-
-**Label bias**
-
-Human annotators have biases.
-Labels inherit those biases.
-
-Sentiment analysis models trained on text labeled by annotators from one culture may mislabel text from another.
-
----
-
-## 4.2 Fairness Metrics
-
-Different definitions of fairness capture different intuitions.
-They are not all compatible with each other.
-
-**Demographic Parity (Statistical Parity)**
-
-The model's predictions should be independent of the protected attribute.
-
+**Demographic parity (statistical parity):**
 ```
 P(Ŷ = 1 | A = 0) = P(Ŷ = 1 | A = 1)
 ```
+Equal positive prediction rates across groups. Does not condition on the true label. Forces equal representation in predicted positives regardless of ground truth differences.
 
-Equal positive prediction rates across groups.
-
-**Problem:** if the base rates differ between groups, demographic parity forces the model to ignore real differences.
-
-**Equalized Odds**
-
-Both true positive rate and false positive rate should be equal across groups.
-
+**Equalized odds:**
 ```
-P(Ŷ = 1 | Y = 1, A = 0) = P(Ŷ = 1 | Y = 1, A = 1)   [TPR equality]
-P(Ŷ = 1 | Y = 0, A = 0) = P(Ŷ = 1 | Y = 0, A = 1)   [FPR equality]
+P(Ŷ = 1 | Y = 1, A = 0) = P(Ŷ = 1 | Y = 1, A = 1)   [equal TPR]
+P(Ŷ = 1 | Y = 0, A = 0) = P(Ŷ = 1 | Y = 0, A = 1)   [equal FPR]
 ```
+Conditions on the true label. Equal error rates for people who truly qualify and for people who truly do not. The COMPAS requirement.
 
-This captures: given the same true outcome, the model should treat groups equally.
-
-Used in criminal recidivism risk assessment debates (COMPAS controversy).
-
-**Equal Opportunity**
-
-A relaxed version: only require equal TPR (true positive rate).
-
-The model should identify positive cases at the same rate across groups.
-
-**Calibration**
-
-If the model says the probability of default is 0.7, that should be true at the same rate for all groups.
-
-Calibration is important for high-stakes decisions where the predicted probability is used directly.
-
-**Individual Fairness**
-
-Similar individuals should receive similar predictions.
-
+**Equal opportunity:**
 ```
-d_prediction(Ŷ(x), Ŷ(x')) ≤ L * d_input(x, x')
+P(Ŷ = 1 | Y = 1, A = 0) = P(Ŷ = 1 | Y = 1, A = 1)
 ```
+Equal TPR only. The model should identify positive cases at the same rate across groups. Use this when false positives are relatively harmless but false negatives are costly (medical screening).
 
-Hard to operationalize: what does "similar" mean?
+**Calibration:**
+```
+P(Y = 1 | Ŷ = p, A = 0) = P(Y = 1 | Ŷ = p, A = 1) = p
+```
+If the model says 70% probability, it should be correct 70% of the time for all groups. Essential when predicted probabilities are used directly in decisions.
+
+**Individual fairness:**
+```
+d_prediction(Ŷ(x), Ŷ(x')) ≤ L · d_input(x, x')
+```
+Similar individuals should receive similar predictions. Hard to operationalize — requires defining a task-specific similarity metric.
+
+## The pattern in action
+
+**Loan approval model.** Group A: default rate = 5%. Group B: default rate = 15%.
+
+**Demographic parity** forces equal approval rates. But approving the same fraction of both groups means either approving high-risk B applicants or rejecting low-risk A applicants. It ignores the base rate difference.
+
+**Equalized odds** requires: of creditworthy applicants (Y=0, will not default), approve at equal rates across groups; of non-creditworthy applicants (Y=1, will default), reject at equal rates. This is what equal treatment actually means given base rate differences.
+
+**Calibration** alone (the COMPAS vendor's defense) means: when the model says 70% risk, it is right 70% of the time for both groups. True but insufficient — if A's true risk is lower, calibration does not prevent the model from assigning higher scores to A members through proxy features.
+
+## Common traps
+
+**"We'll just check if group approval rates are equal."** That is demographic parity, which ignores base rates. Equal rates with different base rates either over-approves high-risk applicants or under-approves low-risk ones.
+
+**Treating fairness as a post-hoc threshold adjustment.** If the model's scores are biased by proxy features, adjusting thresholds compensates but does not fix the root cause. Features that encode protected attributes via proxies corrupt the entire score.
+
+**Picking a fairness metric before defining the harm.** The metric should follow from the harm. Define who is harmed, how, and then choose the metric that captures that harm. Starting from the metric produces solutions to the wrong problem.
 
 ---
 
-## 4.3 The Impossibility Theorems
+# 8. The Impossibility Theorems
 
-This is one of the most important results in fairness.
+## What the interviewer is actually testing
 
-**Chouldechova (2017) and Kleinberg et al. (2016) independently showed:**
+Whether you can explain why fairness is inherently a value choice, not a technical optimization. This distinguishes candidates who understand fairness from those who have memorized fairness definitions.
 
-Except in degenerate cases (equal base rates between groups, or a perfect classifier), you cannot simultaneously satisfy:
-- Calibration
+## The reasoning structure
+
+**Chouldechova (2017) and Kleinberg et al. (2016)** independently proved:
+
+Except when base rates are equal across groups OR the classifier is perfect, you cannot simultaneously satisfy:
+- Calibration (equal accuracy of predicted probabilities)
 - Equal false positive rates
 - Equal false negative rates
 
-**What this means**
+**The COMPAS illustration.** Group A re-offends at rate 40%. Group B re-offends at rate 30%.
 
-There is no single "fair" definition.
-Choosing a fairness criterion is a value judgment, not a technical question.
+A calibrated model: if it assigns risk score 60%, 60% of those actually re-offend, for both groups.
 
-In criminal justice: should we equalize false positive rates (prevent falsely detaining innocent people) or false negative rates (prevent releasing people who will reoffend)?
+For calibration to hold with different base rates, the model must assign different score distributions to the two groups. The group with higher base rates gets higher average scores.
 
-These goals are in tension. The choice is ethical, not mathematical.
+Equal FPR: among those who do not re-offend, the fraction flagged as high-risk should be equal. But because Group A has more true positives at any threshold (higher base rate), matching FPR requires different thresholds. Different thresholds with equal FPR means unequal FNR.
 
-**Interview implication**
+You cannot equalize FPR and FNR simultaneously when base rates differ. Calibration + equal FPR + equal FNR requires equal base rates. When base rates differ, you must choose.
 
-If someone asks "how do you make a fair model," the correct answer starts with: "which fairness criterion, and for whom?"
+## The pattern in action
 
----
+**Criminal justice (COMPAS).** Different people weight the harms differently:
+- Prioritize equal FPR: false detention is the primary harm. Reduce false positives equally across groups.
+- Prioritize equal FNR: public safety harm is the primary concern. Reduce missed re-offenders equally.
+- Prioritize calibration: if the model says 70% risk, that should be true for both groups so decision-makers get accurate information.
 
-## 4.4 Bias Mitigation Techniques
+These are ethical stances, not technical positions. The data cannot resolve them.
 
-**Pre-processing: fix the data before training**
+**Medical screening.** A cancer screening model. False negative = missed cancer (patient dies). False positive = unnecessary biopsy (patient inconvenienced). For most cancers, minimizing FNR is ethically dominant. Choose equal opportunity (equal TPR) over demographic parity or equal FPR.
 
-- **Resampling**: oversample underrepresented groups, undersample overrepresented ones.
-- **Reweighting**: give higher loss weights to examples from protected groups.
-- **Data augmentation**: generate synthetic examples for underrepresented groups.
-- **Label cleaning**: audit and correct biased labels.
+## Common traps
 
-Advantage: model-agnostic, any model trained on the cleaned data benefits.
+**"We just need better data."** The impossibility result holds for any dataset where base rates differ. Better data does not change the mathematical constraint.
 
-Disadvantage: does not address all bias sources; cannot fix features that are themselves biased proxies.
+**"We'll satisfy all fairness criteria."** This is the core impossibility — you cannot. Every fairness criterion involves a choice about whose errors to prioritize. Pretending otherwise is either confusion or dishonesty.
 
-**In-processing: modify training**
-
-- **Adversarial debiasing**: add a fairness adversary during training. The model tries to be accurate; the adversary tries to predict the protected attribute from the model's representations. The model is penalized if the adversary succeeds.
-
-- **Fairness constraints in the objective**: add a Lagrangian penalty for fairness violations.
-```
-L = L_accuracy + λ * L_fairness_violation
-```
-
-- **Regularization toward demographic parity**: penalize difference in group-level prediction rates.
-
-Advantage: directly controls the accuracy-fairness tradeoff.
-
-Disadvantage: more complex to implement; can be sensitive to hyperparameter tuning.
-
-**Post-processing: adjust predictions after training**
-
-- **Threshold optimization**: set different decision thresholds per group to equalize a fairness metric.
-- **Calibrated equalized odds**: adjust the classifier's output probabilities to satisfy equalized odds post-hoc.
-- **Reject-option classification**: for predictions near the decision boundary (uncertain cases), defer to alternative rules.
-
-Advantage: can be applied to any existing model.
-
-Disadvantage: treating groups differently can itself be controversial; individual fairness violations possible.
+**Not naming the ethical choice explicitly.** A model deployed in production implies a fairness criterion, even if no one chose it deliberately. The implicit choice is usually "maximize overall accuracy," which typically harms minority groups with lower representation. Making the choice explicit is a requirement for responsible deployment.
 
 ---
 
-## 4.5 Fairness in LLMs and RLHF
+# 9. Bias Mitigation
 
-Large language models introduce new fairness challenges.
+## What the interviewer is actually testing
 
-**Bias in pretrained models**
+Whether you understand which stage of the pipeline each technique affects, and why attacking bias at the right stage matters. Many candidates jump to adversarial debiasing without checking if the problem is in the data.
 
-LLMs trained on internet text absorb the biases in that text.
-Associations between gender and profession, race and criminality, religion and violence.
+## The reasoning structure
 
-These manifest as:
-- Different quality responses to equivalent prompts about different groups
-- Stereotyped completions
-- Disparate performance on tasks related to certain cultures or languages
+Bias has three origins — and the mitigation should match:
 
-**RLHF and value alignment**
+1. **Biased data.** Training labels reflect historical discrimination. Fix: pre-processing.
+2. **Biased objective.** Training optimizes aggregate accuracy, which under-weights minority groups. Fix: in-processing.
+3. **Biased deployment.** A fair model is used with an unfair threshold. Fix: post-processing.
 
-Reinforcement Learning from Human Feedback (RLHF) trains models to produce outputs that human raters prefer.
+Applying in-processing to a biased-labels problem is attacking the wrong stage.
 
-**The fairness problem with RLHF:**
+**Pre-processing: fix the data before training.**
+- **Resampling**: oversample underrepresented groups; undersample overrepresented ones. Improves representation but does not fix label bias.
+- **Reweighting**: weight training examples by group membership or proxy of fairness violation. Penalizes errors on underrepresented groups more.
+- **Data augmentation**: generate synthetic examples for underrepresented groups (for CV: augment dark-skinned faces in facial recognition training data).
+- **Label cleaning**: audit and correct labels that reflect annotator bias (e.g., sentiment labels applied differently to text from different cultural contexts).
 
-Human raters have biases.
-If raters systematically prefer responses about certain groups, the model learns those preferences.
-The trained model can amplify annotator biases.
+Advantage: model-agnostic. Any model trained on cleaned data benefits.
+Disadvantage: cannot fix proxy-feature encoding without feature engineering.
+
+**In-processing: modify training.**
+- **Adversarial debiasing**: add a fairness adversary during training. Predictor minimizes task loss. Adversary tries to predict the protected attribute from the predictor's representation. Predictor is penalized when adversary succeeds. Result: representations that are predictive of the target but not of the protected attribute.
+- **Fairness-constrained objective**: Lagrangian relaxation with fairness constraint:
+```
+minimize L_accuracy + λ · L_fairness_violation
+```
+- **Equalized odds post-processing via regularization**: add a gradient-based penalty for TPR or FPR disparities across groups.
+
+Advantage: directly controls the accuracy-fairness tradeoff during training.
+Disadvantage: more complex; sensitive to λ; adversarial training can be unstable.
+
+**Post-processing: adjust predictions after training.**
+- **Threshold optimization per group**: find separate decision thresholds for each group that minimize the chosen fairness criterion. Simple and effective when the model's predicted probabilities are reliable.
+- **Calibrated equalized odds (Pleiss et al., 2017)**: adjust output probabilities post-hoc to satisfy equalized odds.
+- **Reject-option classification**: for predictions near the decision boundary, defer to a human reviewer or secondary rule. Avoids automated decisions in the high-uncertainty region where proxy bias is most harmful.
+
+Advantage: can be applied to any existing model without retraining.
+Disadvantage: separate thresholds for groups requires knowing group membership at decision time. Can violate individual fairness (two similar individuals from different groups get different treatment).
+
+## The pattern in action
+
+Facial recognition with 35% error on dark-skinned women. Tracing the failure:
+
+1. Training data: 86.2% of images in benchmark datasets were light-skinned (IJB-A, Adience — actual measured figures from Buolamwini/Gebru).
+2. Model: minimized average error. Average error was excellent. Per-group error was not measured.
+3. Deployment: used in high-stakes contexts (law enforcement matching) without per-group evaluation.
+
+Mitigation sequence:
+1. Pre-processing: augment training data with dark-skinned face images (both collected and synthetic)
+2. In-processing: weight loss function by inverse group frequency during training
+3. Evaluation: mandate disaggregated metrics (accuracy per demographic subgroup) as a deployment gate — do not deploy until per-group accuracy is acceptable
+4. Post-processing: raise the match confidence threshold (lower FPR at the cost of FNR) for high-stakes identification use cases
+
+## Common traps
+
+**Threshold optimization as the universal fix.** Changing thresholds does not fix a model that encodes protected attributes in its representations. The scores themselves are biased. Threshold changes reduce one type of error for one group while potentially worsening it for another.
+
+**Adversarial debiasing as the silver bullet.** Adversarial training removes the linear ability of an adversary to predict the protected attribute from the representation. Nonlinear relationships may persist. Downstream accuracy loss can be significant. Run careful ablations before committing to this approach.
+
+**Not measuring what you fixed.** After applying any mitigation, measure the relevant fairness metric on a held-out test set. And measure the accuracy cost. The goal is explicit knowledge of the tradeoff, not hoping the mitigation worked.
+
+---
+
+# 10. Fairness in LLMs
+
+## What the interviewer is actually testing
+
+Whether you can extend fairness reasoning beyond classification models to generative systems, where the failure modes are different and the measurement is harder.
+
+## The reasoning structure
+
+**Standard fairness metrics do not transfer directly.** Equalized odds requires a label Y. LLMs generate free text — what is Y? The failure modes of generative models are:
+- **Stereotyped completions**: "The engineer walked to her..." → model completes differently based on whether name suggests male/female
+- **Disparate quality**: responses about underrepresented groups are lower quality, less factually accurate
+- **Disparate representation**: some groups are overrepresented as negative examples in associations (race-crime co-occurrence)
+- **Cultural miscalibration**: model aligned to Western liberal values may fail users from other cultural contexts
+
+**Bias in pretraining.** LLMs trained on internet text absorb internet biases. The model learns the statistical regularities of the training corpus, including biased ones.
+
+**RLHF amplifies annotator biases.** RLHF trains the model to produce outputs that human raters prefer. If raters systematically prefer responses about certain groups (cultural familiarity, language quality), the model learns those preferences. The model can amplify annotator biases rather than correct them.
+
+## The pattern in action
+
+**Measuring LLM bias (practical approach):**
+
+1. **Counterfactual probing**: construct pairs of prompts that are identical except for a protected attribute reference. Compare outputs. The WinoBias benchmark does this for gender and profession.
+2. **Embedding bias tests**: WEAT (Word Embedding Association Test) measures whether word embeddings associate certain concepts with certain groups beyond ground truth rates.
+3. **Toxicity probing**: prompt with text about different groups; measure toxicity of completion using a classifier.
 
 **Mitigations:**
+- Diverse annotator pools: geographic, cultural, linguistic diversity in RLHF annotation reduces single-culture skew
+- Explicit fairness criteria in annotation guidelines: annotators are instructed on what constitutes biased output
+- Constitutional AI: use AI feedback grounded in explicit principles rather than relying on potentially biased human preferences alone
+- Red-teaming: systematic adversarial testing before deployment to surface differential quality across groups
+- Output filtering: detect and filter stereotyped or biased outputs post-generation (last resort; does not fix the model)
 
-- Diverse annotator pools across geography, culture, language
-- Explicit fairness criteria in annotation guidelines
-- Separate reward models for helpfulness vs harmlessness
-- Red-teaming to surface disparate performance
+## Common traps
 
-**Constitutional AI (Anthropic)**
+**"The LLM is just reflecting reality."** Statistical regularities in training data reflect historical biases, not ground truth distributions. The model learns what was written about groups, not what is true about groups. These differ substantially for historically marginalized groups.
 
-Rather than relying solely on human feedback, use AI feedback grounded in explicit principles.
-This can reduce inconsistency in annotator biases.
+**"We added diversity to our RLHF pool."** Annotator diversity is necessary but not sufficient. The annotation rubric also needs to explicitly address fairness. Without that, a diverse pool may still exhibit consistent biases on certain questions.
 
-**Ongoing challenge**
-
-There is no consensus on what "fair" LLM behavior looks like.
-Different cultures have different values.
-A model aligned to Western liberal values may be perceived as biased by users from other contexts.
+**No systematic evaluation.** LLM bias cannot be assessed by manual inspection of a few outputs. It requires systematic probing across hundreds of test cases per group, using validated benchmarks and adversarial prompts.
 
 ---
 
-# 5. Model Auditing and Red-Teaming
+# 11. Model Auditing and Membership Inference
 
-Knowing the theory is not enough.
-You need processes to find problems before deployment.
+## What the interviewer is actually testing
 
----
+Whether you understand how to operationalize privacy and fairness concerns into concrete measurement processes, and whether you know the specific attacks that reveal privacy violations.
 
-## 5.1 Model Auditing
+## The reasoning structure
 
-A structured evaluation of a deployed model for fairness, privacy, and safety issues.
+**Auditing is not just metrics computation.** A fairness audit answers: what harms could this model cause, for whom, and at what rate? It requires disaggregated evaluation, adversarial testing, and reasoning about deployment context.
 
-**Stages**
+**Membership inference as a privacy attack.** An attacker observes model outputs (probabilities, logits, or just the prediction) for a target example. The attacker wants to determine whether that example was in the training set.
 
-**Pre-deployment audit:**
-- Test performance metrics disaggregated by demographic group
-- Measure fairness metrics (demographic parity, equalized odds)
-- Check for memorization of training data (privacy)
-- Evaluate on adversarial and edge-case inputs
+**Why it works:** models that overfit produce different outputs on training examples vs. test examples. Training examples get higher confidence scores. An attacker trains a shadow classifier to distinguish training from non-training examples based on these output signatures.
 
-**Post-deployment audit:**
-- Monitor for distribution shift in inputs across demographic groups
-- Track outcome disparities over time
-- Look for feedback loops: does the model's recommendations affect future data in ways that amplify bias?
+**Attack success indicates a privacy violation.** If training membership is detectable from outputs, then model outputs reveal information about individual training examples.
 
-**What to measure:**
-- Accuracy, precision, recall, F1 per group
-- False positive and false negative rates per group
-- Coverage: does the model disproportionately abstain for certain groups?
-- Calibration per group
+**Defenses:**
+- Differential privacy during training: by construction limits membership inference — the output distribution is bounded to differ by at most e^ε between including and excluding any example
+- Regularization: reduces overfitting, which reduces the training/test distribution gap
+- Output calibration: well-calibrated models produce consistent confidence regardless of training membership
+- Limiting output precision: returning only the top class (not probabilities) reduces the signal available to attackers
 
----
+## The pattern in action
 
-## 5.2 Red-Teaming
+**Training data extraction from LLMs (Carlini et al., 2021).** GPT-2 was prompted with the beginning of memorized sequences. With careful prompting (using prefix text that appeared in training), researchers extracted:
+- Full names and email addresses of individuals
+- Copyrighted passages
+- Phone numbers
 
-Red-teaming is adversarial testing: trying to find failure modes and harms before deployment.
+Models memorize when sequences appear repeatedly in training data. Deduplication of training corpora before training significantly reduces memorization. The study found that 1,000× longer generation attempts extracted significantly more memorized content.
 
-**For fairness:**
-- Prompt the model with equivalent requests about different demographic groups and compare outputs.
-- Probe for stereotyped associations.
-- Test edge cases involving sensitive attributes.
+**Pre-deployment audit checklist:**
+- Performance metrics disaggregated by demographic group (accuracy, FPR, FNR per group)
+- Fairness metric measurement (demographic parity, equalized odds — chosen based on the harm model)
+- Membership inference attack audit: measure attack AUC on a held-out test set
+- Data extraction probing for LLMs: attempt extraction of known PII from training data
+- Calibration per group: confirm predicted probabilities are equally accurate across groups
 
-**For privacy:**
-- Membership inference attacks: can an attacker determine whether a specific example was in the training set?
-- Training data extraction: can you prompt the model to reproduce training data verbatim?
-- Attribute inference: can you infer private attributes from model outputs?
+**Post-deployment monitoring:**
+- Input distribution shift per group (are certain groups' inputs shifting out of training distribution?)
+- Outcome disparity tracking (are error rates changing over time for any group?)
+- Feedback loop detection (do the model's predictions affect the distribution of future inputs?)
 
-**Membership inference**
+## Common traps
 
-Train a "shadow model" on data of known membership.
-Use it to distinguish training examples from non-training examples based on model confidence.
+**Auditing at deployment and then never again.** Distribution shift can introduce new fairness violations after deployment, especially in systems with feedback loops. Auditing must be continuous.
 
-Well-calibrated models trained with DP have lower membership inference vulnerability.
+**Only measuring overall membership inference AUC.** If overall AUC is 0.55 (slightly better than chance) but AUC for a specific subgroup is 0.80, that subgroup has a serious privacy exposure. Disaggregate the audit.
 
-**Training data extraction**
-
-Studies on GPT-2 and GPT-3 showed that careful prompting can extract verbatim training data including email addresses, phone numbers, and copyrighted text.
-
-**Mitigations:**
-
-- Differential privacy during training
-- Output filtering for known PII patterns
-- Limiting memorization via data deduplication before training
-- Temperature-based inference limits (deterministic outputs are easier to extract from)
+**Not red-teaming for data extraction.** For LLMs especially, membership inference is less informative than direct extraction probing. Attempting to extract known PII sequences from the deployed model is the most direct test of whether the model poses a data privacy risk.
 
 ---
 
-# 6. Common Interview Questions
+# Quick Diagnostics
 
----
+**If asked to audit a model for fairness before deployment:**
 
-**Q: What is differential privacy and what does ε mean?**
+Start by defining the harm: who could be harmed, how? This determines which fairness metric to measure. Compute disaggregated accuracy, FPR, and FNR per demographic group. Apply the chosen fairness metric. If violated, trace back to whether the violation is in the data (biased labels, underrepresentation), the objective (aggregate optimization), or the threshold (deployment setting). Mitigation strategy follows from the diagnosis.
 
-Differential privacy guarantees that an observer cannot determine whether any specific individual's data was used in a computation.
+**If asked how differential privacy protects against membership inference:**
 
-Formally: for any two datasets differing in one record, the output distributions differ by at most a factor of e^ε.
+DP bounds the change in output distribution when any single training example is added or removed. By construction, this limits how much the model's behavior on a specific example can reveal whether that example was in training. The membership inference attack depends on detecting a difference in model behavior between training and non-training examples. DP limits that difference to a factor of e^ε.
 
-Small ε means strong privacy (more noise added).
-Large ε means weaker privacy (less noise).
+**If asked why removing protected attributes is insufficient for fairness:**
 
-In practice, ε is chosen based on the sensitivity of the data and the acceptable accuracy tradeoff.
-
----
-
-**Q: How does DP-SGD work?**
-
-DP-SGD makes gradient descent differentially private.
-
-For each training step:
-1. Compute per-sample gradients (not minibatch average).
-2. Clip each per-sample gradient to L2 norm C.
-3. Add Gaussian noise calibrated to C and privacy budget.
-4. Average the noisy gradients and update the model.
-
-The clipping bounds sensitivity; the noise provides the privacy guarantee.
-
----
-
-**Q: What is federated learning and when would you use it?**
-
-Federated learning trains a model across distributed clients without centralizing their data.
-
-Each client trains locally on their data and sends model updates (not raw data) to a server, which aggregates them.
-
-Use it when:
-- Data is too sensitive to centralize (medical, financial, personal)
-- Data cannot leave the device for regulatory reasons
-- Centralizing data is too expensive or slow
-
----
-
-**Q: What are the main challenges of federated learning?**
-
-- **Non-IID data**: clients have heterogeneous data distributions. Local training can push models toward local optima, causing divergence when aggregated.
-- **Communication cost**: sending model updates per round is expensive at scale.
-- **Stragglers**: slow clients slow down rounds or are dropped, causing update bias.
-- **Privacy amplification**: even sending gradients can leak information. Secure aggregation or DP is needed for strong privacy.
-
----
-
-**Q: What is the fairness impossibility theorem?**
-
-You cannot simultaneously achieve calibration, equal false positive rates, and equal false negative rates across groups (except in degenerate cases).
-
-This means: every fairness criterion involves tradeoffs. There is no definition of "fair" that satisfies all intuitions simultaneously.
-
-Practically: fairness criteria must be chosen based on the specific harms you are trying to prevent, which is an ethical decision, not a technical one.
-
----
-
-**Q: What are demographic parity and equalized odds? When would you use each?**
-
-**Demographic parity**: equal positive prediction rates across groups.
-Use when: you want representation parity in outputs (e.g., loan approvals across demographics).
-Problem: ignores real differences in base rates.
-
-**Equalized odds**: equal true positive rates and false positive rates across groups.
-Use when: the harms from false positives and false negatives should be equally distributed.
-Example: a medical screening tool should miss cancers at equal rates across groups.
-
-The choice depends on the specific harm you are mitigating.
-
----
-
-**Q: What are the three approaches to bias mitigation?**
-
-**Pre-processing**: modify training data before training.
-- Resampling, reweighting, data augmentation.
-- Model-agnostic but cannot fix all bias sources.
-
-**In-processing**: modify training.
-- Adversarial debiasing, fairness constraints in loss function.
-- Direct tradeoff control but more complex.
-
-**Post-processing**: adjust predictions after training.
-- Threshold optimization per group.
-- Can be applied to any existing model but may violate individual fairness.
-
----
-
-**Q: What is the right to erasure and how does it affect ML?**
-
-Under GDPR, individuals can request deletion of their personal data.
-
-For ML: simply deleting training data is insufficient — the model has learned from it.
-
-Machine unlearning addresses this:
-- Exact unlearning: retrain from scratch without the data (correct but expensive).
-- Approximate unlearning: targeted gradient updates to reduce the data's influence.
-- SISA training: partition data into shards; only retrain affected shards.
-
----
-
-**Q: What is membership inference and how do you defend against it?**
-
-Membership inference: an attacker trains a shadow classifier to determine whether a given example was in the training set.
-
-Models with high training accuracy and low generalization are most vulnerable: they behave differently on training data vs new data.
-
-Defenses:
-- Differential privacy during training (by construction limits membership inference)
-- Regularization to reduce overfitting
-- Output calibration (confident outputs on all inputs reduce the signal)
-- Limiting access to logits (only returning hard predictions)
-
----
-
-**Q: How do LLMs memorize training data and why is this a privacy risk?**
-
-LLMs trained on large corpora can memorize rare or repeated sequences verbatim.
-
-Memorization is more likely when:
-- A sequence is repeated many times in training data
-- The model is large (more capacity to memorize)
-- The sequence is unique and the model cannot generalize away from it
-
-Risk: if PII (emails, phone numbers, addresses) appears in training data, the model can be prompted to reproduce it.
-
-Mitigations:
-- Data deduplication before training (remove repeated sequences)
-- Differential privacy during training
-- Post-hoc output filters for PII patterns
-- Audit with extraction attacks before deployment
-
----
-
-**Q: How would you design a fairness-aware hiring model?**
-
-1. **Define the problem**: what is "fair" here? Equal interview rates across demographic groups? Equal hiring rates? Equal false rejection rates?
-
-2. **Audit training data**: check if historical hiring data reflects biased past decisions. If so, pre-processing is needed.
-
-3. **Feature audit**: remove features that are proxies for protected attributes (zip code, name, graduation year as age proxy).
-
-4. **Measure performance disaggregated**: precision and recall per demographic group.
-
-5. **Choose a fairness criterion**: equalized odds is often appropriate (equal false rejection rates across groups).
-
-6. **Apply mitigation**: threshold optimization per group or adversarial debiasing during training.
-
-7. **Human-in-the-loop**: any automated tool in hiring decisions should have human oversight, especially for borderline cases.
-
-8. **Ongoing auditing**: measure outcome disparities post-deployment. Feedback loops can amplify bias over time.
+Proxy features encode protected attributes through correlations present in the data. ZIP code predicts race in US cities due to historical segregation. Name frequency distributions predict gender and ethnicity. College attended predicts socioeconomic background. The model learns these correlations whether or not the protected attribute is included. The solution is to test for disparate outcomes by group, not to remove attributes.

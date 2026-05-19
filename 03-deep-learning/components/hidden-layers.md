@@ -1,81 +1,75 @@
 # Hidden Layers
 
-Hidden layers are where a network stops being a simple input-output calculator and starts building internal representations.
+---
 
-That is the entire point of depth.
+## Why Depth Exists
+
+**The problem**: a single linear layer can only draw straight-line decision boundaries. Adding more linear layers does not help — $W_2(W_1 x) = (W_2 W_1)x$ collapses into a single linear transformation. For any real problem (images, language, audio), the input-output relationship is highly non-linear and hierarchically structured. A flat linear model cannot represent it.
+
+**The core insight**: pair each layer with a non-linear activation. Now stacked layers can compose non-linear functions. With enough layers and non-linearity, you can build arbitrarily complex functions — and more importantly, you can build them *hierarchically*, where each layer builds on abstractions learned by the layer below.
+
+**The mechanics**: for a layer $l$ with weights $W_l$, biases $b_l$, and activation $\sigma$:
+
+$$h_l = \sigma(W_l h_{l-1} + b_l)$$
+
+Early layers learn simple features (edges, frequencies, character n-grams). Middle layers combine these into patterns (shapes, phonemes, words). Late layers assemble patterns into task-relevant abstractions (objects, syntax, semantics).
+
+**What breaks**: depth without proper architecture support causes vanishing gradients, optimization difficulty, and training instability. Adding layers without adding residual connections is often counterproductive beyond ~10 layers.
+
+**Universal Approximation Theorem**: a single hidden layer with a non-linear activation and sufficient width can approximate any continuous function on a compact domain to arbitrary precision. This establishes that width alone is *sufficient* in theory — but depth is far more *efficient* in practice.
 
 ---
 
-# 1. What Hidden Layers Do
+## Width vs Depth
 
-Each hidden layer transforms the representation it receives.
+**The problem**: given a fixed parameter budget, should you put it into more neurons per layer (wider) or more layers (deeper)?
 
-Early layers often learn:
-- simple patterns (edges, frequencies, n-gram statistics)
+**The core insight**: depth enables hierarchical composition — complex functions can be built as compositions of simpler ones. A deep narrow network can represent functions that would require exponentially wider shallow networks.
 
-Deeper layers learn:
-- more abstract structure (shapes, syntax, semantics)
+**What breaks** with excessive depth: gradients must travel through more layers. Without residual connections, they vanish. Optimization becomes harder as the loss surface develops more saddle points and flat regions.
 
-That is why deep learning often feels like stacked feature engineering, except the model is doing the engineering for you.
-
-**Universal Approximation Theorem:** a feedforward network with at least one hidden layer and a non-linear activation can approximate any continuous function on a compact subset of $\mathbb{R}^n$ to arbitrary precision — given enough width.
-
-The theorem guarantees existence, not learnability. In practice, depth beats raw width.
-
----
-
-# 2. Width vs Depth
-
-**Width** (neurons per layer): increases the number of functions the layer can represent simultaneously.
-
-**Depth** (number of layers): enables hierarchical composition — complex functions built from simpler ones.
-
-**Practical tradeoffs:**
+**What breaks** with excessive width: diminishing returns set in quickly. Each additional neuron in a layer captures increasingly redundant representations. The parameter count grows as $O(\text{width}^2)$ but expressiveness grows linearly.
 
 | Property | Wider | Deeper |
 | :--- | :--- | :--- |
 | **Expressiveness** | Linear growth | Exponential growth |
-| **Optimization** | Easier | Harder (vanishing gradients) |
-| **Overfitting risk** | Lower | Higher |
-| **Compute per forward pass** | $O(\text{width}^2)$ | $O(\text{depth})$ |
+| **Optimization** | Easier | Harder (without skip connections) |
+| **Overfitting risk** | Lower (per-param) | Higher |
 | **Inductive bias** | Less hierarchy | More hierarchy |
 
-**Rule of thumb:** deeper is usually better up to the point where optimization becomes the bottleneck. Use skip connections (ResNet) to push depth further.
+Rule of thumb: add depth before width when underfitting. Pair any depth increase beyond ~5 layers with residual connections.
 
 ---
 
-# 3. Types of Layers
+## Layer Types
 
-| Layer type | Operation | Common use |
+| Layer | Operation | What it's for |
 | :--- | :--- | :--- |
 | **Dense / Linear** | $y = xW + b$ | Feedforward nets, classifier heads |
-| **Convolutional** | Local filter convolutions | Images, sequences (1D conv) |
-| **Recurrent (LSTM/GRU)** | Stateful sequential processing | Time series, sequences (pre-Transformer) |
-| **Attention** | Dynamic weighted aggregation | Transformers, cross-modal |
-| **Embedding** | Integer index → dense vector | Text tokens, categorical IDs |
-| **Normalization** | BatchNorm / LayerNorm / GroupNorm | Stabilize training |
-| **Pooling** | Spatial aggregation (max/avg) | CNNs, reduce spatial dims |
+| **Convolutional** | Local filter applied with weight sharing | Images, 1D sequences |
+| **Recurrent (LSTM/GRU)** | Stateful sequential computation | Time series (pre-Transformer) |
+| **Attention** | Dynamic weighted aggregation over positions | Transformers, cross-modal |
+| **Embedding** | Integer index → dense vector | Tokens, categorical IDs |
+| **Normalization** | Stabilize activation distributions | Every deep network |
+| **Pooling** | Spatial aggregation (max/avg) | Reduce spatial dimensions in CNNs |
 
 ---
 
-# 4. Skip Connections (Residual Connections)
+## Residual Connections
 
-**Problem:** very deep networks suffer from degradation — training accuracy plateaus even without overfitting.
+**The problem**: adding more layers should make a network at least as good as a shallower one — the deeper network can just learn identity mappings in the extra layers. In practice, very deep networks perform *worse* than shallower ones on training data. They are harder to optimize — the identity mapping is difficult to learn from scratch with random initialization.
 
-**ResNet solution:** add the input directly to the output of a block:
+**The core insight**: make the identity mapping trivially easy by adding a skip connection. The layer only needs to learn the *residual* — the deviation from identity — which can be zero (and near-zero is easy to learn from random small initialization).
+
+**The mechanics**:
 
 $$H(x) = F(x) + x$$
 
-where $F(x)$ is the residual to learn (much easier than learning $H(x)$ from scratch).
+The layer learns $F(x) = H(x) - x$ (the residual). If the optimal transformation is near-identity, $F(x) \approx 0$ and learning converges quickly. If the layer should transform significantly, $F(x)$ captures that.
 
-**Why it helps:**
-- Gradient highway: gradients flow directly through the skip connection, bypassing potentially vanishing paths
-- Identity shortcut: if $F(x) \approx 0$, the block approximates identity — easier to learn than zero-mapping
-- Enables networks of hundreds of layers
+Gradient benefit: the gradient of $H$ with respect to $x$ is $\nabla F + 1$. The "+1" term provides a direct gradient highway — even if $\nabla F$ vanishes, at least gradient magnitude 1 flows through the skip connection.
 
 ```python
-import torch.nn as nn
-
 class ResidualBlock(nn.Module):
     def __init__(self, dim):
         super().__init__()
@@ -90,57 +84,40 @@ class ResidualBlock(nn.Module):
         return x + self.net(x)   # residual connection
 ```
 
+**What breaks**: if the skip connection adds $x$ but the layer outputs have very different scale, the sum is dominated by one term. This is managed by normalization layers and careful initialization (see weight initialization). Also: residual connections require matching dimensions across the skip — if dimensions change, you need a projection.
+
 ---
 
-# 5. Normalization Layers
+## Normalization Layers
 
-Normalization stabilizes training by controlling activation distributions.
+**The problem**: as weights update during training, the distribution of each layer's activations shifts — the mean and variance change. Deeper layers must constantly adapt to shifting input distributions from earlier layers, which slows learning and destabilizes training. This is internal covariate shift.
+
+**The core insight**: after each layer's transformation, explicitly normalize the activations to have controlled statistics. This removes the distributional shift and allows each layer to focus on learning its own function, not compensating for upstream drift.
 
 | Layer | Normalizes over | Best for |
 | :--- | :--- | :--- |
-| **BatchNorm** | Batch dimension (per feature) | CNNs, large batch training |
+| **BatchNorm** | Batch dimension (per feature) | CNNs, large batches |
 | **LayerNorm** | Feature dimension (per sample) | Transformers, variable-length sequences |
-| **GroupNorm** | Groups of channels (per sample) | Small batch CNNs |
-| **RMSNorm** | RMS of features (no mean shift) | LLaMA, efficient LayerNorm variant |
+| **GroupNorm** | Groups of channels (per sample) | Small-batch detection/segmentation |
+| **RMSNorm** | RMS of features, no mean shift | Modern LLMs (LLaMA, Gemma) |
 
-**RMSNorm** (used in LLaMA, Mistral):
+**RMSNorm**: simplification of LayerNorm — removes the mean subtraction. Empirically similar quality, faster:
 
 $$\text{RMSNorm}(x) = \frac{x}{\text{RMS}(x)} \cdot \gamma, \quad \text{RMS}(x) = \sqrt{\frac{1}{d}\sum_i x_i^2}$$
 
-Faster than LayerNorm (no mean computation), empirically similar quality.
+**What breaks** with BatchNorm: requires a large enough batch for stable statistics. Batch size of 1 or 2 makes the mean/variance estimate noisy and the normalization meaningless. Variable-length sequences are problematic because the same position across a batch may contain padding.
 
 ---
 
-# 6. Practical Sizing Guidelines
+## Practical Sizing
 
-**Width:** start with powers of 2 (128, 256, 512, 1024). Wider helps up to a point; diminishing returns set in.
+**Width**: start with powers of 2 (256, 512, 1024). There is no magic number — scale with dataset size and task complexity. For tabular data, 128–512 is usually sufficient. For vision/NLP, 512–4096.
 
-**Depth:** for tabular data, 2–4 layers is usually enough. For vision/NLP, depth is more critical.
+**Depth**: for tabular tasks, 2–4 layers. For CNNs on images, 10–100+ layers with residual connections (ResNet-50 is 50 layers). For Transformers, 12–96+ blocks.
 
-**Bottleneck architecture:** compress to smaller dimension then expand. Common in autoencoders and residual nets (1×1 conv in ResNet).
+**Bottleneck architecture**: compress to a smaller dimension, then expand. Used in:
+- Autoencoders (compression by design)
+- ResNet bottleneck blocks (1×1 convolutions to reduce channels, then 3×3, then expand)
+- Transformer FFN (2 linear layers with a 4× width expansion in the middle)
 
-**Output layer:** always size to match the task — $K$ outputs for $K$-class softmax, 1 output for binary/regression.
-
-**General heuristics:**
-- Start with a simple 2-3 layer MLP baseline
-- Add depth before width when underfitting
-- Add regularization when overfitting before reducing capacity
-- Check that depth increase is paired with skip connections
-
----
-
-# 7. Why More Layers Help (and When They Hurt)
-
-Depth lets the model build complex functions out of simpler ones — it can capture interactions, hierarchy, and abstraction.
-
-But more layers also mean:
-- harder optimization (vanishing/exploding gradients)
-- more overfitting risk
-- higher compute and memory
-
-**Fixes for deep network problems:**
-- Vanishing gradients → skip connections, LayerNorm, ReLU activations, He initialization
-- Overfitting → Dropout, weight decay, data augmentation, early stopping
-- Compute → model compression, mixed precision, efficient architectures
-
-Deeper is not automatically better. It is more powerful when paired with the right architecture choices.
+**Output layer**: always match to task — $K$ outputs for $K$-class softmax, 1 output for binary/regression. Never apply activation before the loss function expects raw logits (e.g., `CrossEntropyLoss` in PyTorch applies softmax internally).

@@ -1,6 +1,6 @@
-# Generative Models — Deep Dive
+# Generative Models
 
-> Covers VAEs, GANs, Diffusion Models (DDPM/DDIM), Latent Diffusion, Flow Matching, and the DiT/FLUX architecture wave. Math-first, production-second.
+> Covers VAEs, GANs, Diffusion Models (DDPM/DDIM), Latent Diffusion, Flow Matching, and the DiT/FLUX architecture wave.
 
 ---
 
@@ -21,45 +21,33 @@
 
 ## 1. Variational Autoencoders (VAEs)
 
-### Motivation
+**The problem:** A standard autoencoder encodes `x → z → x̂`. It reconstructs well, but the latent space `z` is unstructured — random points in it decode into garbage. You can't sample from the autoencoder. The fundamental question: how do you train an encoder–decoder pair such that sampling a random `z` produces a valid output?
 
-A standard autoencoder maps `x → z → x̂` through a bottleneck. The latent space `z` is unstructured — there's no guarantee that points sampled from it decode to valid outputs. VAEs impose a probabilistic structure on `z` that enables clean sampling.
+**The core insight:** Force the encoder to map each input to a *distribution* over z (specifically, a Gaussian), not a single point. Then sample z from that distribution to decode. The distribution is regularized toward a known prior `N(0, I)`. If the regularization succeeds, any sample from `N(0, I)` decodes to a valid output.
 
-### The ELBO Derivation
-
-We want to learn a generative model `p_θ(x) = ∫ p_θ(x|z) p(z) dz`. This integral is intractable. Instead, introduce an encoder `q_φ(z|x)` that approximates the true posterior `p_θ(z|x)`:
+**The mechanics:** We want to maximize `log p_θ(x) = log ∫ p_θ(x|z) p(z) dz`, but this integral is intractable. Introduce encoder `q_φ(z|x)` as an approximate posterior. Via Jensen's inequality:
 
 ```
-log p_θ(x) = log ∫ p_θ(x|z) p(z) dz
-
-         = log E_{z~q_φ(z|x)} [ p_θ(x|z) p(z) / q_φ(z|x) ]
-
-         ≥ E_{z~q_φ(z|x)} [ log p_θ(x|z) ] - KL(q_φ(z|x) || p(z))
-           \_______________________/   \___________________________/
-               Reconstruction term          Regularization term
+log p_θ(x) ≥ E_{z~q_φ(z|x)} [log p_θ(x|z)] − KL(q_φ(z|x) ∥ p(z))
+              ────────────────────────────────   ──────────────────────
+                   reconstruction term              regularization term
 ```
 
-This lower bound is the **Evidence Lower BOund (ELBO)**. Maximizing ELBO jointly over θ (decoder) and φ (encoder):
+This lower bound is the **ELBO**. Maximize it jointly over encoder (φ) and decoder (θ).
+
+With Gaussian encoder `q_φ(z|x) = N(μ, σ²I)` and prior `p(z) = N(0, I)`, the KL is analytic:
 
 ```
-L(θ, φ; x) = E_{z~q_φ(z|x)}[log p_θ(x|z)] - KL(q_φ(z|x) || p(z))
+KL = ½ Σ_j (1 + log σ_j² − μ_j² − σ_j²)
 ```
 
-**KL term with Gaussian prior:** If `q_φ(z|x) = N(μ, σ²I)` and `p(z) = N(0, I)`:
-
-```
-KL(N(μ, σ²) || N(0, 1)) = ½ Σ_j (1 + log σ_j² - μ_j² - σ_j²)
-```
-
-Analytic — no sampling needed for this term.
-
-**Reparameterization trick:** The reconstruction term requires sampling `z ~ q_φ(z|x)`, which blocks gradient flow. Instead:
+Sampling `z ~ q_φ(z|x)` blocks gradients. The **reparameterization trick** restores them:
 
 ```
 z = μ_φ(x) + σ_φ(x) ⊙ ε,   ε ~ N(0, I)
 ```
 
-Now z is a deterministic function of x and ε — gradients flow through μ and σ.
+z is now a deterministic function of (x, ε); gradients flow through μ and σ.
 
 ```python
 class VAE(nn.Module):
@@ -77,20 +65,15 @@ class VAE(nn.Module):
             nn.Linear(512, input_dim), nn.Sigmoid()
         )
 
-    def encode(self, x):
-        h = self.encoder(x)
-        return self.mu_head(h), self.logvar_head(h)
-
     def reparameterize(self, mu, logvar):
         std = torch.exp(0.5 * logvar)
-        eps = torch.randn_like(std)
-        return mu + eps * std         # reparameterization trick
+        return mu + std * torch.randn_like(std)
 
     def forward(self, x):
-        mu, logvar = self.encode(x)
+        h = self.encoder(x)
+        mu, logvar = self.mu_head(h), self.logvar_head(h)
         z = self.reparameterize(mu, logvar)
-        recon = self.decoder(z)
-        return recon, mu, logvar
+        return self.decoder(z), mu, logvar
 
 def vae_loss(recon, x, mu, logvar, beta=1.0):
     recon_loss = F.binary_cross_entropy(recon, x, reduction='sum')
@@ -98,484 +81,346 @@ def vae_loss(recon, x, mu, logvar, beta=1.0):
     return recon_loss + beta * kl
 ```
 
-### β-VAE
-
-Setting β > 1 in the loss `L = recon_loss + β · KL` increases pressure on the KL term, forcing more disentangled representations (each latent dimension encodes an independent factor of variation). β = 4–10 empirically produces more interpretable latents at the cost of reconstruction quality.
+**What breaks:**
+- **Posterior collapse:** the encoder ignores the input and collapses to the prior; the decoder then ignores z entirely. Occurs when the decoder is too powerful or KL weight β is too high.
+- **Blurry reconstructions:** the reconstruction term under a Gaussian decoder is MSE, which averages over modes — sharp details are penalized unless the KL pressure forces the latent to carry them.
+- **β-VAE trade-off:** setting β > 1 increases disentanglement (each z dimension encodes one independent factor) at the cost of reconstruction fidelity. There is no free lunch between the two terms.
 
 ---
 
 ## 2. Generative Adversarial Networks (GANs)
 
-### The Minimax Game
+**The problem:** If you want a network to generate realistic images, what's the loss function? MSE against real images produces blurry averages. You need a signal that says "this sample looks unrealistic" — but realism has no closed-form definition.
 
-GAN trains two networks adversarially:
-- **Generator G:** maps noise z to data space x = G(z)
-- **Discriminator D:** classifies real vs. fake, outputs P(real | input)
+**The core insight:** Train a second network (the discriminator) to be the judge of realism. The generator improves by fooling the discriminator; the discriminator improves by detecting fakes. This adversarial game, at equilibrium, drives the generator to produce samples indistinguishable from real data.
 
-```
-min_G max_D V(D, G) = E_{x~p_data}[log D(x)] + E_{z~p_z}[log(1 - D(G(z)))]
-```
-
-At Nash equilibrium: `p_G = p_data` and `D(x) = 0.5` everywhere. In practice, training dynamics are far from this ideal.
-
-### Training Instability
-
-**Vanishing gradients:** When D is too strong, `log(1 - D(G(z))) ≈ log(1) = 0` — G gets no gradient signal. Fix: train G to maximize `log D(G(z))` (non-saturating objective) instead of minimizing `log(1 - D(G(z)))`.
-
-**Mode collapse:** G learns to produce a small subset of modes that fool D, ignoring the rest of the distribution. G output is high quality but low diversity.
-
-**Training instability:** GAN training is notoriously sensitive to hyperparameters, learning rates, architecture choices.
-
-### WGAN: Wasserstein Distance
-
-Replace JS divergence (standard GAN) with Wasserstein-1 distance, which has better gradient properties:
+**The mechanics:**
 
 ```
-W(p_r, p_g) = sup_{||f||_L ≤ 1} E_{x~p_r}[f(x)] - E_{x~p_g}[f(x)]
+min_G max_D V(D, G) = E_{x~p_data}[log D(x)] + E_{z~p_z}[log(1 − D(G(z)))]
 ```
 
-The discriminator (now called **critic**) is constrained to be 1-Lipschitz. Gradient penalty enforcement:
+D maximizes the probability of correctly labeling real (x) vs fake (G(z)). G minimizes the probability of D detecting its outputs. At Nash equilibrium, `p_G = p_data` and `D(x) = 0.5` everywhere.
+
+**What breaks:**
+
+- **Vanishing gradients:** when D is too strong, `log(1 − D(G(z))) ≈ 0` — G receives no gradient. Fix: train G to maximize `log D(G(z))` (non-saturating objective) rather than minimizing `log(1 − D(G(z)))`.
+- **Mode collapse:** G learns a small subset of high-scoring outputs and ignores the rest of the data distribution. High quality but zero diversity.
+- **Training instability:** the minimax game has no unique convergence path; it oscillates or diverges under most hyperparameter settings.
+- **No density estimate:** you can sample from G but cannot evaluate `p(x)` for a given x.
+
+### WGAN: replacing the divergence
+
+The original GAN objective minimizes JS divergence, which saturates when `p_G` and `p_data` have disjoint supports (the common case early in training). Replace it with Wasserstein-1 (Earth Mover's distance), which has useful gradients even when supports don't overlap:
 
 ```
-L = E[D(x̃)] - E[D(x)] + λ E[(||∇_x̂ D(x̂)||_2 - 1)²]
+W(p_r, p_g) = sup_{‖f‖_L ≤ 1} E_{x~p_r}[f(x)] − E_{x~p_g}[f(x)]
 ```
 
-where `x̂` is a random interpolation between real and fake. This gradient penalty (WGAN-GP) is the dominant WGAN variant — more stable training with meaningful loss curves.
+The critic f must be 1-Lipschitz. WGAN-GP enforces this with a gradient penalty:
 
-### StyleGAN2 Architecture (State-of-Art GAN)
+```
+L = E[D(x̃)] − E[D(x)] + λ E[(‖∇_x̂ D(x̂)‖_2 − 1)²]
+```
 
-StyleGAN2 (Karras et al., 2020) produces the highest-quality GAN outputs:
+where x̂ is a random linear interpolation between real and fake. The loss curve now has a meaningful magnitude — a practical diagnostic for training progress.
 
-- **Mapping network:** z → w (8-layer MLP) — moves from spherical Gaussian to more structured "style space"
-- **Synthesis network:** Constant 4×4 → progressive growing via adaptive instance normalization
-- **Style injection (AdaIN):** at each layer, apply style vector to control feature statistics
-- **Weight demodulation:** normalization that removes pixel-level artifacts
+### StyleGAN2 architecture
 
-GANs are largely superseded by diffusion models for image generation but remain relevant for video synthesis and real-time generation.
+StyleGAN2 (Karras et al., 2020) achieves state-of-the-art GAN fidelity via:
+- **Mapping network:** z → w (8-layer MLP); moves from spherical Gaussian to a more disentangled style space.
+- **AdaIN style injection:** at each synthesis layer, apply affine transforms of w to control feature statistics.
+- **Weight demodulation:** replaces instance normalization to remove characteristic droplet artifacts.
+
+GANs are largely superseded by diffusion models for image generation but remain relevant where single-forward-pass inference speed is required (video, real-time).
 
 ---
 
 ## 3. Diffusion Models — DDPM
 
-### Intuition
+**The problem:** Both VAEs and GANs approximate the data distribution indirectly — VAEs through a variational bound, GANs through an adversarial game. Neither produces a stable, principled training objective that scales cleanly. Is there a way to train a generative model with a simple, stable loss?
 
-Diffusion models learn to reverse a gradual noising process. Forward: destroy the image step by step. Reverse: learn to denoise step by step. At inference, start from pure noise and run the learned reverse process.
+**The core insight:** Take a data sample and *gradually* add noise until it becomes pure Gaussian noise. This forward process is fixed and analytically tractable. Then train a network to *reverse* each small denoising step. Because each reverse step is a small local move, the neural network only needs to predict what noise was added — a regression problem with MSE loss.
 
-### Forward Process
+**The mechanics (DDPM, Ho et al. 2020):**
 
-Add Gaussian noise at each of T steps. The key property: can jump directly from x_0 to x_t without iterating through all steps (closed-form):
-
-```
-q(x_t | x_0) = N(x_t; √ᾱ_t x_0, (1-ᾱ_t)I)
-
-where:
-  αt = 1 - βt           (noise schedule: β_1, ..., β_T small positive values)
-  ᾱ_t = ∏_{s=1}^t αs   (cumulative product)
-```
-
-Reparameterized:
+Forward process — add Gaussian noise over T steps. Key closed-form: you can jump directly from x_0 to any x_t:
 
 ```
-x_t = √ᾱ_t · x_0 + √(1-ᾱ_t) · ε,    ε ~ N(0, I)
+q(x_t | x_0) = N(x_t; √ᾱ_t x_0, (1−ᾱ_t)I)
+
+αt = 1 − βt,   ᾱ_t = ∏_{s=1}^t αs
+
+x_t = √ᾱ_t · x_0 + √(1−ᾱ_t) · ε,   ε ~ N(0, I)
 ```
 
-At T steps with appropriate β schedule: `x_T ≈ N(0, I)` — pure noise.
+The β schedule is chosen so that x_T ≈ N(0, I).
 
-### Reverse Process
-
-The model `ε_θ(x_t, t)` predicts the noise ε added to x_0 to get x_t. Training objective (simplified):
+Train ε_θ(x_t, t) to predict the noise ε added to x_0 to produce x_t:
 
 ```
-L_simple = E_{t, x_0, ε} [ ||ε - ε_θ(x_t, t)||² ]
-
-where x_t = √ᾱ_t · x_0 + √(1-ᾱ_t) · ε
+L_simple = E_{t, x_0, ε} [‖ε − ε_θ(x_t, t)‖²]
 ```
 
-This is equivalent to score matching (estimating the score ∇_x log p(x_t)) — DDPM noise prediction and score-based diffusion are mathematically unified via the relationship:
+This is equivalent to score matching: the noise predictor is proportional to the score `∇_x log p(x_t)`:
 
 ```
-s_θ(x_t, t) = -ε_θ(x_t, t) / √(1-ᾱ_t)
+s_θ(x_t, t) = −ε_θ(x_t, t) / √(1−ᾱ_t)
 ```
 
-### Noise Schedule
+The noise schedule matters: a cosine schedule (Nichol & Dhariwal 2021) avoids over-destroying information in early steps, improving sample quality over the linear schedule.
 
-The β schedule controls how quickly noise is added:
+**What breaks:**
 
-```python
-def linear_schedule(T: int, beta_start=1e-4, beta_end=0.02):
-    return torch.linspace(beta_start, beta_end, T)
-
-def cosine_schedule(T: int, s=0.008):
-    """Cosine schedule (Nichol & Dhariwal, 2021) — better than linear"""
-    steps = torch.arange(T + 1, dtype=torch.float64)
-    alphas_cumprod = torch.cos((steps / T + s) / (1 + s) * math.pi / 2) ** 2
-    alphas_cumprod = alphas_cumprod / alphas_cumprod[0]
-    betas = 1 - (alphas_cumprod[1:] / alphas_cumprod[:-1])
-    return torch.clamp(betas, 0, 0.999)
-```
-
-The cosine schedule maintains more information in early steps (avoids over-destroying the image too quickly), improving sample quality.
-
-### U-Net Architecture for DDPM
-
-The noise predictor is typically a U-Net with:
-- **Downsampling blocks:** conv → attention → residual
-- **Bottleneck:** multi-head self-attention
-- **Upsampling blocks:** skip connections from encoder + conv → attention → residual
-- **Time conditioning:** sinusoidal time embedding → projected → added to each residual block
-- **Class conditioning (optional):** class embedding → cross-attention or added to time embedding
-
-```python
-class DiffusionUNet(nn.Module):
-    def __init__(self, img_channels=3, base_channels=128, time_dim=256):
-        super().__init__()
-        self.time_mlp = nn.Sequential(
-            SinusoidalPosEmb(time_dim),
-            nn.Linear(time_dim, time_dim * 4),
-            nn.GELU(),
-            nn.Linear(time_dim * 4, time_dim),
-        )
-        # Encoder: 256 → 128 → 64 → 32
-        self.down = nn.ModuleList([
-            ResBlock(base_channels, base_channels * 2, time_dim),
-            ResBlock(base_channels * 2, base_channels * 4, time_dim),
-            AttentionBlock(base_channels * 4),
-            ResBlock(base_channels * 4, base_channels * 8, time_dim),
-        ])
-        # Bottleneck
-        self.mid = nn.Sequential(
-            ResBlock(base_channels * 8, base_channels * 8, time_dim),
-            AttentionBlock(base_channels * 8),
-        )
-        # Decoder with skip connections
-        self.up = nn.ModuleList([
-            ResBlock(base_channels * 16, base_channels * 4, time_dim),
-            ResBlock(base_channels * 8, base_channels * 2, time_dim),
-            ResBlock(base_channels * 4, base_channels, time_dim),
-        ])
-
-    def forward(self, x, t):
-        t_emb = self.time_mlp(t)
-        skips = []
-        for layer in self.down:
-            x = layer(x, t_emb) if isinstance(layer, ResBlock) else layer(x)
-            skips.append(x)
-        x = self.mid(x)
-        for layer, skip in zip(self.up, reversed(skips)):
-            x = torch.cat([x, skip], dim=1)
-            x = layer(x, t_emb)
-        return x
-```
+- **Slow inference:** the reverse process requires T=1000 sequential network evaluations per sample — hundreds of forward passes for one image.
+- **No explicit latent structure:** unlike VAEs, there is no interpretable compressed representation; the "latent" is the full-resolution noisy image at step T.
+- **Exposure bias:** the network is trained with ground-truth x_t but at inference uses its own predictions as inputs — accumulated errors compound over 1000 steps.
 
 ---
 
 ## 4. Faster Sampling — DDIM & Schedulers
 
-### The Problem with DDPM Sampling
+**The problem:** DDPM inference requires T=1000 sequential denoising steps, each a full U-Net forward pass. At 512×512 resolution this takes 30+ seconds per image. The Markovian reverse process is the bottleneck — each step depends on the previous one, so you can't parallelize.
 
-DDPM requires T=1000 denoising steps at inference — 1000 forward passes through the U-Net. At 512×512 resolution with a large U-Net, this takes 30+ seconds per image.
+**The core insight:** The DDPM training objective doesn't require the reverse process to be Markovian. You can derive a *non-Markovian* reverse process that shares the same marginal distributions as DDPM, allowing arbitrary step skipping, without retraining the model.
 
-### DDIM (Denoising Diffusion Implicit Models)
-
-DDIM (Song et al., 2020) derived a non-Markovian reverse process that produces the same marginal distributions as DDPM but can skip steps:
+**The mechanics (DDIM, Song et al. 2020):**
 
 ```
-x_{t-1} = √ᾱ_{t-1} · (x_t - √(1-ᾱ_t) ε_θ(x_t, t)) / √ᾱ_t
-         + √(1-ᾱ_{t-1} - σ_t²) · ε_θ(x_t, t)
+x_{t-1} = √ᾱ_{t-1} · (x_t − √(1−ᾱ_t) ε_θ(x_t, t)) / √ᾱ_t
+         + √(1−ᾱ_{t-1} − σ_t²) · ε_θ(x_t, t)
          + σ_t · ε_t
 
-where σ_t = η · √((1-ᾱ_{t-1})/(1-ᾱ_t)) · √(1-ᾱ_t/ᾱ_{t-1})
+σ_t = η · √((1−ᾱ_{t-1})/(1−ᾱ_t)) · √(1−ᾱ_t/ᾱ_{t-1})
 ```
 
-When η=0: **deterministic DDIM** — same latent → same image (enables interpolation in latent space). Can reduce from 1000 to 20-50 steps with acceptable quality.
+When η=0: **deterministic DDIM** — the mapping from latent to image is a deterministic ODE. Same initial noise always produces the same image. Can reduce from T=1000 to 20–50 steps with acceptable quality. Enables latent space interpolation.
 
-### Common Schedulers (2023-2025)
+**What breaks:**
 
-| Scheduler | Steps | Quality | Notes |
-|-----------|-------|---------|-------|
-| DDPM | 1000 | Highest | Too slow for production |
-| DDIM | 20-50 | Good | Deterministic, invertible |
-| DPM-Solver++ | 10-20 | Very good | Best quality-speed ratio |
-| LCM (Latent Consistency) | 4-8 | Good | Requires LCM fine-tuning |
-| SDXL-Turbo / ADD | 1-4 | Decent | Adversarial diffusion distillation |
+- **Quality degrades sharply below ~20 DDIM steps** because the ODE approximation accumulates error with large step sizes. Higher-order ODE solvers (DPM-Solver++) recover some quality.
+- **Determinism is a double edge:** reproducibility is useful, but all diversity comes from the initial noise — the model cannot inject stochasticity mid-trajectory to recover from early errors.
 
-**DPM-Solver++** is the current production default — achieves near-DDPM quality in 15-20 steps by solving the diffusion ODE with a high-order numerical method.
+### Common schedulers
+
+| Scheduler | Steps | Notes |
+|-----------|-------|-------|
+| DDPM | 1000 | Maximum quality, impractical for production |
+| DDIM | 20–50 | Deterministic, invertible, good quality |
+| DPM-Solver++ | 10–20 | Best quality/speed ratio in practice |
+| LCM | 4–8 | Requires LCM distillation fine-tuning |
+| SDXL-Turbo / ADD | 1–4 | Adversarial diffusion distillation |
 
 ---
 
 ## 5. Classifier-Free Guidance (CFG)
 
-### Motivation
+**The problem:** You want to generate images conditioned on a text prompt. One approach uses a separate classifier `p(y|x_t)` to steer the denoising process. But training a robust classifier on noisy images at every noise level is costly, and the classifier may not generalize to all prompt types.
 
-We want to generate images conditioned on a text prompt y. Classifier guidance uses a separate classifier `p(y|x_t)` to steer the denoising process. Classifier-free guidance eliminates the need for a separate classifier.
+**The core insight:** The same diffusion model can serve as its own classifier-free steering mechanism. Train it jointly on conditional and unconditional generation (randomly drop the conditioning during training). At inference, amplify the difference between conditional and unconditional predictions to push samples toward the conditioning signal — no external classifier needed.
 
-### CFG Mechanism
+**The mechanics:**
 
-Train the diffusion model with and without conditioning (randomly drop the condition with probability p_uncond during training):
+Training: with probability p_uncond, replace the condition y with a null token ∅. The model learns both `ε_θ(x_t, t, y)` and `ε_θ(x_t, t, ∅)` from a single set of weights.
 
-```
-ε_θ(x_t, t, y)   # conditional noise prediction
-ε_θ(x_t, t, ∅)   # unconditional noise prediction (y = null token)
-```
-
-At inference, combine the two predictions:
+Inference:
 
 ```
-ε_guided = ε_θ(x_t, t, ∅) + w · (ε_θ(x_t, t, y) - ε_θ(x_t, t, ∅))
+ε_guided = ε_θ(x_t, t, ∅) + w · (ε_θ(x_t, t, y) − ε_θ(x_t, t, ∅))
 ```
 
-where w is the **guidance scale** (typically 7.5 for Stable Diffusion).
-
-**Interpretation:** The guided prediction amplifies the difference between conditional and unconditional predictions, pushing the sample toward the conditioning signal.
-
-**Trade-off:**
-- Higher w → stronger adherence to prompt, less diversity, potential quality artifacts
-- Lower w → more diverse samples, less prompt adherence
-- w=1 → no guidance (conditional only)
-- w=7.5 → typical production default
-
-**Implementation (during inference only):**
+w is the guidance scale (typically 7.5 for Stable Diffusion). Geometrically: take the unconditional prediction and add w times the "direction toward the conditioning signal."
 
 ```python
 @torch.no_grad()
 def p_sample_cfg(model, x_t, t, condition, guidance_scale=7.5):
-    # Run model twice: conditional and unconditional
-    # Batch them together for efficiency
     x_in = torch.cat([x_t, x_t])
     cond_in = torch.cat([condition, empty_condition])
-    t_in = torch.cat([t, t])
-    
-    noise_pred = model(x_in, t_in, cond_in)
+    noise_pred = model(x_in, torch.cat([t, t]), cond_in)
     noise_cond, noise_uncond = noise_pred.chunk(2)
-    
-    # CFG interpolation
     noise_guided = noise_uncond + guidance_scale * (noise_cond - noise_uncond)
     return denoise_step(x_t, t, noise_guided)
 ```
+
+**What breaks:**
+
+- **Manifold drift:** high guidance scale pushes samples toward regions of high conditional likelihood that may be out-of-distribution for the denoiser — oversaturated colors, distorted anatomy.
+- **Diversity collapse:** at w >> 1, the denoising process converges to a few high-probability modes of p(x|y), sacrificing sample diversity.
+- **Inference cost:** requires two forward passes per step (conditional + unconditional). FLUX-schnell solves this via guidance distillation — a single unconditional model trained to match CFG output.
 
 ---
 
 ## 6. Latent Diffusion Models (Stable Diffusion)
 
-### The Key Insight
+**The problem:** Running diffusion directly in pixel space at 512×512×3 means every denoising step operates on a 786K-dimensional tensor. With 1000 steps and a large U-Net, this is computationally prohibitive for training and inference. Can we get the benefits of diffusion without the pixel-space cost?
 
-Running diffusion in pixel space at 512×512 is expensive: 512×512×3 = 786K-dimensional data. Latent Diffusion (Rombach et al., 2022) runs diffusion in a compressed **latent space**:
+**The core insight:** Most of the perceptual content of an image lives in a much lower-dimensional space. Train a VAE to compress images into a small latent space; then run diffusion in *that* space. The VAE is a fixed, pre-trained codec — diffusion only ever sees compact latents.
+
+**The mechanics:**
 
 ```
-Encoder: x (512×512×3) → z (64×64×4)   [compression factor: 48×]
-Diffusion model: operates on z (64×64×4)
-Decoder: z → x̂ (512×512×3)
+VAE encoder:  x (512×512×3) → z (64×64×4)   [compression: ~48×]
+Diffusion:    operates on z
+VAE decoder:  z → x̂ (512×512×3)
 ```
 
-The VAE (encoder/decoder) is pre-trained and frozen — diffusion only trains in the latent space. This gives ~48× speedup in forward passes.
-
-### Architecture
-
-**VAE (KL-regularized):**
-- Encoder: convolutional downsampler + attention → 64×64×4 latent
-- Decoder: convolutional upsampler → pixel space reconstruction
-- KL penalty keeps latents well-behaved (near-Gaussian)
-
-**U-Net with Cross-Attention:**
-The latent diffusion U-Net adds cross-attention layers that condition on text:
+The U-Net denoiser adds **cross-attention layers** that condition on text:
 
 ```
 Cross-Attention(Q=z_features, K=text_emb, V=text_emb)
 ```
 
-Text is encoded via CLIP's text encoder. The U-Net "attends" to text tokens to inject conditioning at each resolution level.
+Text is encoded by a frozen CLIP text encoder into a 77×768 sequence. At each resolution level, spatial features attend to all 77 text tokens simultaneously.
 
-**CLIP Text Encoder:**
-CLIP (Contrastive Language-Image Pre-Training) encodes text into a 77×768 sequence of token embeddings (not just a single class embedding). Each spatial feature in the U-Net cross-attends to all 77 text tokens simultaneously.
+**What breaks:**
 
-### SDXL (Stable Diffusion XL)
-
-SDXL (Podell et al., 2023) adds:
-- Two CLIP encoders (ViT-L and OpenCLIP ViT-G) — concatenated text embeddings
-- Size/crop conditioning (model sees original image resolution as conditioning)
-- Refiner model: a second model that upscales/refines the base output at high-noise steps
+- **VAE bottleneck quality:** any detail the VAE discards during encoding cannot be recovered by diffusion. The VAE's reconstruction quality sets a hard ceiling on output fidelity.
+- **KL regularization vs. reconstruction:** the KL penalty needed to make latents well-behaved for diffusion also forces the VAE to lose some high-frequency detail. SDXL uses a larger channel count (4→16) to partially mitigate this.
+- **Cross-attention alignment:** CLIP text embeddings may not capture all semantic detail in a long or complex prompt. SDXL concatenates two CLIP encoders (ViT-L and OpenCLIP ViT-G) to increase text representational capacity.
 
 ---
 
 ## 7. Flow Matching & Rectified Flow
 
-### Motivation
+**The problem:** DDPM defines curved paths through noise space — the reverse process follows a nonlinear SDE. Integrating a curved path requires many small steps to stay on the manifold. Can we define a generative process with straighter paths that require fewer integration steps?
 
-DDPM defines a noising process using stochastic differential equations. Flow matching is an alternative framework that defines **deterministic** probability flows — straight-line paths from noise to data.
+**The core insight:** Define the flow from noise to data as a *straight line*. A straight-line path has constant velocity, so the ODE integrator never accumulates curvature error — you can take very few steps and still land close to the data manifold.
 
-### Rectified Flow (Liu et al., 2022)
+**The mechanics (Rectified Flow, Liu et al. 2022):**
 
-Define a simple linear flow from noise distribution `π_0 = N(0,I)` to data distribution `π_1 = p_data`:
-
-```
-x_t = (1-t) · x_1 + t · x_0,    t ∈ [0, 1]
-```
-
-This is literally a straight line from data (t=0) to noise (t=1). The velocity field at point x_t at time t is:
+For each training sample, pair a data point x_1 ~ p_data with a noise sample x_0 ~ N(0, I). The straight-line interpolation is:
 
 ```
-dx/dt = x_0 - x_1   (constant — straight line)
+x_t = (1−t) · x_1 + t · x_0,   t ∈ [0, 1]
 ```
 
-Train a neural network `v_θ(x_t, t)` to predict this velocity:
+The velocity at every point along this line is constant:
 
 ```
-L = E_{x_0 ~ p_data, x_1 ~ N(0,I), t ~ Uniform[0,1]} [ ||v_θ(x_t, t) - (x_0 - x_1)||² ]
+dx/dt = x_0 − x_1
 ```
 
-**At inference:** start from `x_1 ~ N(0,I)`, integrate the ODE `dx/dt = v_θ(x_t, t)` backwards from t=1 to t=0. Straight-line flows are easier to integrate — can use fewer function evaluations (steps).
+Train v_θ(x_t, t) to predict this velocity:
 
-### Advantages over DDPM
+```
+L = E_{x_0~N(0,I), x_1~p_data, t~U[0,1]} [‖v_θ(x_t, t) − (x_0 − x_1)‖²]
+```
 
-- Fewer sampling steps (5-10 vs 20-50 for DDIM)
-- More interpretable: interpolation in the flow space is linear
-- Better for high-resolution generation (less error accumulation)
+Inference: start from x_0 ~ N(0, I), integrate forward from t=1 to t=0 using an ODE solver. Straight paths mean 5–10 steps are typically sufficient.
+
+**What breaks:**
+
+- **Straight paths in expectation, not per-sample:** the optimal transport pairing of noise and data is not straight lines between arbitrary pairs. If you pair x_0 and x_1 randomly, the learned velocity field averages over many crossing trajectories — it becomes curved in practice. Reflow (iterating the procedure) straightens the paths further.
+- **ODE solver sensitivity:** with so few steps, step size matters more than in diffusion; an inappropriate step size or solver can produce visible artifacts.
 
 ---
 
 ## 8. Diffusion Transformers (DiT) & FLUX
 
-### DiT (Peebles & Xie, 2022)
+**The problem:** U-Nets are the default backbone for diffusion models, but U-Nets have fixed spatial inductive biases (skip connections, hierarchical structure). They don't scale as predictably as transformers, and their receptive fields at high resolutions are limited. Can the scaling laws from language transformers transfer to image generation?
 
-Replacing the U-Net backbone with a **Vision Transformer**:
-- Patch the latent (8×8 patches of 64×64×4 = 64 patches for 512×512 images)
-- Apply standard transformer blocks with conditioning injection
-- Condition via **adaptive layer norm (adaLN):** scale and shift LayerNorm based on time + class embeddings
+**The core insight:** Patch the latent image into tokens, then apply a plain transformer. Condition on time and class via adaptive layer norm (adaLN), which modulates features without requiring extra cross-attention. The transformer's global self-attention handles long-range spatial dependencies that U-Nets miss.
+
+**The mechanics (DiT, Peebles & Xie 2022):**
 
 ```
+Latent z (64×64×4) → patch tokens (8×8 patches → 64 tokens)
+→ L transformer blocks with adaLN conditioning
+→ linear head → predicted noise
+
 adaLN(x, c) = γ(c) · LayerNorm(x) + β(c)
 ```
 
-where γ, β are linear projections of the conditioning vector c.
+γ and β are linear projections of a conditioning vector c (concatenation of time embedding + class embedding). This injects conditioning at every layer without additional attention heads.
 
-**Why DiT over U-Net?**
-- Scales more predictably (same scaling laws as language transformers)
-- No architectural inductive biases (no convolutions, no skip connections)
-- Better at capturing long-range dependencies (global attention vs. limited U-Net receptive field)
+**What breaks:**
 
-DiT-XL/2 (largest variant) outperforms all U-Net diffusion models on ImageNet class-conditional generation at 256×256 and 512×512.
+- **No spatial inductive bias:** unlike U-Nets, transformers have no built-in notion that nearby pixels are related. This is eventually learned from data, but requires more training to converge on small datasets.
+- **Quadratic attention cost:** global self-attention over 64 tokens is fine at 512×512, but scaling to 1024×1024 with smaller patches makes the attention prohibitive. Efficient attention variants are required.
 
-### FLUX Architecture (Black Forest Labs, 2024)
+### FLUX (Black Forest Labs, 2024)
 
-FLUX is the commercial successor to Stable Diffusion by its original creators, using rectified flow + DiT:
+FLUX combines rectified flow with a DiT-based architecture. Two key innovations over vanilla DiT:
 
-**Key innovations:**
-
-**Dual-stream architecture:** Separate transformer streams for image tokens and text tokens that interact via cross-attention, then merge:
+**Dual-stream architecture:** instead of a single token sequence mixing image and text tokens, FLUX maintains separate transformer streams for image and text that interact via cross-attention and then merge into single-stream blocks. Image and text representations evolve jointly:
 
 ```
-Image tokens ─┐                    ┌─ Image tokens
-               ├── Cross-Attention ─┤
-Text tokens  ─┘                    └─ Text tokens
+Image tokens ──┐                    ┌── Image tokens
+                ├── Cross-Attention ─┤
+Text tokens  ──┘                    └── Text tokens
 ```
 
-This is richer than simple cross-attention (SDXL) because image and text representations evolve jointly.
+This is richer than Stable Diffusion's cross-attention (which uses frozen text embeddings as keys/values) because text features update in response to image features.
 
-**Flow Matching:** FLUX uses rectified flow instead of DDPM — enables 8-10 step high-quality sampling vs 20+ for SDXL.
+**Guidance distillation:** FLUX-schnell is distilled to produce CFG-quality output in a single forward pass — no double evaluation at inference.
 
-**Guidance distillation:** FLUX-schnell (the fast variant) is distilled to run without CFG at inference — single model pass instead of two, further 2× speedup.
-
-**FLUX model variants:**
 | Variant | Params | Steps | Use case |
 |---------|--------|-------|----------|
-| FLUX.1-dev | 12B | 20-50 | Research, fine-tuning |
-| FLUX.1-schnell | 12B | 1-4 | Fast inference, production |
-| FLUX.1-pro | 12B | — | Proprietary API only |
+| FLUX.1-dev | 12B | 20–50 | Research, fine-tuning |
+| FLUX.1-schnell | 12B | 1–4 | Production inference |
+| FLUX.1-pro | 12B | — | Proprietary API |
 
 ---
 
 ## 9. Production Considerations
 
-### Inference Speed
+### Inference latency
 
-**Latency bottlenecks (typical 512×512 SDXL on A100):**
-- U-Net forward pass: ~35ms per step
-- VAE decode: ~150ms (once, at end)
-- At 20 steps: 35×20 + 150 = 850ms end-to-end
+Bottleneck breakdown for 512×512 SDXL on an A100:
+- U-Net forward pass: ~35 ms/step
+- VAE decode: ~150 ms (once at the end)
+- At 20 steps: 35×20 + 150 = **850 ms** end-to-end
 
-**Optimizations:**
-1. **Fewer steps:** DPM-Solver++ at 15 steps, LCM at 4-8 steps
-2. **Quantization:** U-Net INT8 → ~1.5× speedup, minimal quality loss
-3. **xFormers / Flash Attention:** memory-efficient attention in U-Net → 20-40% speedup
-4. **Model compilation:** `torch.compile` → 20% speedup on modern GPUs
-5. **VAE tiling:** for very large images, tile the VAE decode to avoid OOM
-6. **CUDA graph capture:** eliminate Python overhead for fixed-shape inference
+Key optimizations:
+1. **Fewer steps:** DPM-Solver++ at 15 steps; LCM at 4–8 steps.
+2. **Flash Attention / xFormers:** 20–40% memory reduction + speedup.
+3. **INT8 quantization of U-Net:** ~1.5× throughput, minimal quality loss.
+4. **`torch.compile`:** ~20% speedup on modern GPUs with static shapes.
+5. **VAE tiling:** for large images, tile the decode to stay within VRAM.
 
-### Safety and Content Filtering
-
-Production image generation pipelines require multi-layer safety:
-
-```python
-class SafetyPipeline:
-    def __init__(self):
-        self.prompt_classifier = load_prompt_classifier()
-        self.image_classifier = load_nsfw_classifier()
-
-    def generate(self, prompt: str) -> Optional[Image]:
-        # Layer 1: Prompt filtering
-        if self.prompt_classifier.is_unsafe(prompt):
-            return None
-
-        # Layer 2: Generate
-        image = diffusion_model.generate(prompt)
-
-        # Layer 3: Output filtering
-        if self.image_classifier.is_nsfw(image):
-            return None
-
-        return image
-```
-
-**Common classifiers:** CLIP-based NSFW classifiers, Stable Diffusion safety checker (ViT-based binary), Llama Guard for prompt classification.
-
-### Fine-Tuning Methods
+### Fine-tuning methods
 
 | Method | VRAM | Data needed | Use case |
 |--------|------|-------------|----------|
-| DreamBooth | 24GB+ | 3-20 images | Subject personalization |
-| Textual Inversion | 8GB | 3-20 images | New concept embedding |
-| LoRA | 8-12GB | 100s images | Style transfer, fine-tuning |
-| Full fine-tuning | 80GB+ | 1000s+ images | Domain adaptation |
+| DreamBooth | 24 GB+ | 3–20 images | Subject personalization |
+| Textual Inversion | 8 GB | 3–20 images | New concept as a token |
+| LoRA | 8–12 GB | 100s of images | Style transfer, domain fine-tuning |
+| Full fine-tuning | 80 GB+ | 1000s of images | Domain adaptation |
 
-**LoRA for diffusion:** Same rank-decomposition as for LLMs, applied to the U-Net/DiT attention weight matrices. At r=4, reduces trainable params by ~100× vs full fine-tuning.
+LoRA applies rank decomposition `W ≈ W_0 + BA` to U-Net/DiT attention matrices. At rank r=4, trainable parameters are reduced ~100× vs full fine-tuning.
 
 ---
 
 ## 10. Interview Questions
 
-**Q: What is the ELBO and why do we maximize it instead of the marginal likelihood?**
+**Q: What is the ELBO and why maximize it instead of the true marginal likelihood?**
 
-The marginal likelihood `p(x) = ∫ p(x|z) p(z) dz` is intractable — the integral is over all possible latent codes. The ELBO (Evidence Lower BOund) is a tractable lower bound derived via Jensen's inequality by introducing an approximate posterior `q(z|x)`. Maximizing ELBO simultaneously trains the encoder (make `q(z|x)` close to the true posterior) and decoder (make reconstruction accurate). The gap between the true log-likelihood and ELBO equals `KL(q(z|x) || p(z|x))` — so maximizing ELBO also minimizes this gap, improving posterior approximation.
+The marginal `p(x) = ∫ p(x|z) p(z) dz` is intractable — summing over all latent codes requires exponential computation. The ELBO is a tractable lower bound derived by introducing an approximate posterior `q(z|x)` and applying Jensen's inequality. Maximizing ELBO simultaneously trains the encoder to approximate the true posterior and the decoder to reconstruct the input. The gap between log p(x) and ELBO equals `KL(q(z|x) ∥ p(z|x))` — so maximizing ELBO also tightens the bound by pushing q closer to the true posterior.
 
 ---
 
 **Q: Why did diffusion models replace GANs for high-quality image generation?**
 
-Three key advantages:
-1. **Training stability:** Diffusion training is stable — the objective is a simple noise prediction MSE. GAN training is a minimax game that frequently diverges, collapses, or oscillates.
-2. **Mode coverage:** GANs are prone to mode collapse (generating a subset of the data distribution). Diffusion models learn the full distribution more reliably.
-3. **Scaling:** Diffusion models (especially DiT variants) follow the same scaling laws as transformers — more parameters + more compute = better results, predictably. GANs don't scale as cleanly.
-
-The main disadvantage of diffusion: slower inference (multiple denoising steps vs. single GAN forward pass). Flow matching and distillation methods are closing this gap.
+Three reasons: (1) **Training stability** — diffusion loss is a simple MSE noise prediction objective; GAN training is a minimax game that frequently diverges or collapses. (2) **Mode coverage** — diffusion models learn the full data distribution; GANs are prone to mode collapse. (3) **Predictable scaling** — DiT variants follow transformer scaling laws; more parameters + more compute yields proportionally better results. The main disadvantage of diffusion is slower inference; flow matching and distillation are closing this gap.
 
 ---
 
 **Q: What is classifier-free guidance and what does the guidance scale control?**
 
-CFG eliminates the need for a separate classifier for conditional generation. The model is trained to make both conditional predictions `ε(x_t, y)` and unconditional predictions `ε(x_t, ∅)` (conditioning randomly dropped during training). At inference: `ε_guided = ε_uncond + w·(ε_cond - ε_uncond)`. The guidance scale w amplifies the signal that distinguishes the conditioned from unconditioned prediction — pushing samples toward the conditioning signal. Higher w = more prompt-aligned images at the cost of diversity and potential quality artifacts (manifold drift — the sample moves to a high-likelihood-under-conditioning region that may be out-of-distribution for the denoiser).
+CFG trains a single model to produce both conditional predictions `ε(x_t, y)` and unconditional predictions `ε(x_t, ∅)` by randomly dropping the conditioning during training. At inference: `ε_guided = ε_uncond + w · (ε_cond − ε_uncond)`. The guidance scale w amplifies the component of the noise prediction that points toward the conditioning signal. Higher w = stronger prompt adherence, lower diversity, and potential manifold drift (the sample is pushed to a high-conditional-likelihood region that may be out-of-distribution for the denoiser — causing oversaturation, distorted anatomy, etc.).
 
 ---
 
 **Q: What is the difference between DDPM and DDIM sampling?**
 
-DDPM defines a Markovian reverse process: `p(x_{t-1}|x_t)` depends only on x_t. This requires iterating through all T steps. DDIM defines a non-Markovian reverse process that still produces the same marginal distributions as DDPM but allows skipping steps — you can go from x_T to x_{T-50} directly. When η=0, DDIM is deterministic: the same latent always produces the same image. This enables latent space interpolation. In practice, 20-50 DDIM steps achieve quality comparable to 1000 DDPM steps.
+DDPM defines a Markovian reverse process: `p(x_{t-1}|x_t)` depends only on x_t, requiring all T steps. DDIM defines a non-Markovian reverse process that produces the same marginals as DDPM but allows skipping steps — you can step from x_T directly to x_{T-50}. When the stochasticity parameter η=0, DDIM becomes a deterministic ODE: the same initial noise always produces the same image, enabling latent interpolation. In practice, 20–50 DDIM steps match 1000-step DDPM quality.
 
 ---
 
-**Q: Why does Stable Diffusion run diffusion in latent space rather than pixel space?**
+**Q: Why does Stable Diffusion operate in latent space rather than pixel space?**
 
-Pixel space for 512×512×3 images is 786K dimensions — each denoising step operates on a huge tensor. The VAE compresses images to 64×64×4 latents (4096 dimensions) — a 192× reduction in dimensionality. Since diffusion requires hundreds of forward passes per image, this compression gives a corresponding speedup. The VAE is pre-trained to be a near-lossless codec (perceptual quality is preserved), so running diffusion in latent space loses minimal image quality while dramatically reducing compute cost.
+Diffusion requires hundreds of sequential forward passes per image. Running each pass on a 512×512×3 pixel tensor (786K dimensions) is prohibitive. A pre-trained VAE compresses images to 64×64×4 latents (4K dimensions) — a ~192× reduction. Since the VAE is fixed and acts as a near-lossless codec, diffusion in latent space loses minimal perceptual quality while dramatically reducing compute cost per step.
 
 ---
 
-*Last updated: May 2026 | Coverage: VAE through FLUX/DiT | Focus: math-first, production-second*
+*Last updated: May 2026 | Coverage: VAE through FLUX/DiT*

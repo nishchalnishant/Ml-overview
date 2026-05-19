@@ -1,85 +1,66 @@
 # Probabilistic Graphical Models (PGMs)
 
-A structured framework for representing, reasoning about, and learning joint probability distributions using graphs, covering Bayesian Networks, HMMs, MRFs, belief propagation, variational inference, MCMC, LDA, and CRFs.
-
 ---
 
-## Table of Contents
+## What This File Is For
 
-1. [PGM Overview](#1-pgm-overview)
-2. [Bayesian Networks](#2-bayesian-networks)
-3. [Hidden Markov Models](#3-hidden-markov-models)
-4. [Markov Random Fields](#4-markov-random-fields)
-5. [Belief Propagation](#5-belief-propagation)
-6. [Variational Inference](#6-variational-inference)
-7. [MCMC Methods](#7-mcmc-methods)
-8. [Latent Dirichlet Allocation](#8-latent-dirichlet-allocation)
-9. [Conditional Random Fields](#9-conditional-random-fields)
-10. [Key Interview Points](#10-key-interview-points)
+Every topic is structured around the four questions that matter in an interview:
+1. What the interviewer is actually testing
+2. The reasoning structure — why first-principles thinkers approach it this way
+3. The pattern in action — a worked example
+4. Common traps — where people go wrong and why
+
+Code examples are retained where they illustrate the concept.
 
 ---
 
 ## 1. PGM Overview
 
-PGMs use graph structure to encode conditional independence assumptions in a joint distribution, making high-dimensional distributions tractable.
+**What the interviewer is testing:** Whether you understand why graphical models exist — the core problem they solve — and can distinguish directed from undirected models based on the structural implications, not just the naming.
 
-### Directed vs Undirected
+**The reasoning structure:** A joint distribution over $n$ variables in a domain of size $k$ requires $k^n - 1$ parameters — impossible to represent or learn for any real problem. PGMs exploit conditional independence structure encoded as a graph to factorize the joint into smaller, tractable pieces. The graph is a set of encoded assumptions: edges that are absent represent declared independence.
+
+**Directed (Bayesian Networks / DAG):**
+$$P(X_1, \ldots, X_n) = \prod_{i=1}^{n} P(X_i \mid Pa(X_i))$$
+Each node needs only a conditional probability table (CPT) over its parents. The direction encodes a generative story — this variable is caused by these parents.
+
+**Undirected (Markov Random Fields / Gibbs distribution):**
+$$P(X_1, \ldots, X_n) = \frac{1}{Z} \prod_{c \in \text{Cliques}} \phi_c(X_c)$$
+Clique potentials $\phi_c$ express soft preferences over joint assignments. No causal direction. The partition function $Z$ normalizes — and is the root of intractability.
 
 | Property | Bayesian Networks (DAG) | Markov Random Fields (undirected) |
 |---|---|---|
 | Edge semantics | Causal / generative direction | Symmetric affinity / compatibility |
-| Factorization | Chain rule over CPTs | Clique potentials (Gibbs) |
+| Factorization | Chain rule over CPTs | Clique potentials |
 | Normalization | Always normalized | Requires partition function Z |
 | Cycles | Forbidden (acyclic) | Allowed |
 | Typical use | Generative models, causal reasoning | Spatial models, discriminative tasks |
 
-### Factorization of the Joint Distribution
-
-**Directed (Bayesian Network):**
-
-```
-P(X1, ..., Xn) = prod_{i=1}^{n} P(Xi | Pa(Xi))
-```
-
-where `Pa(Xi)` is the set of parent nodes of Xi in the DAG.
-
-**Undirected (MRF / Gibbs distribution):**
-
-```
-P(X1, ..., Xn) = (1/Z) * prod_{c in Cliques} phi_c(X_c)
-```
-
-where `phi_c` are non-negative clique potential functions and Z is the partition function (normalizing constant).
-
-### D-Separation and Conditional Independence
-
-D-separation determines when a set of nodes Z blocks all paths between X and Y, rendering X independent of Y given Z.
-
-**Three connection patterns:**
+**D-separation and conditional independence:** D-separation determines when a set of nodes $Z$ blocks all paths between $X$ and $Y$, rendering $X \perp Y \mid Z$.
 
 | Pattern | Structure | Blocked by Z? |
 |---|---|---|
-| Chain | X -> Z -> Y | Yes — Z observed |
-| Fork | X <- Z -> Y | Yes — Z observed |
-| Collider (v-structure) | X -> Z <- Y | No — Z **un**observed blocks; Z **observed** opens |
+| Chain | $X \to Z \to Y$ | Yes — Z observed |
+| Fork | $X \leftarrow Z \to Y$ | Yes — Z observed |
+| Collider (v-structure) | $X \to Z \leftarrow Y$ | No — Z unobserved blocks; Z observed opens |
 
-**Rule:** X and Y are d-separated given Z if every path between them is blocked. D-separation implies conditional independence in any distribution that is Markov with respect to the graph.
+The collider is the counterintuitive case: observing the common effect of two causes makes those causes dependent (explaining away). This is Berkson's paradox.
 
-**Markov blanket:** The Markov blanket of a node X in a BN is its parents, children, and co-parents (other parents of X's children). X is conditionally independent of all other nodes given its Markov blanket.
+**The pattern in action:** A spam filter models $P(\text{spam} \mid \text{words})$. Naive Bayes is a BN: Class $\to$ Feature$_1$, Class $\to$ Feature$_2$, etc. The directed edges encode the generative assumption that spam status causes the words. For image segmentation, pixel labels have symmetric spatial compatibility — no causal direction — so an MRF is more natural, encoding that neighboring pixels should have similar labels.
+
+**Common traps:**
+- Saying MRFs require specifying causal direction. They do not — the absence of direction is the point.
+- Forgetting that the partition function $Z$ is the fundamental obstacle. Computing $Z$ requires summing over all variable configurations — exponential in the number of variables. This is why approximate inference exists.
 
 ---
 
 ## 2. Bayesian Networks
 
-### DAG Structure and CPTs
+**What the interviewer is testing:** Whether you can reason about conditional independence in a BN, perform conceptual variable elimination, and connect BNs to practical models (Naive Bayes, causal inference).
 
-A Bayesian Network is a DAG where:
-- Each node represents a random variable
-- Each node has a Conditional Probability Table (CPT): `P(Xi | Pa(Xi))`
-- The joint factors as the product of all CPTs
+**The reasoning structure:** A BN encodes a factored joint distribution. The key skill is reading conditional independencies from graph structure. The Markov blanket of a node is its parents, children, and co-parents — it is conditionally independent of everything else given its Markov blanket.
 
-**Example — Alarm Network:**
-
+**Alarm Network example:**
 ```
 Burglary  Earthquake
     \       /
@@ -87,79 +68,46 @@ Burglary  Earthquake
       Alarm
      /     \
     v       v
-JohnCalls MaryCall
+JohnCalls MaryCalls
 ```
-
 ```
-P(B, E, A, J, M) = P(B) * P(E) * P(A|B,E) * P(J|A) * P(M|A)
+P(B,E,A,J,M) = P(B) * P(E) * P(A|B,E) * P(J|A) * P(M|A)
 ```
+The directed structure means Burglary and Earthquake are marginally independent ($B \perp E$) but become dependent given Alarm ($B \not\perp E \mid A$) — the collider pattern.
 
-### Naive Bayes as a Bayesian Network
-
+**Naive Bayes** is a BN with Class $\to$ Feature$_i$ for all $i$:
 ```
-         Class (C)
-        /  |  ... \
-       v   v       v
-      F1  F2  ... Fn
+P(C, F1, ..., Fn) = P(C) * prod_i P(Fi | C)
 ```
+The conditional independence assumption (features independent given class) is often violated in practice but the classifier is surprisingly robust.
 
-Factorization: `P(C, F1, ..., Fn) = P(C) * prod_i P(Fi | C)`
-
-Conditional independence assumption: features are independent given the class. This is exactly a BN with one parent node (C) and n children.
-
-### Variable Elimination for Exact Inference
-
-Goal: compute `P(Q | E=e)` — the posterior over query variable Q given evidence E.
-
-**Algorithm:**
-
+**Variable elimination for exact inference:**
 1. Initialize factors from all CPTs, instantiated with evidence
 2. Choose an elimination ordering over hidden variables
-3. For each variable Z in ordering:
-   - Multiply all factors containing Z
-   - Sum out Z to get a new factor
+3. For each variable $Z$: multiply all factors containing $Z$, sum out $Z$
 4. Multiply remaining factors; normalize
 
-**Complexity:** Exponential in the treewidth of the graph. For polytrees (singly connected), exact inference is O(n * k^d) where k is domain size and d is max in-degree. For general graphs, exact inference is #P-hard.
+Complexity is exponential in the treewidth of the graph. For polytrees (singly connected), inference is polynomial. For general graphs, exact inference is #P-hard.
 
-**Example:**
+**The pattern in action:** In the alarm network, query $P(J = \text{true} \mid B = \text{true})$: instantiate $B = \text{true}$, eliminate $E$, then $A$, then $M$. At each step you multiply factors and sum out one variable. The result is a factor over $J$ which you normalize. The efficiency comes from eliminating variables in a good ordering — never creating large intermediate factors.
 
-```python
-# Conceptual variable elimination
-# P(J=true | B=true)
-
-# Factors: f1(B), f2(E), f3(A,B,E), f4(J,A), f5(M,A)
-# Evidence: B=true -> instantiate f1, f3
-# Query: J=true
-# Eliminate: E, A, M
-
-# Step 1: eliminate E
-#   f_EA = sum_E [ f2(E) * f3(A, B=T, E) ]  -> factor over A
-
-# Step 2: eliminate A
-#   f_AJM = sum_A [ f_EA(A) * f4(J,A) * f5(M,A) ]  -> factor over J, M
-
-# Step 3: eliminate M
-#   f_J = sum_M [ f_AJM(J, M) ]  -> factor over J
-
-# Normalize: P(J=T | B=T) = f_J(T) / (f_J(T) + f_J(F))
-```
+**Common traps:**
+- Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.
+- Confusing the Markov blanket with the neighborhood. The Markov blanket includes co-parents (other parents of the node's children) — without them, the node is not screened off from its children's co-causes.
 
 ---
 
 ## 3. Hidden Markov Models
 
-### Structure
+**What the interviewer is testing:** Whether you can map the three core HMM problems to the three core algorithms, explain the DP structure of each, and distinguish HMM from CRF.
 
-An HMM models a sequence of observations generated by a latent Markov chain:
+**The reasoning structure:** An HMM models a sequence of observations generated by a latent Markov chain:
 
-- **States:** `S = {s1, ..., sN}` (hidden)
-- **Observations:** `O = {o1, ..., oK}` (visible)
-- **Initial distribution:** `pi_i = P(q1 = si)`
-- **Transition matrix:** `A[i,j] = P(qt+1 = sj | qt = si)`
-- **Emission matrix:** `B[i,k] = P(ot = ok | qt = si)`
-
-**Conditional independence:** `ot` depends only on `qt`; `qt+1` depends only on `qt`.
+- **States:** $S = \{s_1, \ldots, s_N\}$ (hidden)
+- **Observations:** $O = \{o_1, \ldots, o_K\}$ (visible)
+- **Initial distribution:** $\pi_i = P(q_1 = s_i)$
+- **Transition matrix:** $A[i,j] = P(q_{t+1} = s_j \mid q_t = s_i)$
+- **Emission matrix:** $B[i,k] = P(o_t = o_k \mid q_t = s_i)$
 
 ```
 q1 -> q2 -> q3 -> ... -> qT
@@ -168,56 +116,29 @@ v     v     v            v
 o1    o2    o3  ...      oT
 ```
 
-### Three Core Problems
+Three problems, three algorithms:
 
-#### Problem 1 — Evaluation: Forward Algorithm
-
-**Goal:** Compute `P(O | lambda)` — likelihood of observation sequence.
-
-Define forward variable: `alpha_t(i) = P(o1, ..., ot, qt = si | lambda)`
-
+**Problem 1 — Evaluation (Forward Algorithm):** Compute $P(O \mid \lambda)$.
+Define $\alpha_t(i) = P(o_1, \ldots, o_t, q_t = s_i \mid \lambda)$:
 ```
-Initialization:  alpha_1(i) = pi_i * B[i, o1]
-
-Recursion:       alpha_{t+1}(j) = B[j, o_{t+1}] * sum_i [ alpha_t(i) * A[i,j] ]
-
-Termination:     P(O | lambda) = sum_i alpha_T(i)
+alpha_1(i) = pi_i * B[i, o1]
+alpha_{t+1}(j) = B[j, o_{t+1}] * sum_i [ alpha_t(i) * A[i,j] ]
+P(O | lambda) = sum_i alpha_T(i)
 ```
+Complexity: $O(N^2 T)$ vs $O(N^T)$ for brute force.
 
-Complexity: O(N^2 * T) vs O(N^T) for brute force.
-
-#### Problem 2 — Decoding: Viterbi Algorithm
-
-**Goal:** Find the most likely state sequence `q* = argmax_q P(q | O, lambda)`.
-
-Define: `delta_t(i) = max_{q1,...,q_{t-1}} P(q1,...,qt=si, o1,...,ot | lambda)`
-
+**Problem 2 — Decoding (Viterbi):** Find most likely state sequence $q^* = \arg\max_q P(q \mid O, \lambda)$.
+Same DP structure as forward but replace sum with max and store backpointers:
 ```
-Initialization:  delta_1(i) = pi_i * B[i, o1]
-
-Recursion:       delta_{t+1}(j) = B[j, o_{t+1}] * max_i [ delta_t(i) * A[i,j] ]
-                 psi_{t+1}(j) = argmax_i [ delta_t(i) * A[i,j] ]   (backpointer)
-
-Termination:     q*_T = argmax_i delta_T(i)
-                 Backtrack through psi to recover full sequence
+delta_1(i) = pi_i * B[i, o1]
+delta_{t+1}(j) = B[j, o_{t+1}] * max_i [ delta_t(i) * A[i,j] ]
+psi_{t+1}(j) = argmax_i [ delta_t(i) * A[i,j] ]
 ```
+Backtrack through $\psi$ to recover the optimal sequence.
 
-#### Problem 3 — Learning: Baum-Welch (EM)
-
-**Goal:** `lambda* = argmax_lambda P(O | lambda)` — estimate model parameters.
-
-**E-step:** Compute:
-- `gamma_t(i) = P(qt = si | O, lambda)` (state occupation)
-- `xi_t(i,j) = P(qt = si, qt+1 = sj | O, lambda)` (transition usage)
-
-**M-step:** Re-estimate parameters:
-```
-pi_i    = gamma_1(i)
-A[i,j]  = sum_t xi_t(i,j) / sum_t gamma_t(i)
-B[i,k]  = sum_{t: ot=ok} gamma_t(i) / sum_t gamma_t(i)
-```
-
-Iterate until convergence. Guaranteed to find a local maximum of the likelihood.
+**Problem 3 — Learning (Baum-Welch / EM):** Estimate model parameters $\lambda$.
+E-step: compute $\gamma_t(i) = P(q_t = s_i \mid O, \lambda)$ and $\xi_t(i,j) = P(q_t = s_i, q_{t+1} = s_j \mid O, \lambda)$.
+M-step: re-estimate $\pi$, $A$, $B$ from expected counts. Guaranteed to find a local maximum of likelihood.
 
 ### Python Code — HMM with hmmlearn
 
@@ -225,386 +146,222 @@ Iterate until convergence. Guaranteed to find a local maximum of the likelihood.
 import numpy as np
 from hmmlearn import hmm
 
-# -------------------------------------------------------
-# Gaussian HMM: 2 hidden states, 1D continuous observations
-# -------------------------------------------------------
-
 np.random.seed(42)
 
-# Define a true model for data generation
 true_model = hmm.GaussianHMM(n_components=2, covariance_type="full")
 true_model.startprob_ = np.array([0.6, 0.4])
-true_model.transmat_ = np.array([[0.7, 0.3],
-                                   [0.4, 0.6]])
+true_model.transmat_ = np.array([[0.7, 0.3], [0.4, 0.6]])
 true_model.means_ = np.array([[0.0], [5.0]])
 true_model.covars_ = np.array([[[1.0]], [[1.0]]])
 
-# Generate observation sequence
-X, Z_true = true_model.sample(200)   # X: (200,1), Z_true: (200,) true states
+X, Z_true = true_model.sample(200)
 
-# -------------------------------------------------------
-# Fit a new HMM via Baum-Welch (EM)
-# -------------------------------------------------------
-model = hmm.GaussianHMM(
-    n_components=2,
-    covariance_type="full",
-    n_iter=100,
-    random_state=42
-)
+model = hmm.GaussianHMM(n_components=2, covariance_type="full",
+                         n_iter=100, random_state=42)
 model.fit(X)
 
-print("Learned start probabilities:", model.startprob_)
-print("Learned transition matrix:\n", model.transmat_)
-print("Learned means:", model.means_.flatten())
-
-# -------------------------------------------------------
-# Evaluation: log-likelihood of observation sequence
-# -------------------------------------------------------
 log_prob = model.score(X)
-print(f"Log-likelihood: {log_prob:.2f}")
-
-# -------------------------------------------------------
-# Decoding: Viterbi most-likely state sequence
-# -------------------------------------------------------
 log_prob_viterbi, Z_pred = model.decode(X, algorithm="viterbi")
-print(f"Viterbi log-prob: {log_prob_viterbi:.2f}")
 
-# Accuracy (up to label permutation)
 from sklearn.metrics import accuracy_score
-# Try both label assignments
 acc1 = accuracy_score(Z_true, Z_pred)
 acc2 = accuracy_score(Z_true, 1 - Z_pred)
 print(f"Viterbi decoding accuracy: {max(acc1, acc2):.3f}")
-
-# -------------------------------------------------------
-# Multinomial HMM for discrete observations (e.g., NLP)
-# -------------------------------------------------------
-vocab_size = 4
-discrete_model = hmm.CategoricalHMM(n_components=3, n_iter=100, random_state=0)
-# Fit requires concatenated sequences + lengths
-sequences = [np.random.randint(0, vocab_size, size=50) for _ in range(20)]
-X_cat = np.concatenate(sequences).reshape(-1, 1)
-lengths = [len(s) for s in sequences]
-discrete_model.fit(X_cat, lengths)
-print("Discrete HMM emission matrix:\n", np.exp(discrete_model.emissionprob_))
 ```
+
+**The pattern in action:** Speech recognition uses HMMs where hidden states correspond to phoneme segments and observations are acoustic feature vectors. The forward algorithm computes the likelihood of the acoustic sequence under a given word's phoneme model. Viterbi finds the most likely phoneme sequence. Baum-Welch estimates transition and emission parameters from labeled speech data.
+
+**Common traps:**
+- Forgetting to implement in log space. Forward/Viterbi probabilities underflow to zero for long sequences — always use log probabilities with log-sum-exp.
+- Confusing the three algorithms. Forward: sum-product, returns a scalar probability. Viterbi: max-product with backpointers, returns a sequence. Baum-Welch: EM with forward-backward in the E-step.
 
 ---
 
 ## 4. Markov Random Fields
 
-### Clique Potentials and Gibbs Distribution
+**What the interviewer is testing:** Whether you understand that MRFs represent undirected dependencies through clique potentials, why the partition function is the fundamental obstacle, and how specific models (RBMs) exploit structure to make inference tractable.
 
-An MRF (undirected graphical model) defines:
+**The reasoning structure:** An MRF's distribution factorizes over clique potentials:
+$$P(X) = \frac{1}{Z} \prod_{c \in C} \phi_c(X_c)$$
 
+The partition function $Z = \sum_X \prod_c \phi_c(X_c)$ normalizes — and computing it requires summing over all configurations: exponential in the number of variables. The Hammersley-Clifford theorem establishes the equivalence between Markov properties of the graph and Gibbs factorization.
+
+**Image segmentation (grid MRF):**
 ```
-P(X) = (1/Z) * prod_{c in C} phi_c(X_c)
+P(Y | X) ∝  prod_i phi_data(Yi, Xi)  *  prod_{(i,j) in Edges} phi_smooth(Yi, Yj)
 ```
+- `phi_data`: pixel intensity matches label distribution
+- `phi_smooth = exp(-lambda * 1[Yi != Yj])`: penalty for neighboring pixels with different labels
 
-- `C` = set of maximal cliques
-- `phi_c(X_c) >= 0` = clique potential (compatibility function, not a probability)
-- `Z = sum_X prod_c phi_c(X_c)` = partition function (normalizing constant)
+**Boltzmann Machine:** An MRF over binary units with pairwise potentials:
+$$P(v, h) = \frac{1}{Z} \exp(v^T W h + b^T v + c^T h)$$
 
-Taking log: `log P(X) = sum_c log phi_c(X_c) - log Z` (energy-based form, with `E_c = -log phi_c`).
-
-### Partition Function Intractability
-
-Computing Z requires summing over all configurations: exponential in the number of variables. This is #P-hard in general, which motivates approximate inference (BP, VI, MCMC).
-
-### Hammersley-Clifford Theorem
-
-A positive distribution P satisfies the Markov properties of an undirected graph G if and only if it factorizes as a Gibbs distribution over cliques of G.
-
-### Example: Image Segmentation (Grid MRF)
-
-Pixels arranged in a grid. Each pixel has a label (foreground/background). MRF encourages spatially smooth labelings:
-
+**Restricted Boltzmann Machine (RBM):** No intra-layer connections. The bipartite structure makes conditional distributions tractable:
 ```
-P(Y | X) proportional to  prod_i phi_data(Yi, Xi)  *  prod_{(i,j) in Edges} phi_smooth(Yi, Yj)
+P(h | v) = prod_j P(hj | v)     # independent given visible
+P(v | h) = prod_i P(vi | h)     # independent given hidden
 ```
+This enables block Gibbs sampling (contrastive divergence) for training.
 
-- `phi_data(Yi, Xi)`: data likelihood (pixel intensity matches label distribution)
-- `phi_smooth(Yi, Yj) = exp(-lambda * 1[Yi != Yj])`: penalty for neighboring pixels having different labels
+**The pattern in action:** A content-based image segmentation task. You model each pixel's label as depending on its observed intensity (data term) and its neighbors' labels (smoothness term). The MRF encodes the assumption that adjacent pixels tend to have the same label. Inference is via loopy belief propagation or graph cuts — both approximate methods for dealing with the intractable partition function.
 
-Inference typically via graph cuts or loopy belief propagation.
-
-### Boltzmann Machines
-
-A Boltzmann machine is an MRF over binary units with pairwise potentials:
-
-```
-P(v, h) = (1/Z) * exp( v^T W h + b^T v + c^T h )
-```
-
-- `v`: visible units, `h`: hidden units
-- `W`: weight matrix between visible and hidden
-- `b, c`: bias vectors
-
-**Restricted Boltzmann Machine (RBM):** No intra-layer connections. Visible and hidden layers form a bipartite graph, making conditional independence exact:
-
-```
-P(h | v) = prod_j P(hj | v)     (hidden units independent given visible)
-P(v | h) = prod_i P(vi | h)     (visible units independent given hidden)
-```
-
-This enables efficient block Gibbs sampling (contrastive divergence for training).
+**Common traps:**
+- Assuming the partition function is computable. For most real-world MRFs it is not — this is why all training and inference algorithms for MRFs involve approximations.
+- Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.
 
 ---
 
 ## 5. Belief Propagation
 
-### Sum-Product on Trees (Exact)
+**What the interviewer is testing:** Whether you understand when belief propagation is exact (trees), when it is approximate (loopy graphs), and why it works as well as it does despite no convergence guarantee for loopy graphs.
 
-For a tree-structured graphical model, BP computes exact marginals via message passing.
+**The reasoning structure:** Belief propagation passes messages along edges. On a tree, a node's marginal is determined by the messages from its neighbors — there are no cycles, so each path of information is unique.
 
-**Messages from node i to neighbor j** (variable-to-variable on factor graph):
-
+**Sum-product messages (factor graphs, trees):**
 ```
-mu_{i->j}(xj) = sum_{xi} [ phi_i(xi) * phi_{ij}(xi, xj) * prod_{k in N(i)\j} mu_{k->i}(xi) ]
-```
-
-After convergence, marginal at node i:
-
-```
-P(xi) proportional to phi_i(xi) * prod_{k in N(i)} mu_{k->i}(xi)
+Variable to factor:    mu_{x -> f}(x)  = prod_{g in N(x) \ f} mu_{g -> x}(x)
+Factor to variable:    mu_{f -> x}(x)  = sum_{~x} [ f(X_f) * prod_{y in N(f) \ x} mu_{y -> f}(y) ]
 ```
 
-**Complexity:** O(N * K^2) for N nodes with K states, on trees.
+After convergence on a tree, the marginal at node $i$:
+$$P(x_i) \propto \phi_i(x_i) \prod_{k \in N(i)} \mu_{k \to i}(x_i)$$
 
-### Factor Graphs
+Complexity: $O(N \cdot K^2)$ for $N$ nodes with $K$ states.
 
-A factor graph makes factorization explicit with two node types:
-- **Variable nodes** (circles): one per random variable
-- **Factor nodes** (squares): one per factor in the distribution
+**Loopy BP:** Run the same equations on graphs with cycles, iterating until convergence or max iterations. Not guaranteed to converge; when it does, the fixed-point marginals are approximations. Equivalent to the Bethe free energy approximation. Works well empirically in LDPC codes and computer vision despite the lack of theoretical guarantees.
 
-Edges connect each factor to its arguments. BP on factor graphs:
+**Max-product:** Replace sum with max in messages to compute MAP assignments instead of marginals. On trees, max-product equals Viterbi. On loopy graphs, approximate MAP decoding.
 
-```
-# Variable to factor:
-mu_{x -> f}(x) = prod_{g in N(x) \ f} mu_{g -> x}(x)
+**Scheduling strategies:** Synchronous (all messages updated simultaneously), asynchronous (sequential updates), residual BP (update highest-residual messages first — faster convergence).
 
-# Factor to variable:
-mu_{f -> x}(x) = sum_{~x} [ f(X_f) * prod_{y in N(f) \ x} mu_{y -> f}(y) ]
-```
+**The pattern in action:** In error-correcting codes (LDPC), the factor graph has cycles but belief propagation converges quickly and delivers near-optimal decoding. The reason: the cycles are long, so the short loops of information that violate the tree assumption are rare relative to the information flowing along long paths. Loopy BP performs poorly on graphs with many short cycles.
 
-### Loopy BP (Approximate)
-
-On graphs with cycles, run the same message-passing equations iteratively until convergence (or max iterations). Not guaranteed to converge; when it does, fixed-point marginals are approximations.
-
-**Convergence and quality:**
-- Converges on trees (exact), often on sparse loopy graphs (approximate)
-- Equivalent to Bethe free energy approximation
-- Good empirically in applications like error-correcting codes (LDPC), computer vision
-
-**Scheduling strategies:** synchronous (all messages at once), asynchronous (sequential), residual BP (update highest-residual messages first).
-
-### Max-Product for MAP Inference
-
-Replace sum with max in messages to compute the MAP assignment instead of marginals. On trees, max-product is equivalent to Viterbi. On loopy graphs, approximate MAP decoding.
+**Common traps:**
+- Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.
+- Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.
 
 ---
 
 ## 6. Variational Inference
 
-### Evidence Lower Bound (ELBO)
+**What the interviewer is testing:** Whether you can derive the ELBO from first principles, explain what mean-field assumes and why it leads to biased posteriors, and connect variational inference to VAEs.
 
-Given observations X and latent variables Z, we want the posterior `P(Z | X)`, which is intractable. Introduce a variational distribution `q(Z)` from a tractable family.
+**The reasoning structure:** The exact posterior $P(Z \mid X)$ is intractable for most models. Variational inference introduces a tractable family $q(Z)$ and minimizes $D_{KL}(q(Z) \| P(Z \mid X))$. Since the KL is also intractable, the equivalent objective is maximizing the ELBO.
 
 **ELBO derivation:**
+$$\log P(X) = \log \int P(X, Z) \, dZ$$
+$$= \log \int q(Z) \cdot \frac{P(X, Z)}{q(Z)} \, dZ$$
+$$\geq \int q(Z) \log \frac{P(X, Z)}{q(Z)} \, dZ \quad \text{(Jensen's inequality)}$$
+$$= \mathbb{E}_q[\log P(X, Z)] - \mathbb{E}_q[\log q(Z)]$$
+$$= \mathbb{E}_q[\log P(X, Z)] + H[q] = \text{ELBO}(q)$$
 
-```
-log P(X) = log integral P(X, Z) dZ
+The gap is $\log P(X) - \text{ELBO}(q) = D_{KL}(q(Z) \| P(Z \mid X)) \geq 0$.
 
-         = log integral q(Z) * [P(X, Z) / q(Z)] dZ
+**Mean-field approximation:** Assume $q(Z) = \prod_i q_i(Z_i)$ — all latents are independent under $q$. Each factor's optimal update:
+$$\log q_j^*(Z_j) = \mathbb{E}_{q_{-j}}[\log P(X, Z)] + \text{const}$$
 
-        >= integral q(Z) * log [P(X, Z) / q(Z)] dZ     (Jensen's inequality)
+**CAVI (Coordinate Ascent VI):** Cycle through factors, updating each to its optimal closed form, until ELBO converges.
 
-         = E_q[log P(X, Z)] - E_q[log q(Z)]
+**Why mean-field underestimates posterior variance:** Mean-field minimizes $D_{KL}(q \| P(Z \mid X))$. This is the reverse KL, which is zero-forcing — $q$ concentrates on modes of $P$ and avoids regions where $P$ is small. The result is an approximate posterior that is too narrow and too confident.
 
-         = E_q[log P(X, Z)] + H[q]
+**VAE connection:**
+$$\mathcal{L}(\theta, \phi; x) = \mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)] - D_{KL}(q_\phi(z|x) \| p(z))$$
+Encoder $q_\phi$ is the variational distribution (amortized — shared across all $x$). Decoder $p_\theta$ is the generative model. The reparameterization trick $z = \mu + \sigma \epsilon$, $\epsilon \sim \mathcal{N}(0, I)$ allows gradients to flow through sampling.
 
-         = ELBO(q)
-```
+**The pattern in action:** LDA inference is a textbook CAVI application. The latent variables are topic assignments $z$ and topic distributions $\theta$. Mean-field VI factorizes over all $z_{d,n}$ and $\theta_d$ independently, allowing closed-form Dirichlet-Categorical updates. The approximation is biased (true posterior has correlations between topic assignments and topic proportions that mean-field ignores), but it is fast and scales to millions of documents.
 
-**Gap:** `log P(X) - ELBO(q) = KL(q(Z) || P(Z | X)) >= 0`
-
-Maximizing ELBO is equivalent to minimizing KL divergence between q and the true posterior.
-
-### Mean-Field Approximation
-
-Assume q fully factorizes: `q(Z) = prod_i q_i(Z_i)`
-
-Each factor's optimal update (holding others fixed):
-
-```
-log q_j*(Zj) = E_{q_{-j}}[log P(X, Z)] + const
-```
-
-This is the **CAVI** (Coordinate Ascent Variational Inference) update.
-
-**CAVI Algorithm:**
-1. Initialize all `q_i` arbitrarily
-2. For each factor j:
-   - `log q_j*(Zj) = E_{-j}[log P(X, Z)] + const`
-   - Normalize to get valid distribution
-3. Compute ELBO; repeat until convergence
-
-Mean-field assumes all latents are independent under q, which introduces bias but enables closed-form updates for exponential family models.
-
-### Connection to VAEs
-
-In a Variational Autoencoder:
-- **Encoder** `q_phi(z | x)`: amortized variational distribution (neural network approximation to posterior)
-- **Decoder** `p_theta(x | z)`: generative model
-
-**ELBO for VAE:**
-
-```
-L(theta, phi; x) = E_{q_phi(z|x)}[log p_theta(x|z)] - KL(q_phi(z|x) || p(z))
-```
-
-- First term: reconstruction quality
-- Second term: regularization toward prior `p(z) = N(0, I)`
-
-**Reparameterization trick:** Sample `z = mu + sigma * eps`, `eps ~ N(0,I)` to allow gradients to flow through sampling.
+**Common traps:**
+- Saying VI is "just minimizing KL divergence." Minimizing $D_{KL}(q \| P)$ is the right framing, but the direction matters: reverse KL produces mode-seeking behavior; forward KL would produce mean-seeking behavior. Most VI uses reverse KL.
+- Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.
 
 ---
 
 ## 7. MCMC Methods
 
-### Gibbs Sampling
+**What the interviewer is testing:** Whether you can explain why MCMC produces correct samples (detailed balance) and compare Gibbs, MH, and HMC on the correct criteria (computational cost, mixing speed, applicability).
 
-Sample each variable from its full conditional, holding all others fixed:
+**The reasoning structure:** MCMC constructs a Markov chain whose stationary distribution is the target distribution $\pi(x)$. By drawing samples from a long-running chain, you obtain approximate samples from $\pi$ — asymptotically exact, unlike variational inference.
 
-```
-X_i^(t+1) ~ P(Xi | X_{-i}^(t))
-```
-
-**Properties:**
-- Special case of Metropolis-Hastings with acceptance rate 1
-- Requires tractable full conditionals (available in conjugate models)
-- Efficient for MRFs, HMMs (forward-backward), LDA
+**Gibbs Sampling:** Sample each variable from its full conditional, holding all others fixed:
+$$X_i^{(t+1)} \sim P(X_i \mid X_{-i}^{(t)})$$
+A special case of MH with acceptance rate 1. Requires tractable full conditionals — available in conjugate models.
 
 ```python
-import numpy as np
-
 def gibbs_sampling_ising(J, n_steps=1000, beta=1.0):
-    """Gibbs sampling for 1D Ising model."""
     N = len(J) + 1
     x = np.random.choice([-1, 1], size=N)
     samples = []
-
     for _ in range(n_steps):
         for i in range(N):
-            # Compute local field
             h = 0
-            if i > 0:
-                h += J[i-1] * x[i-1]
-            if i < N - 1:
-                h += J[i] * x[i+1]
-            # Full conditional: P(xi=+1 | x_{-i}) = sigmoid(2*beta*h)
+            if i > 0: h += J[i-1] * x[i-1]
+            if i < N - 1: h += J[i] * x[i+1]
             p_plus = 1.0 / (1.0 + np.exp(-2 * beta * h))
             x[i] = 1 if np.random.rand() < p_plus else -1
         samples.append(x.copy())
-
     return np.array(samples)
 ```
 
-### Metropolis-Hastings
-
-General MCMC for any target distribution `pi(x)`:
-
+**Metropolis-Hastings:** General MCMC for any target:
 ```
 1. Propose x' ~ q(x' | x^(t))
 2. Compute acceptance ratio:
-   alpha = min(1,  pi(x') * q(x | x') / (pi(x^(t)) * q(x' | x)))
-3. Accept: x^(t+1) = x' with probability alpha
-   Reject: x^(t+1) = x^(t) with probability 1 - alpha
+   alpha = min(1, pi(x') * q(x | x') / (pi(x^(t)) * q(x' | x)))
+3. Accept x' with probability alpha; else stay at x^(t)
 ```
+Only $\pi$ up to a normalizing constant is needed — the normalization cancels in the ratio. This is the key property that makes MCMC useful when $Z$ is intractable.
 
-The proposal q can be symmetric (random walk), in which case `q` cancels and only the ratio `pi(x') / pi(x)` matters (Metropolis algorithm). Only `pi` up to a normalizing constant is needed.
+**Hamiltonian Monte Carlo (HMC):** Uses gradient information to make long-distance moves:
+$$H(x, p) = U(x) + K(p), \quad U(x) = -\log \pi(x), \quad K(p) = \frac{p^T M^{-1} p}{2}$$
+Leapfrog integration for $L$ steps of size $\epsilon$; MH accept/reject on $H$. Mixes far faster than random-walk MH in high dimensions because it follows the local geometry.
 
-### Hamiltonian Monte Carlo (HMC)
+**NUTS (No-U-Turn Sampler):** Automates HMC by adaptively choosing $L$, eliminating the need to tune the number of leapfrog steps. Standard in Stan, PyMC.
 
-Uses gradient information to make long-distance moves efficiently, avoiding random-walk behavior.
+| Method | Bias | Variance | Scalability | Use when |
+|---|---|---|---|---|
+| Mean-field VI | Biased | Low | High | Large scale, conjugate models |
+| Gibbs | Asymptotically unbiased | High | Medium | Conjugate models, sparse graphs |
+| MH | Asymptotically unbiased | High | Low | Any target, easy to implement |
+| HMC / NUTS | Asymptotically unbiased | Lower | Lower | Continuous latents, medium scale |
 
-**Augment** state space with momentum `p` (same dimension as `x`):
-
-```
-H(x, p) = U(x) + K(p)
-U(x) = -log pi(x)           (potential energy)
-K(p) = p^T M^{-1} p / 2    (kinetic energy, M = mass matrix)
-```
-
-**Leapfrog integrator** (L steps of size epsilon):
-
-```
-p_{t+eps/2} = p_t - (eps/2) * grad_x U(x_t)
-x_{t+eps}   = x_t + eps * M^{-1} p_{t+eps/2}
-p_{t+eps}   = p_{t+eps/2} - (eps/2) * grad_x U(x_{t+eps})
-```
-
-Accept/reject via MH step on `H(x', p')` vs `H(x, p)`. HMC has acceptance rate close to 1 for well-tuned epsilon, and mixes much faster than random walk MH in high dimensions.
-
-### NUTS (No-U-Turn Sampler)
-
-Automates HMC by adaptively choosing the number of leapfrog steps, eliminating the need to tune L. Standard in probabilistic programming systems (Stan, PyMC). Detects when trajectory starts doubling back ("U-turn") using a criterion on the dot product of momentum and displacement.
-
-### Convergence Diagnostics
+**Convergence diagnostics:**
 
 | Diagnostic | Description | Target |
 |---|---|---|
-| R-hat (Gelman-Rubin) | Ratio of between-chain to within-chain variance | < 1.01 |
-| ESS (Effective Sample Size) | Accounts for autocorrelation: `ESS = N / (1 + 2 * sum_k rho_k)` | > 100 per chain |
-| Trace plots | Visual inspection of chains mixing | Stationary, well-mixed |
-| Autocorrelation plot | Correlation at successive lags | Drops quickly to 0 |
+| R-hat (Gelman-Rubin) | Between-chain vs within-chain variance ratio | < 1.01 |
+| ESS (Effective Sample Size) | $N / (1 + 2\sum_k \rho_k)$ | > 100 per chain |
+| Trace plots | Visual inspection of mixing | Stationary, well-mixed |
 
-**Warmup / burn-in:** Discard initial samples before the chain reaches stationarity.
+**The pattern in action:** A Bayesian hierarchical model for multi-site clinical trial analysis has a posterior over hundreds of continuous latent parameters (site effects, treatment effects, variance components). Gibbs requires conjugate conditionals — not available here. MH with random-walk proposals mixes slowly in 200 dimensions. HMC/NUTS with gradient-informed proposals mixes efficiently and is the standard choice in Stan.
+
+**Common traps:**
+- R-hat < 1.01 is necessary but not sufficient for convergence — also check ESS and trace plots.
+- Discarding too few warmup samples. The chain must reach stationarity before samples are useful.
+- Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.
 
 ---
 
 ## 8. Latent Dirichlet Allocation
 
-### Generative Process and Plate Notation
+**What the interviewer is testing:** Whether you can describe the generative model precisely, explain why Dirichlet priors are used, and distinguish the inference choices (Gibbs vs variational) and their tradeoffs.
 
-LDA models documents as mixtures of topics, where each topic is a distribution over words.
+**The reasoning structure:** LDA models each document as a mixture of topics, where each topic is a distribution over vocabulary words.
 
-**Plate notation:**
-
+**Generative process:**
 ```
-alpha -> theta_d -> z_{d,n} -> w_{d,n} <- phi_k <- beta
-
-Plates:
-  Outer plate: D documents
-  Inner plate: N words per document
-  K topics (separate plate)
-```
-
-**Generative process (for document d):**
-
-```
-1. Draw topic proportions:  theta_d ~ Dirichlet(alpha)
-2. For each word position n in document d:
-   a. Draw topic:            z_{d,n} ~ Categorical(theta_d)
-   b. Draw word:             w_{d,n} ~ Categorical(phi_{z_{d,n}})
-3. Topic-word distributions: phi_k ~ Dirichlet(beta)   for k=1,...,K
+For each topic k=1,...,K:    phi_k ~ Dirichlet(beta)        [topic-word distribution]
+For each document d=1,...,D:
+    theta_d ~ Dirichlet(alpha)                              [document-topic proportion]
+    For each word n=1,...,Nd:
+        z_{d,n} ~ Categorical(theta_d)                      [topic assignment]
+        w_{d,n} ~ Categorical(phi_{z_{d,n}})                [word drawn from topic]
 ```
 
-### Collapsed Gibbs Sampling
+Dirichlet is the conjugate prior to Categorical — this enables closed-form posterior updates. $\alpha$ controls document-topic sparsity (small $\alpha$ → documents focus on few topics). $\beta$ controls topic-word sparsity (small $\beta$ → topics focus on few words).
 
-Integrate out theta and phi analytically (conjugacy of Dirichlet-Categorical), then sample topic assignments z:
-
-```
-P(z_{d,n} = k | z_{-d,n}, W) proportional to
-    (n_{d,k}^{-d,n} + alpha) * (n_{k,w}^{-d,n} + beta) / (n_k^{-d,n} + V*beta)
-```
-
-where:
-- `n_{d,k}^{-d,n}` = number of tokens in doc d assigned to topic k (excluding current)
-- `n_{k,w}^{-d,n}` = number of times word w is assigned to topic k (excluding current)
-- `n_k^{-d,n}` = total tokens assigned to topic k (excluding current)
-
-This is far more efficient than full Gibbs because it only tracks integer counts.
+**Collapsed Gibbs sampling:** Integrate out $\theta$ and $\phi$ analytically (Dirichlet-Categorical conjugacy), then sample topic assignments $z$:
+$$P(z_{d,n} = k \mid z_{-d,n}, W) \propto (n_{d,k}^{-d,n} + \alpha)(n_{k,w}^{-d,n} + \beta) / (n_k^{-d,n} + V\beta)$$
+Only integer counts need to be tracked — fast and memory-efficient.
 
 ### Python Code — LDA with sklearn
 
@@ -614,315 +371,126 @@ from sklearn.datasets import fetch_20newsgroups
 from sklearn.feature_extraction.text import CountVectorizer
 from sklearn.decomposition import LatentDirichletAllocation
 
-# -------------------------------------------------------
-# Load and vectorize a small subset of 20 Newsgroups
-# -------------------------------------------------------
 categories = ['sci.space', 'rec.sport.hockey', 'comp.graphics']
-newsgroups = fetch_20newsgroups(
-    subset='train',
-    categories=categories,
-    remove=('headers', 'footers', 'quotes')
-)
+newsgroups = fetch_20newsgroups(subset='train', categories=categories,
+                                 remove=('headers', 'footers', 'quotes'))
 
-vectorizer = CountVectorizer(
-    max_df=0.95,      # ignore terms in >95% of docs
-    min_df=5,         # ignore terms in <5 docs
-    max_features=2000,
-    stop_words='english'
-)
-X_counts = vectorizer.fit_transform(newsgroups.data)  # (n_docs, vocab_size)
+vectorizer = CountVectorizer(max_df=0.95, min_df=5, max_features=2000,
+                              stop_words='english')
+X_counts = vectorizer.fit_transform(newsgroups.data)
 vocab = vectorizer.get_feature_names_out()
 
-print(f"Corpus: {X_counts.shape[0]} docs, vocab size {X_counts.shape[1]}")
-
-# -------------------------------------------------------
-# Fit LDA (online variational Bayes by default in sklearn)
-# -------------------------------------------------------
 n_topics = 3
-lda = LatentDirichletAllocation(
-    n_components=n_topics,
-    max_iter=20,
-    learning_method='online',   # 'batch' for full variational EM
-    learning_offset=50.0,
-    random_state=42,
-    doc_topic_prior=0.1,        # alpha
-    topic_word_prior=0.01,      # beta
-)
+lda = LatentDirichletAllocation(n_components=n_topics, max_iter=20,
+                                  learning_method='online', random_state=42,
+                                  doc_topic_prior=0.1, topic_word_prior=0.01)
 lda.fit(X_counts)
-
 print(f"Perplexity: {lda.perplexity(X_counts):.1f}")
 
-# -------------------------------------------------------
-# Inspect top words per topic
-# -------------------------------------------------------
 n_top_words = 10
-
-def print_top_words(model, feature_names, n_top):
-    for topic_idx, topic in enumerate(model.components_):
-        top_idx = topic.argsort()[-n_top:][::-1]
-        top_words = [feature_names[i] for i in top_idx]
-        print(f"Topic {topic_idx}: {', '.join(top_words)}")
-
-print_top_words(lda, vocab, n_top_words)
-
-# -------------------------------------------------------
-# Document-topic distribution for a new document
-# -------------------------------------------------------
-new_doc = ["NASA launched a new satellite into orbit around Mars"]
-X_new = vectorizer.transform(new_doc)
-topic_dist = lda.transform(X_new)   # shape (1, n_topics)
-print(f"Topic distribution for new doc: {topic_dist.round(3)}")
-
-# -------------------------------------------------------
-# Topic coherence approximation: PMI-based (manual)
-# -------------------------------------------------------
-def topic_coherence_pmi(topic_words, X_counts, vocab_list, epsilon=1e-12):
-    """Approximate PMI-based coherence for a single topic."""
-    word_to_idx = {w: i for i, w in enumerate(vocab_list)}
-    indices = [word_to_idx[w] for w in topic_words if w in word_to_idx]
-    X_bin = (X_counts[:, indices] > 0).toarray()
-    D = X_bin.shape[0]
-    score = 0.0
-    count = 0
-    for i in range(len(indices)):
-        for j in range(i):
-            pij = (X_bin[:, i] * X_bin[:, j]).sum() / D + epsilon
-            pi  = X_bin[:, i].mean() + epsilon
-            pj  = X_bin[:, j].mean() + epsilon
-            score += np.log(pij / (pi * pj))
-            count += 1
-    return score / count if count > 0 else 0.0
-
 for topic_idx, topic in enumerate(lda.components_):
-    top_words = [vocab[i] for i in topic.argsort()[-10:][::-1]]
-    c = topic_coherence_pmi(top_words, X_counts, list(vocab))
-    print(f"Topic {topic_idx} coherence: {c:.3f}")
+    top_idx = topic.argsort()[-n_top_words:][::-1]
+    top_words = [vocab[i] for i in top_idx]
+    print(f"Topic {topic_idx}: {', '.join(top_words)}")
 ```
+
+**The pattern in action:** A corpus of scientific papers — LDA discovers topics corresponding to "machine learning" (gradient, model, training), "biology" (gene, protein, cell), and "physics" (quantum, particle, energy) without supervision. The number of topics $K$ is a hyperparameter: too small and distinct topics merge; too large and topics fragment into redundant variations. Perplexity on held-out data and coherence scores (PMI of top words) guide $K$ selection.
+
+**Common traps:**
+- Topic indices are not identifiable — topics may be permuted across different runs. Never compare topic $k=3$ from two independent runs.
+- sklearn's LDA uses online variational EM, not collapsed Gibbs — it is fast but produces biased estimates. For research-quality topic models, use collapsed Gibbs (gensim).
+- Forgetting that LDA assumes a bag-of-words representation — word order is discarded.
 
 ---
 
 ## 9. Conditional Random Fields
 
-### Discriminative MRF
+**What the interviewer is testing:** Whether you can explain why CRFs outperform HMMs for structured prediction, and what the discriminative-generative distinction means for feature design.
 
-CRFs model `P(Y | X)` directly (discriminative), unlike generative MRFs that model `P(X, Y)`. This sidesteps the need to model the observation distribution and typically yields better performance on structured prediction tasks.
+**The reasoning structure:** An HMM is a generative model — it models the joint $P(X, Y)$ and requires modeling the emission distribution $P(X \mid Y)$. This forces independence assumptions on features: each observation only depends on the current state. A CRF models $P(Y \mid X)$ directly, sidestepping the need to model the observation distribution and allowing arbitrary overlapping features of the entire observation sequence.
 
-**Linear-chain CRF** for sequence labeling (e.g., NER, POS tagging):
+**Linear-chain CRF for sequence labeling:**
+$$P(Y \mid X) = \frac{1}{Z(X)} \exp\left(\sum_{t=1}^{T} \sum_k \lambda_k f_k(y_{t-1}, y_t, X, t)\right)$$
 
-```
-P(Y | X) = (1/Z(X)) * exp( sum_{t=1}^{T} sum_k lambda_k * f_k(y_{t-1}, y_t, X, t) )
-```
+Feature functions $f_k$ can depend on the entire sequence $X$ — you can use a future context word, the capitalization pattern of any word, or the presence of a word in a gazetteer. HMMs cannot use such features without violating the emission independence assumption.
 
-where `f_k` are feature functions (can be arbitrary functions of the entire observation sequence X) and `lambda_k` are learned weights.
+**Inference:** Forward-backward for marginals (used in training gradient computation). Viterbi for MAP decoding (same recurrence as HMM Viterbi but with CRF potentials).
 
-**Key advantage over HMMs:**
-- HMM: `P(Y, X) = prod_t P(xt | yt) P(yt | y_{t-1})` — requires modeling emission `P(x | y)`
-- CRF: directly models `P(Y | X)` — no emission assumption, can use overlapping/non-independent features
-
-### Inference
-
-**Marginal inference (forward-backward):** Adapted from HMM forward-backward; compute `P(yt, y_{t+1} | X)` and marginals `P(yt | X)` for training.
-
-**MAP decoding (Viterbi):** Same recurrence as HMM Viterbi but with CRF potentials:
-
-```
-delta_t(j) = max_i [ delta_{t-1}(i) + sum_k lambda_k * f_k(i, j, X, t) ]
-```
+The partition function $Z(X)$ conditions on $X$, so it must be recomputed per sequence — unlike MRFs where $Z$ is a global constant.
 
 ### Python Code — CRF with sklearn-crfsuite
 
 ```python
-# pip install sklearn-crfsuite
-
 import sklearn_crfsuite
 from sklearn_crfsuite import metrics
 from sklearn.model_selection import train_test_split
 
-# -------------------------------------------------------
-# Feature extraction for NER-style sequence labeling
-# -------------------------------------------------------
-
 def word_features(sentence, i):
-    """Extract features for word at position i in sentence."""
-    word = sentence[i][0]   # (word, POS, label) tuples assumed
+    word = sentence[i][0]
     pos  = sentence[i][1]
-
     features = {
         'bias': 1.0,
         'word.lower()': word.lower(),
-        'word[-3:]': word[-3:],          # suffix
-        'word[-2:]': word[-2:],
+        'word[-3:]': word[-3:],
         'word.isupper()': word.isupper(),
         'word.istitle()': word.istitle(),
         'word.isdigit()': word.isdigit(),
         'pos': pos,
-        'pos[:2]': pos[:2],
     }
-
     if i > 0:
-        prev_word, prev_pos = sentence[i-1][0], sentence[i-1][1]
-        features.update({
-            '-1:word.lower()': prev_word.lower(),
-            '-1:word.istitle()': prev_word.istitle(),
-            '-1:pos': prev_pos,
-            '-1:pos[:2]': prev_pos[:2],
-        })
+        pw, pp = sentence[i-1][0], sentence[i-1][1]
+        features.update({'-1:word.lower()': pw.lower(), '-1:pos': pp})
     else:
-        features['BOS'] = True   # Beginning of sentence
-
+        features['BOS'] = True
     if i < len(sentence) - 1:
-        next_word, next_pos = sentence[i+1][0], sentence[i+1][1]
-        features.update({
-            '+1:word.lower()': next_word.lower(),
-            '+1:word.istitle()': next_word.istitle(),
-            '+1:pos': next_pos,
-            '+1:pos[:2]': next_pos[:2],
-        })
+        nw, np_ = sentence[i+1][0], sentence[i+1][1]
+        features.update({'+1:word.lower()': nw.lower(), '+1:pos': np_})
     else:
-        features['EOS'] = True   # End of sentence
-
+        features['EOS'] = True
     return features
 
+def sentence_to_features(s): return [word_features(s, i) for i in range(len(s))]
+def sentence_to_labels(s): return [label for _, _, label in s]
 
-def sentence_to_features(sentence):
-    return [word_features(sentence, i) for i in range(len(sentence))]
-
-def sentence_to_labels(sentence):
-    return [label for _, _, label in sentence]
-
-
-# -------------------------------------------------------
-# Synthetic NER data: (word, POS, BIO-label) triples
-# -------------------------------------------------------
-import random
-random.seed(42)
-
-# Simplified synthetic sentences
 templates = [
     [("John", "NNP", "B-PER"), ("works", "VBZ", "O"), ("at", "IN", "O"),
      ("Google", "NNP", "B-ORG"), ("in", "IN", "O"), ("London", "NNP", "B-LOC")],
     [("Apple", "NNP", "B-ORG"), ("CEO", "NN", "O"), ("Tim", "NNP", "B-PER"),
      ("Cook", "NNP", "I-PER"), ("visited", "VBD", "O"), ("Paris", "NNP", "B-LOC")],
-    [("The", "DT", "O"), ("conference", "NN", "O"), ("was", "VBD", "O"),
-     ("held", "VBN", "O"), ("in", "IN", "O"), ("Berlin", "NNP", "B-LOC")],
-    [("Microsoft", "NNP", "B-ORG"), ("acquired", "VBD", "O"),
-     ("GitHub", "NNP", "B-ORG"), ("for", "IN", "O"), ("billions", "NNS", "O")],
 ]
 
-# Replicate to get more samples
-sentences = templates * 50  # 200 sentences
+import random; random.seed(42)
+sentences = templates * 50
 random.shuffle(sentences)
 
 X_all = [sentence_to_features(s) for s in sentences]
 y_all = [sentence_to_labels(s) for s in sentences]
+X_train, X_test, y_train, y_test = train_test_split(X_all, y_all, test_size=0.2)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X_all, y_all, test_size=0.2, random_state=42
-)
-
-# -------------------------------------------------------
-# Train linear-chain CRF
-# -------------------------------------------------------
-crf = sklearn_crfsuite.CRF(
-    algorithm='lbfgs',          # L-BFGS optimization
-    c1=0.1,                     # L1 regularization (sparsity)
-    c2=0.1,                     # L2 regularization
-    max_iterations=100,
-    all_possible_transitions=True
-)
+crf = sklearn_crfsuite.CRF(algorithm='lbfgs', c1=0.1, c2=0.1,
+                             max_iterations=100, all_possible_transitions=True)
 crf.fit(X_train, y_train)
 
-# -------------------------------------------------------
-# Evaluate
-# -------------------------------------------------------
 y_pred = crf.predict(X_test)
-
-labels = list(crf.classes_)
-labels.remove('O')   # exclude 'Outside' tag from aggregate metrics
-
-print(metrics.flat_classification_report(
-    y_test, y_pred, labels=labels, digits=3
-))
-
-# -------------------------------------------------------
-# Viterbi decoding is implicit in crf.predict()
-# Inspect transition weights learned
-# -------------------------------------------------------
-print("\nTop transition features:")
-from collections import Counter
-
-trans_features = Counter(crf.transition_features_).most_common(10)
-for (label_from, label_to), weight in trans_features:
-    print(f"  {label_from:>10} -> {label_to:<10}  {weight:.3f}")
-
-# -------------------------------------------------------
-# Inference on a new sentence
-# -------------------------------------------------------
-new_sentence = [
-    ("Barack", "NNP", "O"),
-    ("Obama", "NNP", "O"),
-    ("visited", "VBD", "O"),
-    ("Tokyo", "NNP", "O"),
-]
-X_new = [sentence_to_features(new_sentence)]
-predicted_tags = crf.predict(X_new)[0]
-print("\nPredicted tags for new sentence:")
-for (word, _, _), tag in zip(new_sentence, predicted_tags):
-    print(f"  {word:10} -> {tag}")
+labels = [l for l in crf.classes_ if l != 'O']
+print(metrics.flat_classification_report(y_test, y_pred, labels=labels))
 ```
+
+**The pattern in action:** Named entity recognition (NER). An HMM must model how each word is emitted from each entity type — requiring a probability table $P(\text{word} \mid \text{entity type})$ across a 100k-word vocabulary. A CRF avoids this: it uses features like "is the word capitalized?", "is it in a person name lexicon?", "does it follow a title word?" — features that fire across the entire context window. The CRF is trained discriminatively to distinguish entity sequences, not generatively to produce sentences.
+
+**Common traps:**
+- Treating CRF and HMM as equivalent with different parameter estimation. The key distinction is the feature expressiveness — CRFs can use overlapping, non-independent features; HMMs fundamentally cannot.
+- Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.
 
 ---
 
-## 10. Key Interview Points
+## Quick Diagnostics
 
-### PGM Fundamentals
+**If asked about the difference between directed and undirected models:**
+Directed (BN) encodes causal/generative direction and is always normalized. Undirected (MRF) encodes symmetric affinity and requires the partition function $Z$ for normalization — which is typically intractable. This intractability drives the entire field of approximate inference.
 
-- **BN vs MRF:** BNs are directed (causal, normalized by construction); MRFs are undirected (symmetric, require partition function). Converting between them (moralization for BN->MRF) adds undirected edges between co-parents.
-- **D-separation:** The collider pattern is the counterintuitive case — observing a collider (or its descendant) opens a previously blocked path (explaining away / Berkson's paradox).
-- **Treewidth:** The fundamental complexity parameter. Exact inference is polynomial in the number of states raised to the treewidth. Most real-world graphs have high treewidth, necessitating approximation.
+**If asked about VI vs MCMC:**
+VI is faster and scales better; MCMC is asymptotically unbiased. VI uses reverse KL, which is mode-seeking and underestimates posterior variance. MCMC produces correct posterior samples given enough time. For large-scale applications, VI is standard; for accurate posterior quantification in smaller models, HMC/NUTS is preferred.
 
-### Inference Algorithms
-
-- **Variable elimination vs junction tree:** VE is query-specific; junction tree computes all marginals at once by building a tree of cliques. Both exact; both exponential in treewidth.
-- **Belief propagation:** Exact on trees; approximate (loopy BP) on general graphs. Loopy BP is equivalent to minimizing Bethe free energy — often works well despite no convergence guarantee.
-- **Sum-product vs max-product:** Sum-product computes marginal distributions; max-product computes MAP assignments. On trees both are exact; on loopy graphs both are approximate.
-
-### Approximate Inference Trade-offs
-
-| Method | Bias | Variance | Scalability | Notes |
-|---|---|---|---|---|
-| Mean-field VI | Biased (underestimates variance) | Low | High | Closed form for exp. family |
-| Loopy BP | Biased | Low | Medium | Good for sparse graphs |
-| Gibbs sampling | Asymptotically unbiased | High | Medium | Easy to implement |
-| HMC / NUTS | Asymptotically unbiased | Lower | Lower | Best for continuous latents |
-
-- **VI vs MCMC:** VI is faster and scales better; MCMC is asymptotically exact but slower and harder to diagnose. VI underestimates posterior variance due to mode-seeking KL direction (`KL(q||p)` vs `KL(p||q)`).
-
-### HMMs
-
-- Three problems map to three algorithms: forward (evaluation), Viterbi (decoding), Baum-Welch (learning).
-- HMM is a special case of a dynamic Bayesian network with first-order Markov assumption.
-- Distinguishing HMM from CRF: HMM is generative (models joint `P(X,Y)`); CRF is discriminative (models `P(Y|X)`) — CRF avoids incorrect independence assumptions on features.
-- **Scaling issue:** Forward/Viterbi probabilities underflow in log space; always implement in log domain.
-
-### LDA
-
-- Dirichlet-Categorical conjugacy allows collapsing theta and phi, yielding efficient Gibbs sampler on z only.
-- Hyperparameter alpha controls document-topic sparsity; beta controls topic-word sparsity. Small values = sparse / focused topics.
-- Topic number K is a hyperparameter; common choices: perplexity on held-out data, coherence scores, or nonparametric HDP-LDA.
-- sklearn's LDA uses online variational EM (not collapsed Gibbs) — fast but biased.
-
-### CRFs
-
-- CRF = undirected graphical model conditioned on X, so features can be arbitrary functions of the entire observation sequence — this is the critical advantage over HMMs.
-- Linear-chain CRF: forward-backward for marginals (training via gradient ascent on log-likelihood); Viterbi for MAP decoding (inference).
-- L1 regularization in CRFs induces feature sparsity (useful for high-dimensional feature spaces in NLP).
-- Neural CRFs (e.g., BiLSTM-CRF): replace hand-crafted features with learned representations; still use Viterbi for decoding.
-
-### Common Gotchas
-
-- Partition function Z in MRFs is usually intractable — never assume you can compute it exactly unless the graph is very small or has special structure (e.g., tree, planar graph with binary labels).
-- Mean-field VI produces overconfident posteriors because `KL(q||p)` is zero-forcing: q avoids regions where p is small, potentially missing modes.
-- R-hat < 1.01 is necessary but not sufficient for MCMC convergence — always check ESS and trace plots.
-- In LDA, topics are not identifiable up to permutation — topic indices have no inherent meaning across runs.
-- CRF requires the partition function Z(X) for normalization, but since it conditions on X, Z(X) is a function of X and must be recomputed per sequence (unlike generative models where Z is a global constant).
+**If asked about HMM vs CRF:**
+HMM is generative — models $P(X, Y)$, requires emission distribution, features must be conditionally independent given state. CRF is discriminative — models $P(Y \mid X)$, no emission assumption, features can be arbitrary functions of the entire observation sequence. Use CRF when rich feature engineering is possible and the generative model's assumptions are violated.

@@ -2,264 +2,349 @@
 
 ---
 
-## 1. Universal Framework (Use for Every Problem)
+## 1. The Universal Framework
 
-Never start with "I'll use a neural network." Start with requirements:
+Every ML system design interview failure follows one of two patterns: starting with model choice before clarifying requirements, or leaving out monitoring and rollback. Use this sequence without exception:
 
 ```
-1. Product goal          → What user behavior is being optimized?
-2. Success metric        → Online (CTR, revenue, latency) and offline (AUC, NDCG)
-3. Constraints           → Latency SLA, QPS, cost, regulatory
-4. Data                  → Labels, features, freshness, volume
-5. Baseline              → Simplest thing that could work (heuristic or LR)
-6. Model architecture    → Justified by constraints, not by trend
-7. Training pipeline     → Feature engineering, training cadence, retraining triggers
-8. Serving               → Batch vs real-time, hardware, caching
-9. Evaluation            → A/B test design, holdout, backtesting
-10. Monitoring           → Drift detection, alerting, rollback
+Step 1: Clarify the product goal
+    "What user action are we optimizing? Click, purchase, dwell time, safety?"
+    "Is this ranking, classification, generation, or anomaly detection?"
+    "What does failure look like? What's the cost of FP vs FN?"
+
+Step 2: Define metrics (both layers)
+    Online:  CTR, revenue/query, D7 retention, P99 latency, abuse rate
+    Offline: AUC-ROC, NDCG@10, precision@K, perplexity, calibration error
+    "What does success look like in a business dashboard 30 days post-launch?"
+
+Step 3: State constraints explicitly
+    Latency SLA, QPS, memory budget, cost, regulatory, team size
+
+Step 4: Data and labels
+    Volume, freshness needed, label quality, class balance
+    Where does the ground truth come from? Delayed? Biased?
+    Training-serving skew risks?
+
+Step 5: Baseline
+    The simplest thing that could work: popularity ranking, LR, BM25
+    This becomes your control arm in the A/B test
+
+Step 6: Architecture
+    Justified by constraints + data, not by what's popular
+    Two-stage if item corpus > 1M: retrieval → ranking
+
+Step 7: Feature pipeline
+    Real-time vs batch features; where are transforms fit?
+    Fit on training data only — never on val/test (leakage)
+
+Step 8: Serving
+    Batch (offline pre-compute) vs real-time (sub-200ms)
+    Caching strategy for expensive lookups
+
+Step 9: Evaluation
+    A/B test design: metric, power calculation, duration
+    Novelty effect mitigation (users click new things, not better things)
+
+Step 10: Monitoring
+    PSI on input features; prediction score distribution
+    Business KPI drop threshold for auto-rollback
 ```
 
 ---
 
 ## 2. Batch vs Real-Time Serving
 
+### The failure mode this decision prevents
+
+Getting this wrong in the wrong direction has two costs:
+- **Real-time when batch would do:** you've built a 100ms serving pipeline for decisions that could be pre-computed. Latency budget wasted, complexity increased.
+- **Batch when real-time needed:** your fraud system scores transactions from yesterday. Every real fraud during the gap goes undetected.
+
 | Dimension | Batch | Real-Time |
 | :--- | :--- | :--- |
-| **Latency** | Minutes to hours | < 100ms |
-| **Throughput** | Very high | Moderate |
-| **Model size** | No constraint | Usually < 1GB |
-| **Freshness** | Stale (hourly/daily) | Current |
-| **Infrastructure** | Spark, Airflow, BigQuery | REST/gRPC server, Redis |
-| **Use cases** | Email campaigns, weekly reports | Fraud detection, ad ranking |
+| Latency | Minutes to hours | < 100–200ms |
+| Freshness | Stale (hourly/daily) | Current context |
+| Scale | Millions of items/hour | Moderate QPS |
+| Model size | No constraint | Usually < 1GB |
+| Infrastructure | Spark, Airflow, BigQuery | REST/gRPC, Redis, feature store |
+| Use cases | Weekly churn scores, email campaigns | Fraud, autocomplete, ad ranking |
 
-**When to use batch:** when decision freshness isn't critical and you need to score millions of items (recommendation pre-computation, churn prediction sent via email).
-
-**When to use real-time:** when the decision depends on the current context (fraud at transaction time, autocomplete as user types).
+**Hybrid pattern** (most production systems): batch pre-compute heavy features offline, real-time assemble them at query time. Example: recommendation system pre-computes user and item embeddings nightly (batch), assembles and ranks at request time (real-time).
 
 ---
 
 ## 3. Two-Stage Retrieval + Ranking
 
-Used in search, recommendations, and ads because you can't run a heavy model on the entire item corpus at query time.
+### The failure mode this architecture prevents
+
+Running a full neural ranker against 10M items on every query. At 10ms per model inference and 10M items: 27 hours per request. The two-stage pattern was invented because heavy models cannot brute-force large corpora.
 
 ```
 All items (millions)
         │
         ▼
   [Stage 1: Retrieval]
-  Fast approximate similarity search
-  (ANN with FAISS, BM25, collaborative filtering)
-  → Return top 100–1000 candidates
+  Recall-focused: return most of the relevant items
+  Fast approximate similarity (ANN, BM25, collaborative filtering)
+  → Top 100–1000 candidates (< 5ms)
         │
         ▼
   [Stage 2: Ranking]
-  Heavy model with full features
-  (DCN, DIN, two-tower + cross features)
-  → Return top 10–20 results
+  Precision-focused: rank the candidates well
+  Heavy model with full feature set (DCN, DNN, cross-features)
+  → Top 10–20 results (< 50ms)
         │
         ▼
-  [Stage 3: Re-ranking / Business Logic]
-  Diversity, freshness constraints, sponsorship
+  [Stage 3: Re-ranking / Business Rules]
+  Diversity, freshness, sponsored slots, legal constraints
 ```
 
-**Stage 1 options:**
+**Stage 1 options and their failure modes:**
 
-| Method | Type | Best for |
-| :--- | :--- | :--- |
-| BM25 | Lexical | Text search, keyword matching |
-| Two-tower embedding + FAISS | Semantic | Content-based recommendation |
-| Matrix factorization | Collaborative | User-item interaction patterns |
-| Hybrid | Both | Most production systems |
+| Method | Type | Best for | Failure mode |
+| :--- | :--- | :--- | :--- |
+| BM25 | Lexical | Keyword-heavy search | Misses semantic matches ("car" ≠ "automobile") |
+| Two-tower + FAISS | Semantic | Content recommendation | Expensive index rebuilds; cold start |
+| Matrix factorization | Collaborative | User-item interaction | No cold start handling; stale without refresh |
+| Hybrid | Both | Production systems | More complexity to maintain |
+
+**ANN index choice:** FAISS with IVF (Inverted File Index) + HNSW. IVF partitions the space into Voronoi cells; HNSW builds a hierarchical navigable small-world graph. Trade-off: recall vs latency vs memory.
 
 ---
 
 ## 4. Recommendation System Design
 
-**Problem:** Recommend items from a catalog of 10M products to 100M users in < 50ms.
+### Problem
+Recommend items from a catalog of 10M products to 100M users in < 50ms.
 
-**Feature categories:**
+### What breaks without cold start handling
 
-| Category | Examples |
-| :--- | :--- |
-| User features | Age, location, device, purchase history, session behavior |
-| Item features | Category, price, freshness, embeddings from description |
-| Context features | Time of day, day of week, current session |
-| Interaction features | User × item: previous views, dwell time, rating |
+Matrix factorization requires at least one interaction to produce a latent vector. New items have no interactions. In a catalog expansion, new items never appear in recommendations — they never get interactions — they stay new forever. This is the feedback loop that kills recommendation quality in growing catalogs.
 
-**Model choices:**
+**Feature categories and their source:**
 
-- **Matrix Factorization (ALS):** $\hat{r}_{ui} = u_i^T v_j$ — fast, no cold start handling
-- **Two-tower neural:** separate encoders for user and item, dot product at serving — scales to large catalogs
+| Category | Examples | Freshness |
+| :--- | :--- | :--- |
+| User long-term | Purchase history, followed categories, demographic | Daily |
+| User session | Last 5 clicked items, session duration, current cart | Real-time |
+| Item static | Category, price, description embedding | On ingestion |
+| Item dynamic | View count (1h/24h/7d), CTR, inventory status | Hourly/real-time |
+| Contextual | Time of day, day of week, device, location | Real-time |
+| Cross features | User × item: past interactions, affinity score | Batch + real-time |
+
+**Model choices by maturity:**
+
+- **Matrix Factorization (ALS):** $\hat{r}_{ui} = u_i^T v_j$ — fast retrieval, no cold start
+- **Two-tower:** separate user and item encoders, dot product at serving — scalable, handles cold start via content features
 - **DCN (Deep & Cross Network):** explicit feature crosses + deep network — strong ranking model
-- **Sequential models (GRU4Rec, SASRec):** model session context — better freshness
+- **SASRec / BST:** transformer over user's interaction sequence — best for session-aware recommendations
 
 **Cold start handling:**
 
-| Scenario | Solution |
-| :--- | :--- |
-| New user | Popularity-based recommendations; onboarding flow |
-| New item | Content-based features (description, category); metadata embeddings |
-| New user + new item | Cross-domain transfer, contextual bandits |
-
-**Evaluation:**
-
-| Metric | Formula | Notes |
+| Scenario | Solution | Why |
 | :--- | :--- | :--- |
-| Precision@K | $\frac{\|\text{relevant} \cap \text{top-}K\|}{K}$ | Are top-K results good? |
-| Recall@K | $\frac{\|\text{relevant} \cap \text{top-}K\|}{\|\text{relevant}\|}$ | Are all relevant items found? |
-| NDCG@K | $\sum_{i=1}^K \frac{\text{rel}_i}{\log_2(i+1)} / \text{IDCG}$ | Weighted by position |
-| Hit Rate@K | $P(\text{relevant item in top-}K)$ | Simple, popular metric |
+| New user | Popularity-based; onboarding quiz | No history → fall back to prior |
+| New item | Content-based features (description, image embeddings) | Item metadata available before interactions |
+| New user + new item | Contextual bandits (UCB, Thompson sampling) | Explore to collect data while balancing exploitation |
 
-**Feedback loops:** recommending popular items makes them more popular. Mitigate with: exploration (epsilon-greedy or UCB), diversity constraints, inverse propensity scoring in training.
+**Feedback loop problem:** recommending popular items makes them more popular → more interaction data → more confidently recommended → even more popular. Self-reinforcing bias. Mitigate with:
+- Exploration: $\epsilon$-greedy (random 5% of slots), UCB, Thompson sampling
+- Inverse propensity scoring: weight training examples by the probability that they were shown
+- Diversity constraints at re-ranking: cap same-category items
+
+**Evaluation metrics:**
+
+| Metric | Formula | What it measures |
+| :--- | :--- | :--- |
+| Precision@K | $|\text{relevant} \cap \text{top-K}| / K$ | Quality of top-K |
+| Recall@K | $|\text{relevant} \cap \text{top-K}| / |\text{relevant}|$ | Coverage of relevant items |
+| NDCG@K | $\sum_{i=1}^K \text{rel}_i / \log_2(i+1) / \text{IDCG}$ | Ranking quality with position discount |
+| Hit Rate@K | $P(\text{at least one relevant item in top-K})$ | Simple, interpretable |
 
 ---
 
-## 5. Fraud Detection Design
+## 5. Fraud Detection System Design
 
-**Problem:** score transactions for fraud in < 200ms with $10^5$ QPS.
+### The failure modes that shaped this architecture
+
+Early fraud detection systems used static rule engines. Fraudsters learned the rules within days. Models that only retrained weekly got gamed within 24 hours of deployment. Real-time velocity features were missed because no one computed them fast enough. The architecture reflects burns from each of these:
+
+```
+Transaction event
+        │
+        ├── Velocity feature computation (Redis: txns/unique merchants in last 1h/24h/7d)
+        │   (Redis because these require sub-millisecond reads of rolling counters)
+        │
+        ├── Rule engine (hard blocks: known bad IPs, impossible geography, banned cards)
+        │   (Rules first: model is slower, rules catch known-bad instantly)
+        │
+        ├── ML model scoring (gradient boosted tree or neural net, < 10ms)
+        │         └── Output: fraud probability [0, 1]
+        │
+        └── Decision engine (cost-aware thresholds)
+              ├── score < 0.3  → Auto-approve
+              ├── 0.3 ≤ score < 0.7 → 3DS challenge (user authentication)
+              └── score ≥ 0.7 → Auto-block
+```
+
+**Why gradient boosted tree, not deep learning, for scoring:**
+- < 10ms latency required — GBT inference is microseconds; neural net is milliseconds
+- Tabular velocity features: GBT handles mixed types natively, no embedding needed
+- Interpretability: regulators require explainable decisions; SHAP on GBT is fast and reliable
+
+**Threshold selection — the cost matrix approach:**
+$$\text{Expected cost} = FP \times C_{FP} + FN \times C_{FN}$$
+
+Where $C_{FP}$ = cost of blocking a legitimate transaction (customer churn, support call ≈ $5–50), $C_{FN}$ = cost of approving fraud (chargeback + penalty ≈ $100–500). Optimal threshold minimizes expected cost, not F1 or accuracy.
+
+**The survivorship bias problem in retraining:** blocked transactions never get labels — you never know if they would have been fraudulent. Training only on approved transactions gives a biased sample. Fix: inject a small percentage of random approvals at threshold (with monitoring) to collect counterfactual labels. Weight these in retraining by inverse approval probability (propensity score).
 
 **Key distinctions from standard classification:**
-
-- **Adversarial:** fraudsters adapt to the model — retraining cadence matters
-- **Imbalanced:** 0.1–1% positive rate — threshold tuning and cost-sensitive metrics critical
-- **Temporal:** time-based features matter (velocity, time since last transaction)
-- **Business cost:** false positive costs customer trust; false negative costs money — need threshold per cost
-
-**Feature types:**
-
-| Type | Examples |
-| :--- | :--- |
-| Transaction | Amount, merchant category, location |
-| Velocity | Txns in last 1h/24h/7d, unique merchants in 1h |
-| User history | Avg amount, typical merchants, account age |
-| Device | IP reputation, device fingerprint, new device flag |
-
-**Architecture:**
-
-```
-Real-time transaction
-        │
-        ├── Feature extraction (Redis for velocity features)
-        │
-        ├── Rule engine (hard blocks: known bad IPs, impossible geography)
-        │
-        ├── ML model scoring (gradient boosted tree or neural net)
-        │         └── Output: fraud probability
-        │
-        └── Decision engine
-              ├── Score < 0.3 → Auto-approve
-              ├── 0.3 ≤ Score < 0.7 → 3DS challenge
-              └── Score ≥ 0.7 → Auto-block
-```
-
-**Threshold selection:** use precision-recall curve with business cost:
-
-$$\text{Expected cost} = FP \times \text{cost}_{FP} + FN \times \text{cost}_{FN}$$
-
-Set threshold to minimize expected cost.
+- **Adversarial:** fraudsters adapt. Retraining cadence matters more than model accuracy.
+- **Imbalanced:** 0.1–1% positive rate. Default threshold 0.5 is wrong.
+- **Temporal:** time-since-last-transaction and velocity features are the most predictive. Missing these = large accuracy loss.
 
 ---
 
-## 6. Search Ranking
+## 6. Search Ranking Design
 
-**Problem:** rank 1000 retrieved documents for a query in < 50ms.
+### The failure mode that motivated LambdaMART
 
-**Query understanding:** spelling correction → tokenization → intent classification (navigational/informational/transactional) → entity extraction.
+Pointwise models treat each document independently — they can't optimize for the final ranked list. A pointwise model might score document A at 0.8 and document B at 0.75, but if B should be ranked first for this query, a pointwise loss can't express that. Pairwise and listwise losses were invented because ranking metrics (NDCG) cannot be directly optimized with simple regression.
 
-**Ranking model choices:**
+**Pipeline:**
 
-| Approach | Description | Loss |
+```
+Query → Query understanding → Retrieval (Stage 1) → Ranking (Stage 2) → Re-ranking
+```
+
+**Query understanding:**
+- Spell correction → tokenization → intent classification (navigational / informational / transactional) → entity extraction
+
+**Stage 2 ranking model choices:**
+
+| Approach | Loss | What it captures |
 | :--- | :--- | :--- |
-| **Pointwise** | Score each doc independently | MSE or BCE on relevance label |
-| **Pairwise** | Compare pairs of docs | RankNet loss: $-\sigma(s_i - s_j)$ for preferred pair |
-| **Listwise** | Score entire ranked list | LambdaRank, LambdaMART |
+| Pointwise | MSE/BCE on relevance label | Absolute relevance score |
+| Pairwise | RankNet: $-\sigma(s_i - s_j)$ for preferred pairs | Relative ordering |
+| Listwise | LambdaRank: gradient of NDCG | Full ranked list quality |
 
-**LambdaMART (LightGBM to rank):**
+LambdaMART (LightGBM implementation) is the industry workhorse for search ranking:
+
 ```python
 import lightgbm as lgb
 
-dataset = lgb.Dataset(X_train, y_train, group=query_group_sizes)
+dataset = lgb.Dataset(X_train, label=y_train, group=query_group_sizes)
 params = {
     "objective": "lambdarank",
     "metric": "ndcg",
     "ndcg_eval_at": [1, 3, 5, 10],
     "num_leaves": 64,
     "learning_rate": 0.1,
+    "min_data_in_leaf": 50,
 }
-model = lgb.train(params, dataset, num_boost_round=500)
+model = lgb.train(params, dataset, num_boost_round=500,
+                  valid_sets=[val_dataset], callbacks=[lgb.early_stopping(50)])
 ```
 
-**Personalization:** blend general relevance score with user affinity:
-$$s_{\text{final}} = \alpha \cdot s_{\text{relevance}} + (1-\alpha) \cdot s_{\text{personalization}}$$
+**Personalization:** blend relevance and personalization scores:
+$$s_{\text{final}} = \alpha \cdot s_{\text{relevance}} + (1-\alpha) \cdot s_{\text{user\_affinity}}$$
 
 **Evaluation:**
-- **NDCG@K:** standard ranking metric, position-discounted
-- **MRR (Mean Reciprocal Rank):** $\frac{1}{|Q|}\sum_q \frac{1}{\text{rank of first relevant result}}$
-- **CTR on A/B test:** ground truth is whether users click
+- NDCG@K: position-discounted cumulative gain — standard metric
+- MRR: $\frac{1}{|Q|}\sum_q \frac{1}{\text{rank of first relevant doc}}$ — good for navigational queries
+- A/B on CTR: the ground truth
 
 ---
 
-## 7. LLM System Design
+## 7. LLM Serving Design
 
-**Problem:** serve a 70B LLM at 100 QPS with P90 latency < 2s.
+### Problem
+Serve a 70B LLM at 100 QPS with P90 time-to-first-token < 2s.
 
-**Key components:**
+### The failure mode that motivated KV caching
+
+Without KV caching, every token generation step requires recomputing all attention keys and values for the entire prefix. For a 1000-token prompt: 1000 attention computations per generated token. With KV caching: compute prefix keys and values once, cache them, reuse for every generation step. This single optimization enables practical LLM serving.
 
 ```
 User request
         │
         ▼
-Load balancer (route to least-loaded replica)
+Load balancer (least-loaded replica; sticky routing for KV cache locality)
         │
         ▼
 Serving engine (vLLM / TGI)
-  ├── KV cache (PagedAttention — dynamic allocation)
-  ├── Continuous batching (no fixed batch size)
-  ├── Speculative decoding (optional, 2–3× speedup)
-  └── Tensor parallel across GPUs
+  ├── Prefill: compute KV cache for the prompt (parallelizable, batched)
+  ├── Decode: generate tokens one at a time (sequential, memory-bound)
+  ├── PagedAttention: KV cache blocks allocated on demand (no fragmentation)
+  ├── Continuous batching: new requests join the batch mid-generation
+  └── Tensor parallel: model split across GPUs for large models
         │
         ▼
-Response streaming (SSE / WebSocket)
+Response streaming (Server-Sent Events / WebSocket)
 ```
 
 **Capacity planning:**
-- 70B model in BF16 = 140GB VRAM
-- 2× H100 80GB or 4× A100 80GB with tensor parallelism
-- KV cache memory per request: $2 \times L \times H \times d_h \times T$ bytes
-  - LLaMA 3 70B (80 layers, 8 KV heads, 128 head dim): ≈ 160MB per 1k tokens
+- 70B model in BF16: 140GB VRAM → minimum 2× H100 80GB with tensor parallelism
+- KV cache per request: $2 \times L \times H_{kv} \times d_h \times T$ bytes per token
+  - LLaMA 3 70B (80 layers, 8 GQA heads, 128 head dim): ~160MB per 1K tokens
+- At 100 QPS and 500 token avg response: need KV cache capacity for ~50 concurrent active requests
 
-**Latency components:**
+**Latency anatomy:**
 
-| Component | Typical | Optimization |
-| :--- | :--- | :--- |
-| TTFT (time-to-first-token) | 500ms–2s | Prefill batching, quantization |
-| TPOT (time per output token) | 20–50ms | KV cache, speculative decoding |
-| Throughput | 100–500 tok/s | Continuous batching, larger batch |
+| Component | Typical range | Primary bottleneck | Optimization |
+| :--- | :--- | :--- | :--- |
+| TTFT (time-to-first-token) | 500ms–3s | Prefill compute | Prefill batching, quantization, speculative decoding |
+| TPOT (time per output token) | 20–80ms | KV cache memory bandwidth | GQA (fewer KV heads), quantization, larger batch |
+| Total latency (500 tokens) | 12–42s | TPOT dominates | Speculative decoding (2–3× speedup) |
+
+**Quantization tradeoffs:**
+- INT8: ~2% quality drop, 2× memory reduction, faster kernels
+- INT4 (GPTQ/AWQ): ~5% quality drop, 4× memory reduction — enables 70B on 2× A100 40GB
+- FP8: near-zero quality drop, 2× reduction, requires Hopper+ GPU
 
 ---
 
-## 8. Monitoring Checklist
+## 8. Monitoring Design
 
-Every deployed ML system needs:
+Every deployed ML system needs three layers of monitoring:
 
-| Signal | What to monitor | Alert threshold |
+### Layer 1: Infrastructure health (standard SRE)
+| Signal | Alert threshold |
+| :--- | :--- |
+| P99 latency | > SLA threshold |
+| Error rate (5xx) | > 0.1% |
+| Throughput | < expected QPS |
+
+### Layer 2: Model health
+| Signal | Metric | Alert threshold |
 | :--- | :--- | :--- |
-| **Data drift** | KL divergence on input features | > 0.1 on critical features |
-| **Prediction drift** | Score distribution shift | > 2σ from baseline |
-| **Label quality** | Ground truth arrival delay | If delayed, recalibrate |
-| **Latency** | P50, P90, P99 | P99 > SLA threshold |
-| **Error rate** | 5xx, timeouts | > 0.1% |
-| **Business metric** | CTR, revenue, conversion | > 5% drop triggers incident |
+| Input distribution | PSI per feature | > 0.25 on critical features |
+| Prediction distribution | Score histogram shift | > 2σ from 7-day baseline |
+| Calibration | $P(y=1 | \text{score} = 0.7)$ | Deviation > 10% |
 
-**Drift detection with PSI (Population Stability Index):**
+**PSI (Population Stability Index):**
 $$\text{PSI} = \sum_i (A_i - E_i) \ln\frac{A_i}{E_i}$$
 
-Where $A_i$ = actual proportion in bucket $i$, $E_i$ = expected (baseline). PSI < 0.1 = stable, 0.1–0.25 = some shift, > 0.25 = significant drift.
+$A_i$ = actual proportion in bucket $i$, $E_i$ = expected (baseline). PSI < 0.1 = stable, 0.1–0.25 = some shift, > 0.25 = significant drift.
 
-**Retraining triggers:**
-- Scheduled: weekly/monthly regardless of drift
-- Triggered: when PSI > threshold or business metric drops
-- Continuous: online learning for high-velocity signals (ads, fraud)
+### Layer 3: Business KPI
+| Metric | Alert condition |
+| :--- | :--- |
+| CTR, conversion rate | > 5% relative drop vs control |
+| Revenue/query | Any significant drop |
+| Abuse/safety metric | Any significant increase |
 
-> [!TIP]
-> **Interview structure:** ML system design = requirements first (don't assume a model is needed) → two-stage retrieval+ranking for scale → data and feature pipeline → serving constraints (batch vs real-time) → evaluation (offline metrics + online A/B) → monitoring (drift + latency + business KPI). Mentioning cold start, feedback loops, and rollback path signals production experience.
+### Retraining triggers
+- **Scheduled:** weekly regardless of drift (handles slow concept drift)
+- **Triggered:** PSI > 0.25 on critical features, or business KPI drop > threshold
+- **Continuous:** online learning for high-velocity signals (ads, fraud) — requires careful validation to avoid training on noise
+
+### Rollback plan
+Define before launch, not after:
+```
+1. Automatic: if [business metric] drops > X% in 24h → trigger alert
+2. Shadow mode: new model runs but doesn't serve; compare to live model offline
+3. Canary: 1% → 10% → 50% → 100% with metric checks at each stage
+4. Rollback: one-command deployment of previous artifact; test quarterly that it works
+```

@@ -1,108 +1,48 @@
 # Interpretability and Explainable AI (XAI)
 
-> ML interview prep guide — conversational, analogy-rich, practically focused.
+---
+
+## 1. The Problem
+
+A radiologist reviews a neural network's output: 94% probability of malignancy. The radiologist needs to know — is the model looking at the tumor, or at the hospital watermark that appears on a specific scanner at the facility where most cancer cases in the training set came from?
+
+Without an explanation, those two scenarios produce identical outputs. The model is equally confident in both. The radiologist cannot distinguish signal from artifact by looking at the number alone.
+
+This is the concrete harm that motivates interpretability: **a model can be right for the wrong reasons, and you cannot detect that from its predictions alone.** On a held-out test set drawn from the same distribution, the model performs identically whether it has learned real pathology or a scanner artifact. The failure mode only reveals itself when the distribution shifts — when the model is deployed at a different hospital with a different scanner.
+
+The same failure appears across domains:
+
+- A loan model achieves 87% accuracy but has learned that zip code is the strongest predictor. Zip code is a proxy for race. The model is discriminatory and you cannot see it from accuracy metrics alone.
+- A fraud detection model achieves 99.5% precision. A new merchant category appears post-deployment. The model has no learned features for it and silently misclassifies all transactions in that category as non-fraudulent.
+- A hiring model achieves strong precision on historical hires. Historical hires skew male in engineering roles. The model has learned a gender proxy from resume formatting patterns.
+
+In each case, the fix requires knowing what the model is doing internally — not just what it outputs.
 
 ---
 
-## Table of Contents
-
-1. [Why Interpretability?](#1-why-interpretability)
-2. [Taxonomy](#2-taxonomy-intrinsic-vs-post-hoc-local-vs-global-model-agnostic-vs-model-specific)
-3. [Linear Models & Coefficients](#3-linear-models--coefficients-the-simplest-explanation)
-4. [Decision Tree Explanations](#4-decision-tree-explanations-rules-as-stories)
-5. [Feature Importance](#5-feature-importance-permutation-importance-impurity-based)
-6. [PDPs and ICE Plots](#6-partial-dependence-plots-pdps-and-ice-plots)
-7. [LIME](#7-lime-local-interpretable-model-agnostic-explanations)
-8. [SHAP](#8-shap-shapley-additive-explanations)
-9. [Attention Visualization](#9-attention-visualization-what-attention-weights-do-and-dont-tell-us)
-10. [Saliency Maps and Grad-CAM](#10-saliency-maps-and-grad-cam-for-cnns)
-11. [Integrated Gradients](#11-integrated-gradients)
-12. [Concept-Based Explanations (TCAV)](#12-concept-based-explanations-tcav)
-13. [Model Cards and Fact Sheets](#13-model-cards-and-fact-sheets)
-14. [Interpretability in LLMs](#14-interpretability-in-llms-logit-lens-probing-classifiers-mechanistic-interpretability)
-15. [Regulatory Context](#15-regulatory-context-gdpr-financial-models)
-16. [Common Interview Questions](#16-common-interview-questions-with-answers)
-
----
-
-## 1. Why Interpretability?
-
-Imagine you go to a doctor and they say: "You have cancer. I just know." No test results, no reasoning, no explanation. You'd walk out. Trust requires explanation.
-
-That's the core tension in modern ML. We've built systems that are extraordinarily accurate — deep neural networks, gradient boosted trees, large language models — but they often function as black boxes. They take in inputs and produce outputs, but the "why" is buried under millions of parameters.
-
-**Why this matters in practice:**
-
-- **Debugging**: If your model is wrong, you need to know *where* it's wrong and *why*. Is it overfitting a spurious correlation? Relying on a protected attribute?
-- **Trust**: Stakeholders — doctors, loan officers, judges — won't use a system they don't understand.
-- **Fairness**: A model might discriminate not because it uses race directly, but because it uses zip code as a proxy. You can only find that by looking inside.
-- **Regulation**: GDPR gives EU citizens the right to an explanation when an automated system makes a decision about them. Financial regulators require model documentation.
-- **Improvement**: Understanding why a model fails is the fastest path to making it better.
-
-**The accuracy-interpretability tradeoff** is real but often overstated. A linear model is highly interpretable but may underfit. A neural network may be more accurate but harder to explain. The field of XAI is about closing that gap — building tools that let us understand complex models without necessarily simplifying them.
+## 2. The Core Insight
 
 **Interpretability vs Explainability:**
 
-These terms are often used interchangeably, but there's a useful distinction:
+These are distinct:
 
-- **Interpretability**: The model's structure is inherently understandable. A linear regression is interpretable because you can read the coefficients.
-- **Explainability**: We apply post-hoc techniques to explain a model that isn't inherently transparent. SHAP values explain a random forest, but the forest itself is not interpretable.
+- **Interpretability**: The model's structure is directly readable. A linear regression is interpretable because the coefficients are the explanation. You do not need to analyze the model — you just read it.
+- **Explainability**: The model is a black box; a separate analysis produces an approximation of its behavior. SHAP values explain a gradient-boosted tree. The tree itself is not interpretable — SHAP approximates what it does.
 
-Think of it this way: a glass box is interpretable (you can see inside). A black box with a camera system that shows you what's happening inside is explainable.
+The distinction matters because post-hoc explanations are approximations. They can be wrong. They can be gamed. A model that produces plausible-looking SHAP values while actually relying on a proxy is a real failure mode.
 
----
+**The taxonomy:**
 
-## 2. Taxonomy: Intrinsic vs Post-hoc, Local vs Global, Model-agnostic vs Model-specific
+| Dimension | Options |
+|-----------|---------|
+| When produced | Intrinsic (built-in) vs Post-hoc (after training) |
+| Scope | Local (one prediction) vs Global (overall behavior) |
+| Model dependency | Agnostic (black box access) vs Specific (uses internals) |
 
-Before diving into methods, it helps to have a map.
-
-### 2.1 Intrinsic vs Post-hoc
-
-**Intrinsic (transparent) models** are interpretable by design:
-- Linear/logistic regression
-- Decision trees
-- Rule-based systems
-- Generalized additive models (GAMs)
-
-**Post-hoc methods** are applied *after* training to explain any model:
-- LIME, SHAP, Grad-CAM, saliency maps
-- Partial dependence plots
-- Feature importance
-
-The post-hoc vs intrinsic distinction matters because post-hoc explanations are approximations. They explain a simplified surrogate, not the model itself. They can be wrong or misleading.
-
-### 2.2 Local vs Global
-
-**Local explanation**: Why did the model predict *this specific instance* the way it did?
-- "Why was this loan application rejected?"
-- LIME, SHAP force plots, counterfactual explanations
-
-**Global explanation**: What does the model do *overall*?
-- "What features does this model rely on most?"
-- Feature importance, PDPs, SHAP summary plots
-
-Think of local as explaining one verdict vs global as describing the judge's general philosophy.
-
-### 2.3 Model-agnostic vs Model-specific
-
-**Model-agnostic** methods treat the model as a black box. They only need access to inputs and outputs:
-- LIME
-- KernelSHAP
-- Permutation importance
-- PDPs
-
-**Model-specific** methods exploit the internal structure:
-- Coefficients (linear models)
-- TreeSHAP (tree ensembles)
-- DeepSHAP / Grad-CAM (neural networks)
-- Attention weights (transformers)
-
-Model-specific methods are usually faster and more accurate because they have more information to work with.
-
-### Summary Table
+These are independent axes. SHAP is post-hoc, can be local or global, and has both model-agnostic (KernelSHAP) and model-specific (TreeSHAP, DeepSHAP) variants.
 
 | Method | Scope | Agnostic? | Post-hoc? |
-|---|---|---|---|
+|--------|-------|-----------|-----------|
 | Coefficients | Global | No | No (intrinsic) |
 | Decision tree rules | Global + Local | No | No (intrinsic) |
 | Permutation importance | Global | Yes | Yes |
@@ -117,41 +57,24 @@ Model-specific methods are usually faster and more accurate because they have mo
 
 ---
 
-## 3. Linear Models & Coefficients: The Simplest Explanation
+## 3. Intrinsic Models: Linear and Tree
 
-Linear regression is the benchmark of interpretability. The model is literally a sum of weighted features:
+### The mechanics of linear model interpretability
+
+A linear model is its own explanation:
 
 ```
 y = β₀ + β₁x₁ + β₂x₂ + ... + βₚxₚ
 ```
 
-Each coefficient `βᵢ` tells you: holding everything else constant, a one-unit increase in `xᵢ` changes the prediction by `βᵢ`. That's a clean, causal-sounding (though not truly causal) statement.
+Each `βᵢ` is the marginal effect: holding all other features constant, a one-unit increase in `xᵢ` changes the prediction by `βᵢ`. For logistic regression, `exp(βᵢ)` is the odds ratio.
 
-**For logistic regression**, the interpretation extends to log-odds:
-
-```
-log(p / (1-p)) = β₀ + β₁x₁ + ...
-```
-
-`exp(βᵢ)` is the odds ratio — how the odds of the positive class change with a one-unit increase in `xᵢ`.
-
-### Caveats
-
-**Standardization matters**. Raw coefficients are not comparable across features with different scales. Always standardize before comparing magnitudes.
+**What breaks:** Raw coefficients are not comparable across features with different scales. A coefficient on income in dollars versus income in thousands of dollars differ by a factor of 1000. Always standardize before comparing:
 
 ```python
-from sklearn.linear_model import LinearRegression
+from sklearn.linear_model import LinearRegression, Lasso
 from sklearn.preprocessing import StandardScaler
-import numpy as np
 import pandas as pd
-
-# Example: predicting house prices
-X = pd.DataFrame({
-    'sqft': [1500, 2000, 1200, 1800],
-    'bedrooms': [3, 4, 2, 3],
-    'age': [10, 5, 20, 8]
-})
-y = [300000, 400000, 240000, 360000]
 
 scaler = StandardScaler()
 X_scaled = scaler.fit_transform(X)
@@ -162,93 +85,52 @@ model.fit(X_scaled, y)
 coef_df = pd.DataFrame({
     'feature': X.columns,
     'coefficient': model.coef_
-}).sort_values('coefficient', ascending=False)
-
-print(coef_df)
-# Larger absolute coefficient = more influential feature (on standardized scale)
+}).sort_values('coefficient', key=abs, ascending=False)
 ```
 
-**Multicollinearity breaks interpretation**. If `sqft` and `rooms` are highly correlated, the model might assign a negative coefficient to one of them — not because it's actually negative, but because they share explanatory power. The coefficients become unstable and hard to interpret.
+**Multicollinearity corrupts interpretation.** If `sqft` and `rooms` are correlated, coefficients become unstable — one may be large positive, the other large negative, and their sum carries the true signal. The individual coefficients are uninterpretable. Check variance inflation factor (VIF) before interpreting coefficients.
 
-**Regularization shrinks coefficients**. In Ridge or Lasso regression, coefficients are penalized. Lasso (L1) drives some to exactly zero, giving you implicit feature selection. The surviving coefficients still have the same "one unit change" interpretation.
+**Lasso performs implicit feature selection:** L1 regularization drives some coefficients to exactly zero. Surviving features retain the same marginal interpretation on the standardized scale.
 
 ```python
-from sklearn.linear_model import Lasso
-
 lasso = Lasso(alpha=0.01)
 lasso.fit(X_scaled, y)
-
-# Features with zero coefficient were "selected out"
-selected = [(feat, coef) for feat, coef 
-            in zip(X.columns, lasso.coef_) if coef != 0]
-print("Selected features:", selected)
+selected = [(feat, coef) for feat, coef in zip(X.columns, lasso.coef_) if coef != 0]
 ```
 
-**The linear model is a strong baseline** in interpretability. When a linear model performs nearly as well as a complex model, just use the linear model. The interpretability is free.
+### Decision tree path-based explanation
 
----
-
-## 4. Decision Tree Explanations: Rules as Stories
-
-A decision tree is interpretable in the most literal sense — you can print it out and follow the logic by hand. It's a flowchart. It's a story about how the model thinks.
+A decision tree is a flowchart. For any prediction, trace the path from root to leaf:
 
 ```
 Is age > 30?
 ├── Yes: Is income > 50K?
-│   ├── Yes: APPROVED (confidence: 92%)
+│   ├── Yes: APPROVED (92%)
 │   └── No: Is credit_score > 680?
-│       ├── Yes: APPROVED (confidence: 78%)
-│       └── No: REJECTED (confidence: 85%)
-└── No: REJECTED (confidence: 70%)
+│       ├── Yes: APPROVED (78%)
+│       └── No: REJECTED (85%)
+└── No: REJECTED (70%)
 ```
 
-This is a **path-based explanation**. For any specific prediction, you trace the path from root to leaf and you have a natural language explanation: "The loan was rejected because the applicant is under 30 and has a credit score below 680."
-
-### Building and Visualizing
+The path is the explanation: "Rejected because applicant is under 30 and credit score is below 680." This is natural language by construction.
 
 ```python
-from sklearn.tree import DecisionTreeClassifier, export_text, plot_tree
-from sklearn.datasets import load_breast_cancer
-import matplotlib.pyplot as plt
-
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
-
-tree = DecisionTreeClassifier(max_depth=4, min_samples_leaf=20, random_state=42)
-tree.fit(X, y)
-
-# Text representation
-print(export_text(tree, feature_names=list(X.columns)))
-
-# Visual representation
-fig, ax = plt.subplots(figsize=(20, 10))
-plot_tree(tree, feature_names=X.columns, class_names=['malignant', 'benign'],
-          filled=True, ax=ax)
-plt.savefig('tree.png', dpi=150, bbox_inches='tight')
-```
-
-### Extracting Rules
-
-For each leaf node, you can extract the full conjunction of conditions that defines it:
-
-```python
-from sklearn.tree import _tree
+from sklearn.tree import DecisionTreeClassifier, export_text, _tree
 
 def tree_to_rules(tree, feature_names, class_names):
     tree_ = tree.tree_
     feature_name = [
-        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined!"
+        feature_names[i] if i != _tree.TREE_UNDEFINED else "undefined"
         for i in tree_.feature
     ]
     rules = []
 
-    def recurse(node, depth, conditions):
+    def recurse(node, conditions):
         if tree_.feature[node] != _tree.TREE_UNDEFINED:
             name = feature_name[node]
             threshold = tree_.threshold[node]
-            recurse(tree_.children_left[node], depth + 1,
-                    conditions + [f"{name} <= {threshold:.2f}"])
-            recurse(tree_.children_right[node], depth + 1,
-                    conditions + [f"{name} > {threshold:.2f}"])
+            recurse(tree_.children_left[node], conditions + [f"{name} <= {threshold:.3f}"])
+            recurse(tree_.children_right[node], conditions + [f"{name} > {threshold:.3f}"])
         else:
             class_idx = tree_.value[node].argmax()
             rules.append({
@@ -257,75 +139,44 @@ def tree_to_rules(tree, feature_names, class_names):
                 'samples': int(tree_.n_node_samples[node])
             })
 
-    recurse(0, 1, [])
+    recurse(0, [])
     return rules
-
-rules = tree_to_rules(tree, list(X.columns), ['malignant', 'benign'])
-for rule in rules[:3]:
-    print("IF " + " AND ".join(rule['conditions']))
-    print(f"  THEN {rule['prediction']} (n={rule['samples']})\n")
 ```
 
-### Limitations
-
-- **Depth tradeoff**: Shallow trees are interpretable but may be inaccurate. Deep trees are more accurate but impossible to follow.
-- **Instability**: Small changes in data can produce completely different trees. A tree that explains the same data differently each time you retrain is hard to trust.
-- **Not great for continuous features**: Trees create axis-aligned splits, which can look odd for smooth relationships.
-
-This is why we use tree ensembles (random forests, gradient boosting) for accuracy, then apply post-hoc interpretation methods — the single tree is the white-box baseline.
+**What breaks:** Shallow trees are interpretable but inaccurate. Deep trees are accurate but cannot be followed by a human. Small changes in training data can produce completely different trees (high variance). This is why we use ensembles for accuracy and apply post-hoc methods to explain them.
 
 ---
 
-## 5. Feature Importance: Permutation Importance, Impurity-Based
+## 4. Feature Importance
 
-Feature importance answers the global question: "Which features does this model rely on most?"
+Feature importance answers: which features does this model rely on most?
 
-### 5.1 Impurity-Based (MDI) Importance
+### Mean Decrease in Impurity (MDI)
 
-For tree-based models, each split reduces impurity (Gini or entropy). Sum up the impurity reduction contributed by each feature across all trees and you get MDI importance.
+For tree ensembles, each split reduces impurity (Gini or entropy). Sum the reduction credited to each feature across all trees:
 
 ```python
 from sklearn.ensemble import RandomForestClassifier
 import pandas as pd
-import matplotlib.pyplot as plt
-
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 
 rf = RandomForestClassifier(n_estimators=100, random_state=42)
-rf.fit(X, y)
+rf.fit(X_train, y_train)
 
-# MDI importance — built in
 importance_df = pd.DataFrame({
     'feature': X.columns,
     'importance': rf.feature_importances_
 }).sort_values('importance', ascending=False)
-
-importance_df.head(10).plot(kind='barh', x='feature', y='importance')
-plt.title('MDI Feature Importance')
-plt.tight_layout()
-plt.savefig('mdi_importance.png')
 ```
 
-**Bias of MDI**: High-cardinality features (continuous features, features with many unique values) tend to get inflated importance because the tree has more split thresholds to choose from. A random ID column would score high. Use with caution.
+**What breaks:** MDI is biased toward high-cardinality features — features with many unique values have more split thresholds to choose from. A random ID column would score high on MDI. Do not use MDI as a definitive importance measure.
 
-### 5.2 Permutation Importance
+### Permutation Importance
 
-Permutation importance is more reliable. The idea: shuffle one feature at a time and measure how much the model's performance drops. A feature is important if the model falls apart when that feature is scrambled.
-
-```
-Permutation Importance(feature j) = 
-    model_score(original data) - model_score(data with feature j shuffled)
-```
+Shuffle one feature at a time. Measure how much model performance drops. If shuffling a feature destroys performance, that feature is important. Measure on the held-out test set:
 
 ```python
 from sklearn.inspection import permutation_importance
-from sklearn.model_selection import train_test_split
 
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-rf.fit(X_train, y_train)
-
-# Always compute on test set to avoid overfitting artifacts
 result = permutation_importance(rf, X_test, y_test, n_repeats=10, random_state=42)
 
 perm_df = pd.DataFrame({
@@ -333,1585 +184,1079 @@ perm_df = pd.DataFrame({
     'importance_mean': result.importances_mean,
     'importance_std': result.importances_std
 }).sort_values('importance_mean', ascending=False)
-
-print(perm_df.head(10))
-
-# Visualize with error bars
-fig, ax = plt.subplots(figsize=(10, 8))
-perm_df.head(10).plot(
-    kind='barh', x='feature', y='importance_mean', 
-    xerr='importance_std', ax=ax
-)
-plt.title('Permutation Feature Importance (Test Set)')
-plt.tight_layout()
 ```
 
-**Key difference from MDI**: Permutation importance measures the *actual impact* on predictions, evaluated on held-out data. It's slower (requires multiple evaluations) but more trustworthy. It also correctly handles correlated features by measuring the joint effect.
+**What breaks:** If features A and B are highly correlated, shuffling A does not hurt much because B still carries the same signal. Both appear unimportant even if the pair together is critical. Permutation importance underestimates correlated features.
 
-**Caution with correlated features**: If features A and B are highly correlated, shuffling A doesn't hurt much because B still carries the same information. Both features may appear unimportant even if the pair together is critical.
+### Drop-Column Importance
 
-### 5.3 Drop-Column Importance
-
-The most honest version: retrain the model without each feature and measure performance loss. Too expensive for large models, but the ground truth when you can afford it.
+Retrain without each feature and measure performance loss. Most accurate; most expensive:
 
 ```python
 from sklearn.metrics import accuracy_score
 
-baseline_score = accuracy_score(y_test, rf.predict(X_test))
-drop_col_importance = {}
+baseline = accuracy_score(y_test, rf.predict(X_test))
+drop_col = {}
 
 for col in X.columns:
-    X_train_drop = X_train.drop(columns=[col])
-    X_test_drop = X_test.drop(columns=[col])
-    
     rf_temp = RandomForestClassifier(n_estimators=100, random_state=42)
-    rf_temp.fit(X_train_drop, y_train)
-    
-    score = accuracy_score(y_test, rf_temp.predict(X_test_drop))
-    drop_col_importance[col] = baseline_score - score
-
-# Sort by importance
-sorted_imp = sorted(drop_col_importance.items(), key=lambda x: x[1], reverse=True)
-print("Drop-column importance:", sorted_imp[:5])
+    rf_temp.fit(X_train.drop(columns=[col]), y_train)
+    score = accuracy_score(y_test, rf_temp.predict(X_test.drop(columns=[col])))
+    drop_col[col] = baseline - score
 ```
 
 ---
 
-## 6. Partial Dependence Plots (PDPs) and ICE Plots
+## 5. Partial Dependence Plots and ICE Plots
 
-Feature importance tells you *which* features matter. PDPs tell you *how* they matter — the shape of the relationship.
+Feature importance tells you which features matter. PDPs tell you how — the shape of the relationship.
 
-### 6.1 Partial Dependence Plots
+### Partial Dependence Plots (PDPs)
 
-A PDP shows the marginal effect of one (or two) features on the predicted outcome, averaged over the distribution of all other features.
-
-Formally, for feature `x_s`:
+A PDP shows the marginal effect of one feature on predictions, averaged over all other features:
 
 ```
-PD(x_s) = E_{x_c}[f(x_s, x_c)] = (1/n) Σᵢ f(x_s, xᵢ_c)
+PD(x_s) = (1/n) Σᵢ f(x_s, xᵢ_c)
 ```
 
-Where `x_c` are the complement features. We loop over a grid of `x_s` values and for each value, we push it through the model with all observed combinations of other features, then average.
+For each value of `x_s` in a grid, push it through the model holding other features at their observed values for each training instance, then average. The result shows the expected prediction as a function of `x_s` alone.
 
 ```python
 from sklearn.inspection import PartialDependenceDisplay
 from sklearn.ensemble import GradientBoostingClassifier
 
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
 gb = GradientBoostingClassifier(n_estimators=100, random_state=42)
-gb.fit(X, y)
+gb.fit(X_train, y_train)
 
-# Top 4 important features
-top_features = ['mean radius', 'mean texture', 'mean perimeter', 'mean area']
-
-fig, axes = plt.subplots(2, 2, figsize=(12, 8))
+fig, ax = plt.subplots(1, 2, figsize=(12, 4))
 PartialDependenceDisplay.from_estimator(
-    gb, X, top_features, ax=axes.flatten(), kind='average'
+    gb, X_train,
+    features=[0, 1],
+    feature_names=feature_names,
+    ax=ax
 )
-plt.suptitle('Partial Dependence Plots')
 plt.tight_layout()
-plt.savefig('pdp.png')
 ```
 
-**Interpretation**: A flat PDP means the feature has little effect on the prediction (after marginalizing over others). An increasing PDP means higher feature values lead to higher predicted probability. A non-monotone PDP captures interactions.
-
-**The averaging trap**: PDPs can be misleading when there are strong interactions. Averaging can wash out heterogeneous effects — the average effect might be zero if the feature helps some instances and hurts others equally.
-
-### 6.2 ICE (Individual Conditional Expectation) Plots
-
-ICE plots solve the averaging problem. Instead of averaging, we plot one line per instance. Each line shows how *that specific instance's* prediction changes as the feature varies.
+**2D PDPs** show interactions between two features:
 
 ```python
-# ICE plots — kind='individual' or kind='both' (PDP + ICE)
-fig, axes = plt.subplots(1, 2, figsize=(14, 5))
-
 PartialDependenceDisplay.from_estimator(
-    gb, X, ['mean radius'], ax=axes[0], kind='individual',
-    subsample=100, random_state=42, alpha=0.3
+    gb, X_train,
+    features=[(0, 1)],  # tuple = 2D PDP
+    feature_names=feature_names
 )
-axes[0].set_title('ICE Plot: mean radius')
-
-PartialDependenceDisplay.from_estimator(
-    gb, X, ['mean radius'], ax=axes[1], kind='both',
-    subsample=100, random_state=42, alpha=0.3
-)
-axes[1].set_title('PDP + ICE: mean radius')
-
-plt.tight_layout()
-plt.savefig('ice_plots.png')
 ```
 
-**Centered ICE (c-ICE)**: Subtract each line's value at a reference point (usually the minimum of the feature range) so all lines start at zero. This makes it easier to see the *shape* of individual effects rather than absolute levels.
+**What breaks:** PDPs average out heterogeneity. If the relationship between a feature and the outcome goes in opposite directions for different subgroups, the average is flat — and you miss the interaction entirely.
 
-**When to use ICE over PDP**: When you suspect interactions. If all ICE lines are roughly parallel, the PDP is trustworthy. If lines cross or fan out, there are interactions — the PDP's average hides the story.
+### Individual Conditional Expectation (ICE) Plots
 
-### 6.3 2D PDPs
-
-You can also do two-feature PDPs to visualize interactions:
+ICE plots show one line per instance instead of the average. You can see heterogeneity that PDPs hide:
 
 ```python
-fig, ax = plt.subplots(figsize=(8, 6))
+# kind='individual' for ICE, 'average' for PDP, 'both' for both
 PartialDependenceDisplay.from_estimator(
-    gb, X, [('mean radius', 'mean texture')], ax=ax
+    gb, X_train,
+    features=[0],
+    feature_names=feature_names,
+    kind='both'  # overlay ICE on PDP
 )
-plt.title('2D PDP: mean radius x mean texture')
-plt.tight_layout()
-plt.savefig('2d_pdp.png')
 ```
 
-A 2D PDP as a heatmap shows you where in the joint feature space the prediction is high or low.
+**Centered ICE (c-ICE):** Subtract each line's value at a reference point so all lines start at zero. This separates the heterogeneity in slope from heterogeneity in level:
+
+```python
+PartialDependenceDisplay.from_estimator(
+    gb, X_train,
+    features=[0],
+    feature_names=feature_names,
+    kind='individual',
+    centered=True  # c-ICE
+)
+```
+
+**What breaks:** Both PDPs and ICE plots assume we can change one feature while holding others fixed. For correlated features this creates extrapolation into unrealistic regions of feature space — a PDP that varies income while holding job title constant will produce predictions for income/job combinations that don't exist in the real world.
 
 ---
 
-## 7. LIME (Local Interpretable Model-agnostic Explanations)
+## 6. LIME: Local Interpretable Model-Agnostic Explanations
 
-LIME was one of the first major post-hoc explanation methods, introduced by Ribeiro et al. (2016). The core idea is elegant: even if the global model is complex, it's probably approximately linear in a small region around any specific prediction.
+### The problem LIME solves
 
-The analogy: the Earth is round, but your neighborhood looks flat. A local flat-earth model is a good approximation locally.
+A complex model's decision boundary is globally nonlinear and uninterpretable. But locally — in the neighborhood of any single prediction — it may be approximately linear. LIME exploits this.
 
-### 7.1 How It Works: Local Linear Approximation
+### The core insight
 
-For a specific instance `x`:
+The simplest true thing about any black-box model: **in a small neighborhood around a single point, the model's behavior can be approximated by a simple linear model.** That linear model is the explanation.
 
-1. **Perturb** the instance: create synthetic samples around `x` by randomly turning features on/off (for tabular data) or masking superpixels (for images).
-2. **Query the black box**: get predictions for all synthetic samples.
-3. **Weight by proximity**: samples closer to `x` get higher weight (Gaussian kernel on distance).
-4. **Fit a simple model**: train a sparse linear model on the weighted synthetic samples.
-5. **Report the linear model's coefficients** as the explanation.
+### The mechanics
 
-```
-explanation = argmin_{g ∈ G} L(f, g, πₓ) + Ω(g)
-```
-
-Where:
-- `f` is the black-box model
-- `g` is the interpretable surrogate (linear model)
-- `πₓ` is the proximity measure around `x`
-- `L` is the fidelity loss (how well `g` approximates `f` locally)
-- `Ω(g)` is the complexity penalty (favors sparse models)
-
-### 7.2 LIME in Practice
+For an input `x` to explain:
+1. Generate `n` perturbed samples `z'` in `x`'s neighborhood
+2. Get predictions `f(z')` from the black-box model for each sample
+3. Weight samples by proximity to `x` using a kernel (closer = higher weight)
+4. Fit a weighted sparse linear model `g` on the perturbed data: `g(z') ≈ f(z')`
+5. The coefficients of `g` are the explanation for prediction `f(x)`
 
 ```python
-# pip install lime
 import lime
 import lime.lime_tabular
 import numpy as np
-from sklearn.ensemble import RandomForestClassifier
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
 
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
-
-rf = RandomForestClassifier(n_estimators=100, random_state=42)
-rf.fit(X_train, y_train)
-
-# Create LIME explainer
 explainer = lime.lime_tabular.LimeTabularExplainer(
     training_data=X_train.values,
-    feature_names=list(X.columns),
-    class_names=['malignant', 'benign'],
-    mode='classification'
+    feature_names=feature_names,
+    class_names=['class_0', 'class_1'],
+    mode='classification',
+    discretize_continuous=True
 )
 
 # Explain a single prediction
-instance_idx = 5
-instance = X_test.iloc[instance_idx].values
-
+instance = X_test.iloc[0].values
 explanation = explainer.explain_instance(
     data_row=instance,
-    predict_fn=rf.predict_proba,
-    num_features=10
+    predict_fn=model.predict_proba,
+    num_features=10,
+    num_samples=5000
 )
 
-# Show explanation
-print("Predicted class:", rf.predict([instance])[0])
-print("LIME explanation:")
-for feat, weight in explanation.as_list():
-    print(f"  {feat}: {weight:.4f}")
+explanation.show_in_notebook()
 
-# Visualize
-fig = explanation.as_pyplot_figure()
-plt.tight_layout()
-plt.savefig('lime_explanation.png')
+# Get feature weights as dict
+weights = dict(explanation.as_list())
+print("Top positive features:", sorted(weights.items(), key=lambda x: x[1], reverse=True)[:3])
+print("Top negative features:", sorted(weights.items(), key=lambda x: x[1])[:3])
 ```
 
-### LIME for Text
+**LIME for text:** Perturbs by removing words (replacing with zeros), then fits a sparse linear model over word indicators:
 
 ```python
 import lime.lime_text
 from sklearn.pipeline import Pipeline
-from sklearn.feature_extraction.text import TfidfVectorizer
-from sklearn.linear_model import LogisticRegression
-
-# Toy sentiment example
-texts = ["great product love it", "terrible waste of money",
-         "okay nothing special", "fantastic highly recommend",
-         "broken arrived damaged"]
-labels = [1, 0, 0, 1, 0]
-
-pipeline = Pipeline([
-    ('tfidf', TfidfVectorizer()),
-    ('clf', LogisticRegression())
-])
-pipeline.fit(texts, labels)
 
 text_explainer = lime.lime_text.LimeTextExplainer(class_names=['negative', 'positive'])
-exp = text_explainer.explain_instance(
-    "great quality but arrived damaged",
-    pipeline.predict_proba,
+
+text_explanation = text_explainer.explain_instance(
+    text_instance="The product quality is excellent but delivery was slow",
+    classifier_fn=text_pipeline.predict_proba,
     num_features=6
 )
-
-print("Text LIME explanation:")
-for word, weight in exp.as_list():
-    print(f"  '{word}': {weight:.4f}")
+text_explanation.show_in_notebook()
 ```
 
-### 7.3 When to Use LIME / Limitations
+### What breaks
 
-**Use LIME when:**
-- You need a quick, human-readable explanation for a single prediction
-- You're working with a truly black-box model (only need predict function)
-- You're working with text or image data (LIME handles these natively)
-- The audience needs an intuitive explanation, not mathematical precision
+**Instability.** LIME generates random perturbations. Run it twice on the same instance and you may get different explanations. The stochasticity in the neighborhood sampling propagates to the explanation.
 
-**Limitations:**
+**Neighborhood definition.** How far should the neighborhood extend? The kernel bandwidth hyperparameter controls this and is not obvious to set. Too small = too few samples to fit a stable model. Too large = the linear approximation is inaccurate.
 
-1. **Instability**: Run LIME twice on the same instance — you might get different explanations. The random perturbation makes it non-deterministic. This is a serious problem if explanations are used for auditing.
+**Fidelity-simplicity tradeoff.** LIME enforces sparsity — it returns a small number of features. If the true local explanation requires 20 features to be accurate, LIME's 10-feature model is both simpler and less faithful.
 
-2. **Neighborhood definition is tricky**: What counts as "local"? The Gaussian kernel bandwidth `σ` controls this, and results are sensitive to it. There's no principled way to choose it.
-
-3. **Superpixel artifacts (images)**: For images, LIME groups pixels into superpixels before masking. Different superpixel segmentations yield different explanations.
-
-4. **Fidelity vs simplicity tradeoff**: A sparse linear model may not approximate the local decision boundary well. The explanation might look clean but be misleading.
-
-5. **No global view**: LIME gives you one explanation per instance. Aggregating LIME explanations is not well-defined (unlike SHAP, which has a global analog).
+**Discretization artifacts.** LIME discretizes continuous features by default. "income > 50K" is the explanation even if the actual threshold is $52,384. This can misrepresent the model's actual boundary.
 
 ---
 
-## 8. SHAP (SHapley Additive exPlanations)
+## 7. SHAP: Shapley Additive Explanations
 
-SHAP is arguably the most principled and widely-used explainability method in practice. It's built on game theory and has strong theoretical guarantees that LIME lacks.
+### The problem SHAP solves
 
-### 8.1 Game Theory Foundation: Dividing Credit Among Team Members
+LIME is local and unstable. Feature importance is global but doesn't tell you direction. We want an explanation method that is: local (per-instance), consistent across runs, respects feature interactions, and has a grounding in a fairness axiom.
 
-The Shapley value comes from cooperative game theory (Shapley, 1953). The setup: a group of players collaborate on a task and earn a reward. How do you fairly distribute the reward among players, accounting for each player's contribution?
+### The core insight
 
-The fair answer must satisfy four axioms:
-1. **Efficiency**: The sum of all players' contributions equals the total outcome.
-2. **Symmetry**: If two players are interchangeable, they get equal credit.
-3. **Dummy**: A player who contributes nothing gets nothing.
-4. **Linearity**: If you combine two games, payoffs add up.
+Game theory has a unique fair allocation scheme for cooperative games: the Shapley value. A coalition of players cooperates to earn a reward; the Shapley value is the unique allocation of that reward to players that satisfies fairness axioms. SHAP applies this to ML: the "players" are features, the "reward" is the prediction, and SHAP values are the unique fair allocation of the prediction to features.
 
-The unique value satisfying all four is the Shapley value:
+### The Shapley axioms
+
+The Shapley value is the unique value function satisfying all four:
+
+1. **Efficiency:** Contributions sum to the prediction: `Σᵢ φᵢ = f(x) - E[f(x)]`
+2. **Symmetry:** Features with identical contributions get equal values
+3. **Dummy:** Features that never affect any prediction get zero
+4. **Linearity:** SHAP values of a sum of models equal the sum of SHAP values
+
+These four axioms together uniquely determine the Shapley value formula:
 
 ```
-φᵢ(f) = Σ_{S ⊆ F\{i}} [|S|! (|F|-|S|-1)! / |F|!] × [f(S∪{i}) - f(S)]
+φᵢ = Σ_{S ⊆ F\{i}} [|S|!(|F|-|S|-1)!/|F|!] × [f(S∪{i}) - f(S)]
 ```
 
-Where:
-- `F` is the set of all features
-- `S` is a subset of features not including feature `i`
-- `f(S)` is the model's prediction using only features in `S`
-- The formula averages over all possible orderings of features
+The contribution of feature `i` is its average marginal contribution across all possible orderings of features being added to the coalition.
 
-**The team analogy**: Think of features as team members and the prediction as the team's score. The Shapley value for player i is their *average marginal contribution* across all possible orderings in which they could join the team.
+### Computing SHAP values
 
-If sales = 100K, baseline = 60K:
-- Feature "location" joins first: contribution = 15K
-- Feature "size" joins first: contribution = 25K
-- Together: 40K total above baseline
-- Shapley values fairly split this 40K according to each feature's average contribution
-
-### 8.2 SHAP in Practice
+**KernelSHAP (model-agnostic):** Frames SHAP as weighted linear regression over feature coalitions. Sample subsets of features, get predictions with and without each feature, fit weighted linear model. Exact Shapley values in expectation.
 
 ```python
-# pip install shap
 import shap
-import numpy as np
-import pandas as pd
-from sklearn.ensemble import GradientBoostingClassifier
-from sklearn.datasets import load_breast_cancer
-from sklearn.model_selection import train_test_split
 
-X, y = load_breast_cancer(return_X_y=True, as_frame=True)
-X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=0.2, random_state=42)
+# KernelSHAP — works with any model
+background = shap.maskers.Independent(X_train, max_samples=100)
+explainer = shap.KernelExplainer(model.predict_proba, background)
+shap_values = explainer.shap_values(X_test[:50])
 
-model = GradientBoostingClassifier(n_estimators=100, random_state=42)
-model.fit(X_train, y_train)
-
-# Create SHAP explainer (TreeSHAP for tree-based models)
-explainer = shap.TreeExplainer(model)
-shap_values = explainer.shap_values(X_test)
-
-print(f"SHAP values shape: {shap_values.shape}")  # (n_samples, n_features)
-print(f"Base value (expected output): {explainer.expected_value:.4f}")
-
-# Verify efficiency property: base_value + sum(shap_values) ≈ model output
-instance_idx = 0
-predicted = model.predict_proba(X_test.iloc[[instance_idx]])[0, 1]
-shap_sum = explainer.expected_value + shap_values[instance_idx].sum()
-print(f"Predicted: {predicted:.4f}, SHAP reconstruction: {shap_sum:.4f}")
+# For binary classification, shap_values is a list [class_0, class_1]
+shap.summary_plot(shap_values[1], X_test[:50], feature_names=feature_names)
 ```
 
-### 8.3 TreeSHAP, DeepSHAP, KernelSHAP
-
-**TreeSHAP** (Lundberg & Lee, 2018):
-- Exact (not approximate) Shapley values for tree-based models
-- O(TLD²) complexity where T=trees, L=leaves, D=depth — polynomial instead of exponential
-- Available for: sklearn trees/forests, XGBoost, LightGBM, CatBoost
-- The default choice when you have a tree model
+**TreeSHAP (exact, O(TLD²)):** Exploits tree structure to compute exact Shapley values by traversing the tree. Orders of magnitude faster than KernelSHAP. Works for random forests, gradient boosted trees (XGBoost, LightGBM, CatBoost):
 
 ```python
-# TreeSHAP with XGBoost
 import xgboost as xgb
 
-xgb_model = xgb.XGBClassifier(n_estimators=100, random_state=42, eval_metric='logloss')
+xgb_model = xgb.XGBClassifier(n_estimators=100, random_state=42)
 xgb_model.fit(X_train, y_train)
 
-explainer_xgb = shap.TreeExplainer(xgb_model)
-shap_vals = explainer_xgb.shap_values(X_test)
+# TreeSHAP — model-specific, exact, fast
+tree_explainer = shap.TreeExplainer(xgb_model)
+shap_values = tree_explainer.shap_values(X_test)
+expected_value = tree_explainer.expected_value
 ```
 
-**DeepSHAP**:
-- Combines SHAP with DeepLIFT for neural networks
-- Propagates SHAP values backward through the network
-- Approximate — uses a background dataset to estimate feature baselines
-- Faster than KernelSHAP for deep models
+TreeSHAP complexity: O(TLD²) where T = number of trees, L = leaves per tree, D = max depth. Exact computation, not approximation.
+
+**DeepSHAP:** Combines SHAP with DeepLIFT for neural networks. Propagates SHAP values from output back to inputs using DeepLIFT's backpropagation rules:
 
 ```python
-import torch
-import torch.nn as nn
-
-class SimpleNet(nn.Module):
-    def __init__(self, input_dim):
-        super().__init__()
-        self.net = nn.Sequential(
-            nn.Linear(input_dim, 64),
-            nn.ReLU(),
-            nn.Linear(64, 32),
-            nn.ReLU(),
-            nn.Linear(32, 1),
-            nn.Sigmoid()
-        )
-
-    def forward(self, x):
-        return self.net(x)
-
-# Assuming model is trained...
-# background = torch.tensor(X_train.values[:100], dtype=torch.float32)
-# test_data = torch.tensor(X_test.values[:10], dtype=torch.float32)
-# explainer_deep = shap.DeepExplainer(net_model, background)
-# shap_vals_deep = explainer_deep.shap_values(test_data)
+deep_explainer = shap.DeepExplainer(neural_net_model, X_train[:100])
+shap_values = deep_explainer.shap_values(X_test[:20])
 ```
 
-**KernelSHAP**:
-- Model-agnostic (only needs predict function like LIME)
-- Uses a specially weighted linear regression to estimate Shapley values
-- Significantly slower than TreeSHAP (needs many model evaluations)
-- Use when you have a non-tree, non-neural-network model
+### SHAP plots
+
+**Force plot (local):** Visualize how each feature pushes the prediction above or below the expected value. Red features push prediction higher; blue push lower:
 
 ```python
-# KernelSHAP — model agnostic
-background = shap.sample(X_train, 100)  # Background sample for integration
-
-kernel_explainer = shap.KernelExplainer(
-    model.predict_proba, background
-)
-
-# This is slow — use a small test set
-shap_vals_kernel = kernel_explainer.shap_values(X_test.iloc[:20])
-```
-
-### 8.4 SHAP Plots: Summary, Dependence, Force Plots
-
-**Force Plot (Local)**:
-
-Shows a single prediction as a tug-of-war between features pushing the prediction up (red) and down (blue) from the base value.
-
-```python
-# Force plot for one instance
-shap.initjs()  # For Jupyter
-
-instance_idx = 0
-force_plot = shap.force_plot(
-    explainer.expected_value,
-    shap_values[instance_idx],
-    X_test.iloc[instance_idx],
-    feature_names=list(X.columns)
-)
-shap.save_html('force_plot.html', force_plot)
-
-# Stacked force plot for many instances
-force_plot_all = shap.force_plot(
-    explainer.expected_value,
-    shap_values[:50],
-    X_test.iloc[:50]
+# Single prediction force plot
+shap.force_plot(
+    base_value=expected_value,
+    shap_values=shap_values[0],
+    features=X_test.iloc[0],
+    feature_names=feature_names,
+    matplotlib=True
 )
 ```
 
-**Summary Plot (Global)**:
-
-Shows the distribution of SHAP values for all features across all instances. Each dot is one instance. Color shows feature value (red=high, blue=low). Position on x-axis shows impact.
+**Summary plot (global):** Each row is a feature, each dot is an instance. Color encodes feature value; x-axis position encodes SHAP value:
 
 ```python
-# Summary plot — most important visualization
-shap.summary_plot(shap_values, X_test, plot_type='dot', show=False)
-plt.title('SHAP Summary Plot')
-plt.tight_layout()
-plt.savefig('shap_summary.png', dpi=150, bbox_inches='tight')
-
-# Bar version — simpler, shows mean absolute SHAP value
-shap.summary_plot(shap_values, X_test, plot_type='bar', show=False)
-plt.savefig('shap_summary_bar.png', dpi=150, bbox_inches='tight')
+shap.summary_plot(shap_values, X_test, feature_names=feature_names)
 ```
 
-Reading the summary plot:
-- Features at top are most important globally
-- Width of distribution shows variance in impact
-- Correlation between color and position tells you directionality: if red (high value) is on right (positive SHAP), the feature has a positive effect
-
-**Dependence Plot**:
-
-Shows SHAP value for one feature vs its actual value, colored by another feature (auto-detected interaction).
+**Dependence plot:** SHAP value of one feature vs its raw value. Color encodes another feature to reveal interactions:
 
 ```python
-# Dependence plot — feature effect + interaction
 shap.dependence_plot(
-    'mean radius',           # Feature to plot
-    shap_values,
-    X_test,
-    interaction_index='auto',  # auto-detects strongest interacting feature
-    show=False
+    ind='age',
+    shap_values=shap_values,
+    features=X_test,
+    interaction_index='income'  # color by income to show interaction
 )
-plt.title('SHAP Dependence: mean radius')
-plt.savefig('shap_dependence.png', dpi=150, bbox_inches='tight')
 ```
 
-**Waterfall Plot** (newer, cleaner force plot):
+**Waterfall plot:** Single instance breakdown, showing exactly how each feature moves prediction from expected value to final value:
 
 ```python
-# Waterfall plot — requires shap >= 0.40
-explanation = shap.Explanation(
+shap.waterfall_plot(shap.Explanation(
     values=shap_values[0],
-    base_values=explainer.expected_value,
+    base_values=expected_value,
     data=X_test.iloc[0].values,
-    feature_names=list(X.columns)
-)
-
-shap.plots.waterfall(explanation, show=False)
-plt.savefig('shap_waterfall.png', dpi=150, bbox_inches='tight')
+    feature_names=feature_names
+))
 ```
 
-### 8.5 Global vs Local Explanations with SHAP
-
-SHAP naturally supports both:
-
-**Local**: SHAP value for a specific instance tells you why *this* prediction is what it is. Feature `j` contributed `φⱼ` to move the prediction from the baseline.
-
-**Global**: Average |SHAP value| across all instances gives you global feature importance. This is better than MDI or permutation importance because:
-- It properly handles correlated features
-- It accounts for feature interactions
-- It's grounded in the efficiency axiom
+**Bar plot (global mean |SHAP|):**
 
 ```python
-# Global importance from SHAP
-mean_abs_shap = np.abs(shap_values).mean(axis=0)
-global_importance = pd.DataFrame({
-    'feature': X.columns,
-    'mean_abs_shap': mean_abs_shap
-}).sort_values('mean_abs_shap', ascending=False)
-
-print("Global SHAP importance:")
-print(global_importance.head(10))
+shap.bar_plot(shap_values.mean(0), feature_names=feature_names)
 ```
 
-**SHAP interaction values**: TreeSHAP also computes pairwise interaction effects:
+### What breaks
 
-```python
-# Interaction values (expensive)
-shap_interaction = explainer.shap_interaction_values(X_test.iloc[:100])
-# shape: (n_samples, n_features, n_features)
-# Diagonal: main effects. Off-diagonal: pairwise interactions.
-```
+**Computational cost of KernelSHAP.** Exact Shapley computation is exponential in features. KernelSHAP approximates via sampling — slow for large datasets, and samples are needed per instance.
+
+**Correlated features produce misleading SHAP values.** The Shapley value assumes features are independently maskable. When features are correlated, interventional SHAP (treating missing features as drawn from marginal distribution) differs from observational SHAP (conditioning on other features). The choice affects interpretation.
+
+**SHAP does not identify causality.** A high SHAP value means the feature contributed to this prediction; it does not mean changing the feature would change the outcome. Income SHAP = +2.3 does not mean raising income by $10K would increase the predicted probability by any particular amount.
 
 ---
 
-## 9. Attention Visualization: What Attention Weights Do and Don't Tell Us
+## 8. Attention Visualization
 
-Attention mechanisms are central to transformer models. It's tempting to treat attention weights as explanations: "the model focused on this word when making the prediction." But this story is more complicated than it seems.
+### Why attention seems like an explanation
 
-### 9.1 What Attention Weights Are
+Transformers compute attention weights: for each output token, a distribution over input tokens indicating "how much attention" each input received. It is tempting to interpret these as importance scores — high attention weight on a word means the model considered that word important for this prediction.
 
-In a standard self-attention layer:
+This interpretation is wrong.
 
-```
-Attention(Q, K, V) = softmax(QKᵀ / √dₖ) V
-```
+### What breaks
 
-The attention weights `softmax(QKᵀ / √dₖ)` form a matrix where entry `(i, j)` represents "how much position i attends to position j." The output is a weighted sum of value vectors.
+**Attention is not explanation.** Four reasons:
 
-Visualizing these weights is straightforward:
+1. **Gradient-attention disagreement.** Jain & Wallace (2019) showed that you can often permute or randomize attention weights with minimal effect on the output, because the value vectors (not just attention weights) determine what information is propagated. A different attention pattern over the same inputs can produce identical predictions.
+
+2. **Multi-head mixing.** Output at each position is a weighted sum of value vectors from multiple heads, then projected. The attention weights in one head cannot be read off independently — the final representation mixes across all heads.
+
+3. **Representational compression.** By layer 6 of a 12-layer transformer, input token representations have been thoroughly mixed. The attention pattern over original input tokens is not the same as the attention over meaningful input units.
+
+4. **Rollout and flow methods underestimate mixing.** Attention rollout (multiplying attention matrices across layers) and attention flow both make independence assumptions that don't hold.
 
 ```python
-from transformers import BertTokenizer, BertModel
 import torch
-import matplotlib.pyplot as plt
-import seaborn as sns
+import torch.nn.functional as F
+from transformers import BertTokenizer, BertModel
 
 tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
 model = BertModel.from_pretrained('bert-base-uncased', output_attentions=True)
 
-text = "The bank can guarantee deposits will eventually cover future losses."
+text = "The patient shows signs of irregular heartbeat"
 inputs = tokenizer(text, return_tensors='pt')
 
 with torch.no_grad():
     outputs = model(**inputs)
 
 # outputs.attentions: tuple of (batch, heads, seq_len, seq_len) per layer
-attentions = outputs.attentions  # 12 layers
-
-# Visualize layer 0, head 0
-layer_idx, head_idx = 0, 0
-attn_weights = attentions[layer_idx][0, head_idx].numpy()
-
+# Shape: (12 layers,) each is (1, 12, seq_len, seq_len)
+attentions = outputs.attentions
 tokens = tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])
 
-fig, ax = plt.subplots(figsize=(10, 8))
-sns.heatmap(attn_weights, xticklabels=tokens, yticklabels=tokens,
-            cmap='Blues', ax=ax)
-ax.set_title(f'BERT Attention Weights (Layer {layer_idx}, Head {head_idx})')
-plt.tight_layout()
-plt.savefig('attention_viz.png', dpi=150)
+# Last layer, first head, first token's attention over all tokens
+last_layer_first_head = attentions[-1][0, 0].numpy()
+# This is NOT a reliable feature importance measure
 ```
 
-### 9.2 What Attention Does NOT Tell Us
-
-The critical paper: **"Attention is not Explanation"** (Jain & Wallace, 2019) and the counter **"Attention is not not Explanation"** (Wiegreffe & Pinter, 2019).
-
-The core problem: attention weights tell you *where the model looked*, not *why it made the decision*. These are different things.
-
-**Reasons attention is not a reliable explanation:**
-
-1. **Gradient vs attention disagreement**: A token can have high attention weight but zero gradient — meaning the model's output is insensitive to that token's value. The model looked at it but didn't use it.
-
-2. **Multiple attention heads**: BERT has 12 heads per layer, 12 layers = 144 attention matrices. Which one are you supposed to look at? They often disagree.
-
-3. **Permutable explanations**: You can often find a different attention distribution that produces the same output. The attention weights are not unique — multiple configurations lead to identical outputs.
-
-4. **Attention over representations, not words**: By the time the model attends to something, the representations have already been mixed by previous layers. "Attending to token j" doesn't mean "using the semantic meaning of word j."
-
-5. **CLS token attention is a sink**: In many transformer architectures, the CLS token absorbs attention from many tokens for reasons unrelated to classification.
-
-**What you should use instead:**
-- Integrated gradients (Section 11) for attribution
-- Probing classifiers (Section 14) for understanding what's encoded
-- Attention rollout (aggregating attention across layers) for a more complete picture
-- Raw attention is still useful for debugging and exploration, just not as a formal explanation
+**What to use instead:** Gradient-based saliency (Integrated Gradients), SHAP (DeepSHAP), or probing classifiers for understanding what attention heads encode.
 
 ---
 
-## 10. Saliency Maps and Grad-CAM for CNNs
+## 9. Grad-CAM: Saliency Maps for CNNs
 
-For computer vision, the natural question is: which pixels (or regions) of the image influenced the prediction? Saliency maps and Grad-CAM both answer this for CNNs.
+### The problem
 
-### 10.1 Vanilla Saliency Maps (Gradient-based)
+For image classification, the question is: which pixels drove this prediction? We want a heatmap — same spatial resolution as the input — showing which regions the model attended to.
 
-The simplest approach: compute the gradient of the output class score with respect to the input image. Pixels where a small change would strongly affect the output are "salient."
+### The core insight
 
-```
-Saliency(x) = |∂f(x) / ∂x|
-```
+In a CNN, the final convolutional layer retains spatial information while encoding high-level semantics. The gradient of the predicted class score with respect to these feature maps tells you which channels were most important. Spatially average those gradients, use them as weights on the feature maps, and the result localizes class-discriminative regions.
+
+### The mechanics
+
+For class `c` and final convolutional feature maps `A^k` of spatial size H×W:
+
+1. Compute gradient of class score w.r.t. each feature map: `∂y^c / ∂A^k_{ij}`
+2. Global average pool to get channel weights: `α^c_k = (1/Z) Σ_{i,j} ∂y^c / ∂A^k_{ij}`
+3. Weighted combination of feature maps: `L^c_{Grad-CAM} = ReLU(Σ_k α^c_k A^k)`
+4. Upsample to input resolution
+
+ReLU is applied because we want regions that positively influence the class score.
 
 ```python
 import torch
-import torch.nn as nn
-import torchvision.models as models
-import torchvision.transforms as transforms
+import torch.nn.functional as F
+from torchvision import models, transforms
 from PIL import Image
 import numpy as np
 import matplotlib.pyplot as plt
 
-model = models.resnet50(pretrained=True)
-model.eval()
-
-transform = transforms.Compose([
-    transforms.Resize(256),
-    transforms.CenterCrop(224),
-    transforms.ToTensor(),
-    transforms.Normalize(mean=[0.485, 0.456, 0.406],
-                         std=[0.229, 0.224, 0.225])
-])
-
-def compute_saliency(model, image_tensor, target_class):
-    image_tensor.requires_grad_(True)
-    
-    output = model(image_tensor.unsqueeze(0))
-    score = output[0, target_class]
-    
-    model.zero_grad()
-    score.backward()
-    
-    # Take max across color channels
-    saliency = image_tensor.grad.data.abs().max(dim=0)[0]
-    return saliency.numpy()
-
-# img = Image.open('cat.jpg')
-# img_tensor = transform(img)
-# target = 281  # tabby cat class in ImageNet
-# saliency = compute_saliency(model, img_tensor, target)
-# plt.imshow(saliency, cmap='hot')
-```
-
-**Problem**: Vanilla saliency maps are often noisy and visually difficult to interpret. The gradient is locally defined and sensitive to saturation issues (where the function is flat, gradients are near zero but the region can still be important).
-
-### 10.2 Grad-CAM
-
-Grad-CAM (Selvaraju et al., 2017) is more robust. Instead of looking at input gradients, it looks at the gradients flowing into the *last convolutional layer*. The intuition: the last conv layer has high-level spatial feature maps — the gradients tell you which spatial locations those feature maps focused on for the target class.
-
-**Algorithm:**
-
-1. Forward pass: get the feature maps `A^k` from the target conv layer (shape: `H × W × K`)
-2. Backward pass: compute `∂y^c / ∂A^k_{ij}` — gradient of class score w.r.t. each feature map
-3. Global average pool the gradients: `α^c_k = (1/Z) Σ_{i,j} ∂y^c / ∂A^k_{ij}`
-4. Weighted sum of feature maps: `L^c_{Grad-CAM} = ReLU(Σ_k α^c_k A^k)`
-5. Upsample to input resolution and overlay
-
-```python
 class GradCAM:
     def __init__(self, model, target_layer):
         self.model = model
+        self.target_layer = target_layer
         self.gradients = None
         self.activations = None
-        
-        # Register hooks
-        target_layer.register_forward_hook(self._save_activations)
-        target_layer.register_backward_hook(self._save_gradients)
-    
-    def _save_activations(self, module, input, output):
-        self.activations = output
-    
-    def _save_gradients(self, module, grad_input, grad_output):
-        self.gradients = grad_output[0]
-    
-    def generate(self, input_tensor, target_class):
+        self._register_hooks()
+
+    def _register_hooks(self):
+        def forward_hook(module, input, output):
+            self.activations = output.detach()
+
+        def backward_hook(module, grad_input, grad_output):
+            self.gradients = grad_output[0].detach()
+
+        self.target_layer.register_forward_hook(forward_hook)
+        self.target_layer.register_full_backward_hook(backward_hook)
+
+    def generate(self, input_tensor, target_class=None):
+        self.model.eval()
         output = self.model(input_tensor)
-        
+
+        if target_class is None:
+            target_class = output.argmax(dim=1).item()
+
+        # Zero gradients and backward pass for target class
         self.model.zero_grad()
-        output[0, target_class].backward()
-        
-        # Global average pooling of gradients
-        weights = self.gradients.mean(dim=[2, 3], keepdim=True)
-        
-        # Weighted combination of activation maps
-        cam = (weights * self.activations).sum(dim=1, keepdim=True)
-        cam = torch.relu(cam)
-        
-        # Normalize
-        cam = cam - cam.min()
-        cam = cam / (cam.max() + 1e-8)
-        
-        return cam.squeeze().detach().numpy()
+        one_hot = torch.zeros_like(output)
+        one_hot[0, target_class] = 1
+        output.backward(gradient=one_hot)
 
-# Usage with ResNet
+        # Global average pool gradients over spatial dimensions
+        weights = self.gradients.mean(dim=(2, 3), keepdim=True)  # (1, C, 1, 1)
+
+        # Weighted sum of activation maps
+        cam = (weights * self.activations).sum(dim=1, keepdim=True)  # (1, 1, H, W)
+
+        # ReLU and normalize
+        cam = F.relu(cam)
+        cam = F.interpolate(cam, size=input_tensor.shape[2:], mode='bilinear', align_corners=False)
+        cam = cam.squeeze().numpy()
+        cam = (cam - cam.min()) / (cam.max() - cam.min() + 1e-8)
+        return cam, target_class
+
+# Usage
 model = models.resnet50(pretrained=True)
-model.eval()
+gradcam = GradCAM(model, target_layer=model.layer4[-1])
 
-target_layer = model.layer4[-1].conv2  # Last conv layer
-grad_cam = GradCAM(model, target_layer)
+transform = transforms.Compose([
+    transforms.Resize((224, 224)),
+    transforms.ToTensor(),
+    transforms.Normalize([0.485, 0.456, 0.406], [0.229, 0.224, 0.225])
+])
 
-# img_tensor = transform(img).unsqueeze(0)
-# cam = grad_cam.generate(img_tensor, target_class=281)
-# 
-# plt.figure(figsize=(12, 4))
-# plt.subplot(1, 3, 1); plt.imshow(img); plt.title('Original')
-# plt.subplot(1, 3, 2); plt.imshow(cam, cmap='jet'); plt.title('Grad-CAM')
-# plt.subplot(1, 3, 3)
-# plt.imshow(img)
-# plt.imshow(cam, cmap='jet', alpha=0.5); plt.title('Overlay')
+img = Image.open("image.jpg").convert('RGB')
+input_tensor = transform(img).unsqueeze(0).requires_grad_(True)
+
+cam, predicted_class = gradcam.generate(input_tensor)
+
+# Overlay on original image
+fig, axes = plt.subplots(1, 2, figsize=(12, 5))
+axes[0].imshow(img)
+axes[0].set_title('Original')
+axes[1].imshow(img)
+axes[1].imshow(cam, alpha=0.4, cmap='jet')
+axes[1].set_title(f'Grad-CAM (class {predicted_class})')
+plt.tight_layout()
 ```
 
-**Grad-CAM variants:**
-- **Grad-CAM++**: Improves localization for multiple instances of the same class
-- **Score-CAM**: Uses activation perturbation instead of gradients — avoids gradient noise
-- **Eigen-CAM**: Uses PCA on activation maps, no gradients needed
+**Variants:**
 
-**Limitation**: Grad-CAM only highlights spatial regions, not specific features within those regions. Also, the choice of which convolutional layer to use matters — shallower layers show texture patterns, deeper layers show semantic features.
+- **Grad-CAM++:** Uses higher-order gradients to better localize multiple occurrences of the same class in a single image. Weights positive partial derivatives of the score separately by spatial location.
+- **Score-CAM:** Eliminates gradients entirely. Upsamples each activation map, uses it as a mask over the input, gets the score for each masked image, uses scores as weights. More robust to gradient noise.
+- **Eigen-CAM:** Uses PCA of the feature maps instead of gradient weighting. No backward pass required.
+
+### What breaks
+
+**Grad-CAM only works on the chosen layer.** If you choose the wrong layer (e.g., too early in the network), the spatial resolution is too coarse and the semantic content is too low-level. The target layer should be the last convolutional layer before the classifier.
+
+**Gradients can be noisy.** A single noisy backward pass produces a noisy heatmap. SmoothGrad addresses this: average saliency over many forward passes with Gaussian noise added to the input.
+
+**Grad-CAM can highlight the right region for the wrong reason.** If the model identifies "dog" by background context (grass, yard) rather than the dog itself, Grad-CAM shows the background as important. The heatmap accurately reflects what the model is doing, not what it should be doing.
 
 ---
 
-## 11. Integrated Gradients
+## 10. Integrated Gradients
 
-Integrated Gradients (Sundararajan et al., 2017) provides attribution scores that satisfy three important axioms that vanilla gradients do not:
+### The problem
 
-1. **Sensitivity**: If two inputs differ in one feature and produce different outputs, that feature must have non-zero attribution.
-2. **Implementation invariance**: Two functionally equivalent networks must give the same attributions.
-3. **Completeness**: Attribution scores sum to the difference between model output and the baseline output.
+Vanilla gradient saliency (`∂output/∂input`) measures the local sensitivity of the output to each input dimension. For neural networks with saturated activations (e.g., an input dimension where the neuron is at the plateau of a sigmoid), the gradient is near zero even if that dimension has large absolute value. Gradient saliency says "unimportant" when the actual answer is "important, but the network is saturated."
 
-### The Problem with Vanilla Gradients
+### The core insight
 
-Vanilla gradients fail sensitivity because of the "saturation problem." If a neuron is in a saturated region (flat part of sigmoid or relu), its gradient is near zero — but the feature might still be important. The gradient measures the *current rate of change*, not the *total contribution*.
+Attribute not just the local gradient but the integral of gradients along a path from a baseline (a point with no information, typically a zero or blurred image) to the actual input. This captures the full cumulative effect of each input dimension on the output.
 
-### How Integrated Gradients Works
+### The three axioms
 
-Choose a **baseline** `x'` (typically zeros, black image, or expected value of features). Integrate the gradient along the straight-line path from baseline to input:
+Sundararajan et al. proved that Integrated Gradients is the unique attribution method satisfying all three:
+
+1. **Sensitivity:** If a feature is the only difference between two inputs with different outputs, it gets nonzero attribution.
+2. **Implementation Invariance:** Two networks computing the same function on all inputs get the same attributions, regardless of internal implementation.
+3. **Completeness:** Attributions sum to the difference between the output at the input and the output at the baseline: `Σᵢ IG_i(x) = f(x) - f(x')`
+
+Vanilla gradients violate sensitivity; LIME violates implementation invariance (two different models produce different LIME explanations even if they compute the same function).
+
+### The mechanics
 
 ```
-IntegratedGrads_i(x) = (x_i - x'_i) × ∫₀¹ ∂F(x' + α(x-x')) / ∂x_i dα
+IG_i(x) = (x_i - x'_i) × ∫₀¹ [∂f(x' + α(x - x')) / ∂x_i] dα
 ```
 
-In practice, approximate with a Riemann sum over `m` steps:
+Riemann sum approximation with `m` steps:
 
 ```
-IntegratedGrads_i(x) ≈ (x_i - x'_i) × (1/m) × Σ_{k=1}^{m} ∂F(x' + (k/m)(x-x')) / ∂x_i
+IG_i(x) ≈ (x_i - x'_i) × (1/m) Σₖ₌₁ᵐ [∂f(x' + (k/m)(x - x')) / ∂x_i]
 ```
-
-**Completeness check**: `Σᵢ IntegratedGrads_i(x) = F(x) - F(x')` — attributions sum exactly to the output difference from baseline.
 
 ```python
 import torch
 import numpy as np
 
-def integrated_gradients(model, input_tensor, baseline, target_class, steps=50):
-    """
-    Compute integrated gradients for a specific prediction.
-    
-    Args:
-        model: PyTorch model
-        input_tensor: Input of shape (1, ...)
-        baseline: Same shape as input, reference point (e.g., zeros)
-        target_class: Class index to compute attribution for
-        steps: Number of interpolation steps (more = more accurate)
-    
-    Returns:
-        Integrated gradients of same shape as input
-    """
+def integrated_gradients(model, input_tensor, baseline=None, n_steps=50, target_class=None):
+    if baseline is None:
+        baseline = torch.zeros_like(input_tensor)
+
     # Interpolate between baseline and input
-    alphas = torch.linspace(0, 1, steps + 1)  # [0, 0.02, 0.04, ..., 1.0]
-    
-    # Interpolated inputs: (steps+1, *input_shape)
-    interpolated = baseline + alphas.view(-1, *([1] * (input_tensor.dim()))) * (input_tensor - baseline)
+    alphas = torch.linspace(0, 1, n_steps + 1)
+    interpolated = torch.stack([baseline + alpha * (input_tensor - baseline) for alpha in alphas])
     interpolated.requires_grad_(True)
-    
-    # Forward pass for all interpolations
+
+    # Get gradients at each interpolation step
     outputs = model(interpolated)
-    scores = outputs[:, target_class].sum()
-    
-    # Backward pass
-    model.zero_grad()
-    scores.backward()
-    
-    # Average gradients along path (trapezoidal rule)
-    grads = interpolated.grad
-    avg_grads = (grads[:-1] + grads[1:]).mean(dim=0) / 2
-    
-    # Scale by input - baseline
-    integrated_grads = (input_tensor - baseline).squeeze(0) * avg_grads
-    
+    if target_class is None:
+        target_class = outputs[-1].argmax().item()
+
+    # Sum loss over interpolation steps
+    target_outputs = outputs[:, target_class]
+    target_outputs.sum().backward()
+
+    gradients = interpolated.grad  # (n_steps+1, *input_shape)
+
+    # Average gradients (trapezoidal rule)
+    avg_gradients = gradients[:-1].mean(dim=0)
+
+    # Element-wise multiply by (input - baseline)
+    integrated_grads = (input_tensor - baseline) * avg_gradients
     return integrated_grads.detach()
 
-def verify_completeness(ig_values, model, input_tensor, baseline, target_class):
-    """Check that IG values sum to F(input) - F(baseline)."""
-    with torch.no_grad():
-        f_input = model(input_tensor)[0, target_class].item()
-        f_baseline = model(baseline)[0, target_class].item()
-    
-    delta = f_input - f_baseline
-    ig_sum = ig_values.sum().item()
-    
-    print(f"F(input) - F(baseline) = {delta:.6f}")
-    print(f"Sum of IG values = {ig_sum:.6f}")
-    print(f"Completeness error = {abs(delta - ig_sum):.8f}")
-```
 
-**Choosing the baseline**: The baseline matters because it defines "absence of information":
-- For images: black image (zeros), blurred image, or random noise
-- For text: padding token or masked token
-- For tabular: mean of training data, or all zeros
-
-```python
-# Using Captum (PyTorch's official interpretability library)
-# pip install captum
-from captum.attr import IntegratedGradients
+# Captum implementation (cleaner)
+from captum.attr import IntegratedGradients, NoiseTunnel
+from captum.attr import visualization as viz
 
 ig = IntegratedGradients(model)
-attributions, delta = ig.attribute(
-    input_tensor,
+attributions = ig.attribute(
+    inputs=input_tensor,
     baselines=baseline,
     target=target_class,
-    return_convergence_delta=True,
-    n_steps=50
+    n_steps=50,
+    method='gausslegendre'  # more accurate than Riemann sum
 )
 
-print(f"Convergence delta: {delta.item():.6f}")  # Should be near 0
+# Noise tunnel for smoother attributions (SmoothGrad + IG)
+nt = NoiseTunnel(ig)
+smooth_attributions = nt.attribute(
+    inputs=input_tensor,
+    baselines=baseline,
+    target=target_class,
+    n_steps=50,
+    nt_type='smoothgrad',
+    nt_samples=10,
+    stdevs=0.1
+)
 ```
 
-**Smoothed Integrated Gradients**: Add Gaussian noise to the input multiple times and average — reduces visual noise in attribution maps at the cost of compute.
+**Baseline choice matters.** The baseline is the "no information" reference point. For images: black image (zeros) is standard. For text: all-padding or all-mask tokens. For tabular data: column means or zeros. Different baselines give different attributions — there is no single correct baseline. The baseline encodes what "absence of information" means.
+
+### What breaks
+
+**Completeness is not human-friendly.** The attributions sum to `f(x) - f(baseline)`. If the baseline predicts 0.5 and the input predicts 0.9, attributions sum to 0.4. But humans want to know which features drove the prediction to 0.9, not the difference from baseline.
+
+**Computational cost.** `n_steps=50` requires 50 forward and backward passes per instance. For large models, this is expensive.
+
+**Path dependence.** The straight-line path from baseline to input is conventional but not uniquely correct. Different paths give different attributions. IG uses the straight line as convention.
 
 ---
 
-## 12. Concept-Based Explanations (TCAV)
+## 11. TCAV: Concept-Based Explanations
 
-TCAV (Testing with Concept Activation Vectors, Kim et al., 2018) asks a fundamentally different kind of question: "Does the model use this *human-defined concept* when making predictions?"
+### The problem
 
-Instead of asking "which pixels mattered?" it asks "did the model's use of the concept 'stripes' influence classifying this animal as a zebra?"
+SHAP and IG explain predictions in terms of input features (pixels, tokens, tabular columns). But humans think in concepts: "the model predicted malignant because it saw irregular borders," not "pixel at coordinates (234, 156) contributed +0.003."
 
-### How TCAV Works
+TCAV (Testing with Concept Activation Vectors, Kim et al. 2018) bridges this gap.
 
-1. **Define a concept**: Gather examples of the concept (e.g., images with stripes) and non-concept examples.
-2. **Learn a CAV**: Train a linear classifier to distinguish concept examples from non-concept examples in a specific model layer's activations. The normal to the decision boundary is the Concept Activation Vector (CAV).
-3. **Measure directional derivative**: Compute how much the model's prediction changes as we move activations in the direction of the CAV. This is the *conceptual sensitivity* `S_TC`.
-4. **Statistical test (TCAV score)**: Across a test class (e.g., all zebra images), what fraction have positive conceptual sensitivity? If TCAV score >> 0.5, the concept is important.
+### The core insight
+
+If you have examples of a concept (images of "stripes," "irregular borders," "young patient") and non-examples, you can train a linear classifier on the model's internal activations to find the direction in activation space that separates concept from non-concept. That direction is the Concept Activation Vector (CAV). The TCAV score measures how often the model's predictions align with movement in the CAV direction.
+
+### The mechanics
+
+**Step 1:** Collect positive and negative concept examples. E.g., "stripe patterns" = 50 images of stripes; negatives = 50 random images.
+
+**Step 2:** Run both sets through the model up to layer `l`. Collect activations.
+
+**Step 3:** Train a linear classifier on the activations to separate concept from non-concept. The normal vector to the decision boundary is the CAV: `v_C^l`.
+
+**Step 4:** For each training example of the target class, compute the directional derivative of the class score with respect to the CAV direction:
 
 ```
-TCAV_score(concept, class, layer) = 
-    |{x ∈ class : S_TC(x) > 0}| / |class|
+S_C,k,l(x) = ∇h_{l,k}(f_l(x)) · v_C^l
 ```
+
+**Step 5:** TCAV score = fraction of class `k` examples with positive directional derivative:
+
+```
+TCAV_{Q,C,k,l} = |{x ∈ X_k : S_C,k,l(x) > 0}| / |X_k|
+```
+
+TCAV = 0.8 for "irregular borders" and "malignancy" means 80% of malignant images move in the irregular-borders direction in the model's activations.
 
 ```python
-# Conceptual implementation (not full TCAV, illustrative)
-import numpy as np
-from sklearn.linear_model import LogisticRegression
-from sklearn.metrics import accuracy_score
+from captum.concept import TCAV, Concept
+from captum.concept import Classifier
+import torch
 
-def compute_cav(model, layer, concept_images, non_concept_images, device='cpu'):
-    """
-    Compute a Concept Activation Vector.
-    
-    Returns the weight vector of a linear classifier trained to 
-    separate concept from non-concept activations at the specified layer.
-    """
-    def get_activations(images):
-        activations = []
-        hooks = []
-        
-        def hook_fn(module, input, output):
-            activations.append(output.flatten(start_dim=1).detach().cpu().numpy())
-        
-        hook = layer.register_forward_hook(hook_fn)
-        
-        with torch.no_grad():
-            model(images.to(device))
-        
-        hook.remove()
-        return np.vstack(activations)
-    
-    concept_acts = get_activations(concept_images)
-    non_concept_acts = get_activations(non_concept_images)
-    
-    X = np.vstack([concept_acts, non_concept_acts])
-    y = np.array([1] * len(concept_acts) + [0] * len(non_concept_acts))
-    
-    # Train linear probe
-    clf = LogisticRegression(random_state=42, max_iter=1000)
-    clf.fit(X, y)
-    
-    # CAV is the normal to the decision boundary
-    cav = clf.coef_[0]
-    cav = cav / np.linalg.norm(cav)  # Normalize
-    
-    # CAV quality: how separable are concept and non-concept activations?
-    accuracy = accuracy_score(y, clf.predict(X))
-    print(f"CAV linear separability accuracy: {accuracy:.4f}")
-    
-    return cav
+# Define concepts with example images
+stripes_concept = Concept(
+    id=0,
+    name="stripes",
+    data_iter=DataLoader(stripes_dataset, batch_size=64)
+)
+random_concept = Concept(
+    id=1,
+    name="random",
+    data_iter=DataLoader(random_dataset, batch_size=64)
+)
 
-def tcav_score(model, layer, cav, test_images, target_class, device='cpu'):
-    """
-    Compute TCAV score: fraction of test images with positive 
-    directional derivative toward the concept.
-    """
-    positive_count = 0
-    
-    for img in test_images:
-        img = img.unsqueeze(0).to(device)
-        img.requires_grad_(True)
-        
-        activations = []
-        def hook_fn(module, input, output):
-            activations.append(output)
-        
-        hook = layer.register_forward_hook(hook_fn)
-        output = model(img)
-        hook.remove()
-        
-        # Gradient of target class output w.r.t. layer activations
-        score = output[0, target_class]
-        act = activations[0]
-        grad = torch.autograd.grad(score, act)[0]
-        
-        # Directional derivative in direction of CAV
-        grad_flat = grad.flatten().detach().cpu().numpy()
-        directional_deriv = np.dot(grad_flat, cav)
-        
-        if directional_deriv > 0:
-            positive_count += 1
-    
-    return positive_count / len(test_images)
+# Create TCAV object
+tcav = TCAV(
+    model=model,
+    layers=['layer3', 'layer4'],
+    model_id='resnet50_v1',
+    classifier=Classifier()
+)
+
+# Compute TCAV scores
+experimental_sets = [[stripes_concept, random_concept]]
+tcav_scores = tcav.interpret(
+    inputs=target_class_images,
+    experimental_sets=experimental_sets,
+    target=target_class_idx
+)
 ```
 
-### When to Use TCAV
+**Statistical test.** A high TCAV score is only meaningful if the CAV is real — not an artifact of the specific random negative examples chosen. Run TCAV multiple times with different random negatives and check: does the TCAV score distribution differ significantly from 0.5? A concept that scores 0.82 consistently across 20 random negative splits is meaningful; one that scores 0.82 in one run and 0.53 in another is not.
 
-TCAV is particularly powerful when:
-- You want to audit whether a model learned a *spurious concept* (e.g., "hospital backgrounds" in medical imaging)
-- You want to communicate with domain experts using their vocabulary ("did the model use texture or shape?")
-- You're doing model debugging at a conceptual level
+### What breaks
 
-**Limitations:**
-- You need to curate concept images — labor intensive
-- CAV quality depends on the quality and quantity of concept examples
-- The choice of layer matters significantly
-- Statistical significance requires multiple runs with random non-concept samples
+**Concept quality depends on your examples.** Noisy or heterogeneous concept examples produce a weak CAV. The linear classifier trains on what you give it — garbage concept images produce a garbage CAV.
+
+**Linear CAV assumption.** Concepts may not be linearly separable in activation space. A CAV trained with logistic regression is a linear boundary; nonlinear concepts are poorly captured.
+
+**Layer sensitivity.** The TCAV score varies by layer. A concept that appears influential at layer 3 may be irrelevant at layer 7. You need to test across layers, which multiplies compute.
 
 ---
 
-## 13. Model Cards and Fact Sheets
+## 12. Model Cards and Documentation
 
-Technical explanations (SHAP values, Grad-CAM) serve data scientists. But stakeholders, policymakers, and the public need a different kind of transparency: documentation.
+### The problem
 
-### 13.1 Model Cards (Mitchell et al., 2019)
+A model trained for one context is deployed in another. A skin lesion classifier trained on light-skinned patients is deployed on a diverse population. A hiring model trained on 2010 data is deployed in 2025. Without explicit documentation of training data, intended use cases, and known limitations, these failures are invisible until they cause harm.
 
-A Model Card is a short document accompanying a trained model, standardizing what information is reported. Google introduced them; they're now widely adopted.
+### Model Cards (Mitchell et al. 2019)
 
-**Standard sections:**
+A model card is a standardized one-to-two page document attached to a deployed model:
 
-```
-# Model Card: Credit Risk Classifier v2.1
-
+```markdown
 ## Model Details
-- Developed by: Risk Analytics Team, Acme Bank
-- Model date: 2024-Q1
-- Model type: Gradient Boosted Trees (XGBoost 1.7)
-- License: Internal use only
-- Contact: risk-ml@acme.com
+- **Developer:** Johns Hopkins Medical AI Lab
+- **Model date:** March 2024
+- **Model version:** v2.3
+- **Model type:** Fine-tuned ResNet-50 for binary classification
+- **License:** Proprietary, internal use only
+- **Citation:** [arXiv:2403.XXXXX]
 
 ## Intended Use
-### Primary intended uses
-- Evaluate creditworthiness for personal loan applications ($5K-$50K)
-- Internal loan officers as a decision-support tool (not autonomous)
-
-### Out-of-scope uses
-- Business loans
-- Mortgage applications
-- Decisions without human review
+- **Primary use:** Assist radiologists in flagging chest X-rays for pneumonia
+- **Intended users:** Radiologists in US hospital network
+- **Out-of-scope uses:** Standalone diagnosis without radiologist review; 
+                         pediatric patients under 12; non-chest imaging
 
 ## Factors
-### Relevant factors
-- Credit history length (strong positive)
-- Debt-to-income ratio (strong negative)
-- Employment duration (moderate positive)
-
-### Evaluation factors
-- Evaluated separately for: age groups (18-25, 26-45, 46+), gender, race
+- **Relevant factors:** Patient age, BMI, scanner manufacturer, image quality
+- **Evaluation factors:** Stratified by age group, sex, scanner type
 
 ## Metrics
-- Primary: AUC-ROC (0.84 on holdout)
-- Secondary: KS statistic, Gini coefficient
-- Calibration: Brier score (0.11)
+- **Performance metrics:** AUROC, sensitivity @ 90% specificity
+- **Thresholds:** 0.7 decision threshold for high-sensitivity deployment
+- **Decision threshold:** Varies by deployment context
 
 ## Evaluation Data
-- Holdout set: 50,000 applications, Q4 2023
-- Time-based split (NOT random) to avoid leakage
+- **Dataset:** CheXpert test set (n=234 patients) + internal holdout (n=1,847)
+- **Demographics:** 47% female, 53% male; age 18-89; 3 scanner manufacturers
 
 ## Training Data
-- 500,000 loan applications, 2019-2023
+- **Source:** MIMIC-CXR (227,827 images) + CheXpert (224,316 images)
+- **Known biases:** Underrepresented: patients >80 years, BMI >40, non-GE scanners
 
-## Quantitative Analyses
-### Unitary results
-| Metric | Overall | Age 18-25 | Age 26-45 | Age 46+ |
-|--------|---------|-----------|-----------|---------|
-| AUC    | 0.84    | 0.79      | 0.86      | 0.85    |
-| FPR    | 0.12    | 0.18      | 0.10      | 0.11    |
-
-### Intersectional results
-- No significant interaction effects between age and gender
+## Quantitative Analysis
+| Demographic | AUROC | Sensitivity @ 90% spec |
+|-------------|-------|------------------------|
+| Age <40 | 0.91 | 82% |
+| Age 40-70 | 0.94 | 87% |
+| Age >70 | 0.88 | 79% |
+| Female | 0.93 | 85% |
+| Male | 0.92 | 84% |
 
 ## Ethical Considerations
-- Model uses proxy variables that may encode protected attributes
-- Regular fairness audits scheduled quarterly
-- Disparity thresholds: max 1.2x adverse impact ratio by any protected group
+- Model does not replace radiologist judgment
+- Known performance gap in older patients
 
 ## Caveats and Recommendations
-- Performance degrades for applicants with < 2 years of credit history
-- Should not be sole basis for rejection; human review required
-- Recalibrate if macroeconomic conditions shift significantly
+- Retrain or fine-tune before deployment with scanners not in training set
+- Monitor performance drift quarterly against labeled production samples
 ```
 
-### 13.2 IBM AI Fact Sheets
+**IBM AI FactSheets** extend this: structured metadata about data sources, preprocessing decisions, hyperparameter choices, and fairness audits. Intended for enterprise governance workflows.
 
-IBM's Fact Sheets (Arnold et al., 2019) extend Model Cards with more focus on the AI lifecycle, lineage, and governance:
-
-- **AI Service Sheet**: Describes the AI service offering
-- **AI Model Sheet**: Technical model details
-- **AI Training Sheet**: Training data and methodology
-- **AI Risk Sheet**: Known risks and mitigations
-
-### 13.3 Datasheets for Datasets
-
-Complementary to model cards: Gebru et al.'s "Datasheets for Datasets" proposes that every dataset include documentation covering:
-- Motivation for collection
-- Composition
-- Collection process
-- Preprocessing/labeling
-- Uses (and prohibited uses)
-- Distribution
-- Maintenance
-
-### Why This Matters for Interviews
-
-Model cards demonstrate *institutional* commitment to interpretability — not just technical methods. An interviewer asking about XAI often wants to know:
-1. Can you build the technical tools (SHAP, Grad-CAM)?
-2. Do you understand the broader accountability context?
-
-Model cards answer (2). Being able to discuss them shows you think beyond accuracy.
+**Datasheets for Datasets (Gebru et al. 2018):** Analogous documentation for datasets — motivation, composition, collection process, preprocessing, uses, distribution, maintenance.
 
 ---
 
-## 14. Interpretability in LLMs: Logit Lens, Probing Classifiers, Mechanistic Interpretability
+## 13. Interpretability in LLMs
 
-Interpreting large language models is a field of active research. The scale and architecture create unique challenges, but also unique opportunities.
+Language models present a different interpretability challenge. There are no spatial activations to visualize with Grad-CAM. The input is a sequence of tokens, not an image. And the model is predicting the next token, not a class — so "which input token was important" is a question with 50,277 possible outputs.
 
-### 14.1 Probing Classifiers
+### Probing Classifiers
 
-The question: does a specific layer of an LLM encode a specific linguistic property?
+**The question:** Does layer `l` of a transformer encode property P (e.g., part-of-speech, syntactic role, semantic similarity)?
 
-Method: freeze the model, extract representations at a given layer for a dataset annotated with a property (e.g., part-of-speech tags, syntactic relations, semantic roles), train a simple linear classifier on those representations.
-
-If a linear classifier achieves high accuracy, that layer's representations encode that property.
+**The method:** Train a small classifier on top of the frozen activations at layer `l` to predict P. High accuracy = the representation at layer `l` encodes P.
 
 ```python
-from transformers import BertTokenizer, BertModel
-import torch
-import numpy as np
+from transformers import BertModel, BertTokenizer
 from sklearn.linear_model import LogisticRegression
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
-
-def extract_bert_representations(texts, tokenizer, model, layer_idx=6):
-    """Extract token-level representations from a specific BERT layer."""
-    model.eval()
-    all_reps = []
-    
-    for text in texts:
-        inputs = tokenizer(text, return_tensors='pt', truncation=True, max_length=128)
-        
-        with torch.no_grad():
-            outputs = model(**inputs, output_hidden_states=True)
-        
-        # hidden_states: tuple of (layer, batch, seq_len, hidden_dim)
-        layer_reps = outputs.hidden_states[layer_idx]  # (1, seq_len, 768)
-        # Mean pool over sequence
-        rep = layer_reps[0].mean(dim=0).numpy()
-        all_reps.append(rep)
-    
-    return np.array(all_reps)
-
-# Example: probe for sentiment using sentence representations
-texts = ["I love this movie", "This film is terrible", 
-         "Absolutely brilliant", "Complete waste of time"]
-labels = [1, 0, 1, 0]
-
-tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
-model = BertModel.from_pretrained('bert-base-uncased')
-
-# Probe each layer
-for layer_idx in range(0, 13):  # BERT has 12 layers + embedding layer
-    reps = extract_bert_representations(texts, tokenizer, model, layer_idx)
-    X_train, X_test, y_train, y_test = train_test_split(
-        reps, labels, test_size=0.5, random_state=42
-    )
-    
-    probe = LogisticRegression(max_iter=1000)
-    probe.fit(X_train, y_train)
-    acc = accuracy_score(y_test, probe.predict(X_test))
-    print(f"Layer {layer_idx:2d}: probe accuracy = {acc:.3f}")
-```
-
-**Probing findings in BERT (empirically observed):**
-- Lower layers: surface features (word identity, capitalization)
-- Middle layers: syntactic structure (POS tags, dependency relations peak ~layer 6)
-- Higher layers: semantic and discourse features
-
-**Caveat — probing only shows encoding, not use**: A representation that encodes sentiment doesn't mean the model *uses* that information for its task. This is called the **amnesic probing** critique. Supplement probing with causal interventions (see mechanistic interpretability below).
-
-### 14.2 Logit Lens
-
-The logit lens (nostalgebraist, 2020) is a technique to understand what the residual stream of a transformer is "thinking" at each layer.
-
-The insight: in transformers, the output at each layer is added to a residual stream. The final layer's output is converted to logits by the unembedding matrix `W_U`. We can apply this same unembedding matrix to any intermediate layer's residual stream to get "as if it were the final output" predictions.
-
-```python
-from transformers import GPT2LMHeadModel, GPT2Tokenizer
-import torch
 import numpy as np
 
-def logit_lens(model, tokenizer, text):
-    """
-    Show how the model's prediction evolves through layers
-    using the logit lens.
-    """
-    model.eval()
-    
-    inputs = tokenizer(text, return_tensors='pt')
-    
-    with torch.no_grad():
-        outputs = model(**inputs, output_hidden_states=True)
-    
-    hidden_states = outputs.hidden_states  # (n_layers+1, batch, seq, hidden)
-    
-    # GPT-2's LM head = layer norm + linear (= W_U)
-    lm_head = model.lm_head
-    ln_f = model.transformer.ln_f
-    
-    input_tokens = tokenizer.convert_ids_to_tokens(inputs['input_ids'][0])
-    last_token_idx = -1  # Predict next token from last position
-    
-    print(f"Input: {text}")
-    print(f"Predicting next token after position {len(input_tokens)-1}: '{input_tokens[-1]}'")
-    print("-" * 50)
-    
-    for layer_idx, hidden in enumerate(hidden_states):
-        # Apply final layer norm + unembed
-        normed = ln_f(hidden[0, last_token_idx, :])
-        logits = lm_head(normed)
-        probs = torch.softmax(logits, dim=-1)
-        
-        top5_probs, top5_ids = probs.topk(5)
-        top5_tokens = [tokenizer.decode([t]) for t in top5_ids]
-        
-        layer_name = f"Layer {layer_idx:2d}" if layer_idx > 0 else "Embed "
-        top_token = top5_tokens[0]
-        top_prob = top5_probs[0].item()
-        
-        print(f"{layer_name}: top prediction = '{top_token}' ({top_prob:.3f})")
+tokenizer = BertTokenizer.from_pretrained('bert-base-uncased')
+model = BertModel.from_pretrained('bert-base-uncased', output_hidden_states=True)
+model.eval()
 
-# tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
-# model = GPT2LMHeadModel.from_pretrained('gpt2')
-# logit_lens(model, tokenizer, "The capital of France is")
+def get_layer_representations(texts, labels, layer_idx):
+    all_reps = []
+    for text in texts:
+        inputs = tokenizer(text, return_tensors='pt', padding=True, truncation=True)
+        with torch.no_grad():
+            outputs = model(**inputs)
+        # hidden_states: (n_layers+1, batch, seq_len, hidden_size)
+        # Take [CLS] token representation at target layer
+        rep = outputs.hidden_states[layer_idx][0, 0, :].numpy()
+        all_reps.append(rep)
+    return np.array(all_reps)
+
+# Probe all 12 BERT layers for POS tagging
+probing_results = []
+for layer in range(13):  # 0 = embeddings, 1-12 = transformer layers
+    reps = get_layer_representations(texts, pos_labels, layer)
+    X_train, X_test, y_train, y_test = train_test_split(reps, pos_labels, test_size=0.2)
+    probe = LogisticRegression(max_iter=1000)
+    probe.fit(X_train, y_train)
+    accuracy = probe.score(X_test, y_test)
+    probing_results.append({'layer': layer, 'accuracy': accuracy})
 ```
 
-The logit lens reveals how predictions form over layers — typically the model is uncertain in early layers and converges on the final answer progressively.
+BERT finding: lower layers encode syntactic properties (POS, dependency arcs); higher layers encode semantic properties (coreference, NER). This is not a surprise — it recapitulates the analysis hierarchy.
 
-### 14.3 Mechanistic Interpretability
+**Amnesic probing caveat:** A high probing accuracy at layer `l` means the representation at layer `l` contains enough information to predict property P. It does not mean the model *uses* property P for its final predictions. The information might be present but causally irrelevant. Amnesic probing (Elazar et al. 2021) tests this: erase the probed property from activations and measure whether final task performance drops.
 
-Mechanistic interpretability (Olah et al., Elhage et al.) aims to reverse-engineer the *algorithms* learned by neural networks. The goal is not "which inputs mattered" but "what computation is this circuit performing?"
+### Logit Lens
 
-Key concepts:
+**The question:** What is the model "thinking" at intermediate layers?
 
-**Superposition**: Networks represent more features than they have dimensions by encoding multiple features in overlapping, nearly-orthogonal directions. This makes interpretation hard — individual neurons don't cleanly correspond to concepts.
-
-**Circuits**: A circuit is a subgraph of the network (specific attention heads, MLPs, residual stream components) that implements a specific behavior. Notable circuits discovered:
-- **Induction heads** (Olsson et al., 2022): Attention heads that implement in-context learning by copying previous patterns
-- **Indirect object identification** circuit in GPT-2 (Wang et al., 2022): 26 attention heads that implement the task of identifying "Mary gave John the ball; John returned it to ___"
-- **Modular arithmetic** circuits: Circuits in small transformers that implement modular addition
-
-**Activation patching (causal tracing)**:
+**The method:** Apply the unembedding matrix `W_U` directly to the residual stream at each layer (before the final layer norm + unembedding). The resulting distribution over the vocabulary reveals what token the model "predicts" from that point forward:
 
 ```python
-def activation_patching(model, clean_input, corrupted_input, target_pos, layer):
-    """
-    Patch in activations from clean run into corrupted run
-    at a specific layer and position.
-    
-    If patching in clean activations at (layer, pos) restores the 
-    clean output, that (layer, pos) is causally important.
-    """
-    # Store clean activations
-    clean_activations = {}
-    
-    def save_hook(name):
-        def hook(module, input, output):
-            clean_activations[name] = output.detach()
-        return hook
-    
-    # Run clean forward pass
-    hooks = []
-    for i, block in enumerate(model.transformer.h):
-        h = block.register_forward_hook(save_hook(f'block_{i}'))
-        hooks.append(h)
-    
-    with torch.no_grad():
-        clean_output = model(**clean_input)
-    
-    for h in hooks:
-        h.remove()
-    
-    # Run corrupted forward pass with patching at (layer, target_pos)
-    def patch_hook(module, input, output):
-        patched = output.clone()
-        patched[:, target_pos, :] = clean_activations[f'block_{layer}'][:, target_pos, :]
-        return patched
-    
-    patch_h = model.transformer.h[layer].register_forward_hook(patch_hook)
-    
-    with torch.no_grad():
-        patched_output = model(**corrupted_input)
-    
-    patch_h.remove()
-    
-    return patched_output
+import torch
+from transformers import GPT2LMHeadModel, GPT2Tokenizer
+
+tokenizer = GPT2Tokenizer.from_pretrained('gpt2')
+model = GPT2LMHeadModel.from_pretrained('gpt2', output_hidden_states=True)
+model.eval()
+
+prompt = "The capital of France is"
+inputs = tokenizer(prompt, return_tensors='pt')
+
+with torch.no_grad():
+    outputs = model(**inputs)
+
+hidden_states = outputs.hidden_states  # (n_layers+1, batch, seq, hidden)
+W_U = model.lm_head.weight  # (vocab_size, hidden_size)
+
+# Apply unembedding to each layer's last token representation
+predictions_per_layer = []
+for layer_idx, hidden in enumerate(hidden_states):
+    last_token_hidden = hidden[0, -1, :]  # (hidden_size,)
+    # Apply layer norm before unembedding
+    normed = model.transformer.ln_f(last_token_hidden.unsqueeze(0))
+    logits = (W_U @ normed.T).squeeze()
+    top_token = tokenizer.decode([logits.argmax().item()])
+    top_prob = torch.softmax(logits, dim=0).max().item()
+    predictions_per_layer.append({
+        'layer': layer_idx,
+        'top_token': top_token,
+        'probability': top_prob
+    })
 ```
 
-**Sparse autoencoders (SAEs)**: A newer approach (Templeton et al., 2024) that trains sparse autoencoders on residual stream activations to decompose superposition into interpretable features. SAEs learn a sparse dictionary of monosemantic features, making the network more interpretable without changing its behavior.
+The logit lens reveals at which layer a model "converges" on the final answer. For factual recall in GPT-2, the correct answer often emerges in early-middle layers and stabilizes — the final layers refine rather than determine the answer.
+
+### Mechanistic Interpretability
+
+**The problem with probe classifiers and logit lens:** they tell you what information is present and when it appears, but not the algorithm the model implements. How does the model compute "The capital of France is Paris"?
+
+Mechanistic interpretability attempts to reverse-engineer the circuits — the specific subgraph of attention heads and MLP neurons — that implement a particular computation.
+
+**Superposition:** A network with `d` dimensions can represent more than `d` features if it accepts some interference. Toy model: 5-dimensional MLP representing 20 concepts. Features are represented as near-orthogonal directions in a lower-dimensional space. When features are sparse (most are zero for any given input), superposition works — interference is rare. This explains why neural networks pack far more information into their representations than their dimension count suggests.
+
+**Induction heads:** A two-layer attention pattern that implements in-context copying. Head A at layer 1 is a "previous token head" — attends to the previous position. Head B at layer 2 is a "key-query composition head" — attends to positions whose previous token matches the current token. Together they implement: if [A][B] appeared earlier, predict [B] when [A] appears again. This is in-context learning in its simplest form and appears consistently across transformer architectures.
+
+**The IOI circuit (Wang et al. 2022):** For "When Mary and John went to the store, John gave a drink to" → "Mary." A 26-head circuit implements: find the repeated name (John), suppress it, attend to the other name (Mary). Analyzed by ablating attention heads and measuring performance on the task.
+
+**Activation patching (causal tracing):** Identify which model components are causally responsible for a specific fact:
+
+```python
+def activation_patching(model, clean_prompt, corrupted_prompt, target_token_id, layer_to_patch):
+    """
+    Run corrupted input. Patch activation at layer_to_patch from clean run.
+    Measure recovery of target probability.
+    """
+    # Clean run - store activations
+    clean_inputs = tokenizer(clean_prompt, return_tensors='pt')
+    corrupted_inputs = tokenizer(corrupted_prompt, return_tensors='pt')
+
+    with torch.no_grad():
+        clean_outputs = model(**clean_inputs, output_hidden_states=True)
+        clean_activations = clean_outputs.hidden_states[layer_to_patch]
+
+    # Corrupted run with hook to patch specific layer
+    patched_activations = {}
+
+    def patch_hook(module, input, output):
+        return clean_activations  # replace with clean activations
+
+    hook = model.transformer.h[layer_to_patch].register_forward_hook(patch_hook)
+
+    with torch.no_grad():
+        patched_outputs = model(**corrupted_inputs)
+        patched_logits = patched_outputs.logits[0, -1, :]
+        patched_prob = torch.softmax(patched_logits, dim=0)[target_token_id].item()
+
+    hook.remove()
+    return patched_prob
+```
+
+Run across all layers to produce a "causal importance" map. Layers/heads where patching recovers the correct answer are causally involved in the computation.
+
+### Sparse Autoencoders (SAEs)
+
+**The problem:** Due to superposition, individual neurons are polysemantic — they activate for multiple unrelated concepts. Feature decomposition is impossible at the neuron level.
+
+**The insight (Templeton et al. 2024, Anthropic):** Train a sparse autoencoder on model activations to learn a larger dictionary of monosemantic features. The SAE decomposes each activation into a sparse sum of learned features, each of which activates for semantically coherent concepts.
+
+```
+SAE: z = ReLU(W_enc(x - b_dec) + b_enc)
+     x̂ = W_dec z + b_dec
+Minimize: ||x - x̂||² + λ||z||₁
+```
+
+L1 penalty enforces sparsity. The features in `W_dec` are the learned dictionary. Templeton et al. (2024) scaled SAEs to Claude Sonnet and found interpretable features for: the Golden Gate Bridge, DNA replication, emotions, countries, specific people. The same model component that encodes "Golden Gate Bridge" also encodes structural/geographical concepts through superposition — the SAE decomposes this into distinct monosemantic features.
+
+```python
+import torch
+import torch.nn as nn
+
+class SparseAutoencoder(nn.Module):
+    def __init__(self, input_dim, hidden_dim, l1_coeff=1e-3):
+        super().__init__()
+        self.encoder = nn.Linear(input_dim, hidden_dim)
+        self.decoder = nn.Linear(hidden_dim, input_dim, bias=False)
+        self.b_dec = nn.Parameter(torch.zeros(input_dim))
+        self.l1_coeff = l1_coeff
+
+    def forward(self, x):
+        # Pre-encoder bias
+        x_centered = x - self.b_dec
+        # Encode with ReLU for sparsity
+        z = torch.relu(self.encoder(x_centered))
+        # Decode
+        x_hat = self.decoder(z) + self.b_dec
+        # Compute losses
+        reconstruction_loss = ((x - x_hat) ** 2).sum(dim=-1).mean()
+        sparsity_loss = self.l1_coeff * z.abs().sum(dim=-1).mean()
+        return x_hat, z, reconstruction_loss + sparsity_loss
+
+    def get_active_features(self, x, top_k=10):
+        with torch.no_grad():
+            x_centered = x - self.b_dec
+            z = torch.relu(self.encoder(x_centered))
+            values, indices = z.topk(top_k)
+        return indices, values
+```
 
 ---
 
-## 15. Regulatory Context: GDPR, Financial Models
+## 14. Regulatory Context
 
-Interpretability is not just academically interesting. It's legally required in many contexts.
+### GDPR Article 22 and the Right to Explanation
 
-### 15.1 GDPR: Right to Explanation
+Article 22 of GDPR restricts fully automated decisions that "significantly affect" EU individuals. Recital 71 specifies the right to "obtain an explanation of the decision reached."
 
-Article 22 of GDPR (EU, 2018) grants data subjects the right "not to be subject to a decision based solely on automated processing, including profiling, which produces legal effects concerning him or her or similarly significantly affects him or her."
-
-Recital 71 specifies the right to "obtain an explanation of the decision reached after such assessment and to challenge the decision."
-
-**What this means in practice:**
-- If your model makes decisions about loan approvals, hiring, insurance pricing, parole, or anything "significantly affecting" EU individuals, you must be able to explain those decisions.
-- The explanation must be "meaningful" — not just technical jargon.
-- You need to maintain the infrastructure to generate these explanations on demand.
-
-**Implementation implications:**
+Practically, this means:
+- Credit denials, hiring decisions, insurance pricing by algorithm require a human review path
+- The explanation must be provided in a "meaningful" form — not just "the model said so"
+- The individual has the right to contest the decision
 
 ```python
 class GDPRCompliantClassifier:
-    """Wrapper that stores explanations for audit/GDPR compliance."""
-    
-    def __init__(self, model, explainer, threshold=0.5):
+    def __init__(self, model, explainer, feature_names):
         self.model = model
         self.explainer = explainer
-        self.threshold = threshold
-        self.explanation_log = {}  # In practice: use a database
-    
-    def predict_with_explanation(self, X, decision_id, user_id):
-        """Make prediction and store explanation for GDPR compliance."""
-        prediction_proba = self.model.predict_proba(X)[0]
-        prediction = int(prediction_proba[1] >= self.threshold)
-        
-        # Generate SHAP explanation
+        self.feature_names = feature_names
+
+    def predict_with_explanation(self, X, threshold=0.5):
+        probabilities = self.model.predict_proba(X)[:, 1]
+        predictions = (probabilities >= threshold).astype(int)
         shap_values = self.explainer.shap_values(X)
-        
-        # Store explanation
-        self.explanation_log[decision_id] = {
-            'user_id': user_id,
-            'timestamp': pd.Timestamp.now(),
-            'prediction': prediction,
-            'probability': float(prediction_proba[1]),
-            'shap_values': shap_values.tolist(),
-            'feature_names': list(X.columns),
-            'feature_values': X.iloc[0].to_dict()
-        }
-        
-        return prediction
-    
-    def get_explanation(self, decision_id, format='human_readable'):
-        """Retrieve explanation for a specific decision."""
-        log = self.explanation_log.get(decision_id)
-        if log is None:
-            raise ValueError(f"No explanation found for decision {decision_id}")
-        
-        if format == 'human_readable':
-            shap_df = pd.DataFrame({
-                'feature': log['feature_names'],
-                'value': list(log['feature_values'].values()),
-                'shap_value': log['shap_values']
-            }).sort_values('shap_value', key=abs, ascending=False)
-            
-            top_reasons = shap_df.head(3)
-            outcome = "approved" if log['prediction'] == 1 else "rejected"
-            
-            explanation = f"Decision: {outcome.upper()}\n"
-            explanation += "Primary reasons:\n"
-            
-            for _, row in top_reasons.iterrows():
-                direction = "increased" if row['shap_value'] > 0 else "decreased"
-                explanation += f"  - {row['feature']} = {row['value']:.2f} {direction} likelihood\n"
-            
-            return explanation
-        
-        return log
+
+        explanations = []
+        for i, (pred, prob) in enumerate(zip(predictions, probabilities)):
+            instance_shap = shap_values[i] if len(shap_values.shape) > 1 else shap_values[1][i]
+            # Top 3 features by absolute SHAP value
+            top_indices = np.argsort(np.abs(instance_shap))[-3:][::-1]
+            top_factors = [
+                {
+                    'feature': self.feature_names[j],
+                    'shap_value': float(instance_shap[j]),
+                    'impact': 'positive' if instance_shap[j] > 0 else 'negative'
+                }
+                for j in top_indices
+            ]
+            explanations.append({
+                'prediction': int(pred),
+                'probability': float(prob),
+                'decision': 'approved' if pred == 1 else 'declined',
+                'key_factors': top_factors,
+                'explanation_text': self._generate_explanation_text(pred, top_factors)
+            })
+        return explanations
+
+    def _generate_explanation_text(self, prediction, factors):
+        if prediction == 0:
+            neg_factors = [f for f in factors if f['impact'] == 'negative']
+            if neg_factors:
+                feature_list = ', '.join([f['feature'] for f in neg_factors[:3]])
+                return f"Application declined primarily due to: {feature_list}"
+        return "Application approved based on strong qualifying factors."
 ```
 
-### 15.2 Financial Services: SR 11-7
+### Adverse Action Notices (ECOA/FCRA)
 
-The Federal Reserve's Supervisory Guidance SR 11-7 (2011) requires that model risk be managed, which includes:
-- Documentation of model development
-- Validation by independent parties
-- Ongoing monitoring of model performance
-- Explanation of model behavior and limitations
+In the US, the Equal Credit Opportunity Act (ECOA) and Fair Credit Reporting Act (FCRA) require lenders to provide applicants with the specific reasons for credit denial. The standard: list the top factors that negatively affected the decision.
 
-For US banking, this essentially mandates interpretability for credit models.
-
-**Adverse Action Notices**: ECOA and FCRA require that when a consumer is denied credit, they receive an adverse action notice listing the principal reasons. For ML models, this typically requires generating a ranked list of the top factors. SHAP values are increasingly used to generate these.
+Best practice with SHAP: sort features by their SHAP contribution to the negative outcome, provide the top 4 as the adverse action reasons:
 
 ```python
-def generate_adverse_action_notice(shap_values, feature_names, feature_values, top_n=4):
+def generate_adverse_action_reasons(shap_values, feature_names, n_reasons=4):
     """
-    Generate ECOA-compliant adverse action notice.
-    For rejections, report top N features with most negative SHAP values.
+    ECOA/FCRA compliant adverse action notice generation.
+    Returns top n negative-contributing features.
     """
-    df = pd.DataFrame({
-        'feature': feature_names,
-        'value': feature_values,
-        'shap_value': shap_values
-    })
-    
-    # For rejection, the negative SHAP features are the "reasons"
-    adverse_factors = df[df['shap_value'] < 0].nsmallest(top_n, 'shap_value')
-    
-    reasons = []
-    for _, row in adverse_factors.iterrows():
-        reasons.append({
-            'reason_code': row['feature'].upper().replace(' ', '_'),
-            'description': f"{row['feature']}: {row['value']}"
-        })
-    
-    return {
-        'adverse_action_reasons': reasons,
-        'notice_date': pd.Timestamp.now().strftime('%Y-%m-%d'),
-        'model_version': 'CreditRisk_v2.1'
-    }
+    feature_shap_pairs = list(zip(feature_names, shap_values))
+    # Sort by SHAP value (most negative first = hurt the application most)
+    sorted_by_impact = sorted(feature_shap_pairs, key=lambda x: x[1])
+
+    adverse_reasons = []
+    for feature, shap_val in sorted_by_impact[:n_reasons]:
+        if shap_val < 0:
+            adverse_reasons.append({
+                'reason': feature,
+                'impact_score': abs(shap_val),
+                'direction': 'decreased_score'
+            })
+
+    return adverse_reasons
+
+# Generate adverse action notice
+shap_vals = tree_explainer.shap_values(applicant_features)
+reasons = generate_adverse_action_reasons(shap_vals[0], feature_names)
+
+print("Adverse Action Notice")
+print("We were unable to approve your application. Principal reasons:")
+for i, reason in enumerate(reasons, 1):
+    print(f"  {i}. {reason['reason']}")
 ```
 
-### 15.3 High-Stakes Domains
+### SR 11-7 (Federal Reserve, OCC, FDIC Model Risk Management)
 
-| Domain | Regulation | Explanation requirement |
-|---|---|---|
-| EU consumer credit | GDPR Art. 22 + Consumer Credit Directive | Right to explanation for automated decisions |
-| US credit | ECOA / FCRA | Adverse action notice with top factors |
-| US banking model risk | SR 11-7 | Model documentation, validation, monitoring |
-| EU healthcare AI | EU AI Act (Art. 13) | Transparency for high-risk AI systems |
-| Criminal justice | Varies by state/country | Variable, increasingly challenged |
-| Insurance pricing | State regulations (US varies) | Varies; some states require non-discriminatory factors |
+Guidance issued 2011, expanded 2021. Key requirements for financial institutions:
 
----
+1. **Model documentation:** Conceptual soundness, data sources, assumptions, known limitations
+2. **Validation:** Independent validation by team not involved in development; ongoing monitoring
+3. **Governance:** Model inventory, approval process, escalation path for model failures
+4. **Explainability:** Models used for credit decisions must produce explainable outputs
 
-## 16. Common Interview Questions with Answers
+SR 11-7 does not mandate specific XAI methods but requires that model outputs can be explained to regulators and to affected individuals.
 
-### Q1: What's the difference between interpretability and explainability?
+### EU AI Act (2024)
 
-**Interpretability** means the model is inherently understandable — you can read its structure directly (e.g., linear regression coefficients, decision tree rules). **Explainability** means using post-hoc techniques to explain a model that isn't transparent (e.g., SHAP values explaining a random forest). In practice, the terms are often used interchangeably.
+Article 13 requires "high-risk AI systems" to be designed and developed with a level of transparency such that deployers can interpret the system's output. High-risk categories include: biometric identification, critical infrastructure, education, employment, essential services, law enforcement, migration, administration of justice.
 
----
+### High-Stakes Domain Requirements
 
-### Q2: LIME vs SHAP — when would you choose each?
-
-**SHAP is almost always preferable** for tree-based models because TreeSHAP is exact (not approximate), fast, and has theoretical guarantees (efficiency, symmetry, dummy, linearity axioms). SHAP also gives you global importance naturally through mean absolute SHAP.
-
-**LIME is useful when:**
-- You have a truly arbitrary black box (not tree or neural net) and KernelSHAP is too slow
-- You need a very fast, rough local explanation
-- You're working with text and want word-level explanations quickly
-- Your audience responds better to "this word pushed the prediction positive" than Shapley values
-
-**Main critique of LIME**: instability. Running it twice on the same instance can give different results. SHAP is deterministic for tree models.
+| Domain | Regulation | XAI Requirement |
+|--------|-----------|-----------------|
+| Credit | ECOA, FCRA, GDPR | Adverse action reasons, right to explanation |
+| Healthcare | FDA (AI/ML guidance), GDPR | Clinical validation, failure mode documentation |
+| Employment | EEOC guidance, GDPR | Disparate impact analysis, explainable screening |
+| Criminal justice | Due process, COMPAS cases | Defendant's right to challenge algorithmic scores |
+| Finance (models) | SR 11-7, Basel III | Model risk management, independent validation |
 
 ---
 
-### Q3: Can SHAP values be negative, and what does that mean?
+## 15. What Breaks
 
-Yes. A negative SHAP value for feature `j` means that feature's value pulled the prediction *below* the baseline (expected model output). For example: a credit score of 580 might have a SHAP value of -0.15, meaning it reduced the probability of approval by 0.15 relative to the average credit score in the training data.
+**LIME is unstable.** Run LIME twice on the same instance and get different top features. The stochasticity in neighborhood sampling propagates into the explanation. Use SHAP for production explanations where consistency matters.
 
-The baseline in SHAP is `E[f(X)]` — the expected model output over the training distribution.
+**SHAP values require correlated-feature care.** KernelSHAP and TreeSHAP handle feature correlations differently. With highly correlated features (r > 0.8), SHAP values for individual features become difficult to interpret because the "contribution" is split arbitrarily between correlated features. Report SHAP values for correlated features together or acknowledge the limitation.
 
----
+**Post-hoc explanations can be gamed.** Slack et al. (2020) showed that a model can produce fair-looking SHAP values in auditing mode while discriminating against protected groups in deployment. The model detects that it is being audited (e.g., via systematic input perturbations used by LIME/SHAP) and behaves differently. Explanations do not guarantee the model's actual behavior.
 
-### Q4: What's wrong with using attention weights as explanations?
+**Completeness axiom does not imply correctness.** SHAP values sum to the prediction; they are internally consistent. This does not mean they reflect the causal structure of the prediction. A model that happens to predict correctly using the wrong features will produce SHAP values that are internally consistent but directionally misleading.
 
-Three main problems:
-1. **Gradient-attention disagreement**: High attention weight doesn't mean the model's output is sensitive to that token. The gradient with respect to that token's value might be zero.
-2. **Permutability**: You can often find multiple attention distributions that produce the same output. The weights aren't uniquely tied to the prediction.
-3. **Representation mixing**: By the time a token is attended to, its representation has already been transformed by previous layers. "Attending to 'bank'" doesn't mean "using the concept of a financial institution."
+**Attention is not explanation** — addressed in Section 8, but worth restating: high attention weights are not a reliable indicator of feature importance. Gradient-based methods (IG, Grad-CAM) are more reliable.
 
-Better alternatives: Integrated Gradients, LIME on tokens, or attention rollout for a more faithful attribution.
+**Probing classifiers measure presence, not use.** High probing accuracy at layer `l` means the information is encoded there, not that the model uses it for its predictions. Amnesic probing is needed to establish causal relevance.
 
----
+**Grad-CAM highlights the right region for wrong reasons.** If a model identifies "dog" by background context rather than the dog itself, the heatmap accurately shows the background as important — reflecting the model's actual (flawed) behavior. The heatmap is correct about what the model is doing, not about what it should be doing.
 
-### Q5: How would you explain a specific loan rejection to a customer?
+**Mechanistic interpretability does not scale yet.** Circuit analysis has been demonstrated on small transformers and specific tasks (IOI, indirect object identification, docstring completion). Scaling to full 70B+ parameter models for arbitrary tasks remains an open research problem.
 
-1. **Generate SHAP values** for that applicant's data point using the model.
-2. **Identify the top 3-4 features** with the most negative SHAP values (the factors that most strongly pushed toward rejection).
-3. **Translate to human-readable reasons**: "Your debt-to-income ratio of 0.52 is above our threshold and was the primary factor in this decision" (with SHAP = -0.23).
-4. **Include actionable guidance** where possible: "Reducing outstanding debt by $X would likely change this outcome."
-5. **Log the explanation** for audit/compliance.
-
-In the US, this directly maps to ECOA's adverse action notice requirement.
+**The Rashomon effect.** For many datasets, many models fit the data equally well but differ substantially in their feature importances. There is no unique "true" explanation — any of the equivalent models is equally valid, but each produces different SHAP values. High-stakes explanations should acknowledge that the model itself is one of many equally valid models.
 
 ---
 
-### Q6: How do you validate that an explanation is correct?
+## Key Interview Points
 
-This is a deep question. A few approaches:
+**Interpretability vs explainability:** Interpretability = model structure is directly readable (linear coefficients, decision tree paths). Explainability = post-hoc analysis of a black box (SHAP, LIME, Grad-CAM). Post-hoc explanations are approximations and can be wrong.
 
-1. **Completeness check (SHAP)**: Verify that sum of SHAP values + base value ≈ model output. This is a mathematical sanity check.
-2. **Sanity checks**: For simulated data where you know ground truth, check that important features are flagged as important.
-3. **Input perturbation**: If a feature has a positive SHAP value, increasing it should increase the prediction (all else equal). You can test this empirically.
-4. **Model fidelity**: How well does the local surrogate (for LIME) approximate the real model in the region of interest? Measure the surrogate's R² on the synthetic samples.
-5. **Human evaluation**: Do domain experts find the explanations plausible? Do they identify cases where the explanation contradicts known domain knowledge?
-6. **Removal test**: Remove the top-k features by importance, retrain, and measure performance drop. If important features are truly important, performance should drop significantly.
+**LIME vs SHAP:** LIME fits a local weighted linear model to perturbed samples — fast but unstable (stochastic neighborhood sampling). SHAP computes Shapley values (the unique fair allocation of prediction to features satisfying efficiency, symmetry, dummy, linearity axioms) — slower but consistent and grounded in game theory.
 
-No perfect validation exists — all XAI methods are approximations of complex models.
+**Negative SHAP value:** A negative SHAP value for feature `x_i` means that feature pushed the prediction below the baseline (expected) value. It does not mean the feature has a low raw value — it means its contribution to this specific prediction was negative relative to what would be predicted without knowing that feature's value.
 
----
+**Attention weights are not explanation.** Jain & Wallace (2019): attention weights can be permuted or randomized with minimal effect on output. High attention weight does not imply causal importance. Use IG or Grad-CAM instead.
 
-### Q7: What is the "Rashomon effect" in ML interpretability?
+**Explaining a loan rejection under ECOA/FCRA:** Run TreeSHAP on the model's prediction for that applicant. Sort features by SHAP contribution to the rejection (most negative first). Report the top 4 as the adverse action reasons. These are the specific factors that most reduced the applicant's predicted creditworthiness.
 
-The Rashomon effect (named after the Kurosawa film where witnesses give conflicting accounts of the same event) refers to the existence of many different models that achieve similar accuracy on the test set but have very different internal logic.
+**Validating that explanations reflect actual model behavior:** (1) Check consistency: same input → same explanation across runs. (2) Check fidelity: removing top SHAP features should degrade model performance proportionally. (3) Test adversarially: construct inputs where explanations look different but predictions are the same — if SHAP is consistent, this should be rare.
 
-Breiman (2001) coined the term in ML: for most datasets, there exist many models in the "Rashomon set" (all models within ε of optimal performance) that are structurally different.
+**PDP vs SHAP dependence plot:** PDP marginalizes over other features to show average relationship. SHAP dependence plot shows SHAP value vs feature value for each instance — preserves heterogeneity, can color by interaction feature to reveal nonlinearity and interactions. Use SHAP dependence when you suspect the average effect masks subgroup heterogeneity.
 
-**Implications for interpretability:**
-- If multiple high-accuracy models exist but explain the same prediction differently, which explanation do you trust?
-- The "correct" explanation might not be unique
-- Regularization choices and random seeds affect which model is found and thus which explanation is generated
+**TreeSHAP vs KernelSHAP:** TreeSHAP is model-specific (trees only), exact (not approximate), O(TLD²) — fast enough for real-time inference. KernelSHAP is model-agnostic (any model), approximate (weighted linear regression over sampled coalitions), O(2^d) or O(n_samples × n_features) — too slow for large feature spaces without approximation.
 
-**Practical response**: Report uncertainty in your explanations. SHAP values have variance when computed over multiple model seeds. Show confidence intervals where possible.
+**GDPR right to explanation:** Article 22 restricts fully automated decisions significantly affecting EU individuals. Recital 71 specifies explanation of the logic involved. In practice: provide the adverse action reasons (top negative SHAP factors), allow human review, maintain a human-in-the-loop escalation path.
+
+**Counterfactual explanations:** "What would have to change for the decision to be different?" Different from SHAP (which explains the current decision). DiCE (Diverse Counterfactual Explanations) generates multiple diverse counterfactuals respecting feature actionability constraints (e.g., age cannot decrease). Directly actionable for rejected applicants.
+
+**SAEs and mechanistic interpretability:** Standard neurons are polysemantic due to superposition. Sparse autoencoders trained on model activations learn a larger dictionary of monosemantic features — each feature activates for a semantically coherent concept. Templeton et al. (2024) demonstrated this at scale on Claude Sonnet, finding interpretable features for specific entities, concepts, and emotions.
+
+**TCAV score interpretation:** TCAV = 0.82 for (concept="stripes", class="zebra", layer="conv5") means 82% of zebra images have a positive directional derivative in the stripes CAV direction at conv5. Requires statistical testing across random negative splits to confirm the concept is genuinely informative.
 
 ---
 
-### Q8: What's the difference between a PDP and a SHAP dependence plot?
+## Quick Reference
 
-Both show how a feature relates to model output, but they answer different questions:
-
-**PDP**: Shows `E_{x_c}[f(x_s, x_c)]` — the *marginal* effect of feature `x_s`, averaging over all other features. It tells you the average relationship.
-
-**SHAP dependence plot**: Shows SHAP values for feature `j` plotted against its actual values. Each dot is one instance. The SHAP value for an instance is the feature's *contribution conditional on all other feature values for that instance* (not averaged). This makes it more nuanced — you can see heterogeneous effects.
-
-When the two agree: simple, non-interactive relationships.
-When they disagree: strong interactions exist. The PDP's average is masking the real story.
-
----
-
-### Q9: How does TreeSHAP differ from KernelSHAP?
-
-| | TreeSHAP | KernelSHAP |
-|---|---|---|
-| **Works on** | Tree-based models only | Any model |
-| **Speed** | Fast: O(TLD²) | Slow: O(n_background × n_features) per instance |
-| **Exactness** | Exact Shapley values | Approximate (weighted linear regression estimate) |
-| **Conditioning** | Conditions on tree paths | Conditions on marginal distribution of background |
-| **Interaction effects** | Computes exact pairwise interactions | Not available |
-
-The conditioning difference is subtle but important: TreeSHAP conditions on the features in the tree path (interventional SHAP), while KernelSHAP marginalizes over the training distribution (marginal/observational SHAP). These give different values for correlated features.
-
----
-
-### Q10: What is the "explanation stability" problem, and how do you address it?
-
-If an explanation is different every time you generate it (like LIME), it's not reliable. You can't audit it, defend it in court, or trust it for debugging.
-
-**Why it happens:**
-- Random perturbation in LIME
-- Random seed in model training
-- Stochastic gradient descent
-
-**How to address:**
-1. **Use deterministic methods**: TreeSHAP, Integrated Gradients with fixed seeds
-2. **Report confidence intervals**: Run LIME 100 times, report mean ± std for each feature
-3. **Use a fixed random seed**: Document it. Not a solution for production, but good for validation
-4. **Switch to SHAP**: For tree models, TreeSHAP is deterministic
-5. **Evaluate stability explicitly**: Measure the fraction of runs where the top-k features are consistent
-
----
-
-### Q11: What is a counterfactual explanation and when is it useful?
-
-A counterfactual explanation answers: "What would have to change about this input for the prediction to be different?"
-
-Example: "Your loan was rejected. If your credit score were above 680 OR your debt-to-income ratio were below 0.40, the loan would have been approved."
-
-Counterfactuals are:
-- **Actionable**: They tell the user what to change, not just why the current decision was made
-- **Minimal**: Good counterfactual methods find the smallest change (fewest features changed, smallest magnitude)
-- **Realistic**: Good methods ensure counterfactuals are plausible given the feature distribution
-
-```python
-# Using the DiCE library for diverse counterfactuals
-# pip install dice-ml
-import dice_ml
-from dice_ml import Dice
-
-# d = dice_ml.Data(dataframe=df, continuous_features=['age', 'income'],
-#                  outcome_name='loan_approved')
-# m = dice_ml.Model(model=trained_model, backend='sklearn')
-# exp = Dice(d, m, method='random')
-# 
-# dice_exp = exp.generate_counterfactuals(
-#     query_instance=X_test.iloc[[0]],
-#     total_CFs=3,           # Number of counterfactuals
-#     desired_class='opposite'  # Flip the prediction
-# )
-# dice_exp.visualize_as_dataframe()
-```
-
----
-
-### Q12: Explain the concept of "right to explanation" under GDPR. What does a model engineer need to do?
-
-GDPR Article 22 restricts fully automated decisions with legal or significant effects and gives data subjects the right to:
-1. Human review of the decision
-2. Express their point of view
-3. Obtain "meaningful information about the logic involved"
-
-Practically, a model engineer should:
-1. **Log all predictions** with enough context to reproduce explanations
-2. **Generate SHAP values** (or similar) at prediction time and store them
-3. **Build an explanation API** that returns human-readable factors for any decision ID
-4. **Document the model** with a Model Card specifying intended use and limitations
-5. **Implement human review workflows** for high-stakes decisions
-6. **Audit fairness** across protected groups regularly and document findings
-7. **Set an explanation retention period** — you need to provide explanations for decisions you've already made
-
-The explanation doesn't need to be a full ML tutorial. "Your application was primarily influenced by: high debt-to-income ratio (most important), limited credit history, recent credit inquiries" is sufficient and legally defensible.
-
----
-
-## Quick Reference Cheat Sheet
-
-```
-CHOOSING AN EXPLANATION METHOD:
-
-Tree model?
-  ├── Local explanation → TreeSHAP (force/waterfall plot)
-  ├── Global explanation → SHAP summary plot
-  └── Feature relationship → SHAP dependence plot or PDP
-
-Neural network?
-  ├── Image → Grad-CAM or Integrated Gradients
-  ├── Text → Integrated Gradients or LIME
-  ├── Tabular → DeepSHAP or KernelSHAP
-  └── Transformer → Probing + IG (not attention)
-
-Any model (black box)?
-  ├── Local, fast → LIME
-  ├── Local, principled → KernelSHAP
-  └── Global → Permutation importance + PDP/ICE
-
-LLM / large transformer?
-  ├── What does layer encode? → Probing classifiers
-  ├── How prediction forms? → Logit lens
-  └── What circuit implements behavior? → Activation patching
-
-Concept audit?
-  └── Does model use this concept? → TCAV
-
-Regulatory / documentation?
-  └── Model Card + SHAP-based adverse action factors
-```
-
----
-
-## Further Reading
-
-- **Christoph Molnar** — *Interpretable Machine Learning* (free online, comprehensive reference)
-- **Lundberg & Lee (2017)** — *A Unified Approach to Interpreting Model Predictions* (original SHAP paper)
-- **Ribeiro et al. (2016)** — *"Why Should I Trust You?": Explaining the Predictions of Any Classifier* (LIME paper)
-- **Selvaraju et al. (2017)** — *Grad-CAM: Visual Explanations from Deep Networks* 
-- **Sundararajan et al. (2017)** — *Axiomatic Attribution for Deep Networks* (Integrated Gradients)
-- **Kim et al. (2018)** — *Interpretability Beyond Classification Accuracy: TCAV*
-- **Mitchell et al. (2019)** — *Model Cards for Model Reporting*
-- **Elhage et al. (2021)** — *A Mathematical Framework for Transformer Circuits* (mechanistic interpretability)
-- **Olsson et al. (2022)** — *In-context Learning and Induction Heads*
-- **Templeton et al. (2024)** — *Scaling Monosemanticity: Extracting Interpretable Features from Claude 3 Sonnet*
+| Task | Method |
+|------|--------|
+| Tree/forest explanation (local) | TreeSHAP force plot |
+| Tree/forest explanation (global) | TreeSHAP summary plot or permutation importance |
+| Neural network (image) | Grad-CAM or Integrated Gradients + Captum |
+| Neural network (tabular) | DeepSHAP or KernelSHAP |
+| Any model, fast | LIME (accept instability) |
+| Any model, rigorous | KernelSHAP (slow but consistent) |
+| LLM: what information is where | Probing classifiers by layer |
+| LLM: when does answer form | Logit lens (W_U applied to residual stream) |
+| LLM: causal circuit analysis | Activation patching |
+| LLM: monosemantic features | Sparse autoencoders (SAEs) |
+| Concept audit | TCAV |
+| Regulatory compliance (credit) | TreeSHAP → adverse action reasons (top negative SHAP) |
+| GDPR explanation | Force plot or waterfall plot, human review path |

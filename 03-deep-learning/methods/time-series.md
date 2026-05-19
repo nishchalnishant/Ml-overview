@@ -1,4 +1,4 @@
-# Time Series Machine Learning — Comprehensive Reference
+# Time Series Machine Learning
 
 ---
 
@@ -24,39 +24,42 @@
 
 ## 1. What Makes Time Series Special
 
-A time series is a sequence of observations indexed by time: `y_1, y_2, ..., y_T`. The critical distinction from standard tabular data is that **order matters**. Shuffling rows destroys information.
-
 ### 1.1 Temporal Ordering
 
-Every sample depends on its history. A stock price tomorrow is conditionally dependent on prices today, yesterday, and further back. Treating observations as i.i.d. is a modeling error that leads to:
+**The problem**: shuffling the rows of a tabular dataset changes nothing. Shuffling a time series destroys it. Standard ML assumptions — i.i.d. samples, random train/test splits, feature statistics computed over the full dataset — all produce silent, hard-to-detect errors when applied to temporal data.
 
-- **Data leakage**: using future information to predict the past (classic validation mistake)
-- **Incorrect confidence intervals**: assuming independence inflates statistical power
-- **Incorrect feature construction**: computing a rolling mean on the full dataset before splitting
+**The core insight**: every observation in a time series is a consequence of what came before. The generative process is `P(y_t | y_{t-1}, y_{t-2}, ..., y_1)`, not `P(y_t)`. Violate this and you get three failure modes:
+
+- **Data leakage**: training on 2023 data to predict 2022. The model learns a perfectly calibrated cheat.
+- **Inflated confidence intervals**: assuming independence when adjacent observations are correlated inflates effective sample size.
+- **Leaked features**: computing rolling means on the full dataset before splitting injects future signal into past features.
+
+**What breaks first**: computing `df['rolling_mean'] = df['target'].rolling(7).mean()` before splitting — the last 6 timesteps before the split boundary look into the test set.
+
+---
 
 ### 1.2 Trend
 
-A **trend** is a long-run, systematic movement in the mean level of the series.
+**The problem**: a model trained on energy demand from 2000-2010 extrapolates a flat mean. But the series has been climbing by ~5 GW per year. The model systematically underforecasts.
 
-```
-Energy demand (GW):
-2000: 400
-2005: 420
-2010: 445
-2015: 470   <-- upward trend
-```
+**The core insight**: the mean of the series is itself a function of time. The non-stationarity must be removed or modeled before fitting any method that assumes a fixed mean.
 
-Linear trend: `y_t = alpha + beta*t + epsilon_t`
+**The mechanics**:
+- **Additive trend**: `y_t = α + βt + ε_t`. Fluctuations have constant magnitude.
+- **Multiplicative trend**: `y_t = α · e^{βt} · ε_t`. Fluctuations scale with level. Apply `log(y_t)` to convert to additive.
+- First-order differencing `Δy_t = y_t − y_{t-1}` removes a linear trend.
 
-Trend can be:
-- **Additive**: fluctuations have constant magnitude around trend
-- **Multiplicative**: fluctuations scale proportionally with the level (common in finance)
+**What breaks**: differencing removes trend but inflates model complexity when the trend is smooth. Fitting a linear trend explicitly and modeling residuals is often cleaner.
 
-Decompose multiplicative to additive with a log transform: `log(y_t)`.
+---
 
 ### 1.3 Seasonality
 
-**Seasonality** is a repeating pattern at a fixed, known frequency.
+**The problem**: a model trained on retail sales data predicts a flat weekday level. It ignores that Sundays are 40% lower and December is 3× the monthly average. Point forecasts are consistently wrong in the same direction at the same calendar positions.
+
+**The core insight**: the series has a repeating structure at a known period. Encode that period explicitly as a feature or model it structurally, or the model must re-discover it from scratch — which requires far more data.
+
+**The mechanics**:
 
 | Domain | Period | Frequency |
 |---|---|---|
@@ -65,20 +68,21 @@ Decompose multiplicative to additive with a log transform: `log(y_t)`.
 | Stock volume | Yearly | 252 (trading days) |
 | Server traffic | Weekly + Daily | Multiple |
 
-Multiple seasonality is common and hard. A server metric can have both daily peaks and weekly cycles simultaneously.
+Multiple seasonality (daily cycle nested inside weekly) is common and requires either Fourier features or a method that explicitly handles it (TBATS, Prophet).
+
+**What breaks**: single-period methods (SARIMA with one S) fail on multiple seasonalities. Treating time-of-day as a raw integer fails because the model does not know that hour 23 wraps to hour 0.
+
+---
 
 ### 1.4 Stationarity
 
-A **stationary** series has:
-- Constant mean: `E[y_t] = mu` for all `t`
-- Constant variance: `Var(y_t) = sigma^2` for all `t`
-- Autocovariance depends only on lag, not time: `Cov(y_t, y_{t+k}) = gamma(k)`
+**The problem**: classical forecasting methods — ARIMA, exponential smoothing — are derived under the assumption that `E[y_t]`, `Var(y_t)`, and `Cov(y_t, y_{t+k})` do not change over time. Apply them to a trending or variance-expanding series and parameter estimates are biased.
 
-**Why it matters**: most classical methods assume stationarity. Neural methods are more robust but still benefit from stationary inputs.
+**The core insight**: make the series stationary before fitting. The transformation is not just preprocessing — it changes which model class is valid.
 
-**Tests for stationarity:**
-
-*Augmented Dickey-Fuller (ADF)*: null hypothesis is unit root (non-stationary). A p-value < 0.05 suggests stationarity.
+**The mechanics**:
+- **Augmented Dickey-Fuller (ADF)**: null = unit root (non-stationary). Reject at p < 0.05.
+- **KPSS**: null = stationary. Both tests together disambiguate.
 
 ```python
 from statsmodels.tsa.stattools import adfuller
@@ -89,20 +93,29 @@ print(f"p-value: {result[1]:.4f}")
 # p < 0.05 -> reject unit root -> likely stationary
 ```
 
-*KPSS test*: null hypothesis is stationarity. Use both ADF and KPSS together to confirm.
+Transformations to achieve stationarity:
+- First differencing `Δy_t = y_t − y_{t-1}`: removes linear trend
+- Seasonal differencing `y_t − y_{t-s}`: removes seasonal structure
+- Log transform: stabilizes exponentially growing variance
+- Box-Cox: general variance stabilization
 
-**Making a series stationary:**
-- First-order differencing: `delta_y_t = y_t - y_{t-1}` removes linear trend
-- Seasonal differencing: `delta_s y_t = y_t - y_{t-s}` removes seasonal structure
-- Log transform: stabilizes variance
-- Box-Cox transform: general variance stabilization
+**What breaks**: over-differencing introduces unnecessary negative autocorrelation and makes a simple series harder to model. One ADF test is not enough — use both ADF and KPSS, and inspect ACF/PACF before deciding.
+
+---
 
 ### 1.5 Autocorrelation
 
-**ACF (Autocorrelation Function)**: measures correlation between `y_t` and `y_{t-k}`.
-**PACF (Partial Autocorrelation Function)**: measures correlation after removing effects of intermediate lags.
+**The problem**: in i.i.d. data, yesterday's value tells you nothing about today's. In a time series, it tells you almost everything. Without measuring this dependence explicitly, you cannot choose the right model order.
 
-These plots directly guide ARIMA order selection (see Section 2).
+**The core insight**: the ACF and PACF plots are a direct diagnostic for model selection. They answer: does this series have AR structure, MA structure, or both?
+
+- **ACF (Autocorrelation Function)**: correlation between `y_t` and `y_{t-k}` for each lag `k`
+- **PACF (Partial Autocorrelation Function)**: correlation after removing effects of intermediate lags
+
+**Reading the plots**:
+- PACF cuts off sharply at lag `p`, ACF decays slowly → AR(p) process
+- ACF cuts off at lag `q`, PACF decays slowly → MA(q) process
+- Both decay slowly → ARMA(p, q) or need differencing
 
 ```python
 from statsmodels.graphics.tsaplots import plot_acf, plot_pacf
@@ -115,28 +128,27 @@ plt.tight_layout()
 plt.show()
 ```
 
+**What breaks**: ignoring ACF/PACF and blindly fitting ARIMA(1,1,1) on all series. If the MA(1) coefficient is near zero, you added unnecessary complexity. If you needed MA(3) and fitted MA(1), residuals will still be autocorrelated.
+
 ---
 
 ## 2. Classical Methods
 
 ### 2.1 ARIMA
 
-**AutoRegressive Integrated Moving Average**: ARIMA(p, d, q)
+**The problem**: you want to predict next month's sales. The series is trending upward and shows residual autocorrelation — today's value depends on yesterday's error, not just yesterday's level. No single AR model captures both.
 
-- **AR(p)**: autoregressive term — regress on own past `p` lags
-- **I(d)**: integrated term — apply `d`-order differencing to achieve stationarity
-- **MA(q)**: moving average term — regress on past `q` forecast errors
+**The core insight**: decompose the prediction problem into three orthogonal parts — trend removal (differencing), autoregression on past values, and autoregression on past errors. ARIMA(p, d, q) handles all three.
 
-Model equation:
+**The mechanics**:
+- `d`: differencing order to achieve stationarity (read from ADF)
+- `p`: AR terms — PACF cuts off at lag `p`
+- `q`: MA terms — ACF cuts off at lag `q`
+
 ```
-delta^d y_t = c + phi_1*delta^d y_{t-1} + ... + phi_p*delta^d y_{t-p}
-              + theta_1*epsilon_{t-1} + ... + theta_q*epsilon_{t-q} + epsilon_t
+Δ^d y_t = c + φ_1 Δ^d y_{t-1} + ... + φ_p Δ^d y_{t-p}
+          + θ_1 ε_{t-1} + ... + θ_q ε_{t-q} + ε_t
 ```
-
-**Identifying p, d, q from ACF/PACF:**
-- `d`: number of differences needed to make series stationary (ADF test)
-- `p`: PACF cuts off after lag `p` (AR signature)
-- `q`: ACF cuts off after lag `q` (MA signature)
 
 ```python
 from statsmodels.tsa.arima.model import ARIMA
@@ -148,11 +160,7 @@ print(result.summary())
 forecast = result.forecast(steps=30)
 ```
 
-**Information criteria for order selection:**
-- AIC (Akaike): `AIC = 2k - 2*ln(L)` — penalizes complexity
-- BIC (Bayesian): `BIC = k*ln(n) - 2*ln(L)` — stronger penalty for large `n`
-
-Auto-ARIMA (pmdarima) searches over orders automatically:
+Auto-ARIMA (pmdarima) searches orders automatically using AIC:
 
 ```python
 import pmdarima as pm
@@ -166,17 +174,22 @@ model = pm.auto_arima(train,
                       stepwise=True)
 ```
 
+**What breaks**: ARIMA assumes Gaussian errors and linear dependence. It cannot model nonlinear patterns, multiple seasonalities, or structural breaks. Residual autocorrelation in fitted residuals signals under-specified order — check the Ljung-Box test.
+
+---
+
 ### 2.2 SARIMA
 
-**Seasonal ARIMA**: SARIMA(p, d, q)(P, D, Q)[S]
+**The problem**: ARIMA removes a linear trend and models short-memory autocorrelation. But a monthly electricity series shows the same spike every January, every year — a dependency at lag 12 that ARIMA(p,d,q) terms at lag 1-3 cannot reach.
 
-Adds seasonal AR and MA terms operating at seasonal lag S.
+**The core insight**: add a second set of AR/I/MA terms that operate at the seasonal lag S instead of lag 1. SARIMA(p,d,q)(P,D,Q)[S] is two nested ARIMA models: one for short-term dynamics, one for seasonal dynamics.
+
+**The mechanics**:
 
 ```
 SARIMA(1,1,1)(1,1,1)[12]  -- monthly data with annual seasonality
 ```
 
-Parameters:
 - `(P, D, Q)`: seasonal AR order, seasonal differencing, seasonal MA order
 - `[S]`: seasonal period (12 for monthly, 4 for quarterly, 7 for daily-with-weekly)
 
@@ -191,34 +204,38 @@ forecast = result.get_forecast(steps=12)
 conf_int = forecast.conf_int()
 ```
 
-Limitation: SARIMA handles only one seasonal period. For multiple seasonalities (e.g., hourly data with daily + weekly cycles), consider TBATS or neural methods.
+**What breaks**: SARIMA handles exactly one seasonal period. For hourly data with both daily (S=24) and weekly (S=168) cycles, SARIMA fails. Options: TBATS, Fourier features + ARIMAX, or neural models.
+
+---
 
 ### 2.3 Exponential Smoothing
 
-Weighted average of past observations, with exponentially decaying weights.
+**The problem**: ARIMA fits a full statistical model including MA terms that require maximum likelihood estimation. For many practical forecasting tasks — inventory replenishment, budget projections — you want a simpler, interpretable algorithm that gives more weight to recent observations and less to older ones.
+
+**The core insight**: weight past observations by an exponentially decaying factor. The prediction at time `t` is a weighted average of all past values, but the weights decay geometrically so yesterday matters more than last year.
+
+**The mechanics**:
 
 **Simple Exponential Smoothing (SES)** — no trend, no seasonality:
 ```
-s_t = alpha * y_t + (1 - alpha) * s_{t-1}
-y_hat_{t+1} = s_t
+s_t = α · y_t + (1 − α) · s_{t-1}
+ŷ_{t+1} = s_t
 ```
-`alpha` in (0,1): high alpha = more weight on recent observations.
+`α` ∈ (0,1): high α = more weight on recent observations.
 
 **Holt's Linear Method** — handles trend:
 ```
-Level:  l_t = alpha * y_t + (1-alpha) * (l_{t-1} + b_{t-1})
-Trend:  b_t = beta  * (l_t - l_{t-1}) + (1-beta) * b_{t-1}
-Forecast: y_hat_{t+h} = l_t + h * b_t
+Level:    l_t = α · y_t + (1−α) · (l_{t-1} + b_{t-1})
+Trend:    b_t = β · (l_t − l_{t-1}) + (1−β) · b_{t-1}
+Forecast: ŷ_{t+h} = l_t + h · b_t
 ```
 
-**Holt-Winters (Triple Exponential Smoothing)** — handles trend + seasonality:
-
-Additive version:
+**Holt-Winters (Triple Exponential Smoothing)** — handles trend + seasonality (additive):
 ```
-Level:    l_t = alpha*(y_t - s_{t-m}) + (1-alpha)*(l_{t-1} + b_{t-1})
-Trend:    b_t = beta*(l_t - l_{t-1}) + (1-beta)*b_{t-1}
-Seasonal: s_t = gamma*(y_t - l_{t-1} - b_{t-1}) + (1-gamma)*s_{t-m}
-Forecast: y_hat_{t+h} = l_t + h*b_t + s_{t-m+h}
+Level:    l_t = α · (y_t − s_{t-m}) + (1−α) · (l_{t-1} + b_{t-1})
+Trend:    b_t = β · (l_t − l_{t-1}) + (1−β) · b_{t-1}
+Seasonal: s_t = γ · (y_t − l_{t-1} − b_{t-1}) + (1−γ) · s_{t-m}
+Forecast: ŷ_{t+h} = l_t + h · b_t + s_{t-m+h}
 ```
 
 ```python
@@ -232,17 +249,25 @@ result = model.fit()
 forecast = result.forecast(12)
 ```
 
-Multiplicative variant (`seasonal='mul'`) is better when seasonal amplitude grows with level (e.g., e-commerce sales growing year over year).
+Use `seasonal='mul'` when seasonal amplitude grows with the level (e.g., e-commerce sales growing year over year).
+
+**What breaks**: exponential smoothing is strictly univariate. It cannot incorporate exogenous variables (weather, promotions). The forecast horizon is limited — long-horizon forecasts revert to the trend without accounting for new information.
+
+---
 
 ### 2.4 Prophet
 
-Facebook Prophet decomposes the series as:
-```
-y(t) = trend(t) + seasonality(t) + holidays(t) + epsilon_t
-```
+**The problem**: a data analyst needs to forecast daily website traffic for the next 90 days. The series has a weekly dip on weekends, a dip during holidays, a gradual upward trend with occasional sudden shifts (product launches), and some missing days. ARIMA requires a clean, regularly-spaced, stationary series and manual order selection.
 
-Trend: piecewise linear or logistic growth with automatic changepoint detection.
-Seasonality: Fourier series approximation.
+**The core insight**: treat forecasting as a curve-fitting problem with interpretable components. Decompose the series explicitly into trend, seasonality, and holidays. Let domain experts tune each component directly through parameters they understand.
+
+**The mechanics**:
+```
+y(t) = trend(t) + seasonality(t) + holidays(t) + ε_t
+```
+- **Trend**: piecewise linear or logistic growth with automatic changepoint detection
+- **Seasonality**: Fourier series approximation at yearly, weekly, and daily periods
+- **Holidays**: user-supplied date ranges with learned offsets
 
 ```python
 from prophet import Prophet
@@ -251,7 +276,7 @@ import pandas as pd
 df = pd.DataFrame({'ds': dates, 'y': values})
 
 model = Prophet(
-    changepoint_prior_scale=0.05,  # flexibility of trend
+    changepoint_prior_scale=0.05,  # flexibility of trend (higher = more changepoints)
     seasonality_prior_scale=10,
     yearly_seasonality=True,
     weekly_seasonality=True
@@ -262,13 +287,17 @@ future = model.make_future_dataframe(periods=90)
 forecast = model.predict(future)
 ```
 
-Prophet is robust to missing data and outliers, easy to tune with domain knowledge (e.g., custom holidays). Not great for very short-horizon or high-frequency data.
+**What breaks**: Prophet's flexibility makes it easy to overfit on changepoints. The default `changepoint_prior_scale=0.05` is conservative — too small and it misses genuine shifts, too large and it fits noise. It is not a forecasting engine for very short-horizon or high-frequency (sub-hourly) data.
 
 ---
 
 ## 3. Feature Engineering for Time Series
 
-Neural models still benefit enormously from well-engineered features. Gradient boosted trees (LightGBM, XGBoost) with time series features often outperform vanilla neural approaches.
+**The problem**: gradient boosted trees (LightGBM, XGBoost) are competitive or superior to neural sequence models on many time series benchmarks — but they operate on fixed-size feature vectors, not sequences. How do you represent temporal history as a feature matrix?
+
+**The core insight**: the model cannot see the sequence directly. You must manufacture the temporal context explicitly as lag features, rolling statistics, and calendar encodings. The quality of these features determines the ceiling of the model's performance.
+
+---
 
 ### 3.1 Lag Features
 
@@ -288,7 +317,11 @@ lags = [1, 2, 3, 6, 12, 24, 48, 168]  # 168 = 1 week in hours
 df = add_lag_features(df, 'demand_gw', lags)
 ```
 
-**Critical**: only shift forward (no negative lags) to avoid leakage. After shift, drop rows with NaN from the start.
+**Critical**: only shift forward (positive lags) to avoid leakage. After shift, drop rows with NaN from the start.
+
+**What breaks**: including `shift(0)` or negative lags. After a train/test split, recomputing lag features on the combined dataframe leaks test values into training lag columns near the boundary.
+
+---
 
 ### 3.2 Rolling Statistics
 
@@ -308,51 +341,53 @@ windows = [7, 14, 30, 90]
 df = add_rolling_features(df, 'demand_gw', windows)
 ```
 
-**Expanding window** (cumulative statistics):
+Expanding window (cumulative statistics):
 ```python
 df['cumulative_mean'] = df['target'].shift(1).expanding().mean()
 ```
 
+**What breaks**: omitting `shift(1)` before `rolling()`. The rolling window at time `t` includes `y_t` itself, which is the target — direct leakage.
+
+---
+
 ### 3.3 Calendar Features
 
-Encode temporal position explicitly:
+**The problem**: the model needs to know it is Monday, or December, or a holiday. A raw timestamp integer does not encode this. The model cannot learn that "column 1,456,800 = Monday" without help.
+
+**The core insight**: extract calendar features explicitly. Use cyclical encoding for periodic features — raw integers make 23:00 and 00:00 far apart when they should be adjacent.
 
 ```python
 def add_calendar_features(df, datetime_col):
     dt = pd.to_datetime(df[datetime_col])
-    df['hour']        = dt.dt.hour
-    df['day_of_week'] = dt.dt.dayofweek      # 0=Monday
-    df['day_of_month']= dt.dt.day
-    df['week_of_year']= dt.dt.isocalendar().week.astype(int)
-    df['month']       = dt.dt.month
-    df['quarter']     = dt.dt.quarter
-    df['year']        = dt.dt.year
-    df['is_weekend']  = (dt.dt.dayofweek >= 5).astype(int)
+    df['hour']         = dt.dt.hour
+    df['day_of_week']  = dt.dt.dayofweek
+    df['day_of_month'] = dt.dt.day
+    df['week_of_year'] = dt.dt.isocalendar().week.astype(int)
+    df['month']        = dt.dt.month
+    df['quarter']      = dt.dt.quarter
+    df['year']         = dt.dt.year
+    df['is_weekend']   = (dt.dt.dayofweek >= 5).astype(int)
     return df
-```
 
-Avoid treating hour/month as raw integers for neural models — they wrap around. Use cyclical encoding:
-
-```python
+# Cyclical encoding: hour 23 should be close to hour 0
 df['hour_sin'] = np.sin(2 * np.pi * df['hour'] / 24)
 df['hour_cos'] = np.cos(2 * np.pi * df['hour'] / 24)
 df['month_sin'] = np.sin(2 * np.pi * df['month'] / 12)
 df['month_cos'] = np.cos(2 * np.pi * df['month'] / 12)
 ```
 
-This ensures hour 23 is close to hour 0 in feature space.
+**What breaks**: treating `hour` as a raw integer in a tree model. Trees can learn the 0-23 cutoff but need many extra splits. Neural models with raw integers learn embeddings but cyclical encoding is free and guaranteed.
+
+---
 
 ### 3.4 Fourier Features
 
-Represent seasonality as a sum of sine and cosine waves:
+**The problem**: Holt-Winters handles one seasonal period. Your series has a 24-hour daily cycle AND a 7-day weekly cycle. You need both represented simultaneously without fitting two separate seasonal models.
+
+**The core insight**: any periodic function can be approximated as a sum of sinusoids (Fourier series). Encode each seasonality as a set of sin/cos pairs at harmonics of its period. Feed them as regular features into any model.
 
 ```python
 def fourier_features(t, period, n_terms):
-    """
-    t: array of time indices
-    period: seasonality period (e.g., 365.25 for yearly)
-    n_terms: number of harmonics
-    """
     features = {}
     for k in range(1, n_terms + 1):
         features[f'sin_{period}_{k}'] = np.sin(2 * np.pi * k * t / period)
@@ -361,21 +396,24 @@ def fourier_features(t, period, n_terms):
 
 # Daily seasonality with 5 harmonics (for hourly data)
 t = np.arange(len(df))
-fourier = fourier_features(t, period=24, n_terms=5)
-df = pd.concat([df, fourier], axis=1)
+fourier_daily  = fourier_features(t, period=24, n_terms=5)
+fourier_weekly = fourier_features(t, period=168, n_terms=3)
+df = pd.concat([df, fourier_daily, fourier_weekly], axis=1)
 ```
 
 More harmonics = sharper seasonality shape captured, but more parameters.
 
-### 3.5 Target Encoding and External Features
+**What breaks**: too many harmonics with too little data — overfitting. Too few harmonics misses sharp seasonal peaks (e.g., the exact hour of maximum demand).
 
-- **Holidays**: binary or categorical feature, important for retail and energy
-- **Weather data**: temperature is a strong predictor for energy demand
-- **Economic indicators**: leading indicators for demand forecasting
-- **Exogenous variables**: known future values (e.g., planned promotions)
+---
+
+### 3.5 External Features
+
+- **Holidays**: binary or categorical flag — critical for retail and energy
+- **Weather**: temperature is the dominant predictor for energy demand
+- **Known future values**: promotions, scheduled events (these are *exogenous* variables)
 
 ```python
-# Example: energy demand with temperature covariate
 # SARIMAX handles exogenous variables
 model = SARIMAX(train_demand,
                 exog=train_temperature,
@@ -385,40 +423,45 @@ result = model.fit()
 forecast = result.get_forecast(steps=24, exog=future_temperature)
 ```
 
+**What breaks**: using exogenous variables that are themselves forecasts (e.g., forecast temperature as a feature). You have now chained two uncertain forecasts. The stated accuracy of the combined system will be optimistic if you evaluate with ground-truth covariates.
+
 ---
 
 ## 4. RNNs and LSTMs
 
 ### 4.1 Vanilla RNN
 
-An RNN maintains a hidden state `h_t` updated at each timestep:
+**The problem**: a fully connected network sees one timestep at a time and has no memory. If you concatenate the last `k` timesteps as a feature vector, you must fix `k` at architecture design time and miss anything outside that window. The model has no principled mechanism for varying how far back it looks.
+
+**The core insight**: maintain a hidden state that accumulates information across timesteps. The same function is applied at each step, making the architecture independent of sequence length.
 
 ```
-h_t = tanh(W_hh * h_{t-1} + W_xh * x_t + b_h)
-y_t = W_hy * h_t + b_y
+h_t = tanh(W_hh · h_{t-1} + W_xh · x_t + b_h)
+y_t = W_hy · h_t + b_y
 ```
 
-**Vanishing gradient problem**: gradients from long-ago timesteps shrink exponentially through backpropagation through time (BPTT). This limits practical memory to ~10-20 timesteps.
+**What breaks**: gradients flow back through `W_hh` at every timestep. If `W_hh` has singular values < 1, multiplying through 100 timesteps produces gradients ~0 (vanishing). If > 1, gradients explode. In practice, RNNs cannot retain information beyond ~10-20 timesteps.
+
+---
 
 ### 4.2 LSTM Architecture
 
-Long Short-Term Memory (Hochreiter & Schmidhuber, 1997) introduces a **cell state** `c_t` and three gates:
+**The problem**: vanilla RNNs cannot decide what to remember and what to forget. The hidden state is overwritten at every step. A fact learned 100 timesteps ago is either diluted or has vanished from the hidden state entirely.
 
+**The core insight**: separate short-term hidden state from long-term cell state. The cell state flows through time with additive updates (not multiplicative), so gradients can pass through without attenuation. Learned gates decide what to write, what to erase, and what to output.
+
+**The mechanics**:
 ```
-Forget gate:  f_t = sigmoid(W_f * [h_{t-1}, x_t] + b_f)
-Input gate:   i_t = sigmoid(W_i * [h_{t-1}, x_t] + b_i)
-Cell update:  g_t = tanh(W_g * [h_{t-1}, x_t] + b_g)
-Output gate:  o_t = sigmoid(W_o * [h_{t-1}, x_t] + b_o)
+Forget gate:  f_t = σ(W_f · [h_{t-1}, x_t] + b_f)
+Input gate:   i_t = σ(W_i · [h_{t-1}, x_t] + b_i)
+Cell update:  g_t = tanh(W_g · [h_{t-1}, x_t] + b_g)
+Output gate:  o_t = σ(W_o · [h_{t-1}, x_t] + b_o)
 
-Cell state:   c_t = f_t * c_{t-1} + i_t * g_t
-Hidden state: h_t = o_t * tanh(c_t)
+Cell state:   c_t = f_t ⊙ c_{t-1} + i_t ⊙ g_t    ← additive update
+Hidden state: h_t = o_t ⊙ tanh(c_t)
 ```
 
-- **Forget gate**: decides what to erase from cell state
-- **Input gate + cell update**: decides what new info to add
-- **Output gate**: decides what to expose as hidden state
-
-The additive cell state update `c_t = f_t*c_{t-1} + i_t*g_t` prevents vanishing gradients — gradients can flow through without attenuation.
+The additive cell state update `c_t = f_t ⊙ c_{t-1} + i_t ⊙ g_t` is the key: the gradient path through `c_t` does not repeatedly multiply through the same weight matrix, allowing gradients to flow across hundreds of timesteps.
 
 ```python
 import torch
@@ -439,29 +482,23 @@ class LSTMForecaster(nn.Module):
     def forward(self, x):
         # x: (batch, seq_len, input_size)
         lstm_out, (h_n, c_n) = self.lstm(x)
-        # Use last timestep output
         out = self.fc(lstm_out[:, -1, :])  # (batch, output_size)
         return out
 
-model = LSTMForecaster(input_size=10, hidden_size=64,
-                       num_layers=2, output_size=1)
+model = LSTMForecaster(input_size=10, hidden_size=64, num_layers=2, output_size=1)
 ```
 
-**GRU (Gated Recurrent Unit)**: simpler than LSTM with only two gates (reset and update). Often comparable performance with fewer parameters.
+**GRU**: simpler than LSTM with only two gates (reset and update). Merges cell and hidden state. Often comparable performance with fewer parameters.
+
+**What breaks**: LSTMs are sequential — each step depends on the previous hidden state. This prevents parallelization across the time dimension. Training on long sequences (>1000 steps) is slow. The hidden state is still a fixed-size bottleneck.
+
+---
 
 ### 4.3 Sequence-to-Sequence for Multi-step Forecasting
 
-For predicting `H` steps ahead, two architectures:
+**The problem**: you need a forecast for the next 24 hours. Predicting one step and feeding it back 24 times compounds every error — a small error at step 1 shifts the context for step 2, and so on. By step 24, you are predicting from a distribution you never saw in training.
 
-**Direct approach**: train `H` separate models, each predicting horizon `h`.
-- Pro: no error accumulation
-- Con: does not model dependencies between horizons
-
-**Recursive approach**: predict one step, feed prediction back as input.
-- Pro: single model
-- Con: errors compound over the horizon
-
-**Seq2Seq with encoder-decoder**:
+**The core insight**: an encoder-decoder architecture separates the compression of history from the generation of the forecast horizon. The decoder generates all `H` steps, conditioned on the encoder's summary of the input.
 
 ```python
 class Seq2SeqLSTM(nn.Module):
@@ -469,14 +506,12 @@ class Seq2SeqLSTM(nn.Module):
         super().__init__()
         self.encoder = nn.LSTM(input_size, hidden_size, batch_first=True)
         self.decoder = nn.LSTM(1, hidden_size, batch_first=True)
-        self.output = nn.Linear(hidden_size, 1)
+        self.output  = nn.Linear(hidden_size, 1)
         self.horizon = horizon
 
     def forward(self, src, tgt=None, teacher_forcing_ratio=0.5):
-        # Encode
         _, (h, c) = self.encoder(src)
 
-        # Decode step by step
         outputs = []
         dec_input = src[:, -1:, :1]  # last observed value
 
@@ -485,7 +520,6 @@ class Seq2SeqLSTM(nn.Module):
             pred = self.output(out)
             outputs.append(pred)
 
-            # Teacher forcing: use ground truth with probability p
             if tgt is not None and torch.rand(1) < teacher_forcing_ratio:
                 dec_input = tgt[:, t:t+1, :]
             else:
@@ -494,47 +528,59 @@ class Seq2SeqLSTM(nn.Module):
         return torch.cat(outputs, dim=1)
 ```
 
-**Teacher forcing**: during training, feed the ground truth as decoder input with probability `p` instead of the model's own prediction. Speeds up training but can cause exposure bias at inference. Schedule the ratio downward during training.
+**Teacher forcing**: during training, feed ground-truth decoder input with probability `p` instead of the model's own prediction. Speeds training but creates **exposure bias** — at inference, the model encounters its own (imperfect) predictions as inputs, which it never saw during training. Schedule the ratio downward during training.
+
+**What breaks**: exposure bias is not a small effect. Models trained with 100% teacher forcing often produce unstable rollouts at inference because small prediction errors shift the decoder input distribution out of distribution.
+
+---
 
 ### 4.4 Practical LSTM Tips
 
-- **Input normalization**: scale each feature to zero mean, unit variance using training statistics only. Apply same scaler to validation/test.
+- **Input normalization**: scale features to zero mean, unit variance using training statistics only
 - **Stacking**: 2-3 layers usually sufficient; more causes overfitting
-- **Lookback window**: start with `2x` the longest seasonal period; tune via validation
-- **Dropout**: apply between LSTM layers, not within (use `nn.Dropout` after LSTM)
-- **Gradient clipping**: clip gradients to norm 1.0 for stability (`torch.nn.utils.clip_grad_norm_`)
+- **Lookback window**: start with `2×` the longest seasonal period; tune via validation
+- **Gradient clipping**: clip gradients to norm 1.0 (`torch.nn.utils.clip_grad_norm_`)
+- **Dropout**: between LSTM layers, not within (use `nn.Dropout` after LSTM)
 
 ---
 
 ## 5. Temporal Convolutional Networks (TCN)
 
-TCNs apply dilated causal convolutions to sequences, offering parallelism that RNNs lack.
-
 ### 5.1 Causal Convolution
 
-A **causal** convolution ensures that output at time `t` depends only on inputs at time `<= t` (no future leakage):
+**The problem**: LSTMs are sequential — step `t` must wait for step `t-1` before computing. On a GPU with 10,000 parallel cores, this serialization is wasteful. Training is slow and the long gradient paths cause instability.
+
+**The core insight**: convolutions are parallel. If you constrain the convolution to be *causal* — output at time `t` only depends on inputs at `t` and earlier — you get both parallelism and temporal validity.
 
 ```
-y_t = sum_{k=0}^{K-1} w_k * x_{t-k}
+y_t = Σ_{k=0}^{K-1} w_k · x_{t-k}
 ```
 
-Padding on the left by `K-1` zeros achieves causality.
+Pad the left by `K-1` zeros to achieve causality.
+
+**What breaks**: a causal convolution with kernel size `K` can only see `K` steps back. To model long-range dependencies, you need either many layers or large kernels — both expensive.
+
+---
 
 ### 5.2 Dilated Convolution
 
-**Dilation** increases the receptive field exponentially without adding parameters:
+**The problem**: to see 1000 steps back with a causal convolution, you either need 1000 layers or a kernel of size 1000. Both are impractical.
+
+**The core insight**: skip steps. Apply the kernel with spacing (dilation) `d`. With exponentially increasing dilation `d = 1, 2, 4, 8, ...`, each layer doubles the receptive field. After `L` layers with kernel size 2, you see `2^L` steps back.
 
 ```
-y_t = sum_{k=0}^{K-1} w_k * x_{t - d*k}
+y_t = Σ_{k=0}^{K-1} w_k · x_{t − d·k}
 ```
 
-With kernel size 2 and exponentially increasing dilation `d = 1, 2, 4, 8, ...`:
+With kernel size 2 and dilations 1, 2, 4, 8:
 - Layer 1 (d=1): sees 2 steps back
 - Layer 2 (d=2): sees 4 steps back
 - Layer 3 (d=4): sees 8 steps back
-- Layer L (d=2^L): sees 2^(L+1) steps back
+- Layer 4 (d=8): sees 16 steps back
 
-Receptive field = `1 + (K-1) * sum(dilations)`.
+Receptive field = `1 + (K−1) · Σ(dilations)`.
+
+---
 
 ### 5.3 TCN Implementation
 
@@ -563,7 +609,6 @@ class TCNBlock(nn.Module):
         self.relu  = nn.ReLU()
 
     def forward(self, x):
-        # x: (batch, in_ch, seq_len)
         res = x if self.skip is None else self.skip(x)
         x = self.relu(self.norm1(self.conv1(x).transpose(1,2)).transpose(1,2))
         x = self.drop(x)
@@ -572,43 +617,33 @@ class TCNBlock(nn.Module):
         return self.relu(x + res)
 ```
 
-**TCN advantages over LSTM:**
-- Parallelism: all timesteps computed simultaneously (no sequential dependency)
-- Stable gradients: no vanishing gradient through time
-- Flexible receptive field: controlled by kernel size and dilation schedule
-
-**TCN disadvantages:**
-- Fixed receptive field must be set to cover longest dependency
-- Less natural for online/streaming inference
+**What breaks**: the receptive field is fixed at architecture design time. If a dependency exists outside the receptive field, the model cannot see it. LSTMs are more flexible here — in principle, they can attend to any past step (though in practice they forget). TCNs also work less naturally for online/streaming inference, where you update state one step at a time.
 
 ---
 
 ## 6. Transformer-Based Models
 
-Standard Transformers have `O(L^2)` attention complexity, which is prohibitive for long sequences (L = 1000+ timesteps). Several architectures address this.
-
 ### 6.1 Vanilla Transformer Baseline
 
-Self-attention computes:
-```
-Attention(Q, K, V) = softmax(Q * K^T / sqrt(d_k)) * V
-```
+**The problem**: LSTMs see each step sequentially. Transformers compute attention over all pairs simultaneously, giving direct access to any past timestep. But full self-attention is O(L²) in memory and time. For a 1000-timestep series, that is 1 million attention pairs per head per layer — feasible for NLP with 512-token sentences, not for time series with thousands of observations.
 
-For time series, positional encoding injects temporal order. The full sequence is processed in parallel, which is training-efficient but requires the whole context window.
+**The core insight**: full attention is too expensive for time series, but the O(L²) cost can be reduced with sparse, patched, or inverted attention.
+
+---
 
 ### 6.2 Informer (2021)
 
-**Problem**: `O(L^2)` memory for long sequences.
-**Solution**: ProbSparse attention — identify the top-u queries that have the most influence, compute attention only for those.
+**The problem**: standard attention at O(L²) is infeasible for forecasting 720 steps from 1440 context steps.
 
-ProbSparse attention complexity: `O(L * log L)`
+**The core insight**: most attention weights are near zero. Only a small fraction of queries have high attention entropy — they are the informative ones. Compute full attention only for those top-u queries; skip the rest.
+
+**The mechanics**: ProbSparse attention. For each query, estimate its importance by comparing its max attention score to the average. Select the top `u = O(L log L)` queries. Complexity drops from O(L²) to O(L log L).
 
 Also introduces:
-- **Distilling**: halve sequence length across encoder layers
-- **Generative decoder**: directly outputs the full forecast horizon (vs. autoregressive)
+- **Distilling**: halve sequence length between encoder layers via max pooling
+- **Generative decoder**: predicts the full forecast horizon in one forward pass (not autoregressive)
 
 ```python
-# Using HuggingFace time_series_transformer (Informer variant)
 from transformers import InformerConfig, InformerForPrediction
 
 config = InformerConfig(
@@ -625,37 +660,35 @@ config = InformerConfig(
 model = InformerForPrediction(config)
 ```
 
+**What breaks**: ProbSparse attention is an approximation. On short sequences where full attention is feasible, simpler models often outperform Informer. Empirical benchmarks (Zeng et al., 2023) showed a simple linear model beats Informer on several ETT datasets.
+
+---
+
 ### 6.3 Autoformer (2021)
 
-**Key innovation**: Auto-Correlation mechanism replaces attention.
+**The problem**: standard attention treats every token independently. But time series have periodic structure — a strong correlation between `y_t` and `y_{t-P}` for seasonal period `P`. Token-level attention must re-discover this periodicity from scratch.
 
-Instead of token-level attention, computes period-based dependencies via fast Fourier transform:
+**The core insight**: replace attention with auto-correlation. Compute period-based dependencies using the Fast Fourier Transform, which naturally captures periodic structure. Decompose trend and seasonality inside every encoder/decoder layer.
+
 ```
-Correlation(Q, K) = IFFT(FFT(Q) * conj(FFT(K)))
+Correlation(Q, K) = IFFT(FFT(Q) · conj(FFT(K)))
 ```
 
-Also introduces **series decomposition block**: separates trend from seasonality inside every encoder/decoder layer rather than as a preprocessing step.
+**What breaks**: the inductive bias toward periodicity is a strength on periodic series and a weakness on irregular or aperiodic series. If the series lacks clear seasonality, the auto-correlation mechanism provides no advantage.
 
-This inductive bias is strong for periodic series but may not generalize as well on non-periodic data.
+---
 
 ### 6.4 PatchTST (2023)
 
-**Key insight**: patches of consecutive time steps are more meaningful tokens than individual timesteps.
+**The problem**: individual timestep tokens carry little information — a single value at time `t` has no local context. And a long sequence of 500 single-value tokens means 250,000 attention pairs.
+
+**The core insight**: patch the series. Divide the sequence into overlapping windows of size `P`. Each patch becomes one token carrying `P` consecutive timesteps. Reduces token count by factor `P`, and each token now has local temporal context baked in. Apply standard full attention on the shorter sequence.
 
 ```
-Sequence of length L -> divide into patches of size P -> L/P tokens
+Sequence of length L → divide into patches of size P → L/P tokens
 ```
-
-Benefits:
-- Reduces sequence length by factor `P`
-- Each patch token carries local context
-- Enables use of standard (full) self-attention with manageable cost
-- Channel-independence: each variable processed separately (strong inductive bias)
-
-PatchTST often outperforms earlier Transformer variants while being simpler.
 
 ```python
-# Pseudo-code for patch embedding
 class PatchEmbedding(nn.Module):
     def __init__(self, patch_size, d_model, seq_len):
         super().__init__()
@@ -672,25 +705,35 @@ class PatchEmbedding(nn.Module):
         return x  # (batch, n_patches, d_model)
 ```
 
+PatchTST also uses channel-independence: each variable is processed separately. This acts as regularization — the model cannot overfit to spurious cross-variable correlations.
+
+**What breaks**: channel-independence ignores cross-variable correlations entirely. When variables have known, strong causal relationships (e.g., temperature and humidity), this is a handicap.
+
+---
+
 ### 6.5 iTransformer (2024)
 
-**Inverted Transformer**: apply attention across **variables** rather than across time.
+**The problem**: in a multivariate series, standard Transformers apply attention across time for each variable. But sometimes the most useful signal is across variables at the same time — knowing that sensor A spiked tells you sensor B will spike 5 minutes later. Temporal attention does not capture this.
 
-Standard Transformer: each token = one timestep, attention = temporal dependencies.
-iTransformer: each token = one variable's full time series, attention = inter-variable dependencies.
+**The core insight**: invert the attention axis. Let each token represent one variable's entire time series. Apply attention across variables to capture cross-variable interactions. The feed-forward layer handles temporal dynamics per variable.
 
-Why it works for multivariate: the temporal structure is encoded by the feed-forward layer per variable; the attention learns cross-variable correlation patterns.
+| | Token | Attention learns |
+|---|---|---|
+| Standard Transformer | one timestep | temporal dependencies |
+| iTransformer | one variable's full series | cross-variable correlations |
 
-This is particularly effective when the number of variables is moderate and cross-variable dependencies matter (e.g., multiple sensor readings in a factory).
+**What breaks**: iTransformer's effectiveness depends on whether cross-variable dependencies are the dominant signal. For univariate series or weakly correlated variables, inverting attention provides no benefit.
 
-### 6.6 Transformer Comparison Table
+---
+
+### 6.6 Transformer Comparison
 
 | Model | Complexity | Key Innovation | Best For |
 |---|---|---|---|
 | Informer | O(L log L) | ProbSparse attention | Long sequences |
-| Autoformer | O(L log L) | Auto-Correlation + decomp | Periodic series |
-| PatchTST | O((L/P)^2) | Patch tokenization | General forecasting |
-| iTransformer | O(M^2 * L) | Inverted attention | Multivariate |
+| Autoformer | O(L log L) | Auto-Correlation + decomposition | Periodic series |
+| PatchTST | O((L/P)²) | Patch tokenization + channel-independence | General forecasting |
+| iTransformer | O(M² · L) | Inverted attention across variables | Multivariate |
 
 ---
 
@@ -698,35 +741,32 @@ This is particularly effective when the number of variables is moderate and cros
 
 ### 7.1 N-BEATS (2020)
 
-**Neural Basis Expansion Analysis for Time Series** — pure MLP-based, no recurrence, no convolution.
+**The problem**: RNNs and Transformers are designed for NLP and adapted for time series. The architectural inductive biases (token embeddings, attention masks, cell states) are not natural for numerical sequences. Can a purpose-built architecture, with no recurrence and no attention, beat RNN/Transformer baselines?
 
-Architecture:
-- Stack of **blocks**, each producing a **backcast** (reconstruction of input) and **forecast**
-- Residual connections: each block operates on the residual after previous blocks subtract their backcast
-- **Interpretable variant**: basis functions are trend polynomials and Fourier harmonics
+**The core insight**: stack MLP blocks where each block explains part of the series. Every block produces a *backcast* (reconstruction of its input) and a *forecast* (contribution to the prediction). The next block receives only the residual — what the previous block could not explain. This is an additive decomposition learned end-to-end.
 
+**The mechanics**:
 ```
 Block k:
-  theta_b, theta_f = MLP(x_residual_k)
-  backcast_k = basis_b(theta_b)
-  forecast_k  = basis_f(theta_f)
-  x_residual_{k+1} = x_residual_k - backcast_k
-  
-Total forecast = sum(forecast_k for all k)
+  θ_b, θ_f = MLP(x_residual_k)
+  backcast_k  = basis_b(θ_b)
+  forecast_k  = basis_f(θ_f)
+  x_residual_{k+1} = x_residual_k − backcast_k
+
+Total forecast = Σ forecast_k
 ```
 
-Interpretable stacks:
-- **Trend stack**: polynomial basis `[1, t, t^2, t^3]`
-- **Seasonality stack**: Fourier basis `[cos(2pi*k*t/P), sin(2pi*k*t/P)]`
+Interpretable variant uses explicit basis functions:
+- **Trend stack**: polynomial basis `[1, t, t², t³]`
+- **Seasonality stack**: Fourier basis `[cos(2πkt/P), sin(2πkt/P)]`
 
 ```python
-# Using neuralforecast library
 from neuralforecast import NeuralForecast
 from neuralforecast.models import NBEATS
 
 model = NBEATS(
-    h=24,                    # forecast horizon
-    input_size=72,           # lookback window
+    h=24,
+    input_size=72,
     stack_types=['trend', 'seasonality'],
     n_blocks=[3, 3],
     mlp_units=[[512, 512], [512, 512]],
@@ -741,14 +781,21 @@ nf.fit(df)
 forecast = nf.predict()
 ```
 
+**What breaks**: N-BEATS is univariate by default. The generic (non-interpretable) variant has no explicit basis functions and is harder to debug. Like any deep MLP, it is data-hungry relative to classical methods.
+
+---
+
 ### 7.2 N-HiTS (2022)
 
-**N-HiTS** (Hierarchical Interpolation for Time Series) extends N-BEATS with:
+**The problem**: N-BEATS blocks all operate at the same temporal resolution. But a 720-step forecast is dominated by low-frequency trends and seasonality — high-frequency noise contributes little. Allocating equal capacity to all frequencies wastes parameters.
 
-1. **Multi-rate sampling**: different blocks sample the input at different rates (pooling), capturing short and long-range patterns
-2. **Hierarchical interpolation**: forecast is generated at coarser resolution then upsampled, reducing parameter count
+**The core insight**: multi-rate sampling. Different blocks pool the input at different rates. Coarse blocks see the whole history at low resolution and capture long-range trends. Fine blocks see the recent past at full resolution and capture short-range dynamics. The forecast at each scale is interpolated back to the target resolution.
 
-The key idea is that most forecasting signal lives in low-frequency components. N-HiTS exploits this by allocating more parameters to low-frequency stacks.
+```
+Stack 1 (coarse): pool_kernel=8 → captures long-range trend
+Stack 2 (medium): pool_kernel=4 → captures seasonal patterns
+Stack 3 (fine):   pool_kernel=1 → captures short-term variation
+```
 
 ```python
 from neuralforecast.models import NHITS
@@ -765,7 +812,9 @@ model = NHITS(
 )
 ```
 
-**N-BEATS vs N-HiTS vs Transformers**: on M4 and M5 benchmarks, N-BEATS and N-HiTS frequently outperform Transformer variants while being simpler and faster. The MLP-based approach is surprisingly competitive.
+**N-BEATS vs N-HiTS vs Transformers**: on M4 and M5 benchmarks, N-BEATS and N-HiTS frequently match or outperform Transformer variants while training faster and using fewer parameters. The lesson: architectural simplicity beats complexity when inductive biases are well-matched to the task.
+
+**What breaks**: N-HiTS's multi-rate design assumes low-frequency components dominate, which is true for most economic and demand series but not for all signals. On series with dominant high-frequency content, the coarse stacks waste capacity.
 
 ---
 
@@ -773,8 +822,11 @@ model = NHITS(
 
 ### 8.1 Statistical Tests
 
-**Z-score**: flag observations more than `k` standard deviations from the rolling mean.
+**The problem**: you want to flag observations that are unusual. But "unusual" relative to what? The mean of the full series is wrong for a trending or seasonal series — a value perfectly normal in December looks anomalous if you compare it to a July baseline.
 
+**The core insight**: compare each observation to its local expected value — the mean of a recent rolling window, or a seasonal decomposition residual.
+
+**Z-score with rolling window**:
 ```python
 def zscore_anomalies(series, window=30, threshold=3.0):
     rolling_mean = series.rolling(window).mean()
@@ -783,19 +835,22 @@ def zscore_anomalies(series, window=30, threshold=3.0):
     return z_scores.abs() > threshold
 ```
 
-**Grubbs' test**: formally tests whether a single outlier exists in a normally distributed series. Use iteratively to find multiple outliers.
+**Seasonal Hybrid ESD (S-H-ESD)**: Twitter's method. Decompose seasonality first, then apply the Extreme Studentized Deviate test on residuals. Used in production monitoring.
 
-**Seasonal Hybrid ESD (S-H-ESD)**: Twitter's method — decompose seasonality first, then apply ESD test on residuals. Used in production monitoring.
+**What breaks**: Z-score with a fixed threshold fails when the noise variance changes over time. A 3σ threshold calibrated on calm periods misses anomalies during volatile periods.
+
+---
 
 ### 8.2 Isolation Forest
 
-Isolates anomalies by recursively splitting on random features. Anomalies are isolated faster (shorter average path length in the tree).
+**The problem**: you have 20 sensor metrics simultaneously. A single metric anomaly is easy to spot. But an anomaly that appears in combinations — CPU is high AND memory is low AND disk I/O is normal — is invisible to univariate tests.
+
+**The core insight**: anomalies are rare and different. They are easier to isolate with random axis-aligned splits. An anomaly requires fewer splits to isolate (shorter path length in a random tree) than a normal point embedded in a dense cluster.
 
 ```python
 from sklearn.ensemble import IsolationForest
 import numpy as np
 
-# Build feature matrix from lag and rolling features
 X = build_features(series)  # shape: (n_samples, n_features)
 
 clf = IsolationForest(
@@ -808,11 +863,15 @@ anomaly_scores = clf.decision_function(X)  # lower = more anomalous
 labels = clf.predict(X)  # -1 = anomaly, 1 = normal
 ```
 
-Isolation Forest works well on multivariate data (e.g., server CPU + memory + disk I/O).
+**What breaks**: Isolation Forest does not model time. Two consecutive anomalous points are treated as independent samples. It has no concept of "this looks normal for a Monday but not for a Sunday." Pair it with calendar features to give it temporal context.
+
+---
 
 ### 8.3 LSTM Autoencoder
 
-Train an LSTM autoencoder on normal data. Anomalies produce high reconstruction error.
+**The problem**: you have unlabeled time series data. You want to detect anomalies without labeling anomalies — there are too few of them to train a classifier directly.
+
+**The core insight**: train a model to reconstruct normal sequences. Anomalous sequences will have high reconstruction error because the model has only learned to reconstruct the normal distribution.
 
 ```python
 class LSTMAutoencoder(nn.Module):
@@ -825,17 +884,15 @@ class LSTMAutoencoder(nn.Module):
     def forward(self, x):
         # x: (batch, seq_len, input_size)
         _, (h, c) = self.encoder(x)
-        # Repeat context vector for each decoder timestep
         context = h[-1].unsqueeze(1).repeat(1, self.seq_len, 1)
         reconstruction, _ = self.decoder(context)
         return reconstruction
 
-# Training
 model = LSTMAutoencoder(input_size=1, hidden_size=32, seq_len=50)
 criterion = nn.MSELoss()
 optimizer = torch.optim.Adam(model.parameters(), lr=1e-3)
 
-# After training on normal data, compute threshold from training reconstruction errors
+# After training, set threshold from training reconstruction errors
 train_errors = []
 with torch.no_grad():
     for batch in train_loader:
@@ -845,30 +902,39 @@ with torch.no_grad():
 
 threshold = np.percentile(train_errors, 95)
 
-# Anomaly detection
 with torch.no_grad():
     recon = model(test_data)
     test_errors = ((test_data - recon) ** 2).mean(dim=(1, 2))
     anomalies = test_errors > threshold
 ```
 
+**What breaks**: the model learns to reconstruct whatever it is trained on. If the training set contains unlabeled anomalies, it learns to reconstruct those too. Pre-clean training data or use a robust loss function.
+
+---
+
 ### 8.4 VAE for Anomaly Detection
 
-A Variational Autoencoder learns a probabilistic latent space. Anomalies produce high reconstruction loss AND have low probability under the learned prior:
+**The problem**: an LSTM autoencoder gives a reconstruction score but no probability. You cannot say "this event has a 0.1% chance under normal conditions."
+
+**The core insight**: a VAE learns a probabilistic latent space. The anomaly score is not just reconstruction error but also the KL divergence from the latent prior — anomalies encode to unusual regions of latent space.
 
 ```
-anomaly_score = reconstruction_loss + beta * KL_divergence
+anomaly_score = reconstruction_loss + β · KL_divergence
 ```
 
-DONUT (2018) and DAGMM apply this idea specifically to multivariate time series.
+DONUT (2018) and DAGMM apply this to multivariate time series.
 
-### 8.5 Anomaly Detection in Production
+**What breaks**: VAE anomaly detection requires careful tuning of `β`. Too high and KL dominates — all anomalies look the same. Too low and reconstruction dominates — reverts to a standard autoencoder.
+
+---
+
+### 8.5 Production Considerations
 
 Key decisions:
-1. **Threshold**: set on held-out normal data, typically at 95th or 99th percentile of reconstruction errors. Can use 3-sigma rule.
-2. **Smoothing**: apply moving average to anomaly scores to reduce point false positives.
-3. **Contextual vs point anomalies**: a value of 1000 CPU at 3 AM is anomalous; at 2 PM it is not. Incorporate time-of-day context.
-4. **Drift vs spike**: distinguish gradual drift (concept drift) from sudden spikes.
+1. **Threshold**: set on held-out normal data, typically 95th or 99th percentile of reconstruction errors
+2. **Smoothing**: apply moving average to scores to reduce false positives from single-point spikes
+3. **Contextual anomalies**: CPU at 100% at 3 AM is anomalous; at 2 PM it is not — incorporate time-of-day features
+4. **Drift vs spike**: distinguish gradual drift (concept drift) from sudden spikes — they require different responses
 
 ---
 
@@ -876,35 +942,23 @@ Key decisions:
 
 ### 9.1 Point Forecast Metrics
 
-**MAE (Mean Absolute Error)**:
-```
-MAE = (1/n) * sum(|y_t - y_hat_t|)
-```
-Scale-dependent. Robust to outliers relative to MSE. Lower is better.
+**The problem**: MSE is scale-dependent. A model with MSE=100 on energy demand (GW) is not comparable to a model with MSE=0.01 on stock returns. You cannot benchmark across series or report a single number that means anything.
 
-**RMSE (Root Mean Squared Error)**:
-```
-RMSE = sqrt((1/n) * sum((y_t - y_hat_t)^2))
-```
-Same units as target. Penalizes large errors more than MAE. Useful when large errors are especially costly.
+**The core insight**: use scale-free metrics for cross-series comparison; use scale-dependent metrics when comparing models on a single series.
 
-**MAPE (Mean Absolute Percentage Error)**:
-```
-MAPE = (100/n) * sum(|y_t - y_hat_t| / |y_t|)
-```
-Scale-free. **Problematic when `y_t` is near zero** (division instability) and is asymmetric: overforecasts by the same absolute amount are penalized less than underforecasts.
+**MAE**: `(1/n) · Σ|y_t − ŷ_t|`. Robust to outliers. Same units as the target.
 
-**sMAPE (Symmetric MAPE)**:
-```
-sMAPE = (100/n) * sum(2*|y_t - y_hat_t| / (|y_t| + |y_hat_t|))
-```
-Mitigates asymmetry. Still problematic near zero.
+**RMSE**: `√((1/n) · Σ(y_t − ŷ_t)²)`. Penalizes large errors more. Use when large misses are especially costly.
+
+**MAPE**: `(100/n) · Σ|y_t − ŷ_t| / |y_t|`. Scale-free but **undefined when `y_t ≈ 0`** and asymmetric: overforecasting by X is penalized less than underforecasting by X.
+
+**sMAPE**: `(100/n) · Σ 2|y_t − ŷ_t| / (|y_t| + |ŷ_t|)`. Reduces asymmetry. Still problematic near zero.
 
 **MASE (Mean Absolute Scaled Error)**:
 ```
-MASE = MAE / (1/(T-s)) * sum(|y_t - y_{t-s}|)
+MASE = MAE / (1/(T−s)) · Σ|y_t − y_{t-s}|
 ```
-Denominator is the MAE of the naive seasonal forecast (predict today = same period last season). MASE > 1 means your model is worse than naive. MASE is the **recommended metric for academic benchmarks** (M-competitions) — scale-free and well-behaved.
+Denominator is the MAE of the naive seasonal forecast (predict today = same period last season). MASE < 1 = you beat the seasonal naive. MASE is scale-free, symmetric, well-defined at zero, and the standard metric for M-competition benchmarks.
 
 ```python
 def mase(actual, forecast, seasonal_naive_errors):
@@ -913,41 +967,49 @@ def mase(actual, forecast, seasonal_naive_errors):
     return mae / naive_mae
 ```
 
+**What breaks**: MASE is undefined if the seasonal naive baseline has zero error (perfectly predictable series). RMSE is distorted by a single large outlier — if you care about median performance, use MAE.
+
+---
+
 ### 9.2 Probabilistic Forecast Metrics
+
+**The problem**: a point forecast communicates nothing about uncertainty. For inventory management, you need P95 of demand. For energy grids, you need the full distribution to set reserve capacity.
+
+**The core insight**: evaluate the quality of the predicted distribution, not just its center.
 
 **Quantile Loss (Pinball Loss)**:
 ```
-QL_q(y, y_hat_q) = q * (y - y_hat_q)    if y >= y_hat_q
-                 = (1-q) * (y_hat_q - y) if y < y_hat_q
+QL_q(y, ŷ_q) = q · (y − ŷ_q)     if y ≥ ŷ_q
+             = (1−q) · (ŷ_q − y)  if y < ŷ_q
 ```
-Measures calibration of quantile `q`. Sum over quantiles gives WQL (Weighted Quantile Loss).
 
 **CRPS (Continuous Ranked Probability Score)**:
 ```
-CRPS(F, y) = integral_{-inf}^{inf} (F(x) - 1[x >= y])^2 dx
+CRPS(F, y) = ∫ (F(x) − 1[x ≥ y])² dx
 ```
-Where `F` is the predicted CDF. Generalizes MAE to distributional forecasts. A CRPS equal to MAE for a point forecast — so CRPS >= 0 and lower is better.
+Where `F` is the predicted CDF. Equals MAE for point forecasts — lower is better.
 
 ```python
-# Using properscoring library
 from properscoring import crps_ensemble
 import numpy as np
 
-# samples: (n_samples_per_timestep,) or (n_timesteps, n_ensemble_members)
+# samples: (n_timesteps, n_ensemble_members)
 crps_scores = crps_ensemble(actual, ensemble_samples)
 print(f"Mean CRPS: {crps_scores.mean():.4f}")
 ```
 
-**Calibration**: for an interval forecast, check empirical coverage. If 90% intervals contain the true value 90% of the time, the model is calibrated.
+**Calibration check**: if 90% prediction intervals contain the true value 90% of the time, the model is calibrated. If coverage < 90%, intervals are too narrow (overconfident).
+
+---
 
 ### 9.3 Choosing Metrics
 
 | Situation | Recommended Metric |
 |---|---|
-| Scale-free comparison across series | MASE or sMAPE |
+| Cross-series comparison | MASE or sMAPE |
 | Same series, different models | RMSE or MAE |
 | High-cost large errors | RMSE |
-| Zero-crossing series | RMSE or MASE (not MAPE) |
+| Series with zero-crossing values | RMSE or MASE (not MAPE) |
 | Probabilistic forecasts | CRPS or WQL |
 | Interval forecasts | Coverage + interval width |
 
@@ -957,13 +1019,20 @@ print(f"Mean CRPS: {crps_scores.mean():.4f}")
 
 ### 10.1 Why Standard k-Fold Fails
 
-Standard k-fold randomly assigns observations to folds. For time series, this causes:
-1. **Future leakage**: training on observations from 2023 to predict 2022
-2. **Dependency violation**: train and test share observations from the same temporal neighborhood
+**The problem**: k-fold cross-validation randomly assigns observations to folds. For time series, this means training on 2023 data to predict 2022. A model that perfectly memorizes future values would score perfectly in cross-validation and fail entirely in deployment.
+
+**The core insight**: the train/test boundary must always move forward in time. You can never train on the future to predict the past.
+
+**What breaks specifically**:
+1. **Future leakage**: model trains on post-cutoff observations
+2. **Dependency violation**: train and test share temporal neighbors with correlated errors
+3. **Feature leakage**: lag features computed on the full dataset before splitting
+
+---
 
 ### 10.2 Train-Validation-Test Split
 
-The simplest valid approach: use a fixed cutoff.
+The simplest valid approach — fixed cutoffs:
 
 ```python
 n = len(df)
@@ -975,7 +1044,9 @@ val   = df.iloc[train_end:val_end]
 test  = df.iloc[val_end:]
 ```
 
-Validate on `val`, report final numbers on `test` (touched once).
+Tune hyperparameters on `val`. Report final numbers on `test` — touched exactly once.
+
+---
 
 ### 10.3 Time Series Split (Expanding Window)
 
@@ -993,11 +1064,13 @@ for fold, (train_idx, val_idx) in enumerate(tscv.split(X)):
     print(f"Fold {fold}: {score:.4f}")
 ```
 
-Each fold expands the training set. The `gap` parameter skips observations near the boundary (important for lag features to avoid leakage).
+Each fold expands the training set. The `gap` parameter skips observations near the boundary — critical when lag features use lags shorter than `gap`.
+
+---
 
 ### 10.4 Walk-Forward Validation (Sliding Window)
 
-Both train and validation windows slide forward, keeping training size constant:
+Both train and validation windows slide forward, keeping training size fixed:
 
 ```python
 def walk_forward_cv(series, train_size, val_size, step=1):
@@ -1017,15 +1090,9 @@ def walk_forward_cv(series, train_size, val_size, step=1):
     return results
 ```
 
-Walk-forward is more computationally expensive but better represents production deployment where the model is retrained on a rolling basis.
+Walk-forward is more expensive but better represents a model retrained on a rolling window in production.
 
-### 10.5 Backtesting Caveat
-
-**Temporal leakage in feature engineering**: compute rolling statistics and lag features on the full dataset before splitting, and you will have leaked future information into lagged features near the split boundary. Always:
-
-1. Create lag features using `shift()` — safe because it references past only
-2. Use `shift(1)` before any rolling computation
-3. Set `min_periods` to avoid NaN-propagation
+**What breaks**: the feature engineering leakage trap. Computing rolling statistics before splitting, then indexing into those pre-computed arrays, is still a leak. Always compute features inside each fold, starting from raw data.
 
 ---
 
@@ -1033,25 +1100,33 @@ Walk-forward is more computationally expensive but better represents production 
 
 ### 11.1 Problem Formulation
 
-Given `M` time series: `Y_t = [y_t^1, ..., y_t^M]`, predict `H` steps ahead for all `M` variables.
+Given `M` time series `Y_t = [y_t¹, ..., y_tᴹ]`, predict `H` steps ahead for all `M` variables.
+
+---
 
 ### 11.2 Channel-Independent vs Channel-Dependent
 
-**Channel-independent (CI)**: treat each variable independently. Same model applied separately to each variable. PatchTST and most linear models operate this way.
+**The problem**: modeling cross-variable interactions adds parameters and potential overfitting. Should you model each variable separately or jointly?
 
-**Channel-dependent (CD)**: model cross-variable interactions explicitly. iTransformer, GNNs for time series.
+**The core insight**: cross-variable modeling helps only when cross-variable dependencies are strong and consistent. If variables are weakly correlated, modeling them jointly introduces noise rather than signal.
 
-Empirically, CI often wins on benchmarks because it regularizes overfitting. CD is better when variables have known, strong causal relationships.
+**Channel-independent (CI)**: same model applied to each variable independently. PatchTST, most linear models. Acts as regularization — cannot overfit to spurious correlations.
+
+**Channel-dependent (CD)**: explicit cross-variable modeling. iTransformer, VAR, GNNs. Better when variables have known causal structure.
+
+Empirically: CI often wins on standard benchmarks because cross-variable correlation is weaker than expected. CD wins when variables are genuinely causally linked (multiple sensors in a controlled system).
+
+---
 
 ### 11.3 Vector Autoregression (VAR)
 
-Classical multivariate extension of AR:
+The classical multivariate AR extension:
 
 ```
-Y_t = c + A_1 * Y_{t-1} + A_2 * Y_{t-2} + ... + A_p * Y_{t-p} + epsilon_t
+Y_t = c + A₁ · Y_{t-1} + A₂ · Y_{t-2} + ... + Aₚ · Y_{t-p} + ε_t
 ```
 
-Each variable is regressed on its own past AND past of all other variables. Number of parameters scales as `M^2 * p` — expensive for large `M`.
+Each variable is regressed on its own past AND the past of all other variables. Parameters scale as `M² · p` — expensive for large `M`.
 
 ```python
 from statsmodels.tsa.vector_ar.var_model import VAR
@@ -1061,24 +1136,28 @@ results = model.fit(maxlags=15, ic='aic')
 forecast = results.forecast(train_data[-results.k_ar:], steps=12)
 ```
 
+**What breaks**: VAR with M=50 variables and p=10 lags has 25,000 parameters. With T=200 observations, this is severely underdetermined. Regularization (ridge, lasso) or dimensionality reduction is necessary.
+
+---
+
 ### 11.4 LightGBM/XGBoost for Multivariate
 
 Often the most practical approach for tabular-izable multivariate forecasting:
 
-1. Build a feature matrix: lag features of all `M` variables, calendar features, rolling stats
-2. Train a single gradient boosting model to predict each target variable
+1. Build feature matrix: lag features of all `M` variables, calendar features, rolling stats
+2. Train a single gradient boosting model per target variable (or multi-output)
 3. Use recursive or direct strategy for multi-step
 
 ```python
 import lightgbm as lgb
-from sklearn.multioutput import MultiOutputRegressor
 
-# Build feature matrix (T - max_lag) x (M * n_lags + n_calendar_features)
 X_train, y_train = build_feature_matrix(train_data, lags=[1,2,3,24], horizon=1)
 
 model = lgb.LGBMRegressor(n_estimators=500, learning_rate=0.05, num_leaves=31)
 model.fit(X_train, y_train)
 ```
+
+**What breaks**: tree models cannot extrapolate beyond training range. If a covariate takes values at test time that it never took during training, the tree outputs the value from the nearest training leaf — which may be far from correct.
 
 ---
 
@@ -1086,14 +1165,15 @@ model.fit(X_train, y_train)
 
 ### 12.1 Why Point Forecasts Are Insufficient
 
-A point forecast communicates nothing about uncertainty. For decision-making:
-- **Inventory management**: need to know P95 of demand to avoid stockouts
-- **Energy grid**: need uncertainty to set reserve capacity
-- **Finance**: need the full return distribution for risk management
+**The problem**: a retailer orders inventory based on the point forecast of demand. The forecast is 1000 units. The model is sometimes off by ±400. The retailer orders 1000 units and stockouts 30% of the time — an unnecessary loss, because if they had known the uncertainty, they would have ordered 1300 units.
+
+**The core insight**: decision-making under uncertainty requires knowing the uncertainty. A point forecast strips out the information needed to make optimal decisions.
+
+---
 
 ### 12.2 Quantile Regression
 
-Train the model to predict specific quantiles directly by minimizing pinball loss:
+**The core insight**: directly train the model to predict specific quantiles by minimizing the pinball (quantile) loss — an asymmetric loss that rewards the model for placing the `q`-quantile at the correct position.
 
 ```python
 import lightgbm as lgb
@@ -1110,17 +1190,17 @@ for q in quantiles:
     model.fit(X_train, y_train)
     quantile_models[q] = model
 
-# Prediction interval
 lower = quantile_models[0.1].predict(X_test)
 upper = quantile_models[0.9].predict(X_test)
 ```
 
-**Quantile crossing**: independently trained quantile models may cross (Q90 < Q50). Fix with isotonic regression or joint quantile regression.
+**Quantile crossing**: independently trained quantile models may produce Q90 < Q50 in some regions. Fix with isotonic regression post-processing or train with a joint quantile loss.
+
+---
 
 ### 12.3 Deep Learning Probabilistic Methods
 
-**MC Dropout**: enable dropout at inference, run `N` forward passes, get distribution.
-
+**MC Dropout**: enable dropout at inference, run `N` forward passes, approximate posterior:
 ```python
 def mc_dropout_predict(model, x, n_samples=100):
     model.train()  # keep dropout active
@@ -1129,28 +1209,25 @@ def mc_dropout_predict(model, x, n_samples=100):
     return samples.mean(0), samples.std(0)
 ```
 
-**Deep AR** (Amazon, 2020): LSTM-based model outputs parameters of a distribution (Gaussian, negative binomial) at each step:
+**Deep AR** (Amazon): LSTM that outputs distribution parameters (μ, σ) at each step. Loss = negative log likelihood. Naturally produces predictive intervals.
 
 ```
-p(y_t | y_{<t}, x_t) = N(mu_theta(y_{<t}, x_t), sigma_theta(y_{<t}, x_t))
+p(y_t | y_{<t}, x_t) = N(μ_θ(y_{<t}, x_t), σ_θ(y_{<t}, x_t))
 ```
 
-Loss = negative log likelihood.
+**What breaks**: MC Dropout underestimates uncertainty because the approximate posterior is too concentrated. Calibration should be checked against empirical coverage.
 
-**Normalizing Flows**: model the full conditional distribution by learning a bijective transformation from a simple base distribution.
+---
 
 ### 12.4 Conformal Prediction for Time Series
 
-Conformal prediction provides distribution-free prediction intervals with coverage guarantees.
+**The problem**: Bayesian and parametric intervals require distributional assumptions. If those assumptions are wrong (non-Gaussian errors, heavy tails), the stated coverage is wrong.
 
-For time series, use **Adaptive Conformal Inference (ACI)**:
+**The core insight**: conformal prediction makes no distributional assumptions. It provides marginal coverage guarantees: request a 90% interval, and 90% of test observations fall inside — regardless of the model's internal assumptions.
 
 ```python
-# Simplified conformal prediction for time series
 def conformal_forecast(model, calibration_residuals, alpha=0.1):
-    """
-    alpha: desired error rate (0.1 -> 90% coverage)
-    """
+    """alpha: desired error rate (0.1 -> 90% coverage)"""
     q_hat = np.quantile(np.abs(calibration_residuals), 1 - alpha)
 
     def predict_interval(x):
@@ -1160,13 +1237,17 @@ def conformal_forecast(model, calibration_residuals, alpha=0.1):
     return predict_interval
 ```
 
-**EnbPI** (Ensemble batch prediction intervals): extends conformal prediction to streaming settings where distribution may shift.
+**Adaptive Conformal Inference (ACI)**: standard conformal prediction assumes exchangeability (i.i.d.). Time series violates this — the error distribution changes over time. ACI adaptively updates the quantile as coverage errors are observed.
 
-Standard conformal prediction guarantees marginal coverage but not conditional. For time series with non-stationarity, ACI adaptively updates the quantile.
+**What breaks**: conformal prediction provides marginal (average) coverage, not conditional coverage. The interval may be too narrow on hard examples and too wide on easy ones.
 
-### 12.5 Forecast Combination (Ensembling)
+---
 
-Averaging predictions from multiple models typically outperforms any single model:
+### 12.5 Forecast Combination
+
+**The problem**: every model family has biases. ARIMA misses nonlinear patterns. LSTMs require much data. LightGBM extrapolates poorly. No single model is universally best.
+
+**The core insight**: averaging predictions from diverse models cancels independent errors. The ensemble is often better than any constituent model — proven repeatedly in the M-competitions.
 
 ```python
 models = [arima_model, lstm_model, lightgbm_model, prophet_model]
@@ -1181,7 +1262,9 @@ weights = (1 / val_errors) / (1 / val_errors).sum()
 ensemble_weighted = (forecasts * weights[:, None]).sum(axis=0)
 ```
 
-The M4 competition winner used a combination of LSTM outputs with Holt-Winters.
+The M4 competition winner combined LSTM outputs with Holt-Winters exponential smoothing.
+
+**What breaks**: ensemble weights derived from validation performance can overfit if the validation period is short or not representative of test conditions. Simple equal weighting is surprisingly hard to beat.
 
 ---
 
@@ -1189,14 +1272,15 @@ The M4 competition winner used a combination of LSTM outputs with Holt-Winters.
 
 ### 13.1 Motivation
 
-Classical and task-specific neural models require retraining for each new dataset. Foundation models trained on large corpora of diverse time series promise:
-- **Zero-shot forecasting**: no retraining on target data
-- **Few-shot adaptation**: minimal fine-tuning
-- **Transfer across domains**: finance, energy, healthcare, weather
+**The problem**: every time series forecasting project starts from scratch. You collect data, engineer features, train an ARIMA or LSTM, tune hyperparameters, and validate. For a company with 50,000 SKUs or 10,000 sensors, this is infeasible. And for a new series with 30 observations, there is not enough data to train anything.
+
+**The core insight**: train one model on a massive corpus of diverse time series. At inference, it forecasts any new series zero-shot — no retraining required. The model has absorbed the statistical patterns of thousands of domains.
+
+---
 
 ### 13.2 TimeGPT-1 (Nixtla, 2023)
 
-Transformer trained on 100 billion time points from diverse public datasets. API-based:
+Transformer trained on 100 billion time points from diverse public datasets. API-based zero-shot and fine-tuned modes:
 
 ```python
 from nixtla import NixtlaClient
@@ -1211,53 +1295,15 @@ forecast = client.forecast(
 )
 ```
 
-Supports zero-shot and fine-tuned modes. Shows strong performance on M4 and ETT benchmarks without training.
+**What breaks**: API dependency means no offline inference, uncertain pricing at scale, and no control over model updates.
 
-### 13.3 Lag-Llama (2024)
+---
 
-Llama-style decoder-only transformer adapted for time series. Key design choices:
-- **Patch tokenization**: patches of consecutive timesteps as tokens
-- **Distributional output**: models future values as probability distributions (Student-t)
-- **Trained on**: large Chronos/Lotsa dataset collection
+### 13.3 Chronos (Amazon, 2024)
 
-Zero-shot performance competitive with dataset-specific models on many benchmarks.
+**The problem**: language models handle arbitrary sequences of tokens. Time series are sequences of numbers. Can the same architecture work?
 
-```python
-from lag_llama.gluon.estimator import LagLlamaEstimator
-
-estimator = LagLlamaEstimator(
-    ckpt_path="lag-llama.ckpt",
-    prediction_length=24,
-    context_length=32,
-    n_layer=32,
-    n_embd_per_head=32,
-    n_head=16,
-    num_parallel_samples=100
-)
-```
-
-### 13.4 TimesFM (Google, 2024)
-
-Decoder-only foundation model (200M parameters) trained on 100 billion real-world time points. Uses a patching approach similar to PatchTST but in an autoregressive framework.
-
-Key claims: zero-shot performance better than many task-specific models on standard benchmarks. Supports variable prediction length without retraining.
-
-### 13.5 Moirai (Salesforce, 2024)
-
-"Universal" forecasting model using a masked encoder approach. Designed to handle:
-- Variable context lengths
-- Variable prediction lengths
-- Multiple frequencies
-- Any-variate prediction (variable number of variables at inference)
-
-Uses patch-based tokenization with frequency-specific patches.
-
-### 13.6 Chronos (Amazon, 2024)
-
-Converts time series forecasting into a **language modeling task**:
-1. Normalize and quantize time series values into discrete tokens
-2. Train a T5-style encoder-decoder on sequences of tokens
-3. Decode future tokens autoregressively and map back to values
+**The core insight**: quantize time series values into discrete tokens, then treat forecasting as language modeling. The T5-style encoder-decoder autoregressively generates future tokens, which are then de-quantized back to values.
 
 ```python
 import torch
@@ -1276,6 +1322,47 @@ forecast = pipeline.predict(
 # forecast shape: (num_samples, prediction_length)
 ```
 
+**What breaks**: quantization introduces discretization error. Very fine-grained signals (sub-0.1% changes in sensor readings) lose information in the tokenization step.
+
+---
+
+### 13.4 Lag-Llama (2024)
+
+Llama-style decoder-only transformer adapted for time series. Key design:
+- **Patch tokenization**: patches of consecutive timesteps as tokens
+- **Distributional output**: Student-t distribution over future values
+- **Trained on**: large Chronos/Lotsa dataset collection
+
+Zero-shot performance competitive with dataset-specific models on held-out benchmarks.
+
+```python
+from lag_llama.gluon.estimator import LagLlamaEstimator
+
+estimator = LagLlamaEstimator(
+    ckpt_path="lag-llama.ckpt",
+    prediction_length=24,
+    context_length=32,
+    n_layer=32,
+    n_embd_per_head=32,
+    n_head=16,
+    num_parallel_samples=100
+)
+```
+
+---
+
+### 13.5 Moirai (Salesforce, 2024)
+
+"Universal" forecasting model using masked encoder. Designed to handle variable context lengths, variable prediction lengths, multiple frequencies, and any number of variables at inference. Uses patch-based tokenization with frequency-specific patch sizes.
+
+---
+
+### 13.6 TimesFM (Google, 2024)
+
+Decoder-only foundation model (200M parameters) trained on 100 billion real-world time points. Autoregressive patching approach. Zero-shot performance reportedly better than many task-specific models on standard benchmarks.
+
+---
+
 ### 13.7 When to Use Foundation Models
 
 | Situation | Recommendation |
@@ -1283,8 +1370,10 @@ forecast = pipeline.predict(
 | Cold start, no training data | Foundation model zero-shot |
 | Small dataset (<1k observations) | Foundation model + light fine-tuning |
 | Large dataset, stable distribution | Task-specific model (N-HiTS, PatchTST) |
-| Real-time, low latency | Lightweight model (LightGBM + features) |
-| Multiple series, shared patterns | Foundation model or global model |
+| Real-time, low latency | LightGBM + features |
+| Multiple series, shared patterns | Foundation model or global neural model |
+
+**What breaks**: foundation models trained on public datasets may not represent highly domain-specific series (industrial sensor data, rare disease biomarkers). Zero-shot performance often lags fine-tuned task-specific models when data is abundant.
 
 ---
 
@@ -1292,24 +1381,25 @@ forecast = pipeline.predict(
 
 ### 14.1 Concept Drift
 
-**Concept drift**: the statistical relationship between features and target changes over time.
+**The problem**: you trained a demand forecasting model in January. By October, buying patterns shifted after a major competitor launched. Your model's validation error was 3%; now it is 12%. But your automated alerts only fire at 15%. You shipped wrong forecasts for months before noticing.
 
-Types:
-- **Sudden drift**: e.g., COVID lockdowns changing energy demand patterns overnight
-- **Gradual drift**: e.g., customer behavior shifting over months
-- **Recurring drift**: e.g., seasonal patterns returning each year (this is expected and handled by seasonal features)
+**The core insight**: model accuracy in production degrades silently. You must monitor for distribution shifts and prediction error changes continuously, not just at deployment.
 
-**Detection methods:**
+**Types**:
+- **Sudden drift**: COVID lockdowns changing energy demand overnight
+- **Gradual drift**: customer behavior shifting over months
+- **Recurring drift**: seasonal patterns returning each year (expected and handled by seasonal features)
 
-Page-Hinkley test: cumulative sum over normalized residuals:
+**Detection**:
+
+Page-Hinkley test — cumulative sum over normalized residuals:
 ```
-m_t = sum_{i=1}^t (x_i - mu_0 - delta)
+m_t = Σ_{i=1}^t (x_i − μ₀ − δ)
 M_T = max(m_1, ..., m_T)
-drift detected if m_T - M_T > lambda
+drift detected if m_T − M_T > λ
 ```
 
-ADWIN (Adaptive Windowing): maintains a sliding window and detects drift when two sub-windows have significantly different means.
-
+ADWIN — maintains a sliding window and detects drift when two sub-windows have significantly different means:
 ```python
 from river.drift import ADWIN
 
@@ -1320,21 +1410,27 @@ for error in model_errors:
         print("Drift detected — trigger retraining")
 ```
 
+**What breaks**: drift detection based on prediction error requires ground-truth labels, which arrive with a lag. Feature distribution monitoring (PSI, KL divergence on inputs) catches drift earlier, without waiting for labels.
+
+---
+
 ### 14.2 Retraining Triggers
 
 | Trigger Type | Description | Use Case |
 |---|---|---|
-| Scheduled | Retrain every N days/weeks | Stable series, low operational cost |
+| Scheduled | Retrain every N days/weeks | Stable series, low ops cost |
 | Performance-based | Retrain when val error > threshold | When monitoring is available |
 | Drift-based | Retrain on drift detection | When distribution shifts detectably |
-| Continuous | Retrain on each new observation (online learning) | High-frequency, fast-changing |
+| Continuous (online) | Update on each observation | High-frequency, fast-changing series |
 
 **Model decay rate** varies by domain:
 - E-commerce demand: days to weeks
-- Energy demand: weeks to months (slow drift)
+- Energy demand: weeks to months
 - Financial markets: hours to days
 
-### 14.3 Data Pipeline for Forecasting
+---
+
+### 14.3 Data Pipeline
 
 ```
 Raw data sources
@@ -1343,36 +1439,42 @@ Raw data sources
        |
    Feature engineering (lag, rolling, calendar, Fourier)
        |
-   Train / validate / test split (temporal)
+   Temporal train/validate/test split
        |
    Model training
        |
    Model registry (MLflow, W&B)
        |
-   Serving layer (batch / online)
+   Serving (batch / online)
        |
-   Monitoring (prediction error tracking, drift detection)
+   Monitoring (prediction error, drift detection)
        |
    Retraining trigger
 ```
 
+---
+
 ### 14.4 Common Production Pitfalls
 
-1. **Leakage in preprocessing**: StandardScaler fit on full dataset before split — use only training data to fit scalers
-2. **Lookahead in lag features**: computing `shift(0)` or negative shifts
+1. **Scaler fit on full dataset**: StandardScaler fit before split — fit only on training data, transform test
+2. **Lookahead in lag features**: `shift(0)` or negative shifts
 3. **Missing value handling**: forward-fill creates artificial autocorrelation; interpolation can leak future
-4. **Horizon mismatch**: evaluating 1-step-ahead but deploying as 24-step-ahead
-5. **Evaluation on too-short test period**: seasonal patterns need at least 2-3 full cycles in test set
-6. **Ignoring latency**: a model needing 512 lookback steps may not be feasible for real-time inference
+4. **Horizon mismatch**: evaluating 1-step-ahead but deploying as 24-step-ahead — completely different difficulty
+5. **Too-short test period**: seasonal patterns need at least 2-3 full cycles in the test set to evaluate correctly
+6. **Latency at inference**: a model requiring 512 lookback steps may miss the SLA for real-time predictions
+
+---
 
 ### 14.5 Global vs Local Models
 
-**Local model**: one model per series. Classic ARIMA, Prophet. Works well for a small number of important series. Does not scale to thousands.
+**Local model**: one model per series (ARIMA, Prophet). Works well for a small number of important series. Does not scale to thousands.
 
-**Global model**: one model across all series. LSTM with series identifier, LightGBM, N-BEATS. Can learn shared patterns. Requires careful normalization (instance normalization or global z-score).
+**Global model**: one model across all series (LSTM with series identifier, LightGBM, N-BEATS). Can learn shared patterns. Requires careful normalization.
 
+**The problem**: global models see series at different scales. A model trained on sales from 1 to 10 million units cannot directly generalize to a new series ranging from 0.1 to 0.5 units without normalization.
+
+**RevIN (Reversible Instance Normalization)**: normalize at input, reverse normalization at output:
 ```python
-# Instance normalization for global models
 def normalize_per_series(batch):
     # batch: (batch_size, seq_len)
     mean = batch.mean(dim=1, keepdim=True)
@@ -1383,7 +1485,9 @@ def denormalize(normalized, mean, std):
     return normalized * std + mean
 ```
 
-**RevIN (Reversible Instance Normalization)**: normalization applied at the encoder input and reversed at the decoder output. Used in PatchTST and N-HiTS.
+Used in PatchTST and N-HiTS. The key insight: normalize each instance independently at runtime, not globally — this allows the model to generalize across series at different scales.
+
+**What breaks**: RevIN assumes the test series distribution is stationary enough that the normalization statistics computed on the input window are representative of the forecast window. This fails on sudden level shifts.
 
 ---
 
@@ -1393,70 +1497,60 @@ def denormalize(normalized, mean, std):
 
 **Q: What is the difference between ARIMA and SARIMA?**
 
-ARIMA(p,d,q) models non-seasonal time series using autoregressive terms (past values), differencing (to achieve stationarity), and moving average terms (past errors). SARIMA(p,d,q)(P,D,Q)[S] adds seasonal counterparts operating at lag S: seasonal AR, seasonal differencing, and seasonal MA. If you have monthly data with clear annual cycles, you need SARIMA with S=12. ARIMA applied to seasonal data without seasonal differencing will show residual autocorrelation at seasonal lags.
+ARIMA(p,d,q) handles non-seasonal series: AR terms model dependence on past values, differencing removes trend to achieve stationarity, MA terms model dependence on past errors. SARIMA(p,d,q)(P,D,Q)[S] adds a second set of AR/I/MA terms that operate at lag S rather than lag 1. For monthly data with annual seasonality, you need SARIMA with S=12. ARIMA applied to seasonal data without seasonal differencing leaves autocorrelation at seasonal lags — visible in the residual ACF plot.
 
 ---
 
 **Q: Why can't you use standard k-fold cross-validation for time series?**
 
-k-fold randomly shuffles data into folds, breaking temporal order. This causes two problems: (1) the model trains on data from period T+k to predict period T, using future information that would not be available in production; (2) observations close in time are correlated, so random splits bleed information between train and validation sets. Use TimeSeriesSplit or walk-forward validation instead.
+k-fold randomly shuffles observations into folds, breaking temporal order in two ways: (1) the model trains on future observations to predict past ones — future leakage that would not exist in deployment; (2) adjacent observations in time are correlated, so randomly splitting bleeds information across folds. Use TimeSeriesSplit (expanding window) or walk-forward validation (sliding window) to maintain temporal order.
 
 ---
 
 **Q: How do LSTMs handle the vanishing gradient problem compared to vanilla RNNs?**
 
-Vanilla RNNs backpropagate gradients through time by multiplying the same weight matrix at each step. With sigmoid-like activations and weights < 1, gradients shrink exponentially. LSTMs introduce a cell state updated additively: `c_t = f_t * c_{t-1} + i_t * g_t`. The additive update means the gradient path through the cell state does not involve repeated multiplication by the same weights, allowing gradients to flow unchanged over many timesteps. The forget gate can still zero out old memories, but that is a controlled, learned operation.
+Vanilla RNNs backpropagate through `W_hh` at every timestep. If singular values of `W_hh` are < 1, gradients shrink exponentially — the 100-step-back gradient is essentially zero. LSTMs introduce an additive cell state update: `c_t = f_t ⊙ c_{t-1} + i_t ⊙ g_t`. The gradient path through `c_t` does not repeatedly multiply through the same matrix. The forget gate `f_t` can zero out old memories, but that is a controlled, learned operation — not an uncontrolled exponential decay. This allows gradients to flow across hundreds of timesteps.
 
 ---
 
 **Q: What is teacher forcing and when is it a problem?**
 
-Teacher forcing feeds the ground-truth output as decoder input at each step during training, rather than the model's own prediction. This speeds up training because errors do not compound. The problem is **exposure bias**: at inference, the model never saw its own mistakes during training, so small prediction errors early in the sequence get amplified by the model not knowing how to recover. Mitigation: scheduled sampling (gradually reduce teacher forcing ratio during training), or use non-autoregressive decoders like N-BEATS or Informer's generative decoder.
+Teacher forcing feeds ground-truth decoder output as input at each decoding step during training. This speeds training because errors do not compound. The problem is **exposure bias**: at inference, the model never saw its own (imperfect) predictions as inputs during training. A small error at step 1 shifts the input distribution for step 2, which the model has never handled, potentially causing error amplification across the horizon. Mitigation: scheduled sampling (gradually reduce teacher forcing ratio), or use non-autoregressive decoders (N-BEATS, Informer's generative decoder) that avoid the problem entirely.
 
 ---
 
 **Q: When would you choose a Transformer over an LSTM for time series?**
 
-Transformers are preferred when: (1) long-range dependencies matter and the sequence is long (>100 steps) — LSTMs struggle to retain information over many steps; (2) parallelism is important — Transformers train faster on GPUs; (3) enough data exists — Transformers have more parameters and are more data-hungry. LSTMs are preferred when: (1) data is limited; (2) online/streaming inference is required (Transformers need the full context window); (3) the sequence has clear local structure without long-range dependencies.
-
----
-
-**Q: Explain the difference between additive and multiplicative decomposition.**
-
-In additive decomposition: `y_t = trend_t + seasonal_t + residual_t`. The seasonal amplitude is constant regardless of the series level. Suitable when the series fluctuates by a fixed amount each period.
-
-In multiplicative decomposition: `y_t = trend_t * seasonal_t * residual_t`. The seasonal amplitude grows proportionally with the level. Suitable for series like revenue or population where percentage swings are more meaningful than absolute ones. Multiplicative can be transformed to additive by taking log: `log(y_t) = log(trend_t) + log(seasonal_t) + log(residual_t)`.
+Transformers are preferred when: (1) long-range dependencies matter and sequences are long (>100 steps) — LSTMs degrade; (2) parallelism matters during training; (3) enough data exists — Transformers have more parameters and require more data. LSTMs are preferred when: (1) data is limited; (2) online/streaming inference with per-step state update is required; (3) the series has local structure without long-range dependencies, where sequential processing is fine. Note: on standard benchmarks, simple patched Transformers (PatchTST) and even linear models often outperform complex Transformer variants — architecture choice should be empirically validated.
 
 ---
 
 **Q: What is MASE and why is it preferred over MAPE?**
 
-MASE scales the forecast error by the MAE of a naive seasonal benchmark: `MASE = MAE / MAE_naive`. Values < 1 mean you beat the naive baseline; values > 1 mean you do not. MAPE is undefined when actual values are zero and is asymmetric (overforecasts and underforecasts of the same absolute size have different MAPE values). MASE avoids both problems and is scale-free, making it valid for comparing across series with different units and magnitudes.
+MASE = `MAE / MAE_naive_seasonal`. The denominator is the error of predicting today = same period last year. MASE < 1 means you beat the naive baseline. MAPE is undefined when actuals are zero or near-zero, and is asymmetric: a forecast that is 50 above actual has lower MAPE than one that is 50 below actual (because the denominator is `|y_t|`). MASE avoids both issues and is scale-free, making it valid for comparing across series with different units, scales, and value ranges.
 
 ---
 
 **Q: How would you detect and handle concept drift in a production forecasting system?**
 
-Detection: monitor rolling forecast error (e.g., 7-day MAE). Use statistical tests like ADWIN or Page-Hinkley on residuals to detect distribution changes. Compare incoming feature distributions to training distributions using PSI (Population Stability Index) or KL divergence.
+Detection: monitor rolling forecast error (e.g., 7-day MAE vs. historical baseline). Apply ADWIN or Page-Hinkley on residuals for statistical drift detection. Compare incoming feature distributions to training distributions using PSI (Population Stability Index) or KL divergence — this catches drift before ground-truth labels arrive.
 
-Handling: (1) Scheduled retraining on a rolling window of recent data; (2) Drift-triggered retraining when tests fire; (3) Online learning methods (e.g., SGD with decaying learning rate) that continuously update; (4) Ensemble with models trained on different historical windows, weighted by recent performance.
+Handling: (1) scheduled retraining on a rolling window; (2) drift-triggered retraining; (3) online learning (SGD with decaying rate, continuously updating the model); (4) ensemble models trained on different historical windows, weighted by recent performance. The choice depends on how fast the distribution shifts and the cost of retraining.
 
 ---
 
 **Q: What are the advantages of N-BEATS over LSTM-based models?**
 
-N-BEATS is entirely MLP-based: no recurrence, no attention. This gives: (1) fully parallel computation — all inputs processed simultaneously; (2) interpretability in the interpretable variant — distinct trend and seasonality stacks with explicit basis functions; (3) competitive performance on M4/M5 benchmarks despite architectural simplicity; (4) no sequence-length limitation from vanishing gradients. The backcast mechanism also provides a natural way to decompose the forecast into additive components, which aids model debugging and domain expert review.
+N-BEATS is MLP-based — no recurrence, no attention. This gives: (1) fully parallel computation during training; (2) interpretability in the interpretable variant — explicit trend and seasonality stacks with polynomial and Fourier basis functions; (3) no sequential bottleneck — the model processes all lags simultaneously; (4) no vanishing gradient across time. The backcast mechanism naturally decomposes the forecast into additive components. On M4 and M5 benchmarks, N-BEATS frequently matches or outperforms Transformer variants despite architectural simplicity.
 
 ---
 
 **Q: How do you approach forecasting with multiple seasonalities?**
 
-Options: (1) **TBATS**: handles multiple seasonal periods with trigonometric Fourier terms; (2) **Prophet**: supports multiple additive Fourier seasonality components with different periods; (3) **Fourier features**: encode each seasonality as a set of sin/cos terms at the appropriate period, then use any regression or neural model; (4) **Deep learning**: LSTM or TCN that can learn multiple periodicities from data if the lookback window is large enough; (5) **STL decomposition**: decompose one seasonality at a time and model the residual separately.
+Options: (1) **TBATS**: explicit multiple Fourier seasonality terms with trigonometric state space; (2) **Prophet**: additive Fourier seasonality components at user-specified periods; (3) **Fourier features**: encode each seasonal period as sin/cos pairs, then use any regression or neural model — this is the most flexible approach; (4) **Deep learning**: LSTM or TCN with a lookback window large enough to cover the longest seasonal period; (5) **STL + residual modeling**: decompose one seasonality using STL, model the remainder with a separate model.
 
 ---
 
 **Q: What is conformal prediction and why is it useful for time series?**
 
-Conformal prediction is a framework for constructing prediction intervals with a marginal coverage guarantee: if you request a 90% interval, the true value falls inside it at least 90% of the time, regardless of the model's distributional assumptions. For time series, the key challenge is non-exchangeability (observations are not i.i.d.). Adaptive Conformal Inference (ACI) addresses this by adapting the coverage level over time as coverage errors are observed. Unlike Bayesian intervals, conformal prediction requires no distributional assumptions about residuals.
-
----
+Conformal prediction constructs prediction intervals with a guaranteed marginal coverage: request 90% coverage, get 90% empirical coverage, regardless of the model's internal distributional assumptions. No Gaussianity required. For time series, standard conformal prediction assumes exchangeability (i.i.d. residuals), which is violated by temporal autocorrelation and non-stationarity. Adaptive Conformal Inference (ACI) addresses this by updating the coverage target over time based on observed coverage errors. Unlike Bayesian intervals, conformal prediction is post-hoc — it wraps any trained point forecast model.

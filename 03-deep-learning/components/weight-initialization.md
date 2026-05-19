@@ -1,180 +1,162 @@
 # Weight Initialization
 
-Weight initialization determines the starting point of optimization. Poor initialization causes vanishing or exploding gradients, slowing or breaking training entirely.
+---
+
+## The Signal Propagation Problem
+
+**The problem**: before any training begins, you choose the starting values for all weights. If these values are wrong, the first forward pass produces activations that are either near zero (all neurons saturated or silent) or astronomically large (activations overflow). Either way, the gradients computed in the first backward pass are useless — near zero because activations are saturated, or NaN because values exploded. Training never recovers from a bad start.
+
+**The core insight**: at initialization, you want the signal through the network to stay at roughly the same scale at every layer. If layer $l$ receives a vector of variance 1 and outputs a vector of variance $\gg 1$ or $\ll 1$, those discrepancies compound multiplicatively through $L$ layers. The goal is a starting configuration where forward and backward passes both propagate signal without shrinkage or explosion.
 
 ---
 
-## Why Initialization Matters
+## Zero Initialization
 
-At the start of training, the loss landscape is navigated from an initial point. If:
-- **Weights too small:** Activations and gradients shrink layer by layer → vanishing gradients
-- **Weights too large:** Activations saturate or explode → exploding gradients / saturation
-- **All weights equal:** All neurons compute identical gradients → symmetry breaking fails (network equivalent to a single neuron)
+**The problem**: the simplest initialization — set all weights to zero.
 
-**Goal:** Keep activations and gradients at similar scales across all layers throughout the early phase of training.
+**What breaks**: every neuron in the same layer receives identical inputs and computes an identical output. Every neuron computes an identical gradient. After the first update, all neurons in each layer remain identical — the network is equivalent to a single neuron per layer, regardless of declared width. Symmetry is never broken; the network fails to learn diverse representations.
 
----
-
-## Zero / Constant Initialization
-
-```python
-nn.init.zeros_(layer.weight)
-nn.init.constant_(layer.weight, 0.01)
-```
-
-**Never initialize weights to zero.** All neurons compute identical outputs and gradients — symmetry is never broken. Biases can be initialized to zero (or small constants).
+Biases can be initialized to zero (or small constants). Weights must not be.
 
 ---
 
-## Random Normal / Uniform
+## Naive Random Initialization
 
-```python
-nn.init.normal_(layer.weight, mean=0, std=0.01)
-nn.init.uniform_(layer.weight, a=-0.01, b=0.01)
-```
+**The problem**: initialize weights from a small fixed normal distribution (e.g., $\mathcal{N}(0, 0.01)$) without considering layer size.
 
-**Problem:** Choosing std arbitrarily leads to vanishing/exploding signals as networks deepen. Variance not calibrated to layer size.
+**What breaks**: consider a layer with 1000 inputs. The output of neuron $j$ is $a_j = \sum_{i=1}^{1000} w_i x_i$. If each $w_i \sim \mathcal{N}(0, 0.01)$ and each $x_i$ has unit variance, then $\text{Var}[a_j] = 1000 \times 0.01^2 \times 1 = 0.1$ — small, activations are near zero, gradients vanish. If instead $\mathcal{N}(0, 0.1)$, then $\text{Var}[a_j] = 1000 \times 0.01 = 10$ — large, activations saturate, gradients vanish.
+
+A fixed standard deviation without layer-size correction cannot work for arbitrary network widths.
 
 ---
 
 ## Xavier / Glorot Initialization
 
-Designed for **tanh and sigmoid** activations (approximately linear near zero).
+**The problem**: you need initialization designed for symmetric activations (tanh, sigmoid) that are approximately linear near zero. How do you set weight variance so signal neither shrinks nor explodes through the layer?
 
-**Idea:** Set variance so signal neither shrinks nor explodes. For a layer with `n_in` inputs and `n_out` outputs:
+**The core insight**: require that the variance of the output equals the variance of the input (forward pass), and that the gradient variance is preserved backward. For a layer with $n_\text{in}$ inputs and $n_\text{out}$ outputs, the forward constraint gives $\text{Var}[W] = 1/n_\text{in}$ and the backward constraint gives $\text{Var}[W] = 1/n_\text{out}$. Compromise: use the harmonic mean.
 
-**Uniform:** `W ~ U[-√(6/(n_in + n_out)), √(6/(n_in + n_out))]`
+**The mechanics**:
 
-**Normal:** `W ~ N(0, 2/(n_in + n_out))`
+$$W \sim \mathcal{N}\left(0, \frac{2}{n_\text{in} + n_\text{out}}\right) \quad \text{or} \quad W \sim \mathcal{U}\left[-\sqrt{\frac{6}{n_\text{in} + n_\text{out}}}, \sqrt{\frac{6}{n_\text{in} + n_\text{out}}}\right]$$
 
 ```python
-nn.init.xavier_uniform_(layer.weight)
-nn.init.xavier_normal_(layer.weight)
+nn.init.xavier_uniform_(layer.weight)   # uniform variant
+nn.init.xavier_normal_(layer.weight)    # normal variant
 ```
 
-**Derivation:** Requires `Var[W] × n_in = 1` (forward pass) and `Var[W] × n_out = 1` (backward pass). Compromise: `Var[W] = 2 / (n_in + n_out)`.
+**What breaks**: Xavier's derivation assumes the activation is linear (or approximately linear). Tanh and sigmoid are approximately linear near zero, so Xavier works for them. ReLU is not: it zeroes half the inputs unconditionally, cutting the effective variance in half at every layer. Applying Xavier to a ReLU network causes activations to shrink by $\sqrt{2}$ per layer — in a 10-layer network, activations shrink by $(\sqrt{2})^{10} = 32\times$.
 
 ---
 
 ## He / Kaiming Initialization
 
-Designed for **ReLU** activations (which zero out half of inputs, effectively halving variance).
+**The problem**: Xavier assumes the activation is linear. ReLU zeroes all negative pre-activations — effectively, half the neurons contribute nothing. If variance is calibrated for a linear unit, a ReLU network has half as much variance at each layer. This halving compounds through layers.
 
-**Normal:** `W ~ N(0, 2/n_in)`  
-**Uniform:** `W ~ U[-√(6/n_in), √(6/n_in)]`
+**The core insight**: ReLU halves the variance at each layer. Compensate by doubling the initial weight variance. The factor of 2 in the variance exactly offsets the factor of 2 lost to the zeroing of negative activations.
+
+**The mechanics**:
+
+$$W \sim \mathcal{N}\left(0, \sqrt{\frac{2}{n_\text{in}}}\right)$$
+
+The variance is $2/n_\text{in}$ instead of Xavier's $1/n_\text{in}$. The "2" is the compensation for ReLU's expected zeroing of half the inputs.
 
 ```python
-nn.init.kaiming_uniform_(layer.weight, mode='fan_in', nonlinearity='relu')
 nn.init.kaiming_normal_(layer.weight, mode='fan_in', nonlinearity='relu')
+nn.init.kaiming_uniform_(layer.weight, mode='fan_in', nonlinearity='relu')
 ```
 
-- `mode='fan_in'`: Preserves variance in forward pass
-- `mode='fan_out'`: Preserves variance in backward pass
+`mode='fan_in'` preserves variance in the forward pass. `mode='fan_out'` preserves variance in the backward pass. For most networks, `fan_in` is preferred.
 
-**For LeakyReLU:** Pass `nonlinearity='leaky_relu'` and `a=slope`.
+PyTorch's default initialization for `nn.Linear` and `nn.Conv2d` is Kaiming Uniform — correct for ReLU networks.
 
-**In practice:** PyTorch defaults to Kaiming Uniform for `nn.Linear` and `nn.Conv2d`. Default is correct for ReLU networks.
+**What breaks**: He initialization assumes exactly half of inputs are zeroed (the expected behavior for zero-mean inputs). If the input distribution is shifted (e.g., after BatchNorm that doesn't zero-center), fewer or more inputs may be zeroed, and the factor of 2 is inexact. In practice, this is a minor issue — He initialization is robust enough.
+
+For Leaky ReLU with slope $\alpha$: the effective variance multiplier is $(1 + \alpha^2)/2$ instead of $1/2$. Pass `nonlinearity='leaky_relu', a=alpha` to get the corrected initialization.
 
 ---
 
 ## Orthogonal Initialization
 
-Initialize weight matrix as a random orthogonal matrix. Preserves gradient norms exactly at initialization for linear networks.
+**The problem**: in recurrent networks (RNNs, LSTMs), the same weight matrix $W_h$ is applied repeatedly at every timestep: $h_t = f(W_h h_{t-1} + \ldots)$. The gradient of the loss with respect to $h_0$ involves $W_h^T$ raised to the power of the sequence length. If $\|W_h\| < 1$, gradients vanish. If $\|W_h\| > 1$, gradients explode. You need the gradient norm to be preserved exactly.
+
+**The core insight**: an orthogonal matrix satisfies $W^T W = I$ — it is an isometry. Multiplying a vector by an orthogonal matrix preserves its norm exactly. Initializing $W_h$ as an orthogonal matrix means the gradient norm is preserved at every recurrent step.
+
+**The mechanics**:
 
 ```python
 nn.init.orthogonal_(layer.weight, gain=1.0)
 ```
 
-**Use for:** RNNs (prevents vanishing/exploding gradients in recurrent connections), deep linear networks. Less common for standard CNNs/MLPs.
+**What breaks**: the orthogonal initialization only preserves norms for a linear map. Once a non-linear activation is applied, the norm guarantee breaks. Still, orthogonal initialization provides a much better starting point for recurrent networks than random normal initialization.
 
 ---
 
-## LSTM / RNN Initialization
+## Transformer-Specific Initialization
+
+**The problem**: residual connections add the sublayer output to the input directly. If each sublayer adds a vector with non-trivial variance, the variance of the residual stream grows with depth: after $L$ layers, the stream variance is $L$ times the variance of a single sublayer's output. For deep Transformers (GPT-3 has 96 layers), this causes the output logit magnitudes to grow with depth, destabilizing training.
+
+**The core insight**: scale the output of each residual sublayer by $1/\sqrt{2L}$ where $L$ is the number of layers. Each sublayer contributes variance $1/(2L)$ instead of 1. After $L$ additive layers, total variance is $L \times 1/(2L) = 1/2$ — bounded regardless of depth.
+
+**The mechanics** (GPT-style):
+
+```python
+import math
+
+std = 0.02 / math.sqrt(2 * n_layers)
+nn.init.normal_(output_projection.weight, mean=0, std=std)
+```
+
+Applied to the output projection of each attention block and each FFN block. All other weights initialized from $\mathcal{N}(0, 0.02)$.
+
+**What breaks**: if this scaling is omitted, deeper Transformers require more careful learning rate tuning and are prone to training instability in the first few thousand steps. The issue is particularly visible at large model scale.
+
+---
+
+## LSTM Initialization
+
+**The problem**: at the start of LSTM training, the forget gate determines how much of the previous cell state to retain. If the forget gate activates near zero (due to random initialization), the LSTM immediately forgets everything — it cannot learn long-range dependencies from the first batch.
+
+**The core insight**: bias the forget gate toward remembering at initialization. Set the forget gate bias to 1 (in the range where sigmoid $\approx 0.73$). The LSTM starts in a state that preserves context; it can learn to forget when the data requires it.
+
+**The mechanics**:
 
 ```python
 for name, param in lstm.named_parameters():
     if 'weight_ih' in name:
-        nn.init.kaiming_uniform_(param)     # input-hidden weights
+        nn.init.kaiming_uniform_(param)       # input-to-hidden: treat as feedforward
     elif 'weight_hh' in name:
-        nn.init.orthogonal_(param)          # hidden-hidden weights
+        nn.init.orthogonal_(param)            # hidden-to-hidden: orthogonal for stability
     elif 'bias' in name:
         nn.init.zeros_(param)
-        # Initialize forget gate bias to 1 — helps remember at start
         n = param.size(0)
-        param.data[n//4:n//2].fill_(1.0)
+        param.data[n//4:n//2].fill_(1.0)     # forget gate bias = 1
 ```
 
----
-
-## Transformer Initialization
-
-GPT-style transformers use a scaled initialization for residual connections:
-
-```python
-# Scale residual branch output by 1/√(2 * n_layers)
-# Prevents variance explosion through many residual blocks
-std = 0.02 / math.sqrt(2 * config.n_layers)
-nn.init.normal_(layer.weight, mean=0, std=std)
-```
-
-**Embedding initialization:** Small normal `N(0, 0.02)` standard in GPT.
+**What breaks**: if the forget gate bias is set too high (e.g., bias = 5), the LSTM is too slow to learn to forget — it memorizes everything and fails to segment sequences. The initialization to 1 is a soft prior, not a hard constraint.
 
 ---
 
-## Bias Initialization
+## Bias Initialization Reference
 
-- **Linear / Conv layers:** Zero — standard
-- **BatchNorm γ (scale):** 1; β (shift): 0
-- **Output layer for classification:** Zero (balanced starting logits)
-- **Output layer for regression:** Set to dataset mean (faster convergence)
-- **LSTM forget gate:** 1 (encourage remembering at start)
-
----
-
-## Gain / Nonlinearity Scaling
-
-Xavier and He initializations have a `gain` parameter for different activation functions:
-
-| Activation | Recommended gain |
-|-----------|-----------------|
-| Linear | 1.0 |
-| Sigmoid | 1.0 |
-| Tanh | 5/3 ≈ 1.667 |
-| ReLU | √2 ≈ 1.414 |
-| LeakyReLU(0.01) | √(2/1.01²) |
-
-```python
-gain = nn.init.calculate_gain('relu')
-std = gain / math.sqrt(n_in)
-nn.init.normal_(weight, std=std)
-```
+| Layer type | Weight init | Bias init | Reason |
+| :--- | :--- | :--- | :--- |
+| Linear / Conv | Kaiming (ReLU) or Xavier (tanh) | Zero | Standard |
+| BatchNorm $\gamma$ | One | — | Start as identity scaling |
+| BatchNorm $\beta$ | — | Zero | Start as identity shift |
+| Output (classification) | Xavier / Kaiming | Zero | Balanced starting logits |
+| Output (regression) | Xavier / Kaiming | Dataset mean | Faster early convergence |
+| LSTM forget gate | — | One | Encourage remembering at start |
+| Embedding | $\mathcal{N}(0, 0.02)$ | — | GPT standard |
 
 ---
 
-## Layer-Specific Best Practices
+## Initialization Summary
 
-```python
-def init_weights(module):
-    if isinstance(module, (nn.Linear, nn.Conv2d)):
-        nn.init.kaiming_normal_(module.weight, nonlinearity='relu')
-        if module.bias is not None:
-            nn.init.zeros_(module.bias)
-    elif isinstance(module, nn.BatchNorm2d):
-        nn.init.ones_(module.weight)
-        nn.init.zeros_(module.bias)
-    elif isinstance(module, nn.Embedding):
-        nn.init.normal_(module.weight, std=0.02)
-
-model.apply(init_weights)
-```
-
----
-
-## Key Interview Points
-
-- Never initialize all weights to the same value — symmetry breaking is essential.
-- Xavier: for tanh/sigmoid. He/Kaiming: for ReLU. Key difference: ReLU zeroes half the activations, needing 2× the variance.
-- PyTorch's default `nn.Linear` uses Kaiming Uniform — correct for ReLU.
-- Orthogonal initialization is preferred for RNN hidden-hidden weights.
-- LSTM forget gate bias = 1 helps the network remember by default at the start of training.
-- Residual networks scale the residual branch by `1/√(2L)` to prevent variance accumulation.
+| Method | Activation | Formula | Key idea |
+| :--- | :--- | :--- | :--- |
+| **Zero** | Never use for weights | $w = 0$ | Breaks symmetry |
+| **Xavier** | Tanh, Sigmoid | $\mathcal{N}(0, 2/(n_\text{in}+n_\text{out}))$ | Preserve signal for linear-ish activations |
+| **He / Kaiming** | ReLU, Leaky ReLU | $\mathcal{N}(0, 2/n_\text{in})$ | Compensate for ReLU zeroing half inputs |
+| **Orthogonal** | RNN hidden-to-hidden | $W^T W = I$ | Preserve gradient norms in recurrence |
+| **GPT residual scaling** | Any | $\mathcal{N}(0, 0.02/\sqrt{2L})$ | Prevent variance growth through depth |

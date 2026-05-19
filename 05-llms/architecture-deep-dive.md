@@ -1,40 +1,70 @@
-# Advanced LLM Architecture
-
-The base Transformer from "Attention is All You Need" is now the floor, not the ceiling. Production frontier models add Grouped Query Attention, RoPE, SwiGLU, Mixture of Experts, and sliding window attention. This file covers each optimization with the math and the tradeoff.
+# LLM Architecture: From First Principles
 
 ---
 
-## 1. Grouped Query Attention (GQA)
+## 1. Self-Attention: Why It Exists
 
-### The Problem: KV Cache Memory at Scale
+**The problem**: An RNN processes tokens one at a time, left to right, compressing the entire history into a fixed-size hidden state. When you're at token 1,000, the hidden state is a lossy summary of everything that came before it. Information from token 1 has been through 999 compression steps — most of it is gone. Training is also fundamentally serial: step $t$ depends on step $t-1$, so you can't parallelize across sequence length.
 
-In standard Multi-Head Attention (MHA), every head has its own $K$ and $V$ projections. For a model with $H$ heads, the KV cache size is:
+**The core insight**: Instead of compressing history into a single vector, let every token look directly at every other token. The model learns *which* token-to-token relationships matter. No sequential bottleneck, no forgetting.
+
+**The mechanics**: Given a sequence of token embeddings packed into a matrix $X \in \mathbb{R}^{T \times d}$, project into three matrices:
+
+$$Q = XW_Q, \quad K = XW_K, \quad V = XW_V$$
+
+$Q$ (query): what this token is looking for. $K$ (key): what this token offers to others. $V$ (value): what this token actually passes along if attended to.
+
+Compute attention scores and outputs:
+
+$$\text{Attention}(Q, K, V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+
+The $\sqrt{d_k}$ scale factor prevents the dot products from growing large enough to push the softmax into saturation (near-zero gradients).
+
+**What breaks**: full attention is $O(T^2)$ in memory and compute. For $T = 8192$ tokens and FP16, the attention matrix alone is $8192^2 \times 2 \approx 128$ MB per layer per batch element. This is the wall that all subsequent optimizations are trying to climb over.
+
+---
+
+## 2. Multi-Head Attention: Why One Set of Q/K/V Isn't Enough
+
+**The problem**: a single attention pattern is a single relational function. But text has multiple simultaneous relational structures — syntactic agreement, coreference, semantic similarity, positional proximity. A single head learns one weighted combination of all of these, which is a bottleneck.
+
+**The core insight**: run $H$ independent attention operations with different learned projections, then concatenate. Each head can specialize in a different type of relationship.
+
+**The mechanics**: for each head $i$, project to lower-dimensional queries, keys, values:
+
+$$\text{head}_i = \text{Attention}(QW_i^Q,\, KW_i^K,\, VW_i^V)$$
+
+Concatenate and project back:
+
+$$\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_H)W^O$$
+
+With $H=8$ heads and $d=512$: each head operates in dimension 64, total compute is unchanged from a single $d=512$ attention.
+
+**What breaks**: with standard multi-head attention (MHA), every head has its own $K$ and $V$ projections. At inference time, these are cached — see the KV cache problem below.
+
+---
+
+## 3. Grouped Query Attention (GQA): Why the KV Cache Becomes a Crisis
+
+**The problem**: during autoregressive generation, you compute Q, K, V for the new token and need to attend back to all previous tokens. To avoid recomputing, you cache the K and V tensors for all past tokens. With MHA, each head has its own K and V:
 
 $$\text{KV cache per token} = 2 \times H \times d_h \times \text{bytes per element}$$
 
-For LLaMA 2 70B (64 heads, 128 head dim, BF16): $2 \times 64 \times 128 \times 2 = 32$KB per token. At 4096 context: 128MB per sequence. This limits batch size and context length.
+For LLaMA 2 70B (64 heads, 128 head dim, BF16): $2 \times 64 \times 128 \times 2 = 32$ KB per token. At 4096 tokens: 128 MB per sequence. At a batch of 32 sequences: 4 GB, just for the KV cache. This destroys throughput.
 
-### Multi-Query Attention (MQA)
+**The core insight**: query heads need to be distinct — different heads are attending to different things. But do the keys and values need to be equally distinct? Empirically, no: a small number of KV heads, shared across groups of query heads, loses almost no quality while dramatically cutting cache size.
 
-All query heads share a single K and V projection:
-- KV cache reduction: $H \times$ smaller
-- Quality loss: significant — each head cannot specialize K/V representations
+**The mechanics**: divide $H$ query heads into $G$ groups. Each group shares one K head and one V head:
 
-### Grouped Query Attention (GQA)
+$$\text{group}(i) = \left\lfloor i \cdot G / H \right\rfloor \quad \text{for query head } i$$
 
-Divide $H$ query heads into $G$ groups; each group shares one K and V head:
+Memory reduction: $H/G \times$ versus MHA. With $G = 8$ and $H = 64$: 8× smaller KV cache.
 
-$$Q_i \in \mathbb{R}^{d_h}, \quad K_g \in \mathbb{R}^{d_h}, \quad V_g \in \mathbb{R}^{d_h}$$
-
-where group $g = \lfloor i \cdot G / H \rfloor$ for query head $i$.
-
-**Memory reduction:** $H/G \times$ vs MHA. With $G=8$ and $H=64$: 8× smaller KV cache with minimal quality loss.
-
-| Variant | K/V heads | KV cache size | Quality |
+| Variant | K/V heads | KV cache per token | Quality |
 | :--- | :--- | :--- | :--- |
-| MHA | $H$ | $2Hd_h$ per token | Highest |
-| GQA | $G \ll H$ | $2Gd_h$ per token | Near-MHA |
-| MQA | 1 | $2d_h$ per token | Lower |
+| MHA | $H$ | $2Hd_h$ | Highest |
+| GQA | $G \ll H$ | $2Gd_h$ | Near-MHA |
+| MQA | 1 | $2d_h$ | Noticeably lower |
 
 ```python
 import torch
@@ -47,64 +77,54 @@ class GroupedQueryAttention(nn.Module):
         assert n_heads % n_kv_heads == 0
         self.n_heads = n_heads
         self.n_kv_heads = n_kv_heads
-        self.n_rep = n_heads // n_kv_heads  # heads per KV group
+        self.n_rep = n_heads // n_kv_heads
         self.d_head = d_model // n_heads
-        
+
         self.wq = nn.Linear(d_model, n_heads * self.d_head, bias=False)
         self.wk = nn.Linear(d_model, n_kv_heads * self.d_head, bias=False)
         self.wv = nn.Linear(d_model, n_kv_heads * self.d_head, bias=False)
         self.wo = nn.Linear(n_heads * self.d_head, d_model, bias=False)
-    
+
     def forward(self, x: torch.Tensor, mask: torch.Tensor = None) -> torch.Tensor:
         B, T, _ = x.shape
-        
         q = self.wq(x).view(B, T, self.n_heads, self.d_head).transpose(1, 2)
         k = self.wk(x).view(B, T, self.n_kv_heads, self.d_head).transpose(1, 2)
         v = self.wv(x).view(B, T, self.n_kv_heads, self.d_head).transpose(1, 2)
-        
-        # Expand K and V to match number of query heads
-        k = k.repeat_interleave(self.n_rep, dim=1)  # (B, n_heads, T, d_head)
+
+        k = k.repeat_interleave(self.n_rep, dim=1)
         v = v.repeat_interleave(self.n_rep, dim=1)
-        
+
         scale = self.d_head ** -0.5
         attn = torch.matmul(q, k.transpose(-2, -1)) * scale
         if mask is not None:
             attn = attn.masked_fill(mask == 0, float('-inf'))
         attn = F.softmax(attn, dim=-1)
-        
         out = torch.matmul(attn, v)
-        out = out.transpose(1, 2).contiguous().view(B, T, -1)
-        return self.wo(out)
+        return self.wo(out.transpose(1, 2).contiguous().view(B, T, -1))
 ```
+
+**What breaks**: GQA with very few KV groups ($G = 1$, i.e., MQA) degrades quality noticeably on tasks requiring fine-grained retrieval. The quality cliff is real below about $G = 4$.
 
 ---
 
-## 2. Rotary Positional Embeddings (RoPE)
+## 4. Positional Encodings: Why the Model Doesn't Know Word Order
 
-### Why Absolute Positional Embeddings Fail at Scale
+**The problem**: the self-attention mechanism as described treats the input as a *set*, not a sequence. The attention score between token $i$ and token $j$ is the same regardless of whether they are adjacent or 500 positions apart. A model without position information cannot distinguish "the dog bit the man" from "the man bit the dog."
 
-Sinusoidal and learned absolute embeddings cannot generalize to sequence lengths longer than those seen in training. The model has no basis for predicting position 8192 if it was only trained on 4096.
+**The original solution and why it fails at scale**: the original Transformer used sinusoidal absolute encodings — a fixed function of position is added to each token embedding before any attention. This works, but the model never sees position 5000 during training on 4096-length sequences. At inference, positions beyond the training horizon are out of distribution and performance collapses.
 
-### RoPE Mechanism
+**The core insight for RoPE**: instead of encoding position as an additive offset to the embedding, encode *relative* position directly in the attention score. If the dot product $q_m \cdot k_n$ is a function only of the token features *and* of the offset $(m - n)$, then the model learns relationships like "4 tokens before me" rather than "at absolute position 104."
 
-RoPE encodes position by rotating Q and K vectors. For a 2D pair at position $m$:
-
-$$\text{RoPE}(q, m) = q \cdot e^{im\theta}$$
-
-In practice, split the head dimension into pairs $(q_{2i}, q_{2i+1})$ and apply:
+**The mechanics**: rotate each query and key vector by an angle proportional to its position. For a 2D pair at position $m$ with frequency $\theta_i$:
 
 $$\begin{pmatrix} q'_{2i} \\ q'_{2i+1} \end{pmatrix} = \begin{pmatrix} \cos(m\theta_i) & -\sin(m\theta_i) \\ \sin(m\theta_i) & \cos(m\theta_i) \end{pmatrix} \begin{pmatrix} q_{2i} \\ q_{2i+1} \end{pmatrix}$$
 
-where $\theta_i = 10000^{-2i/d}$ (same base as sinusoidal PE).
-
-**Key property:** the dot product $q_m \cdot k_n$ depends only on $q$, $k$, and the *relative* position $(m-n)$, not absolute positions. This makes attention naturally relative.
+where $\theta_i = 10000^{-2i/d}$. The rotation is applied to both $Q$ and $K$ before computing attention scores. The dot product of the rotated vectors depends only on the *difference* in positions, not the absolute values.
 
 ```python
 def apply_rope(x: torch.Tensor, cos: torch.Tensor, sin: torch.Tensor) -> torch.Tensor:
-    """x: (B, heads, T, d_head), cos/sin: (T, d_head/2)"""
     d = x.shape[-1]
     x1, x2 = x[..., :d//2], x[..., d//2:]
-    # Rotate: x1' = x1*cos - x2*sin, x2' = x1*sin + x2*cos
     return torch.cat([x1 * cos - x2 * sin, x1 * sin + x2 * cos], dim=-1)
 
 def precompute_rope_freqs(d_head: int, max_seq: int, base: float = 10000.0):
@@ -114,38 +134,107 @@ def precompute_rope_freqs(d_head: int, max_seq: int, base: float = 10000.0):
     return torch.cos(freqs), torch.sin(freqs)
 ```
 
-### RoPE Extensions for Long Context
+**What breaks — extrapolation**: RoPE handles positions it has seen during training with no problem. But at positions beyond the training length, the rotation angles are out of distribution and attention scores become unreliable. Extending context requires either fine-tuning on longer sequences or remapping the position indices.
 
-| Method | Approach | Context extension |
+| Extension method | Approach | Effective range |
 | :--- | :--- | :--- |
-| **Linear scaling** | Scale position indices: $m \to m/s$ | Works up to ~2× before degrading |
-| **YaRN** | Non-uniform scaling + attention temperature correction | 16×-32× extrapolation |
-| **LongRoPE** | Evolutionary search for per-dimension scaling factors | 2M tokens (claimed) |
-| **NTK-aware scaling** | Scale base frequency: $\theta_i = (10000 \cdot s^{d/(d-2)})^{-2i/d}$ | Smoother interpolation |
+| Linear scaling | $m \to m/s$ (stretch positions) | Up to ~2× before degrading |
+| YaRN | Non-uniform scaling + temperature fix | 16×–32× |
+| NTK-aware | Scale base frequency: $\theta \to \theta \cdot s^{d/(d-2)}$ | Smoother interpolation |
+| LongRoPE | Per-dimension scaling via search | Claimed 2M tokens |
 
 ---
 
-## 3. Mixture of Experts (MoE)
+## 5. Layer Normalization: Keeping Activations Sane Through 96 Layers
 
-### Architecture
+**The problem**: during training, the distribution of activations entering each layer shifts continuously as upstream weights update. A layer trained when its inputs had mean 0.1 and std 1.0 suddenly receives inputs with mean 2.3 and std 5.0. The effective learning rate, gradient magnitudes, and even the meaning of the weights have changed — the layer is partly untrained for its new input regime. This is called internal covariate shift.
 
-Replace each dense FFN with $N$ expert FFNs and a router:
+**The core insight**: normalize the activations at each layer so that the distribution each layer sees is stable, regardless of what upstream layers are doing.
 
-$$\text{MoE}(x) = \sum_{i=1}^{N} G_i(x) \cdot E_i(x)$$
+**Why LayerNorm instead of BatchNorm for transformers**: BatchNorm normalizes across the batch dimension using batch statistics. For variable-length sequences or small batch sizes (both common in LLM training), the batch statistics are noisy or meaningless. LayerNorm normalizes across the feature dimension for each token independently — no batch dependency, no sequence-length dependency.
 
-$$G(x) = \text{TopK}\left(\text{softmax}(W_g x), k\right)$$
+**The mechanics**: for each token's embedding vector $x$ of dimension $d$: compute mean $\mu$ and std $\sigma$ over $d$, then normalize and rescale:
 
-Only $k$ of $N$ experts are activated per token. For Mixtral 8×7B: $N=8$, $k=2$, giving 12.9B active parameters out of 46.7B total.
+$$\text{LN}(x) = \gamma \cdot \frac{x - \mu}{\sigma + \epsilon} + \beta$$
 
-**Compute savings:** proportional to $k/N$ for the FFN component. Attention remains dense.
+where $\gamma$ and $\beta$ are learned per-dimension scale and shift. RMSNorm (used in LLaMA) drops the centering step — only scales by the root mean square:
 
-### Load Balancing
+$$\text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_i x_i^2 + \epsilon}} \cdot \gamma$$
 
-Without regularization, the router learns to route all tokens to a few experts ("expert collapse"):
+Cheaper to compute, empirically equivalent or better on LLM tasks.
+
+**What breaks — pre-LN vs post-LN placement**: in the original Transformer, LayerNorm came *after* the residual connection (post-LN). In deep networks (>24 layers), this causes gradient vanishing: the residual stream grows large relative to the normalized sublayer output, and gradients through the sublayer become negligible. Modern LLMs use pre-LN — normalize before the sublayer — which keeps gradients flowing. The tradeoff is a slightly different effective learning rate that requires re-tuning.
+
+---
+
+## 6. Flash Attention: The Memory Wall Hidden Inside O(T²)
+
+**The problem**: standard attention materializes the full $T \times T$ attention score matrix in GPU memory (HBM). At $T = 8192$ and FP16: $8192^2 \times 2 = 128$ MB per layer per batch element. On an A100 with 80 GB HBM, a 32-layer model at batch size 4 uses $128 \times 32 \times 4 = 16$ GB just for attention matrices — and every read/write of this matrix to HBM is slow. Standard attention makes $O(T^2)$ HBM reads/writes. The GPU's arithmetic units sit idle waiting for memory.
+
+**The core insight**: the $T \times T$ matrix is never *used* as a whole — it's immediately multiplied into $V$ to produce the $T \times d$ output. You can tile the computation into blocks that fit in SRAM (fast on-chip memory), compute partial softmax results incrementally, and accumulate the output without the large HBM round-trips.
+
+**The mechanics — Flash Attention (Dao et al. 2022)**:
+1. Tile $Q$, $K$, $V$ into blocks sized to fit in SRAM
+2. For each block of $Q$, loop over blocks of $K$ and $V$
+3. Maintain running statistics for the log-sum-exp trick to compute the correct softmax across tiles
+4. Accumulate the output $O$ without ever writing the $T \times T$ matrix
+
+Memory: $O(T)$ instead of $O(T^2)$. HBM accesses: $O(T^2/M)$ where $M$ is SRAM size, versus $O(T^2)$ for standard attention. Throughput on A100: 2–4× faster than standard attention, ~73% theoretical FLOP utilization vs ~25%.
+
+```python
+# PyTorch 2.0+ includes Flash Attention via scaled_dot_product_attention
+import torch.nn.functional as F
+
+output = F.scaled_dot_product_attention(
+    query,   # (B, H, T, d_head)
+    key,
+    value,
+    is_causal=True  # enables causal masking without materializing the mask
+)
+```
+
+**What breaks**: Flash Attention trades FLOP count for memory efficiency — it recomputes some partial results during the backward pass rather than storing them. This means the backward pass uses slightly more FLOPs than naive attention. For most workloads this is irrelevant since memory was the bottleneck.
+
+---
+
+## 7. Sliding Window Attention: Constant Memory for Arbitrary Contexts
+
+**The problem**: even with Flash Attention, the memory and compute for a full attention over $T$ tokens grow with $T$. For very long contexts — 100K or 1M tokens — full attention is intractable.
+
+**The core insight**: most tokens don't need to attend to all of history. Local context (the last few thousand tokens) is usually sufficient for generation, and global information can percolate through layers. Limit each token's attention to a window of $W$ recent tokens.
+
+**The mechanics**:
+
+$$\text{score}(i, j) = q_i \cdot k_j^T / \sqrt{d_k}, \quad j \in [\max(0,\, i-W),\, i]$$
+
+The KV cache is now constant at $W$ tokens per layer rather than growing with sequence length. Stacking $L$ layers gives an effective receptive field of $L \times W$: information from token $i - kW$ can reach the current token through $k$ layers of local windows.
+
+For Mistral 7B: $W = 4096$, $L = 32$ → effective receptive field of ~131K tokens.
+
+**What breaks**: the multi-layer receptive field argument assumes information propagates reliably. In practice, one-shot references — a fact mentioned once at the beginning of a very long document — can be lost because they fall out of every layer's window before influencing the final output. Full attention on selected tokens (Longformer, BigBird) or retrieval-augmented approaches address this.
+
+---
+
+## 8. Mixture of Experts (MoE): Scale Without Proportional Compute Cost
+
+**The problem**: doubling a dense model's parameter count doubles both training compute and inference compute. But a large fraction of parameters may be irrelevant to any given token. A 70B model processing "def fibonacci(n):" activates all 70B parameters, even the ones that encode French grammar.
+
+**The core insight**: replace each dense FFN layer with a collection of $N$ expert FFNs, and route each token to only $k$ of them. Total parameters scale with $N$, but active parameters per token scale with $k$. You get a large model's capacity at a fraction of the compute.
+
+**The mechanics**: a learned router selects the top-$k$ experts per token:
+
+$$G(x) = \text{TopK}(\text{softmax}(W_g x),\, k)$$
+$$\text{MoE}(x) = \sum_{i \in \text{TopK}} G_i(x) \cdot E_i(x)$$
+
+For Mixtral 8×7B: $N = 8$ experts, $k = 2$. Each token activates 2 of 8 experts: 12.9B active parameters out of 46.7B total. Training compute matches a ~12B dense model; capacity matches ~47B.
+
+**What breaks — expert collapse**: without regularization, the router quickly converges to routing everything through one or two experts. The other experts receive no gradient and stay randomly initialized. Fix with a load-balancing auxiliary loss:
 
 $$\mathcal{L}_{\text{balance}} = \alpha \cdot N \cdot \sum_{i=1}^{N} f_i \cdot P_i$$
 
-where $f_i$ is the fraction of tokens routed to expert $i$ and $P_i$ is the average routing probability for expert $i$. This auxiliary loss encourages uniform load.
+where $f_i$ is the fraction of tokens routed to expert $i$ and $P_i$ is the mean routing probability for expert $i$. This loss penalizes skew.
+
+**What else breaks**: all experts must fit in memory simultaneously — MoE saves compute, not memory. For distributed inference, different experts may live on different devices, requiring all-to-all communication for routing. Communication overhead can negate compute savings at small batch sizes.
 
 ```python
 class MoELayer(nn.Module):
@@ -155,184 +244,75 @@ class MoELayer(nn.Module):
         self.top_k = top_k
         self.router = nn.Linear(d_model, n_experts, bias=False)
         self.experts = nn.ModuleList([
-            nn.Sequential(
-                nn.Linear(d_model, ffn_dim),
-                nn.SiLU(),
-                nn.Linear(ffn_dim, d_model)
-            ) for _ in range(n_experts)
+            nn.Sequential(nn.Linear(d_model, ffn_dim), nn.SiLU(), nn.Linear(ffn_dim, d_model))
+            for _ in range(n_experts)
         ])
-    
-    def forward(self, x: torch.Tensor) -> tuple[torch.Tensor, torch.Tensor]:
+
+    def forward(self, x: torch.Tensor):
         B, T, D = x.shape
-        x_flat = x.view(-1, D)                        # (B*T, D)
-        
-        logits = self.router(x_flat)                   # (B*T, N)
-        probs = F.softmax(logits, dim=-1)
-        
-        # Select top-k experts
+        x_flat = x.view(-1, D)
+        probs = F.softmax(self.router(x_flat), dim=-1)
         top_k_probs, top_k_idx = torch.topk(probs, self.top_k, dim=-1)
         top_k_probs = top_k_probs / top_k_probs.sum(dim=-1, keepdim=True)
-        
+
         output = torch.zeros_like(x_flat)
         for i in range(self.n_experts):
-            # Tokens routed to expert i
             mask = (top_k_idx == i).any(dim=-1)
             if mask.any():
-                expert_input = x_flat[mask]
-                expert_output = self.experts[i](expert_input)
+                expert_out = self.experts[i](x_flat[mask])
                 weight = top_k_probs[mask][top_k_idx[mask] == i]
-                output[mask] += weight.unsqueeze(-1) * expert_output
-        
-        # Load balancing loss
+                output[mask] += weight.unsqueeze(-1) * expert_out
+
         f_i = (top_k_idx.view(-1) == torch.arange(self.n_experts).unsqueeze(1)).float().mean(dim=1)
         P_i = probs.mean(dim=0)
         balance_loss = self.n_experts * (f_i * P_i).sum()
-        
         return output.view(B, T, D), balance_loss
 ```
 
 ---
 
-## 4. Flash Attention
+## 9. SwiGLU: Why the FFN Activation Function Matters
 
-### Standard Attention: The Memory Wall
+**The problem**: the FFN in a transformer block is $\text{FFN}(x) = \text{GELU}(xW_1)W_2$. GELU is a smooth approximation to ReLU that helps gradient flow. But empirically, it consistently underperforms on language modeling compared to a gated variant.
 
-Standard attention materializes the full $N \times N$ attention matrix:
+**The core insight**: gating mechanisms — where one branch controls the magnitude of another — give the network a multiplicative interaction that a purely additive function cannot express. This acts like a learned, input-dependent activation function.
 
-$$A = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) \in \mathbb{R}^{N \times N}$$
+**The mechanics**:
 
-For $N = 8192$ and FP16: $8192^2 \times 2 = 128$MB per attention layer per batch element. At 32 layers, 40GB — far exceeding GPU SRAM capacity.
+$$\text{SwiGLU}(x) = \text{Swish}(xW_1) \odot (xW_2) \cdot W_3$$
+$$\text{Swish}(x) = x \cdot \sigma(x)$$
 
-Every read/write to GPU HBM (high-bandwidth memory) is expensive. Standard attention makes $O(N^2)$ HBM reads/writes.
+Three weight matrices instead of two. To keep total parameters equal to a standard FFN, the intermediate dimension is reduced from $4d$ to $\frac{8d}{3}$ (rounded to a multiple of 64). The gating branch ($xW_2$) acts as a filter on the activated branch ($\text{Swish}(xW_1)$).
 
-### Flash Attention: IO-Aware Computation
+**What breaks**: the three-matrix structure can't be expressed as a single linear layer followed by an activation. This slightly complicates efficient kernel fusion but is well-supported in modern deep learning frameworks. Used by LLaMA, PaLM, and Gemma.
 
-Flash Attention (Dao et al. 2022) reorders computation to never materialize the full $N \times N$ matrix:
+---
 
-1. Tile $Q$, $K$, $V$ into blocks that fit in SRAM
-2. Compute partial softmax statistics incrementally using the log-sum-exp trick
-3. Accumulate output without HBM round-trips
+## 10. The KV Cache and PagedAttention: Memory Fragmentation at Scale
 
-**Memory:** $O(N)$ instead of $O(N^2)$. **IO:** $O(N^2/M)$ HBM accesses where $M$ is SRAM size, vs. $O(N^2)$ for standard attention.
+**The problem**: the KV cache approach of storing past keys and values is sound in principle but disastrous in practice for a serving system. Every new request needs its own KV cache allocation. If the model can handle 4096-token sequences, you allocate 4096 tokens of KV cache upfront — even if the request only uses 200 tokens. For LLaMA 70B: ~1.3 GB of KV cache per fully allocated sequence. Pre-allocating for peak length wastes most of the memory on every request.
 
-**Throughput improvement:** 2-4× faster than standard attention on A100. Flash Attention 2 achieves ~73% theoretical FLOP utilization (vs ~25% standard).
+**The core insight**: borrow OS virtual memory. Don't allocate a contiguous block per sequence — maintain a page table that maps logical token positions to physical memory blocks. Allocate physical blocks on demand as the sequence grows.
 
-```python
-# PyTorch 2.0+ includes Flash Attention natively via scaled_dot_product_attention
-import torch.nn.functional as F
+**The mechanics — PagedAttention (vLLM)**: the KV cache is divided into fixed-size blocks of $B$ tokens each. A page table maps each sequence's logical token indices to physical block IDs. When attention is computed, the system looks up physical block IDs and gathers the relevant keys and values.
 
-# Automatically uses Flash Attention if available on the hardware
-output = F.scaled_dot_product_attention(
-    query,   # (B, H, T, d_head)
-    key,
-    value,
-    attn_mask=causal_mask,
-    dropout_p=0.0,
-    is_causal=True  # enables causal masking without explicit mask
-)
+```
+Logical KV (sequence view):   token 0, token 1, ..., token T-1
+                                  ↓        ↓              ↓
+Physical blocks (page table): block_2   block_7   ...  block_9
 ```
 
-Flash Attention 3 (2024) adds asynchronous execution of GEMM and softmax stages, achieving >75% utilization on H100.
+Benefits: no pre-allocation waste, no fragmentation between variable-length sequences, copy-on-write sharing of KV cache across beam search paths. Result: 24× higher throughput than HuggingFace Transformers in a memory-equivalent setup.
 
 ---
 
-## 5. Sliding Window Attention (SWA)
-
-Used in Mistral 7B. Each token attends only to the $W$ most recent tokens instead of the full context:
-
-$$\text{score}(i, j) = q_i \cdot k_j^T / \sqrt{d_k}, \quad j \in [i-W, i]$$
-
-**Per-layer receptive field:** $W$. But stacking $L$ layers gives effective receptive field of $L \times W$.
-
-For Mistral: $W = 4096$, $L = 32$ → effective receptive field of 131k tokens.
-
-**Memory:** KV cache is constant at $W$ tokens per layer rather than growing with sequence length.
-
-**Tradeoff:** information from tokens beyond $W$ must be compressed through multiple layers, which works for information that appears repeatedly in context but loses one-shot references.
-
----
-
-## 6. Architecture Comparison
+## 11. Architecture Comparison
 
 | Model | Attention | Position | FFN | Context |
 | :--- | :--- | :--- | :--- | :--- |
 | GPT-3 | MHA (96h) | Learned absolute | Dense GELU | 4,096 |
 | LLaMA 2 7B | GQA (32h, 4kv) | RoPE | SwiGLU | 4,096 |
-| LLaMA 3 70B | GQA (64h, 8kv) | RoPE | SwiGLU | 8,192 → 128k fine-tuned |
+| LLaMA 3 70B | GQA (64h, 8kv) | RoPE | SwiGLU | 8,192 → 128k (fine-tuned) |
 | Mistral 7B | GQA + SWA | RoPE | SwiGLU | 32,768 |
 | Mixtral 8×7B | GQA + SWA | RoPE | MoE (8 experts, top-2) | 32,768 |
 | Gemma 2 27B | GQA (16h) | RoPE | GeGLU | 8,192 |
-
----
-
-## 7. KV Cache and Paged Attention
-
-### KV Cache Mechanics
-
-During autoregressive generation, avoid recomputing all prior K and V:
-
-```python
-class KVCache:
-    def __init__(self, max_batch: int, max_seq: int, n_layers: int, n_heads: int, d_head: int):
-        self.k = torch.zeros(n_layers, max_batch, n_heads, max_seq, d_head)
-        self.v = torch.zeros(n_layers, max_batch, n_heads, max_seq, d_head)
-        self.length = 0
-    
-    def update(self, layer: int, k_new: torch.Tensor, v_new: torch.Tensor):
-        self.k[layer, :, :, self.length] = k_new
-        self.v[layer, :, :, self.length] = v_new
-    
-    def get(self, layer: int) -> tuple[torch.Tensor, torch.Tensor]:
-        return self.k[layer, :, :, :self.length+1], self.v[layer, :, :, :self.length+1]
-```
-
-**Memory cost for LLaMA 70B** (80 layers, 8 KV heads, 128 head dim, BF16):
-$$2 \times 80 \times 8 \times 128 \times T \times 2 = 327.7 \text{ KB/token}$$
-
-At 4096 tokens: ~1.3 GB per sequence. Limits concurrent requests significantly.
-
-### PagedAttention (vLLM)
-
-Inspired by OS virtual memory: KV cache is divided into fixed-size pages (blocks) of $B$ tokens each. A page table maps logical positions to physical blocks.
-
-**Benefits:**
-- No fragmentation from variable-length sequences
-- Enables sharing KV cache across parallel beam search paths
-- 24× higher throughput than HuggingFace Transformers at same memory
-
-```
-Logical KV cache (sequence view):    |  0  |  1  |  2  |  3  | ... | T-1 |
-                                           ↓      ↓      ↓      ↓           ↓
-Physical blocks (page table):          block_2  block_7  block_1  block_9  ...
-```
-
----
-
-## 8. Normalization and Activation
-
-### Pre-LN vs Post-LN
-
-**Post-LN** (original Transformer): LayerNorm after residual connection. Unstable at large scale — requires careful warmup and gradient clipping.
-
-**Pre-LN** (modern LLMs): LayerNorm before sublayer. More stable training; used in GPT-3, LLaMA, Mistral.
-
-**RMSNorm** (used in LLaMA): removes the centering step — only scales by RMS. Cheaper and equally effective:
-
-$$\text{RMSNorm}(x) = \frac{x}{\sqrt{\frac{1}{d}\sum_{i=1}^{d} x_i^2 + \epsilon}} \cdot \gamma$$
-
-### SwiGLU FFN
-
-Standard FFN: $\text{FFN}(x) = \text{GELU}(xW_1)W_2$
-
-SwiGLU (LLaMA, PaLM): introduces a gating mechanism:
-
-$$\text{SwiGLU}(x) = \text{Swish}(xW_1) \odot (xW_2)$$
-
-$$\text{Swish}(x) = x \cdot \sigma(x)$$
-
-Three weight matrices instead of two ($W_1$, $W_2$, $W_3$ for the gate). To keep parameter count equal, the intermediate dimension is reduced from $4d$ to $\frac{8d}{3}$ (rounded to a multiple of 64).
-
-Empirically outperforms RELU and GELU on language modeling loss at all scales tested.
-
-> [!TIP]
-> **Interview pattern:** For any architecture question, structure as: (1) what problem it solves, (2) the mechanism, (3) the tradeoff. For GQA: solves KV cache memory, mechanism = shared K/V across query groups, tradeoff = slight quality loss vs. MHA. For MoE: solves compute cost of large models, mechanism = sparse routing, tradeoff = load balancing complexity and all-expert memory footprint.

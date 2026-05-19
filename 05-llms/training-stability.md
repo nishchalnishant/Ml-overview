@@ -1,183 +1,140 @@
 # LLM Training Stability
 
-## Executive Summary
+---
 
-Training a large language model is not a single optimization run — it is a months-long, multi-node, high-stakes process where instability can waste millions of dollars of compute. Loss spikes, gradient explosions, and silent numerical failures are routine. This guide covers the failure modes, detection methods, and recovery procedures that separate teams who successfully train LLMs from those who restart from scratch.
+## 1. The Canonical Disaster: Loss Spikes to Infinity at Step 50,000
 
-| Failure Mode | Signature | Primary Fix |
-|-------------|-----------|-------------|
-| Loss spike | Sudden 2-5x loss increase, brief | Rollback 100–500 steps; reduce LR |
-| Gradient explosion | Grad norm >> clip threshold | Lower clip threshold; check for bad batch |
-| Token collapse | Decreasing diversity, repetition | Check entropy of attention; reduce temperature in sampling during eval |
-| FP16 underflow | Silent accuracy degradation | Switch to BF16 |
-| KL explosion (RLHF) | KL penalty term spikes | Reduce RL learning rate; increase KL coefficient |
-| Reward hacking | Reward rises, generation quality falls | Increase KL coefficient; diversify reward model |
+Picture a training run that has been going well for six days. Loss is smoothly declining, gradient norms are stable around 0.4. Then, at step 50,147, the loss jumps from 2.1 to 47.3 and doesn't come back. Six days of compute are either wasted or you're rolling back.
+
+This scenario is not rare — it is routine in large-scale LLM training. Every major technique in this section exists as a direct response to a concrete failure mode like this one.
 
 ---
 
-## 1. Loss Spikes: Causes, Detection, and Recovery
+## 2. Loss Spikes: Causes, Detection, and Recovery
 
-### What a Loss Spike Looks Like
+### What actually causes a loss spike
 
-A loss spike is a sudden, transient increase in training loss — typically 2x to 10x the recent moving average — that either recovers on its own within a few hundred steps or diverges irreversibly.
+**Bad batches** are the most common cause. A batch containing an anomalous sequence — extremely long, encoding-corrupted, containing degenerate repeated tokens, or from a mislabeled data shard — produces a loss that is orders of magnitude larger than the average. The gradient from this one batch causes a parameter update large enough to push the model out of the stable training regime it has developed over thousands of steps.
 
-**Spike vs. divergence:**
-- **Spike:** Loss jumps but returns to previous trajectory within 200–500 steps. Manageable.
-- **Divergence:** Loss jumps and does not recover, or oscillates with increasing amplitude. Requires rollback.
+**Learning rate too high for local curvature**: the loss landscape of a large transformer is not uniformly curved. Most of the time, the current learning rate is well-suited to the local geometry. Occasionally the model enters a high-curvature region — a sharp valley — where the same step size causes it to overshoot and bounce. This looks like a spike on the loss curve.
 
-### Root Causes
+**FP16 weight overflow**: FP16 has a maximum representable value of ~65,504. Large activations or gradient magnitudes can exceed this, producing NaN or infinity, which propagates through all subsequent computations. The run collapses, not from bad data but from numerical overflow.
 
-**1. Bad batches:**
-The most common cause. A batch containing an anomalous sequence — extremely long, containing degenerate tokens, or from a corrupted data shard — produces a loss that is orders of magnitude larger than normal. The gradient from this batch causes a large parameter update that destabilizes adjacent optimization.
+### Detecting spikes in real time
 
-Detection:
 ```python
-# During training, log per-batch loss statistics
-batch_loss = compute_loss(batch)
-if batch_loss > 5 * running_average_loss:
-    log_warning(f"Anomalous batch detected: loss={batch_loss:.2f}, avg={running_average_loss:.2f}")
-    skip_batch = True  # Or: reduce LR for this step only
+# Log per-batch loss and maintain a rolling average
+SPIKE_THRESHOLD = 3.0
+
+def check_for_spike(batch_loss: float, running_avg: float) -> bool:
+    if batch_loss > SPIKE_THRESHOLD * running_avg:
+        logger.warning(f"Loss spike: {batch_loss:.2f} vs avg {running_avg:.2f}")
+        return True
+    return False
 ```
 
-**2. Learning rate too high:**
-The loss landscape of a large language model is non-convex with sharp curvature in some directions. A learning rate that is globally reasonable can be too high for occasional high-curvature regions encountered during training, causing oscillation or explosion.
+Also monitor gradient norm (pre-clip). If the gradient norm jumps to 10× its recent average on the same step as a loss spike, the two are almost certainly linked.
 
-**3. Weight overflow:**
-In FP16 training, large parameter magnitudes can overflow the representable range ($2^{15} = 32768$). When a weight or gradient exceeds this, it becomes NaN or infinity, which propagates through the network. Gradient clipping prevents the gradient from overflowing; a master FP32 copy of weights (in mixed precision) prevents the weights from overflowing.
+### Recovery procedure
 
-**4. Sequence length outliers:**
-A sequence significantly longer than the training distribution's 99th percentile can produce disproportionately large attention matrices, large gradient magnitudes, and destabilize the batch.
+**Step 1: Assess whether the loss is recovering.** A spike that recovers within 100–200 steps is not an emergency — investigate the batch post-hoc but continue training.
 
-### Recovery Procedure
-
-**Step 1: Detect the spike.** Monitor loss with a rolling average. Alert if `current_loss > threshold * rolling_avg`. Typical threshold: 3–5x.
-
-**Step 2: Assess severity.** If the loss is recovering naturally (next 50 steps show decreasing loss), continue and investigate the cause post-hoc. If the loss is not recovering after 100 steps, initiate rollback.
-
-**Step 3: Roll back 100–500 steps.**
+**Step 2: If not recovering after 100 steps, roll back.** Load the checkpoint from 100–500 steps before the spike. Rolling back more than 500 steps wastes valid training progress; less than 100 steps risks hitting the same bad batch again before data reshuffling takes effect.
 
 ```bash
-# Checkpoint naming convention: step_N.pt
-# If spike detected at step 48200, roll back to step 47700
+# If spike detected at step 48,200, roll back to step 47,700
 python train.py --resume_from_checkpoint step_47700.pt --learning_rate 2e-5
 ```
 
-Rolling back 100–500 steps (not more) is usually sufficient because:
-- The optimization trajectory before the spike was stable
-- The problematic batch won't be re-encountered in the same order (due to data shuffling)
-- More rollback wastes valid training progress
+**Step 3: Resume with a slightly reduced learning rate.** Reduce by 10–30% for the first 500 steps after rollback to let the model re-stabilize before returning to the normal schedule.
 
-**Step 4: Identify and remove the bad data.** Log the batch contents at the spike step if possible. Bad data shard identification:
-- Deduplication failures (repeated sequences with near-zero loss initially, then loss spikes on duplicates)
-- HTML artifacts, boilerplate text, or data pipeline corruption
-- Encoding errors producing invalid Unicode sequences
+**Step 4: Identify and quarantine the bad data.** If the spike correlates with a specific data shard, inspect it for: encoding errors, HTML artifacts, repetitive near-duplicate sequences, or sequences far outside the normal length distribution.
 
-**Step 5: Resume with slightly lower LR.** Reduce the learning rate by 10–30% for the first 500 steps after rollback to allow the model to stabilize before returning to the previous schedule.
+**Why not roll back 5,000 steps?** Data order is randomized per epoch. The bad batch that caused the spike is extremely unlikely to appear again after a reshuffle. The optimization trajectory from steps $N-5000$ to $N-100$ represents real learning that would be thrown away.
+
+**Checkpoint frequency recommendation**: every 500–1,000 steps for models up to 70B. Every 250 steps for models larger than 70B or when training on a known-unstable data mixture.
 
 ---
 
-## 2. Token Collapse and Repetition
+## 3. Gradient Clipping: Why It Exists and What It Actually Does
 
-### What Token Collapse Is
+**The problem**: during a bad batch or a high-curvature region of the loss landscape, the gradient can be enormous — not 2× the normal magnitude but 100× or 1,000×. A single gradient update of this size destroys weeks of training. You need a hard upper bound on how large any single update can be.
 
-Token collapse is a training failure mode where the model begins generating highly repetitive or degenerate text — repeating phrases, outputting only punctuation, or collapsing to a small subset of the vocabulary. The cross-entropy training loss can continue to decrease even as generation quality degrades, because the model becomes increasingly confident about a limited set of patterns.
+**Why not clip each gradient component independently?** Value-based clipping does this: $g_i \leftarrow \text{clip}(g_i, -c, +c)$. The problem: it clips large components disproportionately while leaving small components unchanged. The resulting gradient vector points in a *different direction* than the original — it is biased toward the small-gradient parameters. You've not just bounded the step; you've changed where in parameter space the update is pointing.
 
-### Why It Happens
+**The core insight**: what matters is that the *step size* is bounded. The *direction* should be preserved. Scale the entire gradient vector down uniformly if its norm exceeds the threshold.
 
-**1. Perplexity divergence:** During RLHF or fine-tuning, if the reward signal overwhelmingly favors a specific pattern (e.g., starting every response with "Certainly!"), the model over-optimizes for that pattern. This reduces vocabulary entropy while maintaining low cross-entropy loss on a narrow distribution.
+**The mechanics — norm-based clipping**:
 
-**2. Length penalty miscalibration:** If the reward model implicitly rewards longer responses, the model learns to repeat content to maximize length.
-
-**3. Gradient scale mismatch:** During RLHF with PPO, if the policy gradient scale is much larger than the language modeling loss scale, the RL signal can overwhelm the language prior and cause distribution collapse.
-
-**4. Reinforcement of early-training biases:** In the first 1,000 steps of fine-tuning, if the model strongly fits a small fine-tuning dataset, high-loss tokens (rare words, technical terms) get suppressed.
-
-### Detection Metrics
-
-**Attention entropy:** Average entropy of the attention distribution across heads. A healthy model has high-entropy attention (attending to many tokens). Collapsing attention entropy (becoming peaky) is an early signal of repetition.
-
-```python
-def compute_attention_entropy(attn_weights):
-    # attn_weights: [batch, heads, seq_len, seq_len]
-    eps = 1e-8
-    entropy = -(attn_weights * torch.log(attn_weights + eps)).sum(dim=-1)
-    return entropy.mean().item()
-```
-
-**N-gram repetition rate:** Fraction of output tokens that appear in the preceding $n$ tokens.
-
-**Vocabulary coverage:** During evaluation, fraction of vocabulary tokens appearing in a sample of 1,000 generated sequences. Healthy models use > 30% of vocabulary; collapsing models may drop to < 5%.
-
-### Recovery
-
-- Stop training immediately; rollback to pre-collapse checkpoint
-- Reduce learning rate or RL step size
-- Increase KL penalty coefficient (see RLHF section)
-- Augment training data with high-diversity examples
-
----
-
-## 3. Gradient Clipping
-
-### Why Norm-Based Clipping, Not Value-Based
-
-**Value-based clipping** clips each gradient component independently:
-$$g_i \leftarrow \text{clip}(g_i, -c, c)$$
-
-This distorts the gradient direction — it clips large components disproportionately while leaving small components unchanged, changing where in parameter space the update points.
-
-**Norm-based clipping** rescales the entire gradient vector:
 $$g \leftarrow g \cdot \frac{\min(c, \|g\|_2)}{\|g\|_2}$$
 
-This preserves the direction of the gradient and only reduces its magnitude when the norm exceeds the threshold $c$. The update moves in the correct direction, just with a bounded step size.
+This preserves the gradient direction exactly and only reduces magnitude when necessary.
 
 ```python
-# PyTorch norm-based gradient clipping
-torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+# Standard PyTorch implementation
+grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
-# This is equivalent to:
-total_norm = torch.norm(torch.stack([
-    torch.norm(p.grad.detach(), 2) for p in model.parameters()
-]))
-clip_coef = max_norm / (total_norm + 1e-6)
+# Equivalent implementation to understand what it does:
+total_norm = torch.norm(
+    torch.stack([torch.norm(p.grad.detach(), 2) for p in model.parameters()])
+)
+clip_coef = 1.0 / (total_norm + 1e-6)
 if clip_coef < 1:
     for p in model.parameters():
         p.grad.detach().mul_(clip_coef)
 ```
 
-### Typical Clipping Threshold: 1.0
+**Why the threshold is 1.0**: GPT-3, PaLM, LLaMA — essentially every large public LLM — uses `max_norm=1.0`. During stable training, gradient norms hover around 0.3–0.7. A threshold of 1.0 only activates during genuine instability, not during normal training steps. A threshold of 0.1 would clip on nearly every step and throttle learning; a threshold of 10.0 would provide no protection against spikes.
 
-Most production LLM training uses `max_norm=1.0`. This comes from:
-
-- **GPT-3 (OpenAI, 2020):** gradient clip at 1.0
-- **PaLM (Google, 2022):** gradient clip at 1.0
-- **LLaMA (Meta, 2023):** gradient clip at 1.0
-
-Why 1.0 specifically? It is a pragmatic choice: aggressive enough to prevent explosion, permissive enough not to over-restrict updates during normal training. The gradient norm of a well-trained transformer at scale hovers around 0.3–0.7 during stable training.
-
-**Monitoring the clip rate:** If gradients are being clipped on > 50% of steps, the learning rate is too high or the data is pathological. The clip threshold is not a substitute for a well-tuned learning rate.
+**Using the clip fraction as a diagnostic**: if gradients are being clipped on more than 50% of steps, the learning rate is too high or the data contains systematic pathologies. The clipping threshold is not a substitute for proper learning rate tuning.
 
 ```python
 # Log gradient norm to detect systematic issues
 grad_norm = torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 wandb.log({"grad_norm": grad_norm.item()})
 
-# Alert if grad_norm >> 1.0 frequently
 if grad_norm > 5.0:
-    logger.warning(f"Large gradient norm: {grad_norm:.2f}")
+    logger.warning(f"Large gradient norm at step {step}: {grad_norm:.2f}")
 ```
 
 ---
 
-## 4. Mixed Precision Pitfalls
+## 4. Learning Rate Warmup: Why You Can't Start at Full Speed
 
-### FP16 Underflow
+**The problem**: at initialization, model weights are random. Adam's second moment estimate $v_t$ is initialized to zero. The bias correction term $1/(1-\beta_2^t)$ compensates in theory, but in the first few hundred steps, the effective learning rate computed by Adam is poorly calibrated — the variance estimates haven't stabilized yet. If you start at the full learning rate (e.g., $3 \times 10^{-4}$), those first few steps apply a massive, poorly-calibrated update from noisy initial gradients. The model parameters get pushed to a bad region of the loss landscape that may take thousands of steps to escape — or it may never escape.
 
-FP16 has a representable range of approximately $6 \times 10^{-8}$ to $65504$. Gradients during LLM training can be much smaller, causing **underflow**: small gradients round to zero before contributing to parameter updates.
+**The core insight**: give Adam's internal statistics time to stabilize before applying large updates. Start with a learning rate near zero and linearly ramp to the target over the first few thousand steps.
 
-This is a **silent failure** — no NaN, no spike, just gradual degradation of training signal. The model still trains, but slowly or incorrectly, as gradients for certain parameters vanish.
+**The mechanics**:
 
-**Solution: loss scaling.** Multiply the loss by a large constant before backpropagation, then divide the gradients by the same constant before the optimizer step. This shifts small gradients into the representable FP16 range.
+```python
+def cosine_schedule_with_warmup(step, warmup_steps, total_steps, max_lr, min_lr):
+    if step < warmup_steps:
+        return max_lr * step / warmup_steps  # linear ramp
+    progress = (step - warmup_steps) / (total_steps - warmup_steps)
+    return min_lr + (max_lr - min_lr) * 0.5 * (1.0 + math.cos(math.pi * progress))
+```
+
+| Scenario | Warmup steps | Rationale |
+| :--- | :--- | :--- |
+| Pretraining 7B | 2,000 | ~0.1% of total steps |
+| Pretraining 70B+ | 2,000–4,000 | Larger model, steeper initialization |
+| Continual pretraining | 100–500 | Weights already stable |
+| SFT / DPO | 50–500 | Short total training run |
+
+**What breaks without warmup**: not a gradual degradation — training often diverges immediately or within the first hundred steps when warmup is omitted at large scale. The random initialization produces gradients whose magnitude varies wildly across parameters, and a large learning rate amplifies this into destructive updates before Adam has any useful statistics.
+
+---
+
+## 5. Mixed Precision Training: Why FP16 Fails and BF16 Fixes It
+
+**The problem**: training in FP32 (4 bytes per value) is expensive. A 7B parameter model with its optimizer states uses ~100 GB in FP32. But reducing precision introduces risks that can silently corrupt training.
+
+### The FP16 trap: silent gradient underflow
+
+FP16's representable range is approximately $6 \times 10^{-8}$ to $65,504$. LLM gradients during normal training can be much smaller than $6 \times 10^{-8}$. When a gradient underflows FP16, it rounds to zero — the corresponding parameter receives no update. This is a **silent failure**: no NaN, no spike, no error message. The model continues training, but certain parameters stop learning. The effect is subtle degradation of model quality, hard to diagnose without careful gradient monitoring.
+
+**The loss scaling workaround**: multiply the loss by a large constant $S$ before backprop, which scales all gradients up by $S$, shifting them into FP16's representable range. Divide by $S$ before the optimizer step. The `GradScaler` manages $S$ automatically, increasing it when training is stable and decreasing it when it detects overflow (NaN gradients).
 
 ```python
 from torch.cuda.amp import GradScaler, autocast
@@ -194,25 +151,19 @@ scaler.step(optimizer)
 scaler.update()
 ```
 
-The `GradScaler` automatically adjusts the scale: it reduces the scale when it detects NaN/inf gradients (indicating overflow), and gradually increases it when training is stable (to address potential underflow).
+### Why BF16 eliminates these problems
 
-### BF16 Advantages
+BF16 was designed by Google specifically for deep learning. The key difference: it uses 8 exponent bits (same as FP32) instead of FP16's 5. This gives BF16 the same representable *range* as FP32 (up to ~$3.4 \times 10^{38}$), eliminating overflow risk. The tradeoff is fewer mantissa bits (7 vs FP16's 10), meaning less precision per value — but gradient computations are inherently noisy, and this imprecision is empirically harmless.
 
-BF16 (Brain Float 16) was designed specifically for deep learning by Google. Its key advantage over FP16:
+| Format | Exponent bits | Mantissa bits | Max value | Overflow risk |
+| :--- | :--- | :--- | :--- | :--- |
+| FP32 | 8 | 23 | $3.4 \times 10^{38}$ | None |
+| FP16 | 5 | 10 | 65,504 | High |
+| BF16 | 8 | 7 | $3.4 \times 10^{38}$ | None |
 
-| Property | FP16 | BF16 |
-|----------|------|------|
-| Exponent bits | 5 | 8 (same as FP32) |
-| Mantissa bits | 10 | 7 |
-| Representable range | ±65504 | ±3.4 × 10^38 (same as FP32) |
-| Overflow risk | High | Extremely low |
-| Underflow risk | Moderate | Low |
-| Precision | Higher mantissa | Lower mantissa |
-
-**BF16 eliminates loss scaling requirements** because its exponent range matches FP32 — gradients and activations are unlikely to overflow. The lower mantissa precision (7 bits vs 10) is acceptable because gradient descent is inherently noisy.
+**Practical setup for BF16 training** (A100/H100 — no loss scaling needed):
 
 ```python
-# BF16 training — no GradScaler needed
 model = model.to(torch.bfloat16)
 with torch.autocast("cuda", dtype=torch.bfloat16):
     loss = model(x)
@@ -221,15 +172,132 @@ torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 optimizer.step()
 ```
 
-**Hardware availability:** A100, H100, and TPU v3+ support BF16 natively. Older V100 GPUs do not. If training on A100+, prefer BF16 over FP16.
+**What breaks**: older GPUs (V100 and earlier) don't support BF16 natively; on those, FP16 with loss scaling is the only option.
 
 ---
 
-## 5. Checkpoint Averaging and Model Merging
+## 6. Token Collapse: When the Loss Looks Fine but the Model Is Dying
 
-### Checkpoint Averaging for Stability
+**The problem**: cross-entropy loss can keep decreasing even as a model converges toward degenerate outputs. The model becomes increasingly confident about a narrow distribution of tokens — repeating phrases, outputting only punctuation, defaulting to "Certainly! Here is..." — while genuine generative quality collapses.
 
-Training loss oscillates even in a healthy run. The model at the final step may be at a local minimum in an unstable region. Averaging weights across the final $k$ checkpoints produces a smoother, often better-generalizing model.
+**Why token collapse is invisible in the training loss**: the loss measures how well the model predicts its training data. If the model is being trained on its own repetitive outputs (as in RLHF), or if the reward signal strongly favors a specific pattern, the model learns to reproduce that pattern with high confidence. Confidence over a narrow distribution gives *low* loss. The loss curve looks healthy while the model becomes useless.
+
+**What triggers it**:
+- RLHF where the reward model implicitly rewards length → model learns to pad
+- SFT on a small, low-diversity dataset → rare vocabulary tokens get suppressed
+- Gradient scale mismatch in PPO → RL signal overwhelms the language prior
+
+### Detection: look beyond loss
+
+**Attention entropy**: a healthy model attends broadly across context. As token collapse begins, attention distributions become peaky — the model looks at fewer and fewer tokens.
+
+```python
+def compute_attention_entropy(attn_weights: torch.Tensor) -> float:
+    # attn_weights: [batch, heads, seq_len, seq_len]
+    eps = 1e-8
+    entropy = -(attn_weights * torch.log(attn_weights + eps)).sum(dim=-1)
+    return entropy.mean().item()
+```
+
+**Vocabulary coverage**: in a healthy model, 1,000 generated sequences use more than 30% of the vocabulary. A collapsing model may drop below 5%.
+
+**N-gram repetition rate**: fraction of output tokens that appeared in the preceding $n$ tokens. Values above ~15% for 4-grams are a warning sign.
+
+### Recovery
+
+Stop training immediately and roll back to the pre-collapse checkpoint. The collapse cannot be trained away from because the gradients themselves are pointing toward further collapse. After rollback: reduce learning rate, increase KL penalty if in RLHF, augment data with high-diversity examples.
+
+---
+
+## 7. RLHF-Specific Failures: Reward Hacking and KL Explosion
+
+### Reward hacking
+
+**The problem**: the reward model is a proxy for human preference, not a perfect measurement of it. Any proxy can be gamed. The policy is an optimizer — given enough gradient steps, it will find the behaviors that maximize reward model scores regardless of whether those behaviors are actually good.
+
+Common patterns:
+- **Verbosity**: annotators who trained the reward model tended to prefer longer responses; the policy learns to pad responses
+- **Sycophancy**: model learns to agree with any stated premise in the prompt
+- **Format exploitation**: specific phrases or bullet-point structures that reward annotators tended to prefer
+
+**Detection**: plot reward alongside KL divergence from the reference model. Genuine improvement looks like: reward increases while KL grows slowly. Reward hacking looks like: reward increases while KL grows rapidly. The model is diverging from the reference model in a direction that scores well but isn't generalizing to real quality.
+
+```python
+kl_divergence = torch.mean(ref_log_probs - policy_log_probs)
+penalized_reward = reward - kl_coef * kl_divergence
+```
+
+**Fix**: increase the KL coefficient $\beta$. Typical range: 0.01–0.3. Higher values keep the policy closer to the SFT model but limit the improvement achievable from RL.
+
+### KL explosion
+
+**The problem**: the KL divergence between the RLHF policy and the reference SFT model grows without bound. The policy produces increasingly incoherent text as it moves far from the distribution it was trained on. The language prior disintegrates.
+
+**Causes**: RL learning rate too high, KL coefficient too low, reward model with high variance (overfit to small annotation set), too many PPO iterations per batch.
+
+**Detection**: alert when KL > 20 nats. Healthy RLHF training maintains KL of 2–8 nats.
+
+**The adaptive KL controller** (from InstructGPT):
+
+```python
+target_kl = 6.0
+kl_coef = 0.2  # Starting value
+
+# After each PPO epoch:
+if measured_kl > 1.5 * target_kl:
+    kl_coef *= 1.5    # Tighten the leash
+elif measured_kl < 0.5 * target_kl:
+    kl_coef /= 1.5    # Give more room to explore
+```
+
+### Mode collapse in DPO
+
+**The problem**: DPO trains the policy to assign higher probability to preferred responses and lower probability to rejected responses. If the learning rate is too high, the model drives the probability of rejected responses to near-zero very quickly. Once log-probability of the rejected response is very negative, the gradient from that term becomes negligible — the loss is saturated. Training continues but the model makes no further improvement.
+
+**Detection**: monitor the log-probability margin between preferred and rejected responses. If the margin grows faster than ~10 nats per epoch, suspect mode collapse.
+
+**Fix**: reduce DPO learning rate, or switch to IPO (Identity Preference Optimization), which uses a squared loss that doesn't saturate.
+
+---
+
+## 8. Distributed Training Stability: ZeRO and Mixed Parallelism
+
+**The problem**: a 70B model in BF16 requires 140 GB of parameter memory. Add FP32 optimizer states (Adam keeps $m_t$ and $v_t$ per parameter, both in FP32): $70\text{B} \times 3 \times 4 = 840$ GB. A single A100 has 80 GB. Training requires splitting model state across multiple GPUs.
+
+**Naive data parallelism**: each GPU holds a full copy of the model and processes a different batch slice. Gradients are averaged across GPUs. This simply doesn't work for models that exceed single-GPU memory.
+
+**The core insight — ZeRO (Zero Redundancy Optimizer)**: in data parallelism, every GPU holds the same optimizer states, gradients, and parameters. This is pure redundancy. Shard each across all $N$ GPUs.
+
+| Stage | What is sharded | Memory per GPU vs baseline |
+| :--- | :--- | :--- |
+| ZeRO-1 | Optimizer states | ~$1/N$ of optimizer state |
+| ZeRO-2 | Optimizer states + gradients | ~$1/N$ of optimizer state + gradients |
+| ZeRO-3 | All of the above + parameters | ~$1/N$ total |
+
+With ZeRO-3, a 70B model can be trained on 8× A100 80 GB GPUs. The cost is inter-GPU communication to reconstruct parameters before each forward pass — this communication overhead must be overlapped with computation.
+
+```python
+# DeepSpeed ZeRO-3 config
+ds_config = {
+    "zero_optimization": {
+        "stage": 3,
+        "offload_optimizer": {"device": "cpu"},   # spill optimizer states to CPU RAM
+        "offload_param": {"device": "cpu"},
+    },
+    "bf16": {"enabled": True},
+    "gradient_clipping": 1.0,
+}
+```
+
+**What breaks**: ZeRO-3 requires all-gather communication before each layer's forward pass to reconstruct parameters. At small batch sizes or on high-latency interconnects, communication latency becomes the bottleneck rather than computation. Pipeline parallelism and tensor parallelism address different bottlenecks but introduce their own complexity.
+
+---
+
+## 9. Checkpoint Averaging: Getting a Better Model for Free
+
+**The problem**: training loss oscillates even in a healthy run. The model at the final training step may sit at a locally unstable point in the loss landscape — slightly worse than the average trajectory.
+
+**The core insight**: averaging weights across multiple checkpoints near the end of training produces a model that sits geometrically closer to the center of a flat loss basin, which generalizes better than any individual checkpoint.
 
 ```python
 import torch
@@ -239,8 +307,7 @@ averaged_weights = {}
 
 for path in checkpoint_paths:
     ckpt = torch.load(path, map_location="cpu")
-    state_dict = ckpt["model_state_dict"]
-    for key, value in state_dict.items():
+    for key, value in ckpt["model_state_dict"].items():
         if key not in averaged_weights:
             averaged_weights[key] = value.float()
         else:
@@ -248,237 +315,39 @@ for path in checkpoint_paths:
 
 for key in averaged_weights:
     averaged_weights[key] /= len(checkpoint_paths)
-
-# Save averaged model
-torch.save({"model_state_dict": averaged_weights}, "averaged_model.pt")
 ```
 
-**Typical practice:** Average the last 5–20 checkpoints spaced 500–1,000 steps apart. Stochastic Weight Averaging (SWA) formalizes this with a cyclic learning rate schedule.
-
-### Model Merging (SLERP, TIES, DARE)
-
-For post-training stability, model merging combines multiple fine-tuned models or the base model with a fine-tuned model.
-
-**SLERP (Spherical Linear Interpolation):**
-Interpolates model weights on the parameter space sphere rather than linearly:
-$$\text{slerp}(\theta_1, \theta_2, t) = \frac{\sin((1-t)\Omega)}{\sin\Omega} \theta_1 + \frac{\sin(t\Omega)}{\sin\Omega} \theta_2$$
-
-Where $\Omega = \arccos(\hat\theta_1 \cdot \hat\theta_2)$.
-
-SLERP is used when merging a base model with a fine-tuned model to recover some base model capabilities while retaining fine-tuning gains.
-
-**TIES-Merging:** Resolves sign conflicts between task vectors from multiple fine-tuned models — prevents parameter cancellation during merging.
-
-**DARE:** Randomly prunes delta weights before merging; reduces interference between models.
+Averaging the last 5–20 checkpoints spaced 500–1,000 steps apart typically improves validation loss and downstream benchmark scores over the final checkpoint alone.
 
 ---
 
-## 6. Learning Rate Warmup
+## 10. Monitoring Stack: What to Track and When to Panic
 
-### Why Cold Learning Rate Kills Early Training
+A production LLM training run should log the following every 10–50 steps:
 
-At initialization, model weights are random — the loss landscape from the model's perspective is steep and poorly understood. A high initial learning rate causes large updates from random gradients, potentially pushing parameters into regions far from any good solution, from which recovery may take thousands of steps.
+**Loss metrics**:
+- Raw batch loss
+- 100-step rolling average (smoothed signal for spike detection)
+- Validation loss on a fixed held-out set (every 1,000 steps)
 
-**Warmup schedule:** Start with a very small LR and linearly (or cosine) increase to the target LR over the first $T_{\text{warmup}}$ steps.
+**Gradient metrics**:
+- `grad_norm` (pre-clip): should stay 0.2–2.0 during stable training
+- `clip_fraction`: fraction of steps where clipping occurred; alert if sustained above 50%
 
-```python
-def get_linear_warmup_scheduler(optimizer, warmup_steps, total_steps, min_lr=1e-9):
-    def lr_lambda(current_step):
-        if current_step < warmup_steps:
-            return current_step / max(1, warmup_steps)
-        # Cosine decay after warmup
-        progress = (current_step - warmup_steps) / max(1, total_steps - warmup_steps)
-        return 0.5 * (1.0 + math.cos(math.pi * progress))
-    return torch.optim.lr_scheduler.LambdaLR(optimizer, lr_lambda)
-```
+**Activation metrics**:
+- Attention entropy: dropping entropy → repetition risk
+- Activation norm per layer: sudden increases signal instability
 
-**Typical warmup configurations:**
+**RLHF-specific**:
+- KL divergence from reference (alert if > 20 nats)
+- Reward model score distribution (watch for rapid reward increase with KL growth)
+- Response length distribution (widening toward long tail → verbosity reward hacking)
 
-| Model scale | Warmup steps | Rationale |
-|------------|-------------|-----------|
-| 7B parameters | 2,000 | ~0.1% of 2M total steps |
-| 70B parameters | 2,000–4,000 | Larger model, more sensitive initialization |
-| Continual pretraining | 100–500 | Existing weights are already stable |
-| Fine-tuning | 50–500 | Much shorter total training |
-
-**Why warmup helps:**
-- Early gradients are noisy; small LR reduces the variance of early updates
-- Adam's second moment estimate ($v_t$) starts at zero and needs a few hundred steps to stabilize — a large LR before this stabilization amplifies the noise
-- Warmup is particularly critical for very large models where the loss landscape curvature changes rapidly in early training
-
----
-
-## 7. The Loss Spike Recovery Trick
-
-### Roll Back 100–500 Steps
-
-This is the standard production playbook for LLM training spikes:
-
-```
-Detection: loss > 3x rolling_100_step_avg
-           OR grad_norm > 10.0 for 3 consecutive steps
-           OR loss is NaN/inf
-
-Decision tree:
-├── Loss recovering (dropping after spike)?
-│   └── Continue + investigate data shard post-hoc
-│
-└── Loss not recovering after 100 steps?
-    ├── Identify last stable checkpoint (step N)
-    ├── Roll back to step N - 200 (or N - 500 for severe spikes)
-    ├── Resume training with:
-    │   ├── Same checkpoint weights
-    │   ├── LR reduced by 20% for next 500 steps
-    │   └── Data pipeline skipping or reshuffling the suspected bad shard
-    └── Monitor for 1,000 steps before declaring stability
-```
-
-**Why not roll back further?**
-- Rolling back 5,000 steps wastes a day of compute on a large cluster
-- The optimization trajectory is path-dependent; rolling back too far can undo useful learning
-- Most spikes are caused by a single bad batch that won't recur after reshuffling
-
-**Checkpoint frequency recommendation:** Save a checkpoint every 500–1,000 steps for models up to 70B. Every 250 steps for larger models or when training on a known-unstable data mixture. On Azure, use Azure Blob Storage with lifecycle policies to retain the last 20 checkpoints and archive older ones to cold storage.
-
----
-
-## 8. Monitoring: Loss Curve Shape, Grad Norm, Attention Entropy
-
-### The Monitoring Stack
-
-A production LLM training run should log the following metrics every 10–50 steps:
-
-**Loss metrics:**
-- `train/loss`: raw batch loss
-- `train/loss_rolling_100`: rolling 100-step average (smoothed)
-- `train/perplexity`: $e^{\text{loss}}$, more interpretable for cross-entropy
-
-**Gradient metrics:**
-- `train/grad_norm`: pre-clip gradient norm; should stay in 0.2–2.0 for stable training
-- `train/clip_fraction`: fraction of steps where clipping occurred; alert if > 0.5
-
-**Activation and attention metrics:**
-- `train/attention_entropy`: average entropy of attention weights; dropping entropy → repetition risk
-- `train/activation_norm`: L2 norm of layer activations; sudden increase signals instability
-
-**Learning rate and step metrics:**
-- `train/learning_rate`: current LR (useful for warmup/decay verification)
-- `train/tokens_seen`: cumulative tokens; normalizes loss curves across training runs
-
-**Model quality metrics (every 1,000 steps):**
-- Validation loss on a fixed held-out set
-- Downstream task benchmarks (MMLU-subset, HumanEval-subset)
-- Vocabulary entropy of generated samples
-
-### Loss Curve Shape Interpretation
-
-| Shape | Interpretation |
-|-------|---------------|
-| Smooth monotone decrease | Healthy training |
-| Sudden jump, then recovery | Data spike; investigate batch |
-| Oscillating with increasing amplitude | LR too high; reduce by 2x |
-| Plateau followed by sudden decrease | Escaped a local flat region; normal |
+| Loss curve shape | Interpretation |
+| :--- | :--- |
+| Smooth monotone decrease | Healthy |
+| Sudden jump, then recovery within 200 steps | Data spike — investigate shard |
+| Oscillating with increasing amplitude | Learning rate too high; reduce 2× |
+| Plateau then sudden decrease | Escaped flat region; normal |
 | Slow creeping increase over many steps | Distribution shift in data pipeline |
-| Immediate divergence at step 1 | LR far too high; check warmup |
-
----
-
-## 9. Common Failure Modes in RLHF Training
-
-### Reward Hacking
-
-**Definition:** The policy learns to maximize the reward model's score through behaviors that do not reflect genuine quality improvement. The reward model is a proxy for human preference, and proxies can be gamed.
-
-**Common reward hacking patterns:**
-- Verbosity: reward model was trained on preferences that correlate with length; policy learns to write excessively long responses
-- Sycophancy: model learns to agree with any premise in the prompt regardless of factuality
-- Format exploitation: bullet points, numbered lists, specific phrases that reward annotators tended to prefer
-
-**Detection:** Track KL divergence between policy and reference model alongside reward. If reward increases while KL grows rapidly, suspect reward hacking.
-
-```python
-# KL penalty in PPO objective
-kl_divergence = torch.mean(
-    ref_log_probs - policy_log_probs  # Approximate KL
-)
-penalized_reward = reward - kl_coef * kl_divergence
-```
-
-**Fix:** Increase the KL coefficient $\beta$ (stronger penalty for diverging from the reference model). Typical range: 0.01–0.3. Higher values produce more conservative, less reward-hacky outputs but also less improvement from RL.
-
-### KL Explosion
-
-**Definition:** The KL divergence between the RLHF policy and the reference SFT model grows without bound, causing the policy to produce incoherent or degenerate text.
-
-**Causes:**
-- RL learning rate too high
-- KL coefficient too low
-- Reward model has high variance or is overfit (small reward model trained on few comparisons)
-- Too many PPO iterations per batch
-
-**Detection:** Monitor `kl_divergence` per step. Alert if KL > 20 nats (a strong signal of instability; healthy RLHF runs maintain KL of 2–8 nats).
-
-**Recovery:**
-```python
-# Adaptive KL controller (used in InstructGPT)
-target_kl = 6.0
-kl_penalty_coeff = 0.2  # Initial value
-
-# After each PPO epoch:
-if measured_kl > 1.5 * target_kl:
-    kl_penalty_coeff *= 1.5  # Increase penalty
-elif measured_kl < 0.5 * target_kl:
-    kl_penalty_coeff /= 1.5  # Reduce penalty
-```
-
-### Mode Collapse in DPO
-
-In Direct Preference Optimization, mode collapse occurs when the model assigns near-zero probability to the losing responses so quickly that the gradient signal from the preference loss becomes negligible. Training continues but the model makes no further improvement.
-
-**Detection:** Monitor the log-probability margin between winning and losing responses. If the margin grows faster than 10 nats/epoch, suspect mode collapse.
-
-**Fix:** Reduce DPO learning rate, add a reference regularization term, or use IPO (Identity Preference Optimization) which is more robust to this failure.
-
----
-
-## 10. Interview Q&A
-
-**Q1: What causes loss spikes during LLM training and how do you recover?**
-
-> Loss spikes are most often caused by anomalous data batches — corrupted sequences, degenerate tokens, or length outliers — or by a learning rate that is too high for the local curvature of the loss landscape. FP16 overflow is a third cause in mixed precision training. Recovery: if the loss recovers within 100 steps, continue and investigate the data shard post-hoc. If not, roll back 100–500 steps to the last stable checkpoint, resume with a 20% lower LR for 500 steps, and reshuffle or skip the suspected bad data shard.
-
-**Q2: Why do we use norm-based gradient clipping instead of value-based?**
-
-> Value-based clipping clips each gradient component independently, which distorts the direction of the gradient update — it disproportionately reduces large components and leaves small ones unchanged. Norm-based clipping rescales the entire gradient vector uniformly when its L2 norm exceeds a threshold, preserving the gradient direction and only bounding the step size. This is crucial for optimization stability because the gradient direction carries information about which way to move in parameter space; distorting it introduces systematic bias.
-
-**Q3: What is the typical gradient clipping threshold for LLM training and why?**
-
-> 1.0 is the standard across GPT-3, PaLM, LLaMA, and most other production LLMs. During stable training, the gradient norm hovers around 0.3–0.7, so a threshold of 1.0 only activates when there is genuine instability. A threshold that is too low (e.g., 0.1) would clip on nearly every step and slow training; too high (e.g., 10.0) provides no protection against spikes.
-
-**Q4: What are the advantages of BF16 over FP16 for LLM training?**
-
-> BF16 uses 8 exponent bits (same as FP32), giving it the same representable range (~10^38) compared to FP16's 5 exponent bits and range of ~65,000. This eliminates overflow risk entirely and greatly reduces underflow risk, removing the need for loss scaling. The tradeoff is lower mantissa precision (7 bits vs 10), but gradient computations tolerate this imprecision well. On A100 and H100 GPUs with native BF16 tensor cores, switching from FP16 to BF16 is essentially a free stability improvement.
-
-**Q5: What is learning rate warmup and why is it necessary?**
-
-> Warmup linearly increases the learning rate from near-zero to the target LR over the first 1,000–4,000 steps. It is necessary because (1) early gradients from random initialization are noisy and high-variance; a large LR amplifies this noise into destructive parameter updates; (2) Adam's adaptive second moment estimate starts at zero and requires ~100 steps to provide accurate gradient scaling — a large LR before stabilization is uncontrolled. Skipping warmup often causes immediate training divergence, particularly for models with many layers.
-
-**Q6: What is reward hacking in RLHF and how do you detect it?**
-
-> Reward hacking occurs when the policy learns to maximize the reward model's score through behaviors the reward model wasn't trained to penalize — e.g., verbosity, sycophancy, specific formatting patterns — rather than through genuine quality improvement. Detection: track KL divergence from the reference model alongside reward. If reward improves while KL grows rapidly (> 15 nats), the policy is diverging from the reference in a way that suggests hacking rather than genuine learning. Also monitor generation diversity, response length distribution, and downstream human evaluations.
-
-**Q7: What is KL explosion in RLHF and how do you prevent it?**
-
-> KL explosion is when the KL divergence between the RLHF policy and the reference SFT model grows without bound, causing the policy to produce incoherent text. It occurs when the RL learning rate is too high or the KL penalty coefficient is too low. Prevention: use an adaptive KL controller (as in InstructGPT) that increases the penalty coefficient when measured KL exceeds a target (e.g., 6 nats) and decreases it when KL is too low. Monitor KL continuously; alert if KL > 20 nats.
-
-**Q8: How does checkpoint averaging improve training stability?**
-
-> Training loss oscillates even in a healthy run, and the final-step checkpoint may sit at an unstable point in the loss landscape. Averaging weights across the last 10–20 checkpoints (spaced 500 steps apart) produces a smoother model that is geometrically more centered in a flat region of the loss landscape. Stochastic Weight Averaging (SWA) formalizes this: use a cyclic LR schedule to explore parameter space during the final phase of training, then average the checkpoints visited at the trough of each cycle. The averaged model typically has lower validation loss and better downstream task performance than any individual checkpoint.
-
-**Q9: What metrics would you monitor to detect early signs of training instability?**
-
-> Gradient norm (pre-clip): should stay in 0.2–2.0; sustained values > 3.0 or sudden spikes to > 10 indicate instability. Clip fraction: if > 50% of steps are being clipped, the learning rate is too high. Attention entropy: dropping entropy signals emerging repetition. Loss rolling average: the 100-step rolling average should decrease monotonically; plateaus are normal, but increases exceeding 20% of the moving average trigger investigation. For RLHF specifically: KL divergence from reference and reward model score distribution (not just mean reward).
-
-**Q10: What is token collapse and how does it differ from a loss spike?**
-
-> A loss spike is a sudden, visible increase in training loss — detectable on the loss curve. Token collapse is a silent, gradual degradation: the loss may continue to decrease while the model converges on repetitive, low-diversity outputs. The model is "learning" to predict a narrow distribution of tokens with high confidence. Detection requires monitoring metrics beyond loss: vocabulary coverage in generated samples, n-gram repetition rate, and attention entropy. Token collapse is most common in RLHF when the reward model has a strong preference for specific patterns, or in fine-tuning on a small, low-diversity dataset.
+| Immediate NaN at step 1 | Learning rate far too high |

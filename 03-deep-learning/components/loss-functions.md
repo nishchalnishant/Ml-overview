@@ -1,211 +1,214 @@
 # Loss Functions
 
-Loss functions tell the model what "wrong" means.
-
-The optimizer can only improve what the loss actually measures. Choose poorly and you train the wrong thing.
-
 ---
 
-# 1. Classification Losses
+## Why the Loss Function Choice Matters
+
+**The problem**: gradient descent can only optimize what the loss measures. If the loss is a poor proxy for what you actually care about (correct predictions, calibrated probabilities, robust embeddings), the model optimizes hard for the wrong thing. A well-trained model on the wrong loss is a well-trained failure.
+
+**The core insight**: pick the loss that encodes the probabilistic model you actually want. For binary classification you want calibrated probabilities — cross-entropy is the log-likelihood of a Bernoulli model. For regression you want to minimize squared residuals — MSE is the negative log-likelihood of a Gaussian. The loss is not arbitrary arithmetic; it encodes your beliefs about the data-generating process.
+
+---
 
 ## Binary Cross-Entropy (BCE)
 
-$$L = -\frac{1}{m} \sum_{i=1}^{m} \left[ y_i \log(\hat{y}_i) + (1 - y_i) \log(1 - \hat{y}_i) \right]$$
+**The problem**: for binary classification, you need the model to output a probability $\hat{y} \in (0,1)$ and you need a loss that penalizes wrong confident predictions harshly.
 
-- Use with sigmoid output
-- Penalizes confident-wrong predictions heavily (log goes to $-\infty$ as probability → 0)
-- For multi-label tasks: apply BCE independently per class
+**The core insight**: use log-likelihood. The model asserts $P(y=1) = \hat{y}$. The log-probability of the observed label under this model is $y \log \hat{y} + (1-y) \log(1-\hat{y})$. Maximizing this (minimizing its negation) is maximum likelihood estimation for a Bernoulli model.
 
-## Multiclass Cross-Entropy (Categorical CE)
+**The mechanics**:
 
-$$L = -\frac{1}{m} \sum_{i=1}^{m} \sum_{k=1}^{K} y_{ik} \log(\hat{y}_{ik})$$
+$$L = -\frac{1}{m} \sum_{i=1}^{m} \left[ y_i \log(\hat{y}_i) + (1-y_i) \log(1-\hat{y}_i) \right]$$
 
-- Use with softmax output
-- Only the correct class contributes to the loss (one-hot $y_{ik}$ zeros out other terms)
-- PyTorch `nn.CrossEntropyLoss` = log-softmax + NLLLoss (takes raw logits, not softmax outputs)
+When the model predicts $\hat{y} \approx 0$ for a true label of 1, $\log(\hat{y}) \to -\infty$. The loss is unbounded for confident wrong predictions. This strong penalty drives the model away from confident errors.
+
+**What breaks**: if you compute `log(sigmoid(logits))` directly, numerical underflow occurs when logits are very negative. Use `BCEWithLogitsLoss`, which combines sigmoid and log in a numerically stable form:
 
 ```python
-import torch
-import torch.nn as nn
-
-# Binary
-bce = nn.BCEWithLogitsLoss()          # numerically stable, takes logits
-loss = bce(logits, targets.float())
-
-# Multiclass — DO NOT apply softmax before this
-ce = nn.CrossEntropyLoss()
-loss = ce(logits, targets)            # targets are class indices, not one-hot
-```
-
-## Weighted Cross-Entropy
-
-Assign higher loss weight to underrepresented classes:
-
-$$L = -\frac{1}{m} \sum_{i=1}^{m} w_{y_i} \log(\hat{y}_{i, y_i})$$
-
-where $w_c$ is the weight for class $c$. Common choice: $w_c = 1/\text{freq}(c)$ or $w_c = N / (K \cdot N_c)$.
-
-```python
-# Inverse frequency weighting
-class_counts = torch.tensor([800, 150, 50], dtype=torch.float)
-weights = 1.0 / class_counts
-weights = weights / weights.sum()   # normalize
-ce = nn.CrossEntropyLoss(weight=weights)
-```
-
-## Focal Loss
-
-Designed for severe class imbalance (e.g., object detection where background >> objects):
-
-$$L_{\text{focal}} = -\frac{1}{m} \sum_i \alpha_t (1 - p_t)^\gamma \log(p_t)$$
-
-where $p_t = \hat{y}$ if $y=1$ else $1 - \hat{y}$.
-
-- $(1 - p_t)^\gamma$: **modulating factor** — down-weights easy examples (high $p_t$), up-weights hard ones
-- $\gamma = 0$: reduces to standard BCE; $\gamma = 2$ is typical
-- $\alpha_t$: class weighting for additional imbalance correction
-
-## Label Smoothing
-
-Prevents overconfidence by softening hard targets:
-
-$$y_{\text{smooth}} = (1 - \epsilon) \cdot y_{\text{one-hot}} + \frac{\epsilon}{K}$$
-
-Typical $\epsilon = 0.1$. Regularizes output distribution; improves calibration.
-
-```python
-ce_smooth = nn.CrossEntropyLoss(label_smoothing=0.1)
+F.binary_cross_entropy_with_logits(logits, targets)  # stable
+F.binary_cross_entropy(torch.sigmoid(logits), targets)  # unstable at extremes
 ```
 
 ---
 
-# 2. Regression Losses
+## Multiclass Cross-Entropy
 
-## Mean Squared Error (MSE)
+**The problem**: multiple mutually exclusive classes. The model outputs one probability per class; they must sum to 1. You need a loss that penalizes assigning low probability to the correct class.
+
+**The core insight**: same maximum likelihood idea. The model asserts a categorical distribution over $K$ classes. The log-likelihood of the correct class under this distribution is $\log \hat{y}_k$ where $k$ is the true class. Minimize the negative.
+
+**The mechanics**:
+
+$$L = -\frac{1}{m} \sum_{i=1}^{m} \log \hat{y}_{i,k_i}$$
+
+where $k_i$ is the true class index for example $i$. With one-hot labels: $-\sum_k y_{ik} \log \hat{y}_{ik}$ (only the correct class contributes).
+
+PyTorch's `CrossEntropyLoss` takes raw logits and applies log-softmax internally:
+
+```python
+ce = nn.CrossEntropyLoss()
+loss = ce(logits, targets)  # targets are class indices, NOT one-hot, NOT softmax outputs
+```
+
+**What breaks**: never apply softmax before `CrossEntropyLoss`. It applies log-softmax internally and expects logits. Passing softmax outputs leads to `log(softmax(softmax(x)))` — double-squashing and incorrect gradients.
+
+---
+
+## Weighted Cross-Entropy and Focal Loss
+
+**The problem**: class imbalance. If 95% of examples are class 0, the model minimizes loss by predicting class 0 for everything. The 5% minority class is ignored.
+
+**Weighted cross-entropy**: assign higher loss weight to underrepresented classes:
+
+$$L = -\frac{1}{m} \sum_{i} w_{k_i} \log \hat{y}_{i,k_i}, \quad w_c = \frac{N}{K \cdot N_c}$$
+
+Scales each example's contribution inversely with class frequency. Easy examples (majority class) and hard examples (minority class) get re-weighted at the class level.
+
+**What breaks**: class weights correct for label frequency but not for prediction difficulty. Easy majority-class examples that the model already predicts correctly still contribute loss.
+
+**Focal Loss**: addresses this — down-weights easy examples regardless of class, up-weights hard ones:
+
+$$L_\text{focal} = -\frac{1}{m} \sum_i \alpha_t (1 - p_t)^\gamma \log(p_t)$$
+
+where $p_t = \hat{y}$ if $y=1$, else $1-\hat{y}$. The factor $(1-p_t)^\gamma$ is near zero when $p_t$ is high (easy, already correct) and near one when $p_t$ is low (hard, wrong). $\gamma = 2$ is typical.
+
+**What breaks**: focal loss requires tuning $\gamma$. Too high and the model ignores well-classified examples entirely, potentially harming calibration. It also makes training noisier because confident-wrong hard examples dominate gradients.
+
+---
+
+## Label Smoothing
+
+**The problem**: a model trained with hard one-hot labels is incentivized to push logits to $\pm\infty$ — the correct class's logit should be as large as possible. This produces overconfident models that generalize poorly and are badly calibrated.
+
+**The core insight**: soften the target distribution slightly. Instead of 100% probability on the correct class, assign $1-\epsilon$ to the correct class and $\epsilon/K$ to every other class. The model can never fully satisfy the target, preventing overconfidence.
+
+**The mechanics**:
+
+$$y_\text{smooth} = (1-\epsilon) \cdot y_\text{one-hot} + \frac{\epsilon}{K}$$
+
+Typical $\epsilon = 0.1$.
+
+```python
+ce = nn.CrossEntropyLoss(label_smoothing=0.1)
+```
+
+**What breaks**: label smoothing improves calibration but can slightly hurt accuracy on well-separated tasks where the model should be confident. It also makes it harder to identify which examples were truly ambiguous.
+
+---
+
+## MSE
+
+**The problem**: for regression, you want to penalize predictions that are far from the true value. The loss should be zero when prediction is exact and grow as prediction moves away.
+
+**The core insight**: squared error is the negative log-likelihood of a Gaussian noise model. If you believe the true value is your prediction plus Gaussian noise, MSE is the principled loss.
+
+**The mechanics**:
 
 $$L = \frac{1}{m} \sum_i (y_i - \hat{y}_i)^2$$
 
-- Heavily penalizes large errors ($O(e^2)$)
-- Gradient is linear in error → nice optimization properties
-- Sensitive to outliers
+Gradient scales linearly with error: $\partial L / \partial \hat{y}_i = -2(y_i - \hat{y}_i)$. Large errors produce large gradients — the optimizer works hardest on the worst predictions.
 
-## Mean Absolute Error (MAE)
+**What breaks**: large errors produce quadratically large loss. A single outlier with $|y - \hat{y}| = 10$ contributes 100 to the loss — potentially dominating the entire batch. If your data has heavy-tailed noise or outliers, MSE trains a model that fits outliers at the expense of typical examples.
+
+---
+
+## MAE
+
+**The problem**: MSE is too sensitive to outliers — a few bad examples dominate training.
+
+**The core insight**: use absolute error. Linear penalty is robust to large errors — a $10\times$ larger error contributes only $10\times$ more loss, not $100\times$.
+
+**The mechanics**:
 
 $$L = \frac{1}{m} \sum_i |y_i - \hat{y}_i|$$
 
-- Robust to outliers (linear penalty)
-- Gradient is constant ($\pm 1$) — can slow convergence near optimum
-- Better when outliers are real signal that should not dominate training
+**What breaks**: the gradient of MAE is constant ($\pm 1$) regardless of error magnitude. Near the optimum, where errors are small, the gradient never shrinks — updates remain large even when the model is nearly correct. This causes oscillation near convergence and slow final-stage training.
+
+---
 
 ## Huber Loss
 
-$$L_\delta = \begin{cases} \frac{1}{2}(y - \hat{y})^2 & |y - \hat{y}| \leq \delta \\ \delta |y - \hat{y}| - \frac{1}{2}\delta^2 & |y - \hat{y}| > \delta \end{cases}$$
+**The problem**: MSE is too sensitive to outliers; MAE oscillates near convergence. You want both.
 
-- MSE for small errors, MAE for large ones
-- Smooth at the transition point
-- $\delta$ controls the boundary (default $\delta = 1$)
+**The core insight**: use MSE for small errors (where its smooth gradient helps convergence) and MAE for large errors (where its linear penalty ignores outliers).
 
-## Comparison
+**The mechanics**:
 
-| Loss | Gradient | Outlier sensitivity | Use case |
+$$L_\delta = \begin{cases} \frac{1}{2}(y - \hat{y})^2 & |y - \hat{y}| \leq \delta \\ \delta|y - \hat{y}| - \frac{1}{2}\delta^2 & |y - \hat{y}| > \delta \end{cases}$$
+
+Smooth at the transition point $\delta$. Default $\delta = 1$.
+
+**What breaks**: $\delta$ must be tuned to match the scale of your residuals. If $\delta$ is too small relative to typical errors, Huber behaves like MAE everywhere. If too large, it behaves like MSE and inherits its outlier sensitivity.
+
+| Loss | Gradient | Outlier sensitivity | Best use |
 | :--- | :--- | :--- | :--- |
-| **MSE** | Linear in error | High | Clean data, large errors matter |
-| **MAE** | Constant $\pm 1$ | Low | Noisy/outlier-heavy data |
+| **MSE** | Linear in error | High | Clean data, Gaussian noise |
+| **MAE** | Constant $\pm 1$ | Low | Outlier-heavy data |
 | **Huber** | Smooth hybrid | Medium | Default regression choice |
 
 ---
 
-# 3. Contrastive and Embedding Losses
-
 ## Triplet Loss
 
-Learn embeddings where similar items are close, dissimilar items are far:
+**The problem**: for metric learning (face recognition, image retrieval, search ranking), you want embeddings where similar items are close and dissimilar items are far apart. Classification losses cannot express this because they only care about discrete class membership, not the geometry of the embedding space.
 
-$$L = \max\left(0, d(a, p) - d(a, n) + \text{margin}\right)$$
+**The core insight**: for each training example (anchor $a$), pick a similar example (positive $p$, same identity) and a dissimilar one (negative $n$, different identity). Require the anchor-positive distance to be smaller than the anchor-negative distance by at least a margin.
 
-where $a$ = anchor, $p$ = positive (same class), $n$ = negative (different class), $d$ = distance.
+**The mechanics**:
 
-where $a$ = anchor, $p$ = positive (same class), $n$ = negative (different class), $d$ = Euclidean distance or $1 - \cos$.
+$$L = \max(0, \; d(a, p) - d(a, n) + \text{margin})$$
 
-**Margin guidance:**
-- Margin too small → trivial triplets dominate, little learning signal
-- Margin too large → loss never reaches zero, noisy updates
-- Typical: 0.2–1.0 for L2 distance, 0.1–0.3 for cosine distance
-- Use **hard negative mining**: select negatives that are closest to the anchor (hardest triplets) → faster convergence but training instability risk. Semi-hard negatives (farther than positive but within margin) are more stable.
+Loss is zero when the positive is already close enough relative to the negative. The margin prevents trivial satisfaction where $d(a,p) \approx d(a,n) \approx 0$.
 
-```python
-triplet_loss = nn.TripletMarginLoss(margin=0.5, p=2)  # p=2: Euclidean
-loss = triplet_loss(anchor, positive, negative)
-```
+**What breaks**: with random triplet selection, most triplets become easy (the negative is already far enough) after a few epochs, and the loss is zero — no gradient flows and training stalls. Hard negative mining selects the closest negatives, providing maximum learning signal, but very hard negatives can be mislabeled outliers that corrupt training. Semi-hard negatives (farther than positive but within margin) are more stable.
 
-Used in: face recognition, metric learning, search ranking.
+---
 
-## Contrastive Loss (SimCLR-style)
+## Contrastive Loss (InfoNCE / SimCLR)
+
+**The problem**: triplet loss requires explicit positive/negative pairs, which must be curated. In self-supervised learning, you want to learn representations without labels.
+
+**The core insight**: create two augmented views of the same input; they should be similar. All other examples in the batch are negatives. Maximize similarity between the two views of the same input while minimizing similarity to all others.
+
+**The mechanics**:
 
 $$L = -\log \frac{\exp(\text{sim}(z_i, z_j) / \tau)}{\sum_{k \neq i} \exp(\text{sim}(z_i, z_k) / \tau)}$$
 
-where $\tau$ is temperature (controls sharpness of distribution). Self-supervised learning standard.
+Temperature $\tau$ controls sharpness. Low $\tau$ makes the distribution peaked (hard comparisons); high $\tau$ flattens it (soft comparisons).
 
-## Cosine Embedding Loss
-
-$$L = \begin{cases} 1 - \cos(x_1, x_2) & y = 1 \text{ (similar)} \\ \max(0, \cos(x_1, x_2) - \text{margin}) & y = -1 \text{ (dissimilar)} \end{cases}$$
+**What breaks**: requires a large batch to have enough negatives. With a small batch, the model can learn trivial solutions (e.g., mapping all inputs to the same point). Larger batches are essential or you need memory banks of past embeddings.
 
 ---
 
-# 4. KL Divergence
+## KL Divergence
 
-Measures how one probability distribution $P$ differs from reference $Q$:
+**The problem**: you have two probability distributions $P$ and $Q$ and want to measure how different they are — not as a distance metric, but as a measure of "extra information" needed to represent $P$ using $Q$.
+
+**The mechanics**:
 
 $$D_{KL}(P \| Q) = \sum_x P(x) \log \frac{P(x)}{Q(x)}$$
 
-Not symmetric: $D_{KL}(P \| Q) \neq D_{KL}(Q \| P)$.
+Zero when $P = Q$. Not symmetric: $D_{KL}(P \| Q) \neq D_{KL}(Q \| P)$.
 
 Used in:
-- VAE loss (penalize deviation of latent distribution from standard Normal)
-- Knowledge distillation (match student to teacher distribution)
-- RL policy optimization (KL penalty for staying close to reference policy)
+- VAE loss: penalize encoder distribution from deviating from Gaussian prior
+- Knowledge distillation: train student to match teacher's output distribution
+- RLHF: KL penalty keeping policy close to reference model
+
+**What breaks**: $D_{KL}(P \| Q) \to \infty$ if $Q(x) = 0$ for some $x$ where $P(x) > 0$. The $Q$ distribution must have support wherever $P$ does, or the divergence is undefined. In practice, add small $\epsilon$ to avoid log(0).
 
 ---
 
-# 5. Task → Loss Matching
+## Task-to-Loss Reference
 
 | Task | Output activation | Loss |
 | :--- | :--- | :--- |
-| Binary classification | Sigmoid | BCE / BCEWithLogitsLoss |
-| Multiclass (exclusive) | Softmax | CrossEntropyLoss |
-| Multi-label | Sigmoid per class | BCEWithLogitsLoss |
+| Binary classification | Sigmoid | `BCEWithLogitsLoss` |
+| Multiclass (exclusive) | Softmax | `CrossEntropyLoss` |
+| Multi-label | Sigmoid per class | `BCEWithLogitsLoss` |
 | Imbalanced classification | Sigmoid | Focal Loss |
 | Regression | None | MSE / Huber |
-| Robust regression | None | MAE / Huber |
-| Metric learning | None | Triplet / Contrastive |
-| Generative (VAE) | Sigmoid (reconstruction) | BCE + KL divergence |
-
-If the loss and output activation do not match the task, training quality suffers fast.
-
----
-
-# 6. Numerical Stability
-
-**Never compute `log(softmax(x))` directly** — underflow when probabilities are tiny.
-
-Use `log_softmax` instead (subtracts max for stability):
-
-```python
-# Unstable
-loss = -torch.log(torch.softmax(logits, dim=-1)[range(B), targets])
-
-# Stable
-loss = F.cross_entropy(logits, targets)         # PyTorch handles this internally
-# or equivalently
-log_probs = F.log_softmax(logits, dim=-1)
-loss = F.nll_loss(log_probs, targets)
-```
-
-**BCE with logits vs BCE with probs:**
-```python
-# Stable (preferred)
-F.binary_cross_entropy_with_logits(logits, targets)
-
-# Unstable when probabilities are near 0 or 1
-F.binary_cross_entropy(torch.sigmoid(logits), targets)
-```
+| Outlier-robust regression | None | MAE / Huber |
+| Metric learning | None | Triplet / InfoNCE |
+| Generative (VAE) | Sigmoid | BCE + KL divergence |
+| Distillation | Softmax | KL divergence to teacher |

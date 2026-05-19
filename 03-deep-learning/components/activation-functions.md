@@ -1,215 +1,185 @@
 # Activation Functions
 
-Activation functions are what stop neural networks from becoming glorified spreadsheet formulas.
-
-Without them, stacking layers would still collapse into something linear and boring.
-
 ---
-
-# 1. Why Activations Exist
-
-Activations introduce **non-linearity**.
-
-That is what lets a network learn curves, boundaries, interactions, and richer structure.
-
-Without activation functions, depth would look impressive but behave disappointingly.
-
-**Proof by collapse:** If $f(x) = W_2(W_1 x) = (W_2 W_1)x$, stacking linear layers is equivalent to one linear layer.
-
----
-
-# 2. Formulas and Properties
 
 ## Sigmoid
 
-$$\sigma(z) = \frac{1}{1 + e^{-z}}$$
+**The problem**: a neural network without any non-linearity is just matrix multiplication. No matter how many layers you stack, $W_2(W_1 x) = (W_2 W_1)x$ — the whole thing collapses into a single linear transformation. You need something that bends the function space, not just rotates it.
 
-- Range: $(0, 1)$
-- Derivative: $\sigma'(z) = \sigma(z)(1 - \sigma(z))$, max value **0.25**
-- Problem: saturates at extremes → gradients vanish in deep nets
-- Use: binary output layers only
+**The core insight**: squash the output into a bounded range so the neuron behaves like a "soft switch" — values near zero pass little signal, values near one pass a lot.
 
-## Tanh
+**The mechanics**:
 
-$$\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}$$
+$$\sigma(z) = \frac{1}{1 + e^{-z}}, \quad \text{range } (0,1)$$
 
-- Range: $(-1, 1)$
-- Derivative: $1 - \tanh^2(z)$, max value **1.0**
-- Zero-centered (advantage over sigmoid in hidden layers)
-- Still saturates → still has vanishing gradient issues
+$$\sigma'(z) = \sigma(z)(1 - \sigma(z)), \quad \text{max value } 0.25$$
 
-## ReLU (Rectified Linear Unit)
+**What breaks**: every layer multiplies the gradient by at most 0.25. In a 10-layer network: $0.25^{10} \approx 10^{-6}$. Early layers receive a gradient of essentially zero and stop learning — the vanishing gradient problem. Additionally, outputs are not zero-centered (always positive), which slows convergence in subsequent layers.
 
-$$\text{ReLU}(z) = \max(0, z)$$
-
-- Range: $[0, \infty)$
-- Derivative: 1 if $z > 0$, 0 if $z < 0$ (undefined at 0, set to 0 in practice)
-- **Why it dominated:** simple, cheap, avoids saturation for positive inputs
-
-**Dead ReLU problem:** neurons with $z < 0$ always produce 0 gradient → permanently stop learning. Caused by large learning rates or bad initialization.
-
-**Fix:** use small positive learning rate, He initialization, or switch to Leaky ReLU/ELU.
-
-## Leaky ReLU
-
-$$\text{LeakyReLU}(z) = \begin{cases} z & z > 0 \\ \alpha z & z \leq 0 \end{cases}$$
-
-Typical $\alpha = 0.01$. Prevents dead neurons by keeping a small gradient for negatives.
-
-## ELU (Exponential Linear Unit)
-
-$$\text{ELU}(z) = \begin{cases} z & z > 0 \\ \alpha(e^z - 1) & z \leq 0 \end{cases}$$
-
-Smooth for negative values; output can be negative → zero-centered mean activations → faster convergence than ReLU in some settings.
-
-## GELU (Gaussian Error Linear Unit)
-
-$$\text{GELU}(z) = z \cdot \Phi(z) \approx 0.5z\left(1 + \tanh\left[\sqrt{2/\pi}(z + 0.044715z^3)\right]\right)$$
-
-where $\Phi$ is the standard Gaussian CDF.
-
-- Smooth, differentiable everywhere
-- Non-monotonic for negative inputs (unlike ReLU)
-- Default in GPT, BERT, ViT and most modern Transformers
-
-## Swish / SiLU
-
-$$\text{Swish}(z) = z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}$$
-
-Self-gated variant. Similar properties to GELU, slightly cheaper to compute.
-
-## SwiGLU (used in LLaMA, PaLM, Gemini)
-
-$$\text{SwiGLU}(x, W, V) = \text{Swish}(xW) \odot (xV)$$
-
-Two linear projections: one is gated by Swish, element-wise multiplied with the other. The gate controls how much of each dimension flows forward.
-
-Typically used in the FFN sub-layer of Transformers:
-
-$$\text{FFN}(x) = \text{SwiGLU}(x, W_1, W_3) \cdot W_2$$
-
-Reduces FFN hidden dim by factor $2/3$ to compensate for the extra projection while keeping parameter count constant.
-
-## Softmax
-
-$$\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
-
-- Outputs sum to 1 → probability distribution over classes
-- Numerically stable form: subtract max before exponentiating
+Use sigmoid only in the output layer of a binary classifier. Never in hidden layers of deep networks.
 
 ---
 
-# 3. Comparison Table
+## Tanh
+
+**The problem**: sigmoid is not zero-centered — all outputs are positive. When gradients flow back through a sigmoid layer, they are all the same sign, causing zig-zag weight updates and slower convergence.
+
+**The core insight**: rescale and shift sigmoid to be symmetric around zero so positive and negative activations balance out.
+
+**The mechanics**:
+
+$$\tanh(z) = \frac{e^z - e^{-z}}{e^z + e^{-z}}, \quad \text{range } (-1, 1)$$
+
+$$\tanh'(z) = 1 - \tanh^2(z), \quad \text{max value } 1.0$$
+
+Zero-centered outputs. Strictly preferred over sigmoid in hidden layers when you must use a saturating activation.
+
+**What breaks**: still saturates. For large $|z|$, the derivative $\approx 0$ and gradients vanish through deep stacks. Practically the same problem as sigmoid, just less severe.
+
+---
+
+## ReLU
+
+**The problem**: sigmoid and tanh squash large inputs into a tiny range. In a 10-layer network with sigmoid activations, gradients shrink by at most $0.25$ at each step — by the time the signal reaches the first layer, it has essentially vanished.
+
+**The core insight**: use an activation that does not saturate for positive values. If the gradient does not shrink, it can travel through arbitrarily many layers.
+
+**The mechanics**:
+
+$$\text{ReLU}(z) = \max(0, z)$$
+
+Derivative is exactly 1 for $z > 0$ — no shrinkage. Derivative is exactly 0 for $z < 0$ — that neuron contributes nothing this pass.
+
+**What breaks**: the dying ReLU problem. If a neuron receives a large negative pre-activation (e.g., due to a large negative bias or a bad gradient update), its derivative is 0 and no gradient flows back through it. It cannot update its weights and remains dead permanently. A network with many dead neurons has less capacity and trains poorly.
+
+---
+
+## Leaky ReLU
+
+**The problem**: a dead ReLU cannot recover — its gradient is identically zero for all negative inputs, so no update ever pushes the bias back into the positive regime.
+
+**The core insight**: keep a tiny gradient for negative inputs so a dead neuron can, in principle, receive signal and revive.
+
+**The mechanics**:
+
+$$\text{LeakyReLU}(z) = \begin{cases} z & z > 0 \\ \alpha z & z \leq 0 \end{cases}, \quad \alpha = 0.01 \text{ typical}$$
+
+Gradient is $\alpha$ for negative inputs instead of zero. Neurons can revive.
+
+**What breaks**: $\alpha$ is a fixed hyperparameter — it does not adapt to the data. Parametric ReLU (PReLU) learns $\alpha$ per neuron, but adds parameters and overfitting risk.
+
+---
+
+## ELU
+
+**The problem**: ReLU activations are non-negative on average — the mean activation is positive, creating a bias shift. Each layer's output has a non-zero mean, which must be compensated by biases downstream and slows convergence.
+
+**The core insight**: let the negative regime produce smoothly negative values so the mean activation over a batch is closer to zero.
+
+**The mechanics**:
+
+$$\text{ELU}(z) = \begin{cases} z & z > 0 \\ \alpha(e^z - 1) & z \leq 0 \end{cases}$$
+
+For $z \ll 0$, ELU saturates at $-\alpha$ (typically $-1$), giving a mean activation near zero. The smooth negative regime avoids the sharp discontinuity at zero.
+
+**What breaks**: the exponential is more expensive to compute than a max operation. Saturates for very negative inputs (though at a constant, not at zero), so neurons that consistently see very negative inputs do not learn much.
+
+---
+
+## GELU
+
+**The problem**: ReLU is a hard gate — a neuron is either fully on or fully off. This discontinuity at zero can cause instability and sharp loss landscapes, and the all-or-nothing behavior may not be ideal when inputs cluster near zero.
+
+**The core insight**: gate the input by the probability it would be kept under a standard Gaussian — a soft, probabilistic masking that smoothly transitions between zero and full pass-through.
+
+**The mechanics**:
+
+$$\text{GELU}(z) = z \cdot \Phi(z) \approx 0.5z\left(1 + \tanh\left[\sqrt{2/\pi}(z + 0.044715z^3)\right]\right)$$
+
+where $\Phi$ is the standard Gaussian CDF. Small positive inputs are passed through at partial strength; large positive inputs are passed through fully; negative inputs are nearly zeroed.
+
+**What breaks**: non-monotonic for small negative values — GELU can produce slightly negative outputs for inputs around $-0.17$. This is a feature (more expressive), but can occasionally cause unexpected behavior in networks that assume monotone activations.
+
+Default in GPT, BERT, ViT, and most modern Transformers.
+
+---
+
+## Swish / SiLU
+
+**The problem**: GELU's Gaussian CDF approximation has a complex formula. Can we get the same smooth, self-gating behavior more cheaply?
+
+**The core insight**: replace the Gaussian CDF with sigmoid — which is already computed cheaply and has a similar shape.
+
+**The mechanics**:
+
+$$\text{Swish}(z) = z \cdot \sigma(z) = \frac{z}{1 + e^{-z}}$$
+
+Self-gated: the input modulates itself. Similar properties to GELU — smooth, non-monotonic near zero — but cheaper to compute.
+
+**What breaks**: still has the non-monotonic property near zero. Slightly more expensive than ReLU due to the sigmoid computation, though cheaper than GELU's full approximation.
+
+Used in EfficientNet family. Under the name SiLU in PyTorch.
+
+---
+
+## SwiGLU
+
+**The problem**: the FFN sub-layer in Transformers uses ReLU between two linear projections. Better activations exist, but to use them with a gating mechanism — which empirically improves quality — requires a third projection, increasing parameter count.
+
+**The core insight**: use two separate linear projections: one goes through Swish (the gate), the other passes through directly. Multiply them element-wise. The gate dynamically controls how much of each dimension flows forward. Reduce the hidden dimension to $2/3$ of the standard $4d$ to keep parameter count equal.
+
+**The mechanics**:
+
+$$\text{SwiGLU}(x, W, V) = \text{Swish}(xW) \odot (xV)$$
+
+$$\text{FFN}(x) = \text{SwiGLU}(x, W_1, W_3) \cdot W_2$$
+
+Three projections ($W_1$, $W_2$, $W_3$), hidden dimension $\frac{8}{3}d$ instead of $4d$, keeping total parameters matched.
+
+**What breaks**: requires the third projection, which adds memory and compute overhead proportional to $d^2$. The parameter-count compensation (reducing hidden dim to $2/3$) means each projection is narrower — slightly less expressiveness per parameter than vanilla FFN, empirically compensated by the gating mechanism.
+
+Used in LLaMA, PaLM, Gemini.
+
+---
+
+## Softmax
+
+**The problem**: for multiclass classification, the network outputs a vector of raw scores (logits). These scores have no natural probabilistic interpretation — they can be negative, arbitrarily large, and do not sum to one.
+
+**The core insight**: exponentiate to make all values positive, then normalize so they sum to one. The resulting values are a proper probability distribution over the classes.
+
+**The mechanics**:
+
+$$\text{softmax}(z_i) = \frac{e^{z_i}}{\sum_j e^{z_j}}$$
+
+Numerically stable form: subtract the max before exponentiating to prevent overflow. $\text{softmax}(z - \max(z))$ gives identical results.
+
+**What breaks**: softmax assumes mutual exclusivity — increasing one class's probability necessarily decreases the others. For multi-label tasks (multiple classes can be true simultaneously), use sigmoid per output instead. Softmax also amplifies the largest logit exponentially — at low temperatures it collapses to a one-hot vector; at high temperatures it approaches uniform.
+
+---
+
+## Comparison Table
 
 | Activation | Range | Zero-centered | Gradient vanishes | Dead neurons | Use case |
 | :--- | :--- | :--- | :--- | :--- | :--- |
-| **Sigmoid** | $(0,1)$ | No | Yes | No | Binary output |
-| **Tanh** | $(-1,1)$ | Yes | Yes | No | Rare hidden layers |
+| **Sigmoid** | $(0,1)$ | No | Yes | No | Binary output only |
+| **Tanh** | $(-1,1)$ | Yes | Yes | No | Rare; prefer ReLU family |
 | **ReLU** | $[0,\infty)$ | No | No (positive) | Yes | CNN hidden layers |
-| **Leaky ReLU** | $(-\infty,\infty)$ | No | No | No | Hidden layers, safe ReLU |
+| **Leaky ReLU** | $(-\infty,\infty)$ | No | No | No | Safe ReLU replacement |
 | **ELU** | $(-\alpha,\infty)$ | Near-zero mean | No | No | Hidden layers |
 | **GELU** | $\approx(-0.17,\infty)$ | No | No | No | Transformers, LLMs |
 | **Swish** | $\approx(-0.28,\infty)$ | No | No | No | EfficientNet, modern CNNs |
+| **SwiGLU** | — | — | No | No | Transformer FFN layers |
 | **Softmax** | $(0,1)$ | — | — | — | Multiclass output |
 
 ---
 
-# 4. Which Activation to Use Where
-
-## Hidden layers
-- **Default:** ReLU (CNNs, simple feedforward)
-- **Transformers/LLMs:** GELU or SwiGLU
-- **Modern CNNs:** Swish (EfficientNet)
-- **When dead neurons are a problem:** Leaky ReLU or ELU
-
-## Output layer
+## Output Layer Activation by Task
 
 | Task | Activation | Why |
 | :--- | :--- | :--- |
-| Regression | None (identity) | Unbounded output |
+| Regression | None | Unbounded output |
 | Binary classification | Sigmoid | Output in $(0,1)$ = probability |
 | Multi-class (exclusive) | Softmax | Outputs sum to 1 |
 | Multi-label | Sigmoid (per-class) | Each label independent |
-| Sequence generation (token) | Softmax over vocabulary | Probability distribution |
-
----
-
-# 5. Code Examples
-
-```python
-import torch
-import torch.nn as nn
-import torch.nn.functional as F
-
-# Using nn.Module activations
-model = nn.Sequential(
-    nn.Linear(256, 128),
-    nn.GELU(),                     # Transformer-style
-    nn.Linear(128, 64),
-    nn.ReLU(),                     # Standard CNN-style
-    nn.Linear(64, 10),
-    # No activation here — CrossEntropyLoss expects raw logits
-)
-
-# Manual usage
-x = torch.randn(32, 128)
-out_relu = F.relu(x)
-out_gelu = F.gelu(x)
-out_sigmoid = torch.sigmoid(x)
-out_softmax = F.softmax(x, dim=-1)  # Always specify dim
-
-# Numerically stable log-softmax + NLLLoss = CrossEntropyLoss
-log_probs = F.log_softmax(logits, dim=-1)
-loss = F.nll_loss(log_probs, targets)
-# Equivalent to:
-loss = F.cross_entropy(logits, targets)
-```
-
----
-
-# 6. Mini Pop Quiz
-
-If multiple classes can all be true simultaneously (multi-label), use **sigmoid** (not softmax).
-
-Sigmoid: each output is independent, not competing.
-Softmax: forces outputs to sum to 1 — mutual exclusivity assumption.
-
-Also: using sigmoid in a deep hidden layer is usually a mistake — vanishing gradients will slow training. Use ReLU family instead.
-
----
-
-# 7. Weight Initialization (activation-dependent)
-
-Bad initialization → dead neurons (ReLU) or vanishing gradients (Sigmoid/Tanh).
-
-## Xavier / Glorot Initialization
-
-Designed for symmetric activations (Sigmoid, Tanh):
-
-$$W \sim \mathcal{U}\left[-\sqrt{\frac{6}{n_{\text{in}} + n_{\text{out}}}}\right], \quad \sigma = \sqrt{\frac{2}{n_{\text{in}} + n_{\text{out}}}}$$
-
-Maintains variance of activations and gradients through layers.
-
-## He / Kaiming Initialization
-
-Designed for ReLU (accounts for half the neurons being zeroed):
-
-$$W \sim \mathcal{N}\left(0, \sqrt{\frac{2}{n_{\text{in}}}}\right)$$
-
-The factor of 2 compensates for ReLU setting negative activations to 0.
-
-| Activation | Init | Gain |
-| :--- | :--- | :--- |
-| Sigmoid, Tanh | Xavier | $\sqrt{2/(n_{in}+n_{out})}$ |
-| ReLU | He (fan-in) | $\sqrt{2/n_{in}}$ |
-| Leaky ReLU $(\alpha)$ | He variant | $\sqrt{2/(1+\alpha^2) \cdot n_{in}}$ |
-| GELU / Swish | He (empirically similar to ReLU) | $\sqrt{2/n_{in}}$ |
-
-```python
-import torch.nn as nn
-
-# PyTorch applies He init by default for Linear/Conv layers
-# Explicit:
-nn.init.kaiming_normal_(layer.weight, mode='fan_in', nonlinearity='relu')
-nn.init.xavier_uniform_(layer.weight, gain=nn.init.calculate_gain('tanh'))
-```
+| Token generation | Softmax over vocabulary | Probability distribution |

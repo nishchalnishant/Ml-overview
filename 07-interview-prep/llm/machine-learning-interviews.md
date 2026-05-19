@@ -2,301 +2,350 @@
 
 ---
 
-## 1. Interview Loop Structure
+## 1. What the Interview Loop is Actually Measuring
 
-| Round | Focus | What you're actually being tested on |
+Every round is testing a specific *capability*, not a knowledge domain. Recognizing the capability being tested changes how you construct your answer.
+
+| Round | Underlying capability | How weak answers are spotted |
 | :--- | :--- | :--- |
-| Recruiter screen | Background, motivation | Communication, role fit |
-| DSA / coding | Arrays, graphs, DP | Problem decomposition speed |
-| ML coding | Implement from scratch | Whether you can translate math to code |
-| ML theory | Concepts, tradeoffs | Depth of understanding beyond definitions |
-| ML system design | End-to-end system | Production thinking, prioritization |
-| Behavioral / project deep dive | Past work | Judgment calls, ownership, impact |
+| Recruiter screen | Can you communicate your work to a non-expert? Do you have a coherent direction? | Vague descriptions signal unclear thinking, not just poor communication |
+| DSA / coding | Do you decompose problems systematically, or do you thrash? | Interviewers watch how you handle new constraints mid-problem, not just whether you reach a solution |
+| ML coding | Can you translate math to working code without pausing to look things up? | Numeric instability bugs, wrong gradient flow — the bugs that only appear if you don't understand what the code *means* |
+| ML theory | Do you understand *why* things work, or just *what* they are? | Follow-up questions probe one causal layer deeper. "What happens if you remove the $\sqrt{d_k}$ scaling?" separates the two populations |
+| ML system design | Do you think like someone who has shipped systems that break in production? | Missing cold start, monitoring, rollback, or training-serving skew is a strong junior signal |
+| Behavioral / project | Do you own outcomes or just participate in them? | Passive framing — "the team did X" vs "I decided X and here's why" — is an ownership signal |
 
 **Calibrate prep time by level:**
-- L3/junior: 70% theory + coding, 30% system design
-- L4/mid: 50% system design, 30% theory, 20% behavioral
-- L5+/senior: 60% system design + behavioral, 40% theory
+- L3 / junior: 60% ML coding + theory, 30% system design foundations, 10% behavioral
+- L4 / mid: 40% system design, 35% theory depth, 25% behavioral
+- L5+ / senior: 50% system design + failure modes, 30% behavioral with strong ownership framing, 20% theory depth
 
 ---
 
-## 2. The Question Shift by Level
+## 2. The Three-Layer Framework for Any Theory Question
 
-**Junior:** "What is X?"
-- Expected: correct definition + formula
-
-**Mid:** "Why X and not Y in this situation?"
-- Expected: tradeoffs table + context-dependent recommendation
-
-**Senior:** "Design a system that uses X at scale. What breaks first?"
-- Expected: end-to-end design + failure modes + monitoring strategy
-
----
-
-## 3. ML Theory — Answering Framework
-
-Every theory question has three layers. Hit all three:
+Every ML theory question has three answerable layers. Stopping at layer 1 is a junior answer regardless of whether the definition is correct.
 
 ```
-Layer 1: Definition + formula
-  → "Dropout randomly zeros activations with probability p during training,
-     scaling surviving activations by 1/(1-p)."
+Layer 1 — Definition + formula
+    What is it precisely? Include the math when relevant.
 
-Layer 2: Intuition
-  → "This prevents co-adaptation — neurons can't rely on specific others,
-     so each must learn independently. Acts like ensemble averaging."
+Layer 2 — Intuition: why this mechanism, not something simpler?
+    What problem does it solve? What breaks if you remove it?
+    Make the mechanism obvious in retrospect.
 
-Layer 3: Tradeoff / when NOT to use
-  → "Hurts smaller models (too much information lost). Don't use with
-     BatchNorm — their interaction causes training instability."
+Layer 3 — Tradeoffs and failure modes
+    When does it fail? What does it interact badly with?
+    What's the alternative, and when would you choose the alternative?
 ```
 
-**Common theory questions and what they're really testing:**
+**Applied to four common questions:**
 
-| Question | They're testing |
-| :--- | :--- |
-| Bias-variance tradeoff | Whether you think about generalization, not just accuracy |
-| Why ReLU? | Understanding gradient flow and vanishing gradients |
-| BatchNorm vs LayerNorm | Transformer vs CNN knowledge, small-batch awareness |
-| L1 vs L2 regularization | Probabilistic interpretation (MAP → Lasso/Ridge) |
-| Why cross-entropy over MSE for classification? | Log-likelihood, gradient magnitudes near decision boundary |
-| Precision vs recall tradeoff | Business context — cost of FP vs FN |
+**"Why BatchNorm?"**
+- L1: Normalizes activations over the batch dimension per feature: $\hat{x} = (x - \mu_B)/\sigma_B$, then rescales with learnable $\gamma, \beta$.
+- L2: Without it, each layer sees inputs whose distribution shifts as the preceding layers change during training — called internal covariate shift. The layer must simultaneously learn its task *and* adapt to a moving input distribution. BatchNorm fixes the input distribution, allowing a higher learning rate and faster convergence.
+- L3: Breaks at small batch sizes (noisy $\mu_B, \sigma_B$ estimates corrupt the normalization). Breaks for variable-length sequences (different valid positions per sample — batch statistics are meaningless). Interacts badly with dropout (dropout changes the effective batch statistics at inference if ordering matters). For these cases: LayerNorm normalizes over the feature dimension per sample — sequence-length agnostic, works at batch size 1.
+
+**"Why ReLU over sigmoid?"**
+- L1: $\text{ReLU}(x) = \max(0, x)$; gradient is 1 for positive inputs, 0 for negative.
+- L2: Sigmoid saturates at both ends — its derivative $\sigma(x)(1-\sigma(x))$ approaches 0 for large positive or negative inputs. Backpropagating through 20 layers of sigmoid multiplies gradients by $< 0.25^{20} \approx 10^{-13}$ — effectively zero. ReLU has gradient exactly 1 for positive pre-activations, so gradients don't shrink through ReLU layers.
+- L3: Dying ReLU problem — if a neuron's pre-activation is always negative (e.g., from a bad initialization or a large weight update), the gradient is always 0 and the neuron never updates. Fix: LeakyReLU ($0.01x$ for $x < 0$) or careful He initialization. For Transformers, GELU is preferred — smooth approximation of ReLU that performs better on language tasks.
+
+**"L1 vs L2 regularization?"**
+- L1: $\lambda\sum|w_i|$; L2: $\lambda\sum w_i^2$.
+- L2: The penalty on large weights is dominated by the gradient-of-squared-term, which shrinks weights proportionally. Some weight may get small but never exactly zero — the gradient at $w = 0$ is $2\lambda w = 0$, so no further push.
+- L1: The penalty is $\lambda \cdot \text{sign}(w)$ — a constant push toward zero regardless of magnitude. For small nonzero weights, this push exceeds any gradient from the data, forcing them exactly to zero. This is why L1 produces sparse solutions. Probabilistic interpretation: L2 = Gaussian prior on weights (MAP), L1 = Laplace prior (fatter tails near zero — encourages sparsity).
+- Tradeoff: L1 for feature selection and interpretability. L2 when all features are plausibly relevant. ElasticNet ($\alpha L1 + (1-\alpha) L2$) for both sparsity and stability.
+
+**"Why cross-entropy over MSE for classification?"**
+- L1: CE: $-\sum y_k \log \hat{p}_k$; MSE: $\sum(y - \hat{p})^2$.
+- L2: Near the decision boundary, the MSE gradient with respect to the logit is small because the sigmoid's derivative is small there. You're in the middle of learning, and the gradient provides almost no update signal. Cross-entropy's gradient with respect to the logit is $\hat{p} - y$ — large and informative when the prediction is wrong, regardless of where you are in probability space.
+- L3: MSE assumes Gaussian noise around the target, which is appropriate for regression. Classification outputs are Bernoulli (binary) or Categorical — cross-entropy is the correct log-likelihood for these distributions. Using MSE for classification is using the wrong probabilistic model.
 
 ---
 
-## 4. ML Coding — What You Must Write Without Hesitation
+## 3. How Depth Changes by Level
 
-### 4.1 The 6 Must-Know Implementations
+The same topic produces very different questions at different levels. Recognize which depth you're being evaluated at:
 
-**1. Sigmoid + BCE loss**
+**Level 1 (L3 — correct definition):** "What is dropout?"
+> "Randomly zeros activations with probability $p$ during training; surviving activations are scaled by $1/(1-p)$. At inference, all activations are used at full scale."
+
+**Level 2 (L4 — reasoning about tradeoffs):** "Why use dropout vs L2 regularization?"
+> "Both prevent overfitting, but through different mechanisms. L2 penalizes large weights — all neurons remain active but with shrunk weights; the model can still rely on any feature, just less strongly. Dropout randomly removes neurons during each training step — each neuron must learn to be useful in isolation, preventing neurons from co-adapting to each other's errors. Dropout approximates an ensemble of $2^n$ subnetworks with shared weights. The practical tradeoff: don't use both heavily together. L2 already shrinks weights; then dropout's rescaling creates compound uncertainty. With BatchNorm, use dropout *before* the BN layer — dropout after BN distorts the batch statistics that BN relies on."
+
+**Level 3 (L5 — production judgment):** "We're seeing overfitting on a new domain after fine-tuning. Dropout is already at 0.3. What do you change and in what order?"
+> "First, distinguish overfitting from distribution shift — they look identical in offline metrics. Check the validation loss trajectory: does it start high from epoch 1 (shift — the model never fits this distribution) or does it rise after initially decreasing (overfitting — the model starts fitting then memorizes)? If true overfitting: freeze the bottom 80% of layers and fine-tune only the top layers. The bottom layers contain general representations that shouldn't change; only the task-specific top layers need adaptation. If that's insufficient, increase dropout to 0.4-0.5 on the fine-tuning layers. If distribution shift: no amount of regularization helps — you need more representative data from the target domain. Mixing a small fraction (5-10%) of the original pretraining distribution prevents catastrophic forgetting of general representations."
+
+---
+
+## 4. ML Coding — What Must Be Automatic
+
+These must be writeable with zero hesitation. Each one has a numerical stability failure mode.
+
+**Sigmoid + BCE loss — with the stability fix:**
 ```python
 import numpy as np
 
-def sigmoid(z): return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+def sigmoid(z):
+    # Clip prevents exp(-z) overflow for large negative z
+    return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
 
 def bce_loss(y_true, y_pred, eps=1e-7):
-    return -np.mean(y_true * np.log(y_pred + eps) + (1 - y_true) * np.log(1 - y_pred + eps))
+    # eps prevents log(0) = -inf when y_pred ∈ {0, 1}
+    return -np.mean(
+        y_true * np.log(y_pred + eps) + (1 - y_true) * np.log(1 - y_pred + eps)
+    )
 ```
 
-**2. Softmax (numerically stable)**
+**Numerically stable softmax — the invariance argument:**
 ```python
 def softmax(x):
-    x = x - x.max(axis=-1, keepdims=True)  # subtract max: prevents exp() overflow
+    # Softmax is shift-invariant: softmax(x) = softmax(x - c)
+    # Proof: exp(x_i - c) / sum(exp(x_j - c)) = exp(x_i)/sum(exp(x_j))
+    # Set c = max(x): largest exponent is e^0 = 1, never overflows
+    x = x - x.max(axis=-1, keepdims=True)
     e = np.exp(x)
     return e / e.sum(axis=-1, keepdims=True)
 ```
 
-**3. Precision, Recall, F1**
+**Precision, Recall, F1 — with correct denominators explained:**
 ```python
 def prf1(y_true, y_pred, eps=1e-8):
     tp = ((y_pred == 1) & (y_true == 1)).sum()
-    fp = ((y_pred == 1) & (y_true == 0)).sum()
-    fn = ((y_pred == 0) & (y_true == 1)).sum()
+    fp = ((y_pred == 1) & (y_true == 0)).sum()   # we said positive; it was negative
+    fn = ((y_pred == 0) & (y_true == 1)).sum()   # we said negative; it was positive
+    # Precision: of all our positive predictions, what fraction was correct?
     p = tp / (tp + fp + eps)
+    # Recall: of all actual positives, what fraction did we catch?
     r = tp / (tp + fn + eps)
-    return p, r, 2 * p * r / (p + r + eps)
+    # F1: harmonic mean — punishes extreme imbalance between P and R
+    f1 = 2 * p * r / (p + r + eps)
+    return p, r, f1
 ```
 
-**4. Scaled dot-product attention**
+**Scaled dot-product attention:**
 ```python
 def attention(Q, K, V, mask=None):
     d_k = Q.shape[-1]
-    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d_k)
+    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d_k)   # (batch, seq_q, seq_k)
     if mask is not None:
+        # Where mask is False, set to -1e9 → softmax assigns ~0 weight
         scores = np.where(mask, scores, -1e9)
     weights = softmax(scores)
     return weights @ V
 ```
 
-**5. K-Means (one iteration)**
+**K-Means — one full E-step + M-step:**
 ```python
 def kmeans_step(X, centroids):
-    dists = np.linalg.norm(X[:, None] - centroids[None], axis=2)  # (n, k)
+    # Broadcasting: (n, 1, d) - (1, k, d) → (n, k, d) → norm → (n, k)
+    dists = np.linalg.norm(X[:, None] - centroids[None], axis=2)
     labels = dists.argmin(axis=1)
-    new_centroids = np.array([X[labels == j].mean(axis=0) for j in range(len(centroids))])
+    new_centroids = np.array([
+        X[labels == j].mean(axis=0) if (labels == j).any() else centroids[j]
+        for j in range(len(centroids))
+    ])
     return labels, new_centroids
 ```
 
-**6. Simple gradient descent step**
+**Gradient descent step with L2 regularization:**
 ```python
-def gd_step(X, y, w, b, lr=0.01):
+def gd_step(X, y, w, b, lr=0.01, lambda_=0.0):
     n = len(y)
     y_hat = sigmoid(X @ w + b)
-    dw = (X.T @ (y_hat - y)) / n
+    # L2 gradient: adds lambda * w to ∂L/∂w
+    dw = (X.T @ (y_hat - y)) / n + lambda_ * w
     db = (y_hat - y).mean()
     return w - lr * dw, b - lr * db
 ```
 
-### 4.2 PyTorch Patterns (Must Know Cold)
-
+**PyTorch training loop — the four common bugs and why they are bugs:**
 ```python
-# Training loop essentials
-optimizer.zero_grad()          # always before backward
+# Bug 1: Not zeroing gradients — PyTorch accumulates gradients by default.
+# Each backward() adds to the existing gradient. Without zero_grad(), you train
+# on the sum of all past batch gradients, not the current batch.
+optimizer.zero_grad()
+
 loss.backward()
-nn.utils.clip_grad_norm_(model.parameters(), 1.0)  # prevent exploding gradients
+
+# Bug 2: Not clipping gradients before the step.
+# Gradient clipping must precede optimizer.step() to be effective.
+# Clipping after the step modifies weights that were already updated with bad gradients.
+nn.utils.clip_grad_norm_(model.parameters(), 1.0)
+
 optimizer.step()
 scheduler.step()
 
-# Inference
-model.eval()
-with torch.no_grad():
+# Inference: both lines are required for different reasons
+model.eval()           # mode: disables dropout, switches BN to use running statistics
+with torch.no_grad():  # memory: stops building the autograd computation graph
     out = model(x)
 
-# Save / load checkpoint
-torch.save({"model": model.state_dict(), "optimizer": optimizer.state_dict()}, "ckpt.pt")
-ckpt = torch.load("ckpt.pt", map_location=device)
-model.load_state_dict(ckpt["model"])
+# Checkpoint: optimizer state is not optional
+torch.save({
+    "epoch": epoch,
+    "model": model.state_dict(),
+    "optimizer": optimizer.state_dict(),  # Adam's m and v buffers — lose these, lose momentum
+    "scheduler": scheduler.state_dict() if scheduler else None,
+    "val_loss": val_loss,
+}, "checkpoint.pt")
 ```
 
 ---
 
 ## 5. ML System Design — Universal Structure
 
-Use this sequence for every problem. Never skip steps:
+Never start with a model. The model is the *last* thing you choose. These steps are not optional — skipping any one signals a specific blind spot.
 
 ```
-Step 1: Clarify goal
-  → "What user action are we optimizing? Click, purchase, dwell time?"
-  → "Is this a ranking, classification, or generation problem?"
+Step 1: Clarify the product goal
+    "What user action are we optimizing? Click, purchase, dwell time, safety flag?"
+    "Is this ranking, classification, generation, or anomaly detection?"
+    "What is the cost of FP vs FN in business terms?"
 
-Step 2: Define metrics
-  → Online:  CTR, revenue/query, D7 retention, latency P99
-  → Offline: AUC-ROC, NDCG@10, precision@K, perplexity
-  → "What does success look like in a business dashboard 30 days post-launch?"
+Step 2: Define metrics — both layers
+    Online (business):  CTR, revenue/query, D7 retention, P99 latency
+    Offline (model):    AUC-ROC, NDCG@10, precision@K, perplexity
+    "What does success look like in a dashboard 30 days post-launch?"
 
-Step 3: Constraints
-  → Latency SLA (< 100ms? < 2s?), QPS, memory budget, regulatory requirements
+Step 3: State constraints explicitly
+    Latency SLA, QPS, memory budget, regulatory, team size, retraining cadence
 
 Step 4: Data and labels
-  → Volume? Freshness needed? Label quality? Weak vs strong supervision?
-  → Training-serving skew risks?
+    Volume, freshness required, label quality, class balance
+    Where does ground truth come from? How delayed is it?
+    Training-serving skew risks?
 
-Step 5: Baseline
-  → Start with the simplest thing: popularity ranking, LR, BM25
-  → This is your control in the A/B test
+Step 5: Baseline first
+    Simplest thing that could work: popularity ranking, logistic regression, BM25
+    This is your control arm in the A/B test
 
-Step 6: Model architecture
-  → Justified by constraints, not trend
-  → Two-stage if scale > 1M items: retrieval (ANN/BM25) → ranking (GBT/DNN)
+Step 6: Architecture — justified by constraints, not trends
+    Two-stage if item corpus > 1M: fast retrieval → slow ranking
+    Justify every architectural choice against a constraint
 
 Step 7: Feature pipeline
-  → Real-time (Redis velocity features) vs batch (offline embeddings)
-  → Where are transforms fit? (train only — no leakage)
+    Real-time (Redis velocity features) vs batch (offline embeddings)
+    Where are transforms fit? Train data only — never on val/test
 
 Step 8: Serving
-  → Batch (offline pre-computation) vs real-time (< 200ms)
-  → Caching strategy for expensive lookups
+    Batch (pre-compute offline) vs real-time (sub-200ms)
+    Caching strategy for repeated expensive lookups
 
 Step 9: Evaluation
-  → A/B test design: metric, power, duration, novelty effect mitigation
-  → Holdout set, backtesting for ranking
+    A/B test design: primary metric, sample size calculation, duration, novelty effect
+    Temporal backtesting for ranking and time-sensitive systems
 
-Step 10: Monitoring
-  → PSI on features (> 0.25 = retrain), prediction score distribution
-  → Business KPI drop threshold for auto-rollback
+Step 10: Monitoring + rollback
+    PSI on input features (> 0.25 = retrain trigger)
+    Prediction score distribution drift (> 2σ from 7-day baseline = alert)
+    Business KPI drop threshold → auto-rollback
+    Rollback plan defined before launch, tested quarterly
 ```
 
-**Senior-level signals** (always mention these):
+**Signals that distinguish senior responses:**
 
-| Signal | Why it matters |
+| Signal | What it reveals about experience |
 | :--- | :--- |
-| Cold start | Every real system has new users / new items |
-| Feedback loops | Popularity → more data → more popular (self-reinforcing bias) |
-| Rollback plan | Shows production maturity |
-| Cost-aware threshold | Precision vs recall is a business cost question |
-| Data freshness | Stale features cause silent degradation |
+| Cold start handling | Every production system has new users and new items. Missing this is a strong junior signal. |
+| Feedback loops | Recommending popular items makes them more popular. Self-reinforcing bias is a real design problem, not a theoretical one. |
+| Rollback plan | Rollback should be defined before launch. Defining it after something breaks means you shipped without a safety net. |
+| Cost-aware threshold | Default 0.5 threshold is almost never optimal. The threshold should come from the cost matrix $C_{FP}, C_{FN}$. |
+| Training-serving skew | The most common source of offline-online metric divergence. Missing this means you'd waste days debugging the wrong thing. |
+| Ground truth delay | For fraud, chargebacks arrive 30-60 days after the transaction. Your "current" labels are a month old. |
 
 ---
 
-## 6. Behavioral / Project Deep Dive — Structure
+## 6. Behavioral / Project Deep Dive
 
-**Every project story needs all 7 elements:**
+Every project story requires seven elements. Missing any one costs you.
 
-| Element | Bad version | Strong version |
+| Element | Weak version | Strong version |
 | :--- | :--- | :--- |
-| Problem | "We needed better recommendations" | "CTR on homepage dropped 8% after a catalog expansion — existing model had no cold start handling for new items" |
-| Constraints | (omitted) | "< 50ms latency, no model retraining more than weekly, team of 2" |
-| Approach | "We used two-tower model" | "We tried matrix factorization first (baseline), identified cold start as bottleneck, then added content-based two-tower for new items" |
-| Tradeoffs | (omitted) | "Two-tower adds 40ms vs MF, justified because it recovered the 8% CTR on new items. Accepted worse recall@100 for existing items" |
-| Metrics | "AUC improved" | "Offline NDCG@10 +12%. A/B test: CTR +6.3%, revenue/user +2.1%, p<0.01 at n=500K per arm" |
-| Production outcome | "We shipped it" | "Rolled out with 5% canary → 50% → 100% over 2 weeks, monitoring PSI and CTR. Zero rollbacks needed" |
-| Lesson | (omitted) | "Diagnosed cold start too late — should've been in the baseline evaluation. Now cold start is part of every evaluation checklist" |
+| Problem | "We needed better recommendations" | "CTR on homepage dropped 8% after a catalog expansion — our model had no cold start handling for new items, so new items never appeared in recommendations" |
+| Constraints | (omitted) | "< 50ms P99 latency, retraining budget of once per week, team of 2 MLE, model decisions must be explainable to legal" |
+| Approach | "We used a two-tower model" | "Started with matrix factorization as a baseline (2 days). Per-segment analysis showed cold start drove most of the gap. Added a content-based two-tower for new items only, routing traffic by item age" |
+| Tradeoffs | (omitted) | "Two-tower adds 40ms latency vs MF. Accepted this because it recovered the 8% CTR gap on new items. Recall@100 on existing items dropped 3% — accepted because the business impact was smaller" |
+| Metrics | "AUC improved" | "Offline NDCG@10 +12%. A/B: CTR +6.3%, revenue/user +2.1%, p < 0.01 at n = 500K per arm" |
+| Production outcome | "We shipped it" | "5% canary → 50% → 100% over two weeks. One rollback event: feature pipeline failure detected at 5% canary — zero user impact because we hadn't scaled up" |
+| Lesson | (omitted) | "We didn't run cold start analysis before building the baseline. Cold start evaluation is now a first-day checklist item for every new model." |
 
-**The three story types you must have ready:**
-
-1. **Technical problem-solving story:** diagnosed a hard bug or unexpected degradation
-2. **Failure story:** something didn't work and you shipped it anyway, or got it wrong first
-3. **Tradeoff / disagreement story:** chose the slower but more reliable approach over a stakeholder's preference
+**Three story types you must have prepared, not just one:**
+1. **Technical problem-solving:** you diagnosed a hard problem systematically — unexpected degradation, a confounding variable, a bug that looked like a model problem but was a data problem
+2. **Failure story:** you shipped something wrong, or made a judgment call that turned out to be incorrect — what happened, what you did, what changed
+3. **Tradeoff / disagreement:** you chose the slower or more conservative option over stakeholder pressure, with a quantified reason
 
 ---
 
-## 7. Key Tradeoffs — What "Why X and Not Y" Sounds Like
+## 7. Key Tradeoffs — the "Why X and Not Y" Pattern
 
-| Tradeoff | Strong answer structure |
+The right answer to any tradeoff question is: "it depends on these factors, and here is how I would decide."
+
+| Tradeoff | Decision logic |
 | :--- | :--- |
-| XGBoost vs neural net | "XGBoost: tabular data with < 1M rows, faster to iterate, interpretable. Neural net: when you need to jointly learn embeddings (IDs, text) or when you have > 10M rows. Both: A/B test wins." |
-| Precision vs recall | "Depends on cost. Fraud: FN (missed fraud) >> FP (false block). Cancer screening: same. Spam filter: FP (blocking legit email) >> FN. Cost matrix → threshold." |
-| BatchNorm vs LayerNorm | "BatchNorm normalizes over the batch — breaks for small batches and variable-length sequences. LayerNorm normalizes over features per sample — standard for Transformers, works at batch size 1." |
-| L1 vs L2 regularization | "L1: sparse weights (Lasso) — useful for feature selection, interpretability. L2: small weights, none exactly zero (Ridge) — better when all features are relevant. L1 = Laplace prior, L2 = Gaussian prior on MAP." |
-| Online vs batch serving | "Online: decision depends on current context (fraud at transaction time). Batch: when freshness < latency requirement matters (weekly churn scores). Hybrid: batch pre-compute user embeddings, online lookup." |
-| SMOTE vs class_weight | "class_weight='balanced' is free and works for most models. SMOTE generates synthetic minority samples — helps when minority class is severely underrepresented in tabular data. Doesn't help with distribution shift." |
+| XGBoost vs neural net | XGBoost for tabular data < 1M rows — right inductive bias, fast iteration, interpretable. Neural net when jointly embedding high-cardinality IDs or raw text, sharing representations across tasks, or dataset > 10M rows. The data size and embedding requirement are the decision variables. |
+| Precision vs recall | Depends on the cost matrix: $C_{FN}$ vs $C_{FP}$. Fraud: missed fraud ($C_{FN}$) >> false block ($C_{FP}$) → recall-oriented. Spam: false block ($C_{FP}$) >> missed spam ($C_{FN}$) → precision-oriented. The threshold should minimize $\text{FP} \times C_{FP} + \text{FN} \times C_{FN}$, not maximize F1. |
+| BatchNorm vs LayerNorm | BatchNorm normalizes over the batch dimension — requires a large, consistent batch; fails for variable-length sequences; breaks at batch size 1. LayerNorm normalizes over features per sample — sequence-length agnostic, standard for Transformers, works at any batch size. RMSNorm (LLaMA): skips mean subtraction (empirically unimportant), faster. |
+| L1 vs L2 | L1: sparse — some weights exactly 0. Use for feature selection and interpretability. L2: all weights small, none exactly 0. Use when all features are plausibly relevant. ElasticNet: use when you want both sparsity and stability. |
+| Online vs batch serving | Online when the decision depends on current context (fraud at transaction time, autocomplete). Batch when freshness is not required within the latency budget (weekly churn scores). Hybrid is most common in production: pre-compute embeddings offline, assemble and score at query time. |
+| SMOTE vs class_weight | Try `class_weight='balanced'` first — free, no data generation, works for most models. SMOTE for severe imbalance in tabular data when the minority class is genuinely underrepresented in coverage, not just count. Neither fix handles distribution shift — that requires domain adaptation or more representative data. |
 
 ---
 
-## 8. Numbers You Should Know Cold
+## 8. Numbers to Know Without Thinking
 
 | Fact | Value |
 | :--- | :--- |
 | GPT-3 parameters | 175B |
-| Chinchilla optimal tokens/param | ~20 |
+| Chinchilla optimal tokens per parameter | ~20 |
 | LLaMA 3 training tokens | 15T |
 | Standard attention complexity | $O(n^2 d)$ |
-| LoRA trainable params (typical) | ~0.06% of base |
-| BF16 memory/param | 2 bytes |
-| 70B model BF16 VRAM | ~140GB |
-| PSI > X = retrain trigger | 0.25 |
-| KS test p-value threshold | 0.05 |
-| AdamW typical β₁, β₂ | 0.9, 0.999 |
-| Dropout rate range | 0.1–0.5 |
-| Warmup steps (typical) | 1–5% of total |
+| LoRA trainable parameters (typical) | ~0.06% of base model |
+| BF16 memory per parameter | 2 bytes |
+| FP32 memory per parameter | 4 bytes |
+| 70B model in BF16 VRAM | ~140GB |
+| PSI retrain threshold | > 0.25 |
+| AdamW default $\beta_1, \beta_2$ | 0.9, 0.999 (LLM pretraining: 0.9, 0.95) |
+| Warmup fraction of training | 1–5% of total steps |
+| KV cache per 1K tokens (LLaMA 3 70B) | ~160MB |
 
 ---
 
-## 9. Mistakes to Avoid
+## 9. Mistakes That Cost You the Role
 
-| Mistake | Why it costs you |
+| Mistake | What it signals |
 | :--- | :--- |
-| Starting design with model choice | Shows no requirements thinking |
-| Only mentioning accuracy as metric | No business metric awareness |
-| Skipping cold start in recommendations | Junior signal |
-| "Retrain the model" as first response to prod issue | Shows no debugging instinct |
-| Not mentioning monitoring or rollback | Shows no production experience |
-| Overconfident about tricky stats questions | Misinterpreting p-value is a red flag |
-| Rote answers to behavioral questions | No ownership or judgment shown |
+| Starting system design with model choice | No requirements discipline — you'd design the right model for the wrong problem |
+| Mentioning only accuracy as a metric | No understanding of class imbalance or business impact |
+| Skipping cold start in a recommendation design | Junior signal — every production recommendation system encounters this |
+| "Retrain the model" as first response to a production accuracy drop | No debugging instinct — you'd waste days on the wrong fix |
+| Not mentioning monitoring or rollback | You think shipping = done; no production experience |
+| Confident misinterpretation of p-values | Statistics red flag — "p < 0.05 means the null is probably false" is wrong |
+| Rote behavioral answers with passive framing | "The team did" instead of "I decided because" — low ownership signal |
 
 ---
 
-## 10. Prep Checklist
+## 10. Pre-Interview Checklist
 
-**Must be cold (0 hesitation):**
-- [ ] Sigmoid, softmax, BCE from scratch
-- [ ] Precision, recall, F1 from scratch
-- [ ] Bias-variance decomposition
-- [ ] Bayes theorem calculation
-- [ ] p-value correct interpretation (and 2 wrong interpretations)
-- [ ] Two-stage retrieval+ranking pattern
-- [ ] 10-step system design framework
-- [ ] Three project stories (solve, failure, disagreement)
+**Must write from scratch, zero hesitation:**
+- [ ] Sigmoid, softmax, numerically stable BCE
+- [ ] Precision, recall, F1 with correct denominators stated verbally
+- [ ] Bias-variance decomposition formula + one-sentence interpretation of each term
+- [ ] Bayes theorem applied to the rare-disease test example (the answer is ~9%, not 99%)
+- [ ] Correct p-value interpretation + two wrong interpretations stated explicitly
+- [ ] Two-stage retrieval + ranking sketch
+- [ ] The 10-step system design framework
 
-**Must be able to explain tradeoffs:**
-- [ ] L1 vs L2 vs Dropout vs Early stopping
-- [ ] BatchNorm vs LayerNorm
-- [ ] Batch vs real-time serving
-- [ ] Precision vs recall (with cost framing)
-- [ ] XGBoost vs neural net
+**Must explain tradeoffs fluently:**
+- [ ] L1 vs L2 vs Dropout vs Early stopping (mechanism, not just effect)
+- [ ] BatchNorm vs LayerNorm — with the BatchNorm failure conditions
+- [ ] Batch vs real-time serving — with the hybrid pattern
+- [ ] Precision vs recall as a cost matrix problem
+- [ ] XGBoost vs neural net — with specific decision criteria
 
-**Must be able to sketch from memory:**
-- [ ] Two-tower recommendation architecture
-- [ ] Fraud detection pipeline (rule engine + ML + threshold)
-- [ ] LLM serving stack (load balancer → vLLM → KV cache)
-- [ ] Train/val/test split (including temporal split for time series)
+**Must sketch from memory:**
+- [ ] Two-tower recommendation system (retrieval + ranking + cold start path)
+- [ ] Fraud detection pipeline (Redis velocity → rule engine → ML model → cost-aware threshold)
+- [ ] LLM serving stack (load balancer → vLLM → KV cache → streaming)
+- [ ] Temporal train/val/test split — why random splits fail for time-series

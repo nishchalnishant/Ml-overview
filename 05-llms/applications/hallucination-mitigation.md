@@ -1,582 +1,246 @@
-# Hallucination Mitigation in LLMs
-
-A systematic treatment of why large language models hallucinate, how to detect it, and the full stack of techniques — from decoding constraints to RLHF — used to reduce it.
+# Hallucination Mitigation
 
 ---
 
-## 1. What is Hallucination
+## Why LLMs Hallucinate
 
-A hallucination occurs when a model generates text that is fluent and plausible-sounding but factually incorrect or unverifiable.
+**The problem:** a language model is trained to minimize next-token prediction loss. It is not trained to distinguish "I know this" from "this sounds plausible." Both a recalled fact and a fluent confabulation look identical to the training objective — they are evaluated only on whether the output distribution matches the training corpus, not on whether the generated claim is true. The model has no internal oracle to consult.
 
-### Taxonomy
+**The core insight:** hallucination is not a bug introduced into an otherwise correct system. It is the natural behavior of a model optimized for fluency rather than factual accuracy. Any mitigation must either (a) give the model external facts to attend to instead of relying on parametric memory, (b) detect when generated claims are inconsistent with a reliable source, or (c) change what the model is rewarded for during training.
+
+**What breaks without mitigation:** in safety-critical domains (medicine, law, finance), a confidently stated wrong fact is worse than acknowledged uncertainty. User trust degrades rapidly once hallucinations are discovered. RAG systems can amplify hallucinations if the retrieved context is itself wrong or if the model ignores context in favor of its training memory.
+
+---
+
+## Taxonomy
 
 | Type | Definition | Example |
-|---|---|---|
-| **Intrinsic** | Output contradicts the provided source/context | Summarizer reverses a stated date |
-| **Extrinsic** | Output adds information absent from or unverifiable against source | Model invents a citation |
-| **Faithful hallucination** | Consistent with context but factually wrong in the world | Faithfully summarizes a wrong claim in the document |
-| **Factual hallucination** | Contradicts world knowledge | States Einstein was born in France |
+|:---|:---|:---|
+| Intrinsic | Output contradicts the provided source/context | Summarizer reverses a date stated in the source document |
+| Extrinsic | Output adds information absent from the source | Model invents a citation that does not exist |
+| Faithful hallucination | Consistent with context but factually wrong in the world | Faithfully summarizes a wrong claim from the source |
+| Factual hallucination | Contradicts world knowledge | States Einstein was born in France |
 
-### Why It Matters
-
-- Safety-critical domains (medicine, law, finance) cannot tolerate fabricated facts
-- User trust degrades rapidly once hallucinations are noticed
-- RAG systems can amplify hallucinations if retrieval is noisy
+Note: faithful ≠ factual. A model can accurately reflect a wrong claim in a source document (faithful but factually wrong) or accurately state world knowledge despite a source saying otherwise (factual but unfaithful).
 
 ---
 
-## 2. Why LLMs Hallucinate
+## Root Causes
 
-### Exposure Bias (Teacher Forcing vs Autoregressive Inference)
+### Teacher Forcing vs. Autoregressive Inference
 
-During training with teacher forcing the model always sees the ground-truth previous token. At inference it sees its own (possibly wrong) previous token. This distribution mismatch accumulates errors over long sequences — the model was never trained to recover from its own mistakes.
+**The problem:** during training the model always receives the ground-truth previous token as input. At inference it receives its own (possibly wrong) previous token. These are different distributions. A model trained under teacher forcing was never exposed to its own errors as inputs — it was never trained to recover from mistakes.
 
 ```
-Training:   P(w_t | w_1*, w_2*, ..., w_{t-1}*)   ← ground truth prefix
-Inference:  P(w_t | w_1^, w_2^, ..., w_{t-1}^)   ← model's own output
+Training:   P(wₜ | w₁*, w₂*, ..., w*ₜ₋₁)  ← ground truth prefix
+Inference:  P(wₜ | ŵ₁, ŵ₂, ..., ŵₜ₋₁)    ← model's own output
 ```
 
-### Training Data Issues
+An error at position t becomes the input for position t+1, compounding over long generations.
 
-- **Memorization vs. generalization**: Models memorize frequent surface patterns. For rare facts the model interpolates, producing plausible but wrong outputs.
-- **Data contamination**: Inconsistent facts across web-scraped sources create conflicting training signal.
-- **Sycophancy from RLHF**: Human raters sometimes reward confident, fluent answers — training models to assert rather than hedge.
+### Knowledge Cutoff and Rare Facts
 
-### Decoding Artifacts
+**The problem:** models memorize frequent patterns well and interpolate for rare ones. For common facts (the capital of France), memorization is reliable. For rare facts (an obscure historical event), the model may have seen contradictory or insufficient training examples, and will produce a plausible-sounding interpolation that is wrong. Facts after the training cutoff simply do not exist in the model's weights — queries about them force fabrication.
 
-| Decoding Parameter | Effect on Hallucination |
-|---|---|
-| High temperature | More randomness → more factual drift |
-| High top-p (nucleus) | Samples from broader distribution → less grounded tokens |
-| Greedy / beam search | Can still hallucinate; repetition and mode collapse |
-| Repetition penalty | Forces novel tokens, occasionally off-topic ones |
+### RLHF Sycophancy
 
-The softmax over a 100k-token vocabulary means low-probability but plausible tokens are always reachable.
+**The problem:** human raters sometimes reward confident, fluent responses more than cautious, hedging ones. A model trained on this signal learns that asserting things confidently is rewarded, even when the assertion is wrong. The model is being trained to seem accurate rather than to be accurate.
 
-### Knowledge Cutoff
+### Decoding Parameters
 
-The model has no access to information after its training cutoff. Queries about recent events force the model to extrapolate, which increases fabrication. This is the primary motivation for RAG.
+High temperature and high top-p sampling draw tokens from a broader distribution — trading coherence for diversity, which means factual precision also degrades. Greedy decoding does not eliminate hallucination; it can still produce the mode of a wrong distribution.
 
 ---
 
-## 3. Detection Methods
+## Detection
 
-### 3.1 Self-Consistency
+### Self-Consistency
 
-Sample N responses to the same prompt. Measure agreement across responses. High variance on factual claims signals uncertainty.
+**The problem:** we cannot directly measure whether a claim is true without a reference. But we can measure whether the model is consistent about a claim across independent samples.
 
-```python
-from collections import Counter
+**The core insight:** if a claim is grounded in the model's actual knowledge, re-sampling should produce the same claim. If the claim is confabulated, different samples will contradict each other. High variance across samples signals unreliable information.
 
-def self_consistency_check(model, prompt, n=10, extract_fn=lambda x: x):
-    responses = [model.generate(prompt) for _ in range(n)]
-    answers = [extract_fn(r) for r in responses]
-    counts = Counter(answers)
-    majority, freq = counts.most_common(1)[0]
-    confidence = freq / n
-    return majority, confidence
-```
+**The mechanics:** sample N responses to the same prompt. Extract the key claim. Measure agreement. Majority answer with high frequency = likely correct; scattered answers = high uncertainty.
 
-Works well for closed-form questions (math, dates). Harder for open-ended generation.
+**What breaks:** works well for closed-form questions. Breaks for open-ended generation where two responses can be semantically equivalent but lexically different. Does not catch errors the model consistently makes — systematic hallucinations produce high cross-sample consistency.
 
 ---
 
-### 3.2 SelfCheckGPT
+### SelfCheckGPT
 
-**Key idea**: If a statement is factual, re-sampling the model should produce consistent outputs. Inconsistency across samples indicates hallucination — no external knowledge base required.
+**The problem:** self-consistency requires knowing what "the answer" is in advance. For longer generated texts with many claims, extracting and comparing individual claims across N samples is not straightforward.
 
-**Algorithm**:
-1. Generate a primary response `r_0`
-2. Sample `N` additional responses `{r_1, ..., r_N}` at non-zero temperature
-3. For each sentence `s_i` in `r_0`, measure how consistently it appears in `{r_1, ..., r_N}`
-4. High inconsistency score → hallucination flag
+**The core insight:** each sentence in the primary response can be checked for consistency against independently sampled responses. If a sentence appears in a different form or is contradicted in other samples, it is likely hallucinated. No external knowledge base is required — only the model's own variance.
 
-```python
-import numpy as np
-from sentence_transformers import SentenceTransformer, util
+**The mechanics:**
+1. Generate a primary response at temperature 0.
+2. Sample N additional responses at temperature > 0.
+3. For each sentence in the primary response, measure its maximum semantic similarity to any sentence in each of the N samples.
+4. Low average similarity = the sentence is inconsistent across samples = likely hallucinated.
 
-def selfcheck_gpt(model, prompt, n_samples=5, threshold=0.75):
-    """
-    Returns per-sentence hallucination scores for the primary response.
-    Score close to 1.0 = likely hallucination.
-    """
-    primary = model.generate(prompt, temperature=0.0)
-    samples = [model.generate(prompt, temperature=0.7) for _ in range(n_samples)]
-
-    encoder = SentenceTransformer("all-MiniLM-L6-v2")
-
-    primary_sentences = split_sentences(primary)
-    results = []
-
-    for sentence in primary_sentences:
-        s_emb = encoder.encode(sentence, convert_to_tensor=True)
-        consistencies = []
-
-        for sample in samples:
-            sample_sentences = split_sentences(sample)
-            if not sample_sentences:
-                consistencies.append(0.0)
-                continue
-            samp_embs = encoder.encode(sample_sentences, convert_to_tensor=True)
-            # max cosine similarity of this sentence against any sentence in sample
-            sim = util.cos_sim(s_emb, samp_embs).max().item()
-            consistencies.append(sim)
-
-        avg_consistency = np.mean(consistencies)
-        hallucination_score = 1.0 - avg_consistency
-        results.append({
-            "sentence": sentence,
-            "hallucination_score": hallucination_score,
-            "flagged": hallucination_score > (1 - threshold)
-        })
-
-    return results
-
-
-def split_sentences(text):
-    # Placeholder — use nltk.sent_tokenize or spacy in practice
-    return [s.strip() for s in text.split(".") if s.strip()]
-```
-
-Original paper also uses NLI and n-gram variants of the consistency measure.
+**What breaks:** systematic hallucinations — errors the model makes consistently — produce high cross-sample consistency and are not detected. This method catches random fabrication, not confident misinformation.
 
 ---
 
-### 3.3 NLI-Based Factual Checking
+### NLI-Based Factual Checking
 
-Use a Natural Language Inference model to check whether each generated claim is **entailed by**, **neutral to**, or **contradicted by** a reference source.
+**The problem:** for RAG systems, there is a specific verifiable source: the retrieved documents. The question is whether each generated claim is supported by that source.
 
+**The core insight:** Natural Language Inference (NLI) models classify whether a premise entails, is neutral to, or contradicts a hypothesis. Use an NLI model as the verifier: premise = retrieved source, hypothesis = generated claim. Contradiction = hallucination.
+
+**The mechanics:**
 ```
-claim  →  NLI model  →  {entailment, neutral, contradiction}
-source ↗
-```
-
-```python
-from transformers import pipeline
-
-nli = pipeline("text-classification", model="cross-encoder/nli-deberta-v3-small")
-
-def check_claim_against_source(claim: str, source: str) -> dict:
-    result = nli(f"{source} [SEP] {claim}")[0]
-    return {
-        "label": result["label"],   # ENTAILMENT / NEUTRAL / CONTRADICTION
-        "score": result["score"],
-        "hallucinated": result["label"] == "CONTRADICTION"
-    }
+retrieved_source + generated_claim → NLI model → {entailment, neutral, contradiction}
 ```
 
-Limitation: NLI models trained on SNLI/MultiNLI may not generalize to domain-specific text.
+**What breaks:** NLI models trained on SNLI/MultiNLI may not generalize to domain-specific text. A claim can be "neutral" to the source (neither confirmed nor denied) — is that a hallucination or a valid extension? The NLI model itself can be wrong.
 
 ---
 
-### 3.4 Reference-Based Metrics
+### FactScore
 
-| Metric | Mechanism | Limitation |
-|---|---|---|
-| ROUGE-{1,2,L} | N-gram overlap with reference | Does not capture semantic correctness |
-| BERTScore | Contextual embedding cosine similarity | Can miss factual errors if surface is similar |
-| **FactScore** | Decompose → retrieve → verify each atomic claim | Requires retrieval corpus; slow |
+**The problem:** a generated sentence may contain multiple atomic claims, some supported and some not. A sentence-level correct/incorrect label misses this granularity.
 
-**FactScore pipeline**:
+**The core insight:** decompose the generated text into atomic claims (the smallest verifiable units), retrieve evidence for each claim independently, and verify each against its evidence. FactScore = fraction of atomic claims that are supported.
 
-```
-generated text
-    → atomic claim decomposition (LLM)       e.g. "Marie Curie won the Nobel Prize in 1903"
-    → retrieval from Wikipedia per claim
-    → NLI / LLM verification: supported or not
-    → FactScore = fraction of supported atomic claims
-```
+**The mechanics:**
+1. Use an LLM to decompose generated text into atomic claims.
+2. For each claim, retrieve relevant passages from Wikipedia via BM25 or dense retrieval.
+3. Use an NLI model or LLM to classify each claim as supported or not.
+4. FactScore = (supported claims) / (total claims).
+
+**What breaks:** the decomposition step can introduce errors. Retrieval may fail to surface the right evidence for obscure claims. Expensive at scale — full FactScore on a long response requires many retrieval calls.
 
 ---
 
-## 4. Retrieval-Augmented Generation (RAG)
+## Mitigation
 
-Ground each response in retrieved documents rather than purely parametric memory. The key insight: retrieval externalizes the knowledge store, making facts inspectable and updateable without retraining.
+### Retrieval-Augmented Generation (RAG)
 
-### Architecture
+**The problem:** the model's parametric memory is fixed at training time, cannot be updated, cannot be verified, and conflates remembered facts with confabulated text that merely sounds plausible.
 
-```
-User query
-    │
-    ▼
-[Retriever]  ──────────────────────────────────────┐
-  Dense (DPR, BGE, E5)                             │
-  Sparse (BM25)                                    │
-  Hybrid (RRF fusion)                              │
-    │                                              │
-    ▼                                              │
-[Top-K documents]                                  │
-    │                                              │
-    ▼                                              │
-[Context assembly]  ←── chunk + rerank (optional) │
-    │                                              │
-    ▼                                              │
-[LLM]  ← system prompt with retrieved context ────┘
-    │
-    ▼
-[Response grounded in retrieved docs]
-```
+**The core insight:** externalize the knowledge store. Give the model the relevant facts directly in the prompt. If the retrieved context contains the answer, the model attends to an explicit, verifiable source rather than reconstructing from distributed weights. The source is also updatable without retraining.
 
-### Code Sketch
+**The mechanics:**
+1. Embed the query.
+2. Retrieve top-k chunks from a vector index by cosine similarity.
+3. Prepend retrieved chunks to the prompt.
+4. Instruct the model to answer only from the provided context.
 
-```python
-from sentence_transformers import SentenceTransformer
-import faiss
-import numpy as np
-
-class SimpleRAG:
-    def __init__(self, documents: list[str], llm_fn, top_k: int = 3):
-        self.documents = documents
-        self.llm_fn = llm_fn
-        self.top_k = top_k
-        self.encoder = SentenceTransformer("BAAI/bge-small-en-v1.5")
-        self._build_index()
-
-    def _build_index(self):
-        embeddings = self.encoder.encode(self.documents, normalize_embeddings=True)
-        dim = embeddings.shape[1]
-        self.index = faiss.IndexFlatIP(dim)   # inner product = cosine on normalized vecs
-        self.index.add(embeddings.astype(np.float32))
-
-    def retrieve(self, query: str) -> list[str]:
-        q_emb = self.encoder.encode([query], normalize_embeddings=True)
-        _, indices = self.index.search(q_emb.astype(np.float32), self.top_k)
-        return [self.documents[i] for i in indices[0]]
-
-    def answer(self, query: str) -> str:
-        context_docs = self.retrieve(query)
-        context = "\n\n".join(f"[Doc {i+1}]: {d}" for i, d in enumerate(context_docs))
-        prompt = (
-            f"Answer the question using ONLY the documents below. "
-            f"If the answer is not in the documents, say 'I don't know'.\n\n"
-            f"{context}\n\nQuestion: {query}\nAnswer:"
-        )
-        return self.llm_fn(prompt)
-```
-
-### RAG Failure Modes
-
-- Retriever returns irrelevant documents → model ignores context and hallucinates anyway
-- Long context dilution → model attends to noisy parts
-- Context faithfulness vs. world knowledge conflict → model may override retrieved fact
-- Closed-book fallback → model answers from memory when context seems weak
+**What breaks:** retrieval quality is the ceiling. If the right chunk is not retrieved, the model falls back to parametric memory. Chunks in the middle of long contexts get ignored (lost-in-the-middle). Conflicting retrieved passages cause hedging or arbitrary selection. Semantic similarity ≠ relevance.
 
 ---
 
-## 5. Prompt Engineering
+### Prompt Engineering
 
-### Chain-of-Thought (CoT)
+**The problem:** a model capable of expressing uncertainty rarely does so by default, because training data rewards confident assertions.
 
-Step-by-step reasoning forces the model to articulate intermediate claims, each of which can be verified. Reduces hallucination on multi-step reasoning tasks.
+**The core insight:** explicit instructions in the prompt can activate hedging behavior. The model has seen many examples of hedged language in training; prompting it to use those phrases increases their frequency in output.
 
-```
-Bad:  "When was the Eiffel Tower built? Answer:"
-Good: "When was the Eiffel Tower built? Think step by step before answering."
-```
+**The mechanics:**
+- Append "Think step by step before answering" — forces verifiable intermediate steps.
+- Include few-shot examples where the model says "I don't know" for uncertain questions.
+- Add explicit instructions: "If you are less than 80% confident in a claim, preface it with 'I believe.' If you cannot verify from the provided context, say so."
+- Instruct citation: "After each factual claim, include [Doc N] referring to the source document."
 
-Hallucination rate on arithmetic and multi-hop QA drops substantially with CoT (Wei et al., 2022).
-
-### "I Don't Know" Few-Shot Examples
-
-```python
-system_prompt = """You are a factual assistant. If you are uncertain, say exactly
-"I don't know" rather than guessing. Examples:
-
-Q: What is the capital of France?
-A: Paris.
-
-Q: Who won the 2031 World Cup?
-A: I don't know — that event is beyond my knowledge cutoff.
-
-Q: What is 17 × 24?
-A: 408.
-
-Q: What is the exact population of Mars colony Alpha?
-A: I don't know — no such colony exists as of my knowledge cutoff.
-"""
-```
-
-### Explicit Uncertainty Instructions
-
-```
-"If you are less than 80% confident in a claim, preface it with 'I believe' or
-'I think'. If you cannot verify a claim from the provided context, say so explicitly."
-```
-
-### Cite Sources Instruction
-
-```
-"After each factual statement, include [Doc N] referring to the document number
-in the context. Only make claims you can cite."
-```
+**What breaks:** prompt instructions are not enforced mechanically — they increase the probability of desired behaviors but do not guarantee them. A model that is confidently wrong will override hedging instructions. Longer system prompts can dilute the effect.
 
 ---
 
-## 6. RLHF and RLAIF
+### Constrained Decoding
 
-### RLHF (Reinforcement Learning from Human Feedback)
+**The problem:** format-level hallucinations (invented JSON keys, wrong data types, impossible enum values) occur when the model generates output that must conform to a schema but is not mechanically required to do so.
 
-Human raters label responses for factual accuracy. A reward model is trained on these preferences. The LLM policy is fine-tuned via PPO to maximize reward.
+**The core insight:** at each decoding step, mask out any token that would make the output invalid according to the schema. The model cannot generate invalid output because it is physically prevented from doing so.
 
-```
-Prompt → LLM → response_A, response_B
-                     ↓
-               Human: A > B (A is more accurate)
-                     ↓
-               Reward model trained on Bradley-Terry pairs
-                     ↓
-               PPO fine-tunes LLM to maximize R(response)
-```
+**The mechanics:** derive a finite-state machine (FSM) from the JSON schema or regex. At each generation step, compute which tokens are valid given the current FSM state. Assign −∞ logit to all other tokens. The model samples only from valid tokens.
 
-When the reward model penalizes hallucinations explicitly, factuality improves. However, reward hacking is a real failure mode — models learn to appear confident rather than be accurate.
-
-### Constitutional AI / RLAIF (Anthropic)
-
-Replace human labelers with an AI critic guided by a constitution of principles.
-
-1. **Critique**: Model generates a response, then critiques it against a principle (e.g., "Does this response contain unverified claims?")
-2. **Revision**: Model revises its response based on the critique
-3. **Preference data**: (original, revised) pairs used to train a preference model
-4. **RL fine-tuning**: Policy trained against the AI preference model
-
-```
-response → critique prompt → critique text → revision prompt → revised response
-                                                  ↓
-                                         (original, revised) → PM training
-```
-
-### Limitations of RLHF/RLAIF for Hallucination
-
-- Reward models can themselves hallucinate or be inconsistent
-- Hard to define a precise reward signal for factual accuracy at scale
-- Models may learn to avoid factual claims entirely (excessive hedging)
-- Distribution shift: reward model trained on one domain may not generalize
+**What breaks:** constrained decoding eliminates format hallucinations but not factual ones. A model can generate valid JSON with wrong values. Very tight constraints can force semantically nonsensical outputs if the model is trying to say something the schema does not support.
 
 ---
 
-## 7. Factuality Fine-Tuning
+### Calibration
 
-### Core Idea
+**The problem:** a model that says "I am 90% confident" should be correct 90% of the time at that stated confidence. If it is actually correct only 50% of the time at that stated confidence, the expressed confidence is useless.
 
-Instead of relying on RL, directly fine-tune on datasets where outputs are verified to be factually correct. Penalize or exclude hallucinated outputs from training.
+**The core insight:** calibration measures the gap between expressed confidence and empirical accuracy. Improving calibration does not change what the model says — it changes how reliably the model's stated confidence predicts correctness.
 
-### Notable Approaches
+**The mechanics:**
+- **Expected Calibration Error (ECE):** bin predictions by stated confidence; measure the average gap between confidence and accuracy within each bin. Low ECE = well calibrated.
+- **Verbalized uncertainty:** train or prompt the model to use phrases ("I believe," "I'm not certain") when it is less confident.
+- **Token-level log-probabilities:** for single-token answers, the model's own log-probability of the answer token is a calibration signal — imperfect but better than nothing.
 
-| Method | Mechanism |
-|---|---|
-| **FLAME** | Factuality-aware fine-tuning; down-weights training examples with hallucinated claims |
-| **FLAN-style factuality** | Instruction tuning on verified QA datasets (Natural Questions, TriviaQA) |
-| **FactTune** | Fine-tune with FactScore as the signal; select only high-FactScore training examples |
-| **Truthful SFT** | SFT on TruthfulQA-style adversarial examples with correct answers |
-
-### Data Selection Strategy
-
-```python
-def factuality_filter(examples, threshold=0.85):
-    """
-    Keep only examples where FactScore >= threshold.
-    Used to build a clean SFT dataset.
-    """
-    verified = []
-    for ex in examples:
-        score = compute_factscore(ex["response"], ex["source"])
-        if score >= threshold:
-            verified.append(ex)
-    return verified
-```
-
-Trade-off: filtering aggressively reduces dataset size and may hurt coverage of edge cases.
+**What breaks:** RLHF training often worsens calibration by rewarding confident assertions. Large models are frequently overconfident. Verbalized confidence ("70% confident") is unreliable as an absolute estimate — it is better used as a relative ranking signal.
 
 ---
 
-## 8. Calibration
+### Factuality Fine-Tuning
 
-A well-calibrated model's expressed confidence matches its actual accuracy. If a model says it is 90% confident on 100 claims, roughly 90 should be correct.
+**The problem:** the base training corpus contains falsehoods, contradictions, and unverified claims. A model trained on this data will reproduce them. Instruction tuning with random internet text cannot fix systematic factual errors baked in during pretraining.
 
-### Expected Calibration Error (ECE)
+**The core insight:** curate training data specifically for factual accuracy. Train or fine-tune only on examples that have been verified against a reliable knowledge source. Down-weight or exclude examples containing hallucinated claims.
 
-```
-ECE = Σ_b (|B_b| / n) * |acc(B_b) - conf(B_b)|
+**The mechanics:**
+- Filter the SFT dataset to keep only examples with FactScore above a threshold.
+- Include TruthfulQA-style adversarial examples with correct answers (teaching the model not to repeat common misconceptions).
+- Use FactScore as a reward signal: prefer high-FactScore responses during preference data collection.
 
-where B_b = bucket of predictions with confidence in [b, b+1/M)
-      acc  = fraction correct in bucket
-      conf = mean confidence in bucket
-```
-
-Low ECE = well calibrated. Large LLMs are often overconfident (underestimate uncertainty).
-
-### Confidence Elicitation
-
-```python
-# Verbalized probability — ask the model directly
-prompt = (
-    "Answer the following question and then state your confidence as a percentage.\n"
-    "Q: In what year did World War II end?\n"
-    "A: [your answer]. Confidence: [X]%"
-)
-
-# Token probability — use log-probabilities of answer tokens
-import math
-
-def token_confidence(model, prompt, answer_token):
-    logprobs = model.get_logprobs(prompt)
-    prob = math.exp(logprobs.get(answer_token, -float("inf")))
-    return prob
-```
-
-### Verbalized Uncertainty Phrases
-
-Training or prompting models to use hedging language:
-
-- "I believe, but am not certain, that..."
-- "As of my knowledge cutoff..."
-- "I don't have reliable information on this."
-- "You may want to verify this with a current source."
-
-Models fine-tuned on data that includes these phrases produce better-calibrated verbalized uncertainty (Kadavath et al., 2022 — "Language Models (Mostly) Know What They Know").
+**What breaks:** aggressive filtering shrinks the dataset — coverage of rare topics decreases. The filtering process itself uses an imperfect verifier. Fine-tuning on a narrow factuality-focused dataset can reduce general capability (catastrophic forgetting).
 
 ---
 
-## 9. Constrained Decoding
+### RLHF and RLAIF
 
-Force the output to conform to a schema, preventing the model from generating tokens that would violate structural or factual constraints.
+**The problem:** cross-entropy training on human-written text trains the model to match the training distribution. It does not teach the model to prefer true answers over plausible-sounding false ones when both appear in training data.
 
-### JSON Mode / Structured Outputs
+**The core insight:** collect explicit human judgments of which responses are more factually accurate. Train a reward model on these judgments. Fine-tune the LLM to maximize reward. This directly optimizes for factual accuracy — the property that cross-entropy training ignores.
 
-OpenAI, Anthropic, and open-source serving frameworks support grammar-constrained generation that guarantees valid JSON matching a schema. This eliminates a class of format-level hallucinations (invented keys, wrong types).
+**The mechanics (RLHF):**
+1. SFT: fine-tune on demonstration data.
+2. Reward model: train on human preferences (response A preferred over response B) using Bradley-Terry loss.
+3. PPO: fine-tune the SFT model to maximize reward, with KL penalty to prevent diverging from the SFT policy.
 
-```python
-from pydantic import BaseModel
-from openai import OpenAI
+RLAIF replaces human labelers with an AI critic guided by a constitution of principles — the model critiques its own responses, revisions are preferred over originals, and these (original, revised) pairs train the preference model.
 
-class FactualClaim(BaseModel):
-    claim: str
-    confidence: float          # 0.0 – 1.0
-    source_cited: bool
-
-client = OpenAI()
-response = client.beta.chat.completions.parse(
-    model="gpt-4o",
-    messages=[{"role": "user", "content": "State one fact about photosynthesis."}],
-    response_format=FactualClaim,
-)
-claim: FactualClaim = response.choices[0].message.parsed
-```
-
-### Grammar-Constrained Decoding (Outlines / LMQL)
-
-**Outlines** uses a finite-state machine derived from a regex or JSON schema. At each decoding step, only tokens that keep the FSM in a valid state are allowed — all others get `-inf` logit.
-
-```python
-import outlines
-
-model = outlines.models.transformers("mistralai/Mistral-7B-v0.1")
-
-# Only allow responses matching this regex — no hallucinated formats
-generator = outlines.generate.regex(
-    model,
-    r"The answer is (yes|no)\. Confidence: (0\.\d+|1\.0)\."
-)
-
-result = generator("Is the Eiffel Tower in Paris?")
-# → "The answer is yes. Confidence: 0.97."
-```
-
-**LMQL** embeds constraints as logical predicates evaluated during beam search:
-
-```
-argmax
-  "Answer: [ANSWER]"
-where
-  len(ANSWER) < 20 and
-  ANSWER in {"yes", "no", "unknown"}
-```
-
-### Trade-offs
-
-- Hard constraints can force grammatically valid but semantically wrong outputs
-- Reduces generation diversity
-- Very effective for structured extraction tasks; less so for open-ended generation
+**What breaks:** reward hacking — the model learns to appear factually accurate rather than to be factually accurate. The reward model can be fooled by confident, fluent responses. Hard to define a precise reward signal for factual accuracy at scale.
 
 ---
 
-## 10. Evaluation Benchmarks
+## Evaluation Benchmarks
 
-### TruthfulQA (Lin et al., 2022)
+### TruthfulQA
 
-- 817 adversarial questions designed to elicit common misconceptions
-- Humans tend to answer incorrectly due to widespread falsehoods
-- Metrics: % truthful, % informative, truthful × informative
-- Weakness: static, GPT-4 already saturates some categories
+817 adversarial questions designed to elicit common misconceptions. Questions are designed so the "imitative falsehood" — the answer that sounds true — is wrong. Metrics: % truthful, % informative, truthful × informative.
+
+**Limitation:** static benchmark; frontier models are approaching saturation. Does not test open-ended generation.
+
+### FActScore
+
+Open-domain biography generation. FactScore = % of atomic claims supported by Wikipedia retrieval + NLI verification. GPT-4 ~73%, Llama-2-13B ~55% at release.
+
+**Limitation:** slow and expensive. Limited to Wikipedia-verifiable claims.
 
 ### HaluEval
 
-- Pairs of (hallucinated, non-hallucinated) outputs across QA, summarization, dialogue
-- Tests whether models can identify which response hallucmates
-- Useful for evaluating detector models
+Pairs of (hallucinated, non-hallucinated) outputs across QA, summarization, and dialogue. Tests whether models can distinguish the hallucinated version from the correct one.
 
-### FActScore (Min et al., 2023)
+**Limitation:** tests detection ability, not generation quality.
 
-- Open-domain biography generation benchmark
-- FactScore = % of atomic claims supported by Wikipedia retrieval + NLI
-- Model score: GPT-4 ~73%, Llama-2-13B ~55% at release
+### FELM
 
-### FELM (Factual Error Localization and Mitigation)
-
-- Focuses on fine-grained error localization within a response
-- Labels individual sentences as factual or hallucinated
-- Tests both detection and localization accuracy
-
-### Summary Table
-
-| Benchmark | Task | Primary Metric | Notes |
-|---|---|---|---|
-| TruthfulQA | Closed-ended QA | % Truthful | Adversarial misconceptions |
-| HaluEval | Classification | Accuracy | Hallucination detection |
-| FActScore | Open-ended generation | FactScore (0–1) | Wikipedia-grounded |
-| FELM | Span-level detection | F1 (sentence-level) | Error localization |
+Span-level hallucination detection. Labels individual sentences as factual or hallucinated. Tests both detection accuracy and localization (which sentence is wrong?).
 
 ---
 
-## 11. Key Interview Points
+## Mitigation Stack by Cost
 
-**Definitions**
-- Hallucination = fluent but factually incorrect or unverifiable output. Distinguish intrinsic (contradicts source) from extrinsic (unverifiable addition).
-- Faithful ≠ factual: a model can faithfully reproduce a wrong claim from a document.
+| Intervention | Cost | Effect |
+|:---|:---|:---|
+| Prompt engineering (CoT, cite sources, "I don't know") | Near zero | Reduces surface hallucination; unreliable for confident errors |
+| RAG | Medium (infra) | Externalizes knowledge; retrieval quality is the ceiling |
+| Constrained decoding | Low (inference compute) | Eliminates format hallucinations; does not fix factual ones |
+| Calibration | Low (prompting or light fine-tuning) | Improves uncertainty expression; does not change content |
+| Factuality fine-tuning | High (GPU + curated data) | Reduces systematic errors; risks reducing coverage |
+| RLHF/RLAIF | Very high (reward model + RL loop) | Most powerful; reward hacking risk |
 
-**Root Causes**
-- Exposure bias from teacher forcing creates a train/inference distribution mismatch.
-- Knowledge cutoff forces extrapolation on recent facts.
-- High temperature and top-p sampling increase variance and factual drift.
-- RLHF sycophancy can reward confident-sounding wrong answers.
-
-**Detection**
-- Self-consistency: high variance across samples signals uncertainty.
-- SelfCheckGPT: no external KB needed — inconsistency across samplings = hallucination.
-- NLI-based: entailment model checks claim vs. source; scalable but model-dependent.
-- FactScore: gold standard for open-ended generation, but expensive.
-
-**Mitigation Stack (ordered by intervention cost)**
-1. Prompt engineering (cheapest — CoT, uncertainty instructions, cite-sources)
-2. RAG (externalizes knowledge, reduces parametric reliance)
-3. Constrained decoding (schema enforcement, no retraining needed)
-4. Calibration (verbalized uncertainty, confidence elicitation)
-5. Factuality fine-tuning (requires curated data)
-6. RLHF/RLAIF (most expensive, reward hacking risk)
-
-**RAG Gotchas**
-- Retriever quality is the ceiling; bad retrieval → worse grounding than no RAG.
-- Models still hallucinate when context is long or noisy (lost in the middle problem).
-- Hybrid retrieval (dense + BM25 + RRF) outperforms dense-only in most benchmarks.
-
-**Calibration**
-- ECE measures gap between confidence and accuracy; lower is better.
-- Large models are often overconfident; RLHF sometimes makes this worse.
-- Verbalized uncertainty ("I believe...") can be elicited by few-shot or fine-tuning.
-
-**Constrained Decoding**
-- Outlines uses FSM-masked logits; guarantees valid schema but can't fix semantic errors.
-- JSON mode eliminates format hallucinations, not factual ones.
-
-**Benchmarks to cite**
-- TruthfulQA for adversarial misconceptions, FActScore for open-ended factuality, HaluEval for detector evaluation, FELM for error localization.
+*Related: [RAG](rag.md) | [Tuning and Optimization](tuning-optimization.md) | [Agentic Workflows](agentic-workflows.md)*

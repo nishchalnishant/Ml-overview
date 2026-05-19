@@ -1,849 +1,646 @@
 # Introduction to AI
 
-## Artificial Intelligence
+---
 
-**Definition:** Artificial Intelligence (AI) is the field of computer science focused on creating systems capable of performing tasks that typically require human intelligence, such as learning, reasoning, problem-solving, perception, and language understanding.
+## What Is AI, and Why Does the Question Matter?
 
-### <mark style="color:yellow;">Core Learning Paradigms</mark>
+**The problem:** Computers execute exact instructions. But most useful tasks — recognizing a face, translating a sentence, deciding whether a loan applicant will default — cannot be fully specified as rules. Every explicit rule system ever written for these tasks broke on cases the rule writer didn't anticipate.
 
-AI systems learn patterns and make decisions through various approaches:
+**The core insight:** Instead of writing rules, write a *learning procedure* that infers rules from examples. The program's job shifts from "solve the problem" to "learn how to solve the problem from data."
 
-* <mark style="color:$danger;">**Statistical Machine Learning**</mark> - Uses mathematical and probabilistic methods to find patterns in data:
-  * Creates decision boundaries, hyperplanes, or hierarchical splits to divide data
-  * Examples: Linear/logistic regression, SVMs, decision trees, random forests
-* <mark style="color:$danger;">**Deep Learning**</mark> - Mimics human neural networks to learn complex patterns through iterative optimization:
-  * Learns hierarchical feature representations automatically
-  * Excels at unstructured data (images, text, audio)
-  * Examples: CNNs, RNNs, Transformers
-* <mark style="color:$danger;">**Generative AI**</mark> <mark style="color:$danger;"></mark><mark style="color:$danger;">-</mark> Creates new data samples after learning from existing data:
-  * Examples: GANs, VAEs, Diffusion Models (DALL-E, Stable Diffusion)
-* <mark style="color:$danger;">**Reinforcement Learning**</mark> - Learns through interaction with an environment via rewards and penalties:
-  * Agent learns optimal actions through trial and error
-  * Examples: Game playing (AlphaGo), robotics, recommendation systems
+**The mechanics:** An AI system is any program that uses this learned knowledge to act on new inputs. Machine learning is the dominant method for building such systems today.
 
-### <mark style="color:yellow;">Key Challenges in Machine Learning</mark>
+**What breaks:** Learning from examples inherits all the biases and gaps in those examples. A system trained only on historical loan decisions learns the prejudices of the loan officers who made them. The problem of specifying rules is replaced by the harder problem of curating representative, unbiased data.
 
-* <mark style="color:$danger;">**Data Representation**</mark> - How to encode and feed data to ML models (feature engineering, embeddings)
-* <mark style="color:$danger;">**Performance Monitoring**</mark> - Tracking model progress during training (loss curves, validation metrics)
-* <mark style="color:$danger;">**Generalization**</mark> - Ensuring models learn the right patterns and perform well on unseen data
-* <mark style="color:$danger;">**Interpretability**</mark> - Understanding how models make decisions
-* <mark style="color:$danger;">**Scalability**</mark> - Handling large datasets and deploying models in production
+---
 
-### <mark style="color:yellow;">Machine Learning vs Deep Learning</mark>
+## Core Learning Paradigms
 
-<table data-header-hidden><thead><tr><th width="154.6163330078125"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Aspect</strong></td><td><strong>Machine Learning</strong></td><td><strong>Deep Learning</strong></td></tr><tr><td><strong>Approach</strong></td><td>Statistical and probabilistic methods</td><td>Neural networks with multiple hidden layers</td></tr><tr><td><strong>Data Requirements</strong></td><td>Works well with smaller datasets (1K-100K samples)</td><td>Requires large datasets (100K-1M+ samples)</td></tr><tr><td><strong>Computation</strong></td><td>Lower computational cost, can run on CPUs</td><td>High computational cost, requires GPUs/TPUs</td></tr><tr><td><strong>Feature Engineering</strong></td><td>Manual feature engineering required</td><td>Automatic feature learning</td></tr><tr><td><strong>Training Time</strong></td><td>Minutes to hours</td><td>Hours to days/weeks</td></tr><tr><td><strong>Interpretability</strong></td><td>High (e.g., decision trees, linear models)</td><td>Low (black-box models)</td></tr><tr><td><strong>Use Cases</strong></td><td>Tabular data, structured problems, limited data</td><td>Images, text, audio, unstructured data</td></tr><tr><td><strong>Performance Scaling</strong></td><td>Plateaus with more data</td><td>Improves with more data and model size</td></tr><tr><td><strong>Hardware Needs</strong></td><td>Standard CPU sufficient</td><td>GPUs/TPUs often necessary</td></tr></tbody></table>
+### Statistical Machine Learning
 
-**When to Use Machine Learning:**
+**The problem:** You have labeled examples (input → output pairs) and you want a function that generalizes — one that predicts correctly on inputs it has never seen.
 
-* Small to medium-sized datasets
-* Structured/tabular data
-* Need for model interpretability
-* Limited computational resources
-* Quick iteration and deployment needed
+**The core insight:** Structure your function family to be expressive enough to fit real patterns but constrained enough to avoid memorizing noise. A linear boundary, a splitting tree, or a maximum-margin hyperplane each embodies a different assumption about what "structure" looks like.
 
-**When to Use Deep Learning:**
+**The mechanics:** Algorithms like linear regression, logistic regression, SVMs, and decision trees learn explicit decision boundaries from labeled data. Random forests and gradient-boosted trees combine many such boundaries to reduce error.
 
-* Large datasets available
-* Unstructured data (images, text, audio, video)
-* Complex pattern recognition required
-* Performance is priority over interpretability
-* Sufficient computational resources available
+**What breaks:** If the true pattern is outside the function family (e.g., you fit a line to curved data), the model will be wrong systematically — high bias. If the family is too flexible (e.g., a very deep tree), it memorizes training noise — high variance.
 
-## <mark style="color:yellow;">Machine Learning Fundamentals</mark>
+---
 
-### <mark style="color:red;">Bias-Variance Trade-off</mark>
+### Deep Learning
 
-One of the most important concepts in machine learning - understanding this is critical for interviews.
+**The problem:** Hand-crafting features for images, audio, and text requires immense domain expertise and rarely generalizes across tasks. Even expert-designed features for face recognition fail on unusual lighting conditions no one thought to encode.
 
-**Mathematical Foundation:**
+**The core insight:** Stack many simple parameterized transformations (layers). Each layer learns to detect patterns in the output of the previous layer. The hierarchy of features emerges from the data, not from a human designer.
 
-The expected prediction error can be decomposed as:
+**The mechanics:** Neural networks chain matrix multiplications and non-linear activations. Backpropagation computes how each weight contributed to the error; gradient descent updates them. With enough data and compute, hierarchical representations of images, words, and signals emerge automatically.
+
+**What breaks:** Deep networks need enormous data and compute. They are hard to interpret. They fail silently on inputs that look statistically different from training data (distribution shift). Very deep networks suffer vanishing or exploding gradients unless special architecture choices (residual connections, normalization) are made.
+
+---
+
+### Generative AI
+
+**The problem:** Discriminative models tell you which class an input belongs to, but they cannot synthesize new examples. You cannot ask a spam classifier to write an email.
+
+**The core insight:** Model the data distribution P(x) itself — or a conditional version P(x | condition). Once you can sample from this distribution, you can generate new images, text, audio, or any other data type.
+
+**The mechanics:** Different approaches model the distribution differently. GANs pit a generator against a discriminator; the generator improves until its samples are indistinguishable from real data. VAEs encode data into a structured latent space and decode samples from it. Diffusion models learn to iteratively denoise random noise back into real data. Autoregressive models (GPT-style) predict the next token given all previous ones, factoring P(x) into a product of conditional probabilities.
+
+**What breaks:** GANs are notoriously unstable to train (mode collapse, training oscillation). VAEs produce blurry outputs because they average over the latent distribution. Diffusion models are slow at inference. Autoregressive models can hallucinate confidently — the decoding process has no mechanism to verify factual accuracy.
+
+---
+
+### Reinforcement Learning
+
+**The problem:** For many tasks — game playing, robot locomotion, dialogue systems — there is no correct output to supervise against. The only feedback is a scalar reward signal that arrives late, after a sequence of actions.
+
+**The core insight:** An agent should learn to choose actions that maximize cumulative future reward, not just immediate reward. This transforms the learning problem into a search for a *policy* — a mapping from states to actions.
+
+**The mechanics:** The agent interacts with an environment, observes states, takes actions, and receives rewards. Algorithms like Q-learning learn to estimate the value of each (state, action) pair. Policy gradient methods (like PPO) directly optimize the policy by reinforcing actions that led to high returns. The Bellman equation provides the recursive backbone: the value of a state equals the immediate reward plus the discounted value of the next state.
+
+**What breaks:** RL requires an enormous number of environment interactions to converge. Sparse rewards make credit assignment extremely hard (which of the 10,000 actions led to winning?). Simulated environments often produce policies that fail in the real world (sim-to-real gap). RLHF for language models inherits all these instabilities plus reward hacking — models learn to satisfy the reward model without satisfying the intent behind it.
+
+---
+
+## Machine Learning Fundamentals
+
+### Bias-Variance Trade-off
+
+**The problem:** You train a model and it performs well on training data but poorly on new data. Alternatively, it performs poorly on both. These are two distinct failure modes with different causes and different fixes — how do you tell them apart and what do you do?
+
+**The core insight:** Prediction error has two controllable components. *Bias* is the systematic error from making wrong assumptions about the function shape — the model is consistently wrong in the same direction. *Variance* is the error from sensitivity to the specific training examples used — the model's predictions vary wildly across different training sets. A third component, irreducible noise, cannot be fixed regardless of model choice.
+
+**The mechanics:**
 
 ```
-Expected Loss = Bias² + Variance + Irreducible Error
-
 E[(y - ŷ)²] = Bias² + Variance + σ²
 ```
 
-<mark style="color:$danger;">**Definitions**</mark>**:**
+Increasing model complexity (more features, deeper trees, more parameters) typically decreases bias but increases variance. Decreasing complexity does the reverse. The goal is to minimize total error, which sits at the sweet spot between the two.
 
-* **Bias** - Error from incorrect assumptions in the learning algorithm
-  * Measures how far off the average model prediction is from the true value
-  * **High Bias → Underfitting** - Model is too simple, fails to capture underlying patterns
-  * Example: Using linear regression for non-linear data
-* **Variance** - Error from sensitivity to small fluctuations in training data
-  * Measures how much predictions vary across different training sets
-  * **High Variance → Overfitting** - Model learns noise in training data
-  * Example: Deep decision tree memorizing training data
-* **Irreducible Error** - Noise in the data that cannot be reduced (σ²)
+| Factor | Effect on Bias | Effect on Variance |
+|---|---|---|
+| More training data | None | Decreases |
+| More complex model | Decreases | Increases |
+| Regularization (higher λ) | Increases | Decreases |
+| Ensemble methods (bagging) | Decreases | Decreases |
+| More features | Decreases | Increases |
 
-<mark style="color:red;">**Visual Understanding:**</mark>
+**What breaks:** The trade-off is not symmetric. Adding more data always helps variance and never hurts bias — but you often can't get more data. Ensemble methods can simultaneously reduce both, which is why they dominate competition leaderboards; the cost is interpretability and training time.
 
-```
-High Bias, Low Variance:    Low Bias, High Variance:    Optimal:
-  Consistent but wrong        Close but inconsistent      Accurate & consistent
-                              
-                                                           
-  (Underfitting)              (Overfitting)                   (Balanced)
-```
+---
 
-<mark style="color:$danger;">**The Trade-off:**</mark>
+### Regularization
 
-* Reducing bias typically increases variance (more complex model)
-* Reducing variance typically increases bias (simpler model)
-* Goal: Find the sweet spot that minimizes total error
+**The problem:** A model with too many parameters relative to training examples will fit noise. You cannot always get more data or use a simpler model. You need a way to penalize complexity from within the loss function itself.
 
-<mark style="color:$danger;">**Factors Affecting Bias and Variance:**</mark>
+**The core insight:** Add a penalty for large weights to the thing you're minimizing. Large weights encode strong, specific patterns — penalizing them biases the model toward simpler explanations that are less likely to be coincidental noise in the training set.
 
-<table data-header-hidden><thead><tr><th width="190.94879150390625"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Factor</strong></td><td><strong>Effect on Bias</strong></td><td><strong>Effect on Variance</strong></td></tr><tr><td>More training data</td><td>No change</td><td>Decreases ↓</td></tr><tr><td>More features</td><td>Decreases ↓</td><td>Increases ↑</td></tr><tr><td>More complex model</td><td>Decreases ↓</td><td>Increases ↑</td></tr><tr><td>Regularization (↑λ)</td><td>Increases ↑</td><td>Decreases ↓</td></tr><tr><td>Feature selection</td><td>May increase ↑</td><td>Decreases ↓</td></tr><tr><td>Ensemble methods</td><td>Decreases ↓</td><td>Decreases ↓</td></tr></tbody></table>
+**The mechanics:**
 
-<mark style="color:$danger;">**How to Reduce High Bias (Underfitting):**</mark>
+L1 (Lasso): `Loss = MSE + α × Σ|w|`
+- The absolute-value penalty has a corner at zero; the gradient is discontinuous there. Optimization pushes weights exactly to zero — the model performs implicit feature selection.
 
-* Use more complex model (e.g., polynomial features, deeper network)
-* Add more relevant features
-* Decrease regularization (reduce λ)
-* Remove noise from data
-* Increase model capacity
+L2 (Ridge): `Loss = MSE + α × Σw²`
+- The squared penalty produces a smooth gradient everywhere. Weights shrink proportionally toward zero but never reach it exactly. Numerically stable; works well when all features contribute.
 
-<mark style="color:$danger;">**How to Reduce High Variance (Overfitting):**</mark>
+Elastic Net: `Loss = MSE + α₁ × Σ|w| + α₂ × Σw²`
+- Combines both penalties. Handles correlated features better than pure L1 (which arbitrarily zeros one of a correlated pair).
 
-* Collect more training data
-* Feature selection / dimensionality reduction
-* Increase regularization (increase λ)
-* Use ensemble methods (bagging)
-* Cross-validation
-* Early stopping (for neural networks)
-* Dropout (for neural networks)
+**What breaks:** Regularization introduces a new hyperparameter (α / λ) that must itself be tuned. Too high and you underfit; the model is too constrained to learn real signal. Regularization also assumes all weights should be small — a bad assumption if a few features genuinely have large true effects.
 
-**Interview Tip:** Be ready to explain with a concrete example: _"If I use linear regression on data with a quadratic relationship, I'll have high bias because the model can't capture the curve. If I use a 20-degree polynomial, I'll have high variance because it'll fit every noise point in my training data."_
+---
 
-### <mark style="color:yellow;">Regularization Techniques</mark>
+### Train/Validation/Test Split
 
-Regularization adds a penalty term to the loss function to prevent overfitting:
+**The problem:** You need an honest estimate of how your model will perform on data it has never seen. If you use the same data to both train and evaluate, you will overestimate performance — the model has implicitly optimized for that data.
 
-*   <mark style="color:$danger;">**L1 Regularization (Lasso):**</mark>
+**The core insight:** Hold out data before training begins and never touch it until a final, irreversible evaluation. Every decision you make while looking at held-out performance (even just choosing a threshold) uses up some of that held-out data's independence.
 
-    ```
-    Loss = MSE + α × Σ|w|
-    ```
+**The mechanics:** Split data into three disjoint sets before any fitting occurs.
 
-    * Produces sparse models (some weights become exactly 0)
-    * Useful for feature selection
-    * Less stable with correlated features
-*   <mark style="color:$danger;">**L2 Regularization (Ridge):**</mark>
+- **Training set (60–80%):** The model sees and learns from this.
+- **Validation set (10–20%):** Used to compare models and tune hyperparameters. Each time you look at validation performance to make a decision, you are implicitly using it as a training signal.
+- **Test set (10–20%):** Touched exactly once, after all decisions are final. This produces the only honest performance estimate.
 
-    ```
-    Loss = MSE + α × Σw²
-    ```
+For imbalanced classes, stratify each split so class proportions are preserved. For time series, always split chronologically — using future data to predict the past is leakage.
 
-    * Shrinks all weights but doesn't zero them out
-    * More stable with correlated features
-    * Preferred when all features are relevant
-*   <mark style="color:$danger;">**Elastic Net:**</mark>
+**What breaks:** The test set provides one sample from the distribution of possible evaluations. With small datasets, this estimate has high variance. Repeated use of the test set (across experiments, across papers on the same benchmark) is a form of slow leakage — the field eventually overfits the benchmark.
 
-    ```
-    Loss = MSE + α₁ × Σ|w| + α₂ × Σw²
-    ```
+---
 
-    * Combines L1 and L2
-    * Handles correlated features better than Lasso
+### Cross-Validation
 
-<mark style="color:red;">**Interview Question:**</mark> _<mark style="color:red;">"When would you use L1 vs L2 regularization?"</mark>_
+**The problem:** With small datasets, a single train/validation split may assign you a lucky or unlucky split by chance. A model that performs well on one split might perform poorly on another. You need a more stable estimate of generalization performance.
 
-* <mark style="color:red;">L1: When you suspect many features are irrelevant and want feature selection</mark>
-* <mark style="color:red;">L2: When you believe most features contribute and want to avoid instability</mark>
+**The core insight:** Instead of one split, make K different splits and average the results. Each data point acts as validation data exactly once. The average over K folds is a much lower-variance estimate of true generalization performance.
 
-### <mark style="color:yellow;">Train/Validation/Test Split</mark>
+**The mechanics:** In K-Fold CV, partition data into K equal folds. For each fold: train on the remaining K-1 folds, evaluate on the held-out fold. Report the mean and standard deviation of the K scores.
 
-**Purpose:** Properly evaluate model performance and prevent overfitting
+- **Stratified K-Fold:** Preserves class distribution in each fold. Required for imbalanced classification.
+- **Time Series Split:** Each validation fold is strictly in the future relative to its training fold. Never shuffle time series before splitting.
+- **Leave-One-Out (LOO):** K = N. Maximally uses data but is computationally expensive and produces high-variance estimates on noisy problems.
 
-<mark style="color:red;">**Standard Split Ratios:**</mark>
+**What breaks:** CV is K times more expensive than a single run. For large models or large datasets, this is prohibitive. Nested CV is required when tuning hyperparameters with CV — using the same CV loop for both model selection and performance estimation is a subtle form of optimistic bias.
 
-* **Training Set (60-80%):** Used to fit the model
-* **Validation Set (10-20%):** Used for hyperparameter tuning and model selection
-* **Test Set (10-20%):** Used ONLY for final evaluation
+---
 
-<mark style="color:red;">**Best Practices:**</mark>
+### Ensemble Methods
 
-* **Stratification:** Maintain class distribution in splits for imbalanced data
-* **Time-based split:** For time series, always split chronologically
-* **Never use test data during development**
+**The problem:** A single model makes a single type of error. If you could combine models that make different errors, their mistakes might cancel out.
 
-```python
-from sklearn.model_selection import train_test_split
+**The core insight:** Errors cancel only if the models are sufficiently independent — trained on different data, initialized differently, or using different algorithms. Combining dependent models does little.
 
-# Split into train+val (80%) and test (20%)
-X_temp, X_test, y_temp, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42, stratify=y
-)
+**The mechanics:**
 
-# Split train+val into train (75% of 80% = 60%) and val (25% of 80% = 20%)
-X_train, X_val, y_train, y_val = train_test_split(
-    X_temp, y_temp, test_size=0.25, random_state=42, stratify=y_temp
-)
-```
+**Bagging (Bootstrap Aggregating):** Train multiple models in parallel, each on a random bootstrap sample (sampling with replacement) of the training data. Average predictions (regression) or take majority vote (classification). Each model sees a slightly different dataset, so their errors are partially independent. This reduces variance without changing bias. *Example: Random Forest.*
 
-### <mark style="color:yellow;">Cross-Validation</mark>
+**Boosting:** Train models sequentially. Each new model is trained to correct the errors of the ensemble so far — either by upweighting misclassified examples (AdaBoost) or by fitting the residual errors directly (gradient boosting). Reduces bias. More powerful than bagging on most tabular problems but more sensitive to noisy data. *Examples: XGBoost, LightGBM, CatBoost.*
 
-**Purpose:** Better utilize limited data and get more reliable performance estimates
+**Stacking:** Train a meta-model whose inputs are the predictions of base models on held-out data. The meta-model learns which base models to trust for which inputs.
 
-<mark style="color:$danger;">**K-Fold Cross-Validation:**</mark>
+**What breaks:** Boosting overfits noisy data because it is designed to reduce error on the training set — it aggressively chases every misclassification including noise. Ensembles are harder to interpret and slower to serve. The gains from stacking diminish as base models become more similar.
 
-* Split data into K folds
-* Train on K-1 folds, validate on 1 fold
-* Repeat K times, each fold used as validation once
-* Average results across all folds
+---
 
-**Common Variants:**
+## Machine Learning Algorithms
 
-* <mark style="color:red;">**Stratified K-Fold:**</mark> <mark style="color:red;"></mark><mark style="color:red;">Maintains class distribution (use for classification)</mark>
-* **Time Series Split:** Respects temporal order
-* **Leave-One-Out (LOO):** K = number of samples (expensive but thorough)
+### Supervised Learning
 
-```python
-from sklearn.model_selection import cross_val_score, StratifiedKFold
+Supervised learning uses labeled data — (input, output) pairs — to learn a mapping function that generalizes to new inputs.
 
-# Stratified 5-fold cross-validation
-skf = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-scores = cross_val_score(model, X, y, cv=skf, scoring='accuracy')
-print(f"Average Accuracy: {scores.mean():.3f} (+/- {scores.std() * 2:.3f})")
-```
+#### Regression Algorithms
 
-**When to Use:**
+| Algorithm | Time Complexity | Key Assumption | When to Use |
+|---|---|---|---|
+| Linear Regression | O(n·p²) | Linear relationship, independent features | Baseline, interpretability required |
+| Ridge / Lasso | O(n·p²) | Same + many or irrelevant features | High-dimensional, feature selection |
+| Decision Tree | O(n·log(n)·p) | None | Non-linear, interpretable |
+| Random Forest | O(n·log(n)·p·t) | None | General purpose, non-linear |
+| XGBoost / LightGBM | O(n·log(n)·p·t) | None | Highest accuracy on tabular data |
+| SVR | O(n²·p)–O(n³·p) | Kernel-dependent | Small-medium data, non-linear |
+| KNN | O(n·p) per prediction | Similar inputs cluster together | Small data, simple baseline |
 
-* Small datasets (to maximize training data usage)
-* Model comparison (more reliable than single split)
-* Hyperparameter tuning (use nested CV)
+#### Classification Algorithms
 
-<mark style="color:red;">**Interview Tip:**</mark> <mark style="color:red;"></mark><mark style="color:red;">Mention that CV is computationally expensive (K times the cost) but gives more robust estimates.</mark>
+| Algorithm | Time Complexity | Strengths | Common Failure Modes |
+|---|---|---|---|
+| Logistic Regression | O(n·p) | Fast, interpretable, calibrated probabilities | Assumes linear decision boundary |
+| Naive Bayes | O(n·p) | Works with tiny data, fast | Assumes feature independence |
+| Decision Tree | O(n·log(n)·p) | Interpretable, non-linear | Prone to overfitting |
+| Random Forest | O(n·log(n)·p·t) | Robust, handles imbalance | Less interpretable, slower |
+| XGBoost | O(n·log(n)·p·t) | Best on tabular data | Overfits with poor tuning |
+| LightGBM | O(n·p·t) | Fastest for large data | Overfits on small data |
+| SVM | O(n²·p)–O(n³·p) | Effective in high dimensions | Slow on large datasets |
+| KNN | O(n·p) | No training phase | Slow inference, curse of dimensionality |
 
-### <mark style="color:$warning;">Ensemble Methods</mark>
+*n = samples, p = features, t = trees/estimators*
 
-Combine multiple models to improve performance:
+#### Algorithm Selection
 
-* **Bagging (Bootstrap Aggregating):**
-  * Reduces **variance**
-  * <mark style="color:red;">Trains multiple models on random subsets of data</mark>
-  * Averages predictions (regression) or votes (classification)
-  * Example: Random Forest
-* **Boosting:**
-  * Reduces **bias**
-  * <mark style="color:red;">Sequentially trains weak learners, each focusing on previous errors</mark>
-  * Examples: AdaBoost, Gradient Boosting, XGBoost, LightGBM, CatBoost
-* **Stacking:**
-  * Trains a meta-model on predictions of base models
-  * Can combine diverse model types
+Start simple and escalate based on evidence:
 
-\-------------------------------------------------------------------------------------------------------
+1. **Regression:** Linear Regression → Random Forest → XGBoost
+2. **Classification:** Logistic Regression → Random Forest → XGBoost
 
-## <mark style="color:yellow;">Machine Learning Algorithms</mark>
+Choose based on constraints:
+- Need interpretability: Linear/Logistic Regression, Decision Tree
+- High-dimensional data: Lasso, Ridge, Random Forest
+- Categorical features: CatBoost, LightGBM
+- Limited data: Naive Bayes, regularized linear models
+- Fast inference required: Linear models, Naive Bayes
+- Maximum accuracy on tabular: XGBoost, LightGBM, CatBoost
 
-### <mark style="color:red;">Supervised Learning</mark>
+---
 
-Supervised learning uses labeled data (input-output pairs) to learn a mapping function.
+### Unsupervised Learning
 
-#### <mark style="color:blue;">Regression Algorithms (Continuous Output)</mark>
+Unsupervised learning finds structure in data without labels.
 
-| **Algorithm**         | **Time Complexity**   | **Key Assumptions**                       | **When to Use**                            |
-| --------------------- | --------------------- | ----------------------------------------- | ------------------------------------------ |
-| **Linear Regression** | O(n·p²)               | Linear relationship, independent features | Quick baseline, interpretability needed    |
-| **Ridge/Lasso**       | O(n·p²)               | Same as linear + many features            | High-dimensional data, feature selection   |
-| **Decision Tree**     | O(n·log(n)·p)         | None                                      | Non-linear relationships, interpretability |
-| **Random Forest**     | O(n·log(n)·p·t)       | None                                      | General purpose, handles non-linearity     |
-| **XGBoost/LightGBM**  | O(n·log(n)·p·t)       | None                                      | Structured data, need highest accuracy     |
-| **SVR**               | O(n²·p) to O(n³·p)    | Kernel-dependent                          | Small-medium datasets, non-linear          |
-| **KNN**               | O(n·p) per prediction | Similar instances close together          | Small datasets, simple baseline            |
+#### Clustering
 
-_n = samples, p = features, t = trees_
+| Algorithm | Time Complexity | Best For | Limitations |
+|---|---|---|---|
+| K-Means | O(n·k·i·p) | Spherical clusters, large datasets | Must specify k; sensitive to outliers |
+| DBSCAN | O(n·log(n)) | Arbitrary shapes, outlier detection | Struggles with varying density |
+| Hierarchical | O(n²·log(n)) | Unknown k, dendrograms | Slow on large data |
+| GMM | O(n·k·i·p) | Soft assignments, probabilistic clusters | Assumes Gaussian distributions |
 
-#### <mark style="color:blue;">Classification Algorithms (Categorical Output)</mark>
+*k = clusters, i = iterations*
 
-| **Algorithm**           | **Time Complexity** | **Key Strengths**                        | **Common Issues**                         |
-| ----------------------- | ------------------- | ---------------------------------------- | ----------------------------------------- |
-| **Logistic Regression** | O(n·p)              | Fast, interpretable, probability outputs | Assumes linear decision boundary          |
-| **Naive Bayes**         | O(n·p)              | Fast, works well with small data         | Assumes feature independence              |
-| **Decision Tree**       | O(n·log(n)·p)       | Interpretable, handles non-linearity     | Prone to overfitting                      |
-| **Random Forest**       | O(n·log(n)·p·t)     | Robust, handles imbalanced data          | Less interpretable, slower                |
-| **XGBoost**             | O(n·log(n)·p·t)     | State-of-art on tabular data             | Requires tuning, can overfit              |
-| **LightGBM**            | O(n·p·t)            | Faster than XGBoost, good for large data | Can overfit on small data                 |
-| **CatBoost**            | O(n·log(n)·p·t)     | Handles categorical features well        | Slower training                           |
-| **SVM**                 | O(n²·p) to O(n³·p)  | Effective in high dimensions             | Slow on large datasets                    |
-| **KNN**                 | O(n·p)              | Simple, no training time                 | Slow predictions, curse of dimensionality |
+#### Dimensionality Reduction
 
-**Ensemble Methods:**
+**The problem:** High-dimensional data is sparse (curse of dimensionality), slow to process, and hard to visualize. Distance metrics break down in hundreds of dimensions.
 
-* **Bagging (Random Forest):** Reduces variance, parallel training
-* **Boosting (XGBoost, AdaBoost, GBM):** Reduces bias, sequential training
-* **Stacking:** Combines diverse models with meta-learner
+| Algorithm | Type | Preserves | Use Case |
+|---|---|---|---|
+| PCA | Linear | Global structure, variance | Noise reduction, preprocessing |
+| t-SNE | Non-linear | Local structure | 2D/3D visualization |
+| UMAP | Non-linear | Local + global structure | Faster visualization than t-SNE |
+| LDA | Supervised linear | Class separability | Feature extraction for classification |
+| Autoencoders | Non-linear | Learned features | Complex non-linear compression |
 
-#### <mark style="color:blue;">Algorithm Selection Guide</mark>
+---
 
-**Start with these baselines:**
+## Evaluation Metrics
 
-1. <mark style="color:red;">**Regression**</mark>**:** Linear Regression → Random Forest → XGBoost
-2. <mark style="color:red;">**Classification**</mark>**:** Logistic Regression → Random Forest → XGBoost
+### Regression Metrics
 
-<mark style="color:blue;">**Choose based on constraints:**</mark>
+**The problem:** You need a single number that summarizes how wrong your predictions are across all examples — but "wrong" means different things in different contexts.
 
-* <mark style="color:red;">**Need interpretability:**</mark> Linear/Logistic Regression, Decision Tree
-* <mark style="color:red;">**Have high-dimensional data:**</mark> Lasso, Ridge, Random Forest
-* <mark style="color:red;">**Have categorical features:**</mark> CatBoost, LightGBM
-* <mark style="color:red;">**Limited data:**</mark> Naive Bayes, Regularized Linear Models
-* <mark style="color:red;">**Need fast predictions:**</mark> Linear models, Naive Bayes
-* <mark style="color:red;">**Maximum accuracy on tabular data:**</mark> XGBoost, LightGBM, CatBoost
+| Metric | Formula | Use When |
+|---|---|---|
+| MAE | (1/n) Σ\|y - ŷ\| | All errors matter equally; outliers should not dominate |
+| MSE | (1/n) Σ(y - ŷ)² | Large errors are disproportionately costly |
+| RMSE | √MSE | Large errors costly; want error in same units as target |
+| R² | 1 - (SS_res / SS_tot) | Explaining variance; comparing models on same target |
+| Adjusted R² | 1 - [(1-R²)(n-1)/(n-p-1)] | Comparing models with different numbers of features |
+| MAPE | (100/n) Σ\|y - ŷ\|/y | Percentage errors; target values are never near zero |
 
-### <mark style="color:blue;">Unsupervised Learning</mark>
+Key distinctions: MAE has linear penalty so outliers do not dominate. MSE has quadratic penalty so one very wrong prediction can drive the entire metric. R² can be negative if your model is worse than predicting the mean. MAPE is undefined or explosive when targets are near zero.
 
-Unsupervised learning finds patterns in unlabeled data.
+---
 
-#### <mark style="color:red;">Clustering Algorithms</mark>
+### Classification Metrics
 
-| **Algorithm**    | **Time Complexity** | **Best For**                        | **Limitations**                       |
-| ---------------- | ------------------- | ----------------------------------- | ------------------------------------- |
-| **K-Means**      | O(n·k·i·p)          | Spherical clusters, large datasets  | Must specify k, sensitive to outliers |
-| **DBSCAN**       | O(n·log(n))         | Arbitrary shapes, outlier detection | Struggles with varying densities      |
-| **Hierarchical** | O(n²·log(n))        | Dendrograms, unknown k              | Slow on large data                    |
-| **GMM**          | O(n·k·i·p)          | Soft clustering, probabilistic      | Assumes Gaussian distributions        |
+**The problem:** Accuracy is simple but misleading whenever classes are imbalanced. A classifier that always predicts "not fraud" achieves 99.9% accuracy on a fraud dataset. You need metrics that measure performance on the classes that matter.
 
-_k = clusters, i = iterations_
-
-#### <mark style="color:red;">Dimensionality Reduction</mark>
-
-| **Algorithm**    | **Type**   | **Preserves**              | **Use Case**                          |
-| ---------------- | ---------- | -------------------------- | ------------------------------------- |
-| **PCA**          | Linear     | Global structure, variance | Visualization, noise reduction        |
-| **t-SNE**        | Non-linear | Local structure            | Visualization (2D/3D)                 |
-| **UMAP**         | Non-linear | Local + global structure   | Visualization, faster than t-SNE      |
-| **LDA**          | Supervised | Class separability         | Feature extraction for classification |
-| **Autoencoders** | Non-linear | Learned features           | Complex non-linear reductions         |
-
-## <mark style="color:$warning;">Evaluation Metrics</mark>
-
-### <mark style="color:red;">Regression Metrics</mark>
-
-<table data-header-hidden><thead><tr><th width="117.490478515625"></th><th width="243.3116455078125"></th><th></th><th></th></tr></thead><tbody><tr><td><strong>Metric</strong></td><td><strong>Formula</strong></td><td><strong>Range</strong></td><td><strong>When to Use</strong></td></tr><tr><td><strong>MAE</strong></td><td>(1/n) Σ|y - ŷ|</td><td>[0, ∞)</td><td>Robust to outliers</td></tr><tr><td><strong>MSE</strong></td><td>(1/n) Σ(y - ŷ)²</td><td>[0, ∞)</td><td>Penalizes large errors</td></tr><tr><td><strong>RMSE</strong></td><td>√MSE</td><td>[0, ∞)</td><td>Same units as target</td></tr><tr><td><strong>R²</strong></td><td>1 - (SS_res / SS_tot)</td><td>(-∞, 1]</td><td>Explains variance, 1 is perfect</td></tr><tr><td><strong>Adjusted R²</strong></td><td>1 - [(1-R²)(n-1)/(n-p-1)]</td><td>(-∞, 1]</td><td>Accounts for # of features</td></tr><tr><td><strong>MAPE</strong></td><td>(100/n) Σ|</td><td>(y - ŷ)/y|</td><td></td></tr></tbody></table>
-
-**Key Insights:**
-
-* **MAE:** Less sensitive to outliers (linear penalty)
-* **MSE/RMSE:** More sensitive to outliers (quadratic penalty)
-* **R²:** Can be negative if model is worse than mean baseline
-* **MAPE:** Not suitable when y can be close to 0
-
-**Interview Tip:** "I'd use RMSE when large errors are particularly bad (e.g., predicting hospital demand), and MAE when all errors matter equally (e.g., pricing)."
-
-### <mark style="color:red;">Classification Metrics</mark>
-
-**Confusion Matrix Foundation:**
+**Confusion matrix:**
 
 ```
                   Predicted
                  Pos    Neg
-    Actual Pos  TP   FN 
-           Neg  FP   TN 
+    Actual Pos   TP     FN
+           Neg   FP     TN
 ```
 
-| **Metric**               | **Formula**                 | **Range** | **Focus**                                 |
-| ------------------------ | --------------------------- | --------- | ----------------------------------------- |
-| **Accuracy**             | (TP + TN) / Total           | \[0, 1]   | Overall correctness                       |
-| **Precision**            | TP / (TP + FP)              | \[0, 1]   | Of predicted positives, how many correct? |
-| **Recall (Sensitivity)** | TP / (TP + FN)              | \[0, 1]   | Of actual positives, how many caught?     |
-| **Specificity**          | TN / (TN + FP)              | \[0, 1]   | Of actual negatives, how many caught?     |
-| **F1 Score**             | 2 · (P · R) / (P + R)       | \[0, 1]   | Harmonic mean of precision & recall       |
-| **F-beta**               | (1+β²) · (P·R) / (β²·P + R) | \[0, 1]   | Weighted F1 (β>1 favors recall)           |
-
-**Advanced Metrics:**
-
-| **Metric**        | **Purpose**                       | **When to Use**                          |
-| ----------------- | --------------------------------- | ---------------------------------------- |
-| **ROC-AUC**       | Area under ROC curve              | Binary classification, balanced classes  |
-| **PR-AUC**        | Area under Precision-Recall curve | Imbalanced classes (better than ROC-AUC) |
-| **Log Loss**      | -Σ(y·log(ŷ) + (1-y)·log(1-ŷ))     | Probabilistic predictions                |
-| **Cohen's Kappa** | Accounts for chance agreement     | Inter-rater reliability                  |
-| **MCC**           | Matthews Correlation Coefficient  | Balanced measure for imbalanced data     |
-
-**Precision vs Recall Trade-off:**
-
-```
-High Precision, Low Recall:     High Recall, Low Precision:
-  Few false positives              Few false negatives
-  Conservative predictions         Aggressive predictions
-  Example: Spam filter             Example: Disease screening
-```
-
-**Metric Selection Guide:**
-
-| **Scenario**                 | **Preferred Metric**          | **Reason**                           |
-| ---------------------------- | ----------------------------- | ------------------------------------ |
-| Balanced classes             | Accuracy, F1, ROC-AUC         | All classes equally represented      |
-| Imbalanced classes           | Precision, Recall, PR-AUC, F1 | Accuracy is misleading               |
-| False positives costly       | Precision                     | Minimize FP (e.g., spam filter)      |
-| False negatives costly       | Recall                        | Minimize FN (e.g., cancer detection) |
-| Need probability calibration | Log Loss, Brier Score         | Evaluate probability quality         |
-| Multi-class                  | Macro/Micro F1, Weighted F1   | Handles multiple classes             |
-
-**Common Interview Questions:**
-
-1. **"When would you use accuracy?"**
-   * Only when classes are balanced. Otherwise, it's misleading (e.g., 99% accuracy on 99% negative class).
-2. **"Precision vs Recall - which is more important?"**
-   * Depends on cost of errors:
-     * Precision: When false positives are expensive (spam detection)
-     * Recall: When false negatives are expensive (disease screening)
-     * F1: When you need balance
-3. **"Why use ROC-AUC vs PR-AUC?"**
-   * ROC-AUC: Balanced datasets
-   * PR-AUC: Imbalanced datasets (focuses on positive class performance)
-
-### <mark style="color:$danger;">Handling Imbalanced Data</mark>
-
-**Techniques:**
-
-1. **Resampling:**
-   * Oversample minority class (SMOTE, ADASYN)
-   * Undersample majority class
-   * Combined approaches
-2. **Algorithmic:**
-   * Class weights (penalize minority misclassification more)
-   * Anomaly detection (treat minority as anomaly)
-   * Ensemble methods (balanced bagging)
-3. **Metric Selection:**
-   * Use Precision, Recall, F1, PR-AUC instead of Accuracy
-   * Focus on confusion matrix
-
-```python
-# Class weights example
-from sklearn.ensemble import RandomForestClassifier
-
-# Automatically balance class weights
-model = RandomForestClassifier(class_weight='balanced')
-
-# Or specify custom weights
-model = RandomForestClassifier(class_weight={0: 1, 1: 10})  # 10x penalty for class 1
-```
-
-## <mark style="color:yellow;">Deep Learning</mark>
-
-Deep learning uses neural networks with multiple layers To learn hierarchical feature representations from data.
-
-### <mark style="color:$danger;">Core Components</mark>
-
-#### <mark style="color:blue;">1. Neural Network Layers</mark>
-
-| **Layer Type**                 | **Purpose**                                   | **Common Use**                         |
-| ------------------------------ | --------------------------------------------- | -------------------------------------- |
-| **Dense (Fully Connected)**    | Learns complex non-linear relationships       | MLPs, final classification layers      |
-| **Convolutional (Conv)**       | Extracts spatial features                     | Image processing, CNNs                 |
-| **Recurrent (RNN, LSTM, GRU)** | Handles sequential data                       | Time series, text (legacy)             |
-| **Attention/Transformer**      | Captures long-range dependencies              | Modern NLP, vision transformers        |
-| **Pooling**                    | Downsamples feature maps                      | Dimensionality reduction in CNNs       |
-| **Dropout**                    | Regularization via random neuron deactivation | Preventing overfitting                 |
-| **Batch/Layer Normalization**  | Stabilizes training                           | Faster convergence, better performance |
-| **Embedding**                  | Converts discrete tokens to vectors           | NLP, categorical features              |
-
-#### <mark style="color:blue;">2. Activation Functions</mark>
-
-| **Function**   | **Formula**       | **Range** | **Pros**                    | **Cons**                  |
-| -------------- | ----------------- | --------- | --------------------------- | ------------------------- |
-| **ReLU**       | max(0, x)         | \[0, ∞)   | Fast, no vanishing gradient | Dead ReLU problem         |
-| **Leaky ReLU** | max(αx, x)        | (-∞, ∞)   | Fixes dead ReLU             | Needs tuning α            |
-| **GELU**       | x·Φ(x)            | (-∞, ∞)   | Smooth, state-of-art        | Slower computation        |
-| **Sigmoid**    | 1/(1+e⁻ˣ)         | (0, 1)    | Output probabilities        | Vanishing gradient        |
-| **Tanh**       | (eˣ-e⁻ˣ)/(eˣ+e⁻ˣ) | (-1, 1)   | Zero-centered               | Vanishing gradient        |
-| **Softmax**    | eˣⁱ/Σeˣʲ          | (0, 1)    | Multi-class probabilities   | Used only in output layer |
-
-**Interview Question:** _"Why is ReLU preferred over sigmoid/tanh?"_
-
-* Mitigates vanishing gradient problem
-* Faster computation (simple thresholding)
-* Encourages sparse activations (biological plausibility)
-
-**Dead ReLU Problem:** When ReLU units always output 0 (negative input), they stop learning. Solutions: Leaky ReLU, careful weight initialization, lower learning rate.
-
-#### <mark style="color:blue;">3. Loss Functions</mark>
-
-| **Loss Function**             | **Formula**                   | **Use Case**                    |
-| ----------------------------- | ----------------------------- | ------------------------------- |
-| **MSE**                       | (1/n)Σ(y-ŷ)²                  | Regression                      |
-| **MAE**                       | (1/n)Σ\|y-ŷ\|                 | Regression (robust to outliers) |
-| **Binary Cross-Entropy**      | -\[y·log(ŷ) + (1-y)·log(1-ŷ)] | Binary classification           |
-| **Categorical Cross-Entropy** | -Σy·log(ŷ)                    | Multi-class classification      |
-| **Sparse Categorical CE**     | Same, but with integer labels | Multi-class with many classes   |
-| **Hinge Loss**                | max(0, 1-y·ŷ)                 | SVMs, margin-based learning     |
-| **Huber Loss**                | Hybrid MSE/MAE                | Robust regression               |
-
-#### <mark style="color:blue;">4. Optimizers</mark>
-
-| **Optimizer**      | **Key Feature**                           | **When to Use**                          |
-| ------------------ | ----------------------------------------- | ---------------------------------------- |
-| **SGD**            | Basic gradient descent                    | Simple problems, with momentum           |
-| **SGD + Momentum** | Accumulates gradients                     | Faster convergence, escapes local minima |
-| **Adam**           | Adaptive learning rates per parameter     | Default choice, works well generally     |
-| **AdamW**          | Adam with decoupled weight decay          | Better regularization than Adam          |
-| **RMSprop**        | Adapts learning rate using moving average | RNNs, non-stationary problems            |
-| **AdaGrad**        | Per-parameter learning rates              | Sparse data                              |
-
-**Interview Tip:** "I'd start with Adam or AdamW for most problems. For fine-tuning, SGD with momentum often gives better final performance."
-
-### <mark style="color:red;">Modern Architectures</mark>
-
-#### <mark style="color:blue;">Computer Vision</mark>
-
-| **Architecture**             | **Year** | **Key Innovation**                        | **Use Case**                   |
-| ---------------------------- | -------- | ----------------------------------------- | ------------------------------ |
-| **LeNet**                    | 1998     | First CNN                                 | Digit recognition              |
-| **AlexNet**                  | 2012     | Deep CNN, ReLU, Dropout                   | ImageNet breakthrough          |
-| **VGG**                      | 2014     | Very deep (16-19 layers)                  | Feature extraction             |
-| **ResNet**                   | 2015     | Skip connections, 152 layers              | Solves vanishing gradient      |
-| **Inception**                | 2015     | Multiple filter sizes in parallel         | Efficient multi-scale features |
-| **MobileNet**                | 2017     | Depthwise separable convolutions          | Mobile/edge devices            |
-| **EfficientNet**             | 2019     | Compound scaling (depth/width/resolution) | SOTA efficiency                |
-| **Vision Transformer (ViT)** | 2020     | Transformers for images                   | Current SOTA, large datasets   |
-
-#### <mark style="color:blue;">Natural Language Processing</mark>
-
-| **Architecture** | **Year**  | **Key Innovation**                  | **Use Case**                       |
-| ---------------- | --------- | ----------------------------------- | ---------------------------------- |
-| **Word2Vec**     | 2013      | Word embeddings                     | Pre-trained embeddings             |
-| **GloVe**        | 2014      | Global word vectors                 | Pre-trained embeddings             |
-| **LSTM/GRU**     | 1997/2014 | Handles long sequences              | Seq-to-seq (legacy)                |
-| **Transformer**  | 2017      | Self-attention, parallel processing | Foundation of modern NLP           |
-| **BERT**         | 2018      | Bidirectional transformer encoder   | Text understanding, classification |
-| **GPT**          | 2018      | Autoregressive transformer decoder  | Text generation                    |
-| **T5**           | 2019      | Text-to-text framework              | Unified NLP tasks                  |
-| **GPT-3/4**      | 2020/2023 | Massive scale (175B+ params)        | Few-shot learning, general tasks   |
-
-#### <mark style="color:blue;">Generative Models</mark>
-
-| **Model Type**       | **How It Works**                  | **Use Case**                         |
-| -------------------- | --------------------------------- | ------------------------------------ |
-| **GAN**              | Generator vs Discriminator        | Image generation, style transfer     |
-| **VAE**              | Encoder-decoder with latent space | Dimensionality reduction, generation |
-| **Diffusion Models** | Iterative denoising process       | DALL-E, Stable Diffusion, Midjourney |
-| **Autoregressive**   | Predicts next token sequentially  | GPT, language models                 |
-
-### <mark style="color:$danger;">Training Techniques</mark>
-
-#### <mark style="color:blue;">Preventing Overfitting</mark>
-
-1. **Dropout** (p=0.2-0.5)
-   * Randomly deactivate neurons during training
-   * Forces network to learn robust features
-2. **Batch Normalization**
-   * Normalizes layer inputs
-   * Allows higher learning rates, faster training
-3. **Layer Normalization**
-   * Normalizes across features (better for transformers)
-4. **Weight Decay / L2 Regularization**
-   * Adds penalty to large weights
-5. **Early Stopping**
-   * Stop training when validation loss stops improving
-6. **Data Augmentation**
-   * Vision: rotation, flipping, cropping, color jitter
-   * NLP: back-translation, synonym replacement
-
-#### <mark style="color:blue;">Optimization Techniques</mark>
-
-1. **Learning Rate Scheduling**
-   * Step decay: Reduce LR at intervals
-   * Exponential decay: Gradual reduction
-   * Cosine annealing: Smooth periodic reduction
-   * Warm-up: Start low, increase, then decay
-2. **Gradient Clipping**
-   * Prevents exploding gradients (critical for RNNs)
-   * Clip by value or by norm
-3. **Mixed Precision Training**
-   * Use FP16 for speed, FP32 for stability
-   * Reduces memory, speeds up training
-
-#### <mark style="color:blue;">Transfer Learning & Fine-tuning</mark>
-
-**Transfer Learning:**
-
-```python
-# Load pre-trained model
-base_model = ResNet50(weights='imagenet', include_top=False)
-
-# Freeze base layers
-base_model.trainable = False
-
-# Add custom head
-model = Sequential([
-    base_model,
-    GlobalAveragePooling2D(),
-    Dense(256, activation='relu'),
-    Dropout(0.5),
-    Dense(num_classes, activation='softmax')
-])
-```
-
-**Fine-tuning Strategy:**
-
-1. Train custom head with frozen base (few epochs)
-2. Unfreeze top layers of base
-3. Train end-to-end with very low learning rate
-
-**When to Use:**
-
-* Limited training data
-* Similar domain to pre-trained model
-* Faster training than from scratch
-
-### <mark style="color:blue;">Common Interview Topics</mark>
-
-#### Vanishing/Exploding Gradients
-
-**Vanishing Gradients:**
-
-* **Problem:** Gradients become very small in early layers → no learning
-* <mark style="color:red;">**Causes:**</mark> <mark style="color:red;"></mark><mark style="color:red;">Deep networks with sigmoid/tanh activations</mark>
-* **Solutions:**
-  * Use ReLU activations
-  * Batch normalization
-  * ResNet skip connections
-  * Better weight initialization (Xavier, He)
-
-**Exploding Gradients:**
-
-* **Problem:** Gradients become very large → unstable training
-* **Causes:** Deep networks, especially RNNs
-* **Solutions:**
-  * Gradient clipping
-  * Lower learning rate
-  * Batch normalisation
-
-#### <mark style="color:yellow;">Batch vs Layer Normalization</mark>
-
-| **Aspect**                | **Batch Norm**            | **Layer Norm**                    |
-| ------------------------- | ------------------------- | --------------------------------- |
-| **Normalizes**            | Across batch dimension    | Across feature dimension          |
-| **Best For**              | CNNs, large batches       | RNNs, Transformers, small batches |
-| **Training/Inference**    | Different behavior        | Same behavior                     |
-| **Batch Size Dependency** | Yes (needs large batches) | No (works with batch=1)           |
-
-#### <mark style="color:yellow;">Common Interview Questions</mark>
-
-1. **"Why do we need activation functions?"**
-   * Without them, stacked linear layers = single linear layer (no expressiveness)
-   * Introduce non-linearity to learn complex patterns
-2. **"Explain backpropagation in simple terms"**
-   * Forward pass: compute predictions
-   * Compute loss
-   * Backward pass: use chain rule to compute gradients
-   * Update weights using optimizer
-3. **"How does attention work?"**
-   * Learns to focus on relevant parts of input
-   * Query, Key, Value mechanism
-   * Attention(Q,K,V) = softmax(QKᵀ/√d)V
-4. **"Why are transformers better than RNNs?"**
-   * Parallelizable (RNNs are sequential)
-   * Better at capturing long-range dependencies
-   * No vanishing gradient problem
-   * Scales better with data and compute
-
-### <mark style="color:yellow;">Hardware & Scalability</mark>
-
-**Training Considerations:**
-
-* **GPUs:** Parallel matrix operations (NVIDIA A100, H100)
-* **TPUs:** Google's custom chips for tensor operations
-* **Batch Size:** Limited by GPU memory (use gradient accumulation for large effective batches)
-* **Mixed Precision:** FP16 training with FP32 master weights
-* **Distributed Training:** Data parallelism, model parallelism
-
-**Inference Optimization:**
-
-* Model quantization (INT8, INT4)
-* Pruning (remove unnecessary weights)
-* Knowledge distillation (train smaller model from large model)
-* ONNX runtime, TensorRT for fast inference
-
-## <mark style="color:yellow;">Model Development Best Practices</mark>
-
-### <mark style="color:$danger;">Model Debugging Checklist</mark>
-
-**Model Underperforming:**
-
-1. **Check Data Quality**
-   * Missing values handled correctly?
-   * Outliers detected and addressed?
-   * Data leakage (test data bleeding into training)?
-   * Feature scaling applied consistently?
-   * Class imbalance addressed?
-2. **Feature Engineering**
-   * Relevant features included?
-   * Feature interactions captured?
-   * Domain knowledge incorporated?
-   * Feature importance analysis done?
-3. **Model Complexity**
-   * Is model too simple (high bias)?
-   * Is model too complex (high variance)?
-   * Try different algorithm families
-4. **Hyperparameters**
-   * Learning rate appropriate?
-   * Regularization strength tuned?
-   * Tree depth / number of estimators optimized?
-   * Use grid search or random search
-
-**Model Overfitting (High Variance):**
-
-* Collect more training data
-* Reduce model complexity
-* Increase regularization (L1/L2, dropout)
-* Feature selection / dimensionality reduction
-* Cross-validation
-* Early stopping
-* Data augmentation
-* Ensemble methods (bagging)
-
-**Model Underfitting (High Bias):**
-
-* Use more complex model
-* Add more features / feature engineering
-* Reduce regularization
-* Train longer
-* Remove noise from data
-* Ensemble methods (boosting)
-
-### <mark style="color:yellow;">Production Considerations</mark>
-
-#### <mark style="color:$danger;">Model Serving</mark>
-
-**Batch Inference:**
-
-* Process large datasets offline
-* Higher throughput, lower latency requirements
-* Can use complex models
-* Examples: Daily recommendations, weekly reports
-
-**Real-time Inference:**
-
-* Low latency required (ms to seconds)
-* Request-response pattern
-* Model optimization critical
-* Examples: Search ranking, fraud detection
-
-**Serving Infrastructure:**
-
-```
-Options:
-1. REST API (Flask, FastAPI)
-2. gRPC for lower latency
-3. Cloud services (AWS SageMaker, GCP Vertex AI, Azure ML)
-4. Edge deployment (TensorFlow Lite, ONNX)
-```
-
-#### <mark style="color:$danger;">Model Monitoring & Drift Detection</mark>
-
-**Data Drift:**
-
-* Input feature distributions change over time
-* Detection: PSI (Population Stability Index), KL divergence
-* Solution: Retrain model with recent data
-
-**Concept Drift:**
-
-* Relationship between features and target changes
-* Detection: Monitor model performance metrics
-* Solution: Retrain model, feature engineering
-
-**Monitoring Metrics:**
-
-* Model accuracy/precision/recall (decay over time?)
-* Prediction distribution
-* Feature distributions
-* Latency and throughput
-* Error rates
-
-**Alerting Thresholds:**
-
-* Accuracy drops >5%
-* Prediction drift >10%
-* Latency increases >2x
-* Error rate >1%
-
-#### <mark style="color:red;">A/B Testing</mark>
-
-**Purpose:** Validate new model performs better than current production model
+| Metric | Formula | What It Measures |
+|---|---|---|
+| Accuracy | (TP + TN) / Total | Overall correctness — only valid for balanced classes |
+| Precision | TP / (TP + FP) | Of predicted positives, what fraction are real? |
+| Recall (Sensitivity) | TP / (TP + FN) | Of all real positives, what fraction did we catch? |
+| Specificity | TN / (TN + FP) | Of all real negatives, what fraction did we correctly reject? |
+| F1 Score | 2·P·R / (P + R) | Harmonic mean — punishes extreme imbalances between P and R |
+| F-beta | (1+β²)·P·R / (β²·P + R) | F1 weighted toward recall (β > 1) or precision (β < 1) |
+
+**Advanced metrics:**
+
+| Metric | Use When |
+|---|---|
+| ROC-AUC | Balanced classes; need a threshold-invariant summary |
+| PR-AUC | Imbalanced classes; accuracy of the positive class matters most |
+| Log Loss | You care about probability calibration, not just class membership |
+| MCC | Balanced summary for imbalanced data across all four quadrants |
+
+**Precision vs. Recall trade-off:** Increasing the decision threshold raises precision (fewer false alarms) but lowers recall (more misses). The right balance is determined by the cost of each error type. A cancer screening test should maximize recall (missing cancer is catastrophic). A spam filter should maximize precision (misclassifying real email is costly).
+
+**Metric selection:**
+
+| Scenario | Preferred Metric |
+|---|---|
+| Balanced classes | Accuracy, F1, ROC-AUC |
+| Imbalanced classes | Precision, Recall, PR-AUC, F1 |
+| False positives are costly | Precision |
+| False negatives are costly | Recall |
+| Need calibrated probabilities | Log Loss |
+| Multi-class | Macro/Micro/Weighted F1 |
+
+---
+
+### Handling Imbalanced Data
+
+**The problem:** Your model achieves high accuracy by ignoring the minority class entirely. The loss function treats all examples equally, so misclassifying 100 examples from the 1% minority class costs the same as misclassifying 1 example from the 99% majority class.
+
+**The core insight:** Either change the data so minority examples are more common, or change the loss function so minority mistakes cost more. Both are equivalent mathematically — they differ in implementation convenience.
+
+**Resampling approaches:**
+- Oversample minority class: SMOTE synthesizes new minority examples by interpolating between existing ones. ADASYN focuses synthesis near decision boundaries.
+- Undersample majority class: Randomly remove majority examples. Faster but discards potentially useful data.
+- Combined: Oversample minority + undersample majority.
+
+**Algorithmic approaches:**
+- Class weights: Pass `class_weight='balanced'` or manual weights to your loss function. The model pays more for minority misclassifications without touching the data.
+- Focal loss: Down-weights easy majority examples dynamically during training, forcing the model to focus on hard minority cases.
+
+**Metric changes:** Switch from accuracy to precision, recall, F1, PR-AUC. Monitor the confusion matrix directly.
+
+---
+
+## Deep Learning
+
+### Why Layers?
+
+**The problem:** A single layer of linear transformations is itself a linear transformation, regardless of depth. No amount of stacking linear layers creates non-linearity.
+
+**The core insight:** Insert a non-linear activation function after each linear transformation. Now the composition of layers is genuinely non-linear and can approximate any continuous function given enough parameters (Universal Approximation Theorem).
+
+**What breaks:** This only guarantees approximation capacity. It says nothing about whether gradient descent will find the approximation in any reasonable number of steps, or whether the approximation will generalize.
+
+---
+
+### Core Components
+
+#### Neural Network Layers
+
+| Layer Type | Purpose | Common Use |
+|---|---|---|
+| Dense (Fully Connected) | Arbitrary learned transformations | MLPs, output layers |
+| Convolutional | Extract spatial features with weight sharing | Images, CNNs |
+| Recurrent (RNN, LSTM, GRU) | Maintain state across sequences | Time series, legacy NLP |
+| Attention / Transformer | Compute weighted context from all positions | Modern NLP, vision |
+| Pooling | Downsample feature maps | Dimensionality reduction in CNNs |
+| Dropout | Randomly zero activations during training | Regularization |
+| Batch Normalization | Normalize activations across the batch | Faster convergence, stability |
+| Layer Normalization | Normalize activations across features | Transformers, small batches |
+| Embedding | Map discrete tokens to dense vectors | NLP, categorical features |
+
+---
+
+#### Activation Functions
+
+**The problem:** Without activation functions, a deep network is a single linear map. But not every non-linearity is equal — some kill gradients, some produce dead neurons.
+
+| Function | Formula | Range | Advantage | Failure Mode |
+|---|---|---|---|---|
+| ReLU | max(0, x) | [0, ∞) | Fast, no vanishing gradient for positives | Dead neurons (always output 0 for negative inputs) |
+| Leaky ReLU | max(αx, x) | (-∞, ∞) | Fixes dead ReLU | Requires tuning α |
+| GELU | x·Φ(x) | (-∞, ∞) | Smooth, empirically strong | Slower computation |
+| Sigmoid | 1/(1+e⁻ˣ) | (0, 1) | Outputs probabilities | Saturates → vanishing gradient |
+| Tanh | (eˣ-e⁻ˣ)/(eˣ+e⁻ˣ) | (-1, 1) | Zero-centered | Saturates → vanishing gradient |
+| Softmax | eˣⁱ/Σeˣʲ | (0, 1) | Multi-class probabilities summing to 1 | Output layer only |
+
+ReLU is preferred for hidden layers because it avoids saturation in the positive domain and is computationally trivial. The dead ReLU problem (neurons that always output 0 after a large negative gradient update) is addressed by Leaky ReLU or by careful initialization and learning rate choice.
+
+---
+
+#### Loss Functions
+
+**The problem:** You need a differentiable measure of how wrong the model's outputs are — one that is small when predictions are good and large when they are bad, so gradient descent has something to minimize.
+
+| Loss Function | Formula | Use Case |
+|---|---|---|
+| MSE | (1/n)Σ(y-ŷ)² | Regression |
+| MAE | (1/n)Σ\|y-ŷ\| | Regression (outlier-robust) |
+| Binary Cross-Entropy | -[y·log(ŷ) + (1-y)·log(1-ŷ)] | Binary classification |
+| Categorical Cross-Entropy | -Σy·log(ŷ) | Multi-class classification |
+| Sparse Categorical CE | Same with integer labels | Multi-class with many classes |
+| Hinge Loss | max(0, 1-y·ŷ) | SVMs, margin-based learning |
+| Huber Loss | MSE for small errors, MAE for large | Outlier-robust regression |
+
+---
+
+#### Optimizers
+
+**The problem:** Gradient descent updates all parameters with the same learning rate. Some parameters have gradients that are consistently large; others are sparse and rarely updated. A fixed learning rate is simultaneously too large for some parameters and too small for others.
+
+| Optimizer | Key Mechanism | When to Use |
+|---|---|---|
+| SGD | Raw gradient × learning rate | Simple problems; with momentum, often best final performance |
+| SGD + Momentum | Accumulates gradient history (velocity) | Faster convergence, better escape from local minima |
+| Adam | Adaptive per-parameter rates using first and second gradient moments | Default for most deep learning |
+| AdamW | Adam with decoupled weight decay | Better regularization; preferred for transformers |
+| RMSprop | Adaptive rates using recent squared gradient | RNNs, non-stationary problems |
+| AdaGrad | Per-parameter rates that decay as parameters are updated | Sparse data, NLP |
+
+Adam's adaptive rates are computed from moving averages of the gradient (first moment, momentum-like) and the squared gradient (second moment, variance-like). Bias corrections during early training prevent these estimates from being near zero.
+
+---
+
+### Training Instabilities
+
+#### Vanishing and Exploding Gradients
+
+**The problem:** Backpropagation multiplies gradients through every layer via the chain rule. If each layer's gradient has magnitude < 1, the product over 100 layers approaches zero — early layers stop learning. If each has magnitude > 1, the product explodes.
+
+**Vanishing gradient solutions:**
+- Use ReLU activations (gradient is 1 in the positive domain, not < 1)
+- Batch normalization (keeps activations in a range where gradients are well-scaled)
+- Residual connections (skip paths provide gradient highways that bypass layers)
+- Careful weight initialization (Xavier for sigmoid/tanh, He for ReLU)
+
+**Exploding gradient solutions:**
+- Gradient clipping: cap the gradient norm before applying the update
+- Lower learning rate
+- Batch normalization
+
+---
+
+#### Batch vs. Layer Normalization
+
+**The problem:** As training progresses, the distribution of each layer's inputs shifts as earlier layers' weights change. This "internal covariate shift" forces each layer to constantly readjust to a moving target.
+
+**The core insight:** Normalize activations to a standard distribution before passing them to the next layer. Re-introduce learnable scale and shift parameters so the layer can learn any distribution it needs — but start from a stable, well-conditioned baseline.
+
+| Aspect | Batch Norm | Layer Norm |
+|---|---|---|
+| Normalizes over | Batch dimension | Feature dimension |
+| Best for | CNNs, large batches | Transformers, RNNs, small batches |
+| Training vs. inference | Uses running statistics at inference | Same computation at both |
+| Batch size dependency | Requires large batches | Works with batch size 1 |
+
+---
+
+### Modern Architectures
+
+#### Computer Vision
+
+| Architecture | Year | Key Innovation | Problem It Solved |
+|---|---|---|---|
+| LeNet | 1998 | First successful CNN | Digit recognition |
+| AlexNet | 2012 | Deep CNN, ReLU, Dropout | ImageNet at scale |
+| VGG | 2014 | Uniform 3×3 convolution stacks | Depth systematically helps |
+| ResNet | 2015 | Skip connections | Training networks deeper than ~20 layers without gradient death |
+| Inception | 2015 | Parallel multi-scale filters | Efficient capture of features at different scales |
+| MobileNet | 2017 | Depthwise separable convolutions | ImageNet-quality models on mobile hardware |
+| EfficientNet | 2019 | Compound scaling (depth + width + resolution) | Optimal efficiency frontier |
+| ViT | 2020 | Transformers applied to image patches | SOTA on large-data vision tasks |
+
+#### Natural Language Processing
+
+| Architecture | Year | Key Innovation | Problem It Solved |
+|---|---|---|---|
+| Word2Vec | 2013 | Word embeddings from co-occurrence | Words had no continuous representation |
+| GloVe | 2014 | Global co-occurrence matrix factorization | Richer embeddings than local window only |
+| LSTM / GRU | 1997/2014 | Gated cells for long-range memory | RNNs forgot context after ~10 steps |
+| Transformer | 2017 | Self-attention, fully parallelizable | RNNs were sequential; couldn't use modern GPU parallelism |
+| BERT | 2018 | Bidirectional masked language model | Language understanding required full context, not left-to-right only |
+| GPT | 2018 | Autoregressive transformer decoder | Coherent long-form text generation |
+| T5 | 2019 | Every NLP task as text-to-text | Unification eliminated task-specific architectures |
+| GPT-3/4 | 2020/2023 | Scale (175B+ parameters) | Few-shot generalization without task-specific fine-tuning |
+
+#### Generative Models
+
+| Model | Mechanism | Use Case | Key Failure Mode |
+|---|---|---|---|
+| GAN | Generator and discriminator trained adversarially | Image generation, style transfer | Mode collapse, training instability |
+| VAE | Encoder maps to latent distribution; decoder samples from it | Structured generation, interpolation | Blurry outputs (averaging over posterior) |
+| Diffusion Models | Iterative denoising from Gaussian noise | DALL-E, Stable Diffusion | Slow inference (many denoising steps) |
+| Autoregressive | Predict next token given all previous | GPT, language generation | Hallucination; no global coherence constraint |
+
+---
+
+### Training Techniques
+
+#### Preventing Overfitting
+
+**Dropout:** Randomly zero a fraction of activations during each training step. Forces the network to learn redundant representations — no single neuron can be relied upon. Equivalent to training an exponential ensemble of sub-networks. At inference, scale activations by (1 - dropout rate) to match expected activation magnitude.
+
+**Batch / Layer Normalization:** Normalizing activations acts as mild regularization because the normalization obscures the exact activation values of any single training example.
+
+**Weight Decay / L2 Regularization:** Penalizes large weights, shrinking the effective capacity of the model.
+
+**Early Stopping:** Monitor validation loss during training. Stop when validation loss stops improving (and starts increasing). The model at the stopping point has the best generalization, not the model at the end of training.
+
+**Data Augmentation:** Expand the effective training set by applying transformations that preserve the label. Vision: random crop, horizontal flip, color jitter, mixup. NLP: back-translation, synonym substitution.
+
+---
+
+#### Learning Rate Scheduling
+
+**The problem:** A fixed learning rate is too large early in training (diverges from the optimum) and too large late in training (oscillates around the minimum instead of converging into it).
+
+**Scheduling strategies:**
+- **Warm-up then decay:** Start with a small learning rate, linearly increase to the target, then decay. Prevents early instability from large random gradients.
+- **Cosine annealing:** Smoothly reduce LR following a cosine curve. Can restart periodically to explore different loss landscape regions.
+- **Step decay:** Multiply LR by a fixed factor at predetermined epochs.
+
+**Gradient Clipping:** Cap the gradient norm before applying updates. Critical for RNNs and transformers where gradient magnitudes vary wildly. Prevents single large gradient steps from destroying previously learned representations.
+
+**Mixed Precision Training:** Compute forward and backward passes in FP16 (faster, half the memory) but maintain FP32 master weights for accumulation. Loss scaling prevents FP16 underflow of small gradients.
+
+---
+
+#### Transfer Learning and Fine-tuning
+
+**The problem:** Training a competitive vision or language model from scratch requires millions of labeled examples and weeks of GPU compute. Most real tasks have neither.
+
+**The core insight:** The features learned by large models on large datasets (edges, textures, objects in vision; syntax, semantics, world knowledge in language) are broadly useful. The model has already solved the hard part. You only need to adapt the final mapping to your specific task.
+
+**Fine-tuning strategy:**
+1. Load a pre-trained model (e.g., ResNet-50 trained on ImageNet, BERT trained on Wikipedia).
+2. Replace the final layer(s) with a new head matching your output space.
+3. Train the head with frozen base — learn the task-specific mapping without disturbing general features.
+4. Optionally unfreeze the top layers of the base and continue with a very low learning rate (full fine-tuning).
+
+**What breaks:** If your domain is very different from the pre-training domain (medical images vs. natural photos, legal text vs. general web), early layers may need updating too. Fine-tuning with too high a learning rate causes catastrophic forgetting — the model overwrites previously learned representations.
+
+---
+
+## Model Development Best Practices
+
+### Debugging Checklist
+
+When a model underperforms, work through these layers in order:
+
+**Data quality first:**
+- Missing values: are they handled the same way in training and inference?
+- Data leakage: do any features contain information from the future, or from the label itself?
+- Feature scaling: applied before splitting? (Leakage.) Applied consistently to train, val, and test?
+- Class imbalance: addressed before training, not after?
+
+**Feature engineering:**
+- Is domain knowledge incorporated?
+- Are interaction terms or polynomial features needed?
+- Does feature importance analysis reveal irrelevant columns consuming capacity?
+
+**Model complexity:**
+- High training error + high validation error → high bias → increase capacity, reduce regularization
+- Low training error + high validation error → high variance → reduce capacity, increase regularization, collect more data
+
+**Hyperparameters:**
+- Learning rate: the most important hyperparameter; search it first
+- Regularization strength
+- Architecture depth / width
+
+---
+
+### Production Considerations
+
+#### Serving
+
+**Batch inference:** Process large datasets offline. No strict latency requirement. Can use complex, slow models. Examples: overnight recommendation re-ranking, weekly churn scoring.
+
+**Real-time inference:** Low latency (single-digit to hundreds of milliseconds). Model optimization is critical. Examples: search ranking, fraud detection, content moderation.
+
+**Optimization levers for inference:**
+- **Quantization:** Reduce weights from FP32 to INT8 or INT4. Large memory and latency reduction; small accuracy cost.
+- **Pruning:** Remove weights with small magnitude. Can be structured (entire neurons) or unstructured.
+- **Knowledge distillation:** Train a small student model to match the output distribution of the large teacher. The student is faster; it learns the teacher's soft probabilities, which contain more information than hard labels.
+- **ONNX / TensorRT:** Hardware-optimized inference runtimes.
+
+---
+
+#### Model Monitoring and Drift
+
+**The problem:** A model trained on past data faces future data whose distribution may have shifted. Nothing breaks visibly — the model still runs, still returns scores. Only the scores stop meaning what they used to.
+
+**Data drift:** The input feature distribution changes over time. Detection: Population Stability Index (PSI), KL divergence between reference and current feature distributions. Fix: retrain on recent data.
+
+**Concept drift:** The relationship between inputs and the target changes over time. Detection: monitor model performance metrics directly (requires ground truth labels, which arrive with lag). Fix: retrain, potentially with new features.
+
+**Monitoring metrics:**
+- Model accuracy / precision / recall (lagged; requires ground truth)
+- Prediction score distribution
+- Feature value distributions
+- Inference latency and throughput
+- Error rates
+
+---
+
+#### A/B Testing
+
+**The problem:** You have a new model and want to know if it is actually better in production, not just on a held-out test set. Offline metrics do not always predict online business outcomes.
+
+**The core insight:** Randomize users between old and new models. Any difference in outcomes is then caused by the model choice, not by confounding factors.
 
 **Setup:**
+1. Split traffic (e.g., 90% control / 10% treatment).
+2. Monitor both model metrics (accuracy, latency) and business metrics (conversion rate, engagement, revenue).
+3. Run until statistical significance is reached at a pre-specified sample size — do not stop early when it looks significant (peeking inflates false positive rate).
+4. Gradual rollout if treatment wins.
 
-1. Split traffic (e.g., 90% control, 10% treatment)
-2. Monitor key metrics (conversion rate, CTR, revenue)
-3. Statistical significance testing
-4. Gradual rollout if successful
+---
 
-**Key Metrics:**
+#### Model Versioning and Reproducibility
 
-* Business metrics (revenue, engagement)
-* Model metrics (accuracy, latency)
-* User experience metrics
+Essential practices:
+- Version control for code (Git)
+- Data versioning (DVC, Delta Lake)
+- Experiment tracking: log hyperparameters, metrics, and model artifacts (MLflow, Weights & Biases)
+- Containerize environments for reproducibility (Docker)
+- Set random seeds for all sources of stochasticity
 
-#### <mark style="color:red;">Model Versioning & Reproducibility</mark>
+---
 
-**Essential Practices:**
+## Deep Learning Architecture Details
 
-* Version control for code (Git)
-* Track data versions (DVC, Delta Lake)
-* Log hyperparameters (MLflow, Weights & Biases)
-* Save model artifacts with metadata
-* Docker containers for reproducible environments
-* Random seeds for reproducibility
+### How Attention Works
 
-**MLflow Example:**
+**The problem:** RNNs process sequences step by step. To use information from 500 steps ago, it must be carried through 500 intermediate states, compressing and potentially losing it at each step. And the computation is inherently sequential — step t+1 cannot begin until step t finishes.
 
-```python
-import mlflow
+**The core insight:** Skip the sequential bottleneck entirely. Let every position attend directly to every other position in the sequence, with attention weights that are learned from the data.
 
-with mlflow.start_run():
-    mlflow.log_param("learning_rate", 0.01)
-    mlflow.log_param("n_estimators", 100)
-    mlflow.log_metric("accuracy", 0.95)
-    mlflow.sklearn.log_model(model, "model")
+**The mechanics:** Each input is projected into three vectors: Query (Q), Key (K), and Value (V).
+
+```
+Attention(Q, K, V) = softmax(QKᵀ / √d_k) V
 ```
 
-## <mark style="color:yellow;">Common Interview Questions & Answers</mark>
+The dot product QKᵀ measures how relevant each position is to each other position. Division by √d_k prevents the dot products from becoming very large in high dimensions (which would push softmax into near-zero gradient regions). The softmax converts raw scores into attention weights that sum to 1. These weights are used to compute a weighted sum of the Value vectors.
 
-### <mark style="color:$danger;">Conceptual Questions</mark>
+**What breaks:** Attention has O(N²) complexity in sequence length — computing all pairwise scores is quadratic. This is manageable for sequences of hundreds of tokens but becomes prohibitive for sequences of hundreds of thousands of tokens. Flash Attention addresses this by reordering operations to stay within fast GPU SRAM, avoiding the O(N²) materialization of the full attention matrix.
 
-**1. "Explain bias-variance trade-off with an example"**
+---
 
-> "Bias-variance trade-off is about balancing model complexity. For example, if I use linear regression to fit a quadratic relationship, I'll have high bias because the model is too simple to capture the curve—it will consistently underfit. If I use a 20-degree polynomial, I'll have high variance because the model is too flexible and will fit noise in the training data—predictions will vary drastically with different training sets. The goal is to find the sweet spot, perhaps a quadratic model, that minimizes total error."
+### Why Transformers Replaced RNNs
 
-**2. "How would you handle imbalanced data?"**
+**The problem:** RNNs cannot parallelize across time steps during training. On a sequence of length 1000, you must run 1000 sequential matrix multiplications. Modern GPUs are designed for parallel computation — sequential algorithms waste most of the hardware.
 
-> "I'd approach it in three ways: First, use appropriate metrics like precision, recall, F1, and PR-AUC instead of accuracy. Second, apply resampling techniques like SMOTE for oversampling the minority class or undersampling the majority class. Third, use algorithmic approaches like class weights to penalize misclassification of the minority class more heavily. The choice depends on whether I have enough data and the cost of false positives vs false negatives."
+**The core insight:** If you replace sequential recurrence with parallel attention, the entire sequence can be processed simultaneously on a GPU. The parallelism is what made training modern large language models computationally feasible.
 
-**3. "When would you use Random Forest vs XGBoost?"**
-
-> "Random Forest is my go-to for a robust baseline—it's less prone to overfitting, requires minimal tuning, and handles outliers well. XGBoost is what I'd use when I need the highest possible accuracy on tabular data and am willing to invest time in hyperparameter tuning. XGBoost is generally more accurate but can overfit with poor tuning. Random Forest is more forgiving and often good enough. For production, I'd also consider LightGBM for faster training and inference."
-
-**4. "Explain L1 vs L2 regularization"**
-
-> "Both add penalties to the loss function to prevent overfitting, but differ in how. L2 (Ridge) adds the sum of squared weights, which shrinks all weights but doesn't zero them out—good when all features contribute. L1 (Lasso) adds the sum of absolute weights, which can drive some weights exactly to zero, effectively performing feature selection—ideal when you suspect many features are irrelevant. For correlated features, L2 is more stable, while L1 is better for interpretability."
-
-**5. "How does dropout work and why is it effective?"**
-
-> "Dropout randomly deactivates a percentage of neurons during each training iteration. This prevents the network from relying too heavily on any specific neuron, forcing it to learn robust, distributed representations. It's effectively like training an ensemble of different network architectures simultaneously. At inference, we use all neurons but scale their outputs appropriately. It's particularly effective for preventing overfitting in deep neural networks."
-
-### <mark style="color:$danger;">Practical Questions</mark>
-
-**6. "Your model has 99% accuracy but stakeholders are unhappy. What's wrong?"**
-
-> "This is likely a class imbalance problem. If 99% of data belongs to the negative class, a model that always predicts negative gets 99% accuracy but provides zero value. I'd check the confusion matrix and look at precision, recall, and F1 score for each class. I'd then address the imbalance using techniques like class weights, SMOTE, or anomaly detection, and optimize for the metric that matters to the business—likely recall if false negatives are costly, or precision if false positives are costly."
-
-**7. "How would you detect and handle overfitting in production?"**
-
-> "I'd implement monitoring to track model performance metrics over time. If validation/test accuracy was high during development but production performance degrades, that's a sign. I'd monitor prediction distributions, feature distributions, and error rates. To handle it, I'd first check for data drift. Then I'd consider retraining with more recent data, increasing regularization, collecting more training data, or simplifying the model. I'd also implement A/B testing before fully deploying any changes."
-
-**8. "Walk me through how you'd approach a new ML problem"**
-
-> "First, I'd understand the business problem and define success metrics. Second, I'd do exploratory data analysis to understand distributions, missing values, and relationships. Third, I'd establish a simple baseline (like mean prediction or logistic regression). Fourth, I'd engineer relevant features and try progressively complex models (e.g., Linear → Random Forest → XGBoost). Fifth, I'd use cross-validation for model selection and tune hyperparameters. Finally, I'd evaluate on a hold-out test set and, if satisfactory, deploy with monitoring and A/B testing."
-
-**9. "How do you choose between deep learning and traditional ML?"**
-
-> "I consider four factors: data size, data type, interpretability needs, and resources. For tabular data with < 100K samples, traditional ML (XGBoost, Random Forest) usually wins—it's faster, interpretable, and performs well. For unstructured data (images, text, audio) or when I have millions of samples, deep learning excels. If interpretability is critical (healthcare, finance), I'd prefer traditional ML or use interpretability techniques. Finally, if resources are limited (compute, time, expertise), traditional ML is more practical."
-
-**10. "Explain how you'd improve a model that's already performing well"**
-
-> "I'd look at several areas: First, error analysis—examine misclassified examples to identify patterns and engineer targeted features. Second, ensemble methods—combine multiple models or try stacking. Third, advanced feature engineering—create interaction terms, polynomial features, or domain-specific features. Fourth, hyperparameter optimization—use Bayesian optimization or genetic algorithms. Fifth, get more data, especially for edge cases. Finally, try neural architecture search or AutoML if I have the resources. I'd always balance improvement against complexity and maintenance costs."
+**What breaks:**
+- Transformers require positional encodings to represent sequence order, since attention itself is permutation-invariant.
+- The O(N²) attention cost makes very long sequences expensive.
+- Transformers have no inductive bias for sequences the way RNNs do — they learn sequence structure from data, which requires more data.

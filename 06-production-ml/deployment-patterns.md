@@ -1,1164 +1,784 @@
-# Deployment Patterns for Production ML
-
-Comprehensive reference for deploying, serving, and maintaining ML models in production — covering strategies, infrastructure, optimization, and common failure modes.
+# Deployment Patterns
 
 ---
 
 ## Table of Contents
 
-1. [Deployment Strategies](#1-deployment-strategies)
-2. [Latency Optimization](#2-latency-optimization)
-3. [Feature Store Design](#3-feature-store-design)
-4. [Model Serving Infrastructure](#4-model-serving-infrastructure)
-5. [Online vs Offline Learning](#5-online-vs-offline-learning)
-6. [Training-Serving Skew](#6-training-serving-skew)
-7. [Rollback and Versioning](#7-rollback-and-versioning)
-8. [Multi-Model and Ensemble Serving](#8-multi-model-and-ensemble-serving)
-9. [Key Interview Points](#9-key-interview-points)
+1. [Deployment Strategies](#deployment-strategies)
+2. [Latency Optimization](#latency-optimization)
+3. [Feature Store Design](#feature-store-design)
+4. [Model Serving Infrastructure](#model-serving-infrastructure)
+5. [Online vs Offline Learning](#online-vs-offline-learning)
+6. [Training-Serving Skew](#training-serving-skew)
+7. [Rollback and Versioning](#rollback-and-versioning)
+8. [Multi-Model and Ensemble Serving](#multi-model-and-ensemble-serving)
+9. [Key Interview Points](#key-interview-points)
 
 ---
 
-## 1. Deployment Strategies
+## Deployment Strategies
 
-Controlled rollout patterns that limit blast radius and enable safe model updates.
+**The problem**: you trained a model that beats the benchmark offline. Now you need to put it in production without taking the service down, without gambling on a broken model serving all your users at once, and without losing the ability to recover if something goes wrong. These three constraints — availability, risk, recovery — are always in tension.
 
----
-
-### Blue/Green Deployment
-
-Two identical environments run in parallel. Traffic is cut over atomically from the old (blue) to the new (green) environment. Rollback = flip traffic back.
-
-```
-         Load Balancer
-        /              \
-  [Blue v1]        [Green v2]   ← 0% traffic initially
-       100%               0%
-
-  → switch:
-  [Blue v1]        [Green v2]
-       0%               100%
-```
-
-**Properties:**
-- Zero-downtime switch
-- Full rollback in seconds (re-point LB)
-- Requires 2x infrastructure during transition
-- No gradual validation — all traffic moves at once
-
-**When to use:** High-confidence model updates, schema changes that are hard to split, regulated environments requiring clean cutover.
+**The core insight**: every deployment strategy is a different answer to the same question: *how much of the real decision do I trust to the new model before I know it works?* You trade speed of rollout against exposure to failure. The right strategy depends on how confident you are in the new model and how bad a mistake would be.
 
 ---
 
-### Canary Releases
+### Blue-Green Deployment
 
-Route a small fraction of live traffic to the new model, monitor, then gradually increase.
+**The problem**: you need to deploy a new model version. If it has a bug, rollback requires either reverting in place (slow, risky) or pre-built automation. During a rolling update you might serve a mix of old and new model logic — a state that is hard to reason about.
 
-```
-Step 1:  old=99%  new=1%   → monitor error rate, latency, business metrics
-Step 2:  old=90%  new=10%  → still OK?
-Step 3:  old=50%  new=50%  → compare KPIs
-Step 4:  old=0%   new=100% → full rollout
-```
+**The core insight**: keep two complete environments. The "off" environment gets the new version deployed and fully tested with real traffic before you flip the switch.
 
-**Traffic splitting in Kubernetes (Istio VirtualService):**
+**The mechanics**: Blue serves 100% of traffic. Deploy to Green. Run smoke tests against Green with zero user impact. When confident, flip the load balancer to Green in a single atomic operation. Blue stays idle for immediate rollback.
 
-```yaml
-apiVersion: networking.istio.io/v1alpha3
-kind: VirtualService
-metadata:
-  name: model-service
-spec:
-  http:
-    - match:
-        - uri:
-            prefix: /predict
-      route:
-        - destination:
-            host: model-v1
-            port:
-              number: 8080
-          weight: 90
-        - destination:
-            host: model-v2
-            port:
-              number: 8080
-          weight: 10
+```python
+def route_request(environment: str) -> str:
+    """Load balancer reads this; change 'active' to flip environments."""
+    config = load_routing_config()
+    return config["active_environment"]  # "blue" or "green"
 ```
 
-**Gradual rollout triggers:**
-- Manual (human approval at each step)
-- Automated (Argo Rollouts, Flagger) — advance if p99 latency < threshold AND error rate < threshold for N minutes
-
-**Minimum observation window:** At minimum one full business cycle (day/week) at each traffic fraction before advancing, to catch temporal drift.
+**What breaks**: cost doubles — two full environments run simultaneously. State synchronization is hard: feature stores, model registries, and caches must be consistent across both environments. Works poorly for stateful streaming pipelines where session state is tied to a specific instance.
 
 ---
 
-### Shadow Mode (Mirror Traffic)
+### Canary Deployment
 
-Production traffic is duplicated and sent to the new model. The new model's responses are discarded — only logged for comparison. The old model still serves users.
+**The problem**: you want confidence from real traffic before full rollout, but you cannot afford to expose every user to a potentially broken model. Smoke tests only cover happy-path inputs; real production traffic reveals edge cases.
 
+**The core insight**: expose a small slice of real traffic to the new model first. Measure on real users, not synthetic tests. Scale up only when metrics confirm the new model is working.
+
+**The mechanics**: route a fixed fraction of traffic (5%) to the new model via deterministic hashing on a request identifier. Monitor business metrics and error rates for a defined window (typically 24 hours minimum), then step up: 5% → 25% → 50% → 100%. Rollback at any step if metrics degrade.
+
+```python
+import hashlib
+
+def route_request(request_id: str, canary_fraction: float = 0.05) -> str:
+    """
+    Deterministic routing: same request_id always routes to the same model.
+    This prevents a user from getting inconsistent experiences across requests.
+    """
+    hash_int = int(hashlib.md5(request_id.encode()).hexdigest(), 16)
+    bucket = hash_int % 100
+    return "canary" if bucket < (canary_fraction * 100) else "production"
 ```
-Request ──┬──→ [Model v1] ──→ Response (served to user)
-          │
-          └──→ [Model v2] ──→ Response (logged, NOT served)
 
-Offline:  compare v1 vs v2 outputs distribution, latency, disagreement rate
-```
+**What breaks**: if the canary fraction is too small, statistical power is low — you will not detect regressions of less than ~2% before full rollout. If your canary carries a different user segment (only mobile users, only power users), results do not transfer to the full population. Do not graduate from canary to full production based on system metrics alone; use business metrics.
 
-**Use cases:**
-- Validate a new model on real traffic before it touches users
-- Regression testing: does the new model disagree on any subset?
-- Latency profiling under production load shape
+---
 
-**Implementation note:** Shadow requests must be fire-and-forget (async, non-blocking) so they do not affect production latency. Use a sidecar proxy or a message queue to fan out.
+### Shadow Deployment
+
+**The problem**: you want to validate a new model on real traffic with zero risk of surfacing bad predictions to users. You need to know what the new model *would* predict on real inputs before you trust it with actual decisions.
+
+**The core insight**: run the new model in parallel with production, but discard its outputs. The user sees only the production model's result. You accumulate a ground truth comparison dataset for offline analysis.
+
+**The mechanics**: on every production request, fire the new model asynchronously. Never block the production path. Log both outputs. Analyze divergence offline.
 
 ```python
 import asyncio
-import httpx
+import logging
 
-async def shadow_predict(payload: dict) -> dict:
-    """Send to prod and shadow simultaneously; return only prod response."""
-    async with httpx.AsyncClient() as client:
-        prod_task   = client.post("http://model-v1/predict", json=payload)
-        shadow_task = client.post("http://model-v2/predict", json=payload)
+async def shadow_predict(production_model, shadow_model, features: dict) -> dict:
+    """Serve production response; fire shadow prediction without blocking."""
+    prod_result = production_model.predict(features)
 
-        prod_response, shadow_response = await asyncio.gather(
-            prod_task,
-            shadow_task,
-            return_exceptions=True,
-        )
+    async def _shadow():
+        try:
+            shadow_result = shadow_model.predict(features)
+            log_shadow_comparison(prod_result, shadow_result)
+        except Exception as e:
+            # Shadow failures must never affect the production path
+            logging.warning(f"Shadow prediction failed: {e}")
 
-    # Log shadow result asynchronously — do not block caller
-    asyncio.create_task(log_shadow(payload, shadow_response))
-
-    return prod_response.json()
+    asyncio.create_task(_shadow())
+    return prod_result  # user sees only this
 ```
+
+**What breaks**: shadow inference doubles serving cost. If the new model is slower than production, async shadow calls can stack up and exhaust resources under sustained load — run shadow on isolated compute. Shadow results reflect the production traffic distribution; rare inputs that break the new model are still invisible unless you specifically test for them.
 
 ---
 
 ### A/B Testing
 
-Randomly assign users to model A or B; measure a business metric (conversion, click-through, revenue). Requires statistical significance before declaring a winner.
+**The problem**: offline metrics improved, but you do not know whether the new model produces better *business outcomes*. A 2% AUC improvement does not tell you whether users buy more products or churn less.
 
-**Key concepts:**
+**The core insight**: split traffic into statistically independent groups. Measure the business metric that actually matters — not the proxy metric you optimized — and run the experiment until you have enough data to detect a meaningful difference.
 
-| Term | Definition |
-|------|-----------|
-| MDE (Minimum Detectable Effect) | Smallest effect size worth detecting |
-| Statistical power (1-β) | Probability of detecting a real effect; typically 0.80 |
-| Significance level (α) | False positive rate; typically 0.05 |
-| Sample size | Derived from MDE, α, power, and baseline variance |
-
-**Sample size and significance calculation:**
+**The mechanics**: group A receives the production model, group B the challenger. Run for the minimum sample size required to detect your minimum detectable effect at target statistical power.
 
 ```python
-import numpy as np
 from scipy import stats
 
 def minimum_sample_size(
     baseline_rate: float,
-    mde: float,
+    minimum_detectable_effect: float,
     alpha: float = 0.05,
-    power: float = 0.80,
+    power: float = 0.8
 ) -> int:
-    """
-    Calculate minimum users per variant for a two-proportion z-test.
-
-    Args:
-        baseline_rate: Current conversion rate (e.g., 0.10 for 10%)
-        mde:           Minimum detectable effect as absolute difference (e.g., 0.02)
-        alpha:         Type I error rate
-        power:         1 - Type II error rate
-
-    Returns:
-        Required sample size per variant
-    """
     p1 = baseline_rate
-    p2 = baseline_rate + mde
-    p_pool = (p1 + p2) / 2
-
-    z_alpha = stats.norm.ppf(1 - alpha / 2)   # two-tailed
-    z_beta  = stats.norm.ppf(power)
-
-    se_null = np.sqrt(2 * p_pool * (1 - p_pool))
-    se_alt  = np.sqrt(p1 * (1 - p1) + p2 * (1 - p2))
-
-    n = ((z_alpha * se_null + z_beta * se_alt) / mde) ** 2
-    return int(np.ceil(n))
-
+    p2 = baseline_rate + minimum_detectable_effect
+    z_alpha = stats.norm.ppf(1 - alpha / 2)
+    z_beta = stats.norm.ppf(power)
+    n = (z_alpha + z_beta)**2 * (p1 * (1-p1) + p2 * (1-p2)) / (p1 - p2)**2
+    return int(n) + 1
 
 def ab_test_significance(
-    control_conversions: int,
-    control_n: int,
-    treatment_conversions: int,
-    treatment_n: int,
-    alpha: float = 0.05,
+    control_conversions: int, control_n: int,
+    treatment_conversions: int, treatment_n: int
 ) -> dict:
-    """Two-proportion z-test for A/B experiment results."""
-    p_c = control_conversions   / control_n
-    p_t = treatment_conversions / treatment_n
-    p_pool = (control_conversions + treatment_conversions) / (control_n + treatment_n)
-
-    se = np.sqrt(p_pool * (1 - p_pool) * (1 / control_n + 1 / treatment_n))
-    z  = (p_t - p_c) / se
-    p_value = 2 * (1 - stats.norm.cdf(abs(z)))
-
+    _, p_value = stats.proportions_ztest(
+        [control_conversions, treatment_conversions],
+        [control_n, treatment_n]
+    )
+    control_rate = control_conversions / control_n
+    treatment_rate = treatment_conversions / treatment_n
     return {
-        "control_rate":     round(p_c, 4),
-        "treatment_rate":   round(p_t, 4),
-        "relative_lift":    round((p_t - p_c) / p_c, 4),
-        "z_statistic":      round(z, 4),
-        "p_value":          round(p_value, 4),
-        "significant":      p_value < alpha,
+        "p_value": p_value,
+        "significant": p_value < 0.05,
+        "lift": (treatment_rate - control_rate) / control_rate
     }
-
-
-# Example
-n = minimum_sample_size(baseline_rate=0.10, mde=0.02)
-print(f"Need {n} users per variant")   # ~3,842
-
-result = ab_test_significance(
-    control_conversions=980,  control_n=10_000,
-    treatment_conversions=1_050, treatment_n=10_000,
-)
-print(result)
-# {'control_rate': 0.098, 'treatment_rate': 0.105, 'relative_lift': 0.0714,
-#  'z_statistic': 2.28, 'p_value': 0.0226, 'significant': True}
 ```
 
-**Common pitfalls:**
-- Peeking (stopping early when p < 0.05 inflates false positives — use sequential testing or Bayesian approaches instead)
-- Network effects (users influence each other — violates independence assumption)
-- Simpson's paradox (aggregate result reverses when stratified)
+**What breaks**: novelty effects inflate treatment metrics in the first few days — users click on new things simply because they are new. Run experiments long enough to let novelty decay (typically 1-2 weeks minimum). Network effects (when user A and user B interact in the product) violate the independence assumption required for valid A/B tests; use cluster-randomized experiments instead. Running too many simultaneous experiments creates interaction effects you cannot untangle.
 
 ---
 
-## 2. Latency Optimization
+## Latency Optimization
 
-Techniques to reduce model inference latency from seconds to milliseconds.
+**The problem**: your model achieves the accuracy you need in development, but in production the p99 latency is 800ms and users are abandoning requests. Serving cost is also unsustainable at scale.
 
----
-
-### Profiling with PyTorch Profiler
-
-Find bottlenecks before optimizing.
-
-```python
-import torch
-from torch.profiler import profile, ProfilerActivity, tensorboard_trace_handler
-
-model = MyModel().eval().cuda()
-inputs = torch.randn(1, 3, 224, 224).cuda()
-
-with profile(
-    activities=[ProfilerActivity.CPU, ProfilerActivity.CUDA],
-    record_shapes=True,
-    profile_memory=True,
-    with_stack=True,
-    on_trace_ready=tensorboard_trace_handler("./profiler_logs"),
-) as prof:
-    with torch.no_grad():
-        for _ in range(20):          # warm up + profile
-            model(inputs)
-            prof.step()
-
-print(prof.key_averages().table(sort_by="cuda_time_total", row_limit=15))
-```
-
-Key columns: `cuda_time_total`, `self_cpu_time_total`, `cpu_memory_usage`. Look for ops that dominate; common culprits: attention matmuls, large linear layers, data transfers between CPU/GPU.
+**The core insight**: latency has a stack — data retrieval, preprocessing, model forward pass, postprocessing. Optimization at the wrong layer wastes time. The serving stack almost always has one dominant bottleneck. Profile first; optimize the bottleneck.
 
 ---
 
-### Model Quantization
+### Profiling the Serving Stack
 
-Reduce weight precision to shrink model size and increase throughput.
-
-**Dynamic quantization (CPU, post-training, no calibration data needed):**
+Before optimizing anything, instrument every layer. Typical bottleneck distribution: feature retrieval (40-60%), model forward pass (20-40%), preprocessing (10-20%).
 
 ```python
-import torch
-import torch.quantization
-
-model = MyModel()
-model.load_state_dict(torch.load("model.pt"))
-model.eval()
-
-quantized_model = torch.quantization.quantize_dynamic(
-    model,
-    qconfig_spec={torch.nn.Linear},   # quantize Linear layers
-    dtype=torch.qint8,
-)
-
-torch.save(quantized_model.state_dict(), "model_int8.pt")
-```
-
-**Static quantization (requires representative calibration data, better accuracy):**
-
-```python
-from torch.quantization import prepare, convert, get_default_qconfig
-
-model.qconfig = get_default_qconfig("fbgemm")   # CPU; use "qnnpack" for mobile
-prepare(model, inplace=True)
-
-# Calibration pass
-with torch.no_grad():
-    for batch in calibration_loader:
-        model(batch)
-
-convert(model, inplace=True)
-```
-
-**FP16 (GPU):**
-
-```python
-model = model.half().cuda()
-inputs = inputs.half().cuda()
-
-# Or via autocast (mixed precision):
-with torch.autocast(device_type="cuda", dtype=torch.float16):
-    output = model(inputs)
-```
-
-**Tradeoffs:**
-
-| Method | Size reduction | Speedup | Accuracy loss |
-|--------|---------------|---------|--------------|
-| FP16   | 2x            | 1.5–3x  | Negligible   |
-| INT8   | 4x            | 2–4x    | Small (~1%)  |
-| INT4   | 8x            | 3–6x    | Moderate     |
-
----
-
-### TorchScript / ONNX Export
-
-Export model out of Python to eliminate interpreter overhead and enable cross-platform deployment.
-
-**TorchScript:**
-
-```python
-import torch
-
-model.eval()
-
-# Tracing (works for fixed control flow)
-example_input = torch.randn(1, 3, 224, 224)
-traced = torch.jit.trace(model, example_input)
-traced.save("model_traced.pt")
-
-# Scripting (works for dynamic control flow)
-scripted = torch.jit.script(model)
-scripted.save("model_scripted.pt")
-
-# Load and run without Python model definition
-loaded = torch.jit.load("model_traced.pt")
-output = loaded(example_input)
-```
-
-**ONNX export:**
-
-```python
-import torch
-import onnx
-import onnxruntime as ort
-import numpy as np
-
-dummy_input = torch.randn(1, 3, 224, 224)
-
-torch.onnx.export(
-    model,
-    dummy_input,
-    "model.onnx",
-    export_params=True,
-    opset_version=17,
-    do_constant_folding=True,
-    input_names=["input"],
-    output_names=["output"],
-    dynamic_axes={
-        "input":  {0: "batch_size"},   # dynamic batch dimension
-        "output": {0: "batch_size"},
-    },
-)
-
-# Verify
-onnx_model = onnx.load("model.onnx")
-onnx.checker.check_model(onnx_model)
-
-# Run with ONNX Runtime
-sess_options = ort.SessionOptions()
-sess_options.graph_optimization_level = ort.GraphOptimizationLevel.ORT_ENABLE_ALL
-sess = ort.InferenceSession("model.onnx", sess_options, providers=["CUDAExecutionProvider"])
-
-output = sess.run(None, {"input": dummy_input.numpy()})
-```
-
----
-
-### TensorRT
-
-NVIDIA's inference optimizer. Fuses layers, selects optimal kernels, and exploits tensor cores.
-
-```python
-import tensorrt as trt
-import torch
-from torch2trt import torch2trt   # pip install torch2trt
-
-model = MyModel().eval().cuda()
-x = torch.randn(1, 3, 224, 224).cuda()
-
-# Convert
-model_trt = torch2trt(
-    model, [x],
-    fp16_mode=True,
-    max_batch_size=32,
-    max_workspace_size=1 << 30,   # 1 GB
-)
-torch.save(model_trt.state_dict(), "model_trt.pth")
-
-# Benchmark
 import time
-with torch.no_grad():
-    for _ in range(100):   # warm up
-        model_trt(x)
-    start = time.perf_counter()
-    for _ in range(1000):
-        model_trt(x)
-    print(f"TRT latency: {(time.perf_counter() - start) / 1000 * 1000:.2f} ms")
-```
+from contextlib import contextmanager
 
-Typical speedup over vanilla PyTorch: 3–10x on NVIDIA GPUs.
+@contextmanager
+def latency_tracker(stage: str, metrics_client):
+    start = time.perf_counter()
+    try:
+        yield
+    finally:
+        elapsed_ms = (time.perf_counter() - start) * 1000
+        metrics_client.histogram(f"inference.latency.{stage}", elapsed_ms)
+
+# Use it:
+with latency_tracker("feature_retrieval", metrics):
+    features = feature_store.get_online_features(entity_id)
+
+with latency_tracker("model_forward_pass", metrics):
+    scores = model.predict(features)
+```
 
 ---
 
-### Batching Strategies
+### Quantization
 
-**Dynamic batching** — accumulate requests over a time window, process together:
+**The problem**: full-precision (FP32) inference uses 4 bytes per weight. For large models this saturates memory bandwidth and limits throughput on both CPU and GPU.
+
+**The core insight**: the model does not need FP32 at inference time. INT8 arithmetic is 2-4x faster on modern hardware. The accuracy loss from quantization is typically less than 1% on well-calibrated models.
+
+**The mechanics**: INT8 maps FP32 weights to 8-bit integers via `x_int8 = round(x_fp32 / scale) + zero_point`. Calibrate the scale on a representative dataset.
+
+```python
+import torch
+
+# Post-training dynamic quantization
+model_quantized = torch.quantization.quantize_dynamic(
+    model,
+    {torch.nn.Linear},
+    dtype=torch.qint8
+)
+
+# Export to ONNX for cross-framework serving with optimized runtime
+torch.onnx.export(model_quantized, dummy_input, "model_int8.onnx", opset_version=13)
+```
+
+**What breaks**: INT8 quantization degrades more sharply on models that use activations with wide dynamic range (large embedding tables, high-variance attention scores). Always re-evaluate on a calibration set after quantizing. For GPU serving, FP16 is often a better trade: half-precision with minimal accuracy loss and 2x throughput on modern GPUs.
+
+---
+
+### Dynamic Batching
+
+**The problem**: a single GPU forward pass on batch size 1 is nearly as expensive as batch size 8. You are leaving GPU utilization on the floor.
+
+**The core insight**: accumulate requests that arrive close together in time and process them as a single batch. The GPU's parallelism is wasted on single-item batches.
+
+**The mechanics**: hold incoming requests for up to `max_wait_ms`. When either the batch fills to `max_batch_size` or the timeout expires, flush the batch.
 
 ```python
 import asyncio
 from typing import List
 
 class DynamicBatcher:
-    def __init__(self, model, max_batch: int = 32, max_wait_ms: float = 10.0):
-        self.model    = model
-        self.max_batch = max_batch
-        self.max_wait  = max_wait_ms / 1000
-        self._queue: asyncio.Queue = asyncio.Queue()
+    def __init__(self, model, max_batch_size: int = 32, max_wait_ms: float = 10.0):
+        self.model = model
+        self.max_batch_size = max_batch_size
+        self.max_wait_ms = max_wait_ms
+        self._queue: List[asyncio.Future] = []
+        self._inputs: list = []
 
-    async def predict(self, input_tensor):
-        """Called per request; returns result when batch is processed."""
+    async def predict(self, features: dict) -> dict:
         future = asyncio.get_event_loop().create_future()
-        await self._queue.put((input_tensor, future))
+        self._queue.append(future)
+        self._inputs.append(features)
+
+        if len(self._queue) >= self.max_batch_size:
+            await self._flush()
+        else:
+            asyncio.get_event_loop().call_later(
+                self.max_wait_ms / 1000,
+                asyncio.ensure_future,
+                self._flush()
+            )
         return await future
 
-    async def _batch_loop(self):
-        while True:
-            items = []
-            deadline = asyncio.get_event_loop().time() + self.max_wait
+    async def _flush(self):
+        if not self._queue:
+            return
+        batch = self._inputs[:self.max_batch_size]
+        futures = self._queue[:self.max_batch_size]
+        self._inputs = self._inputs[self.max_batch_size:]
+        self._queue = self._queue[self.max_batch_size:]
 
-            # collect up to max_batch items or until deadline
-            while len(items) < self.max_batch:
-                timeout = deadline - asyncio.get_event_loop().time()
-                if timeout <= 0:
-                    break
-                try:
-                    item = await asyncio.wait_for(self._queue.get(), timeout=timeout)
-                    items.append(item)
-                except asyncio.TimeoutError:
-                    break
-
-            if not items:
-                continue
-
-            tensors, futures = zip(*items)
-            batch = torch.stack(tensors)
-            with torch.no_grad():
-                results = self.model(batch)
-
-            for future, result in zip(futures, results):
-                future.set_result(result)
+        results = self.model.predict_batch(batch)
+        for future, result in zip(futures, results):
+            future.set_result(result)
 ```
 
-**Micro-batching** — split a large batch into smaller chunks that fit in GPU memory, overlap data transfer and computation.
-
-**Async inference** — decouple request receipt from model execution using a queue (Kafka, Redis, SQS). Caller polls or receives a webhook. Good for non-latency-sensitive workloads.
+**What breaks**: batching adds latency for the first request in a batch — it must wait up to `max_wait_ms` before being processed. At low traffic, `max_wait_ms` becomes the minimum latency floor regardless of how fast the model is. Tune this window based on your traffic pattern; at high traffic it fills before the timeout and adds near-zero overhead.
 
 ---
 
-## 3. Feature Store Design
+### TorchScript and ONNX
 
-A system that stores, computes, and serves features consistently between training and serving.
+**The problem**: Python overhead in model forward passes is non-trivial. The Python interpreter adds overhead on every operation, and Python cannot be efficiently parallelized across threads.
+
+**The core insight**: compile the model graph to a static form that bypasses the Python interpreter. ONNX enables cross-framework optimized runtimes (ONNX Runtime, TensorRT).
+
+```python
+# TorchScript: static compilation of PyTorch model
+scripted_model = torch.jit.script(model)
+scripted_model.save("model_scripted.pt")
+
+# Export to ONNX, then optimize with TensorRT for maximum GPU throughput
+torch.onnx.export(model, dummy_input, "model.onnx", opset_version=13)
+# trtexec --onnx=model.onnx --saveEngine=model.trt --fp16
+```
+
+**What breaks**: TorchScript requires all code paths to be statically typed. Dynamic control flow (Python conditionals that depend on tensor values) requires explicit annotation. TensorRT optimization is hardware-specific — an engine compiled for an A100 will not run on a T4.
 
 ---
 
-### Online vs Offline Store
+## Feature Store Design
 
-| Dimension | Offline Store | Online Store |
-|-----------|--------------|--------------|
-| Backend | Data warehouse (BigQuery, S3 + Parquet) | Key-value store (Redis, DynamoDB, Cassandra) |
-| Latency | Minutes–hours | < 10 ms |
-| Use case | Training, batch scoring | Real-time inference |
-| Scale | Petabytes | Millions of rows |
-| Update frequency | Scheduled jobs (hourly/daily) | Streaming (Kafka) or micro-batch |
+**The problem**: you have 15 features for your recommendation model. Three teams compute overlapping versions of the same features using slightly different logic. Feature computation at inference time takes 150ms because it joins three tables live. In your training pipeline, you accidentally used features computed with future data — the model looked great offline but failed in production because those features are not available at prediction time.
 
-**The consistency problem:** The offline store may use a different computation than what runs at serving time, producing different feature values. This is the root cause of training-serving skew (see section 6).
+**The core insight**: features need two separate systems with a shared contract. An *offline store* for training: high throughput, batch-correct, point-in-time safe. An *online store* for inference: low latency, pre-materialized, single key lookup. The feature store enforces a single definition used in both contexts.
 
 ---
 
 ### Point-in-Time Correct Joins
 
-When creating a training dataset, feature values must be joined as of the event timestamp — not the current value. Prevents label leakage.
+**The problem**: when training on a label that occurred at time `t`, the feature values used must be those that were available at time `t - epsilon`, never after. Using future feature values is data leakage — the model learns a mapping that cannot exist at inference time.
 
-```
-Event log:  user=A, timestamp=2024-01-10 14:00, label=1
-Feature log: user=A, feature_updated=2024-01-10 12:00, value=5.0   ← use this
-             user=A, feature_updated=2024-01-10 16:00, value=7.0   ← do NOT leak
-```
+**The mechanics**: for each training example, join the most recent feature row whose timestamp is strictly before the event's timestamp.
 
 ```python
 import pandas as pd
 
 def point_in_time_join(
-    events: pd.DataFrame,          # columns: entity_id, event_timestamp, label
-    features: pd.DataFrame,        # columns: entity_id, feature_timestamp, feature_value
+    entity_df: pd.DataFrame,
+    feature_df: pd.DataFrame,
+    entity_timestamp_col: str = "event_timestamp",
+    feature_timestamp_col: str = "feature_timestamp"
 ) -> pd.DataFrame:
-    """Merge feature value that was most recently available before each event."""
-    merged = events.merge(features, on="entity_id", how="left")
-    # keep only feature rows that precede the event
-    valid = merged[merged["feature_timestamp"] <= merged["event_timestamp"]]
-    # take the latest available feature per event
-    latest = (
-        valid.sort_values("feature_timestamp")
-             .groupby(["entity_id", "event_timestamp"])
-             .last()
-             .reset_index()
-    )
-    return events.merge(latest, on=["entity_id", "event_timestamp"], how="left")
+    """
+    For each entity row, join the most recent feature row
+    available BEFORE the entity's event timestamp.
+    """
+    result_rows = []
+    for _, entity_row in entity_df.iterrows():
+        event_time = entity_row[entity_timestamp_col]
+        entity_id = entity_row["entity_id"]
+
+        available_features = feature_df[
+            (feature_df["entity_id"] == entity_id) &
+            (feature_df[feature_timestamp_col] < event_time)
+        ]
+        if not available_features.empty:
+            latest_feature = available_features.sort_values(feature_timestamp_col).iloc[-1]
+            result_rows.append({**entity_row.to_dict(), **latest_feature.to_dict()})
+
+    return pd.DataFrame(result_rows)
 ```
+
+**What breaks**: if the feature store's timestamp index is coarser than your event stream (daily snapshots for hourly events), point-in-time joins return features that are stale by up to 24 hours — creating a systematic bias in training that does not match how inference works.
 
 ---
 
 ### Feast Architecture
 
-```
-                  ┌──────────────────────────────┐
-                  │        Feature Repository     │
-                  │  (Python definitions + YAML)  │
-                  └──────────────┬───────────────┘
-                                 │  feast apply
-                  ┌──────────────▼───────────────┐
-                  │         Feast Registry        │
-                  │   (metadata, schemas, TTLs)   │
-                  └──────┬───────────────┬────────┘
-                         │               │
-              feast materialize     feast get_online_features
-                         │               │
-              ┌──────────▼──┐      ┌─────▼──────────┐
-              │Offline Store│      │  Online Store   │
-              │ (BigQuery)  │      │   (Redis)       │
-              └─────────────┘      └─────────────────┘
-```
-
-**Feast feature store configuration:**
-
 ```python
-# feature_store.yaml
-project: my_ml_project
-registry: gs://my-bucket/feast/registry.db
-provider: gcp
-online_store:
-  type: redis
-  connection_string: "localhost:6379"
-offline_store:
-  type: bigquery
-  dataset: feast_features
-```
-
-```python
-# features.py
+from feast import FeatureStore, FeatureView, Entity, Field, FileSource
+from feast.types import Float64, String
 from datetime import timedelta
-from feast import Entity, Feature, FeatureView, FileSource, ValueType
+import pandas as pd
 
-user = Entity(name="user_id", value_type=ValueType.INT64, description="User identifier")
+user = Entity(name="user_id", join_keys=["user_id"])
 
-user_stats_source = FileSource(
-    path="s3://my-bucket/user_stats/",
-    event_timestamp_column="event_timestamp",
-)
-
-user_stats_view = FeatureView(
-    name="user_stats",
-    entities=["user_id"],
+user_features = FeatureView(
+    name="user_features",
+    entities=[user],
     ttl=timedelta(days=7),
-    features=[
-        Feature(name="session_count_7d",   dtype=ValueType.INT64),
-        Feature(name="avg_order_value_30d", dtype=ValueType.FLOAT),
-        Feature(name="days_since_last_login", dtype=ValueType.INT32),
+    schema=[
+        Field(name="age", dtype=Float64),
+        Field(name="purchase_count_7d", dtype=Float64),
+        Field(name="last_category", dtype=String),
     ],
-    source=user_stats_source,
+    source=FileSource(
+        path="data/user_features.parquet",
+        timestamp_field="event_timestamp"
+    ),
 )
-```
-
-```python
-# Materialize to online store
-from feast import FeatureStore
-from datetime import datetime, timezone
 
 store = FeatureStore(repo_path=".")
-store.materialize_incremental(end_date=datetime.now(tz=timezone.utc))
 
-# Retrieve at serving time
-feature_vector = store.get_online_features(
-    features=["user_stats:session_count_7d", "user_stats:avg_order_value_30d"],
-    entity_rows=[{"user_id": 1234}],
+# Materialize offline features to online store (Redis / DynamoDB)
+store.materialize_incremental(end_date=pd.Timestamp.now())
+
+# Inference: single key lookup, < 10ms from online store
+features = store.get_online_features(
+    features=["user_features:age", "user_features:purchase_count_7d"],
+    entity_rows=[{"user_id": "user_123"}]
 ).to_dict()
 ```
 
----
-
-### Training-Serving Skew Detection via Feature Store
-
-Log feature vectors at prediction time. Periodically compare their distribution against training data distributions using PSI (Population Stability Index) or KS test.
+**What breaks**: materialization lag — the online store reflects the last materialization run, not real-time feature values. For features that must be fresh (current session behavior, event-driven signals), stream materialization via Kafka → Flink → Redis is required. Batch and streaming feature pipelines often diverge in subtle ways (different aggregation windows, different handling of late-arriving events), which creates training-serving skew through the feature store itself.
 
 ---
 
-## 4. Model Serving Infrastructure
+## Model Serving Infrastructure
+
+**The problem**: you have a model artifact. You need it to handle 10,000 requests per second with < 50ms p99 latency, roll out new versions without downtime, serve multiple models efficiently on shared GPU hardware, and give you visibility when something degrades.
+
+**The core insight**: the model artifact is not a service. You need infrastructure that handles request routing, batching, hardware scheduling, health checking, versioning, and observability — separately from your model code.
 
 ---
 
-### TorchServe
+### Serving Framework Selection
 
-PyTorch's official model server. Handles REST/gRPC, multi-model serving, batching, metrics.
+| Framework | Best for | Key capability |
+|-----------|----------|----------------|
+| TorchServe | PyTorch models, multi-model | Handler API, model archiver |
+| Triton Inference Server | Multi-framework, GPU, high throughput | Dynamic batching, concurrent model execution |
+| BentoML | Rapid deployment, custom preprocessing | Python-native, Docker/K8s integration |
+| Ray Serve | Distributed Python, complex pipelines | Actor-based, composable serving pipelines |
 
-```bash
-# Package model
-torch-model-archiver \
-  --model-name resnet50 \
-  --version 1.0 \
-  --model-file model.py \
-  --serialized-file resnet50.pt \
-  --handler image_classifier \
-  --export-path model_store/
-
-# Start server
-torchserve \
-  --start \
-  --model-store model_store/ \
-  --models resnet50=resnet50.mar \
-  --ts-config config.properties
-```
-
-```ini
-# config.properties
-inference_address=http://0.0.0.0:8080
-management_address=http://0.0.0.0:8081
-metrics_address=http://0.0.0.0:8082
-number_of_netty_threads=4
-job_queue_size=100
-batch_size=8
-max_batch_delay=50     # ms
-```
-
----
-
-### Triton Inference Server (NVIDIA)
-
-Multi-framework server (TensorFlow, PyTorch, ONNX, TensorRT, custom). Key features: concurrent model execution, model ensemble, dynamic batching per model.
-
-**Model repository layout:**
-
-```
-model_repository/
-  resnet50/
-    config.pbtxt
-    1/
-      model.onnx
-  bert_encoder/
-    config.pbtxt
-    1/
-      model.plan          # TensorRT engine
-```
-
-**config.pbtxt:**
+### Triton Dynamic Batching Configuration
 
 ```protobuf
-name: "resnet50"
-platform: "onnxruntime_onnx"
+name: "recommendation_model"
+backend: "pytorch_libtorch"
 max_batch_size: 64
-
 input [
-  { name: "input"  data_type: TYPE_FP32  dims: [3, 224, 224] }
+  { name: "user_features" data_type: TYPE_FP32 dims: [-1, 128] }
 ]
 output [
-  { name: "output" data_type: TYPE_FP32  dims: [1000] }
+  { name: "scores" data_type: TYPE_FP32 dims: [-1, 1000] }
 ]
-
 dynamic_batching {
   preferred_batch_size: [8, 16, 32]
-  max_queue_delay_microseconds: 10000
+  max_queue_delay_microseconds: 5000
 }
-
 instance_group [
-  { kind: KIND_GPU  count: 2 }   # 2 concurrent instances per GPU
+  { kind: KIND_GPU count: 2 }
 ]
 ```
 
-**Model ensemble** (chain preprocessing → model → postprocessing without leaving server):
+### Kubernetes Deployment
 
-```protobuf
-name: "ensemble_pipeline"
-platform: "ensemble"
-ensemble_scheduling {
-  step [
-    { model_name: "preprocess"  model_version: 1
-      input_map  { key: "raw_input"   value: "raw_input" }
-      output_map { key: "processed"   value: "processed" } },
-    { model_name: "resnet50"    model_version: 1
-      input_map  { key: "input"       value: "processed" }
-      output_map { key: "output"      value: "logits" } },
-    { model_name: "postprocess" model_version: 1
-      input_map  { key: "logits"      value: "logits" }
-      output_map { key: "label"       value: "label" } }
-  ]
-}
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: model-server
+spec:
+  replicas: 3
+  template:
+    spec:
+      containers:
+      - name: triton
+        image: nvcr.io/nvidia/tritonserver:23.10-py3
+        resources:
+          limits:
+            nvidia.com/gpu: "1"
+        readinessProbe:
+          httpGet:
+            path: /v2/health/ready
+            port: 8000
+          initialDelaySeconds: 30
+          periodSeconds: 10
+        livenessProbe:
+          httpGet:
+            path: /v2/health/live
+            port: 8000
 ```
+
+**What breaks**: GPU memory fragmentation when serving many models of varying sizes on shared hardware. Without explicit memory limits, a large model can OOM the node and evict all other models. Specify GPU memory fractions per model in Triton's configuration.
 
 ---
 
-### BentoML
+## Online vs Offline Learning
 
-Framework-agnostic serving with first-class Python packaging and deployment to Kubernetes / BentoCloud.
+**The problem**: your fraud detection model was trained on last quarter's transaction data. Fraudsters adapt — within three months, new fraud patterns that were not in the training data account for 40% of losses. Retraining from scratch monthly is expensive and slow.
 
-```python
-import bentoml
-import numpy as np
-from bentoml.io import NumpyNdarray
-
-runner = bentoml.sklearn.get("iris_classifier:latest").to_runner()
-
-svc = bentoml.Service("iris_classifier", runners=[runner])
-
-@svc.api(input=NumpyNdarray(), output=NumpyNdarray())
-async def predict(input_data: np.ndarray) -> np.ndarray:
-    return await runner.predict.async_run(input_data)
-```
-
-```bash
-bentoml build
-bentoml serve iris_classifier:latest --port 3000
-bentoml containerize iris_classifier:latest   # produces Docker image
-```
+**The core insight**: offline learning treats the training set as fixed. Online learning updates the model incrementally as each new example arrives. The right choice depends on how fast your data distribution shifts and the cost of stale predictions.
 
 ---
 
-### Ray Serve
+### Offline (Batch) Retraining
 
-Production-grade serving library built on Ray. Handles autoscaling, request routing, model composition.
+- Train on a fixed snapshot of historical data
+- Deploy periodically (daily, weekly, monthly)
+- Simple, auditable, reproducible
 
-```python
-import ray
-from ray import serve
-import torch
+**Use when**: distribution shift is slow (weeks-months), labels arrive quickly, audit requirements are strict.
 
-ray.init()
-serve.start()
-
-@serve.deployment(
-    num_replicas=2,
-    ray_actor_options={"num_gpus": 1},
-    autoscaling_config={
-        "min_replicas": 1,
-        "max_replicas": 10,
-        "target_num_ongoing_requests_per_replica": 5,
-    },
-)
-class ModelDeployment:
-    def __init__(self):
-        self.model = torch.jit.load("model_traced.pt").cuda().eval()
-
-    async def __call__(self, request):
-        data = await request.json()
-        tensor = torch.tensor(data["input"]).cuda()
-        with torch.no_grad():
-            output = self.model(tensor)
-        return {"prediction": output.cpu().tolist()}
-
-deployment = ModelDeployment.bind()
-serve.run(deployment, route_prefix="/predict")
-```
-
----
-
-### SLA, Autoscaling, and Request Queuing
-
-| Metric | Typical SLA target | Alert threshold |
-|--------|--------------------|----------------|
-| p50 latency | < 50 ms | > 100 ms |
-| p99 latency | < 200 ms | > 500 ms |
-| Error rate | < 0.1% | > 1% |
-| Throughput | model-dependent | drop > 20% |
-
-**Autoscaling signals:** CPU/GPU utilization, request queue depth, p99 latency. Prefer queue-depth-based scaling for bursty traffic (faster than utilization-based because it acts before resources are saturated).
-
----
-
-## 5. Online vs Offline Learning
-
----
-
-### Batch (Offline) Inference
-
-Model is static. Predictions are computed periodically on a dataset and stored.
-
-```
-Raw data → [batch ETL] → Features → [trained model] → Predictions → DB → Application
-```
-
-- Latency: not relevant (results pre-computed)
-- Staleness: depends on batch frequency (hourly, daily)
-- Examples: recommendation pre-scoring, churn propensity for CRM campaigns
-
----
-
-### Online Learning
-
-Model updates continuously as new data arrives. Required when distribution shifts faster than retraining cycles.
-
-**sklearn `partial_fit`:**
+### Online (Incremental) Learning
 
 ```python
 from sklearn.linear_model import SGDClassifier
-from sklearn.preprocessing import StandardScaler
-import numpy as np
 
-clf   = SGDClassifier(loss="log_loss", learning_rate="adaptive", eta0=0.01)
-scaler = StandardScaler()
+model = SGDClassifier(loss="log_loss", learning_rate="constant", eta0=0.01)
 
-# Streaming data loop
-for batch in streaming_data_source():
-    X_batch = np.array([sample["features"] for sample in batch])
-    y_batch = np.array([sample["label"]    for sample in batch])
+for batch in stream_transactions():
+    X_batch, y_batch = prepare_features(batch)
+    model.partial_fit(X_batch, y_batch, classes=[0, 1])
 
-    X_scaled = scaler.partial_fit(X_batch).transform(X_batch)
-    clf.partial_fit(X_scaled, y_batch, classes=[0, 1])
+    if should_evaluate():
+        score = model.score(X_eval, y_eval)
+        log_metric("online_accuracy", score)
 ```
 
-**river library (purpose-built for streaming ML):**
-
-```python
-from river import linear_model, preprocessing, metrics, stream
-
-model = preprocessing.StandardScaler() | linear_model.LogisticRegression()
-metric = metrics.ROCAUC()
-
-for x, y in stream.iter_csv("events.csv", target="label"):
-    y_pred = model.predict_proba_one(x)
-    metric.update(y, y_pred)
-    model.learn_one(x, y)
-
-print(f"Running AUC: {metric}")
-```
-
-**Concept drift handling:**
-- ADWIN (Adaptive Windowing) — detect change in mean, shrink window
-- Page-Hinkley test — detect mean shift in stream
-- DDM (Drift Detection Method) — monitor error rate
-- Response: retrain from scratch, increase learning rate, weight recent samples more
-
-**Streaming features with Kafka + Flink:**
-
-```
-Kafka topic (events) → Flink job (aggregate, compute features) → Redis (online store)
-                                                                 ↑
-                                                     Model reads from here at inference
-```
+**What breaks**: online learning with a high learning rate causes catastrophic forgetting — the model chases the latest distribution and loses knowledge of older patterns. Use a smaller learning rate and maintain a replay buffer of historical examples to interleave with new data.
 
 ---
 
-## 6. Training-Serving Skew
+### Streaming Features for Online Serving
 
-The model was trained on feature values computed one way; at serving time, the same "feature" is computed differently, producing systematically different values.
+When features must be fresh (< 1 second lag):
+
+```
+Transaction events → Kafka topic
+  → Flink/Spark Streaming (compute: rolling counts, velocity, aggregates)
+  → Redis (feature store, TTL = 1 hour)
+  → Model server reads from Redis at inference time
+```
+
+**What breaks**: streaming feature computation and offline batch feature computation often diverge — different aggregation windows, different handling of late-arriving events. This is a training-serving skew problem introduced through the feature pipeline.
+
+---
+
+### Concept Drift Detection
+
+```python
+from river import drift
+
+detector = drift.ADWIN(delta=0.002)
+
+for prediction, actual_label in production_stream():
+    error = int(prediction != actual_label)
+    detector.update(error)
+    if detector.drift_detected:
+        trigger_retraining_pipeline()
+        detector = drift.ADWIN(delta=0.002)  # reset after triggering
+```
+
+Detection methods:
+- **ADWIN**: maintains an adaptive window; triggers when the mean within sub-windows differs significantly
+- **DDM**: tracks error rate and standard deviation; alerts when error exceeds baseline + threshold
+- **Page-Hinkley test**: sequential test that triggers when cumulative deviation exceeds a threshold
+
+**What breaks**: ADWIN has a detection lag — it takes several hundred examples to confirm a drift. In high-stakes applications, you may need to trigger retraining before statistical significance is reached. Use business metric thresholds as an early warning, not just statistical tests.
+
+---
+
+## Training-Serving Skew
+
+**The problem**: your model achieves 94% accuracy in offline evaluation. In production it is 82%. Nobody changed the model. The degradation is real, silent, and grows over time.
+
+**The core insight**: training-serving skew means the features the model saw during training are not the same features it receives at inference time. The distribution is different, the feature values are computed differently, or the timing is wrong. The model is solving a different problem than it was trained on.
 
 ---
 
 ### Root Causes
 
-| Cause | Example |
-|-------|---------|
-| Different code paths | Training uses pandas; serving uses SQL |
-| Time zone handling | Training assumes UTC; serving sends local time |
-| Null/missing treatment | Training fills null=0; serving passes null=-1 |
-| Normalization mismatch | Scaler fit on training data, not re-applied at serving |
-| Aggregation window drift | "last 7 days" computed at different timestamps |
+1. **Different preprocessing code**: training uses Python/pandas, serving uses Java/SQL — floating-point behavior differs
+2. **Feature computation timing**: training uses a daily batch snapshot; serving computes in real-time with incomplete aggregation windows
+3. **Missing features at serving time**: a feature available in historical data is not available in the live request
+4. **Data leakage in training**: training used post-event features that do not exist at inference time
 
----
-
-### Detection
+### Detection with PSI and KS Test
 
 ```python
 import numpy as np
-from scipy.stats import ks_2samp
+from scipy import stats
 
-def detect_skew(
-    training_features: np.ndarray,
-    serving_features: np.ndarray,
-    feature_names: list,
-    alpha: float = 0.05,
-) -> dict:
+def population_stability_index(
+    expected: np.ndarray,
+    actual: np.ndarray,
+    buckets: int = 10
+) -> float:
     """
-    KS test for distributional difference between training and serving features.
-    Returns dict of {feature_name: (statistic, p_value, skewed_bool)}.
+    PSI < 0.1:   no significant change
+    PSI 0.1-0.2: moderate change — monitor
+    PSI > 0.2:   significant shift — investigate and likely retrain
     """
-    results = {}
-    for i, name in enumerate(feature_names):
-        stat, p = ks_2samp(training_features[:, i], serving_features[:, i])
-        results[name] = {"ks_statistic": round(stat, 4), "p_value": round(p, 4), "skewed": p < alpha}
-    return results
+    def _psi_bucket(expected_pct, actual_pct):
+        if expected_pct == 0 or actual_pct == 0:
+            return 0
+        return (actual_pct - expected_pct) * np.log(actual_pct / expected_pct)
 
-# PSI (Population Stability Index) — industry standard for feature drift
-def psi(expected: np.ndarray, actual: np.ndarray, buckets: int = 10) -> float:
-    """PSI < 0.1 stable, 0.1–0.2 moderate change, > 0.2 significant drift."""
-    breakpoints = np.linspace(0, 100, buckets + 1)
-    expected_pct = np.histogram(expected, bins=np.percentile(expected, breakpoints))[0] / len(expected)
-    actual_pct   = np.histogram(actual,   bins=np.percentile(expected, breakpoints))[0] / len(actual)
+    breakpoints = np.percentile(expected, np.linspace(0, 100, buckets + 1))
+    exp_counts, _ = np.histogram(expected, bins=breakpoints)
+    act_counts, _ = np.histogram(actual, bins=breakpoints)
 
-    expected_pct = np.clip(expected_pct, 1e-6, None)
-    actual_pct   = np.clip(actual_pct,   1e-6, None)
+    exp_pcts = exp_counts / len(expected)
+    act_pcts = act_counts / len(actual)
 
-    return float(np.sum((actual_pct - expected_pct) * np.log(actual_pct / expected_pct)))
+    return sum(_psi_bucket(e, a) for e, a in zip(exp_pcts, act_pcts))
+
+def ks_feature_drift(training_feature: np.ndarray, serving_feature: np.ndarray) -> dict:
+    statistic, p_value = stats.ks_2samp(training_feature, serving_feature)
+    return {
+        "ks_statistic": statistic,
+        "p_value": p_value,
+        "drift_detected": p_value < 0.05
+    }
 ```
 
-**Detection pipeline:**
-1. Log every (request_id, features, prediction) at serving time
-2. Sample training feature distributions at train time, store as reference
-3. Hourly/daily: compare serving feature distributions to reference via PSI / KS
-4. Alert if PSI > 0.2 for any feature
+### The Fix: Shared Feature Pipeline
+
+The only reliable fix is to use identical code for both training and serving. Serialize the full preprocessing pipeline with the model artifact.
+
+```python
+import joblib
+from sklearn.pipeline import Pipeline
+from sklearn.preprocessing import StandardScaler
+from sklearn.impute import SimpleImputer
+
+# Training: build and save full pipeline together
+pipeline = Pipeline([
+    ("imputer", SimpleImputer(strategy="median")),
+    ("scaler", StandardScaler()),
+    ("model", your_model)
+])
+pipeline.fit(X_train, y_train)
+joblib.dump(pipeline, "model_with_preprocessing.pkl")
+
+# Serving: load and apply the SAME transformations
+loaded_pipeline = joblib.load("model_with_preprocessing.pkl")
+prediction = loaded_pipeline.predict(raw_features)
+```
+
+**What breaks**: if the scaler was fit on training data but production data has a different scale (new product category with much higher prices), predictions will be wrong even with the shared pipeline. The fix addresses code divergence; it does not protect against legitimate distribution shift. Monitor feature statistics at serving time separately.
 
 ---
 
-### Fix: Shared Feature Pipeline
+## Rollback and Versioning
 
-```
-               ┌─────────────────────────────────────┐
-               │        Feature Pipeline (shared)     │
-               │   same Python function, same logic   │
-               └───────────┬─────────────────────────┘
-                           │
-              ┌────────────┴────────────┐
-              ▼                         ▼
-    Offline (training)           Online (serving)
-    batch compute → store   streaming compute → cache
-```
+**The problem**: you deployed a new model. Three hours later the business conversion rate dropped 8%. You need to roll back to the previous version immediately, without losing the ability to investigate what went wrong.
 
-The gold standard: push the same feature computation function to both training (run as a batch Spark/Flink job) and serving (run as a real-time function). Feature stores (Feast, Tecton, Hopsworks) enforce this by definition.
+**The core insight**: rollback is only possible if you have versioned model artifacts, versioned serving configurations, and an automated mechanism to point traffic back to a known-good version. Without version management, you cannot roll back — you can only redeploy from scratch.
 
 ---
 
-## 7. Rollback and Versioning
+### Semantic Versioning for Models
 
----
+```
+v{major}.{minor}.{patch}
 
-### Model Registry
+major: architecture change, incompatible feature schema
+minor: retrained with new data, same architecture
+patch: threshold adjustment, serving config change only
+```
 
-A centralized store for model artifacts, metadata, and lifecycle state.
-
-**MLflow:**
+### MLflow Model Registry Lifecycle
 
 ```python
 import mlflow
-import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 
-mlflow.set_tracking_uri("http://mlflow-server:5000")
-mlflow.set_experiment("fraud_detection")
-
-with mlflow.start_run() as run:
-    # Train ...
-    mlflow.log_params({"n_estimators": 100, "max_depth": 6})
-    mlflow.log_metrics({"auc": 0.923, "precision": 0.88})
-    mlflow.sklearn.log_model(
-        model,
-        artifact_path="model",
-        registered_model_name="fraud_classifier",
-    )
-
-# Promote to staging, then production
-from mlflow import MlflowClient
 client = MlflowClient()
+
+# Register model after training run
+run_id = mlflow.active_run().info.run_id
+registered = mlflow.register_model(f"runs:/{run_id}/model", "fraud_detector")
+
+# Lifecycle: None → Staging → Production → Archived
 client.transition_model_version_stage(
-    name="fraud_classifier", version=3, stage="Production"
+    name="fraud_detector",
+    version=registered.version,
+    stage="Staging"
+)
+
+# After validation, promote to production
+client.transition_model_version_stage(
+    name="fraud_detector",
+    version=registered.version,
+    stage="Production"
+)
+
+# Archive the previous version (keep artifact for rollback and audit)
+client.transition_model_version_stage(
+    name="fraud_detector",
+    version=str(int(registered.version) - 1),
+    stage="Archived"
 )
 ```
 
-**Semantic versioning for models:**
-
-```
-MAJOR.MINOR.PATCH
-
-MAJOR: architecture change, incompatible input/output schema
-MINOR: retrain with new data, same architecture
-PATCH: hyperparameter tweak, threshold adjustment
-
-e.g., fraud_classifier:2.4.1
-```
-
----
-
-### Automated Rollback Triggers
-
-Monitor these signals post-deployment; roll back if thresholds are breached:
+### Automated Rollback Trigger
 
 ```python
-# Pseudo-code for a rollback monitor
-ROLLBACK_RULES = [
-    {"metric": "error_rate_5m",      "operator": ">", "threshold": 0.05},   # >5% errors
-    {"metric": "latency_p99_5m",     "operator": ">", "threshold": 500},    # >500ms p99
-    {"metric": "prediction_auc_1h",  "operator": "<", "threshold": 0.85},   # AUC degraded
-    {"metric": "null_prediction_rate","operator": ">", "threshold": 0.01},   # >1% nulls
-]
-
-def should_rollback(current_metrics: dict) -> tuple[bool, str]:
-    for rule in ROLLBACK_RULES:
-        value = current_metrics.get(rule["metric"])
-        if value is None:
-            continue
-        if rule["operator"] == ">" and value > rule["threshold"]:
-            return True, f"{rule['metric']}={value} > {rule['threshold']}"
-        if rule["operator"] == "<" and value < rule["threshold"]:
-            return True, f"{rule['metric']}={value} < {rule['threshold']}"
-    return False, ""
+def should_rollback(
+    current_metrics: dict,
+    baseline_metrics: dict,
+    thresholds: dict
+) -> bool:
+    checks = {
+        "accuracy_drop": (
+            baseline_metrics["accuracy"] - current_metrics["accuracy"]
+            > thresholds.get("max_accuracy_drop", 0.03)
+        ),
+        "error_rate_spike": (
+            current_metrics["error_rate"]
+            > thresholds.get("max_error_rate", 0.01)
+        ),
+        "latency_regression": (
+            current_metrics["p99_latency_ms"]
+            > thresholds.get("max_p99_latency_ms", 200)
+        ),
+    }
+    failed = {k: v for k, v in checks.items() if v}
+    if failed:
+        alert(f"Rollback triggered: {list(failed.keys())}")
+        return True
+    return False
 ```
 
-**Rollback mechanism:**
-- Blue/green: flip load balancer back to previous environment (< 30 s)
-- Kubernetes: `kubectl rollout undo deployment/model-serving`
-- Canary: reduce new model weight to 0%
-- Registry: `client.transition_model_version_stage(name=..., version=prev_version, stage="Production")`
+**What breaks**: automated rollback without root cause analysis creates rollback loops — the model is rolled back, re-deployed, detected as bad, rolled back again. Add a circuit breaker: after two automated rollbacks, require human approval before re-deploying. Also, rollback does not fix the root cause; it only buys time.
 
 ---
 
-## 8. Multi-Model and Ensemble Serving
+## Multi-Model and Ensemble Serving
+
+**The problem**: a single model cannot serve all use cases optimally. High-value users need a sophisticated (slow) model; the majority of requests can be handled by a fast cheap model. Or you want to combine multiple models for better accuracy, but you need this to be manageable in production.
+
+**The core insight**: multi-model serving patterns (cascade, mixture of experts, champion-challenger) are fundamentally about routing decisions — which model handles which request, and how do you combine outputs when multiple models answer?
 
 ---
 
-### Cascade Models
+### Cascade Predictor
 
-Use a cheap model to filter requests; only send hard cases to the expensive model.
+**The problem**: you want the accuracy of an expensive model but cannot afford to run it on every request.
 
-```
-Request → [Fast Model (e.g., logistic regression)]
-             ├── confidence > 0.95 → return prediction directly (cheap path)
-             └── confidence ≤ 0.95 → [Slow Model (e.g., large transformer)] → return
-```
+**The core insight**: route requests through a cheap fast model first. Escalate to the expensive model only when the cheap model is uncertain.
 
 ```python
 class CascadePredictor:
-    def __init__(self, fast_model, slow_model, confidence_threshold: float = 0.95):
-        self.fast  = fast_model
-        self.slow  = slow_model
+    def __init__(self, fast_model, accurate_model, confidence_threshold: float = 0.8):
+        self.fast = fast_model
+        self.accurate = accurate_model
         self.threshold = confidence_threshold
 
-    def predict(self, features):
-        proba = self.fast.predict_proba(features)
-        confidence = proba.max(axis=1)
+    def predict(self, features: dict) -> dict:
+        fast_result = self.fast.predict_proba(features)
+        max_confidence = max(fast_result["probabilities"])
 
-        results = np.empty(len(features), dtype=int)
-        easy_mask = confidence >= self.threshold
-        hard_mask = ~easy_mask
+        if max_confidence >= self.threshold:
+            return {
+                "prediction": fast_result["class"],
+                "confidence": max_confidence,
+                "model_used": "fast"
+            }
 
-        if easy_mask.any():
-            results[easy_mask] = proba[easy_mask].argmax(axis=1)
-        if hard_mask.any():
-            results[hard_mask] = self.slow.predict(features[hard_mask])
-
-        return results
+        accurate_result = self.accurate.predict_proba(features)
+        return {
+            "prediction": accurate_result["class"],
+            "confidence": max(accurate_result["probabilities"]),
+            "model_used": "accurate"
+        }
 ```
 
-Typical cost reduction: 70–90% of requests handled by the fast model.
+**What breaks**: the confidence threshold must be calibrated on held-out data. A poorly calibrated model can have high confidence on wrong predictions — the cascade never escalates when it should. Measure the escalation rate in production; if it is near zero, the fast model's confidences are overconfident.
 
 ---
 
-### Mixture of Experts Routing
-
-Route each request to the most relevant specialist model based on input characteristics.
+### Mixture of Experts
 
 ```python
 class MixtureOfExperts:
-    def __init__(self, router, experts: dict):
-        """
-        router:  model that maps input → expert_name
-        experts: {expert_name: model}
-        """
-        self.router  = router
+    def __init__(self, experts: list, gating_model):
         self.experts = experts
+        self.gating = gating_model
 
-    def predict(self, features):
-        expert_name = self.router.predict(features)
-        return self.experts[expert_name].predict(features)
+    def predict(self, features: dict) -> dict:
+        weights = self.gating.predict_proba(features)  # shape: [n_experts]
+        expert_predictions = [model.predict(features) for model in self.experts]
+        combined = sum(w * p for w, p in zip(weights, expert_predictions))
+        return {"prediction": combined, "expert_weights": weights.tolist()}
 ```
+
+**What breaks**: training the gating model requires the expert models to already exist. The gating model can collapse — assigning all weight to one expert — if experts do not naturally specialize. Regularize the gating model to encourage load balancing across experts.
 
 ---
 
-### Feature Flags for Model Switching
+### Feature Flags for Model Rollout
 
-Decouple deployment from activation. Ship new model code to all servers; activate via a flag in a config service (LaunchDarkly, internal config) without redeployment.
+Control which users get which model version without redeploying:
 
 ```python
-import ldclient
+def get_model_variant(user_id: str, ld_client) -> str:
+    context = ld.Context.builder(user_id).kind("user").build()
+    return ld_client.variation("model-version", context, "v1")
 
-ld = ldclient.get()
-
-def predict(user_id: str, features: dict) -> float:
-    use_new_model = ld.variation("use-model-v2", {"key": user_id}, default=False)
-
-    if use_new_model:
-        return model_v2.predict(features)
-    else:
-        return model_v1.predict(features)
+def serve_prediction(user_id: str, features: dict) -> dict:
+    variant = get_model_variant(user_id, ld_client)
+    model = model_registry[variant]
+    return model.predict(features)
 ```
 
-This allows:
-- Kill switch (disable v2 instantly for all users)
-- Percentage rollout (10% of users get v2)
-- Targeted rollout (specific user segments)
+**What breaks**: feature flag systems add round-trip latency overhead (typically 1-5ms for local evaluation). If the flag service is down and you have no fallback, all users get the default model regardless of the intended rollout. Always define a safe default that works without the flag service.
 
 ---
 
-## 9. Key Interview Points
+## Key Interview Points
 
-**Deployment strategies:**
-- Blue/green = atomic switch, 2x infra cost, fast rollback. Canary = gradual with live validation. Shadow = safest validation but burns double compute.
-- A/B test requires pre-calculated sample size based on MDE — never stop early based on p-value (peeking problem).
+**"How would you deploy a model to production?"**
 
-**Latency stack:**
-- Profile first, optimize second. Common wins in order: batching → quantization (INT8/FP16) → TorchScript/ONNX (eliminate Python overhead) → TensorRT (kernel fusion) → async/parallel serving.
-- Dynamic batching trades latency for throughput; tune max_batch_delay to your SLA budget.
+Choose the deployment strategy based on risk tolerance: shadow (zero risk, maximum visibility) → canary (partial exposure, statistical validation) → blue-green (instant switchover, full replacement). Package the model with its preprocessing pipeline. Instrument for latency and quality monitoring. Define rollback criteria before deployment and automate rollback. Graduate from canary to full traffic based on business metrics, not just ML metrics.
 
-**Feature stores:**
-- Point-in-time joins are mandatory for correctness — missing them causes label leakage.
-- Online store (Redis) for < 10 ms retrieval; offline store (BigQuery/S3) for training.
-- Materialization = the process of computing features from raw data and writing to online store.
+**"What is training-serving skew?"**
 
-**Training-serving skew:**
-- The single most common silent killer of model performance in production.
-- Detection: log serving features, compare distributions to training reference (PSI > 0.2 = alert).
-- Fix: shared feature computation code used at both training and serving time.
+Feature values computed at training time differ from feature values at inference time. Root causes: different code paths computing the same feature, different timing (batch vs real-time aggregation), data leakage in training. Detection: PSI and KS test on feature distributions comparing training data against production traffic. Fix: shared preprocessing library, serialize full pipeline, feature store with point-in-time guarantees.
 
-**Rollback:**
-- Automated rollback triggers: p99 latency spike, error rate increase, AUC/metric degradation.
-- Model registry stages: Staging → Production. Always keep N-1 version in "Archived" state for fast rollback.
-- Semantic versioning: MAJOR for schema/architecture breaks.
+**"Batch vs real-time inference trade-offs?"**
 
-**Online learning:**
-- `partial_fit` (sklearn) and `river` for stateful streaming updates.
-- Monitor concept drift explicitly (ADWIN, DDM) — do not assume the stream is stationary.
-- Online learning adds operational complexity (model state management, catastrophic forgetting); prefer offline retraining when latency allows.
+Batch: high throughput, offline, can use large models, predictions become stale between runs. Real-time: low latency (< 100ms), online, constrained model size, always fresh. Choose based on the freshness requirement: if a 24-hour-old recommendation is acceptable, batch is cheaper. If you need to respond to user behavior in the current session, you need real-time.
 
-**Cascade / ensemble serving:**
-- Cascade models are the primary cost-reduction lever when you have a cheap proxy and an expensive oracle.
-- Ensemble serving: latency = max(model latencies) for parallel ensembles, sum for serial cascades.
-- Feature flags decouple deployment from activation — ship first, activate safely.
+**"How do you detect if a model is degrading?"**
 
-**Common interview mistakes to avoid:**
-- Saying "just retrain the model" without describing how you detect drift first.
-- Treating A/B testing as equivalent to canary deployment (they serve different purposes: A/B = business metric comparison, canary = operational safety).
-- Ignoring point-in-time correctness in feature joins.
-- Not accounting for cold-start latency when autoscaling (pre-warm replicas).
+Three signals in order of detection speed: (1) data drift — input feature distributions shift, detected within hours using PSI/KS tests; (2) prediction drift — output score distribution changes, detected within hours; (3) performance degradation — actual accuracy drops once labels become available, detected with days-to-weeks lag. Set up automated alerts on all three. Do not wait for labels — by then the damage is done.
+
+**"How do you handle a bad model in production?"**
+
+Rollback immediately to the previous versioned artifact. Do not investigate while users are affected. After rollback: run a post-mortem, compare training data distribution vs production at time of failure, check shadow logs for prediction divergence, review feature pipeline for any upstream data changes. Automate rollback triggers so humans only need to approve, not execute.

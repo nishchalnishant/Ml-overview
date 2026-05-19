@@ -1,588 +1,924 @@
 # Model Governance
 
-> **See also:** [MLOps](mlops.md) | [LLM Training Stability](../05-llms/training-stability.md) | [When Classical ML Wins](../02-classical-ml/when-classical-ml-wins.md)
+> **See also:** [MLOps](mlops.md) | [Deployment Patterns](deployment-patterns.md) | [LLM Training Stability](../05-llms/training-stability.md)
 
-## Executive Summary
+## 1. Model Registry and Metadata
 
-Model governance is the set of processes, tooling, and organizational controls that ensure ML models are built accountably, deployed safely, and retired responsibly. Without governance, teams ship models they can't explain, can't audit, and can't recall when they cause harm. This guide covers the full lifecycle: registry, versioning, approval gates, audit trails, regulatory compliance, incident response, and deployment patterns.
+### The Problem
 
-| Governance Layer | Primary risk it mitigates | Tooling |
-|-----------------|--------------------------|---------|
-| Model registry | Loss of lineage, reproducibility gaps | MLflow, Azure ML Model Registry |
-| Versioning strategy | Conflicting deployments, no rollback path | Semantic versioning + hash |
-| Approval gates | Unauthorized models reaching production | Azure DevOps gate, manual sign-off |
-| Audit trails | Regulatory non-compliance, incident forensics | Azure Monitor, Event Hub |
-| GDPR compliance | Right-to-explanation violations | SHAP, model cards |
-| Data retention | Privacy violations, stale training data | Azure Policy, lifecycle rules |
-| Model cards | Stakeholder misuse, scope creep | Google model card format |
-| Incident response | Harm propagation, slow recovery | On-call runbook, canary kills |
-| Shadow deployment | Silent production failures | Champion-challenger pattern |
+A regulator asks: "What model made that credit decision on March 14th at 2:47 PM, what data trained it, and who approved it?" Without a registry, the answer requires archaeology through Slack threads, shared drives, and engineer memory. The company fails the audit.
 
----
+### The Core Insight
 
-## 1. Model Registry: What Metadata to Store
+Every model artifact needs a single authoritative record that answers: what it is, what trained it, who approved it, and what it has done.
 
-### The Registry as the Source of Truth
+### The Mechanics
 
-A model registry is a centralized catalog where every model that ever touches production — or candidates for production — is registered with sufficient metadata to reproduce, audit, and explain it. The registry is not optional; it is the foundation of all other governance.
-
-**Required metadata for every registered model:**
+**Registry metadata schema:**
 
 ```yaml
-# Example model registry entry
-model_name: fraud_detection_v2
-model_version: 2.4.1
-registration_timestamp: 2026-03-14T09:22:00Z
-registered_by: jane.smith@company.com
+model:
+  name: credit_risk_v2
+  version: 2.4.1
+  stage: deployed          # Draft | InReview | Approved | Deployed | Deprecated | Retired | Archived
 
-# Lineage
-training_run_id: azureml://runs/abc123def456
-training_script: src/train_fraud_model.py
-training_script_git_hash: 8f3a2c1
-git_branch: main
-git_repo: https://github.com/company/ml-platform
+training_lineage:
+  dataset_version: s3://ml-data/credit/v47  # DVC hash: sha256:a3f9...
+  training_run_id: mlflow://run/8f3a2c1
+  training_date: "2024-03-01"
+  features_used:
+    - payment_history_12m
+    - debt_to_income_ratio
+    - credit_utilization
+  features_excluded:           # document what you deliberately excluded and why
+    - zip_code: "proxy for race under ECOA"
+    - age: "ADEA protected characteristic"
 
-# Data
-training_dataset:
-  name: transactions_2024q4
-  version: v3.2
-  hash_sha256: 7e4f8a2c...
-  row_count: 4821033
-  date_range: "2024-10-01 to 2024-12-31"
-  location: abfss://data@storageaccount.dfs.core.windows.net/datasets/transactions_2024q4/
+performance:
+  offline:
+    auc_roc: 0.847
+    pr_auc: 0.621
+    ks_statistic: 0.412
+    test_set: credit_holdout_2023q4
+  fairness:
+    demographic_parity_difference: 0.023   # threshold: <0.05
+    equalized_odds_difference: 0.031
+    protected_attributes_tested: [race_proxy, gender_proxy, age_group]
+  calibration:
+    brier_score: 0.089
+    expected_calibration_error: 0.012
 
-validation_dataset:
-  name: transactions_2025q1_holdout
-  version: v1.0
-  hash_sha256: 3b1e9d7a...
+governance:
+  model_owner: alice@company.com
+  business_owner: lending_product_team
+  approval_chain:
+    - gate: automated_validation
+      passed: true
+      timestamp: "2024-03-05T14:22:00Z"
+    - gate: model_owner_signoff
+      approver: alice@company.com
+      timestamp: "2024-03-06T10:15:00Z"
+    - gate: risk_compliance
+      approver: compliance_team
+      notes: "ECOA review passed. GDPR Article 22 documentation attached."
+      timestamp: "2024-03-07T16:30:00Z"
+    - gate: business_signoff
+      approver: vp_lending
+      timestamp: "2024-03-08T09:00:00Z"
 
-# Evaluation scores
-metrics:
-  auc_roc: 0.9741
-  auc_pr: 0.8823
-  f1_at_threshold_0.5: 0.7912
-  ece: 0.023
-  false_positive_rate_at_1pct_fnr: 0.0041
-  bias_metrics:
-    disparate_impact_ratio: 0.94
-    equal_opportunity_difference: 0.012
-
-# Model artifact
-artifact_uri: azureml://registries/prod-registry/models/fraud_detection/versions/2.4.1
-model_format: mlflow
-framework: xgboost==2.0.3
-python_version: 3.11.4
-
-# Governance
-approval_status: approved
-approved_by: risk-model-review-committee
-approved_at: 2026-03-15T14:00:00Z
-model_card_uri: https://wiki.company.com/models/fraud_detection_v2.4.1
-intended_use: Real-time fraud scoring for card-present transactions
-out_of_scope: International transactions, business accounts
+compliance_flags:
+  gdpr_article22_applies: true           # automated individual decision
+  adverse_action_notice_required: true
+  right_to_erasure_supported: true
+  data_retention_years: 7                # FCRA requirement
+  explainability_method: TreeSHAP
+  model_card_url: s3://governance/cards/credit_risk_v2.4.1.md
 ```
 
-**Dataset hash:** Critical for reproducibility. Without it, "we used the 2024Q4 dataset" is ambiguous — pre- or post-deduplication? which schema version? A verified hash lets an auditor confirm the exact artifact used.
-
-**Azure ML Model Registry:** Provides managed versioning, artifact storage, and metadata attachment. Integrates with Azure DevOps pipelines for automated registration post-training. Model lineage (training run → registered model → deployment) is tracked natively.
-
----
-
-## 2. Versioning Strategy: Semantic Versioning vs Rolling Hash
-
-### Two Approaches
-
-**Semantic versioning (MAJOR.MINOR.PATCH):**
-
-| Version bump | Trigger |
-|-------------|---------|
-| MAJOR (1.0.0 → 2.0.0) | Architecture change, feature set change, API-breaking schema change |
-| MINOR (1.1.0 → 1.2.0) | Retrain on new data, hyperparameter change, calibration update |
-| PATCH (1.1.1 → 1.1.2) | Bugfix in preprocessing, threshold change, label correction |
-
-**Rolling hash versioning:**
-
-Each training run produces a version identifier from: `hash(data_hash + code_commit + hyperparams)`.
+**Registry operations:**
 
 ```python
-import hashlib, json
+import mlflow
 
-def compute_model_hash(data_hash, code_commit, hyperparams):
-    payload = {"data_hash": data_hash, "code_commit": code_commit, "hyperparams": hyperparams}
-    return hashlib.sha256(json.dumps(payload, sort_keys=True).encode()).hexdigest()[:12]
+client = mlflow.MlflowClient()
 
-version = f"model-{compute_model_hash('7e4f8a2c', '8f3a2c1', {'n_estimators': 500, 'max_depth': 6})}"
+# Register artifact from training run
+model_uri = f"runs:/{run_id}/model"
+mv = client.create_model_version(
+    name="credit_risk",
+    source=model_uri,
+    run_id=run_id,
+    tags={"dataset_hash": dataset_sha256, "training_date": "2024-03-01"}
+)
+
+# Lifecycle transitions require approval evidence
+client.transition_model_version_stage(
+    name="credit_risk",
+    version=mv.version,
+    stage="Staging",
+    archive_existing_versions=False
+)
+
+# Add approval tags
+client.set_model_version_tag(
+    name="credit_risk",
+    version=mv.version,
+    key="compliance_approved_by",
+    value="compliance_team:2024-03-07"
+)
 ```
 
-**Recommended hybrid:** Semantic versioning for the external-facing API (what consumers call). Rolling hash for internal artifact tracking. Registry maps: `fraud_detection:2.4.1 → model-4a9c3f21b8e7`.
+### What Breaks
 
-### Version Lifecycle States
+**No dataset versioning:** model performance degrades, team cannot reproduce the trained artifact, audit fails.
 
-```
-Draft → In Review → Approved → Deployed (Champion)
-                            → Deprecated → Retired
-                            → Archived
-                 → Rejected
-```
+**Missing feature exclusion documentation:** regulator infers the excluded features were used, which is worse than acknowledging the exclusion decision.
 
-- **Draft:** Registered from a training run; not yet reviewed
-- **In Review:** Submitted for approval gate; under evaluation
-- **Approved:** Cleared for production deployment
-- **Deployed:** Currently serving traffic
-- **Deprecated:** Still deployed but a newer version exists; teams should migrate
-- **Retired:** No longer deployed; artifacts retained per data retention policy
-- **Archived:** Past retention period; artifacts deleted or moved to cold storage
-
-**Canary vs blue-green rollout:**
-- Canary: gradual percentage rollout (1% → 5% → 20% → 100%). Preferred for models — lets you catch distribution shift before it hits all traffic.
-- Blue-green: full swap with instant rollback. Needs 2x capacity but eliminates partial states.
+**Registry without enforcement:** teams bypass it under time pressure; the registry has partial data and provides false confidence.
 
 ---
 
-## 3. Approval Gates: Who Signs Off Before Production
+## 2. Versioning Strategy
 
-### The Gate Structure
+### The Problem
 
-A governance-compliant model deployment requires multiple sign-offs at different stages:
+You deploy a small bug fix to a model. A downstream team's integration breaks because they expected the output format to be unchanged. A "compatibility-breaking vs non-breaking change" distinction would have warned them.
 
-**Gate 1: Technical review (automated)**
-Triggered by CI/CD pipeline on model registration.
+### The Core Insight
 
-- [ ] Model artifact passes integrity check (hash matches registry)
-- [ ] All required metadata fields populated
-- [ ] Evaluation metrics meet minimum thresholds (AUC > 0.90, ECE < 0.05)
-- [ ] Bias metrics within acceptable bounds (disparate impact ratio > 0.80)
-- [ ] No training-test leakage detected
-- [ ] Model card draft attached
+Semantic versioning communicates the impact of a change, not just the sequence.
 
-```yaml
-# azure-pipelines.yml
-- task: AzureMLModelValidation@1
-  inputs:
-    modelName: "fraud_detection"
-    modelVersion: "$(MODEL_VERSION)"
-    minAucRoc: 0.90
-    maxEce: 0.05
-    minDisparateImpact: 0.80
+### The Mechanics
+
+**Version: MAJOR.MINOR.PATCH**
+
+| Increment | When | Example |
+|-----------|------|---------|
+| **MAJOR** | Output schema changes, prediction semantics change, incompatible API change | 1.x.x → 2.0.0 |
+| **MINOR** | New features added, backward compatible. Model retrained on more data with same interface | 2.3.x → 2.4.0 |
+| **PATCH** | Bug fixes, threshold adjustments, documentation | 2.4.0 → 2.4.1 |
+
+**Lifecycle states and transition rules:**
+
+```
+Draft
+  │  automated tests pass
+  ▼
+In Review
+  │  model owner approves
+  ▼
+Approved
+  │  compliance signs off (if required)
+  ▼
+Deployed
+  │  canary → full rollout
+  ▼
+Deprecated        ← new version deployed to replace this one
+  │  30-day sunset period
+  ▼
+Retired           ← no longer serving traffic
+  │  after retention period
+  ▼
+Archived          ← artifacts preserved, model not executable
 ```
 
-**Gate 2: Model owner sign-off**
-The data scientist who built the model signs off on model card completeness, known limitations, and training data recency.
+**What triggers a MAJOR version bump (checklist):**
 
-**Gate 3: Risk/compliance review (regulated domains)**
-Required for credit, insurance, healthcare, employment:
-- Fairness analysis across protected groups
-- Adverse action notice capability verified (SHAP explanations generated and tested)
-- Fits within approved model risk management (MRM) framework
+- Output type changes (probability → binary label)
+- Score range changes (0–1 → 0–100) even with rescaling
+- New required input features (callers must update)
+- Prediction semantics change (lower score now means higher risk)
+- Model framework change that alters numerical precision
 
-**Gate 4: Business owner sign-off**
-Senior stakeholder approves business metrics projections, rollback plan, and operational readiness.
+### What Breaks
 
-**Azure DevOps implementation:**
+**Skipping MAJOR bump for breaking changes:** downstream teams get silent failures because their integration was built against the old semantics.
 
-```yaml
-stages:
-- stage: ModelValidation
-  jobs:
-  - job: AutomatedChecks
-    steps:
-    - script: python validate_model.py --model-version $(MODEL_VERSION)
+**Not archiving retired models:** audit requires the ability to recreate the decision environment at a point in time. "We deleted it" fails a financial audit.
 
-- stage: Deployment
-  dependsOn: ModelValidation
-  condition: succeeded()
-  jobs:
-  - deployment: ProductionDeploy
-    environment: production
-    strategy:
-      runOnce:
-        deploy:
-          steps:
-          - script: python deploy_model.py --model-version $(MODEL_VERSION)
-    approvals:
-      - type: requiredTemplate
-        approvals:
-          - requiredApprovers:
-            - "risk-model-review-committee"
-            minApprovers: 2
-            timeout: 72
-```
+**Allowing Draft → Deployed transitions without gates:** removes the governance guarantee.
 
 ---
 
-## 4. Audit Trails: What to Log for Regulatory Compliance
+## 3. Approval Gates
 
-### The Audit Trail Requirement
+### The Problem
 
-Regulators (OCC, CFPB for banking; EMA, FDA for healthcare; ICO for GDPR) require that you can answer:
-- What model made this decision?
-- What input did it receive?
-- What output did it produce?
-- Who approved this model for production?
-- What training data was it trained on?
-- Has the model changed since the decision was made?
+A model goes to production with a demographic bias that was visible in the metrics but no one was required to look. The problem was not a technical failure — it was a process failure.
 
-### What to Log at Inference Time
+### The Core Insight
+
+Each gate tests a different failure mode. Automated gates test objective criteria. Human gates test judgment that cannot yet be automated.
+
+### Gate 1: Automated Validation
+
+Runs in CI/CD. Hard failures block the pipeline.
 
 ```python
-import uuid, datetime, json, hashlib
+class ModelValidationGate:
+    def __init__(self, challenger, champion, test_data, thresholds):
+        self.challenger = challenger
+        self.champion = champion
+        self.test_data = test_data
+        self.thresholds = thresholds
 
-def log_prediction(model_version, input_features, raw_score, decision, entity_id):
-    log_entry = {
-        "prediction_id": str(uuid.uuid4()),
-        "timestamp": datetime.datetime.utcnow().isoformat() + "Z",
-        "model_name": "fraud_detection",
-        "model_version": model_version,
-        "model_artifact_hash": MODEL_ARTIFACT_HASH,  # Loaded at startup
-        "entity_id": entity_id,         # Pseudonymous ID, not PII
-        "input_feature_hash": hashlib.sha256(
-            json.dumps(input_features, sort_keys=True).encode()
-        ).hexdigest(),
-        "raw_score": float(raw_score),
-        "decision": decision,           # "APPROVE" / "REVIEW" / "DECLINE"
-        "decision_threshold": THRESHOLD,
-        "deployment_environment": "production"
-    }
-    # Ship to Azure Event Hub → Azure Data Lake for long-term retention
-    event_hub_client.send(json.dumps(log_entry))
+    def run(self) -> dict:
+        results = {}
+
+        # 1. Performance: challenger must match champion
+        champ_auc = self._auc(self.champion)
+        chal_auc = self._auc(self.challenger)
+        results["performance_regression"] = (champ_auc - chal_auc) > self.thresholds["max_auc_drop"]
+
+        # 2. Calibration
+        ece = self._expected_calibration_error(self.challenger)
+        results["calibration_failed"] = ece > self.thresholds["max_ece"]
+
+        # 3. Population Stability Index on input features
+        psi = self._psi(self.test_data)
+        results["input_drift"] = psi > self.thresholds["max_psi"]  # typically 0.2
+
+        # 4. Fairness
+        dpd = self._demographic_parity_difference(self.challenger)
+        results["fairness_violation"] = dpd > self.thresholds["max_dpd"]  # typically 0.05
+
+        results["passed"] = not any(results.values())
+        return results
+
+    def _auc(self, model):
+        from sklearn.metrics import roc_auc_score
+        scores = model.predict_proba(self.test_data.X)[:, 1]
+        return roc_auc_score(self.test_data.y, scores)
+
+    def _expected_calibration_error(self, model, n_bins=10):
+        import numpy as np
+        scores = model.predict_proba(self.test_data.X)[:, 1]
+        y = self.test_data.y
+        bin_edges = np.linspace(0, 1, n_bins + 1)
+        ece = 0.0
+        for i in range(n_bins):
+            mask = (scores >= bin_edges[i]) & (scores < bin_edges[i+1])
+            if mask.sum() == 0:
+                continue
+            bin_acc = y[mask].mean()
+            bin_conf = scores[mask].mean()
+            ece += mask.mean() * abs(bin_acc - bin_conf)
+        return ece
+
+    def _psi(self, data, n_bins=10):
+        import numpy as np
+        # Compare feature distributions against training baseline
+        # Returns max PSI across all features
+        psi_values = []
+        for col in data.feature_columns:
+            expected = self._load_training_distribution(col)
+            actual, _ = np.histogram(data.X[col], bins=n_bins, density=True)
+            actual = actual / actual.sum()
+            expected = expected / expected.sum()
+            psi = np.sum((actual - expected) * np.log((actual + 1e-8) / (expected + 1e-8)))
+            psi_values.append(psi)
+        return max(psi_values)
 ```
 
-**Do not log raw PII** in the prediction log unless you have explicit consent and a legal basis. Log a pseudonymous entity ID; store the ID-to-PII mapping separately with access controls and independent deletion capability.
+### Gate 2: Model Owner Sign-off
 
-### Registry Audit Events
+The model owner (the engineer who built the model) attests:
+- Training data is appropriate for the use case
+- Known failure modes are documented
+- Feature importance analysis was reviewed
+- No target leakage in feature set
 
-Log these events to an immutable audit log (Azure Monitor + Log Analytics workspace with write-once retention):
+Not delegatable. Requires personal attestation.
 
-- Model registration: who, when, what run ID
-- Metadata updates: who changed what, before/after values
-- Approval gate events: who approved, what gate, timestamp
-- Deployment events: what version, what environment, who triggered
-- Rollback events: what triggered, what version rolled back to
-- Model retirement: when, who, why
+### Gate 3: Risk and Compliance Review
 
-**Retention:** Follow statute-of-limitations-plus-buffer. US credit decisions (FCRA): 25 months required, retain 36 months. GDPR: document retention period in the Record of Processing Activities (ROPA); delete automatically via lifecycle policy.
+Required for: credit, insurance, medical, hiring, any GDPR Article 22 use case.
+
+Checklist:
+- [ ] Protected attributes reviewed (direct and proxy)
+- [ ] Adverse action notice mechanism tested
+- [ ] GDPR Article 22 documentation prepared if automated individual decision
+- [ ] ECOA/FHA/FCRA compliance review (for credit/housing models)
+- [ ] Data retention policy attached to model version
+- [ ] Right to erasure impact assessed
+
+### Gate 4: Business Sign-off
+
+Business owner confirms:
+- Model is solving the intended business problem
+- Performance thresholds meet business requirements (not just statistical significance)
+- Rollback decision criteria are agreed in advance
+- On-call runbook exists
+
+### What Breaks
+
+**Automated gate without a human gate:** catches metric failures, misses judgment failures (wrong proxy features, wrong business framing).
+
+**Compliance gate as a rubber stamp:** if reviewers are not empowered to block, the gate provides legal exposure without protection.
+
+**No pre-agreed rollback criteria at Gate 4:** when production problems emerge, the rollback decision becomes a political negotiation under pressure.
 
 ---
 
-## 5. GDPR and the Right to Explanation
+## 4. Audit Trails
 
-### What Article 22 Requires
+### The Problem
 
-GDPR Article 22 restricts automated individual decision-making with legal or similarly significant effects. Articles 13/14 require providing "meaningful information about the logic involved" when such processing is necessary.
+A customer sues over a rejected loan. Discovery requires producing the exact model score, input features, and explanation for that decision — 18 months later. The data has been mutated by subsequent updates and the exact model version is unclear.
 
-The practical minimum: you must explain, in plain language, the primary factors that led to the decision for a specific individual, upon request, within 30 days.
+### The Core Insight
 
-**What GDPR does NOT require:**
-- Full model disclosure or algorithm publication
-- Mathematical derivation of the model
-- A guarantee that the explanation is complete
+Every inference event is a legal record. Log it with the immutability and retrievability of a financial transaction.
 
-### How SHAP Satisfies Right-to-Explanation
+### The Mechanics
 
-SHAP (SHapley Additive exPlanations) provides instance-level feature attributions based on Shapley values from cooperative game theory. For tree-based models, TreeSHAP computes exact values efficiently.
+**Inference event schema:**
 
 ```python
-import shap, xgboost as xgb, pandas as pd
+import hashlib
+import json
+import time
+from dataclasses import dataclass, asdict
+from typing import Dict, Any
 
-model = xgb.XGBClassifier()
-model.load_model("fraud_detection_v2.4.1.json")
-explainer = shap.TreeExplainer(model)
+@dataclass
+class InferenceEvent:
+    # Identification
+    event_id: str              # UUID, globally unique
+    model_name: str
+    model_version: str
+    timestamp_utc: float
 
-customer_features = pd.DataFrame([{
-    "transaction_amount": 850.0,
-    "hour_of_day": 3,
-    "days_since_last_transaction": 0.2,
-    "debt_to_limit_ratio": 0.87,
-    "foreign_transaction": 0
-}])
+    # Input (pseudonymized)
+    entity_id_hash: str        # SHA-256 of entity_id — not the raw ID
+    feature_hash: str          # SHA-256 of serialized feature vector
+    feature_snapshot: Dict     # actual features — stored separately, encrypted
 
-shap_values = explainer.shap_values(customer_features)
+    # Output
+    prediction: Any
+    confidence: float
+    explanation_top_factors: list  # SHAP top-k factors, not raw values
 
-def generate_adverse_action_notice(shap_values, feature_names, decision):
-    contributions = sorted(
-        zip(feature_names, shap_values[0]),
-        key=lambda x: abs(x[1]), reverse=True
+    # Metadata
+    request_latency_ms: float
+    serving_node: str
+
+def log_inference_event(
+    model_name: str,
+    model_version: str,
+    entity_id: str,
+    features: Dict,
+    prediction: Any,
+    confidence: float,
+    shap_values: Dict,
+    latency_ms: float
+) -> str:
+    import uuid
+
+    # Pseudonymize: log hash of entity ID, not the ID itself
+    entity_id_hash = hashlib.sha256(entity_id.encode()).hexdigest()
+
+    # Hash the feature vector for tamper detection
+    feature_json = json.dumps(features, sort_keys=True)
+    feature_hash = hashlib.sha256(feature_json.encode()).hexdigest()
+
+    # Top-k SHAP factors (direction only, not raw customer data)
+    top_factors = sorted(
+        [{"feature": k, "direction": "positive" if v > 0 else "negative"}
+         for k, v in shap_values.items()],
+        key=lambda x: abs(shap_values[x["feature"]]),
+        reverse=True
+    )[:5]
+
+    event = InferenceEvent(
+        event_id=str(uuid.uuid4()),
+        model_name=model_name,
+        model_version=model_version,
+        timestamp_utc=time.time(),
+        entity_id_hash=entity_id_hash,
+        feature_hash=feature_hash,
+        feature_snapshot=features,  # encrypted at rest in audit store
+        prediction=prediction,
+        confidence=confidence,
+        explanation_top_factors=top_factors,
+        request_latency_ms=latency_ms,
+        serving_node=os.environ.get("HOSTNAME", "unknown")
     )
-    top_factors = contributions[:3]
-    notice = f"Decision: {decision}\n\nPrimary factors:\n"
-    for feature, contribution in top_factors:
-        direction = "increased" if contribution > 0 else "decreased"
-        notice += f"- {feature}: {direction} the risk score\n"
-    return notice
+
+    # Write to immutable audit store (append-only S3 bucket with object lock,
+    # or audit-specific table with no DELETE privilege)
+    audit_store.append(asdict(event))
+
+    return event.event_id
 ```
 
-**Example adverse action notice:**
-> Your transaction was flagged for review. Primary factors:
-> 1. Transaction time (3 AM): increased fraud risk score
-> 2. Transaction amount ($850): increased fraud risk score
-> 3. Debt-to-limit ratio (0.87): increased fraud risk score
+**Audit store requirements:**
 
-**SHAP for neural networks:** KernelSHAP (model-agnostic, slow) or DeepSHAP (gradient-based, faster but approximate). For regulated use cases where explanation accuracy is legally material, prefer tree-based models with exact TreeSHAP.
+- Append-only (no DELETE, no UPDATE on audit rows)
+- Encrypted at rest (AES-256 minimum)
+- Accessible only to audit/compliance role (not the serving application)
+- Retention enforced by the data retention schedule, not manual deletion
 
-**Right to erasure (Article 17):** If a user requests data deletion, delete their records from the training dataset, retrain or document why the contribution is negligible, and delete their prediction log entries by removing the ID-to-PII mapping (rendering remaining log entries non-identifiable).
+### What Breaks
+
+**Storing raw PII in audit logs:** creates a parallel PII store, multiplying GDPR deletion obligations and breach surface.
+
+**Audit logs in the same database as operational data:** a database migration or "cleanup" script can accidentally destroy audit records.
+
+**Not storing the feature snapshot:** 18 months later, you cannot reconstruct the explanation without knowing what features were used at that exact moment.
 
 ---
 
-## 6. Data Retention Policies
+## 5. Regulatory Compliance
 
-### Training Data Retention
+### The Problem
 
-**Retention periods by domain:**
+A model automatically rejects loan applications. EU law says individuals have the right not to be subject to solely automated decisions that significantly affect them (GDPR Article 22). The model produces no explanation and offers no human review. Each automated decision is a violation.
 
-| Use case | Jurisdiction | Minimum retention |
-|---------|-------------|------------------|
-| Credit scoring training data | US (FCRA) | 5 years |
-| Insurance underwriting data | EU (Solvency II) | 7 years |
-| Medical device training data | US (FDA SaMD) | Useful life + 2 years |
-| General ML training data | EU (GDPR) | Purpose-specific; document in ROPA |
+### The Core Insight
 
-**Azure implementation:**
+Compliance is not documentation — it is a capability. The system must be able to produce explanations, process erasure requests, and detect breaches. "We have a policy" is not a substitute for "the system does this."
 
-```json
-{
-  "rules": [{
-    "name": "training-data-retention",
-    "type": "Lifecycle",
-    "definition": {
-      "filters": {"blobTypes": ["blockBlob"], "prefixMatch": ["datasets/training/"]},
-      "actions": {
-        "baseBlob": {
-          "tierToCool": {"daysAfterModificationGreaterThan": 90},
-          "tierToArchive": {"daysAfterModificationGreaterThan": 365},
-          "delete": {"daysAfterModificationGreaterThan": 2190}
+### GDPR Article 22: Right to Explanation
+
+Applies when: automated decision has legal or similarly significant effect on an individual.
+
+Required capability: provide a meaningful explanation of the decision logic.
+
+```python
+import shap
+import numpy as np
+
+def generate_adverse_action_notice(
+    model,
+    features: dict,
+    prediction: int,      # 0 = denied, 1 = approved
+    entity_id: str
+) -> dict:
+    """
+    Generate a GDPR Article 22 / ECOA adverse action notice.
+    Returns human-readable top reasons for a denial.
+    """
+    if prediction == 1:
+        return {"action": "approved", "reasons": []}
+
+    # Compute SHAP values (TreeSHAP for tree models — exact, not approximate)
+    explainer = shap.TreeExplainer(model)
+    feature_array = np.array([list(features.values())])
+    shap_values = explainer.shap_values(feature_array)
+
+    # For binary classification, shap_values[1] = positive class (approved)
+    # Negative SHAP for approved class = factors that reduced approval probability
+    if isinstance(shap_values, list):
+        denial_shap = {
+            name: -val  # negate: high = strong denial factor
+            for name, val in zip(features.keys(), shap_values[1][0])
         }
-      }
+    else:
+        denial_shap = {
+            name: -val
+            for name, val in zip(features.keys(), shap_values[0])
+        }
+
+    # Top 4 denial factors (ECOA Regulation B requires specific reasons)
+    top_reasons = sorted(
+        denial_shap.items(),
+        key=lambda x: x[1],
+        reverse=True
+    )[:4]
+
+    # Map feature names to human-readable reasons
+    reason_map = {
+        "payment_history_12m": "Insufficient recent payment history",
+        "debt_to_income_ratio": "Debt-to-income ratio too high",
+        "credit_utilization": "Credit utilization rate too high",
+        "length_of_credit_history": "Credit history too short",
+        "recent_inquiries": "Too many recent credit inquiries",
     }
-  }]
-}
+
+    return {
+        "action": "denied",
+        "model_version": model.__version__,
+        "decision_timestamp": time.time(),
+        "reasons": [
+            reason_map.get(feature, f"Factor: {feature}")
+            for feature, _ in top_reasons
+            if _ > 0  # only include factors that actually increased denial probability
+        ],
+        "appeal_instructions": "You may request human review within 30 days by contacting credit@company.com",
+        "audit_event_id": log_inference_event(...)  # link to immutable audit record
+    }
 ```
 
-### Prediction Log Retention
+### GDPR Article 17: Right to Erasure
 
-**Practical tiering:**
-- **Active (Tier 1, 0–24 months):** Azure Data Lake hot tier. Queryable for audits, monitoring, model retraining.
-- **Archive (Tier 2, 24–60 months):** Azure Data Lake cool/archive tier. For regulatory examinations only.
-- **Deletion:** Automated via lifecycle policy after retention period.
+When a subject requests deletion, training data erasure is not sufficient — the model has encoded the training data in its weights.
 
-### Feedback Loop Data
+**Erasure process:**
 
-Ground truth labels (confirmed fraud, loan default, diagnosis) that arrive post-prediction must be retained for model validation and retraining. Same or longer retention as prediction logs.
+1. Delete raw training data records for the subject
+2. Mark model versions trained on data including the subject as "erasure-affected"
+3. If model was used for active decisions on the subject: schedule retraining excluding the subject's data
+4. Retraining is not always required immediately — assess whether the subject's data materially influences the model
 
-**Data minimization (GDPR Art. 5(1)(e)):** Don't retain raw predictions longer than required. Aggregate or anonymize after the operational need expires.
+**Practical implementation:**
+
+```python
+class ErasureManager:
+    def process_erasure_request(self, subject_id: str) -> dict:
+        report = {}
+
+        # 1. Delete raw data
+        rows_deleted = self.data_store.delete_by_subject(subject_id)
+        report["training_data_deleted"] = rows_deleted
+
+        # 2. Find affected model versions
+        affected_versions = self.registry.find_models_trained_on_subject(subject_id)
+        report["affected_model_versions"] = affected_versions
+
+        # 3. For each affected version, estimate influence
+        for version in affected_versions:
+            influence = self._estimate_influence(version, subject_id)
+            if influence > self.MATERIAL_INFLUENCE_THRESHOLD:
+                self.registry.flag_for_retraining(
+                    version,
+                    reason=f"erasure:{subject_id}",
+                    deadline_days=30
+                )
+
+        # 4. Anonymize inference audit logs (cannot delete — retention required)
+        # The entity_id_hash already pseudonymizes. Cannot further erase without
+        # violating financial audit requirements. Document this tension.
+        report["audit_logs"] = "pseudonymized at inference time; cannot erase without audit violation"
+
+        return report
+```
+
+### GDPR Article 33: Breach Notification
+
+72-hour clock to notify supervisory authority when a personal data breach occurs.
+
+**ML-specific breach scenarios:**
+
+- Model inversion attack recovers training data from model weights
+- Inference audit logs exposed (contains feature snapshots with PII)
+- Feature store breach (contains individual-level features)
+- Membership inference attack demonstrates training data presence
+
+**Breach response:**
+
+```python
+class BreachResponseProtocol:
+    def initiate(self, breach_type: str, scope_estimate: int, discovery_time: float):
+        """
+        breach_type: "model_inversion" | "audit_log_exposure" | "feature_store" | ...
+        scope_estimate: estimated number of affected subjects
+        discovery_time: unix timestamp of breach discovery
+        """
+        elapsed_hours = (time.time() - discovery_time) / 3600
+        hours_remaining = 72 - elapsed_hours
+
+        steps = {
+            "immediate": [
+                "Isolate affected model/store (revoke serving credentials)",
+                "Preserve forensic evidence (do not delete logs)",
+                "Engage DPO and legal",
+            ],
+            "within_24h": [
+                "Determine scope: how many subjects, what data categories",
+                "Identify breach vector",
+                "Draft supervisory authority notification",
+            ],
+            "within_72h": [
+                f"Submit Article 33 notification ({hours_remaining:.1f}h remaining)",
+                "If high risk to subjects: prepare Article 34 subject notification",
+            ]
+        }
+
+        # Log to immutable incident record
+        self.incident_store.create(
+            breach_type=breach_type,
+            discovery_time=discovery_time,
+            scope_estimate=scope_estimate,
+            notification_deadline=discovery_time + 72 * 3600
+        )
+
+        return steps
+```
+
+### Data Retention Schedule
+
+| Domain | Regulation | Retention Period | Applies To |
+|--------|------------|-----------------|------------|
+| Consumer credit | FCRA | 7 years | Adverse action records, credit decisions |
+| Insurance (EU) | Solvency II | 10 years | Underwriting decisions, claims |
+| Healthcare | HIPAA | 6 years from creation or last use | PHI, medical decisions |
+| Medical device software | FDA SaMD 21 CFR | Device lifetime + 2 years | Decision records for regulated AI |
+| EU personal data | GDPR | Minimum necessary | All personal data — no blanket period |
+
+**Implementation:** retention is enforced programmatically, not manually. Audit tables have TTL policies that delete after the retention period. Deletion is logged (you need a record that deletion occurred, even if the data itself is gone).
+
+### What Breaks
+
+**SHAP on a neural network using TreeSHAP:** TreeSHAP only works for tree ensembles. For neural networks, use SHAP DeepExplainer or KernelSHAP (slower, approximate).
+
+**Retraining as the only erasure response:** retraining is expensive. For low-influence subjects, documented pseudonymization may satisfy the regulator. Get legal sign-off on the threshold.
+
+**72-hour clock starting at breach occurrence, not discovery:** the clock starts at discovery. Document the exact discovery timestamp immediately.
 
 ---
 
-## 7. Model Cards
+## 6. Model Cards
 
-### What a Model Card Contains
+### The Problem
 
-Model cards (Mitchell et al., 2019, Google) are structured documentation communicating model capabilities, limitations, and appropriate use to stakeholders.
+A model is deployed. Six months later, a new engineer wants to use it for a different use case. There is no documentation of what population it was trained on, what its failure modes are, or what bias analysis was done. The engineer guesses and applies it to a population the model has never seen.
+
+### The Core Insight
+
+A model card is a transferable record of context that cannot be inferred from the model weights alone.
+
+### The Mechanics
+
+**Model card template (Google format):**
 
 ```markdown
-# Model Card: Fraud Detection v2.4.1
+# Model Card: Credit Risk Scorer v2.4.1
 
 ## Model Details
-- **Type:** XGBoost binary classifier
+- **Model type:** Gradient Boosted Trees (XGBoost 1.7)
 - **Version:** 2.4.1
-- **Training date:** 2026-03-01
-- **Owner:** Risk ML Team (risk-ml@company.com)
+- **Owners:** Alice Smith (model), Lending Product (business)
+- **Date:** 2024-03-08
+- **License:** Internal use only
 
 ## Intended Use
-- **Primary:** Real-time fraud scoring for card-present consumer transactions
-- **Out of scope:** International transactions; business/commercial cards; CNP transactions
+- **Primary use case:** Automated screening for personal loan applications ($1,000–$50,000)
+- **Intended users:** Loan origination system (automated), underwriting team (human review)
+- **Out-of-scope uses:**
+  - Small business loans (model not validated on business applicants)
+  - Mortgage lending (different regulatory framework, not validated)
+  - Applications outside the United States
 
 ## Training Data
-- Transactions from 2024-Q4 (Oct–Dec 2024)
-- 4.8M transactions; 0.7% fraud rate
-- Geographic scope: United States
+- **Dataset:** Internal credit bureau data, 2017–2023
+- **Size:** 2.3M applications (1.8M train, 230K validation, 230K test)
+- **Geographic coverage:** 48 contiguous US states
+- **Temporal coverage:** 2017–2023; outcome labels are 24-month default
+- **Label definition:** Default = 90+ days past due within 24 months of origination
 
-## Evaluation Results
-| Metric | Value |
-|--------|-------|
-| AUC-ROC | 0.974 |
-| AUC-PR | 0.882 |
-| ECE | 0.023 |
-| Disparate impact ratio | 0.94 |
+## Performance
+| Metric | Value | Benchmark |
+|--------|-------|-----------|
+| AUC-ROC | 0.847 | Champion: 0.831 |
+| PR-AUC | 0.621 | Champion: 0.598 |
+| KS Statistic | 0.412 | Champion: 0.389 |
+| Brier Score | 0.089 | Champion: 0.101 |
 
-## Fairness and Bias
-- Evaluated across age bands, zip code income deciles
-- No statistically significant disparate impact at 0.05 significance level
-- Not evaluated on geographic regions with < 1,000 training transactions
+## Fairness Analysis
 
-## Limitations and Risks
-- Performance may degrade on transaction patterns outside 2024 Q4
-- Does not account for seasonal patterns beyond Q4 training window
-- Fraud rings adapting behavior may reduce effectiveness
+Evaluated on CFPB protected class proxies (Bayesian Improved Surname Geocoding for race).
+
+| Group | Approval Rate | AUC | False Positive Rate |
+|-------|--------------|-----|---------------------|
+| Non-Hispanic White | 68.2% | 0.851 | 0.142 |
+| Black or African American | 61.4% | 0.839 | 0.158 |
+| Hispanic or Latino | 63.1% | 0.843 | 0.151 |
+| Asian | 71.3% | 0.856 | 0.134 |
+
+**Demographic Parity Difference (worst pair):** 0.098 (White vs Black)
+**Equalized Odds Difference:** 0.024
+
+*Note: Approval rate differences reflect credit risk differences in the training data, not model bias per se. The equalized odds metric is within threshold. Demographic parity difference exceeds 0.05; documented and accepted by compliance per business rationale review.*
+
+## Known Limitations
+1. **Thin-file applicants:** AUC drops to 0.71 for applicants with fewer than 3 credit accounts. Score reliability lower for this segment.
+2. **Recent graduates:** Model underweights income trajectory; tends to underpredict creditworthiness of applicants <2 years post-graduation.
+3. **Self-employed applicants:** Income verification harder; model was not specifically validated on self-employed segment.
+4. **Post-2020 economic environment:** Model trained predominantly on pre-pandemic data. Economic regime change may affect calibration.
 
 ## Ethical Considerations
-- Adverse action notices generated via SHAP; provided on request
-- Fraud flags trigger human review, not automatic block
+- Zip code excluded as proxy for race per ECOA
+- Age excluded as direct protected characteristic per ADEA
+- SHAP-based adverse action reasons generated for all denials
+- Human review available on request per FCRA
+
+## How to Use
+- **Input:** Feature vector per schema in `schemas/credit_risk_v2_input.json`
+- **Output:** Float in [0, 1] where higher = higher default probability
+- **Decision threshold:** 0.15 (tuned for 12% approval rate target; business-configurable)
+- **Adverse action:** Call `generate_adverse_action_notice()` for all predictions ≥ threshold
 ```
 
-**Why model cards matter:** Without one, the same model can be deployed in contexts for which it was never evaluated — a US consumer fraud model deployed on international commercial accounts. Model cards make scope explicit and create the reference for post-incident analysis.
+### What Breaks
 
-**Azure ML:** Model cards can be attached as metadata artifacts to registered models. The Responsible AI dashboard auto-generates portions from evaluation results.
+**Model card written once and never updated:** version 2.4.1 may have different fairness numbers than 2.0.0. Model card must be versioned with the model.
+
+**Out-of-scope uses documented but not enforced:** technical controls (feature schema validation, model name checks) are more reliable than documentation.
 
 ---
 
-## 8. Incident Response: When a Model Causes Harm
+## 7. Incident Response
+
+### The Problem
+
+A model begins producing incorrect predictions in production. Engineers are paged, but there is no agreed protocol for: who makes the rollback call, what evidence is required, and how to communicate to affected users. Each incident is improvised under pressure.
+
+### The Core Insight
+
+Incident response is a pre-committed decision tree. The decisions must be made before the incident, not during it.
 
 ### Severity Classification
 
-| Severity | Description | Response time |
-|---------|-------------|---------------|
-| P1 | Model causing active harm (biased decisions at scale, safety risk) | Rollback within 1 hour |
-| P2 | Significant performance degradation (AUC drop > 5%, FPR spike > 2x) | Decision within 4 hours |
-| P3 | Drift detected, not yet causing business impact | Remediation within 48 hours |
-| P4 | Minor degradation, within acceptable bounds | Next sprint |
+| Severity | Definition | Response Time | Example |
+|----------|-----------|---------------|---------|
+| P1 — Critical | >20% error rate or >10% revenue impact. Safety-relevant model failure | 15 min | Fraud model accepting all transactions |
+| P2 — Major | Significant accuracy degradation, regulatory model failing | 1 hour | Credit model AUC drops >5% |
+| P3 — Moderate | Latency degradation, minor accuracy drift | 4 hours | P99 latency up 200ms |
+| P4 — Low | Monitoring alert, no immediate production impact | 24 hours | PSI warning on input feature |
 
-### P1 Response Playbook
-
-**Step 1: Rollback (< 15 minutes)**
+### Rollback Playbook
 
 ```bash
-az ml online-deployment update \
-  --name production-deployment \
-  --endpoint-name fraud-scoring-endpoint \
-  --traffic "previous-deployment=100 current-deployment=0"
+#!/bin/bash
+# model-rollback.sh — execute this, do not improvise
+
+MODEL_NAME=$1
+ROLLBACK_TO_VERSION=$2
+ENVIRONMENT=${3:-production}
+
+echo "=== MODEL ROLLBACK INITIATED ==="
+echo "Model: $MODEL_NAME | To: $ROLLBACK_TO_VERSION | Env: $ENVIRONMENT"
+echo "Initiator: $(git config user.email) at $(date -u +%Y-%m-%dT%H:%M:%SZ)"
+
+# 1. Validate rollback target exists and is in a deployable state
+STATE=$(mlflow models get --name "$MODEL_NAME" --version "$ROLLBACK_TO_VERSION" | jq -r '.current_stage')
+if [ "$STATE" != "Production" ] && [ "$STATE" != "Staging" ] && [ "$STATE" != "Approved" ]; then
+    echo "ERROR: Version $ROLLBACK_TO_VERSION is in state '$STATE' — not deployable"
+    exit 1
+fi
+
+# 2. Flip traffic: update Kubernetes deployment to previous image
+kubectl set image deployment/$MODEL_NAME \
+    model-server=registry.company.com/$MODEL_NAME:$ROLLBACK_TO_VERSION \
+    -n $ENVIRONMENT
+
+# 3. Wait for rollout
+kubectl rollout status deployment/$MODEL_NAME -n $ENVIRONMENT --timeout=120s
+
+# 4. Verify: run smoke test against the new (old) version
+python smoke_test.py --model $MODEL_NAME --version $ROLLBACK_TO_VERSION --env $ENVIRONMENT
+if [ $? -ne 0 ]; then
+    echo "SMOKE TEST FAILED — rollback may have introduced new issues"
+    # Do not auto-rollforward — page the team
+    exit 2
+fi
+
+# 5. Log to incident record
+mlflow runs log-param \
+    --run-id "$INCIDENT_RUN_ID" \
+    --key "rollback_executed" \
+    --value "$(date -u +%Y-%m-%dT%H:%M:%SZ):$MODEL_NAME:$ROLLBACK_TO_VERSION"
+
+echo "=== ROLLBACK COMPLETE ==="
+echo "Verify in dashboard: https://grafana.company.com/d/model-health"
 ```
 
-**Step 2: Notify stakeholders (< 30 minutes)**
-Incident channel, on-call engineer, model owner, compliance officer, business owner.
+**Rollback decision criteria (pre-agreed at Gate 4):**
 
-**Step 3: Scope assessment (< 1 hour)**
-How many decisions affected? What time window? Which customer segments? Export prediction logs for the affected period.
+```python
+def should_rollback(current_metrics: dict, baseline_metrics: dict, thresholds: dict) -> bool:
+    """
+    Returns True if rollback should be executed.
+    All three conditions are checked; any single violation triggers rollback.
+    """
+    checks = {
+        "accuracy_drop": (
+            baseline_metrics["auc"] - current_metrics["auc"]
+            > thresholds["max_auc_drop"]       # e.g., 0.03
+        ),
+        "latency_spike": (
+            current_metrics["p99_latency_ms"]
+            > thresholds["max_p99_latency_ms"]  # e.g., 200
+        ),
+        "error_rate": (
+            current_metrics["error_rate"]
+            > thresholds["max_error_rate"]      # e.g., 0.01
+        ),
+    }
+    return any(checks.values()), checks
+```
 
-**Step 4: Root cause analysis (< 4 hours)**
-Was it a data pipeline failure, distribution shift, preprocessing bug, or model degradation? Compare current feature distribution to training baseline.
+### Post-Mortem Checklist
 
-**Step 5: Remediation**
-Fix root cause (patch data pipeline, retrain, recalibrate). Deploy through the full approval gate — incident response does not bypass approval gates for non-emergency fixes.
+Within 48 hours of incident resolution:
 
-**Step 6: Post-incident review (< 72 hours)**
-Document timeline, root cause, customer impact, remediation steps, and process improvements. File with compliance for regulated domains.
+- [ ] Timeline of events (detection → diagnosis → rollback → resolution)
+- [ ] Root cause identified (data drift? code bug? infrastructure failure? feature pipeline issue?)
+- [ ] Impact quantified (affected requests, affected subjects, estimated business impact)
+- [ ] Why monitoring did not catch it earlier (or why it did, and the response was slow)
+- [ ] Action items with owners and deadlines
+- [ ] Model card updated with the failure mode
 
-**Regulatory notification:** GDPR Article 33 requires notifying the supervisory authority within 72 hours of a personal data breach. Model-caused harm may qualify if it results from processing of personal data at scale.
+### What Breaks
 
-**Affected individuals:** In regulated domains, individuals who received adverse decisions from a failing model may be entitled to manual re-review. Maintain a list of affected entity IDs from the prediction logs for this purpose.
+**P1 rollback requiring VP approval:** during a P1, decision authority must pre-delegate to the on-call engineer. Approval chains fail under 15-minute response windows.
+
+**Rollback target not tested before incident:** the rollback target itself may have a bug. Smoke tests after rollback are not optional.
+
+**Post-mortem without root cause:** "we rolled back and it fixed it" is not a root cause. If the cause is unknown, the next incident will be identical.
 
 ---
 
-## 9. Shadow Deployment and Champion-Challenger
+## 8. Shadow Deployment for High-Stakes Models
 
-### Shadow Deployment
+### The Problem
 
-A shadow model receives the same production inputs as the live model but its outputs are not used for decisions — they are logged for comparison.
+A new credit model has passed all offline evaluations. The team needs production validation before going live, but cannot afford to deny credit to thousands of customers based on an untested model.
 
-**Purpose:**
-- Validate a new model on live traffic before promoting it
-- Detect unexpected behavior on the real input distribution
-- Build confidence without risking live decisions
+### The Core Insight
+
+Shadow deployment runs the new model in production without using its outputs for decisions. You get real traffic, real features, real outcomes — without risk to customers or business.
+
+### The Mechanics
 
 ```python
-@app.post("/score")
-async def score(features: TransactionFeatures):
-    # Champion prediction (live)
-    champion_score = champion_model.predict_proba(features)
+import asyncio
+import time
+from typing import Any
 
-    # Challenger shadow prediction (async, non-blocking)
+async def serve_with_shadow(
+    request: dict,
+    champion_model,
+    challenger_model,
+    shadow_store
+) -> Any:
+    """
+    Serve the champion's prediction. Fire-and-forget the challenger.
+    The challenger's predictions are stored for offline analysis.
+    """
+    # 1. Get champion prediction — this is what the customer sees
+    champion_start = time.perf_counter()
+    champion_prediction = champion_model.predict(request["features"])
+    champion_latency = (time.perf_counter() - champion_start) * 1000
+
+    # 2. Fire challenger inference asynchronously (do not await — do not block)
     asyncio.create_task(
-        log_shadow_prediction(challenger_model, features, request_id)
+        _shadow_predict(challenger_model, request, champion_prediction, shadow_store)
     )
 
-    return {"score": champion_score, "model_version": CHAMPION_VERSION}
+    # 3. Return champion prediction to caller immediately
+    return champion_prediction
+
+async def _shadow_predict(challenger_model, request, champion_prediction, shadow_store):
+    """Runs asynchronously; failure must not propagate to the main serving path."""
+    try:
+        challenger_start = time.perf_counter()
+        challenger_prediction = challenger_model.predict(request["features"])
+        challenger_latency = (time.perf_counter() - challenger_start) * 1000
+
+        shadow_store.record({
+            "request_id": request["id"],
+            "timestamp": time.time(),
+            "features_hash": hash(str(sorted(request["features"].items()))),
+            "champion_prediction": champion_prediction,
+            "challenger_prediction": challenger_prediction,
+            "challenger_latency_ms": challenger_latency,
+        })
+    except Exception as e:
+        # Log error but never propagate — champion path must be unaffected
+        logger.warning(f"Shadow prediction failed: {e}")
 ```
 
-**Shadow deployment exit criteria:**
-- 2 weeks of production traffic logged
-- Challenger AUC on live-labeled traffic > Champion by pre-specified margin
-- No unexpected score distribution anomalies
-- Calibration ECE < 0.05 on recent labeled data
+**Shadow analysis metrics to compute after accumulating enough traffic:**
 
-### Champion-Challenger Pattern
+| Metric | Purpose | Threshold to Escalate |
+|--------|---------|----------------------|
+| Agreement rate | Overall alignment | <95% agreement on discrete decisions |
+| Score correlation | Rank ordering preserved | Spearman r < 0.90 |
+| Disagreement on high-stakes | Cases where predictions diverge on borderline decisions | Manual review required |
+| Challenger latency | Verify P99 before routing live traffic | >2x champion P99 |
+| Challenger error rate | Serving failures | >0.1% |
 
-Champion-challenger explicitly routes a percentage of live traffic to the challenger and compares business outcomes:
+**Transitioning from shadow to live:**
 
-```yaml
-# Azure ML traffic split
-deployments:
-  champion:
-    model_version: 2.3.0
-    traffic_percentage: 90
-  challenger:
-    model_version: 2.4.1
-    traffic_percentage: 10
-```
+1. Shadow phase: run for minimum 2 weeks / 10,000 requests (whichever is longer)
+2. Agreement analysis: review disagreement cases with subject matter experts
+3. Canary phase: route 5% of traffic to challenger with full monitoring
+4. Gradual ramp: 5% → 20% → 50% → 100% with hold periods at each step
 
-**Statistical test for promotion:**
+### What Breaks
 
-```python
-from scipy import stats
+**Shadow path sharing resources with the champion path:** a shadow model that consumes excess CPU degrades champion latency. Shadow must run on isolated compute.
 
-champion_tp, champion_total = 1820, 20000
-challenger_tp, challenger_total = 1950, 20000
+**Not accumulating enough disagreement cases for review:** 10,000 requests with 98% agreement = 200 disagreement cases. Review those 200 — that is where the model behaves differently.
 
-stat, p_value = stats.proportions_ztest(
-    [challenger_tp, champion_tp],
-    [challenger_total, champion_total],
-    alternative="larger"
-)
-
-if p_value < 0.05:
-    print(f"Challenger significantly better (p={p_value:.4f}). Promote.")
-else:
-    print(f"No significant improvement (p={p_value:.4f}). Keep champion.")
-```
-
-**Guardrails during challenger traffic:**
-- Challenger cannot exceed 20% traffic until shadow phase passes
-- Any P2+ incident on challenger triggers immediate rollback to 0%
-- Challenger runs minimum 2 weeks before promotion decision
-
-**When to use shadow vs A/B (champion-challenger):**
-- Shadow: when you need to validate on real traffic with zero risk — no user sees challenger outputs; cannot measure business impact.
-- Champion-challenger: when you need to measure business impact (conversion, revenue, fraud detection rate). Requires partial real user exposure to the challenger.
+**Skipping canary after shadow:** shadow and canary test different things. Shadow tests model quality with no consequences. Canary tests that the serving infrastructure handles real traffic correctly under load.
 
 ---
 
-## 10. Interview Q&A
+## Interview Questions
 
-**Q1: What should a model registry store beyond the model artifact itself?**
+**Q: How do you handle model versioning when you need to support rollback but also need to comply with data retention regulations that require you to be able to reproduce a decision years later?**
 
-> At minimum: training run ID (links to code, hyperparameters, and environment), dataset artifact hash (ensures exact reproducibility), evaluation scores on validation data (AUC, ECE, fairness metrics), approval status and approver identity, model card link, and intended use scope. The dataset hash is the most commonly missed field — "trained on Q4 2024 data" is ambiguous without a verifiable hash of the exact artifact.
+A: The requirements are in tension. Rollback requires keeping old model weights accessible and deployable. Data retention requires keeping inference records and the ability to reconstruct the decision environment. The solution is to separate these concerns: model artifacts are versioned in the registry indefinitely (compressed, not running), inference events are logged to an immutable audit store with the model version tag, and the deployment rollback mechanism operates on the registry. When an auditor asks to reproduce a decision from two years ago, you query the audit store for the inference event, identify the model version from the event metadata, and use the archived model artifact to reproduce the prediction. You never need to run the old model live — you just need to preserve the artifact.
 
-**Q2: What is the difference between a model registry and an experiment tracker?**
+**Q: A customer exercises their GDPR right to erasure. Walk through your response.**
 
-> An experiment tracker (MLflow, Weights & Biases) logs training runs: metrics, hyperparameters, and artifacts produced during development. A model registry is the promotion system: staging, production, rollback. Registry entries come from experiment tracker artifacts once they've been vetted. The registry answers "what is running in production and why"; the tracker answers "what did we try and how did it perform."
+A: First, delete their raw training data. Second, query the model registry for all model versions trained on datasets that included the customer. Third, use influence functions or a proxy (leave-one-out on a small validation set) to estimate whether the customer's data materially affected the model weights. For most customers in a large dataset, influence is negligible — document this assessment and consider it resolved. For high-influence cases (a small dataset where the customer was a significant fraction), schedule retraining. Fourth, the inference audit logs cannot be fully erased because financial regulations require retaining decision records. Since you logged the entity ID hash (not the raw ID), you are already pseudonymized. Document the conflict between GDPR Article 17 and your financial audit obligations — most DPAs accept this explanation.
 
-**Q3: What is the right-to-explanation under GDPR and how does SHAP satisfy it?**
+**Q: How do you make TreeSHAP explanations legally defensible for adverse action notices?**
 
-> GDPR Article 22 requires meaningful information about the logic of automated decisions that significantly affect individuals — specific to that individual's case, not a general model description. SHAP provides exact Shapley value-based feature attributions for tree-based models. For a credit denial: "Your debt-to-income ratio contributed -0.31 and recent missed payments contributed -0.22 to the decision." This is specific, actionable, legally defensible, and can be delivered within the 30-day response window.
+A: Three requirements. First, the explanation must be at the level of the original features (not latent representations), because the explanation is given to a human who does not understand internal model representations. TreeSHAP on tree ensembles gives exact Shapley values — not approximations — which makes it mathematically auditable. Second, the top reasons must be mapped to human-readable language before delivery, and the mapping must be documented and consistent. Third, the explanation must be generated from the exact model and feature values that produced the decision — not a surrogate. The inference event log must store the feature snapshot so the explanation can be reproduced from the audit record, not reconstructed from a different feature state.
 
-**Q4: Walk me through a shadow deployment and when you'd promote a model.**
+**Q: What is the right way to set rollback thresholds?**
 
-> Shadow: route 100% of live traffic to the champion; simultaneously send the same inputs to the challenger and log its predictions without serving them to users. After 2+ weeks, compare on: AUC on labeled outcomes, score distribution shape, calibration ECE. If the challenger passes all checks and is statistically significantly better on the primary metric, promote to champion-challenger at 10% traffic split. After 2 more weeks at 10% with continued improvement and no incidents, promote fully to 100%.
+A: Set them before deployment, not after the model is in production. The sequence is: (1) during the business sign-off gate, agree on what constitutes "unacceptable model behavior" in terms the business understands — this is usually expressed as revenue impact or error rate, not AUC; (2) translate that business threshold into the metric the monitoring system observes — typically: champion AUC minus current AUC delta, P99 latency, and error rate; (3) document the thresholds in the model registry; (4) configure the monitoring system to fire the rollback alert automatically if thresholds are exceeded. The goal is to make the rollback decision non-discretionary: if metric X exceeds threshold Y, roll back. This removes the political negotiation under pressure.
 
-**Q5: What would you log for every production model prediction?**
+**Q: How do you prevent training-serving skew from becoming a governance problem?**
 
-> Prediction ID (UUID for record linkage), timestamp, model name and version, model artifact hash (immutable proof of which exact model was used), pseudonymous entity ID (not raw PII), input feature hash, raw score, decision, and decision threshold. The artifact hash is the field most teams miss — it allows you to prove in a regulatory audit that the model at decision time was the approved version, not an unauthorized change.
+A: Training-serving skew is a governance problem when: (a) it causes model behavior to differ from what was evaluated and approved, and (b) no one detects it until an external audit or customer complaint. Prevention requires two things. First, use a shared feature pipeline — the same code that computes features for serving must also be used to generate features for training. This is implemented via a feature store with a point-in-time correct join capability. Second, monitor Population Stability Index on input features in production continuously. If PSI exceeds 0.2 on any feature, the model is operating outside its evaluated distribution, and the approval effectively does not apply. This triggers a re-evaluation gate, not a rollback — the model may still be performing, but the governance coverage must be renewed.
 
-**Q6: What is your incident response playbook when a deployed model starts producing biased outputs?**
+**Q: How does the shadow deployment pattern satisfy regulators for high-stakes model transitions?**
 
-> P1: immediate rollback via traffic routing to the previous stable version (< 15 minutes). Notify compliance and business stakeholders. Scope assessment: how many decisions affected, which populations, what time window — export prediction logs. Root cause: data pipeline change, feature drift, or model degradation? All affected individuals may need their adverse decisions manually re-reviewed. File regulatory notification if required (GDPR Art. 33: 72-hour window). Post-incident review within 72 hours, documented for audit trail.
-
-**Q7: What is model risk management and how does it relate to model governance?**
-
-> Model Risk Management (MRM) is the regulatory framework from banking (OCC SR 11-7) for identifying, assessing, and controlling risk from models. Model governance is the tooling and process layer that implements MRM. MRM requires: independent model validation, pre-production approval gates, ongoing monitoring, and periodic revalidation. The model governance infrastructure — registry, approval gates, audit trails — must satisfy MRM requirements for a regulated institution to deploy a model.
-
-**Q8: What does a model card contain and why does it matter?**
-
-> A model card documents: model type and version, intended use and explicitly out-of-scope use cases, training data description and date range, evaluation results including fairness metrics, and known limitations. It matters because the same model artifact can be misapplied: a US consumer fraud model deployed on international commercial transactions will degrade in uncontrolled, unmonitored ways. The model card makes scope explicit at registration time and is the reference document for post-incident analysis and regulatory examination.
-
-**Q9: How do you implement champion-challenger on Azure ML?**
-
-> Define two online deployments under one endpoint: champion at 90% traffic, challenger at 10%. Both log predictions with model version tagged. After 2+ weeks, compare on labeled outcomes using a proportions z-test with a pre-specified significance level and power. Set guardrails: challenger traffic drops to 0% on any P2 incident; challenger cannot exceed 20% until shadow phase is complete. If the challenger is statistically better, update the traffic weights to promote it fully over the following week.
-
-**Q10: How do you handle GDPR data retention for prediction logs?**
-
-> Log decisions using a pseudonymous entity ID, not raw PII. Store the ID-to-PII mapping in a separate system with strict access controls. Document a retention period in the ROPA — e.g., 36 months for credit decisions. Implement Azure Blob Storage lifecycle policies to tier to cool storage at 12 months, archive at 24 months, and delete at 36 months automatically. For right-to-erasure requests: delete the ID-to-PII mapping entry; the remaining log entries are no longer individually identifiable and satisfy Art. 17 compliance.
+A: Regulators care about two things in model transitions: that the new model has been tested under realistic conditions before it affects decisions, and that there is evidence it performs comparably or better on the dimensions they care about (not just overall AUC, but specifically on protected class proxies). Shadow deployment satisfies the first requirement by accumulating predictions on real traffic without affecting decisions. Satisfying the second requires logging the shadow predictions and running the fairness analysis on actual production traffic — not just on the held-out test set. The shadow period produces a parallel validation dataset that is submitted as part of the compliance gate documentation for the new model version.

@@ -1,1473 +1,783 @@
-# Machine learning design interview
+# Machine Learning Design Interview
 
-> \[!IMPORTANT] **The ML System Design Interview Checklist**
->
-> Use this 7-step framework to lead any ML design discussion.
->
-> 1. **Clarification & Scoping:**
->    * \[] What is the core business objective? (e.g., maximize clicks, minimize churn).
->    * \[] Success Metrics: Online (CTR, revenue) vs. Offline (AUC, nDCG).
->    * \[] Constraints: Latency (P99 < 100ms), Scale (1B users), fresh data frequency.
-> 2. **Data & Labels:**
->    * \[] Label generation (Explicit vs. Implicit).
->    * \[] Handling data imbalance (resampling, class weights).
->    * \[] Sampling strategy (Negative sampling, Importance sampling).
-> 3. **Feature Engineering:**
->    * \[] Categorical (One-hot, Hashing, Embeddings).
->    * \[] Numerical (Scaling, Binning, Interaction features).
->    * \[] Feature Store logic (consistent training/serving).
-> 4. **Model Architecture:**
->    * \[] Baseline (Logistic Regression, GBDT).
->    * \[] Candidate Generation (Two-tower, ANN search).
->    * \[] Ranking (Deep Cross Networks, Transformers).
-> 5. **Training Pipeline:**
->    * \[] Loss functions (Cross-entropy, Weighted MSE, Pairwise Hinge).
->    * \[] Evaluation strategy (Time-series split, Rolling window).
-> 6. **Serving & Infrastructure:**
->    * \[] Online vs. Batch inference.
->    * \[] Model compression (Quantization, Distillation).
->    * \[] Caching (Redis) for high-frequency features.
-> 7. **Post-Production:**
->    * \[] Monitoring for Data/Concept Drift.
->    * \[] A/B testing & Shadow deployments.
->    * \[] Continual learning/retraining strategy.
+---
 
-***
+## The Interview Framework
 
-## <mark style="color:yellow;">Chapter 1: Machine Learning Primer</mark>
+**The problem**: candidates who jump straight to model architecture fail design interviews because they answer a different question than what's being asked. The interviewer wants to see systems thinking, not model selection.
 
-This chapter covers the foundations required for ML system-design interviews.
+**The core insight**: ML design interviews test whether you can translate a vague product goal into a complete, defensible system — not whether you know the latest architecture.
 
-1. Feature Selection & Engineering
-   * One-Hot Encoding – definition, issues (tree models & sparsity), best practices, usage at Uber.
-   * Mean Encoding – concept, leakage avoidance, smoothing, CV methods, Instacart example.
-   * Feature Hashing – the hashing trick, collisions, hash functions (Murmur, Jenkins …), trade-offs, and usage at Booking, Facebook, Yahoo etc.
-   * Cross Features – conjunctions, high cardinality, use of hashing, Uber example, and relation to Wide & Deep models.
-   * Embedding – Word2Vec (CBOW / Skip-gram), co-trained embeddings, and case studies from Instagram, DoorDash, YouTube (two-tower retrieval), LinkedIn (reverse pyramid Hadamard model), Pinterest (visual search), Twitter and others.
-   * Evaluation of Embeddings – downstream task performance, t-SNE / UMAP visualization, clustering, similarity metrics (cosine, dot, Euclidean) and related issues (norm bias, initialization).
-   * Numeric Features – normalization, standardization, log transform, clipping outliers, and Netflix timestamp feature example.
-2. Training Pipeline
-   * Data formats (Parquet, Avro, ORC, TFRecord), partitioning, handling imbalanced classes (weights, down/up-sampling, SMOTE note).
-   * Label generation strategies (cold-start handling, LinkedIn course recommendation case).
-   * Train/test splitting for time-series (sliding and expanding windows).
-   * Retraining levels (0–3: cold, near-line, warm-start) and scheduler patterns.
-3. Loss Functions & Metrics
-   * Regression losses (MSE, MAE, Huber, Quantile).
-   * Facebook’s Normalized Cross Entropy example for CTR prediction.
-   * Forecast metrics (MAPE, SMAPE).
-   * Classification losses (Focal, Hinge) and their industry uses (Amazon focal loss experiments, Airbnb hinge loss library).
-4. Model Evaluation
-   * Offline metrics (AUC, MAP, MRR, nDCG).
-   * Online metrics (CTR, time spent, satisfaction rates).
-   * A/B testing overview and budget-splitting concept.
-5. Sampling Techniques
-   * Random, Rejection, Weighted, Importance, Stratified and Reservoir sampling —with examples and code snippets.
-6. Common Deep Learning Architectures
-   * Wide & Deep architecture (Google Play example).
-   * Two-Tower architecture (YouTube retrieval).
-   * Deep Cross Network (DCN V2) for automatic cross feature learning.
-
-\
-Here are the detailed notes of Chapter 2 – Common Recommendation System Components from _“Machine Learning Design Interview” by Khang Pham (2022)_:
-
-***
-
-## <mark style="color:yellow;">Chapter 2 – Common Recommendation System Components</mark>
-
-1\. Overview
-
-Modern recommendation systems have three main components:
-
-1. Candidate Generation – From a massive set (billions of items), generate a smaller subset (hundreds/thousands).
-   * Example: YouTube reduces billions of videos to a few hundred.
-2. Ranking (Scoring) – A more complex ML model ranks the selected candidates for precision.
-3. Re-ranking (Post-processing) – Adjusts for freshness, diversity, fairness, or removes disliked/undesirable items.
-
-***
-
-#### 2. Candidate Generation
-
-**A. Content-Based Filtering**
-
-* Uses item features and user preferences.
-* Recommend similar items to what a user has liked before.
-* Example: Google Play recommends apps similar to those installed by the user.
-
-Process:
-
-1. Represent each item by a feature vector (e.g., binary or numeric).
-2. Compute similarity metrics — commonly dot product or cosine similarity.
-3. Rank items by similarity score.
-
-Pros:
-
-* No need for data from other users.
-* Easy to scale.
-* Works well for new users with limited data.
-
-Cons:
-
-* Limited diversity (tends to show more of the same content).
-* Requires rich, high-quality item metadata.
-
-***
-
-**B. Collaborative Filtering**
-
-* Uses user–item interaction data (ratings, clicks, views).
-* Predicts user preferences based on similar users’ behavior.
-
-Two main types:
-
-1. Memory-based – User–user or item–item similarity (e.g., cosine similarity, Pearson correlation).
-2. Model-based – Matrix factorization, SVD, or deep learning embeddings.
-
-Trade-offs:
-
-* Pros: Learns from large-scale interactions automatically.
-* Cons: Struggles with cold-start (new items/users), requires sufficient data.
-
-***
-
-**C. Industry Examples**
-
-* Pinterest:
-  * Uses _co-occurrence_ of items in sessions for candidate generation.
-  * Example: If a user frequently views pins A, B, and C together, recommend D, which is co-viewed with A and B.
-  * Uses random walks on item–item graphs for deeper relationships.
-* YouTube:
-  * Uses multistage retrieval stacks.
-  * Stage 1: Candidate generation via embeddings and ANN (Approx. Nearest Neighbor).
-  * Stage 2: Ranking using deep models considering user and video features.
-
-***
-
-#### 3. Ranking
-
-Ranking models refine the top-N candidates using a more complex model (e.g., MLP or Gradient Boosted Trees).
-
-**A. Learning-to-Rank Methods**
-
-1. Pointwise – Predicts score for each item independently.
-2. Pairwise – Optimizes relative ordering between pairs (e.g., RankNet).
-3. Listwise – Considers the entire ranked list for optimization (e.g., LambdaRank).
-
-RankNet (Microsoft Research)
-
-* Uses a neural network to predict the probability that item A should be ranked higher than item B.
-* Loss function: Cross-entropy between predicted and true order probabilities.
-
-Example Workflow:
-
-1. Input: (User, Item A, Item B) pairs.
-2. Output: Probability that A > B.
-3. Optimized using gradient descent to minimize misordered pairs.
-
-***
-
-#### 4. Re-Ranking
-
-Final adjustments applied to improve user experience or business objectives.
-
-**A. Freshness**
-
-* Boosts newer or recently updated items.
-* Example: Social media feeds prioritize newer posts.
-
-**B. Diversity**
-
-* Ensures variety among recommendations to avoid monotony.
-* Example: Netflix mixes genres in top recommendations.
-
-**C. Fairness**
-
-* Prevents bias towards popular items or specific categories.
-* Example: Ensuring smaller creators get exposure.
-
-***
-
-#### 5. Position Bias
-
-Users are more likely to click on items appearing higher on the screen, which biases model training.
-
-Mitigation Techniques:
-
-* Use position as a feature in training.
-* Inverse Propensity Scoring (IPS): Reweight training examples inversely to their display position probability.
-
-LinkedIn Example – “People You May Know” (PYMK):
-
-* Uses impression discounting to reduce bias from position effects in the ranking process.
-
-***
-
-#### 6. Calibration
-
-Calibration ensures predicted probabilities reflect real-world likelihoods.
-
-Example:
-
-* If the model predicts p(click) = 0.2, then roughly 20% of such predictions should click.
-
-Techniques:
-
-* Platt scaling (logistic regression)
-* Isotonic regression
-* Temperature scaling
-*   Facebook’s method:
-
-    q = \frac{p}{p + \frac{1-p}{w\}}
-
-    where _w_ = negative downsampling rate.
-
-***
-
-#### 7. Nonstationary Problem
-
-Data distribution changes over time (a.k.a. concept drift).
-
-Solution Approaches:
-
-* Frequent retraining.
-* Bayesian Logistic Regression – combines historical + near-time data.
-* Lambda Learner (LinkedIn) – balances old and new data adaptively.
-
-***
-
-#### 8. Exploration vs. Exploitation
-
-Trade-off between showing known high-performing content vs. exploring new items.
-
-Common Approaches:
-
-* Thompson Sampling
-* ε-Greedy Exploration
-* Example: Showing new ads despite uncertainty to find high performers.
-
-***
-
-#### 9. Case Study: Airbnb
-
-Lesson 1: Deep Learning ≠ guaranteed improvement over GBDT.
-
-Lesson 2: Dropout didn’t improve online metrics despite small offline NDCG gains.
-
-Lesson 3: Use proper weight initialization (e.g., Xavier, random uniform for embeddings).
-
-Lesson 4: Use optimizers like LazyAdam for large embeddings.
-
-***
-
-#### 10. Interview Exercises
-
-Sample design questions:
-
-1. Recommend “interesting places near me” on Facebook — how to sample positive/negative labels?
-2. Predict attendance at Facebook events.
-3. Detect if an image contains real or poster humans (use depth info).
-4. Design feed ranking for Facebook.
-5. Detect illegal items on Marketplace.
-6. LinkedIn job recommendation system.
-7. Feed recommendations for non-friends.
-8. LinkedIn job seniority classifier.
-9. Twitter smart notifications.
-10. TikTok hashtag relevance filtering.
-11. Instacart food category prediction.
-12. DoorDash one-week demand forecasting.
-
-***
-
-#### Summary
-
-* Recommendation systems = Candidate Generation + Ranking + Re-ranking
-* Must balance accuracy, freshness, diversity, and fairness
-* Address bias, drift, and exploration
-* Industry examples from YouTube, Pinterest, LinkedIn, Airbnb, Facebook provide real-world context
-* Interviewers expect end-to-end system understanding + practical trade-offs
-
-***
-
-Here are the detailed notes of Chapter 4 – Fraud Detection System from _“Machine Learning Design Interview” by Khang Pham (2022)_:
-
-***
-
-Here are the detailed notes of Chapter 3 – Search System Design from _Machine Learning Design Interview_ by Khang Pham (2022):
-
-***
-
-## Chapter 3 — Search System Design
-
-<br>
-
-#### 1⃣ Introduction
-
-<br>
-
-A search engine connects user queries to relevant items (documents, profiles, products, or listings).
-
-Modern ML-based search systems combine information-retrieval (IR) techniques with machine-learning ranking to improve precision and personalization.
-
-Typical use cases:
-
-* Google Search → web documents
-* LinkedIn Talent Search → member profiles
-* Airbnb → rental listings
-* Spotify → music tracks
-
-<br>
-
-High-level pipeline
-
-1.  Retrieval / Candidate Generation
-
-    Retrieve a few thousand possibly relevant results from millions or billions.
-2.  Ranking
-
-    Score those results with ML models using query, document, and user features.
-3.  Re-ranking / Post-processing
-
-    Adjust the ranked list for freshness, diversity, personalization, and fairness.
-
-***
-
-#### 2⃣ Keyword vs. Semantic Search
-
-| Aspect         | Keyword (Lexical)                      | Semantic (Embedding-based)           |
-| -------------- | -------------------------------------- | ------------------------------------ |
-| Matching logic | Token overlap, TF-IDF, BM25            | Vector similarity in embedding space |
-| Data index     | Inverted index (Elasticsearch, Lucene) | Vector index (FAISS, ScaNN, Milvus)  |
-| Pros           | Fast, interpretable                    | Handles synonyms & paraphrases       |
-| Cons           | Misses semantic matches                | Expensive, requires embeddings       |
-
-Example – Onebar semantic search
-
-* Uses Universal Sentence Encoder (USE) to embed queries and docs.
-* Stores vectors in a FAISS index (cosine similarity).
-* Serves results through a lightweight gRPC microservice.
-
-***
-
-#### 3⃣ Core ML Building Blocks
-
-| Step                | Purpose                                                                 | Example                     |
-| ------------------- | ----------------------------------------------------------------------- | --------------------------- |
-| Label generation    | Clicks, dwell time, saves, purchases → implicit relevance labels        | YouTube “watch next” clicks |
-| Feature sets        | User, item, and context features (time, device, language)               |                             |
-| Architecture        | Two-tower or pyramid models for retrieval; MLP/GBDT for ranking         |                             |
-| Loss functions      | Cross-entropy (pointwise), pairwise ranking loss, listwise (LambdaRank) |                             |
-| Serving constraints | Low latency (<100 ms), high QPS                                         | LinkedIn Talent Search      |
-
-***
-
-#### 4⃣ Ad / Search Ranking Example
-
-<br>
-
-Ad Ranking System resembles search:
-
-* Retrieve eligible ads via targeting rules.
-* Compute pCTR and expected value = bid × pCTR × quality.
-* Auction (GSP or VCG) decides placement and cost.
-
-<br>
-
-Why separate retrieval & ranking?
-
-* Retrieval = fast, coarse; Ranking = slow, precise.
-* Allows different update cadences and independent scaling.
-
-<br>
-
-Feature update issue
-
-* Static features (geo, language) vs. dynamic ones (recent clicks).
-* Cache frequently updated ones in Redis / DynamoDB.
-
-***
-
-#### 5⃣ Training–Serving Skew
-
-<br>
-
-Mismatch between offline preprocessing and online inference pipelines can cripple performance.
-
-<br>
-
-Solutions
-
-1. Unified transformation graph (TF Transform).
-2. Feature logging at serving → reuse for training.
-3. TFDV / schema validation → detect drift.
-
-<br>
-
-_Spotify example:_ four-month bug fixed via feature logging + validation.
-
-***
-
-#### 6⃣ Scaling Retrieval Service
-
-<br>
-
-Scalability patterns
-
-* Stateless retrieval pods behind load-balancer.
-* Autoscale via Kubernetes (request-rate metrics).
-* Graceful shutdown to avoid dropping inflight queries.
-* Avoid single points of failure.
-
-***
-
-#### 7⃣ LinkedIn Talent Search Case Study
-
-<br>
-
-Goal: rank candidates most likely to accept recruiter messages (InMail).
-
-| Component | Description                                                 |
-| --------- | ----------------------------------------------------------- |
-| Metrics   | Precision@5/25, nDCG (offline); acceptance rate (online)    |
-| Features  | Recruiter context, query text, candidate features           |
-| Models    | XGBoost baseline → Two-tower neural model                   |
-| Indexing  | Lucene inverted + forward indices                           |
-| Serving   | Broker service aggregates shards; ML layer re-ranks results |
-
-Key improvements
-
-* Tri-gram text embeddings for semantic matching.
-* Context-aware ranking (industry, seniority).
-
-***
-
-#### 8⃣ Embedding Serving at LinkedIn (“Pensive”)
-
-| Layer             | Function                                             |
-| ----------------- | ---------------------------------------------------- |
-| Offline training  | Train two-tower model → user/job embeddings          |
-| Storage           | Key-value store of embeddings (Feature Marketplace)  |
-| Nearline pipeline | Generate embeddings for new users/jobs via Kafka     |
-| Retrieval         | Approximate NN (FAISS / ScaNN) for sub-100 ms search |
-
-***
-
-#### 9⃣ Airbnb Search Ranking Case
-
-<br>
-
-Objective: maximize booking likelihood for a given query (location + dates).
-
-Challenges: large candidate pool, < 200 ms latency.
-
-| Component  | Detail                                               |
-| ---------- | ---------------------------------------------------- |
-| Model type | Binary classifier → predicts booking probability     |
-| Features   | Listing price, image quality, location, user history |
-| Split      | Time-based (train on past, validate on future)       |
-| Metrics    | DCG, nDCG (offline); Conversion rate (online)        |
-| Latency    | ≤ 100 ms total inference                             |
-
-***
-
-#### Common Challenges & Remedies
-
-| Challenge             | Mitigation                             |
-| --------------------- | -------------------------------------- |
-| Training–serving skew | Shared transforms, feature logging     |
-| Feature freshness     | Nearline feature stores (Redis, Feast) |
-| High QPS              | Sharding, ANN retrieval                |
-| Latency               | Two-stage ranking, caching             |
-| Personalization       | User embeddings + contextual features  |
-| Evaluation            | A/B testing + nDCG + latency SLAs      |
-
-***
-
-#### 1⃣1⃣ Interview Angles
-
-1. Design LinkedIn-like talent search ranking.
-2. How to combine keyword and semantic retrieval results?
-3. How to detect and correct training–serving skew?
-4. Scale embedding search for billions of docs.
-5. Handle cold start for new listings or users.
-6. Choose metrics for evaluating a search system.
-
-***
-
-#### Key Takeaways
-
-| Concept         | Summary                                     |
-| --------------- | ------------------------------------------- |
-| Search pipeline | Retrieval → Ranking → Re-ranking            |
-| Modeling        | Two-tower / GBDT / pairwise rankers         |
-| Infrastructure  | Lucene + FAISS + Redis + TensorFlow Serving |
-| Latency target  | ≤ 100 ms end-to-end                         |
-| Metrics         | Precision@K, nDCG, Conversion rate          |
-| Examples        | LinkedIn, Airbnb, Spotify, Onebar           |
-
-***
-
-## Chapter 4 — Fraud Detection System
-
-#### 1. Overview
-
-Fraud detection systems aim to identify abnormal or malicious behaviors in transactions, signups, reviews, etc., while minimizing false positives that affect user experience.
-
-Fraud detection = a real-time classification + graph-based pattern recognition problem.
-
-Examples:
-
-* Credit card fraud detection (Visa, Stripe, PayPal).
-* Fake reviews on Amazon/Yelp.
-* Fake listings on Airbnb.
-* Fake job postings on LinkedIn.
-
-***
-
-#### 2. Common Fraud Scenarios
-
-| Category           | Examples                                              |
-| ------------------ | ----------------------------------------------------- |
-| Payment Fraud      | Stolen credit card usage, chargebacks, refunds abuse. |
-| Account Fraud      | Fake account creation, credential stuffing.           |
-| Content Fraud      | Fake listings, spam posts, phishing links.            |
-| Promotion Abuse    | Coupon misuse, referral manipulation.                 |
-| Collusive Behavior | Groups coordinating fake transactions or reviews.     |
-
-***
-
-#### 3. Data Sources for Fraud Detection
-
-| Data Type        | Examples                                                |
-| ---------------- | ------------------------------------------------------- |
-| User Data        | ID, account age, registration source, login pattern.    |
-| Transaction Data | Amount, time, IP, device fingerprint.                   |
-| Graph Features   | Shared IPs, shared devices, shared payment instruments. |
-| Behavioral Data  | Clicks, session duration, typing speed.                 |
-| External Data    | Blacklists, 3rd-party credit databases.                 |
-
-Challenges
-
-* Class imbalance (fraud cases << normal).
-* Concept drift (fraud tactics evolve).
-* Cold start (new users).
-* Latency constraints for real-time decisions.
-
-***
-
-#### 4. ML Pipeline Overview
-
-**Step 1.**
-
-**Label Generation**
-
-* Labels derived from confirmed fraud cases, chargebacks, manual reviews.
-* Delay between fraud occurrence and confirmation → label delay.
-* To reduce delay: Use proxy labels (e.g., user banned within 7 days).
-
-**Step 2.**
-
-**Feature Engineering**
-
-* Device-level: OS, browser, fingerprint hash.
-* Network-level: IP range, ASN, geolocation mismatch.
-* Transaction-level: frequency, amount deviation, velocity features.
-* User-level: account age, historical rejection rate.
-
-**Step 3.**
-
-**Feature Storage**
-
-* Real-time features in Redis or Feature Store.
-* Offline historical features in BigQuery / Snowflake.
-
-***
-
-#### 5. Model Design
-
-| Type                           | Description                                                      |
-| ------------------------------ | ---------------------------------------------------------------- |
-| Supervised                     | Logistic Regression, Random Forest, XGBoost, LightGBM.           |
-| Semi-Supervised / Unsupervised | Autoencoder, Isolation Forest, One-Class SVM (detect anomalies). |
-| Graph-based                    | GNNs (Graph Neural Networks) using entity relationships.         |
-
-Label Imbalance Handling
-
-* Oversampling fraud cases (SMOTE).
-* Cost-sensitive learning (higher penalty for false negatives).
-* Ensemble learning (bagging/boosting).
-
-***
-
-#### 6. Graph-Based Fraud Detection
-
-**A. Why Graphs?**
-
-Fraudsters collaborate → form hidden entity clusters (shared IP, email, phone, or payment methods).
-
-Represent system as heterogeneous graph with:
-
-* Nodes: users, devices, IPs, credit cards.
-* Edges: transactions, logins, ownership.
-
-**B. GNN Models**
-
-* GraphSAGE, R-GCN, or GAT (Graph Attention Networks).
-* Learn embeddings that capture neighbor behavior and structural signals.
-
-Industry Examples
-
-* PayPal: DeepWalk + GNN hybrid for risk scoring.
-* Alibaba: Graph embedding + XGBoost ensemble.
-* Twitter: Detecting bot clusters with user-IP graph propagation.
-
-***
-
-#### 7. Real-Time Fraud Detection Architecture
-
-**Typical Flow:**
-
-1. Event ingestion → Kafka stream (e.g., payment, login, signup).
-2. Feature fetching → query Redis/feature store for live features.
-3. Model serving → compute fraud probability.
-4. Decision Engine → rules + ML output to approve/block/review.
-5. Feedback loop → store labeled outcomes for retraining.
-
-**Tech Stack:**
-
-* Data pipeline: Kafka, Spark Streaming.
-* Feature Store: Feast, Redis, Cassandra.
-* Model Serving: TensorFlow Serving / XGBoost on Triton.
-* Monitoring: Prometheus, Grafana, Data Quality alerts.
-
-***
-
-#### 8. Hybrid Rules + ML System
-
-<br>
-
-Fraud detection systems combine static rules + ML models.
-
-| Component      | Function                                                             |
-| -------------- | -------------------------------------------------------------------- |
-| Rules Engine   | Fast heuristic checks: blacklists, amount > threshold, geo mismatch. |
-| ML Model       | Captures subtle non-linear patterns.                                 |
-| Ensemble Logic | Weighted combination or layered approach.                            |
-
-Example:
-
-Final Fraud Score =
-
-0.6 \* ML\_Model\_Score + 0.4 \* Rule\_Engine\_Score
-
-<br>
-
-Reason:
-
-Rules offer interpretability and immediate blocking, while ML improves generalization and recall.
-
-***
-
-#### 9. Evaluation Metrics
-
-| Metric             | Meaning                                                         |
-| ------------------ | --------------------------------------------------------------- |
-| Precision          | % of detected frauds that are truly fraudulent.                 |
-| Recall             | % of total frauds correctly detected.                           |
-| F1-score           | Trade-off between precision and recall.                         |
-| AUC-ROC            | Model discrimination capability.                                |
-| PR-AUC             | Preferred for highly imbalanced data.                           |
-| Cost-based Metrics | Combines financial cost of false negatives vs. false positives. |
-
-Example:
-
-At PayPal, cost of false negatives >> cost of false positives → optimize for high recall with manual review buffer.
-
-***
-
-#### 10. Handling Concept Drift
-
-<br>
-
-Concept drift: Fraud patterns evolve (e.g., new devices, IP ranges).
-
-<br>
-
-Detection methods
-
-* Monitor feature distributions (Kolmogorov–Smirnov test).
-* Retraining triggers based on drift thresholds.
-* Rolling window training (e.g., last 4 weeks).
-
-<br>
-
-Solution Strategies
-
-* Online learning (incremental updates).
-* Ensemble with model aging (new + old models).
-* Shadow models for silent A/B testing.
-
-***
-
-#### 11. Explainability & Compliance
-
-<br>
-
-Why important: Financial & legal regulations require interpretability.
-
-<br>
-
-Techniques
-
-* SHAP / LIME for per-transaction explanations.
-* Rule-based post-hoc filtering: “Blocked because multiple devices used.”
-* Dashboard for fraud analysts to override false positives.
-
-<br>
-
-Case Study:
-
-Stripe Radar uses “risk reason codes” like _“email mismatch”_, _“velocity anomaly”_ to assist manual reviewers.
-
-***
-
-#### 12. Case Studies
-
-<br>
-
-**1.**
-
-**PayPal**
-
-* Graph-based feature + GNN → XGBoost hybrid model.
-* 80% reduction in false negatives, lower latency with Redis cache.
-
-<br>
-
-**2.**
-
-**Airbnb**
-
-* Embedding-based account similarity detection.
-* Detect fake listings using text similarity + image hash + GNN edges.
-
-<br>
-
-**3.**
-
-**Facebook**
-
-* Detect fake accounts by friend-graph similarity + device overlap.
-
-***
-
-#### 13. Common Interview Angles
-
-1. Design a real-time credit card fraud detection system.
-2. How to handle concept drift in fraud data?
-3. Why combine rules + ML in production?
-4. How would you detect collusive fraud using graph structure?
-5. What metrics would you use for imbalanced fraud detection data?
-6. How would you log features for real-time fraud model serving?
-
-***
-
-#### 14. Key Takeaways
-
-| Aspect            | Summary                                                                                   |
-| ----------------- | ----------------------------------------------------------------------------------------- |
-| Core Task         | Binary classification + anomaly detection.                                                |
-| Main Challenges   | Imbalance, latency, evolving patterns, explainability.                                    |
-| Architecture      | Kafka → Feature Store → ML Model → Decision Engine.                                       |
-| Best Practices    | Use ensemble (rules + ML), retrain frequently, monitor drift, add interpretability layer. |
-| Industry Examples | Stripe Radar, PayPal, Airbnb, Facebook.                                                   |
-
-***
-
-Here are the detailed notes of Chapter 5 – Feed Ranking System from _“Machine Learning Design Interview” by Khang Pham (2022)_:
-
-***
-
-## Chapter 5 — Feed Ranking System
-
-<br>
-
-#### 1. Overview
-
-<br>
-
-A feed ranking system determines the order of posts, photos, or videos on platforms like Facebook, LinkedIn, Twitter, or Instagram.
-
-Its objective is to maximize user engagement (e.g., clicks, likes, shares, dwell time) while maintaining diversity and fairness.
-
-<br>
-
-Core steps:
-
-1. Candidate Generation – Fetch relevant posts (from friends, pages, or creators).
-2. Ranking – Predict engagement probability.
-3. Re-ranking – Adjust for freshness, diversity, and fairness.
-4. Feedback loop – Log engagement and user behavior for retraining.
-
-***
-
-#### 2. Candidate Generation
-
-<br>
-
-**A. Sources of Candidates**
-
-* Friend Graph: Posts from user’s direct connections.
-* Follow Graph: Pages or accounts followed.
-* Interest Graph: Communities, topics, hashtags, etc.
-* Content Pools: Popular, trending, or location-based posts.
-
-<br>
-
-Example – LinkedIn:
-
-* Candidates from 1st and 2nd-degree connections.
-* Additional ones from followed companies or influencers.
-
-<br>
-
-**B. Candidate Selection**
-
-Use lightweight heuristics or ML scoring to shortlist thousands of posts.
-
-Common techniques:
-
-* Recency filter: Ignore stale posts.
-* Quality filter: Minimum engagement threshold.
-* ANN retrieval: Based on embedding similarity (user–post).
-
-***
-
-#### 3. Ranking Model
-
-<br>
-
-Ranking model scores each candidate to estimate engagement likelihood.
-
-<br>
-
-**A. Input Features**
-
-1. User features – activity level, connection graph, dwell time.
-2. Content features – text, image, video embeddings.
-3. Context features – device type, session time, network speed.
-4. Interaction features – relationship strength, past engagement.
-
-<br>
-
-**B. Model Architectures**
-
-| Type                 | Description                            | Examples                   |
-| -------------------- | -------------------------------------- | -------------------------- |
-| Logistic Regression  | Simple, interpretable                  | Early LinkedIn feed models |
-| GBDT (XGBoost)       | Handles non-linearity, robust          | Facebook early ranking     |
-| Deep Neural Networks | Learns embeddings + feature crosses    | Modern Meta / TikTok       |
-| Wide & Deep / DeepFM | Combines memorization + generalization | Google Play, Instagram     |
-
-Common Output:
-
-* Predicted probability for actions (e.g., click, like, comment).
-* Composite score = weighted sum of multiple action probabilities.
-
-<br>
-
-Formula Example:
-
-FinalScore = 0.4 \* p\_like + 0.3 \* p\_comment + 0.3 \* p\_share
-
-***
-
-#### 4. Multi-Objective Optimization
-
-<br>
-
-Real feed ranking often has multiple competing objectives:
-
-* Engagement (CTR, likes, shares)
-* Retention (dwell time, session length)
-* Freshness
-* Creator fairness
-* Content quality / safety
-
-<br>
-
-**Techniques:**
-
-1. Linear combination of objectives.
-2. Pareto optimal optimization – no objective can be improved without worsening another.
-3. Constraint-based ranking – e.g., maximize CTR under fairness constraints.
-
-<br>
-
-Facebook Example:
-
-Optimize engagement while constraining user well-being and content diversity.
-
-***
-
-#### 5. Post-Processing / Re-ranking
-
-<br>
-
-**A. Freshness**
-
-*   Boost recent posts, decay older ones exponentially.
-
-    FreshnessBoost = e^(-λ \* post\_age\_hours)
-
-<br>
-
-**B. Diversity**
-
-* Avoid showing many similar posts consecutively.
-* Methods: Topic clustering + round-robin from each cluster.
-
-<br>
-
-**C. Fairness**
-
-* Ensure visibility for new or small creators.
-* Example: LinkedIn boosts visibility of less-connected users’ posts.
-
-<br>
-
-**D. Content Safety**
-
-* Apply moderation filters to block sensitive or spammy content.
-
-***
-
-#### 6. Position Bias & Debiasing
-
-<br>
-
-Users tend to click higher-ranked items → causes training bias.
-
-<br>
-
-Solutions:
-
-* Use inverse propensity weighting (IPW) to correct training samples.
-* Introduce randomized experiments (e.g., shuffled results) to collect unbiased data.
-* Add position feature explicitly in the model.
-
-<br>
-
-LinkedIn Example:
-
-Position-based impression discounting for feed ranking.
-
-***
-
-#### 7. Data Pipeline
-
-<br>
-
-**A. Offline Training**
-
-* Aggregate engagement logs (clicks, dwell time, reactions).
-* Join user, content, and context features.
-* Train DNN/GBDT with millions of samples.
-
-<br>
-
-**B. Online Serving**
-
-* Real-time feature lookup (Redis, Feature Store).
-* Model inference in <100 ms.
-* Output ranked list for rendering in user’s feed.
-
-<br>
-
-Feature freshness is critical — stale features lead to lower engagement.
-
-***
-
-#### 8. Exploration vs. Exploitation
-
-* Exploitation: Show known engaging posts.
-* Exploration: Try new posts or creators to discover potential engagement.
-
-<br>
-
-Common strategies:
-
-* ε-greedy exploration: Randomly show new content with probability ε.
-* Thompson sampling: Bayesian exploration balancing known vs. new items.
-* Bandit models (UCB, LinUCB): Learn reward confidence intervals.
-
-<br>
-
-TikTok Example:
-
-Uses contextual bandits to explore new creators while optimizing watch time.
-
-***
-
-#### 9. Feedback Loop & Training Refresh
-
-* Log impressions, clicks, reactions, shares.
-* Aggregate daily or hourly for retraining.
-* Detect concept drift (user interests change).
-* Continuous retraining pipelines (Airflow/SageMaker).
-
-<br>
-
-Feature drift monitoring:
-
-Use Chebyshev distance / KL divergence on feature distributions.
-
-***
-
-#### 10. Evaluation Metrics
-
-| Category        | Metrics                                       |
-| --------------- | --------------------------------------------- |
-| Offline         | AUC, log-loss, Precision@K, nDCG              |
-| Online          | CTR, dwell time, retention rate               |
-| User Experience | Time spent, satisfaction surveys              |
-| Fairness        | Distribution of impressions among user groups |
-
-A/B Testing:
-
-* 1–5% traffic for new models.
-* Guardrail metrics: session time, complaint rate, ad revenue.
-
-***
-
-#### 11. Case Studies
-
-<br>
-
-**A.**
-
-**Facebook Feed**
-
-* Multi-stage ranking: candidate generation → early-stage scoring → final ranking.
-* Models include user embeddings and MLP ranking towers.
-* Optimizes for engagement and long-term satisfaction (measured via surveys).
-
-<br>
-
-**B.**
-
-**LinkedIn Feed**
-
-* Combines GBDT for fast scoring + DNN for personalization.
-* Adds features: content type, recency, relationship strength, language match.
-* Multi-objective: engagement + creator diversity.
-
-<br>
-
-**C.**
-
-**Twitter Timeline**
-
-* Real-time ranking using GBDT + deep re-ranker.
-* Heavy use of recency features + text embeddings from tweets.
-
-<br>
-
-**D.**
-
-**TikTok For You Feed**
-
-* Fully deep neural architecture.
-* Uses watch-time prediction, pairwise ranking, and continuous feedback loops.
-
-***
-
-#### 12. System Design Pattern
-
-<br>
-
-Architecture Overview:
+**The mechanics**: seven-step framework applied to every question:
 
 ```
-Data Sources → Feature Store → Candidate Generator → Ranker → Re-ranker → Logging → Retraining
+1. Clarify requirements and scope
+   - "Is this for cold-start users or established ones?"
+   - "What's the latency budget — 50ms or 500ms?"
+   - "What does success look like as a business metric?"
+
+2. Frame as an ML problem
+   - What is the label? How is it defined?
+   - Pointwise score, pairwise preference, or sequence?
+
+3. Data sources and collection
+   - What logs exist? What implicit signals are available?
+
+4. Feature engineering
+   - User features, item features, context features, interaction features
+
+5. Model architecture
+   - Justify complexity vs latency vs interpretability
+
+6. Training pipeline
+   - Data splits, loss function, optimization
+
+7. Evaluation and deployment
+   - Offline metrics → online A/B test → monitoring
 ```
 
-Key components:
+**What breaks**: this framework becomes a ritual if you recite it without tailoring. Interviewers notice when you give a generic "feature engineering: user features, item features..." without naming concrete signals for the specific product. Name real features for the real system.
 
-* Kafka / PubSub for event ingestion.
-* BigQuery / Hive for training data.
-* Redis for real-time feature retrieval.
-* TensorFlow Serving / PyTorch Serve for ranking models.
-* Airflow for model retraining.
+---
 
-***
+## Recommendation Systems
 
-#### 13. Practical Considerations
+### Candidate Generation
 
-| Issue         | Best Practice                                      |
-| ------------- | -------------------------------------------------- |
-| Latency       | Keep total inference under 200 ms                  |
-| Cold Start    | Use content-based or popular-item bootstrapping    |
-| Feature Drift | Monitor daily; retrain weekly                      |
-| Fairness      | Add group-based constraints or penalties           |
-| Logging       | Store engagement, dwell time, and non-click events |
+**The problem**: scoring all items with a full ranking model is computationally impossible. A Netflix-scale system has millions of items; a pointwise neural ranker takes ~1ms per item — that's 1000 seconds per request.
 
-***
+**The core insight**: recall and precision are separate problems. Candidate generation maximizes recall cheaply; ranking maximizes precision expensively on a small set.
 
-#### 14. Common Interview Questions
+**The mechanics**:
 
-1. Design Facebook or LinkedIn Feed ranking.
-2. How do you handle multi-objective optimization in ranking?
-3. What are strategies to ensure content diversity?
-4. How to balance exploration vs. exploitation?
-5. What features would you use for ranking posts?
-6. How would you detect drift or bias in feed data?
-7. How to design real-time feature retrieval for ranking models?
-8. What’s your approach to measuring online performance?
+Content-based filtering: represent items by their attributes; find items similar to user's history.
 
-***
+```python
+# Item similarity via TF-IDF on descriptions
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.metrics.pairwise import cosine_similarity
 
-#### Key Takeaways
-
-| Concept          | Summary                                          |
-| ---------------- | ------------------------------------------------ |
-| Main Goal        | Show most relevant, engaging, and fair content   |
-| Architecture     | Candidate generation → ranking → re-ranking      |
-| Key Challenges   | Bias, drift, latency, multi-objective trade-offs |
-| Evaluation       | CTR, dwell time, diversity, fairness             |
-| Industry Leaders | Facebook, LinkedIn, Twitter, TikTok              |
-
-***
-
-Here are the detailed notes of Chapter 6 – Ads Ranking System from _“Machine Learning Design Interview” by Khang Pham (2022)_:
-
-***
-
-## Chapter 6 — Ads Ranking System
-
-<br>
-
-#### 1. Overview
-
-<br>
-
-Ads ranking systems are among the most complex and revenue-critical ML systems, used by companies like Google, Meta, LinkedIn, and TikTok.
-
-They aim to:
-
-* Maximize platform revenue (via CPC, CPM, CPA bidding).
-* Maintain user satisfaction (avoid irrelevant or spammy ads).
-* Ensure advertiser ROI (return on ad spend).
-
-<br>
-
-Thus, the ads ranking model optimizes for a multi-objective balance between these three forces.
-
-***
-
-#### 2. Core Architecture
-
-| Stage                    | Purpose                                                                                  |
-| ------------------------ | ---------------------------------------------------------------------------------------- |
-| 1. Candidate Generation  | Retrieve thousands of eligible ads using targeting filters (location, interest, budget). |
-| 2. Preliminary Filtering | Filter by campaign status, budget, and policy checks.                                    |
-| 3. Ranking / Scoring     | Predict expected user response (CTR, CVR).                                               |
-| 4. Auction               | Combine prediction with advertiser bid → compute ad score.                               |
-| 5. Re-ranking / Serving  | Final adjustments for fairness, diversity, pacing, and fatigue.                          |
-
-***
-
-#### 3. Ads Auction Basics
-
-<br>
-
-Most platforms use Generalized Second Price (GSP) auctions.
-
-<br>
-
-Key Terms:
-
-* Bid (bᵢ): Max price advertiser willing to pay per click.
-* Predicted CTR (pᵢ): Model-predicted click probability.
-* Ad Quality (qᵢ): Content quality, landing page score.
-* Expected Value (EV): EVᵢ = bᵢ × pᵢ × qᵢ
-* Rank Score: Scoreᵢ = EVᵢ + adjustments
-
-<br>
-
-Payment Rule (GSP):
-
-* Winner pays the minimum bid needed to beat the next advertiser’s rank score.
-
-<br>
-
-Example:
-
-If A and B are top bidders:
-
-```
-A: bid = 2, pCTR = 0.1 → score = 0.2
-B: bid = 3, pCTR = 0.05 → score = 0.15
+tfidf = TfidfVectorizer()
+item_matrix = tfidf.fit_transform(item_descriptions)
+# For a target item i, retrieve k nearest neighbors
+similarities = cosine_similarity(item_matrix[i], item_matrix).flatten()
+top_k = similarities.argsort()[-100:][::-1]
 ```
 
-A wins, pays (0.15 / 0.1) = $1.5 per click.
+Collaborative filtering: two-tower model learns user and item embeddings; retrieve via approximate nearest neighbor (FAISS, ScaNN).
 
-***
+```python
+# Two-tower embedding architecture
+class TwoTower(nn.Module):
+    def __init__(self, user_dim, item_dim, embed_dim):
+        super().__init__()
+        self.user_tower = nn.Sequential(
+            nn.Embedding(user_dim, 256),
+            nn.Linear(256, embed_dim)
+        )
+        self.item_tower = nn.Sequential(
+            nn.Embedding(item_dim, 256),
+            nn.Linear(256, embed_dim)
+        )
 
-#### 4. Modeling Components
+    def forward(self, user_ids, item_ids):
+        u = self.user_tower(user_ids)
+        v = self.item_tower(item_ids)
+        return torch.dot(u, v)  # cosine similarity for retrieval
+```
 
-<br>
+At serving time: pre-compute all item embeddings offline. Query embedding lookup + ANN search returns top-1000 candidates in <10ms.
 
-**A.**
+**What breaks**: two-tower models optimize for cosine similarity between user and item, which trains on positive pairs but ignores hard negatives. Without in-batch negative sampling or hard negative mining, the model learns to separate obvious positives from obviously irrelevant items, but fails to distinguish good from great candidates.
 
-**CTR Model (Click-Through Rate)**
+---
 
-Predicts probability of click.
+### Ranking
 
-* Features: user demographics, ad creative, context (time, device).
-* Models: Logistic Regression → GBDT → DeepFM / DIN / DCN.
-* Loss: Cross-entropy.
-* Calibration: Platt scaling, isotonic regression.
+**The problem**: after candidate generation returns 1000 items, you need to order them so the best items appear first. The candidate generator optimized for recall, not quality of ordering.
 
-<br>
+**The core insight**: ranking is a supervised learning problem on pairs or lists, not just classification.
 
-**B.**
+**The mechanics**:
 
-**CVR Model (Conversion Rate)**
+Pointwise: train a binary classifier (clicked vs not-clicked). Fast but ignores relative ordering.
 
-Predicts probability of conversion given click.
+```python
+# Pointwise: binary cross-entropy
+loss = F.binary_cross_entropy(predicted_prob, clicked_label)
+```
 
-* Problem: Highly sparse labels (many clicks, few conversions).
-* Solution: Delayed feedback modeling, two-stage models (click → conversion).
-* Advanced: Joint CTR–CVR modeling using ESMM (Entire Space Multi-Task Model) by Alibaba.
+Pairwise: for each (positive, negative) pair, train the model to score positive higher.
 
-<br>
+```python
+# Pairwise: BPR (Bayesian Personalized Ranking) loss
+pos_score = model(user, positive_item)
+neg_score = model(user, negative_item)
+loss = -torch.log(torch.sigmoid(pos_score - neg_score)).mean()
+```
 
-**C.**
+Listwise: optimize a list-level metric directly. LambdaRank backpropagates gradients from NDCG changes.
 
-**pCTR × pCVR (Expected Conversion)**
+```python
+# LambdaRank: weight gradients by delta-NDCG
+# Gradient for item i: sum_{j != i} lambda_ij
+# where lambda_ij = |ΔNDCG_ij| * sigmoid(s_j - s_i)
+```
 
-Compute expected ROI to advertisers.
+Wide & Deep architecture for ranking: wide component memorizes specific feature crosses (user x item history); deep component generalizes via dense embeddings.
 
-<br>
+```python
+class WideAndDeep(nn.Module):
+    def __init__(self):
+        super().__init__()
+        self.wide = nn.Linear(sparse_feature_dim, 1)
+        self.deep = nn.Sequential(
+            nn.Linear(dense_embed_dim, 256),
+            nn.ReLU(),
+            nn.Linear(256, 128),
+            nn.ReLU(),
+            nn.Linear(128, 1)
+        )
 
-**D.**
+    def forward(self, sparse_features, dense_embeds):
+        wide_out = self.wide(sparse_features)
+        deep_out = self.deep(dense_embeds)
+        return torch.sigmoid(wide_out + deep_out)
+```
 
-**Ad Quality / Relevance Models**
+**What breaks**: ranking trained on logged data inherits position bias — items shown in position 1 have higher click rates not because they're better but because users click what they see first. A model trained on raw clicks will learn to rank items that were historically shown first, creating a feedback loop.
 
-* Language and image quality.
-* Landing page load time.
-* Policy compliance (NLP models for harmful text).
+---
 
-***
+### Position Bias Correction
 
-#### 5. Feature Engineering
+**The problem**: click labels are biased by position. Item shown in position 1 gets 3x more clicks than position 5 even if both are equally relevant. Training on raw clicks teaches the model to prefer items that were historically positioned high.
 
-| Feature Type | Examples                                                       |
-| ------------ | -------------------------------------------------------------- |
-| User         | Age, gender, geo, historical click rate.                       |
-| Ad           | Text embedding, creative type, advertiser ID, campaign budget. |
-| Context      | Device, network, time of day, session type.                    |
-| Interaction  | Past user–advertiser engagement, recency of exposure.          |
+**The core insight**: a click is the product of two probabilities — the probability that the user saw the item (examination probability, which depends on position) and the probability that the user found it relevant (true relevance). Separate them.
 
-Embedding & Cross Features
+**The mechanics**: Inverse Propensity Scoring (IPS) reweights each training example by the inverse of its examination probability.
 
-* Deep models use feature embeddings (user, ad, query).
-* Combine via attention networks or outer-product transforms (as in DeepFM).
+```python
+# Propensity score: estimated probability of examination at position k
+# Can be estimated via randomization experiments (swap positions randomly)
+propensity = {1: 1.0, 2: 0.7, 3: 0.5, 4: 0.35, 5: 0.25}
 
-***
+# IPS-weighted loss: upweight examples from low positions, downweight high positions
+def ips_loss(predicted, clicked, position):
+    p_k = propensity[position]
+    weight = 1.0 / p_k
+    return weight * F.binary_cross_entropy(predicted, clicked)
+```
 
-#### 6. Multi-Objective Optimization
+Two-stage approach: (1) estimate propensity scores from a position-randomization experiment; (2) use those scores to debias training labels.
 
-<br>
+**What breaks**: IPS has high variance when propensities are small. Items at position 10 with propensity 0.1 get weight 10 — a single misclick inflates loss 10x. Clipped IPS (cap weight at a maximum) reduces variance at the cost of introducing bias.
 
-Ads ranking optimizes several goals simultaneously:
+---
 
-* User engagement → maximize CTR, CVR.
-* Advertiser ROI → maximize conversions per cost.
-* Platform revenue → maximize bid × CTR.
-* Fairness & pacing → avoid overexposure of a few ads.
+### Calibration
 
-<br>
+**The problem**: a model's raw output is a score, not a probability. The model might output 0.8 for every positive example, but the true click rate is 5%. Downstream systems that use these scores as probabilities (budget allocation, ranking by expected value) will be wrong.
 
-Approaches
+**The core insight**: calibration is a post-hoc correction — keep the ranking intact, fix the scale.
 
-1. Weighted sum of objectives.
-2. Constraint-based optimization (e.g., maintain ≥ X% user satisfaction).
-3. Multi-task learning (shared tower with multiple output heads).
+**The mechanics**:
 
-<br>
+Platt scaling: fit a logistic regression on (model_score → true_label) using a held-out validation set.
 
-Meta Example: Multi-task learning for pCTR + pCVR + watch time → shared embedding backbone.
+```python
+from sklearn.linear_model import LogisticRegression
+calibrator = LogisticRegression()
+calibrator.fit(model_scores_val.reshape(-1, 1), true_labels_val)
+calibrated_probs = calibrator.predict_proba(model_scores_test.reshape(-1, 1))[:, 1]
+```
 
-***
+Temperature scaling: divide logits by a learned temperature T before softmax.
 
-#### 7. Real-Time Serving Flow
+```python
+# T > 1 softens distribution (more uncertainty); T < 1 sharpens it
+T = 1.5
+calibrated_logit = raw_logit / T
+calibrated_prob = torch.sigmoid(calibrated_logit)
+```
 
-<br>
+Isotonic regression: non-parametric monotone calibration, more flexible than Platt but needs more data.
 
-Step-by-step:
+**What breaks**: calibration assumes the validation distribution matches the serving distribution. If there is significant data drift between training and deployment (different user cohorts, different time period), calibration can make things worse by mapping to the wrong scale.
 
-1. User opens feed / search page.
-2. Retrieve eligible ads (from billions).
-3. Fetch user & ad features from Redis / Feature Store.
-4. Model server computes CTR/CVR → ad score.
-5. Auction logic ranks ads → winner selection.
-6. Winning ad delivered; impression logged.
-7. User clicks or converts → feedback loop updates labels.
+---
 
-<br>
+### Exploration vs Exploitation
 
-Latency: < 50 ms per request.
+**The problem**: a purely exploit-first system recommends only what it already knows works. New items get no exposure, stale preferences get reinforced, and the system cannot learn that user preferences have changed.
 
-<br>
+**The core insight**: you cannot learn what you do not observe. Some fraction of traffic must be used to gather new information (exploration) rather than maximizing immediate reward (exploitation).
 
-Tech stack examples:
+**The mechanics**:
 
-* Kafka → Redis → TensorFlow Serving / TorchServe → Thrift / gRPC serving.
+epsilon-greedy: with probability epsilon, serve a random item; with probability 1-epsilon, serve the best-scoring item.
 
-***
+```python
+import random
 
-#### 8. Calibration and Normalization
+def recommend(model, candidate_items, epsilon=0.1):
+    if random.random() < epsilon:
+        return random.choice(candidate_items)  # explore
+    else:
+        scores = model.score(candidate_items)
+        return candidate_items[scores.argmax()]  # exploit
+```
 
-<br>
+Thompson Sampling: maintain a Beta distribution over click probability for each item; sample from the distribution; pick the item with the highest sample.
 
-Because ads models are trained with sampled negatives, predicted probabilities are biased.
+```python
+import numpy as np
+from scipy.stats import beta
 
-<br>
+class ThompsonSampler:
+    def __init__(self, n_items):
+        self.alpha = np.ones(n_items)   # successes + 1
+        self.beta_params = np.ones(n_items)  # failures + 1
 
-Fixes:
+    def select(self):
+        samples = beta.rvs(self.alpha, self.beta_params)
+        return samples.argmax()
 
-* Use weighted sampling and re-scaling.
-* Calibration models (e.g., Platt scaling).
-* Probability normalization: adjust pCTR by device type, geography.
+    def update(self, item_id, reward):
+        if reward:
+            self.alpha[item_id] += 1
+        else:
+            self.beta_params[item_id] += 1
+```
 
-<br>
+Contextual bandits (LinUCB): use context (user features) to decide exploration. Items with uncertain rewards in a specific context get boosted.
 
-Facebook Example:
+**What breaks**: exploration hurts short-term metrics. A 10% epsilon-greedy policy will decrease average CTR by approximately 10% on exploration requests. Companies compromise with small epsilon (1-2%) and restrict exploration to lower-stakes positions (not position 1).
 
-Downsampling negative examples by 1:1000 → use reweighting factor _w_:
+---
 
-p’(click) = \frac{p}{p + \frac{1-p}{w\}}
+## Search System Design
 
-***
+### Keyword vs Semantic Search
 
-#### 9. Online Learning & Drift Handling
+**The problem**: BM25 keyword search fails for vocabulary mismatch — a query "machine learning researcher" misses documents about "deep learning scientists." Semantic search alone is slower and harder to tune for exact-match queries.
 
-<br>
+**The core insight**: exact-match and semantic relevance are complementary signals. Hybrid retrieval uses both and combines their scores.
 
-Ad markets change hourly.
+**The mechanics**:
 
-Solutions:
+BM25 (inverted index):
 
-* Incremental model updates every few hours.
-* Online learning using delayed-feedback correction.
-* Replay buffer for click histories.
+```
+score(q, d) = sum_{t in q} IDF(t) * (tf(t,d) * (k1+1)) / (tf(t,d) + k1*(1-b+b*|d|/avgdl))
+k1 = 1.2, b = 0.75 (standard parameters)
+```
 
-<br>
+Fast lookup via inverted index: O(|query terms| x |documents containing term|).
 
-Monitoring:
+Semantic search (bi-encoder):
 
-* Feature drift detection (TFDV / KS test).
-* A/B test performance metrics (CTR, CPM, ROI).
+```python
+# Pre-encode all documents offline
+doc_embeddings = encoder.encode(all_documents)  # [N, 768]
+faiss_index = faiss.IndexFlatIP(768)
+faiss_index.add(doc_embeddings)
 
-***
+# At query time
+query_embedding = encoder.encode(query)
+_, top_k_ids = faiss_index.search(query_embedding, k=100)
+```
 
-#### 10. Fairness, Fatigue, and Pacing
+Hybrid: retrieve top-1000 from BM25 and top-1000 from semantic; merge; rerank with a cross-encoder.
 
-| Challenge           | Solution                                       |
-| ------------------- | ---------------------------------------------- |
-| Ad Fatigue          | Penalize ads shown too often to same user.     |
-| Budget Pacing       | Spread impressions evenly through the day.     |
-| Advertiser Fairness | Add per-advertiser caps, diversity re-ranking. |
-| User Fatigue        | Blend organic + sponsored content in feed.     |
+Cross-encoder reranking (slower but more accurate):
 
-Meta Ads Example: Use _exposure decay_ → penalize over-shown creatives:
+```python
+# Cross-encoder scores each (query, document) pair jointly
+# Cannot pre-compute — must run at query time
+scores = cross_encoder.predict([(query, doc) for doc in top_200_candidates])
+reranked = sorted(zip(top_200_candidates, scores), key=lambda x: -x[1])
+```
 
-Penalty = e^{-λ × exposure\\\_count}
+**What breaks**: cross-encoders are 50-100x slower than bi-encoders. A 200ms latency budget cannot afford cross-encoder scoring on all candidates. Use bi-encoder for recall, cross-encoder only for top-20 reranking.
 
-***
+---
 
-#### 11. Evaluation Metrics
+### Training-Serving Skew in Search
 
-| Category | Metrics                                                |
-| -------- | ------------------------------------------------------ |
-| Offline  | AUC, Log-loss, PR-AUC, Calibration error.              |
-| Online   | CTR, CVR, eCPM, ROI.                                   |
-| Business | Revenue lift, advertiser retention, user satisfaction. |
+**The problem**: the model is trained on logged query-document pairs from users who searched in the old system. The new model serves different queries, at different times, with different feature distributions — performance degrades silently.
 
-Key Formulas
+**The core insight**: training data is a biased sample of what the model will see in production. The bias comes from the previous system's ranking decisions (selection bias), temporal drift, and features recomputed differently at training vs serving time.
 
-*   eCPM (effective cost per mille):
+**The mechanics**: log the exact feature vector used for ranking at serve time. Use those logged features for training, not re-computed features.
 
-    eCPM = bid × pCTR × 1000
-* ROI: ROI = \frac{Revenue - Spend}{Spend}
-* Lift over control: Compare test vs baseline campaigns.
+```python
+# Anti-pattern: re-compute features at training time from raw events
+# Leads to inconsistencies if any feature logic changed
 
-***
+# Correct pattern: log the feature vector at serving time
+serving_log = {
+    "query_id": "q123",
+    "doc_id": "d456",
+    "features": feature_vector.tolist(),  # exact values used at serving
+    "position": 3,
+    "clicked": True,
+    "timestamp": "2024-01-15T10:23:00Z"
+}
+```
 
-#### 12. Case Studies
+**What breaks**: point-in-time consistency is harder than it sounds. User profile features (e.g., "user's last 30 clicks") change continuously. The feature used at serving time (30 clicks as of 10:23am) differs from what gets recomputed at training time (30 clicks as of now). Log the actual values; do not recompute them.
 
-<br>
+---
 
-**A.**
+## Fraud Detection
 
-**Google Ads**
+### The Core Challenge
 
-* Two-stage: pCTR → pCVR → bid × quality.
-* Uses Wide & Deep networks for candidate scoring.
-* Performs budget pacing + multi-objective optimization with constraints.
+**The problem**: fraud is rare (0.1-1% of transactions), adversarial (fraudsters adapt to detection), and expensive in both directions — false positives block legitimate transactions and false negatives let fraud through. Standard accuracy is meaningless on a 99% majority class.
 
-<br>
+**The core insight**: use PR-AUC (not ROC-AUC, not accuracy) because it directly measures precision-recall tradeoff on the minority class. ROC-AUC is dominated by the majority class and can report 0.98 AUC while catching almost no fraud.
 
-**B.**
+**The mechanics**:
 
-**Facebook Ads (Meta)**
+Feature engineering for fraud:
 
-* Architecture: Sparse embeddings + shared deep towers (multi-task).
-* Targets multiple outcomes (click, view, conversion).
-* Online learning pipeline refreshes every few hours.
+```python
+fraud_features = {
+    # Transaction features
+    "amount": transaction.amount,
+    "amount_vs_user_avg": transaction.amount / user_stats.avg_transaction_amount,
+    "time_since_last_transaction_seconds": delta_t,
 
-<br>
+    # Velocity features (computed in real-time)
+    "transactions_last_1h": velocity_store.get(user_id, window="1h"),
+    "distinct_merchants_last_24h": velocity_store.distinct(user_id, field="merchant", window="24h"),
+    "failed_attempts_last_10min": velocity_store.get(user_id, field="failed", window="10m"),
 
-**C.**
+    # Behavioral anomaly
+    "new_device": int(device_id not in user_known_devices),
+    "new_location": int(geo_distance(last_location, current_location) > 500),  # km
+    "unusual_hour": int(hour not in user_active_hours)
+}
+```
 
-**Alibaba**
+Evaluation:
 
-* ESMM / ESM² (multi-task modeling for CTR–CVR–CTCVR).
-* Jointly trained shared embeddings → better calibration on conversion predictions.
+```python
+from sklearn.metrics import average_precision_score, precision_recall_curve
 
-<br>
+pr_auc = average_precision_score(y_true, y_scores)
 
-**D.**
+# Set threshold to meet business SLA
+# e.g., block top 0.5% of transactions with highest fraud score
+precision, recall, thresholds = precision_recall_curve(y_true, y_scores)
+```
 
-**LinkedIn Ads**
+**What breaks**: fraud systems have a feedback loop problem. When you block a transaction, you will never observe what the true outcome would have been. This creates survivorship bias — the training data only contains transactions that passed the filter, underrepresenting the fraud distribution the model should learn to catch.
 
-* Gradient boosted trees for explainability.
-* Two-tower embeddings for matching advertisers and users.
+---
 
-***
+### Graph-Based Fraud Detection
 
-#### 13. Common Interview Questions
+**The problem**: individual transaction features miss ring fraud — where multiple accounts share devices, email providers, or shipping addresses in patterns that only become visible in the relationship graph.
 
-1. Design an ads ranking system for Facebook/LinkedIn.
-2. How would you combine bids and CTR predictions?
-3. How to handle delayed feedback in CVR prediction?
-4. How do you ensure calibration in pCTR/pCVR?
-5. How would you detect and mitigate ad fatigue?
-6. What is the difference between GSP and VCG auctions?
-7. How would you design pacing logic for budget management?
-8. What are your trade-offs in multi-objective optimization?
+**The core insight**: fraud leaves structural traces in the relationship graph that are invisible to feature-based models looking at single transactions in isolation.
 
-***
+**The mechanics**:
 
-#### 14. Key Takeaways
+Build a bipartite graph: nodes are entities (users, devices, IP addresses, credit cards, email domains); edges connect them when they share a transaction or attribute.
 
-| Aspect        | Summary                                                         |
-| ------------- | --------------------------------------------------------------- |
-| Goal          | Balance user satisfaction, advertiser ROI, and platform revenue |
-| Model Types   | CTR, CVR, and joint multi-task networks                         |
-| Auction Logic | GSP with quality-adjusted rank score                            |
-| Latency       | <50 ms end-to-end                                               |
-| Challenges    | Sparse labels, drift, calibration, fairness                     |
-| Leaders       | Google Ads, Facebook Ads, Alibaba, LinkedIn                     |
+GraphSAGE aggregates neighborhood information:
 
-***
+```python
+class GraphSAGELayer(nn.Module):
+    def __init__(self, in_dim, out_dim):
+        super().__init__()
+        self.W_self = nn.Linear(in_dim, out_dim)
+        self.W_neigh = nn.Linear(in_dim, out_dim)
+
+    def forward(self, node_features, neighbor_features):
+        agg_neigh = neighbor_features.mean(dim=0)  # mean pooling
+        h = torch.relu(self.W_self(node_features) + self.W_neigh(agg_neigh))
+        return F.normalize(h, p=2, dim=-1)
+```
+
+R-GCN handles multiple edge types (user->device, user->email, user->merchant):
+
+```python
+class RGCN(nn.Module):
+    def __init__(self, n_relations, in_dim, out_dim):
+        super().__init__()
+        # One weight matrix per relation type
+        self.W = nn.ModuleList([nn.Linear(in_dim, out_dim) for _ in range(n_relations)])
+
+    def forward(self, node_features, adj_matrices):
+        out = sum(self.W[r](adj_matrices[r] @ node_features)
+                  for r in range(len(adj_matrices)))
+        return torch.relu(out)
+```
+
+Real-time pipeline: events flow through Kafka -> feature computation -> GNN scoring -> decision engine. Static embeddings pre-computed nightly; incremental updates for new entities.
+
+**What breaks**: graph-based fraud detection requires near-real-time graph updates — a new fraud ring can appear within minutes. Pre-computed static embeddings become stale. Online GNN inference on a live graph with millions of nodes requires specialized infrastructure (DGL, PyG with streaming updates) that most teams lack.
+
+---
+
+## Feed Ranking
+
+### Multi-Objective Optimization
+
+**The problem**: a single engagement metric (maximize clicks) produces clickbait. Optimizing only for likes produces low-quality reshares. The business wants multiple objectives balanced simultaneously, and no single metric captures all of them.
+
+**The core insight**: train separate models for each objective; combine their outputs with learned or manually tuned weights at ranking time. Each model sees the appropriate training population.
+
+**The mechanics**:
+
+```python
+# Separate calibrated probability estimates per action type
+p_like = like_model.predict(features)
+p_comment = comment_model.predict(features)
+p_share = share_model.predict(features)
+p_hide = hide_model.predict(features)  # negative signal
+
+# Final score: weighted combination
+# Weights reflect business priorities and relative action rates
+final_score = (
+    0.4 * p_like +
+    0.3 * p_comment +
+    0.3 * p_share -
+    2.0 * p_hide  # penalize hide/report heavily
+)
+```
+
+MMOE (Multi-gate Mixture of Experts): shared experts learn common representations; separate gates per task select which experts are relevant for that task.
+
+```python
+class MMoE(nn.Module):
+    def __init__(self, n_experts=8, n_tasks=3, input_dim=256, expert_dim=128):
+        super().__init__()
+        self.experts = nn.ModuleList([nn.Linear(input_dim, expert_dim)
+                                      for _ in range(n_experts)])
+        self.gates = nn.ModuleList([nn.Linear(input_dim, n_experts)
+                                    for _ in range(n_tasks)])
+        self.task_heads = nn.ModuleList([nn.Linear(expert_dim, 1)
+                                         for _ in range(n_tasks)])
+
+    def forward(self, x):
+        expert_outputs = torch.stack([e(x) for e in self.experts], dim=1)  # [B, n_experts, d]
+        outputs = []
+        for i in range(len(self.task_heads)):
+            gate = torch.softmax(self.gates[i](x), dim=-1)  # [B, n_experts]
+            mixed = (gate.unsqueeze(-1) * expert_outputs).sum(dim=1)  # [B, expert_dim]
+            outputs.append(self.task_heads[i](mixed))
+        return outputs
+```
+
+**What breaks**: weights in the final score function encode implicit value judgments. A weight that increases time-on-site may simultaneously increase anxiety. Multi-objective systems require explicit choices about which human outcomes to optimize that go beyond A/B test CTR metrics.
+
+---
+
+### Re-Ranking for Freshness and Diversity
+
+**The problem**: a pure relevance ranker shows the same top-performing content repeatedly. Users see yesterday's viral post again; their feed looks identical across sessions; the system never surfaces emerging content.
+
+**The core insight**: the optimal list maximizes user utility across the session, not item-level relevance. Diversity and freshness are list-level properties that cannot be optimized item-by-item.
+
+**The mechanics**:
+
+Freshness boost: decay content score over time.
+
+```python
+import math
+
+def freshness_score(base_score, age_hours, half_life_hours=6):
+    decay = math.exp(-0.693 * age_hours / half_life_hours)
+    return base_score * decay
+```
+
+Maximal Marginal Relevance (MMR) for diversity: iteratively select items that maximize relevance minus similarity to already-selected items.
+
+```python
+def mmr_rerank(scored_items, item_embeddings, lambda_=0.5, k=20):
+    selected = []
+    remaining = list(range(len(scored_items)))
+
+    for _ in range(k):
+        if not selected:
+            best = max(remaining, key=lambda i: scored_items[i].score)
+        else:
+            selected_embeds = torch.stack([item_embeddings[i] for i in selected])
+            def mmr_score(i):
+                relevance = scored_items[i].score
+                max_sim = F.cosine_similarity(
+                    item_embeddings[i].unsqueeze(0), selected_embeds
+                ).max().item()
+                return lambda_ * relevance - (1 - lambda_) * max_sim
+            best = max(remaining, key=mmr_score)
+
+        selected.append(best)
+        remaining.remove(best)
+
+    return [scored_items[i] for i in selected]
+```
+
+**What breaks**: MMR is O(k^2) in the number of selected items. At k=100 with 768-dim embeddings, the per-request cost becomes significant. Production systems approximate diversity with simpler rules: no two items from same author in top 5, no same topic cluster in adjacent positions.
+
+---
+
+## Ads Ranking
+
+### GSP Auction Mechanics
+
+**The problem**: a naive highest-bidder-wins auction incentivizes advertisers to bid their true value once, then defect. It also ignores ad quality — a high-bidding irrelevant ad harms user experience and reduces long-term platform revenue.
+
+**The core insight**: charge the minimum price needed to hold the position, not the actual bid. Weight by quality to align ad relevance with revenue. This makes truthful bidding the dominant strategy.
+
+**The mechanics**: Generalized Second Price (GSP) auction — each advertiser wins based on expected value, not raw bid:
+
+```
+EV_i = bid_i * pCTR_i * quality_i
+```
+
+```python
+def gsp_auction(advertisers, ad_slots):
+    """
+    advertisers: list of {bid, predicted_ctr, quality_score}
+    """
+    for ad in advertisers:
+        ad['ev'] = ad['bid'] * ad['predicted_ctr'] * ad['quality_score']
+
+    ranked = sorted(advertisers, key=lambda x: -x['ev'])
+
+    allocation = []
+    for slot_idx, slot in enumerate(ad_slots):
+        if slot_idx >= len(ranked):
+            break
+        winner = ranked[slot_idx]
+        if slot_idx + 1 < len(ranked):
+            next_ev = ranked[slot_idx + 1]['ev']
+            # Second-price: pay minimum to hold position
+            price_per_click = (next_ev / winner['predicted_ctr'] /
+                               winner['quality_score']) + 0.01
+        else:
+            price_per_click = slot.reserve_price
+        allocation.append({'advertiser': winner, 'price_per_click': price_per_click})
+
+    return allocation
+```
+
+**What breaks**: GSP is not perfectly incentive-compatible — in theory, VCG achieves this, but GSP is computationally simpler and empirically stable. The real problem is that predicted CTR directly determines price, so a model that underpredicts CTR undercharges advertisers (lost revenue); a model that overpredicts overcharges and erodes advertiser trust.
+
+---
+
+### CTR and CVR Prediction (ESMM)
+
+**The problem**: training a CVR (conversion rate) model directly on clicks introduces sample selection bias. CVR labels only exist for clicked items — but at serving time, the model scores all items, including those never clicked. The CVR model has never seen the distribution it is predicting on.
+
+**The core insight**: decompose the joint probability using the probability chain rule. Train CTR and post-click CVR jointly, letting each model see the appropriate population.
+
+**The mechanics**: ESMM (Entire Space Multi-Task Model) by Alibaba:
+
+```
+P(click AND convert) = P(click) * P(convert | click)
+                       [CTR model]   [CVR model on click space]
+```
+
+```python
+class ESMM(nn.Module):
+    def __init__(self, input_dim, embed_dim=128):
+        super().__init__()
+        self.embedding = nn.Embedding(input_dim, embed_dim)
+
+        # CTR tower: trained on all impressions
+        self.ctr_tower = nn.Sequential(
+            nn.Linear(embed_dim, 256), nn.ReLU(),
+            nn.Linear(256, 1), nn.Sigmoid()
+        )
+
+        # CVR tower: trained on click space, deployed on all impressions
+        self.cvr_tower = nn.Sequential(
+            nn.Linear(embed_dim, 256), nn.ReLU(),
+            nn.Linear(256, 1), nn.Sigmoid()
+        )
+
+    def forward(self, features):
+        embeds = self.embedding(features).mean(dim=1)
+        p_ctr = self.ctr_tower(embeds)
+        p_cvr = self.cvr_tower(embeds)
+        p_ctcvr = p_ctr * p_cvr  # P(click AND convert)
+        return p_ctr, p_cvr, p_ctcvr
+
+def esmm_loss(p_ctr, p_cvr, p_ctcvr, click_labels, conversion_labels):
+    ctr_loss = F.binary_cross_entropy(p_ctr, click_labels)
+    # Conversion label is 1 only if both clicked and converted
+    ctcvr_loss = F.binary_cross_entropy(p_ctcvr, click_labels * conversion_labels)
+    return ctr_loss + ctcvr_loss
+```
+
+**What breaks**: ESMM assumes the CVR tower sees correct conversion rates for clicked items. If click fraud distorts the click population, CVR estimates become unreliable. Also, CVR for extremely rare events (0.01% conversion rate) still suffers from high variance — the model has seen very few positive conversion examples even in the click space.
+
+---
+
+### Calibration for Downsampling
+
+**The problem**: for CTR prediction, positive examples (clicks) are rare — typically 1-5% of impressions. Training on the full dataset is wasteful; downsampling negatives is common. But downsampled models predict uncalibrated probabilities that are too high.
+
+**The core insight**: downsampling changes the apparent base rate. You can analytically correct for this without refitting the model.
+
+**The mechanics**:
+
+```python
+# Downsample negatives by factor w (keep 1/w of negatives)
+# This multiplies the apparent positive rate by w
+
+def correct_downsampled_prob(p_prime, w):
+    """
+    p_prime: model output trained on downsampled data
+    w: downsampling factor (e.g., 100 means kept 1% of negatives)
+    """
+    # Derived from Bayes' theorem on shifted base rates
+    p_true = p_prime / (p_prime + (1 - p_prime) / w)
+    return p_true
+
+# Example: model predicts 0.5, but data was 100x downsampled
+# True CTR is ~0.005, not 0.5
+true_ctr = correct_downsampled_prob(p_prime=0.5, w=100)
+# true_ctr ~= 0.005
+```
+
+**What breaks**: this correction assumes the only difference between sampled and full data is the negative rate. If the positives were also filtered (e.g., only high-quality clicks kept), the correction does not apply. Calibration correction works for base rates but does not fix distributional drift in the feature space.
+
+---
+
+### Budget Pacing
+
+**The problem**: an advertiser with a daily budget of $1000 should not exhaust it in the first hour when traffic is high. They would get no impressions for the remaining 23 hours, miss their target audience at different times, and have poor return on ad spend.
+
+**The core insight**: smooth budget spending by introducing a throttle rate that controls what fraction of auction opportunities the advertiser participates in, adjusting based on actual vs target spend.
+
+**The mechanics**:
+
+```python
+class BudgetPacer:
+    def __init__(self, daily_budget):
+        self.daily_budget = daily_budget
+        self.spent = 0.0
+
+    def throttle_rate(self, current_hour):
+        elapsed_fraction = current_hour / 24.0
+        target_spent = self.daily_budget * elapsed_fraction
+        actual_spent = self.spent
+
+        ratio = actual_spent / (target_spent + 1e-6)
+
+        if ratio < 0.8:    # underspending: participate more
+            return min(1.0, 1.2)
+        elif ratio > 1.2:  # overspending: participate less
+            return max(0.0, 0.6)
+        else:
+            return 1.0
+
+    def should_participate(self, current_hour):
+        rate = self.throttle_rate(current_hour)
+        return random.random() < rate
+```
+
+**What breaks**: throttling randomly excludes the advertiser from auctions. During excluded auctions, a competitor might win a valuable placement. Smarter pacing uses bid shading (reduce bid when ahead of pace, increase when behind) instead of random exclusion, which preserves auction participation while controlling spend.
+
+---
+
+## Latency Constraints
+
+**The problem**: production ML systems have hard latency budgets. An ads system must return a ranked list in <50ms from request receipt. A 200ms ranking model that achieves +2% CTR may actually reduce revenue because slower page loads reduce click rate by 5%.
+
+**The core insight**: latency and quality are in direct tension. System design is about choosing where to spend the latency budget.
+
+**The mechanics**: typical latency breakdown for ads:
+
+```
+Total budget: 50ms
+
+- Feature retrieval (user profile, item features): 5ms
+  [Redis lookup, pre-computed features]
+
+- Candidate generation (ANN search): 5ms
+  [FAISS, ScaNN -- return top-1000]
+
+- Feature assembly for ranking: 3ms
+  [join user features x candidate features]
+
+- Ranking model inference (top-1000 -> top-50): 15ms
+  [XGBoost or shallow MLP, batched]
+
+- Re-ranking and business logic: 5ms
+  [diversity, freshness, pacing filters]
+
+- Response serialization and network: 10ms
+
+Remaining buffer: 7ms
+```
+
+Optimization techniques:
+- Model quantization (FP32 to INT8): 2-4x inference speedup with <1% accuracy loss
+- ONNX export: portable format with optimized runtime
+- Pre-compute item embeddings offline; only compute query embedding at serve time
+- Cascade: use fast model to filter candidates; expensive model only on top-100
+
+**What breaks**: optimizing for p50 latency misses tail latency. A 50ms p50 with 500ms p99 means 1% of users see 10x slower responses — often the most critical moments (first purchase, fraud decision) that trigger expensive feature lookups. Monitor p99 and p999 separately.
+
+---
+
+## Case Studies
+
+### Airbnb Search Ranking
+
+**The problem**: short-term rental search has unique challenges — inventory is heterogeneous, availability is scarce and time-constrained, and both host and guest preferences matter. Training on clicks undervalues listings that rarely get shown but convert at high rates.
+
+**The core insight**: use booking confirmation as the training signal, not click. A clicked listing that leads to no booking provides no signal about quality; a non-clicked listing that a better system would have shown represents a missed booking.
+
+**The mechanics**:
+- Primary label: booking confirmation (binary, delayed by days)
+- Feature engineering: listing features (reviews, photos, price/night, amenities), guest features (verification level, booking history, response rate), search context (check-in date, group size, destination)
+- Listing quality score trained separately from ranking; both fed into a joint model
+- Geo features: distance from destination center, proximity to attractions
+
+**What breaks**: scarcity distorts signals. A high-quality listing always booked immediately appears in logs with few impressions but nearly 100% conversion. A mediocre listing always available shows up constantly with low conversion. Without accounting for supply constraints, the model learns "available = low quality" and deprioritizes scarce, desirable listings.
+
+---
+
+### TikTok Feed Ranking
+
+**The problem**: video content consumption differs from text — completion rate and replays are stronger signals than likes, which require active effort. A standard engagement model optimized for likes produces clickbait thumbnails, not genuinely engaging content.
+
+**The core insight**: video completion rate is the primary signal because it is passive and harder to game. A user who watches 95% of a video genuinely engaged with it.
+
+**The mechanics**:
+- Primary training signal: video completion rate = watched_seconds / video_duration
+- Secondary signals: like, comment, share, follow (positive); skip, scroll past (negative)
+- Two-tower model: user tower (watch history, follow graph, device, locale) x video tower (visual features from frame sampling, audio features, caption embeddings, hashtags)
+- Cold-start for new videos: initial traffic allocation based on creator history and content features; boost if early viewers show high completion
+
+**What breaks**: optimizing for completion rate creates filter bubbles faster than any other signal. A user who watches three videos on any topic will be shown more of the same, because the completion signal is very strong. The recommendation loop amplifies whatever the user engaged with, with no natural brake.
+
+---
+
+## Offline vs Online Metrics Alignment
+
+**The problem**: models that improve offline metrics (AUC, NDCG, PR-AUC) often do not improve online business metrics (CTR, revenue, session length). Teams spend months optimizing a model that launches and shows no improvement.
+
+**The core insight**: offline metrics measure model quality on historical data; online metrics measure user behavior in a live interactive system. The gap between them is real and must be closed empirically, not assumed away.
+
+**The mechanics**: track the offline-to-online correlation history:
+
+```
+| Experiment | Offline delta-AUC | Online delta-CTR | Online delta-Revenue |
+|------------|-------------------|------------------|----------------------|
+| Exp-001    | +0.5%             | +0.3%            | +0.2%                |
+| Exp-002    | +1.2%             | -0.1%            | -0.3%  <- offline improvement didn't transfer
+| Exp-003    | +0.2%             | +0.8%            | +1.1%  <- small offline, large online gain
+```
+
+When offline and online diverge: investigate position bias in offline data, check if A/B test traffic is representative, verify that serving features match training features exactly.
+
+**What breaks**: A/B tests have minimum detectable effect sizes. A 0.1% revenue improvement requires millions of users to detect at 95% confidence. Teams run underpowered experiments, see "no significant difference," and ship anyway — accumulating many small errors that compound over time.

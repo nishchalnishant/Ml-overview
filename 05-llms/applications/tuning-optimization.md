@@ -1,382 +1,219 @@
 # Tuning and Optimization
 
-The right question before any LLM adaptation: **what problem are you actually solving?**
-
-- Knowledge gap → RAG
-- Behavior / style / format → Fine-tuning
-- Latency / cost → Inference optimization
-- Alignment / safety → RLHF / DPO
-
-Choosing the wrong lever wastes compute and often makes things worse.
-
 ---
 
-## 1. The Decision Tree
+## Diagnosing the Problem First
 
+**The problem:** a model behaves incorrectly. The temptation is to reach for the most powerful-sounding tool — fine-tuning, RLHF — when a cheaper intervention would have fixed the problem. Each intervention has a cost; using the wrong one wastes compute and often makes things worse.
+
+**The core insight:** the correct intervention depends on what kind of wrong the model is. Knowledge wrong (stale facts, private data) → RAG. Behavior wrong (wrong tone, wrong format, wrong task execution) → fine-tuning. Alignment wrong (too harmful, too refusal-happy, sycophantic) → RLHF or DPO. Model too slow or large → quantization, distillation. Prompt is just bad → fix the prompt first, it is free.
+
+**The decision:**
 ```
-Is the model's behavior correct but knowledge is stale/private?
-    → RAG (no training needed)
+Is the problem stale or private knowledge?
+    → RAG (no training cost)
 
-Is the model's knowledge fine but behavior, tone, or format is wrong?
+Is the problem behavioral (tone, format, task execution)?
     → Fine-tuning (SFT or PEFT)
 
-Is the model's alignment (helpfulness, safety, refusals) wrong?
+Is the problem alignment (helpfulness, safety, sycophancy)?
     → RLHF or DPO
 
-Is the model too slow or expensive to serve?
+Is the problem latency or cost?
     → Quantization, distillation, pruning
 
 Is the prompt just poorly designed?
-    → Fix the prompt first — it's free
+    → Fix the prompt first
 ```
 
----
-
-## 2. Prompting vs RAG vs Fine-Tuning
-
-| Approach | Best for | Cost | Latency | Freshness |
-| :--- | :--- | :--- | :--- | :--- |
-| **Prompting** | Format, reasoning style, persona | Near zero | None | N/A |
-| **RAG** | Current/private facts, citations | Medium (infra) | +50–300ms | Real-time |
-| **SFT** | Consistent task behavior, domain tone | High (GPU) | None at serve | Snapshot in time |
-| **PEFT (LoRA)** | Same as SFT but cheaper | Medium | None at serve | Snapshot |
-| **RLHF/DPO** | Alignment, preference following | Very high | None at serve | Snapshot |
+| Approach | Best for | Cost | Freshness |
+|:---|:---|:---|:---|
+| Prompting | Format, reasoning style, persona | Near zero | N/A |
+| RAG | Current/private facts, citations | Medium (infra) | Real-time |
+| SFT | Consistent task behavior, domain tone | High (GPU) | Snapshot |
+| PEFT (LoRA) | Same as SFT but cheaper | Medium | Snapshot |
+| RLHF/DPO | Alignment, preference following | Very high | Snapshot |
 
 ---
 
-## 3. Supervised Fine-Tuning (SFT)
+## Supervised Fine-Tuning (SFT)
 
-SFT trains the model on (prompt, response) pairs using standard cross-entropy language modeling loss.
+**The problem:** a base pretrained model knows a lot, but it does not follow instructions reliably, does not adopt a specific persona, and does not consistently format outputs for a particular task. Cross-entropy pretraining on internet text does not teach instruction-following — the training signal is "predict the next token", not "follow the instruction in the prompt."
 
-**Data format:**
+**The core insight:** show the model examples of the exact behavior you want — (system prompt, user message, correct assistant response) triplets — and train it to maximize the probability of the correct assistant response. This is identical to pretraining except the training data is high-quality demonstrations rather than raw web text. Data quality dominates data quantity: 1,000 carefully curated examples often outperform 100,000 noisy ones.
 
+**The mechanics:** standard causal language modeling loss, computed only on the assistant's response tokens (not the prompt).
+
+Data format:
 ```json
 {
   "messages": [
     {"role": "system", "content": "You are a customer support agent for Acme Corp."},
     {"role": "user", "content": "How do I reset my password?"},
-    {"role": "assistant", "content": "To reset your password, go to Settings > Account > Reset Password. You'll receive an email within 2 minutes."}
+    {"role": "assistant", "content": "Go to Settings > Account > Reset Password. You'll receive an email within 2 minutes."}
   ]
 }
 ```
 
-**Data quality >> data quantity.** 1,000 high-quality examples often outperform 100,000 noisy ones (see Phi models, LIMA paper).
+Training recipe: 2–5 epochs, learning rate 1e-5 to 2e-5, cosine schedule with 3% warmup, batch size 32–128, bfloat16 precision.
 
-**Training recipe:**
-
-```python
-from transformers import AutoModelForCausalLM, AutoTokenizer, TrainingArguments, Trainer
-from trl import SFTTrainer, DataCollatorForCompletionOnlyLM
-
-model = AutoModelForCausalLM.from_pretrained("mistralai/Mistral-7B-v0.1")
-tokenizer = AutoTokenizer.from_pretrained("mistralai/Mistral-7B-v0.1")
-
-training_args = TrainingArguments(
-    output_dir="./sft-output",
-    num_train_epochs=3,
-    per_device_train_batch_size=4,
-    gradient_accumulation_steps=4,
-    learning_rate=2e-5,
-    lr_scheduler_type="cosine",
-    warmup_ratio=0.03,
-    bf16=True,
-    logging_steps=10,
-    save_steps=500,
-    evaluation_strategy="steps",
-    eval_steps=500,
-)
-
-trainer = SFTTrainer(
-    model=model,
-    tokenizer=tokenizer,
-    train_dataset=train_dataset,
-    eval_dataset=eval_dataset,
-    args=training_args,
-    max_seq_length=2048,
-)
-trainer.train()
-```
+**What breaks:** SFT can cause catastrophic forgetting — optimizing for task-specific behavior on a narrow dataset degrades performance on tasks outside that distribution. Too many epochs on a small dataset causes overfitting — the model memorizes examples rather than generalizing. SFT changes behavior but not knowledge; the model still hallucinates facts it did not know before fine-tuning.
 
 ---
 
-## 4. LoRA (Low-Rank Adaptation)
+## LoRA (Low-Rank Adaptation)
 
-### The Idea
+**The problem:** full fine-tuning updates all model parameters. For a 7B model, that means updating 7 billion parameters, storing full gradients (7B × 4 bytes = 28GB), and storing optimizer states (Adam: 2× more = 56GB). For a 70B model, this requires a multi-GPU cluster just for optimizer state.
 
-Instead of updating all $d \times d$ weight matrices ($d$ can be 4096+), learn a low-rank decomposition:
+**The core insight:** the weight updates learned during fine-tuning lie in a low-dimensional subspace — most of the useful adaptation can be expressed as a low-rank matrix. Instead of updating the full d×d weight matrix directly, learn a small low-rank decomposition of the update and add it to the frozen base weights.
 
-$$W' = W_0 + \Delta W = W_0 + BA$$
+**The mechanics:**
+```
+W' = W₀ + ΔW = W₀ + B·A
 
-where $B \in \mathbb{R}^{d \times r}$, $A \in \mathbb{R}^{r \times k}$, and $r \ll \min(d, k)$.
-
-Typically $r \in \{4, 8, 16, 64\}$. With $r=8$ and $d=4096$: update $2 \times 4096 \times 8 = 65536$ parameters instead of $4096^2 = 16.7M$. That's a **256× reduction** in trainable parameters for that layer.
-
-At initialization: $A \sim \mathcal{N}(0, \sigma^2)$, $B = 0$ — so $\Delta W = 0$ initially, preserving the pretrained model.
-
-The scaling factor $\alpha/r$ controls the update magnitude.
-
-### Which Layers to Apply LoRA
-
-Typically: query, key, value, output projections in attention. Sometimes FFN layers too.
-
-```python
-from peft import LoraConfig, get_peft_model, TaskType
-
-lora_config = LoraConfig(
-    r=16,
-    lora_alpha=32,           # scaling = alpha/r = 2
-    target_modules=["q_proj", "k_proj", "v_proj", "o_proj"],
-    lora_dropout=0.05,
-    bias="none",
-    task_type=TaskType.CAUSAL_LM,
-)
-
-model = get_peft_model(base_model, lora_config)
-model.print_trainable_parameters()
-# trainable params: 6,553,600 || all params: 6,744,547,328 || trainable%: 0.097
+where B ∈ ℝ^{d×r}, A ∈ ℝ^{r×k}, r << min(d, k)
 ```
 
-### QLoRA
+At initialization: A is random Gaussian, B = 0 — so ΔW = 0, preserving the pretrained model. Only B and A are trained; W₀ is frozen.
 
-Combines 4-bit quantization of the base model with LoRA training:
+With r=8 and d=4096: trainable parameters = 2 × 4096 × 8 = 65,536 instead of 4096² = 16.7M — a 256× reduction for that layer. Apply LoRA to the query, key, value, and output projection matrices in each attention block.
 
-1. Load base model in 4-bit NF4 quantization (bitsandbytes)
-2. Apply LoRA adapters (in full precision BF16) on top
-3. Compute forward pass in 4-bit, gradients in BF16
+The scaling factor α/r controls update magnitude. Typical: r ∈ {4, 8, 16, 64}, α = 2r.
 
-This enables fine-tuning a 70B model on a single 48GB A100.
+**QLoRA:** load the base model in 4-bit NF4 quantization (bitsandbytes), apply LoRA adapters in full bfloat16. Forward pass in 4-bit, gradients and optimizer states in bfloat16. Enables fine-tuning a 70B model on a single 48GB A100 by quantizing base weights (35GB → ~9GB) while keeping adapter weights in full precision.
 
-```python
-from transformers import BitsAndBytesConfig
-import torch
-
-bnb_config = BitsAndBytesConfig(
-    load_in_4bit=True,
-    bnb_4bit_quant_type="nf4",
-    bnb_4bit_compute_dtype=torch.bfloat16,
-    bnb_4bit_use_double_quant=True,   # nested quantization
-)
-
-model = AutoModelForCausalLM.from_pretrained(
-    "meta-llama/Llama-2-70b-hf",
-    quantization_config=bnb_config,
-    device_map="auto",
-)
-# Then apply LoRA config as above
-```
+**What breaks:** LoRA reduces trainable parameters but not activation memory — the forward pass still runs at the base model's full activation size. For models where activation memory dominates (long sequences, large batches), LoRA's memory savings are smaller than expected. Low rank r may be insufficient for tasks requiring large behavioral changes. The adapter must be merged back into the base weights for efficient inference.
 
 ---
 
-## 5. RLHF (Reinforcement Learning from Human Feedback)
+## RLHF (Reinforcement Learning from Human Feedback)
 
-### Three-Stage Pipeline
+**The problem:** cross-entropy training on human demonstrations teaches the model to imitate correct behavior. But it does not teach the model to prefer true statements over plausible-sounding false ones, or helpful responses over sycophantic ones, when both appear in training data. The training objective is "match the distribution", not "optimize for quality."
 
-**Stage 1 — Supervised Fine-Tuning (SFT):**
-Fine-tune on high-quality demonstration data to get a reasonably capable base.
+**The core insight:** explicitly optimize for what humans actually prefer. Collect human rankings of model responses. Train a reward model to predict human preference. Fine-tune the LLM to maximize the reward model's score — with a KL divergence penalty to prevent the model from exploiting the reward model by generating bizarre high-scoring outputs.
 
-**Stage 2 — Reward Model (RM):**
-Collect preference data: human annotators rank model responses.
-Train a reward model $r_\phi(x, y)$ (LLM with a regression head) to predict human preference:
+**The mechanics — three stages:**
 
-$$\mathcal{L}_{RM} = -\mathbb{E}_{(x, y_w, y_l)} \left[\log \sigma(r_\phi(x, y_w) - r_\phi(x, y_l))\right]$$
+Stage 1 — SFT: fine-tune on demonstration data to produce a capable starting point.
 
-where $y_w$ is the preferred response and $y_l$ is the less preferred one.
+Stage 2 — Reward model: collect preference data (human annotators rank response A vs B). Train a reward model rᵩ(x, y) — an LLM with a scalar regression head — using the Bradley-Terry loss:
+```
+L_RM = -E[(x, y_w, y_l)] [log σ(rᵩ(x, y_w) - rᵩ(x, y_l))]
+```
+where y_w is the preferred response and y_l is the rejected one.
 
-**Stage 3 — PPO (Proximal Policy Optimization):**
-Fine-tune the SFT model to maximize reward, with a KL penalty to prevent diverging from the SFT model:
+Stage 3 — PPO: fine-tune the SFT model to maximize reward, with KL penalty:
+```
+L_PPO = rᵩ(x, y) - β · KL(π_θ(y|x) || π_SFT(y|x))
+```
 
-$$\mathcal{L}_{PPO} = r_\phi(x, y) - \beta \cdot D_{KL}(\pi_\theta(y|x) \| \pi_{SFT}(y|x))$$
-
-The KL penalty prevents reward hacking (exploiting the reward model without actually being better).
-
-**Operational complexity:** requires running 3 models simultaneously during PPO (policy, reference, reward model). Memory and coordination overhead is significant.
+**What breaks:** reward hacking — the model learns to generate outputs that score highly without actually being better. The reward model can be fooled by confident, fluent responses. PPO requires running three models simultaneously (policy, reference, reward model), consuming 3× the memory. Training is unstable and requires careful hyperparameter tuning. Human annotation at scale is expensive and slow.
 
 ---
 
-## 6. DPO (Direct Preference Optimization)
+## DPO (Direct Preference Optimization)
 
-DPO achieves the same alignment goal as RLHF without a separate reward model or RL loop.
+**The problem:** RLHF's three-stage pipeline is operationally complex: it requires a separate reward model, the PPO loop, careful KL penalty tuning, and running three models simultaneously during training. The reward hacking risk is inherent to the explicit reward model formulation.
 
-### Key Insight
+**The core insight:** the optimal RLHF policy has a closed-form relationship to the reward. Substituting this closed form into the preference objective and eliminating the partition function yields a loss that directly trains the policy on preference pairs — no explicit reward model, no RL loop.
 
-The optimal RLHF policy has a closed-form relationship to the reward:
-
-$$r(x, y) = \beta \log \frac{\pi^*(y|x)}{\pi_\text{ref}(y|x)} + \beta \log Z(x)$$
-
-Substituting this into the preference learning objective and cancelling the partition function $Z(x)$ gives the DPO loss:
-
-$$\mathcal{L}_{DPO} = -\mathbb{E}_{(x, y_w, y_l)} \left[\log \sigma\left(\beta \log \frac{\pi_\theta(y_w|x)}{\pi_\text{ref}(y_w|x)} - \beta \log \frac{\pi_\theta(y_l|x)}{\pi_\text{ref}(y_l|x)}\right)\right]$$
-
-In plain English: increase the probability of preferred responses relative to the reference model, decrease the probability of rejected ones.
-
-```python
-from trl import DPOTrainer, DPOConfig
-
-dpo_config = DPOConfig(
-    beta=0.1,                    # KL penalty strength
-    loss_type="sigmoid",         # original DPO
-    per_device_train_batch_size=2,
-    gradient_accumulation_steps=8,
-    learning_rate=5e-7,          # much lower than SFT
-    num_train_epochs=1,
-    bf16=True,
-)
-
-# Data format: {"prompt": "...", "chosen": "...", "rejected": "..."}
-dpo_trainer = DPOTrainer(
-    model=model,
-    ref_model=ref_model,         # frozen copy of SFT model
-    args=dpo_config,
-    train_dataset=preference_dataset,
-    tokenizer=tokenizer,
-)
-dpo_trainer.train()
+**The mechanics (DPO loss):**
 ```
+L_DPO = -E[(x, y_w, y_l)] [log σ(β log(π_θ(y_w|x)/π_ref(y_w|x)) − β log(π_θ(y_l|x)/π_ref(y_l|x)))]
+```
+
+In plain terms: increase the probability of preferred responses relative to the reference model; decrease the probability of rejected ones. The β parameter controls how aggressively to deviate from the reference.
+
+DPO requires: (a) a reference model π_ref (frozen copy of the SFT model), (b) preference pairs (prompt, chosen, rejected), and standard supervised training — no RL loop.
 
 **DPO vs RLHF:**
 
 | Aspect | RLHF (PPO) | DPO |
-| :--- | :--- | :--- |
-| **Reward model** | Explicit, trained separately | Implicit |
-| **Online sampling** | Yes (generates during training) | No (offline) |
-| **Memory** | 3 models loaded | 2 models loaded |
-| **Stability** | Tricky (RL variance) | More stable (supervised) |
-| **Quality ceiling** | Potentially higher (online) | Competitive in practice |
+|:---|:---|:---|
+| Reward model | Explicit, trained separately | Implicit |
+| Online sampling | Yes (generates during training) | No (offline pairs) |
+| Memory | 3 models loaded | 2 models loaded |
+| Stability | Tricky (RL variance) | More stable (supervised) |
+| Quality ceiling | Potentially higher (online) | Competitive in practice |
+
+**What breaks:** DPO is offline — it learns from fixed preference pairs and cannot adaptively collect new data in regions where the policy is currently poor. Online RLHF (PPO) can self-improve; DPO cannot without new data collection. DPO can "forget" capabilities not represented in the preference pairs. The β hyperparameter requires careful tuning: too high and the model barely deviates from the reference; too low and it drifts to reward-hacking outputs.
 
 ---
 
-## 7. Quantization
+## Quantization
 
-Quantization reduces numerical precision to shrink model size and increase inference speed.
+**The problem:** a 70B parameter model in float32 weighs 280GB. In bfloat16, 140GB. Loading 140GB of weights per inference at ~2TB/s HBM bandwidth sets a hard floor on token generation speed regardless of compute. Smaller precision means smaller model, faster memory transfer, and potentially faster compute — but accuracy must not degrade unacceptably.
 
-### Data Types
+**The core insight:** most model weights and activations do not need 16-bit precision for inference. The information required for accurate next-token prediction can often be maintained with 4–8 bits, especially with calibration-aware quantization that carefully maps the weight distribution to the reduced precision range.
 
-| Format | Bits | Range | Notes |
-| :--- | :--- | :--- | :--- |
-| **FP32** | 32 | Full | Training default |
-| **BF16** | 16 | Same exponent range as FP32 | Training and inference default on A100/H100 |
-| **FP16** | 16 | Smaller range | Can overflow for large activations |
-| **INT8** | 8 | -128 to 127 | ~2× inference speedup, minor quality loss |
-| **INT4 / NF4** | 4 | Limited | ~4× memory reduction; used in QLoRA |
-| **GPTQ** | 3–4 | N/A | Post-training quantization with calibration data |
+**The mechanics — four main approaches:**
 
-### Post-Training Quantization (PTQ)
+W4A16 (weight-only 4-bit): store weights as INT4, dequantize to fp16 before matrix multiply. Memory footprint drops 4×. No compute speedup from INT4 tensor cores because dequantization happens before compute.
 
-No additional training required. Apply after standard training:
+W8A8 (weight + activation 8-bit): store and compute in INT8. Requires hardware with INT8 tensor cores (A100+). Provides real compute speedup (~2×) in addition to memory savings.
 
-```python
-from transformers import AutoModelForCausalLM
-import torch
+GPTQ: post-training quantization that minimizes weight error layer by layer using the Hessian of the loss with calibration data. Better quality than naive rounding at INT4, especially for arithmetic reasoning.
 
-# Load in 8-bit (bitsandbytes LLM.int8())
-model = AutoModelForCausalLM.from_pretrained(
-    "meta-llama/Llama-2-7b-hf",
-    load_in_8bit=True,
-    device_map="auto",
-)
-```
+AWQ: identifies "salient" weights — those whose magnitudes are amplified by large activations — and protects them from aggressive quantization. Often better than GPTQ at INT4 for tasks requiring factual precision.
 
-### GPTQ (Post-Training Quantization with Calibration)
+SmoothQuant: activations have more extreme outliers than weights, making them harder to quantize. SmoothQuant migrates quantization difficulty from activations to weights via a per-channel smoothing factor, enabling accurate W8A8 quantization.
 
-More accurate than naive INT4 because it optimizes quantization error layer by layer using calibration data:
-
-```python
-from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
-
-quantize_config = BaseQuantizeConfig(
-    bits=4,
-    group_size=128,       # quantize in groups of 128
-    desc_act=False,
-)
-
-model = AutoGPTQForCausalLM.from_pretrained(model_path, quantize_config)
-examples = [tokenizer(text, return_tensors="pt") for text in calibration_texts]
-model.quantize(examples)
-model.save_quantized("./quantized-model")
-```
-
-### AWQ (Activation-aware Weight Quantization)
-
-Identifies salient weights (those with large activations) and protects them from aggressive quantization. Often better quality than GPTQ at INT4.
+**What breaks:** quantization degrades non-uniformly across tasks. Arithmetic reasoning, code generation, and factual recall are more sensitive to precision loss than creative generation or summarization. Always evaluate on the target task — perplexity improvements do not guarantee task-specific quality.
 
 ---
 
-## 8. Knowledge Distillation
+## Knowledge Distillation
 
-Transfer knowledge from a large **teacher** model to a smaller **student** model.
+**The problem:** a smaller model trained from scratch on the same data as a large model will be worse. But a smaller model trained to mimic the output distribution of a large model can learn much more from each training example, because the large model's soft probability distribution over the vocabulary encodes its uncertainty and learned relationships between similar concepts.
 
-**Objective:**
+**The core insight:** a large teacher model, when predicting the next token, assigns non-zero probabilities to many plausible alternatives — not just the single correct token. These soft labels convey information about which tokens are semantically related, which concepts are similar, and where the model is uncertain. Training a student on these soft distributions transfers more knowledge than training on hard labels alone.
 
-$$\mathcal{L}_{KD} = (1-\alpha) \mathcal{L}_{CE}(y, \hat{y}_s) + \alpha \mathcal{L}_{KL}(p_s^T \| p_t^T)$$
-
-where $p^T = \text{softmax}(\text{logits}/T)$ with temperature $T > 1$ (softer distributions reveal more information about similar classes).
-
-**Sequence-level distillation:** train the student on sequences generated by the teacher (data augmentation style). Used to create DistilGPT, DistilBERT.
-
-**Online distillation (speculative decoding):** small draft model generates candidate tokens; large model verifies in parallel. Achieves 2–4× speedup with identical output distribution.
-
-```python
-# Speculative decoding
-from transformers import AutoModelForCausalLM, AutoTokenizer
-
-draft_model = AutoModelForCausalLM.from_pretrained("gpt2")      # small, fast
-target_model = AutoModelForCausalLM.from_pretrained("gpt2-xl")  # large, accurate
-
-# HuggingFace handles speculative decoding via `assistant_model`
-output = target_model.generate(
-    inputs,
-    assistant_model=draft_model,
-    max_new_tokens=200,
-)
+**The mechanics:**
 ```
+L_KD = (1-α) · L_CE(y, ŷ_student) + α · L_KL(p_student^T || p_teacher^T)
+
+where p^T = softmax(logits / T), T > 1 (temperature > 1 produces softer distributions)
+```
+
+Higher temperature T flattens both distributions, making the KL term more informative about small probability differences between similar tokens.
+
+Sequence-level distillation: train the student on sequences generated by the teacher (not just the teacher's logits). Used to create DistilGPT, DistilBERT.
+
+**What breaks:** the student is bounded by the teacher's quality — distillation cannot exceed the teacher's capabilities. For tasks where the teacher hallucinates, the student learns to hallucinate in the same ways.
 
 ---
 
-## 9. Evaluating Fine-Tuned Models
+## Evaluating Fine-Tuned Models
 
-Never ship a tuned model without comparing against the base on a held-out evaluation set.
+**The problem:** a model that improves on the fine-tuning task may degrade on other tasks. Evaluating only on the target task misses regression. Evaluating only on general benchmarks misses task improvement.
 
-| What changed | Eval method | Metric |
-| :--- | :--- | :--- |
-| **Format/style** | LLM-as-judge (GPT-4) on format compliance | Rate 1–5 or binary |
-| **Task accuracy** | Task-specific benchmark | F1, EM, ROUGE |
-| **Alignment** | Safety eval, red-teaming, refusal rate | Human eval |
-| **General capability** | MMLU, HellaSwag, TruthfulQA | Accuracy |
-| **Regression** | Eval on old training distribution | Perplexity, task accuracy |
+**The core insight:** evaluate on the target task for improvement, on a representative general benchmark for regression, and on a safety eval for alignment. A model that is better at coding but worse at general reasoning or more prone to harmful outputs is not an improvement.
 
-**LLM-as-judge pattern:**
+| What changed | Evaluation method | Metric |
+|:---|:---|:---|
+| Format / style | LLM-as-judge on format compliance | Binary or 1–5 scale |
+| Task accuracy | Task-specific benchmark | F1, Exact Match, ROUGE |
+| Alignment | Safety eval, refusal rate, red-team | Human evaluation |
+| General capability | MMLU, HellaSwag, TruthfulQA | Accuracy |
+| Regression | Previous task distribution | Perplexity, task accuracy |
 
-```python
-def llm_judge(question, reference_answer, model_answer):
-    prompt = f"""
-    Question: {question}
-    Reference answer: {reference_answer}
-    Model answer: {model_answer}
+**LLM-as-judge:** for open-ended generation where ground truth is hard to define, use a strong model (GPT-4) to rate responses on correctness, helpfulness, and format. Reliable for relative comparisons; unreliable for absolute calibration.
 
-    Rate the model answer from 1–5 on:
-    - Correctness (does it answer the question accurately?)
-    - Helpfulness (is it useful to the user?)
-    - Conciseness (is it appropriately brief?)
-
-    Output JSON: {{"correctness": X, "helpfulness": X, "conciseness": X, "reasoning": "..."}}
-    """
-    return json.loads(llm.complete(prompt))
-```
+**What breaks:** LLM judges share biases with the judged model. GPT-4 may prefer responses in GPT-4's style. Self-evaluation produces inflated scores. Always validate LLM judge ratings against human judgments on a sample of cases.
 
 ---
 
-## 10. Production Versioning
+## Production Versioning
 
-A model artifact is like a software release — it needs version control and a rollback path.
+**The problem:** a fine-tuned model is a software artifact. Without versioning, rollback is impossible when a model degrades in production, and attribution of improvements is impossible across experiments.
 
-**Checklist before deploying a tuned model:**
-- [ ] Base model version pinned
-- [ ] Training data snapshot versioned
-- [ ] LoRA config / hyperparameters logged (MLflow, W&B)
-- [ ] Evaluation metrics vs baseline documented
-- [ ] Safety checks passed (red-team, content filter audit)
-- [ ] Inference latency benchmarked
-- [ ] Rollback to previous artifact tested
+**Checklist before deploying:**
+- Base model version pinned
+- Training data snapshot versioned (hash or dataset version)
+- LoRA config / hyperparameters logged (MLflow, Weights & Biases)
+- Evaluation metrics vs. baseline documented
+- Safety checks passed (red-team, content filter audit)
+- Inference latency benchmarked
+- Rollback to previous artifact tested
 
-> [!TIP]
-> **Interview structure:** "When would you fine-tune vs RAG?" → Diagnose the problem first (knowledge vs behavior). Fine-tune when you need **consistent behavioral change** that persists across requests. RAG when facts need to be fresh or cited. If format is the only issue, fix the prompt first — it's free.
+*Related: [Hallucination Mitigation](hallucination-mitigation.md) | [Inference Optimization](inference-optimization.md) | [RAG](rag.md)*
