@@ -1,5 +1,41 @@
 # Machine Learning Design Interview
 
+```mermaid
+flowchart TD
+    A[ML Design Interview Question] --> B[Step 1: Clarify Requirements]
+    B --> B1[Latency budget?\nScale? Cold-start?]
+    B --> B2[Business metric\nvs ML metric?]
+    B1 & B2 --> C[Step 2: Frame as ML Problem]
+    C --> C1[Label definition\nPointwise / Pairwise / Listwise?]
+    C --> C2[Static prediction\nor Dynamic?]
+    C1 & C2 --> D[Step 3: Data Sources]
+    D --> D1[Logs / Signals\nAvailable?]
+    D --> D2[Implicit vs\nExplicit Feedback]
+    D1 & D2 --> E[Step 4: Feature Engineering]
+    E --> E1[User / Item /\nContext Features]
+    E --> E2[Real-time vs\nBatch Features]
+    E1 & E2 --> F[Step 5: Model Architecture]
+    F --> F1{Latency\nBudget?}
+    F1 -->|<50ms| F2[Two-Tower + ANN\nRetrieval + Light Ranker]
+    F1 -->|<200ms| F3[Deep Ranking Model\nMMOE / Wide and Deep]
+    F1 -->|Offline| F4[Complex Ensemble\nFull Precision]
+    F2 & F3 & F4 --> G[Step 6: Training Pipeline]
+    G --> G1[Splits / Loss /\nOptimizer Choice]
+    G --> G2[Position Bias\nCorrection?]
+    G1 & G2 --> H[Step 7: Evaluation and Deployment]
+    H --> H1[Offline: PR-AUC\nNDCG / Calibration]
+    H --> H2[Online: A/B Test\nBusiness Metric]
+    H --> H3[Monitor: Drift\nLatency / SLAs]
+
+    subgraph Domains["System Design Domains"]
+        R1[Recommendation Systems\nRetrieval → Ranking → Re-rank]
+        R2[Search: BM25 + Semantic\nHybrid Retrieval]
+        R3[Fraud Detection\nGraph + Velocity Features]
+        R4[Feed Ranking\nMulti-Objective + MMoE]
+        R5[Ads: GSP Auction\nCTR / CVR / Budget Pacing]
+    end
+```
+
 ---
 
 ## The Interview Framework

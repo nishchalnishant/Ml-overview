@@ -213,3 +213,16 @@ Loss decreases as a power law in both model size and data. They contribute appro
 | **Flash Attention** | $O(n^2 d)$ | $O(n)$ | IO-aware tiling, same output, 2–4× faster |
 | **Sparse Attention** | $O(n\sqrt{n}\cdot d)$ | $O(n\sqrt{n})$ | Longformer, BigBird |
 | **Linear Attention** | $O(nd^2)$ | $O(d^2)$ | Approximate, quality trade-off |
+
+---
+
+## Canonical Interview Q&As
+
+**Q: Walk through the full forward pass of a transformer encoder layer, specifying what each component does.**  
+A: Input tokens are embedded + positional encoding added → shape [batch, seq_len, d_model]. (1) Layer norm applied to input. (2) Multi-head attention: project input to Q, K, V for each head (W_Q, W_K, W_V projections); compute scaled dot-product attention: softmax(QKᵀ/√d_k)V for each head; concatenate and project with W_O — output shape same as input. (3) Residual connection: input + attention_output. (4) Layer norm again. (5) FFN: two linear layers with activation: FFN(x) = max(0, xW_1 + b_1)W_2 + b_2, where hidden dim is typically 4×d_model. (6) Residual: previous + FFN output. The residual connections are critical — they allow gradients to flow directly to earlier layers, enabling deep transformers to train. Pre-norm (norm before sublayer, as above) is more stable than post-norm for large models.
+
+**Q: Why do transformers use positional encoding, and what are the trade-offs between learned and sinusoidal encodings?**  
+A: Self-attention is permutation-equivariant — without positional encoding, "cat ate fish" and "fish ate cat" produce identical representations. Positional encoding injects order information. Sinusoidal encoding: PE(pos, 2i) = sin(pos/10000^{2i/d_model}), PE(pos, 2i+1) = cos(...). Advantages: fixed, no parameters, can generalize to positions beyond training length through the periodic structure. Learned absolute encodings (e.g., original BERT): each position has a learned embedding vector. Better performance at training lengths but no extrapolation. In modern LLMs, both are replaced by relative encodings (RoPE, ALiBi) because they handle long contexts better. RoPE encodes position by rotating Q, K vectors, making relative positions implicit in the dot product — length generalization is better, though not perfect without fine-tuning on longer sequences.
+
+**Q: What architectural change makes LLaMA/Mistral different from the original transformer, and why does it matter?**  
+A: Several key changes: (1) RMSNorm instead of LayerNorm — removes mean subtraction, ~10% faster with no quality loss; (2) SwiGLU activation instead of ReLU in FFN — SwiGLU(x, W, V, W2) = (xW ⊙ SiLU(xV))W2; requires 3 weight matrices instead of 2, so FFN hidden dim is scaled down to keep params constant, but empirically converges 15-20% faster; (3) RoPE instead of absolute position encodings — handles long contexts better; (4) GQA instead of MHA — 4-8 KV heads instead of 32-64, reduces KV cache size by 8-16× which is the primary serving bottleneck; (5) Pre-normalization throughout. Together these changes make models faster to train (SwiGLU, RMSNorm), much cheaper to serve at long contexts (GQA), and better at long-context tasks (RoPE). At interview level: GQA's KV cache reduction is the most practically impactful change for production systems.

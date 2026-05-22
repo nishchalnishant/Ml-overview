@@ -1,5 +1,82 @@
 # Machine Learning Design Patterns
 
+```mermaid
+mindmap
+  root((ML Design Patterns))
+    Data Representation
+      1 Hashed Feature
+        High-cardinality categories
+        Fixed N buckets via hash
+        No vocab retraining needed
+      2 Embeddings
+        Dense learned vectors
+        Pre-trained vs from-scratch
+        Cold-start with feature init
+      3 Feature Cross
+        Explicit interactions
+        Wide and Deep wide component
+        DCN cross layer
+      4 Multimodal Input
+        Late fusion architecture
+        Per-modality encoders
+        Graceful degradation
+    Problem Representation
+      5 Reframing
+        Classification vs Regression
+        Ordinal vs Multiclass
+        Ranking reframing
+      6 Multilabel Classification
+        Sigmoid not Softmax
+        Per-label thresholds
+        Hamming loss metric
+      7 Ensembles
+        Bagging reduces variance
+        Boosting reduces bias
+        Stacking meta-learning
+      8 Cascade
+        Cheap then Expensive
+        Confidence threshold escalation
+        Calibrate each stage
+      9 Neutral Class
+        Explicit abstain class
+        Annotator disagreement signal
+        Route uncertain to human
+      10 Rebalancing
+        Class weights
+        SMOTE synthetic minority
+        Threshold adjustment
+    Model Training
+      11 Transform
+        Preprocessing in model graph
+        sklearn Pipeline
+        TF preprocessing layers
+      12 Multistage Training
+        Pre-train then fine-tune
+        Curriculum learning easy to hard
+        Catastrophic forgetting risk
+      13 Transfer Learning
+        BERT fine-tuning
+        Feature extraction frozen
+        Domain adaptive pre-training
+      14 Distillation
+        Soft targets from teacher
+        KL divergence loss
+        Temperature scaling T
+      15 Regularization
+        L1 sparsity
+        L2 weight decay
+        Dropout and Early Stopping
+    Model Evaluation
+      16 Evaluation Metrics
+        PR-AUC for imbalanced
+        NDCG for ranking
+        F-beta cost structure
+      17 Slicing
+        Subgroup evaluation
+        Demographic slices
+        Error analysis by type
+```
+
 ---
 
 ## Why Patterns Exist

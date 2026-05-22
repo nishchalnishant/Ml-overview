@@ -289,3 +289,178 @@ Practical use: private inference for small models. Not yet feasible for training
 - FL keeps raw data local — only weight deltas are shared. Gradients can still leak information via gradient inversion. Combine with DP or secure aggregation for full protection.
 - Best practice for LLMs: pre-train on large public data (no DP needed), fine-tune on small sensitive data with DP-SGD. Use LoRA to reduce trainable parameters and improve utility at the same privacy budget.
 - HE is theoretically powerful but 100–10,000× slower than plaintext — not feasible for training large networks.
+
+---
+
+## Canonical Interview Q&As
+
+**Q1: Derive the DP-SGD privacy accounting. Given batch size B, dataset size N, noise multiplier σ, and T training steps, what is the final (ε, δ)?**
+
+DP-SGD achieves (ε, δ)-DP through the composition of T noisy gradient steps, each satisfying a weaker privacy guarantee.
+
+**Per-step mechanism:**
+```
+g_i = ∇_θ L(x_i, θ)                           # per-sample gradient
+g̃_i = g_i / max(1, ||g_i||₂/C)              # clip to norm C
+g_batch = (1/B) Σ_{i∈batch} g̃_i + N(0, σ²C²/B² · I)  # add noise
+```
+
+Each step is a **subsampled Gaussian mechanism**. The subsampling ratio is `q = B/N`. Via the amplification by subsampling theorem, if the Gaussian mechanism at noise level σ satisfies (ε₀, δ₀)-DP for the full dataset, then subsampled application satisfies approximately (q·ε₀, q·δ₀)-DP.
+
+**Rényi DP accounting (tighter than basic composition):**
+
+DP-SGD uses Rényi DP (RDP) because it composes additively:
+```
+RDP guarantee per step: ε_R(α) ≈ q² · α / (2σ²)   (approximate, for small q)
+
+After T steps: ε_R(α) = T · q² · α / (2σ²)
+
+Convert to (ε, δ)-DP:
+ε(δ) = min_{α>1} [ ε_R(α) + log(1/δ) / (α-1) ]
+```
+
+**Concrete example:**
+- N = 50,000 (CIFAR-10), B = 256, σ = 1.1, T = 60 epochs × 195 steps/epoch = 11,700 steps, C = 1.0, δ = 1e-5
+
+```python
+from autodp import rdp_acct, rdp_bank
+
+acct = rdp_acct.anaRDPacct()
+acct.compose_subsampled_mechanism(
+    mechanism=rdp_bank.RDP_gaussian({'sigma': 1.1}),
+    prob=256/50000,
+    coeff=11700
+)
+eps = acct.get_eps(delta=1e-5)  # ≈ 3.0 for these parameters
+```
+
+This yields approximately ε ≈ 3.0, δ = 1e-5 — moderate privacy, useful for ML training. ε = 1 requires σ ≈ 2.0+ (significantly more noise, notable accuracy degradation).
+
+---
+
+**Q2: Design a federated learning system for training a clinical NLP model across 10 hospitals that satisfies HIPAA. What are the attack surfaces and mitigations?**
+
+**Attack surfaces in federated learning:**
+
+| Attack | Description | Mitigation |
+|--------|-------------|-----------|
+| Gradient inversion | Reconstruct training images from gradients | DP noise on gradients (σ ≥ 0.5) |
+| Model poisoning | Malicious client submits adversarial updates | Robust aggregation (Krum, Trimmed Mean) |
+| Byzantine failure | Honest clients with bad data bias the model | Variance-weighted aggregation |
+| Inference attack | Global model leaks train/test membership | DP-SGD on local training |
+| Communication interception | Gradient updates read in transit | TLS + secure aggregation (SMPC) |
+
+**Architecture:**
+
+```
+Hospital (Client Side):
+  1. Local data: NEVER leaves the hospital (HIPAA compliant)
+  2. Local training: N_local = 5 epochs, LR = 1e-4
+  3. DP-SGD: clip per-sample gradients C=1.0, noise σ=0.5, per-hospital ε tracking
+  4. Gradient compression: top-k sparsification (k=1%) reduces communication 100×
+  5. Send: compressed gradient update (not model weights, not data)
+
+Aggregation Server (Neutral third party or hospital consortium):
+  1. Receive updates from all K=10 hospitals
+  2. Secure aggregation: server never sees individual hospital gradients
+     - Pairwise mask cancellation: hospital i and j exchange random masks r_{ij}
+     - Server receives Σ_i (g_i + Σ_j mask_{ij}) = Σ_i g_i (masks cancel)
+  3. Robust aggregation: Krum selects the update closest to median
+  4. Apply FedAvg update: θ_global += η · weighted_average(updates)
+     where weights ∝ each hospital's dataset size
+
+Privacy budget tracking:
+  - Per-hospital: track (ε_i, δ_i) per training round
+  - Composition: after T rounds, report cumulative ε_i to hospital i
+  - Stop accepting updates from a hospital when ε_i > ε_max (e.g., 10)
+```
+
+**HIPAA specifics:** the protected health information never leaves the hospital. The gradient update is not considered PHI if DP noise is applied (NIST guidance; confirm with legal). Secure aggregation ensures the aggregation server sees only the sum, not individual hospital contributions.
+
+---
+
+**Q3: Explain the privacy-utility tradeoff in DP fine-tuning of LLMs. How does LoRA change the calculus?**
+
+Standard DP-SGD applied to a full LLM fine-tune is extremely costly:
+
+**Why:** DP-SGD adds noise calibrated to `C/B` (gradient norm bound divided by batch size). For large models:
+```
+Noise per parameter ∝ σ · C / B
+
+For LLaMA-7B: d = 7×10⁹ parameters
+Effective noise SNR per gradient = B / (σ · C · √d)
+```
+
+The noise overwhelms the signal in high-dimensional parameter spaces. To maintain reasonable SNR, you need very large batch sizes (B = 2048-4096) or very high σ values that destroy utility.
+
+**LoRA changes the calculus** by dramatically reducing the number of trainable parameters:
+
+```
+Standard fine-tune: d = 7×10⁹ parameters
+LoRA fine-tune (rank=8): d_LoRA = 2 × L_layers × (d_in + d_out) × rank
+  For LLaMA-7B, rank=8: ≈ 4.7×10⁶ parameters (0.07% of total)
+```
+
+DP noise is added only to the LoRA adapter gradients, not the frozen backbone. The noise multiplier σ that saturates a 7B parameter space leaves a 4.7M parameter space with much better SNR:
+
+```
+SNR_LoRA / SNR_full = √(d_full / d_LoRA) = √(7×10⁹ / 4.7×10⁶) ≈ 38.6×
+```
+
+LoRA + DP-SGD achieves approximately the same privacy budget at 38× better gradient SNR, translating to significantly better model utility at the same ε.
+
+**Practical numbers (from Yu et al. 2021, Table 1):**
+- Full fine-tune, DP, ε=3: accuracy drops ~20% from non-private baseline
+- LoRA fine-tune, DP, ε=3: accuracy drops ~5-7% from non-private baseline
+- Best practice: rank=4 to rank=16, target ε=3-8 depending on sensitivity tier
+
+---
+
+**Q4: A competitor claims their model was not trained on your private dataset. How would you use membership inference attacks to audit this claim?**
+
+Membership inference attacks (MIA) test whether a specific record `x` was used in training, by exploiting the observation that models tend to have higher confidence (lower loss) on training examples than test examples.
+
+**Shadow model MIA (Shokri et al. 2017):**
+
+```python
+# Attacker has: target model f, some data from the same distribution D
+# Goal: for each record x, predict IN (member) vs OUT (non-member)
+
+# Step 1: Train K shadow models on known IN/OUT splits
+for k in range(K):
+    train_set, test_set = sample_disjoint(D)
+    shadow_k = train_model(train_set)
+    
+    # Label examples with IN/OUT for attack training
+    for x in train_set: attack_data.append((shadow_k.predict(x), IN))
+    for x in test_set:  attack_data.append((shadow_k.predict(x), OUT))
+
+# Step 2: Train MIA classifier on shadow model outputs
+attack_model = BinaryClassifier()
+attack_model.fit(attack_data)  # features: confidence vector; label: IN/OUT
+
+# Step 3: Run on target model
+for x in suspected_dataset:
+    confidence = f.predict(x)
+    membership = attack_model.predict(confidence)
+```
+
+**Loss-based MIA (simpler, often comparably effective):**
+```
+score(x) = -L(f(x), y)   # higher confidence = more likely member
+threshold t: predict IN if score(x) > t
+```
+
+**How to interpret for auditing:**
+
+The attack will have non-trivial AUC even for non-members due to distributional similarity. Use a **hypothesis testing framework**:
+
+```
+Null hypothesis H₀: model was not trained on claimed private dataset D_private
+Alternative H₁:   model was trained on D_private
+
+Compute: AUC of MIA on D_private vs. control dataset D_same_distribution
+If AUC(D_private) >> AUC(D_control): reject H₀ at chosen significance level
+```
+
+Key limitation: DP-protected models are designed to resist this. If the competitor used DP training with ε ≤ 3, the MIA AUC will be statistically indistinguishable from 0.5 (random guessing), and you cannot prove membership regardless of ground truth. MIA is most effective against models with clear overfitting signals (high train/test gap).

@@ -374,3 +374,123 @@ def ensemble_fgsm(models, x, y, epsilon):
 - Randomized smoothing is the only method with provable L2 guarantees at scale. Certified radius R = σ·Φ⁻¹(p_A). Higher σ means larger radius but lower clean accuracy.
 - Gradient masking is not robustness. AutoAttack specifically targets it via Square Attack and DLR loss.
 - State-of-the-art: ~70–73% robust accuracy on CIFAR-10 L∞ ε=8/255 vs. ~95%+ clean. Report both.
+
+---
+
+## Canonical Interview Q&As
+
+**Q1: Derive why adversarial examples are an inherent property of high-dimensional geometry, not a training artifact.**
+
+In d-dimensional space, the L∞ ball of radius ε contains `(2ε/Δ)^d` non-overlapping L∞ balls of radius Δ/2, where Δ is the inter-class separation. For d = 3072 (CIFAR-10 32×32×3) with ε = 8/255 ≈ 0.031:
+
+The human-perceptual manifold occupies a tiny fraction of the full input space. A classifier trained with ERM finds a decision boundary that correctly classifies natural images but makes no commitments about the vast volume of space between them and imperceptible perturbations.
+
+Formally: let f be a Bayes-optimal classifier for the natural distribution. The robust Bayes classifier `f_rob` solving:
+
+```
+f_rob = argmin_f  E[max_{||δ||≤ε} L(f(x+δ), y)]
+```
+
+is a different function from `f`. The two diverge because the natural distribution has positive mass on "non-robust features" — directions in input space that are highly predictive for clean accuracy but vary across the ε-ball. A model that uses non-robust features will be accurate on clean data and adversarially vulnerable by construction.
+
+Empirical evidence: Ilyas et al. (2019) trained a model on adversarially perturbed images relabeled to the adversarial target class. This "adversarially corrupted" dataset produces a model that correctly classifies natural images with >50% accuracy — proving the perturbations contain genuinely predictive features (non-robust), not just noise.
+
+---
+
+**Q2: AutoAttack comprises four attacks. Explain why each is necessary and what specific defense weaknesses each targets.**
+
+```
+AutoAttack = {
+  APGD-CE,      # Adaptive PGD with cross-entropy loss
+  APGD-DLR,     # Adaptive PGD with Difference of Logits Ratio loss
+  FAB,          # Fast Adaptive Boundary attack (minimal perturbation)
+  Square Attack # Score-based black-box, gradient-free
+}
+```
+
+**APGD-CE** targets standard gradient-based defenses. Adaptive step size (restarts from best checkpoint, reduces step when no progress) defeats defenses that use stochastic smoothing to make individual PGD steps ineffective.
+
+**APGD-DLR** uses a scale-invariant loss `(z_y - max_{i≠y} z_i) / (z_y - z_3rd)`. It defeats output-space rescaling defenses: if a defense adds a temperature or normalization to outputs, CE loss gradients become saturated or misleading, but DLR is invariant to output scaling.
+
+**FAB** minimizes the actual perturbation norm rather than maximizing loss. It finds the minimal adversarial example, which is important for evaluating certified defenses and detecting when a model is relying on geometric margin inflation rather than true robustness.
+
+**Square Attack** is score-based and requires only output probabilities. It defeats gradient masking defenses entirely — if a defense obfuscates or zeroes out gradients (non-differentiable preprocessing, randomization), the first three attacks fail. Square Attack sidesteps this by estimating optimal perturbations through random square-shaped queries without any gradient access.
+
+A defense is only credible if it withstands all four simultaneously.
+
+---
+
+**Q3: Your team is deploying a computer vision model to detect manufacturing defects. Adversarial robustness is a requirement. Design the training and evaluation pipeline.**
+
+**Threat model specification (required first):**
+- Attacker type: white-box (assume attacker has model access; if internal tool, gray-box is realistic)
+- Norm constraint: L∞ ε = 4/255 (pixel-level perturbations), not L2 (physical attacks would use L∞)
+- Target: untargeted misclassification (defect → non-defect is the high-cost error direction)
+
+**Training pipeline:**
+
+```python
+# Adversarial training (Madry AT)
+def train_step(model, x, y, optimizer, eps=4/255, steps=10, alpha=1/255):
+    # Inner maximization: find worst-case perturbation
+    delta = torch.zeros_like(x).uniform_(-eps, eps).requires_grad_(True)
+    for _ in range(steps):
+        loss = F.cross_entropy(model(x + delta.clamp(-eps, eps)), y)
+        loss.backward()
+        with torch.no_grad():
+            delta.data = (delta + alpha * delta.grad.sign()).clamp(-eps, eps)
+            delta.grad.zero_()
+    # Outer minimization: update model on adversarial examples
+    adv_loss = F.cross_entropy(model(x + delta.detach()), y)
+    adv_loss.backward()
+    optimizer.step()
+```
+
+**TRADES variant** for better accuracy-robustness tradeoff:
+```
+L_TRADES = L_CE(f(x), y) + β · KL(f(x) || f(x+δ*))
+```
+Empirically: TRADES with β=6 achieves ~56% robust / ~84% clean on CIFAR-10 vs. Madry AT at ~45% robust / ~87% clean. The extra 11% robust accuracy matters for defect detection.
+
+**Evaluation:** Run AutoAttack (all 4 components) on 1000 held-out samples. Report clean accuracy and robust accuracy separately. Never report only adversarially-trained clean accuracy — it looks weaker, but honest.
+
+**Production additions:**
+- Input preprocessing: JPEG compression at quality 75 + bit-depth reduction to 7 bits adds ~3% free robustness via input diversity.
+- Ensemble of 3 independently trained robust models — transferability across all three is harder to achieve than fooling a single model.
+- Monitor for distribution shift in production inputs; adversarially-trained models can be more sensitive to legitimate domain shift because the decision boundaries are tighter.
+
+---
+
+**Q4: Explain the certified guarantee of randomized smoothing. For a Gaussian noise level σ = 0.25, what L2 perturbation radius is certified at 99% confidence?**
+
+Randomized smoothing wraps any base classifier `f` in a smoothed classifier `g`:
+
+```
+g(x) = argmax_c  P(f(x + ε) = c),  ε ~ N(0, σ²I)
+```
+
+**Certification theorem (Cohen et al. 2019):** If `g(x) = c_A` and:
+```
+p_A = P(f(x + ε) = c_A) ≥ p̄_A
+p_B = max_{c ≠ c_A} P(f(x + ε) = c) ≤ p̄_B
+```
+
+then `g` is robust within L2 radius:
+```
+R = (σ/2) · (Φ⁻¹(p̄_A) - Φ⁻¹(p̄_B))
+```
+
+where Φ⁻¹ is the inverse normal CDF.
+
+**Concrete calculation at 99% confidence:**
+- Run N = 100,000 Monte Carlo samples of `f(x + ε_i)` for ε_i ~ N(0, 0.25²I)
+- Estimate `p̄_A` via one-sided Clopper-Pearson interval at 99.5% confidence
+- Suppose `k_A = 90,000` votes for class A → `p̄_A ≈ 0.899` (lower bound)
+- `p̄_B ≤ 1 - p̄_A = 0.101`
+- `R = 0.25/2 · (Φ⁻¹(0.899) - Φ⁻¹(0.101))`
+- `Φ⁻¹(0.899) ≈ 1.278`, `Φ⁻¹(0.101) ≈ -1.278`
+- `R = 0.125 · 2.556 ≈ 0.32`
+
+This is a **provable** L2 robustness certificate — no adversary, regardless of algorithm, can construct an L2 perturbation of magnitude ≤ 0.32 that changes the output of `g` at input `x`.
+
+Key limitation: this is an L2 certificate. Converting to L∞ (the practically relevant norm for pixel attacks) gives R_∞ = R/√d ≈ 0.32/√3072 ≈ 0.006 — essentially zero. Randomized smoothing does not provide useful L∞ certificates.

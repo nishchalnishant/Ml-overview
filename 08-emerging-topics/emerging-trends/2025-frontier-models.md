@@ -303,3 +303,146 @@ Edge/local:       Qwen3-4B / Llama 4 Scout / R1-Distill-7B
 - SWE-Bench Verified: real GitHub issues, 500 problems, patch validated by running the repository's existing test suite. Claude 3.7 at 70.3%, o1 at 48.9%.
 - o3 on ARC-AGI: 87.5% vs GPT-4o's ~5%. ARC-AGI tests visual analogy reasoning designed to resist LLM pattern matching.
 - MTP (Multi-Token Prediction): trains auxiliary heads to predict t+2, t+3, etc. At inference, these serve as speculative draft tokens — multiple tokens accepted per forward pass without a separate draft model.
+
+---
+
+## Canonical Interview Q&As
+
+**Q1: Derive how DeepSeek's Multi-Head Latent Attention achieves its KV cache compression. What are the exact memory savings and the mathematical cost?**
+
+Standard MHA with H heads and d_head dimensions stores K and V tensors per layer:
+
+```
+KV memory per token = 2 × H × d_head bytes per layer
+                    = 2 × 128 × 128 × 2 bytes  = 65,536 bytes/token (fp16)
+```
+
+MLA introduces a shared latent compression: instead of caching K and V separately, it caches a single compressed latent vector `c_KV`:
+
+```
+c_KV = W_DKV · h_t              (compress: d_model → d_c, d_c ≪ H·d_head)
+K_t  = W_UK  · c_KV            (decompress at attention time)
+V_t  = W_UV  · c_KV
+
+Cache per token = d_c bytes  (single vector, not H pairs)
+d_c = 512 in DeepSeek-V3   vs   H·d_head = 128×128 = 16,384
+Compression ratio ≈ 16,384 / 512 = 32× per layer
+```
+
+There is also a decoupled RoPE head `k_R` (RoPE must be applied before caching, otherwise position IDs cannot be injected at serving time). This adds a small `d_Rh` component to the cache:
+
+```
+Cache per token per layer = d_c + d_Rh = 512 + 64 = 576 dims
+vs. standard MHA = H × 2 × d_head = 128 × 2 × 128 = 32,768 dims
+Net compression ≈ 32,768 / 576 ≈ 56.8× 
+```
+
+DeepSeek-V3 reports ~13.5× compared to standard MHA at their specific architecture dimensions. The key cost is the `W_UK / W_UV` decompression matmul at every attention step, which adds FLOPs relative to standard MHA but is acceptable because KV bandwidth (not FLOPs) is the inference bottleneck.
+
+---
+
+**Q2: GRPO eliminates the value network in RL post-training. Derive why this works and what it costs.**
+
+Standard PPO requires four model copies in GPU memory: policy `π_θ`, reference `π_ref`, reward model `r_φ`, and value baseline `V_ψ`. The value network estimates `V(s)` to compute advantage `A = R - V(s)`, reducing policy gradient variance.
+
+GRPO replaces the learned value baseline with a group-relative estimate:
+
+```
+For prompt x, sample G completions {y_1, ..., y_G}
+Compute rewards {r_1, ..., r_G}
+
+Group-relative advantage:
+  Â_i = (r_i - mean({r_j})) / std({r_j})
+
+GRPO objective:
+  L_GRPO = E_i [ min(ratio_i · Â_i, clip(ratio_i, 1-ε, 1+ε) · Â_i) - β·KL(π_θ||π_ref) ]
+  where ratio_i = π_θ(y_i|x) / π_old(y_i|x)
+```
+
+Why this is valid: the value function `V(s)` is a control variate that reduces variance without introducing bias. The group mean `mean(r_j)` is also a valid control variate — it is unbiased as long as the G samples are drawn i.i.d. from the same prompt. Variance reduction equals that of the sample mean of G rewards, which is `Var(R)/G`.
+
+Cost: you need G rollouts per training step (G = 8–16 in R1 training), which multiplies generation compute. But you save one entire model copy in memory and eliminate value network training instability. For reasoning tasks with verifiable rewards (math answers, code execution), G rollouts are cheap relative to the stability gain.
+
+---
+
+**Q3: What does Llama 4's "early fusion" mean architecturally, and why does it require training from scratch rather than adapting an existing LLM?**
+
+Late fusion (LLaVA-style): a frozen vision encoder (ViT) maps images to embedding vectors, an MLP projection aligns them to text embedding space, and the LLM processes the result as if they were token embeddings. Modalities are separate until the LLM's input layer.
+
+```
+Image → ViT → [v_1, ..., v_N] → MLP_proj → [e_1, ..., e_N]
+Text  → tokenizer              → [e_{N+1}, ..., e_M]
+LLM input: [e_1, ..., e_N, e_{N+1}, ..., e_M]
+```
+
+Early fusion: image patches are tokenized into the same vocabulary as text (or via a separate but jointly trained encoder), and the transformer attends over interleaved image and text tokens from layer 1:
+
+```
+All layers: attention(Q, K, V) where K, V come from both image and text positions
+Cross-modal interaction at every layer, not just at input
+```
+
+Why it requires training from scratch: a pre-trained LLM has developed weight matrices (especially in attention and FFN) that are specialized for text token distributions. Image token distributions are fundamentally different — different statistics, different semantic structure. Injecting image tokens into a frozen text-trained model produces systematic representation mismatch that cannot be corrected by fine-tuning the projection layer alone. The attention patterns, positional encodings, and residual stream norms must all co-adapt to the joint distribution from the start.
+
+The key evidence: LLaVA-style models with frozen LLMs show weaker spatial reasoning and object relationship understanding than early-fusion models, because the latter can develop cross-modal attention patterns at every layer rather than a single point of injection.
+
+---
+
+**Q4: Claude 3.7's extended thinking uses `budget_tokens` for user-controlled compute. Design a production system that uses this parameter efficiently across a mixed query workload.**
+
+The key insight: thinking helps on complex multi-step tasks and hurts cost/latency on simple ones. The system must classify queries before setting `budget_tokens`.
+
+```python
+ROUTING_RULES = {
+    "factual_retrieval":  {"budget_tokens": 0,    "reason": "no reasoning needed"},
+    "summarization":      {"budget_tokens": 0,    "reason": "linear task"},
+    "code_completion":    {"budget_tokens": 2000, "reason": "moderate complexity"},
+    "math_proof":         {"budget_tokens": 8000, "reason": "multi-step deductive"},
+    "agentic_planning":   {"budget_tokens": 16000,"reason": "tree search over actions"},
+    "adversarial_eval":   {"budget_tokens": 32000,"reason": "maximize correctness"},
+}
+
+def classify_query(query: str, context: dict) -> str:
+    # Fast classifier (fine-tuned Haiku or heuristic) estimates task type
+    # Features: question type, entity count, presence of math symbols, code fence
+    ...
+
+def get_budget(query: str, context: dict, cost_target: float) -> int:
+    task_type = classify_query(query, context)
+    base_budget = ROUTING_RULES[task_type]["budget_tokens"]
+    # Scale down under cost pressure; minimum 0 (disable thinking)
+    return min(base_budget, int(cost_target * MAX_BUDGET))
+```
+
+Additional production considerations:
+- Thinking tokens are billed but not returned to the user by default. Monitor `usage.cache_read_input_tokens` to understand thinking overhead.
+- For batch workloads, use `budget_tokens=0` and post-process with a separate verification pass only on low-confidence outputs.
+- Cache hit rate degrades with extended thinking because the thinking prefix is unique per query. Design prompts to maximize the shared prefix for cache warming.
+- SWE-Bench result (70.3% with thinking vs. ~40% without) is the reference calibration: thinking roughly doubles code task accuracy at 5–10× cost.
+
+---
+
+**Q5: MoE serving requires all expert weights in memory. Design a serving system for Qwen3-235B-A22B that minimizes cost while meeting <2 second TTFT at p95.**
+
+Problem: Qwen3-235B-A22B has 235B total parameters, ~470GB in fp16. At 80GB A100s, that's a minimum of 6 GPUs just for weights. But active parameters per token are 22B, so the compute utilization is ~22/235 ≈ 9%.
+
+Architecture for efficient serving:
+
+```
+Tier 1: High-Memory Low-GPU-Count machines (H100 NVL 94GB)
+  - 4×H100 NVL = 376GB. Not enough for fp16. Use INT4 = 235B × 0.5 bytes = 117GB → fits on 2×H100.
+  - Expert routing via learned router in INT8 for precision.
+
+Tier 2: Expert Parallelism
+  - Router runs on CPU / small shared GPU.
+  - Each GPU holds a subset of experts. Token routing dispatches to the right GPU.
+  - All-to-all communication at each MoE layer. Use NVLink (600 GB/s) not PCIe (16 GB/s).
+
+Serving strategy for <2s TTFT p95:
+  1. Continuous batching: batch size 8-16 for MoE (larger than dense, because routing amortizes).
+  2. Expert capacity buffer: top-2 routing with overflow buffer to prevent token dropping.
+  3. KV cache offloading: 22B active means KV cache is manageable; HBM-resident for hot context.
+  4. Quantization: GPTQ INT4 for experts (high-volume, low-precision-need) + INT8 for attention.
+```
+
+Key numbers: Qwen3-235B-A22B at INT4 ≈ 117GB → 2×H100 NVL minimum. At batch=16, TTFT dominated by prefill compute at 22B active params ≈ fast enough for <2s at 4K input length. For 32K input, need expert parallelism across 4 GPUs to meet SLA.

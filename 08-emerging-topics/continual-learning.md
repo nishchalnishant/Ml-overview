@@ -283,3 +283,154 @@ L_total = L_task_new + λ · KL(f_old(x) || f_new(x))
 - Class-incremental is the hardest setting: no task ID at test time, must distinguish all classes, output head must grow.
 - In production LLMs, continual pre-training with data replay (old + new documents mixed) is standard practice.
 - DARTS enables gradient-based NAS in a single training run via a softmax relaxation over operation choices; Once-For-All trains one supernetwork deployable to any hardware constraint.
+
+---
+
+## Canonical Interview Q&As
+
+**Q1: Derive the EWC objective from first principles. Why does the diagonal Fisher approximation work, and where does it fail?**
+
+EWC goal: after training on task A, find parameters for task B that perform well on both. Formally, we want to constrain the posterior `p(θ | D_A, D_B)`.
+
+Bayesian derivation:
+```
+log p(θ | D_A, D_B) = log p(D_B | θ) + log p(θ | D_A) - log p(D_B)
+                    ≈ log p(D_B | θ) + log p(θ | D_A)
+```
+
+The key is approximating `log p(θ | D_A)`. Using a Laplace approximation around the MAP estimate `θ_A*`:
+```
+log p(θ | D_A) ≈ log p(θ_A* | D_A) - (1/2)(θ - θ_A*)ᵀ F_A (θ - θ_A*)
+```
+
+where `F_A` is the Fisher information matrix:
+```
+F_A = E_{x~D_A}[ ∇_θ log p(y|x,θ) · ∇_θ log p(y|x,θ)ᵀ ]
+    ≈ (1/N) Σ_i [ g_i · g_iᵀ ]  (empirical Fisher)
+```
+
+This gives the EWC objective:
+```
+L_EWC(θ) = L_B(θ) + (λ/2) Σ_i F_{A,ii} (θ_i - θ*_{A,i})²
+```
+
+The **diagonal approximation** (`F_{A,ii}` instead of full `F_A`) assumes parameters are independent — their joint importance equals the product of marginal importances. This is computationally necessary (full F_A is d×d, unaffordable) but wrong when:
+- Parameter correlations are high (early layers with shared feature detectors)
+- Multiple tasks share parameters that are important in correlated directions
+- Network is over-parameterized with degenerate directions in Fisher
+
+In practice: diagonal EWC works well for sequential task pairs and simple architectures. With >10 tasks, accumulated constraints become over-restrictive (the constraint set intersection shrinks), and the diagonal approximation causes EWC to over-protect parameters that appear important marginally but are not important jointly.
+
+---
+
+**Q2: Compare experience replay, EWC, and progressive networks on the Class-Incremental benchmark. Why is class-incremental the hardest CL setting?**
+
+Three CL settings defined by what the model knows at test time:
+```
+Task-Incremental:     Task ID known at test → separate head per task → easy
+Domain-Incremental:   No task ID, same output space → harder
+Class-Incremental:    No task ID, output space grows → hardest
+```
+
+In **Class-Incremental**, the model must:
+1. Correctly classify all previously seen classes (no forgetting)
+2. Correctly classify new classes (plasticity)
+3. Do both without knowing which task the test example comes from
+4. Grow the output head without disturbing old class representations
+
+Performance comparison on Split-CIFAR-100 (5 tasks × 20 classes):
+
+| Method | Class-Inc Accuracy | Notes |
+|--------|-------------------|-------|
+| Fine-tuning (baseline) | ~15% | Catastrophic forgetting |
+| EWC | ~25-30% | Constraints help but head collapse remains |
+| Progressive Networks | ~65-70% | Zero forgetting; linear growth; task ID implicitly needed for routing |
+| Experience Replay (ER-ACE) | ~55-60% | 200 exemplars/class |
+| DER++ | ~60-65% | Replay + knowledge distillation on stored logits |
+| MEMO | ~68-72% | SOTA: memory + model expansion |
+
+Why EWC struggles in Class-Inc: even if weights are protected, the output head must grow. Adding new class nodes disturbs the softmax distribution over old classes. Old class probabilities are renormalized by the new partition function. EWC protects weights but not the classification boundary in the output space.
+
+Why replay is the dominant approach: it directly solves the fundamental problem — old examples remain in the gradient signal, so the loss landscape for old tasks is not abandoned. The challenge is buffer size (realistic constraint: 1-5% of original data) and class imbalance (new task has full data, old tasks have tiny replay buffer → imbalanced gradient updates).
+
+---
+
+**Q3: You're building a recommendation system that must continuously learn from new user interactions without forgetting long-tail user preferences. Design the architecture.**
+
+Long-tail preferences are the hardest case: few training examples, high variance, low replay frequency.
+
+**Architecture:**
+
+```
+1. Embedding layer: user/item embeddings (most sensitive to forgetting)
+2. Interaction model: MLP tower (standard continual learning problem)
+3. Output: ranking scores
+```
+
+**Forgetting failure modes specific to rec systems:**
+- Long-tail users appear rarely in replay buffers → under-represented → over-forgotten
+- New items have no embeddings → cold-start problem entangled with forgetting
+- Popularity shift: yesterday's trending items are over-represented in memory
+
+**Solution stack:**
+
+```python
+# 1. Reservoir sampling with stratification
+class StratifiedBuffer:
+    def __init__(self, capacity, strata_fn):
+        self.buckets = defaultdict(list)  # strata_fn assigns bucket (e.g., activity percentile)
+        self.capacity_per_bucket = capacity // NUM_STRATA
+    
+    def update(self, interaction):
+        bucket = strata_fn(interaction.user_id)
+        if len(self.buckets[bucket]) < self.capacity_per_bucket:
+            self.buckets[bucket].append(interaction)
+        else:
+            # Reservoir replacement
+            idx = random.randint(0, self.stream_count[bucket])
+            if idx < self.capacity_per_bucket:
+                self.buckets[bucket][idx] = interaction
+
+# 2. EWC on embedding layer (protect long-tail user embeddings specifically)
+fisher_weights = compute_fisher(model, long_tail_users, data_loader)
+ewc_loss = sum(f * (p - p_old)**2 for f, p, p_old in zip(fisher_weights, params, old_params))
+
+# 3. Distillation loss on old predictions to stabilize ranking order
+distill_loss = KL(old_model(replay_batch), new_model(replay_batch))
+
+# Total loss
+L = L_new + λ_replay * L_replay + λ_ewc * ewc_loss + λ_distill * distill_loss
+```
+
+**Infrastructure:** maintain a sliding "importance score" per user (inverse interaction frequency). This drives both replay sampling priority and EWC Fisher weighting — rare users get higher protection. Checkpoint every 24 hours; evaluate BWT on long-tail held-out cohort specifically.
+
+---
+
+**Q4: What is the relationship between NAS and continual learning? When is OFA relevant to production ML?**
+
+NAS and CL solve orthogonal problems that compose naturally in production:
+
+**NAS** answers: given a fixed task and hardware constraint, what architecture maximizes accuracy/latency tradeoff?
+
+**CL** answers: given a fixed architecture, how do we update weights over time without forgetting?
+
+They interact in **hardware-heterogeneous deployments**: a recommendation system must serve users on phones (2GB RAM), tablets (6GB RAM), and servers (40GB GPU). Once-For-All (OFA) trains a single supernetwork from which multiple sub-networks are extracted:
+
+```
+Supernetwork training:
+  1. Train full network normally (establish supernet weights)
+  2. Progressive shrinking: train with randomly sampled sub-networks at each step
+     - Elastic depth: {2,3,4} blocks active
+     - Elastic width: {0.25, 0.35, 0.5} × full width
+     - Elastic kernel: {3,5,7} conv kernels
+
+Deployment:
+  - Given hardware constraint (latency budget T on device D):
+    - Run accuracy predictor + latency predictor on 1000 sub-network configs
+    - Select Pareto-optimal sub-network: max accuracy s.t. latency ≤ T
+    - No retraining — extract weights directly from supernetwork
+```
+
+**Where CL applies to OFA in production:** when training data evolves (e.g., new product categories), the supernetwork itself must be updated without re-extracting and re-validating all previously deployed sub-networks. This is a CL problem at the supernetwork level — update the supernetwork weights on new data while preserving the accuracy of all already-deployed sub-network configurations.
+
+Practical relevance: OFA is widely used in on-device ML (Apple Neural Engine search, TensorFlow Model Optimization Toolkit). The continual update problem for deployed OFA networks is largely unsolved in the literature and is an active research area.
