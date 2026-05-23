@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Probability And Statistics
+status: unread
+tags: [interviewprep, ml, ml-probability-and-statistics]
+---
 # Probability and Statistics
 
 **Primary reference:** [Probability and Statistics deep dive](../../02-ml-fundamentals/math/probability-statistics.md)
@@ -319,3 +326,113 @@ Anchor on sample size calculation from minimum detectable effect, $\alpha$, and 
 
 **If asked about a model showing high accuracy on a rare-event detection task:**
 Immediately ask about class imbalance. A model predicting "not fraud" 100% of the time achieves 99.9% accuracy when fraud rate is 0.1%. Precision, recall, and F1 are the right metrics; accuracy is not. Then invoke Bayes' theorem to reason about the positive predictive value given the base rate.
+
+## Flashcards
+
+**Is there a fixed number of independent binary trials? Binomial.?** #flashcard
+Is there a fixed number of independent binary trials? Binomial.
+
+**Is there an interval during which independent rare events can occur at a constant rate? Poisson.?** #flashcard
+Is there an interval during which independent rare events can occur at a constant rate? Poisson.
+
+**Are you measuring time between independent Poisson events? Exponential.?** #flashcard
+Are you measuring time between independent Poisson events? Exponential.
+
+**Is the quantity the sum of many independent small effects? Normal (by CLT).?** #flashcard
+Is the quantity the sum of many independent small effects? Normal (by CLT).
+
+**Is the quantity constrained to [0,1] and the result of counting successes with unknown rate? Beta or Binomial.?** #flashcard
+Is the quantity constrained to [0,1] and the result of counting successes with unknown rate? Beta or Binomial.
+
+**Assuming everything is normal because it is mathematically convenient. Check skewness, kurtosis, and whether the normal approximation conditions hold.?** #flashcard
+Assuming everything is normal because it is mathematically convenient. Check skewness, kurtosis, and whether the normal approximation conditions hold.
+
+**Confusing Binomial and Poisson. Binomial requires a fixed number of trials $n$. If there is no natural $n$ (counting arrivals in a time window), Poisson is correct.?** #flashcard
+Confusing Binomial and Poisson. Binomial requires a fixed number of trials $n$. If there is no natural $n$ (counting arrivals in a time window), Poisson is correct.
+
+**Saying "CLT says the data becomes normal." CLT says the sampling distribution of the mean becomes normal, not the raw data. Applying normal-based tests to raw skewed data is wrong; applying them to sample means of large batches is justified.?** #flashcard
+Saying "CLT says the data becomes normal." CLT says the sampling distribution of the mean becomes normal, not the raw data. Applying normal-based tests to raw skewed data is wrong; applying them to sample means of large batches is justified.
+
+**Forgetting CLT requires independence. For time-series data where observations are correlated, CLT does not apply directly.?** #flashcard
+Forgetting CLT requires independence. For time-series data where observations are correlated, CLT does not apply directly.
+
+**$H_0$?** #flashcard
+the null hypothesis (e.g., "the change has no effect")
+
+**$H_1$?** #flashcard
+the alternative hypothesis (e.g., "the change improves the metric")
+
+**$\alpha$?** #flashcard
+the acceptable rate of rejecting $H_0$ when it is actually true (Type I error rate)
+
+**Stopping the test early when significance is reached. Running repeated tests inflates Type I error?** #flashcard
+you will find spurious significance by chance. Pre-register the sample size and stop only when it is reached.
+
+**Reporting p-values without effect sizes. A statistically significant result with a tiny effect is often practically useless.?** #flashcard
+Reporting p-values without effect sizes. A statistically significant result with a tiny effect is often practically useless.
+
+**Multiple comparisons. Testing 20 metrics at $\alpha = 0.05$ means approximately 1 will show spurious significance by chance. Apply Bonferroni correction (divide $\alpha$ by number of tests) or control the false discovery rate (Benjamini-Hochberg).?** #flashcard
+Multiple comparisons. Testing 20 metrics at $\alpha = 0.05$ means approximately 1 will show spurious significance by chance. Apply Bonferroni correction (divide $\alpha$ by number of tests) or control the false discovery rate (Benjamini-Hochberg).
+
+**Type I error (false positive, $\alpha$)?** #flashcard
+Reject $H_0$ when it is true. You claimed an effect exists when it does not.
+
+**Type II error (false negative, $\beta$)?** #flashcard
+Fail to reject $H_0$ when it is false. A real effect went undetected.
+
+**Treating $\alpha = 0.05$ as sacred. This threshold is a convention, not a law. The appropriate threshold depends on the relative cost of Type I and Type II errors.?** #flashcard
+Treating $\alpha = 0.05$ as sacred. This threshold is a convention, not a law. The appropriate threshold depends on the relative cost of Type I and Type II errors.
+
+**Not computing required sample size before running an experiment. Underpowered experiments fail to detect real effects and waste resources. Power analysis before data collection is mandatory.?** #flashcard
+Not computing required sample size before running an experiment. Underpowered experiments fail to detect real effects and waste resources. Power analysis before data collection is mandatory.
+
+**The magnitude of the effect, not just whether it crosses a significance threshold?** #flashcard
+The magnitude of the effect, not just whether it crosses a significance threshold
+
+**The uncertainty around the estimate?** #flashcard
+The uncertainty around the estimate
+
+**Whether the effect is practically significant even if statistically significant?** #flashcard
+Whether the effect is practically significant even if statistically significant
+
+**Interpreting overlapping confidence intervals as "the difference is not significant." Overlapping individual CIs do not directly imply the difference is non-significant. You need a CI for the difference specifically, not two individual CIs.?** #flashcard
+Interpreting overlapping confidence intervals as "the difference is not significant." Overlapping individual CIs do not directly imply the difference is non-significant. You need a CI for the difference specifically, not two individual CIs.
+
+**Computing Wald intervals for small proportions. For CTR of 0.1% with n=1000, the Wald interval will include negative values. Use the Wilson or Clopper-Pearson interval.?** #flashcard
+Computing Wald intervals for small proportions. For CTR of 0.1% with n=1000, the Wald interval will include negative values. Use the Wilson or Clopper-Pearson interval.
+
+**$P(H)$: prior?** #flashcard
+belief about the hypothesis before seeing evidence
+
+**$P(E \mid H)$: likelihood?** #flashcard
+how probable the evidence is if the hypothesis is true
+
+**$P(H \mid E)$: posterior?** #flashcard
+updated belief after evidence
+
+**$P(E) = \sum_h P(E \mid H=h) P(H=h)$?** #flashcard
+marginal likelihood (normalizing constant)
+
+**MAP estimation: $\hat{\theta}_{\text{MAP}} = \arg\max_\theta P(\theta \mid D) = \arg\max_\theta [P(D \mid \theta) P(\theta)]$?** #flashcard
+the prior regularizes the estimate
+
+**Naive Bayes classifier?** #flashcard
+applies Bayes' theorem with conditional independence assumption on features
+
+**Bayesian neural networks?** #flashcard
+maintain distributions over weights rather than point estimates
+
+**Saying "L2 regularization prevents overfitting" without the mechanism. The mechanism is that it corresponds to a Gaussian prior that penalizes extreme parameter values?** #flashcard
+it is Bayesian MAP, not an arbitrary constraint.
+
+**Not connecting regularization strength to the data-to-feature ratio. When you have many more features than examples, a stronger prior (larger $\lambda$) is appropriate; when you have many more examples than features, the prior matters less.?** #flashcard
+Not connecting regularization strength to the data-to-feature ratio. When you have many more features than examples, a stronger prior (larger $\lambda$) is appropriate; when you have many more examples than features, the prior matters less.
+
+**Treating bootstrap as a way to generate more training data. It does not add information?** #flashcard
+it quantifies uncertainty about a statistic computed from existing data.
+
+**Bootstrap does not work well with very small samples ($n < 30$) because the empirical distribution is a poor proxy for the population. The bootstrap samples a distribution that already has limited diversity.?** #flashcard
+Bootstrap does not work well with very small samples ($n < 30$) because the empirical distribution is a poor proxy for the population. The bootstrap samples a distribution that already has limited diversity.
+
+**Not using enough bootstrap iterations. $B = 100$ is too few for precise CI estimation; $B = 1000$ is a safe minimum; $B = 10000$ is better for tail percentiles.?** #flashcard
+Not using enough bootstrap iterations. $B = 100$ is too few for precise CI estimation; $B = 1000$ is a safe minimum; $B = 10000$ is better for tail percentiles.

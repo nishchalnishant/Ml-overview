@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Algorithms
+status: unread
+tags: [interviewprep, ml, ml-algorithms]
+---
 # ML Algorithms
 
 ---
@@ -292,3 +299,143 @@ Different methods make different tradeoffs: PCA preserves global linear structur
 **Common traps**:
 - jumping to a neural network for tabular data — on most structured tabular datasets, gradient boosted trees outperform neural networks with substantially less tuning effort
 - not starting with a simple baseline — a logistic regression or a single decision tree establishes the performance floor for simple models and tells you whether more complex models are buying anything; skipping this step makes it impossible to know whether added complexity is worth the cost
+
+## Flashcards
+
+**confusing the splitting criterion (Gini vs entropy) with the stopping criterion (max_depth, min_samples_leaf)?** #flashcard
+these solve different problems; the splitting criterion chooses which question to ask, the stopping criterion decides when to stop asking
+
+**assuming trees need feature scaling?** #flashcard
+they do not, because splits depend only on rank order of feature values, not magnitude
+
+**using a single tree in production without acknowledging its instability?** #flashcard
+the same dataset with one row changed can produce a completely different tree structure
+
+**thinking more trees always helps proportionally?** #flashcard
+variance reduction has sharply diminishing returns after ~100–200 trees; compute cost keeps growing but accuracy improvement stops
+
+**not recognizing that Random Forest still overfits on noisy datasets, just less so than single trees?** #flashcard
+not recognizing that Random Forest still overfits on noisy datasets, just less so than single trees
+
+**forgetting that max_features controls the decorrelation-accuracy tradeoff?** #flashcard
+smaller values produce more decorrelated trees (lower variance, higher individual tree bias); the default sqrt(p) is usually a good balance
+
+**n_estimators?** #flashcard
+more is better up to ~200; after that, gains are marginal
+
+**max_features?** #flashcard
+sqrt(p) for classification, p/3 for regression
+
+**max_depth or min_samples_leaf?** #flashcard
+limits individual tree complexity
+
+**applying bagging to a high-bias model hoping for improvement?** #flashcard
+it will not come; bagging only reduces variance
+
+**applying boosting to a high-variance problem without regularization?** #flashcard
+boosting can dramatically overfit noisy data because it keeps trying to "correct" mistakes that are actually noise, eventually memorizing the noise
+
+**confusing boosting with stacking?** #flashcard
+boosting trains sequentially on residuals from the same base learner type; stacking trains a meta-model on the outputs of heterogeneous base models
+
+**tuning only n_estimators while ignoring learning_rate and max_depth?** #flashcard
+these three interact: smaller learning rate requires more trees; deeper trees risk overfitting each gradient step
+
+**using the default learning rate (0.3 in XGBoost) in production?** #flashcard
+it is too large for most problems; 0.01–0.1 with early stopping is more robust
+
+**not understanding that XGBoost's lambda and alpha regularize the leaf weights, not feature weights?** #flashcard
+this is different from L1/L2 in linear models
+
+**Noisy data, quick baseline needed?** #flashcard
+Random Forest. Robust by construction, works with minimal tuning.
+
+**Structured data competition with time to tune?** #flashcard
+XGBoost/LightGBM. The additional power justifies the tuning cost.
+
+**Production system with limited monitoring?** #flashcard
+Random Forest is safer. Badly tuned XGBoost overfits the training distribution more tightly and can silently degrade on distribution shift.
+
+**assuming XGBoost always wins?** #flashcard
+on small, noisy datasets, a well-configured Random Forest often outperforms XGBoost
+
+**treating these as fundamentally different algorithm families?** #flashcard
+both are tree ensembles; the difference is sequential vs parallel training, not model family
+
+**forgetting that XGBoost is more sensitive to outliers than Random Forest?** #flashcard
+XGBoost fits residuals, so a single extreme residual can dominate a tree; Random Forest's averaging is more resilient
+
+**using logistic regression when the decision boundary is non-linear and failing to add appropriate feature engineering?** #flashcard
+the model will plateau at a performance ceiling that cannot be broken by adding data
+
+**forgetting that sklearn's C is the inverse of regularization strength?** #flashcard
+low C means strong regularization, high C means weak regularization; this convention trips people up constantly
+
+**confusing well-calibrated with accurate?** #flashcard
+logistic regression produces naturally calibrated probabilities; calibration and accuracy are independent properties
+
+**treating logistic regression as "linear regression with a threshold"?** #flashcard
+the sigmoid is applied before any threshold, not used as the threshold itself; the threshold is 0.5 on the sigmoid output, which corresponds to 0 on the linear output
+
+**forgetting that logistic regression is linear in log-odds, not in probability?** #flashcard
+when explaining why the model struggles on a dataset, the distinction between non-linear in probability vs non-linear in log-odds matters
+
+**using MSE as the loss for logistic regression?** #flashcard
+MSE with a sigmoid output creates a non-convex loss surface with poor gradients near saturation; cross-entropy is convex and has well-behaved gradients everywhere
+
+**confusing the $C$ parameter with regularization in the usual sense?** #flashcard
+high C means the model is penalized heavily for misclassifications, so it finds a narrow margin that closely fits training data (high variance); low C is more permissive and produces a wider margin (higher bias)
+
+**not recognizing that SVMs scale as $O(n^2)$ to $O(n^3)$ in training examples?** #flashcard
+impractical for large datasets
+
+**forgetting that only support vectors (points at the margin boundary) determine the decision function?** #flashcard
+the rest of the training data is irrelevant once training is complete
+
+**not normalizing features before KNN?** #flashcard
+a feature with range 0–1000 and a feature with range 0–1 will cause the first feature to dominate all distance computations, effectively making KNN use only that feature as its decision rule
+
+**choosing K without thinking about the bias-variance axis?** #flashcard
+small K = low bias, high variance (sensitive to noise); large K = high bias, low variance (blurs true decision boundaries). K is a hyperparameter that should be chosen by validation, not set to a default
+
+**treating KNN as a production model when it is really a baseline and a sanity check?** #flashcard
+treating KNN as a production model when it is really a baseline and a sanity check
+
+**using the elbow method mechanically without checking if an elbow actually exists?** #flashcard
+the elbow often does not exist cleanly, and forcing an interpretation produces meaningless clusters
+
+**forgetting that K-Means results depend strongly on initialization?** #flashcard
+always run multiple times with different seeds and keep the best WCSS; K-Means++ initialization starts with spread-out centroids and helps significantly
+
+**not recognizing that K-Means is sensitive to outliers?** #flashcard
+one extreme point can pull a centroid far from the cluster's true center, distorting all cluster assignments
+
+**using Naive Bayes when you need well-calibrated probabilities?** #flashcard
+the raw outputs are often poorly calibrated because the independence assumption inflates confidence in the most likely class
+
+**not applying Laplace smoothing in Multinomial Naive Bayes?** #flashcard
+one unseen word in a test document can zero out the entire class probability without smoothing
+
+**using Gaussian Naive Bayes on features with heavy-tailed or multi-modal distributions without transformation?** #flashcard
+using Gaussian Naive Bayes on features with heavy-tailed or multi-modal distributions without transformation
+
+**not standardizing features before PCA?** #flashcard
+features with larger numerical ranges will dominate the principal components regardless of their actual information content
+
+**treating explained variance as the sole criterion for choosing the number of components?** #flashcard
+for supervised learning, choose components based on downstream model performance on a validation set
+
+**confusing PCA with feature selection?** #flashcard
+PCA creates new features as linear combinations of the originals; the components are not interpretable as individual original features
+
+**using t-SNE embeddings as features for a downstream model?** #flashcard
+t-SNE is stochastic, does not preserve distances faithfully, produces different results each run, and is designed purely for visualization
+
+**applying dimensionality reduction before the train/test split?** #flashcard
+the reduction transform (e.g., PCA) must be fit on training data only; fitting on the full dataset leaks test set distribution information into the transform
+
+**jumping to a neural network for tabular data?** #flashcard
+on most structured tabular datasets, gradient boosted trees outperform neural networks with substantially less tuning effort
+
+**not starting with a simple baseline?** #flashcard
+a logistic regression or a single decision tree establishes the performance floor for simple models and tells you whether more complex models are buying anything; skipping this step makes it impossible to know whether added complexity is worth the cost

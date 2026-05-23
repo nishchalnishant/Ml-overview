@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Advanced Rag And Memory
+status: unread
+tags: [emergingtopics, ml, emerging-trends-advanced-rag-a]
+---
 # Advanced RAG and Memory Systems
 
 How naive RAG fails in production and what GraphRAG, Agentic RAG, Self-RAG, and long-context architectures actually solve — with the engineering trade-offs that determine which approach to deploy.
@@ -364,3 +371,17 @@ Self-RAG trains a single model end-to-end to generate both content and reflectio
 The practical capability this enables: adaptive retrieval. The model decides per-sentence whether retrieval would help. For a factual claim that requires external knowledge, it generates [Retrieve=yes] and triggers retrieval. For a continuation that follows logically from what was already said, it generates [Retrieve=no] and continues without retrieval. This is impossible in standard RAG where retrieval is always triggered. Empirically, Self-RAG achieves higher accuracy than standard RAG on open-domain QA while generating fewer hallucinations, because the model can assert confidence in what it knows and only retrieve when genuinely uncertain.
 
 The [ISSUP] token is particularly valuable: it provides per-sentence attribution that tells you which retrieved chunk supports which claim. This is a form of automatic citation generation and factuality checking that emerges from the training objective.
+
+## Flashcards
+
+**Dense retrieval for semantic queries?** #flashcard
+Dense retrieval for semantic queries
+
+**BM25 for exact-match queries (product codes, dates)?** #flashcard
+BM25 for exact-match queries (product codes, dates)
+
+**SQL query for structured data?** #flashcard
+SQL query for structured data
+
+**Web search for real-time information?** #flashcard
+Web search for real-time information

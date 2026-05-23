@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Unsupervised Learning Snappy
+subtopic: ""
+status: unread
+tags: [classicalml, ml, unsupervised-learning-snappy]
+---
 # Unsupervised Learning — 1-Page Cheat Sheet
 
 ## Algorithm Table
@@ -57,3 +64,23 @@
 - **Isolation Forest** — randomly isolates points; anomalies = short path lengths; works in high-D
 - **DBSCAN noise points** — points that don't belong to any dense region
 - **Reconstruction error** (autoencoder) — high error = anomaly
+
+## Flashcards
+
+**Elbow method?** #flashcard
+plot inertia (WCSS) vs K → pick the "elbow" (diminishing returns)
+
+**Silhouette score?** #flashcard
+range [-1, 1]; higher = tighter + better separated; sweep K and pick peak
+
+**Use K-Means++ initialization (spreads centroids) to reduce bad restarts?** #flashcard
+Use K-Means++ initialization (spreads centroids) to reduce bad restarts
+
+**Isolation Forest?** #flashcard
+randomly isolates points; anomalies = short path lengths; works in high-D
+
+**DBSCAN noise points?** #flashcard
+points that don't belong to any dense region
+
+**Reconstruction error (autoencoder)?** #flashcard
+high error = anomaly

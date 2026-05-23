@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 Algorithms
+subtopic: Day 15 16 Evaluation Metrics
+status: unread
+tags: [studyplans, ml, week-2-algorithms-day-15-16-ev]
+---
 # Day 15-16: Model Evaluation and Selection
 
 ## Why This Topic Comes Here
@@ -124,3 +131,38 @@ print(classification_report(y_true, y_pred))
 # Plot confusion matrix to see where the model is 'confused'
 cm = confusion_matrix(y_true, y_pred)
 ```
+
+## Flashcards
+
+**Precision: $\frac{TP}{TP + FP}$?** #flashcard
+of all predictions of "positive," how many were correct?
+
+**Recall: $\frac{TP}{TP + FN}$?** #flashcard
+of all actual positives, how many did the model find?
+
+**ROC Curve?** #flashcard
+Plots $TPR$ vs $FPR$. Ideal for balanced datasets. AUC = 0.5 is random; AUC = 1.0 is perfect.
+
+**PR Curve?** #flashcard
+Plots $Precision$ vs $Recall$. Essential for heavily imbalanced datasets (e.g., 99% negative).
+
+**MAE (Mean Absolute Error)?** #flashcard
+Average absolute residual. Robust to outliers.
+
+**MSE (Mean Squared Error)?** #flashcard
+Average squared residual. Penalizes large errors heavily.
+
+**RMSE (Root MSE)?** #flashcard
+Same scale as the target variable. Easier to interpret.
+
+**R² (Coefficient of Determination)?** #flashcard
+Fraction of variance explained. Unitless.
+
+**Stratified K-Fold: Ensures each fold has the same class distribution as the original data?** #flashcard
+critical for imbalanced classification.
+
+**Inner loop?** #flashcard
+Hyperparameter tuning.
+
+**Outer loop?** #flashcard
+Error estimation.

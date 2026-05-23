@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Ai Safety Ethics And Responsible Ai What
+status: unread
+tags: [llms, ml, interview-notes-ai-safety-ethi]
+---
 # AI Safety, Ethics, and Responsible AI
 
 ---
@@ -1312,3 +1319,536 @@ Periodically include "gold standard" cases with known ground truth to measure wh
 | EU AI Act | AI systems on EU market | Risk classification, conformity assessment, technical documentation, human oversight |
 | NIST AI RMF | US voluntary framework | Govern, Map, Measure, Manage cycles; documentation and eval artifacts |
 | HIPAA (US healthcare) | Protected health information | Minimum necessary use, access controls, audit trails |
+
+## Flashcards
+
+**RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.?** #flashcard
+RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.
+
+**Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.?** #flashcard
+Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.
+
+**Low temperature reduces hallucination variance but doesn't eliminate it?** #flashcard
+the most probable wrong token is still wrong.
+
+**"We tell the model not to hallucinate." This is not a mechanism; it's a wish.?** #flashcard
+"We tell the model not to hallucinate." This is not a mechanism; it's a wish.
+
+**No faithfulness check on RAG outputs?** #flashcard
+the model can still contradict its retrieved context.
+
+**Direct injection?** #flashcard
+user input contains instructions that override the system prompt.
+
+**Indirect injection?** #flashcard
+malicious instructions embedded in retrieved content (web pages, documents, tool outputs).
+
+**Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.?** #flashcard
+Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.
+
+**Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.?** #flashcard
+Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.
+
+**HITL adds latency; not suitable for high-throughput agents.?** #flashcard
+HITL adds latency; not suitable for high-throughput agents.
+
+**"Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.?** #flashcard
+"Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.
+
+**Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).?** #flashcard
+Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).
+
+**Independent classifier?** #flashcard
+not the same model as the one generating, not just a prompt check
+
+**Both layers?** #flashcard
+input AND output checked separately
+
+**Log decisions with reasons?** #flashcard
+for audit, feedback, and threshold calibration
+
+**Multi-stage for high-risk?** #flashcard
+high-severity categories use heavier classifiers at the cost of latency
+
+**Single-layer guardrails (input only)?** #flashcard
+the model can still produce harmful output via indirect prompting.
+
+**Output-only guardrails?** #flashcard
+malicious inputs can manipulate the reasoning process even if the final output is filtered.
+
+**Using the main LLM as the safety judge?** #flashcard
+the same model can be manipulated into passing its own harmful output.
+
+**"Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.?** #flashcard
+"Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.
+
+**"We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.?** #flashcard
+"We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.
+
+**Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.?** #flashcard
+Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.
+
+**Alignment failures interact?** #flashcard
+a sycophantic model will also hallucinate more when confirming user beliefs.
+
+**"We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.?** #flashcard
+"We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.
+
+**Treating alignment as a one-time training problem rather than an ongoing measurement problem.?** #flashcard
+Treating alignment as a one-time training problem rather than an ongoing measurement problem.
+
+**Training data bias?** #flashcard
+historical outcomes reflect past discrimination
+
+**Proxy features?** #flashcard
+correlated with protected attributes (zip code ~ race; school name ~ gender)
+
+**Label bias?** #flashcard
+human-labeled data inherits annotator biases
+
+**Pre-processing?** #flashcard
+reweight examples, rebalance data
+
+**In-processing?** #flashcard
+adversarial debiasing (make protected attribute unpredictable from representation)
+
+**Post-processing?** #flashcard
+threshold calibration per group
+
+**Single-attribute audits?** #flashcard
+mathematically compatible with severe intersectional harm. A model can pass gender audit and race audit while performing 4× worse for Black women.
+
+**Removing protected attributes?** #flashcard
+the model re-learns them from correlated proxies.
+
+**Threshold calibration alone?** #flashcard
+addresses symptoms, not the representation-level cause.
+
+**"We removed race and gender from features." Correlated proxies (zip code, school name) remain.?** #flashcard
+"We removed race and gender from features." Correlated proxies (zip code, school name) remain.
+
+**Only running single-attribute audits without intersectional evaluation.?** #flashcard
+Only running single-attribute audits without intersectional evaluation.
+
+**No retention policy?** #flashcard
+data accumulates indefinitely, increasing liability.
+
+**No deletion mechanism?** #flashcard
+user exercises right to erasure; you can't fulfill it.
+
+**Using data for model training without consent beyond what it was collected for (purpose limitation violation).?** #flashcard
+Using data for model training without consent beyond what it was collected for (purpose limitation violation).
+
+**"Legal handles privacy." No?** #flashcard
+retention policies, deletion APIs, and access controls are engineering.
+
+**No data inventory?** #flashcard
+you can't comply with rights requests if you don't know what data you have.
+
+**Redacting user input but not retrieved documents?** #flashcard
+PII from documents leaks into responses.
+
+**No ACL on retrieval?** #flashcard
+any user can retrieve any document, including documents with other users' PII.
+
+**Logging full queries and responses?** #flashcard
+logs become a PII store; logs must also be redacted.
+
+**"We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.?** #flashcard
+"We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.
+
+**Redacting at output only?** #flashcard
+the model's reasoning was already contaminated by PII in the context.
+
+**SHAP (SHapley Additive exPlanations)?** #flashcard
+attribute prediction to input features using game theory. "This application was denied because feature 'payment_history' contributed -0.42 to the score."
+
+**LIME?** #flashcard
+locally approximate model behavior with a simpler linear model around a specific input.
+
+**Chain-of-Thought explanations?** #flashcard
+the model's reasoning trace as an explanation (for LLMs).
+
+**Attention visualization?** #flashcard
+which tokens the model attended to (caveat: attention is not always explanation).
+
+**Probing classifiers?** #flashcard
+train a linear classifier on internal representations to test if they encode a concept.
+
+**Activation patching?** #flashcard
+intervene on specific activations to trace causal pathways.
+
+**Mechanistic interpretability (circuits)?** #flashcard
+identify specific attention heads and MLP layers that implement behaviors.
+
+**SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.?** #flashcard
+SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.
+
+**Attention-based explanations are often misleading?** #flashcard
+high attention doesn't imply causal importance.
+
+**Explanations for deep networks are imperfect approximations. Always caveat their limitations.?** #flashcard
+Explanations for deep networks are imperfect approximations. Always caveat their limitations.
+
+**"We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.?** #flashcard
+"We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.
+
+**"High attention = important feature." Attention doesn't equal causal importance.?** #flashcard
+"High attention = important feature." Attention doesn't equal causal importance.
+
+**Displaying maximum confidence on every response?** #flashcard
+users stop discriminating, trust is mis-calibrated, errors go unchallenged.
+
+**Never abstaining?** #flashcard
+teaches users the system knows everything, which it doesn't.
+
+**No correction mechanism?** #flashcard
+users have no way to signal errors, accuracy doesn't improve.
+
+**"We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.?** #flashcard
+"We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.
+
+**No abstention?** #flashcard
+always generating an answer when sometimes "I don't know" is the right answer.
+
+**Whitebox (attacker knows model): FGSM, PGD?** #flashcard
+gradient-based perturbations
+
+**Blackbox (query access only)?** #flashcard
+transferability of adversarial examples
+
+**Character-level attacks?** #flashcard
+homoglyphs, zero-width characters, Unicode normalization attacks
+
+**Semantic attacks?** #flashcard
+paraphrasing that preserves meaning but bypasses classifiers
+
+**No defense against all adversarial attacks?** #flashcard
+adversarial training on known attack types doesn't defend against novel attacks.
+
+**Preprocessing adds latency.?** #flashcard
+Preprocessing adds latency.
+
+**Adversarial training can reduce clean accuracy.?** #flashcard
+Adversarial training can reduce clean accuracy.
+
+**"We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.?** #flashcard
+"We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.
+
+**Only defending at training time without runtime monitoring.?** #flashcard
+Only defending at training time without runtime monitoring.
+
+**Track provenance of every training example?** #flashcard
+Track provenance of every training example
+
+**Outlier detection on new training data?** #flashcard
+Outlier detection on new training data
+
+**Separate validation by data source?** #flashcard
+Separate validation by data source
+
+**Content review pipeline for ingested web data?** #flashcard
+Content review pipeline for ingested web data
+
+**Unknown trigger types can't be detected by targeted testing.?** #flashcard
+Unknown trigger types can't be detected by targeted testing.
+
+**If the clean checkpoint is also compromised, retraining from it doesn't help.?** #flashcard
+If the clean checkpoint is also compromised, retraining from it doesn't help.
+
+**No regression test after remediation?** #flashcard
+the same attack can recur.
+
+**"The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.?** #flashcard
+"The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.
+
+**No regression tests added after remediation.?** #flashcard
+No regression tests added after remediation.
+
+**Single threshold across all users?** #flashcard
+systematically wrong for groups not well-represented in calibration data.
+
+**No human review for borderline cases?** #flashcard
+either over-blocks (high threshold) or under-blocks (low threshold) on ambiguous content.
+
+**No feedback loop?** #flashcard
+appeals that overturn decisions aren't used to improve the classifier.
+
+**Setting a threshold once during development and never revisiting it.?** #flashcard
+Setting a threshold once during development and never revisiting it.
+
+**No disaggregated false positive rate analysis.?** #flashcard
+No disaggregated false positive rate analysis.
+
+**NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.?** #flashcard
+NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.
+
+**Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.?** #flashcard
+Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.
+
+**Documentation without engineering artifacts is theater.?** #flashcard
+Documentation without engineering artifacts is theater.
+
+**"We follow NIST AI RMF" with no actual eval artifacts or incident response process.?** #flashcard
+"We follow NIST AI RMF" with no actual eval artifacts or incident response process.
+
+**Treating the framework as documentation-only rather than as a driver of engineering deliverables.?** #flashcard
+Treating the framework as documentation-only rather than as a driver of engineering deliverables.
+
+**Deduplicate training data?** #flashcard
+memorization scales with repetition count
+
+**Filter high-repetition samples?** #flashcard
+Filter high-repetition samples
+
+**Run memorization evaluation before release?** #flashcard
+prompt with known copyrighted passages and measure verbatim match rate
+
+**Inference-time filtering is not sufficient long-term?** #flashcard
+the root cause is in the training data.
+
+**n-gram overlap misses paraphrased verbatim reproduction.?** #flashcard
+n-gram overlap misses paraphrased verbatim reproduction.
+
+**The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.?** #flashcard
+The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.
+
+**Treating inference-time filtering as sufficient without addressing training data.?** #flashcard
+Treating inference-time filtering as sufficient without addressing training data.
+
+**No evaluation of what the threshold catches vs misses.?** #flashcard
+No evaluation of what the threshold catches vs misses.
+
+**Unacceptable risk?** #flashcard
+banned (real-time biometric surveillance, social scoring)
+
+**High risk?** #flashcard
+requires conformity assessment before deployment (CV screening, credit, medical devices, critical infrastructure)
+
+**Limited risk?** #flashcard
+transparency requirements (chatbots must disclose they're AI)
+
+**Minimal risk?** #flashcard
+no requirements
+
+**Retrofitting human oversight after deployment requires redesigning user flows?** #flashcard
+very expensive.
+
+**Conformity assessments require evidence?** #flashcard
+without evaluation artifacts, you have nothing to assess.
+
+**"Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.?** #flashcard
+"Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.
+
+**Waiting until launch to think about conformity assessment.?** #flashcard
+Waiting until launch to think about conformity assessment.
+
+**No version history for models/prompts?** #flashcard
+even partial reconstruction is impossible.
+
+**Over-logging without retention policy?** #flashcard
+logs become a compliance liability.
+
+**Logging raw queries and responses?** #flashcard
+PII in logs; must sanitize before storing.
+
+**No model version pinning?** #flashcard
+you don't know which model made the decision.
+
+**Logging only the output?** #flashcard
+the output alone can't be used to reconstruct why a specific decision was made.
+
+**Model card not versioned?** #flashcard
+stale card describes a model that no longer exists.
+
+**Only aggregate metrics?** #flashcard
+hides group disparities that matter for deployment decisions.
+
+**Limitations section not updated with production failures?** #flashcard
+discovered failure modes belong in the card.
+
+**Publishing a model card once and never updating it.?** #flashcard
+Publishing a model card once and never updating it.
+
+**Listing only aggregate metrics and saying "may occasionally produce incorrect information."?** #flashcard
+Listing only aggregate metrics and saying "may occasionally produce incorrect information."
+
+**Rate limiting by request count?** #flashcard
+a single request can generate arbitrarily many tokens.
+
+**Monitoring in silos?** #flashcard
+behavior that looks normal per-account looks anomalous across accounts.
+
+**No feedback from output filtering to account management?** #flashcard
+violations aren't recorded against accounts.
+
+**"Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.?** #flashcard
+"Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.
+
+**Rate limiting by request count without token counting.?** #flashcard
+Rate limiting by request count without token counting.
+
+**ε=10?** #flashcard
+weak privacy, high utility (use for low-sensitivity data)
+
+**ε=1?** #flashcard
+moderate privacy, moderate utility (common for sensitive data)
+
+**ε=0.1?** #flashcard
+strong privacy, significant utility loss (use only if the threat model requires it)
+
+**DP applies to training, not inference. Inference-time privacy requires separate controls.?** #flashcard
+DP applies to training, not inference. Inference-time privacy requires separate controls.
+
+**Small datasets amplify the utility cost of DP?** #flashcard
+smaller dataset → more noise needed → larger accuracy loss.
+
+**ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.?** #flashcard
+ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.
+
+**Setting ε arbitrarily without connecting it to a threat model.?** #flashcard
+Setting ε arbitrarily without connecting it to a threat model.
+
+**"We use differential privacy" without specifying ε and δ?** #flashcard
+the guarantee is meaningless without them.
+
+**k-anonymity?** #flashcard
+generalize/suppress rare quasi-identifier combinations
+
+**l-diversity?** #flashcard
+within each k-anonymous group, ensure diversity in sensitive attributes
+
+**Differential privacy?** #flashcard
+add calibrated noise to query results or synthetic data
+
+**Synthetic data generation?** #flashcard
+generate statistical twins instead of releasing real records
+
+**k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.?** #flashcard
+k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.
+
+**DP provides formal guarantees but reduces utility.?** #flashcard
+DP provides formal guarantees but reduces utility.
+
+**Synthetic data can leak if the generator trained on small groups.?** #flashcard
+Synthetic data can leak if the generator trained on small groups.
+
+**"We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.?** #flashcard
+"We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.
+
+**No re-identification risk assessment before data release.?** #flashcard
+No re-identification risk assessment before data release.
+
+**Adversarial debiasing reduces task accuracy alongside proxy predictability.?** #flashcard
+Adversarial debiasing reduces task accuracy alongside proxy predictability.
+
+**Some proxies may be legitimate task features.?** #flashcard
+Some proxies may be legitimate task features.
+
+**Intersectional proxy discrimination requires intersectional adversary training.?** #flashcard
+Intersectional proxy discrimination requires intersectional adversary training.
+
+**"We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).?** #flashcard
+"We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).
+
+**Not auditing the representation for protected attribute leakage after training.?** #flashcard
+Not auditing the representation for protected attribute leakage after training.
+
+**False negatives in crisis detection?** #flashcard
+indirect signals ("I just feel like disappearing") may not trigger the classifier.
+
+**Single-model approach?** #flashcard
+crisis detection and response generation in the same model; the model can rationalize past the crisis template.
+
+**"We told the model not to give harmful advice." Not a safety override.?** #flashcard
+"We told the model not to give harmful advice." Not a safety override.
+
+**Crisis detector and responder are the same model.?** #flashcard
+Crisis detector and responder are the same model.
+
+**Importance weighting requires a valid propensity model, which may itself be biased.?** #flashcard
+Importance weighting requires a valid propensity model, which may itself be biased.
+
+**Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).?** #flashcard
+Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).
+
+**Evaluating only on held-out data from the same biased collection process.?** #flashcard
+Evaluating only on held-out data from the same biased collection process.
+
+**No longitudinal monitoring for outcome drift across subgroups.?** #flashcard
+No longitudinal monitoring for outcome drift across subgroups.
+
+**Meaningful?** #flashcard
+describe factors and their direction, not just "the algorithm decided"
+
+**Specific to the individual?** #flashcard
+not a generic policy statement
+
+**Tied to logged decision artifacts?** #flashcard
+reproducible from the audit trail
+
+**Does not expose confidential business logic or training data?** #flashcard
+Does not expose confidential business logic or training data
+
+**Without audit logs (see Q16), you cannot produce a faithful explanation.?** #flashcard
+Without audit logs (see Q16), you cannot produce a faithful explanation.
+
+**Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.?** #flashcard
+Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.
+
+**"We can't explain because it's a neural network." GDPR doesn't exempt you.?** #flashcard
+"We can't explain because it's a neural network." GDPR doesn't exempt you.
+
+**Generic policy explanation rather than individual-specific factors.?** #flashcard
+Generic policy explanation rather than individual-specific factors.
+
+**Machine unlearning methods are approximate and may not provide formal guarantees.?** #flashcard
+Machine unlearning methods are approximate and may not provide formal guarantees.
+
+**Membership inference validation is imperfect.?** #flashcard
+Membership inference validation is imperfect.
+
+**Regulatory requirements on what constitutes "sufficient" erasure are still evolving.?** #flashcard
+Regulatory requirements on what constitutes "sufficient" erasure are still evolving.
+
+**"We deleted it from the database." That doesn't address model weights.?** #flashcard
+"We deleted it from the database." That doesn't address model weights.
+
+**Claiming full erasure without validation.?** #flashcard
+Claiming full erasure without validation.
+
+**Coordinate-wise median?** #flashcard
+resistant to outliers; requires < 50% malicious clients
+
+**Trimmed mean?** #flashcard
+remove top-k and bottom-k before averaging; requires knowing malicious fraction
+
+**Norm clipping + noise?** #flashcard
+bound each client's influence; clipped = update / max(1, ||update|| / C)
+
+**Robust aggregation assumes < 50% malicious (for median-based methods).?** #flashcard
+Robust aggregation assumes < 50% malicious (for median-based methods).
+
+**Sophisticated attacks stay within normal update norms.?** #flashcard
+Sophisticated attacks stay within normal update norms.
+
+**Secure aggregation (cryptographic) does not prevent poisoning?** #flashcard
+it hides individual updates, making anomaly detection harder.
+
+**"We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.?** #flashcard
+"We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.
+
+**Independent review adds workflow time; must be calibrated to case risk.?** #flashcard
+Independent review adds workflow time; must be calibrated to case risk.
+
+**Clinicians may perform the independent review perfunctorily.?** #flashcard
+Clinicians may perform the independent review perfunctorily.
+
+**Providing explanations for AI predictions can increase trust even when the explanation is wrong.?** #flashcard
+Providing explanations for AI predictions can increase trust even when the explanation is wrong.
+
+**Using agreement rate as the success metric.?** #flashcard
+Using agreement rate as the success metric.
+
+**"We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.?** #flashcard
+"We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.

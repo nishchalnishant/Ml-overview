@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Backpropagation
+status: unread
+tags: [deeplearning, ml, components-backpropagation]
+---
 # Backpropagation
 
 ---
@@ -130,3 +137,47 @@ A: ResNet defines each block as F(x) = x + G(x) instead of F(x) = G(x). The grad
 
 **Q: What is gradient checkpointing and when would you use it?**  
 A: In standard backprop, all intermediate activations from the forward pass are cached for use in the backward pass — memory scales with model depth × batch size × sequence length. Gradient checkpointing trades compute for memory: only activations at "checkpoint" boundaries are saved; intermediate activations between checkpoints are recomputed during backward pass. For a model with N layers and checkpoints every k layers, memory reduces from O(N) to O(√N) activations (with optimal checkpoint spacing). The tradeoff is ~33% more FLOPs (each layer forward-pass runs ~1.33× on average). Use it when: (1) fine-tuning large models that don't fit in GPU memory, (2) training with very long sequences (activation memory grows with sequence length), (3) training with large batch sizes. For a 70B model fine-tuned on 4K sequences, activations alone can be 50–100GB without checkpointing; with checkpointing, this drops to ~5–10GB.
+
+## Flashcards
+
+**$z_1 = w_1 x = 0.5$, $a_1 = \sigma(0.5) \approx 0.622$?** #flashcard
+$z_1 = w_1 x = 0.5$, $a_1 = \sigma(0.5) \approx 0.622$
+
+**$z_2 = w_2 a_1 = 0.498$, $\hat{y} = \sigma(0.498) \approx 0.622$?** #flashcard
+$z_2 = w_2 a_1 = 0.498$, $\hat{y} = \sigma(0.498) \approx 0.622$
+
+**$L = (\hat{y} - y)^2 = 0.622^2 \approx 0.387$?** #flashcard
+$L = (\hat{y} - y)^2 = 0.622^2 \approx 0.387$
+
+**$\partial L / \partial \hat{y} = 2(\hat{y} - y) = 1.244$?** #flashcard
+$\partial L / \partial \hat{y} = 2(\hat{y} - y) = 1.244$
+
+**$\partial \hat{y} / \partial z_2 = \sigma'(z_2) = 0.622 \cdot 0.378 \approx 0.235$?** #flashcard
+$\partial \hat{y} / \partial z_2 = \sigma'(z_2) = 0.622 \cdot 0.378 \approx 0.235$
+
+**$\partial L / \partial w_2 = 1.244 \times 0.235 \times a_1 = 1.244 \times 0.235 \times 0.622 \approx 0.182$?** #flashcard
+$\partial L / \partial w_2 = 1.244 \times 0.235 \times a_1 = 1.244 \times 0.235 \times 0.622 \approx 0.182$
+
+**Continue?** #flashcard
+$\partial L / \partial a_1 = 1.244 \times 0.235 \times w_2$, then multiply by $\sigma'(z_1)$ and $x$ to get $\partial L / \partial w_1$
+
+**ReLU-family activations?** #flashcard
+local derivative is 1 for positive activations
+
+**Residual connections: $x_{l+1} = x_l + F(x_l)$?** #flashcard
+gradient flows directly through the skip path, bypassing the activation's derivative entirely
+
+**LayerNorm / BatchNorm?** #flashcard
+prevents activations from drifting into saturation regions
+
+**He initialization?** #flashcard
+sets weight variance so signal stays at consistent scale at layer initialization
+
+**Forget zero_grad()?** #flashcard
+gradients accumulate across batches. Updates grow unboundedly. Loss spikes.
+
+**Detach a tensor mid-computation?** #flashcard
+the computation graph is cut. Gradients do not flow through the detached node. Weights upstream of the detach never update.
+
+**Compute the loss, then modify it outside the graph?** #flashcard
+the modified loss has no connection to the original graph. backward() computes gradients for the wrong thing.

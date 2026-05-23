@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Mixture Of Experts
+status: unread
+tags: [emergingtopics, ml, emerging-trends-mixture-of-exp]
+---
 # Mixture of Experts (MoE)
 
 How MoE enables training trillion-parameter models while keeping inference cost at a fraction of the full parameter count. The architecture behind DeepSeek-V3, Mixtral, GPT-4 (rumored), and Gemini 1.5.
@@ -158,3 +165,17 @@ A: In a top-2 MoE with 16 experts, each token activates 2 expert FFNs. If each e
 
 **Q: What are the inference infrastructure challenges for large MoE models?**
 A: Two distinct problems: (1) Memory: all expert weights must be loaded to GPU memory even though only 2/64 are used per token. DeepSeek-V3 at 671B total params requires 671B × 2 bytes (bf16) = 1.34 TB of GPU memory — that's 17 H100-80GB GPUs just for weights. This makes large MoE models expensive to deploy even though per-token compute is cheap. (2) Latency vs throughput: at small batch sizes (single user), per-token latency is fine but most experts are idle (waste). At large batch sizes, tokens spread across more experts (better utilization) but require all-to-all communication overhead between expert-parallel GPUs. Solutions: expert offloading to CPU for memory reduction (hurts latency), speculative expert pre-loading based on predicted routing, and dense distillation — train a smaller dense model to mimic the MoE, then serve the smaller model.
+
+## Flashcards
+
+**$f_i$ = fraction of tokens routed to expert $i$ (computed without gradients)?** #flashcard
+$f_i$ = fraction of tokens routed to expert $i$ (computed without gradients)
+
+**$P_i$ = average router probability for expert $i$ (computed with gradients)?** #flashcard
+$P_i$ = average router probability for expert $i$ (computed with gradients)
+
+**$\alpha$ = loss coefficient (typically 0.01)?** #flashcard
+$\alpha$ = loss coefficient (typically 0.01)
+
+**The loss is minimized when $f_i = 1/N$ for all $i$ (uniform load)?** #flashcard
+The loss is minimized when $f_i = 1/N$ for all $i$ (uniform load)

@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Ad Ctr Prediction
+status: unread
+tags: [productionml, ml, system-design-ad-ctr-predictio]
+---
 # Ad Click-Through Rate (CTR) Prediction System Design
 
 End-to-end ML system for predicting the probability a user clicks an ad. Canonical system design question at Meta, Google, Twitter/X, and Criteo. Underpins the entire programmatic advertising industry — a 1% improvement in CTR prediction translates directly to hundreds of millions in annual revenue.
@@ -925,3 +932,149 @@ Negative sampling:   1:100 ratio → correct calibration bias at inference
 Calibration target:  ECE < 0.002
 Log loss improvement threshold: 0.001 → production-worthy at Google scale
 ```
+
+## Flashcards
+
+**Ad format? Display (banner), search (keyword-triggered), social (feed), video pre-roll?** #flashcard
+each has different click semantics and feature sets
+
+**Latency budget? Entire ad serving stack must complete in <100ms; CTR scoring gets ~10ms?** #flashcard
+Latency budget? Entire ad serving stack must complete in <100ms; CTR scoring gets ~10ms
+
+**Training data freshness? Is 24h-stale model acceptable, or is online learning required?** #flashcard
+Training data freshness? Is 24h-stale model acceptable, or is online learning required?
+
+**Feedback loop? Are post-click conversions in scope, or just clicks?** #flashcard
+Feedback loop? Are post-click conversions in scope, or just clicks?
+
+**Sparse ID space? How many user IDs, ad IDs, publisher IDs?** #flashcard
+determines embedding table memory
+
+**Multi-task? Predict only CTR, or also CVR (conversion rate), engagement, etc.?** #flashcard
+Multi-task? Predict only CTR, or also CVR (conversion rate), engagement, etc.?
+
+**Auction type? First-price vs second-price?** #flashcard
+calibration requirements differ
+
+**Wide part?** #flashcard
+Cross-product features + logistic regression. Memorizes frequent co-occurrences (e.g., "user installed Netflix" AND "ad is for Disney+" → high CTR).
+
+**Deep part?** #flashcard
+Embedding lookup + 3-layer MLP. Generalizes to unseen combinations.
+
+**Handles 10^9 sparse features naturally (only store touched features)?** #flashcard
+Handles 10^9 sparse features naturally (only store touched features)
+
+**Per-coordinate adaptive learning rates (like AdaGrad)?** #flashcard
+Per-coordinate adaptive learning rates (like AdaGrad)
+
+**L1 regularization produces truly sparse models (important for memory)?** #flashcard
+L1 regularization produces truly sparse models (important for memory)
+
+**Can process ~100K examples/second per worker?** #flashcard
+Can process ~100K examples/second per worker
+
+**Auction computes eCPM = $10 × 0.02 = $0.20?** #flashcard
+Auction computes eCPM = $10 × 0.02 = $0.20
+
+**Advertiser wins auctions they shouldn't, pays too much per click?** #flashcard
+Advertiser wins auctions they shouldn't, pays too much per click
+
+**Budget depletes 2× faster than expected?** #flashcard
+Budget depletes 2× faster than expected
+
+**Temperature scaling?** #flashcard
+simplest, one parameter, good default
+
+**Platt scaling?** #flashcard
+when score distribution differs from logistic
+
+**Isotonic regression?** #flashcard
+when you have >100K calibration examples and need flexible shape
+
+**Advertiser A is in experiment group; their ads now score higher → they win more auctions → Advertiser B's ads (in control group) get fewer impressions?** #flashcard
+Advertiser A is in experiment group; their ads now score higher → they win more auctions → Advertiser B's ads (in control group) get fewer impressions
+
+**Measuring "CTR improvement" in treatment vs control is confounded by budget reallocation?** #flashcard
+Measuring "CTR improvement" in treatment vs control is confounded by budget reallocation
+
+**An experiment that improves CTR by 0.5% might decrease control group CTR by 0.3%?** #flashcard
+net lift is only 0.2%, but naive experiment reports 0.5%
+
+**Revenue per query (RPQ)?** #flashcard
+Revenue per query (RPQ)
+
+**Advertiser spend rate (budget utilization)?** #flashcard
+Advertiser spend rate (budget utilization)
+
+**User satisfaction signals (skip rate, complaint rate)?** #flashcard
+User satisfaction signals (skip rate, complaint rate)
+
+**CTR lift (with confidence intervals)?** #flashcard
+CTR lift (with confidence intervals)
+
+**RPM improvement?** #flashcard
+RPM improvement
+
+**Advertiser ROI?** #flashcard
+Advertiser ROI
+
+**Model log loss improvement?** #flashcard
+Model log loss improvement
+
+**Calibration ECE?** #flashcard
+Calibration ECE
+
+**Impression share for small advertisers?** #flashcard
+Impression share for small advertisers
+
+**Exploration budget?** #flashcard
+Reserve ε fraction of auctions for random or UCB-based ad selection (analogous to multi-armed bandit exploration)
+
+**Thompson sampling: Sample pCTR from posterior distribution rather than using point estimate?** #flashcard
+naturally balances explore/exploit
+
+**Counterfactual off-policy training?** #flashcard
+Train on all candidate ads, not just winners (requires logging propensities)
+
+**Context-only serving?** #flashcard
+Use device type, geo, time-of-day, page content without user history
+
+**Demographic fallback?** #flashcard
+Age + gender (if provided) → use segment-level CTR
+
+**Session signals?** #flashcard
+Clicks within current session bootstrap a session embedding in real time
+
+**Federated/ondevice signals?** #flashcard
+In privacy-preserving settings, use on-device behavioral signals without sending to server
+
+**Shorter training window (last 7 days instead of 30 days) for faster adaptation?** #flashcard
+Shorter training window (last 7 days instead of 30 days) for faster adaptation
+
+**Sample-weighted training?** #flashcard
+weight recent examples more heavily
+
+**Pre-season fine-tuning?** #flashcard
+collect holiday traffic data from prior year, fine-tune before the event
+
+**Click velocity?** #flashcard
+>10 clicks/minute from same IP
+
+**Click-through without dwell time?** #flashcard
+user clicks, immediately leaves (<2 seconds on landing page)
+
+**Geographic anomalies?** #flashcard
+IP claims to be in New York, but timezone/language is Eastern Europe
+
+**Click farms?** #flashcard
+coordinated click patterns across IPs sharing subnet
+
+**Invalid click filtering before labels enter training data?** #flashcard
+Invalid click filtering before labels enter training data
+
+**Separate "raw CTR" vs "valid CTR" metrics?** #flashcard
+Separate "raw CTR" vs "valid CTR" metrics
+
+**Retroactive budget credits to affected advertisers?** #flashcard
+Retroactive budget credits to affected advertisers

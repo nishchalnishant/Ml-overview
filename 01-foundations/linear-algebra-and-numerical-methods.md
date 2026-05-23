@@ -1,3 +1,10 @@
+---
+module: Foundations
+topic: Linear Algebra And Numerical Methods
+subtopic: ""
+status: unread
+tags: [foundations, ml, linear-algebra-and-numerical-m]
+---
 # Linear Algebra and Numerical Methods
 
 ---
@@ -410,3 +417,59 @@ In full fine-tuning, $W \in \mathbb{R}^{m \times n}$ changes by $\Delta W$ of ra
 **Q7: What is the difference between a pseudoinverse and a matrix inverse, and when do you need the former?**
 
 The inverse $A^{-1}$ exists only for square, full-rank matrices and satisfies $AA^{-1} = I$. The pseudoinverse $A^+$ exists for any matrix: it is defined via SVD as $V\Sigma^+ U^\top$ where $\Sigma^+$ inverts non-zero singular values and zeroes out zero singular values. When $Ax = b$ has no solution ($b \notin \text{col}(A)$), $A^+ b$ gives the minimum-norm least-squares solution. You need it whenever you solve overdetermined systems (more equations than unknowns) — the exact scenario in fitting a linear model with MSE loss. Numerically, you should use `np.linalg.lstsq` rather than explicitly forming $A^+$, as it is more stable.
+
+## Flashcards
+
+**Real eigenvalues (always)?** #flashcard
+Real eigenvalues (always)
+
+**Orthogonal eigenvectors (always)?** #flashcard
+Orthogonal eigenvectors (always)
+
+**Non-negative eigenvalues iff positive semidefinite?** #flashcard
+Non-negative eigenvalues iff positive semidefinite
+
+**PCA?** #flashcard
+Drop small singular values to reduce dimensionality
+
+**Collaborative filtering / matrix factorization?** #flashcard
+Approximate user-item matrices with low-rank factors
+
+**LSA (Latent Semantic Analysis)?** #flashcard
+Low-rank approximation of TF-IDF term-document matrix
+
+**Weight compression?** #flashcard
+Low-rank factorization of large weight matrices (LoRA is exactly this: $\Delta W = BA$ where $B \in \mathbb{R}^{m \times r}$, $A \in \mathbb{R}^{r \times n}$, $r \ll \min(m,n)$)
+
+**Positive definite (PD)?** #flashcard
+$\mathbf{x}^\top A \mathbf{x} > 0$ for all $\mathbf{x} \neq 0$
+
+**Positive semidefinite (PSD)?** #flashcard
+$\mathbf{x}^\top A \mathbf{x} \geq 0$ for all $\mathbf{x}$
+
+**$\det(Q) = \pm 1$?** #flashcard
+$\det(Q) = \pm 1$
+
+**$\|Q\mathbf{x}\|_2 = \|\mathbf{x}\|_2$?** #flashcard
+length-preserving (isometry)
+
+**Eigenvalues lie on the unit circle in $\mathbb{C}$?** #flashcard
+Eigenvalues lie on the unit circle in $\mathbb{C}$
+
+**Access memory in stride-1 (contiguous) patterns?** #flashcard
+Access memory in stride-1 (contiguous) patterns
+
+**A naive $C = AB$ loop over $(i, j, k)$ causes cache misses on $B$'s column accesses in row-major layout → reorder to $(i, k, j)$ or use blocked (tiled) matmul?** #flashcard
+A naive $C = AB$ loop over $(i, j, k)$ causes cache misses on $B$'s column accesses in row-major layout → reorder to $(i, k, j)$ or use blocked (tiled) matmul
+
+**GPU tensor cores operate on tiles; padding dimensions to multiples of 8 or 16 maximizes utilization?** #flashcard
+GPU tensor cores operate on tiles; padding dimensions to multiples of 8 or 16 maximizes utilization
+
+**x.contiguous() in PyTorch forces row-major layout; many ops silently call this, triggering a copy?** #flashcard
+x.contiguous() in PyTorch forces row-major layout; many ops silently call this, triggering a copy
+
+**Transpose of a large matrix is not free in terms of subsequent operation performance even if the T itself is free (zero-copy)?** #flashcard
+Transpose of a large matrix is not free in terms of subsequent operation performance even if the T itself is free (zero-copy)
+
+**Batch matrix multiply (torch.bmm) is more cache-friendly than a Python loop over batch dimension?** #flashcard
+Batch matrix multiply (torch.bmm) is more cache-friendly than a Python loop over batch dimension

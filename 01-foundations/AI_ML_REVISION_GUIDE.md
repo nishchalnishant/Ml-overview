@@ -1,3 +1,10 @@
+---
+module: Foundations
+topic: Ai Ml Revision Guide
+subtopic: ""
+status: unread
+tags: [foundations, ml, ai-ml-revision-guide]
+---
 # AI & ML Revision Guide
 
 **For:** Someone who already builds and ships software and does not need the textbook warm-up.
@@ -484,3 +491,92 @@ They want: the QKV formulation; the scaling; why it replaces RNNs.
 - [Causal Inference & A/B Testing](../experimentation-and-causal-inference/README.md)
 - [Emerging Trends](../emerging-trends/README.md)
 - [Graph Neural Networks](../graph-neural-networks/README.md)
+
+## Flashcards
+
+**Bias²?** #flashcard
+Systematic error from wrong structural assumptions. The model is consistently wrong in the same direction.
+
+**Variance?** #flashcard
+Sensitivity to training data fluctuations. The model's predictions vary across different training sets.
+
+**σ²?** #flashcard
+Irreducible noise in the data. Cannot be fixed.
+
+**Too large?** #flashcard
+overshoot minima, training diverges.
+
+**Too small?** #flashcard
+impractically slow, gets stuck in flat regions.
+
+**Data Parallelism (DP)?** #flashcard
+Split the batch across GPUs. Each GPU has a full model copy. Gradients are synchronized after each step. Scales linearly with GPUs; requires the full model to fit on one GPU.
+
+**Tensor Parallelism (TP)?** #flashcard
+Split individual weight matrices across GPUs. Requires fast inter-GPU communication (NVLink). Used when a single layer is too large for one GPU.
+
+**Pipeline Parallelism (PP): Split model layers across GPUs?** #flashcard
+layers 1-12 on GPU 1, layers 13-24 on GPU 2, etc. Efficient for very deep models; introduces "pipeline bubbles" (idle time waiting for the previous stage).
+
+**G-Eval / LLM-as-judge?** #flashcard
+Use a strong LLM (e.g., GPT-4) to evaluate outputs on dimensions like coherence, relevance, and harmlessness. Scalable but inherits the evaluator's biases.
+
+**RAGAS?** #flashcard
+Framework for evaluating RAG pipelines on faithfulness, answer relevancy, context precision, and context recall.
+
+**Benchmarks (MMLU, HumanEval, etc.): Standardized test sets. Interpret carefully?** #flashcard
+contamination (training data overlap with benchmark) can inflate scores.
+
+**DiD (Difference-in-Differences)?** #flashcard
+Compare treated vs. control groups before and after treatment. Controls for time-invariant confounders.
+
+**Propensity Score Matching?** #flashcard
+Match treated and untreated units on observed covariates.
+
+**Instrumental Variables?** #flashcard
+Use a variable that affects treatment but has no direct effect on the outcome.
+
+**Model accuracy / precision / recall (lagged by label availability)?** #flashcard
+Model accuracy / precision / recall (lagged by label availability)
+
+**Prediction score distribution (can detect drift without labels)?** #flashcard
+Prediction score distribution (can detect drift without labels)
+
+**Input feature distributions?** #flashcard
+Input feature distributions
+
+**Inference latency and throughput?** #flashcard
+Inference latency and throughput
+
+**Error rates?** #flashcard
+Error rates
+
+**[LLM Fundamentals](../llm-interview-notes/llm-fundamentals.md)?** #flashcard
+[LLM Fundamentals](../llm-interview-notes/llm-fundamentals.md)
+
+**[AI System Design](../llm-interview-notes/ai-system-design.md)?** #flashcard
+[AI System Design](../llm-interview-notes/ai-system-design.md)
+
+**[Math Derivations](../ml-interview-notes/math-derivations.md)?** #flashcard
+[Math Derivations](../ml-interview-notes/math-derivations.md)
+
+**[MLOps](../mlops.md)?** #flashcard
+[MLOps](../mlops.md)
+
+**[Reinforcement Learning](../reinforcement-learning/README.md)?** #flashcard
+[Reinforcement Learning](../reinforcement-learning/README.md)
+
+**[Recommender Systems](../recommender-systems/README.md)?** #flashcard
+[Recommender Systems](../recommender-systems/README.md)
+
+**[Interpretability & XAI](../interpretability-and-xai/README.md)?** #flashcard
+[Interpretability & XAI](../interpretability-and-xai/README.md)
+
+**[Causal Inference & A/B Testing](../experimentation-and-causal-inference/README.md)?** #flashcard
+[Causal Inference & A/B Testing](../experimentation-and-causal-inference/README.md)
+
+**[Emerging Trends](../emerging-trends/README.md)?** #flashcard
+[Emerging Trends](../emerging-trends/README.md)
+
+**[Graph Neural Networks](../graph-neural-networks/README.md)?** #flashcard
+[Graph Neural Networks](../graph-neural-networks/README.md)

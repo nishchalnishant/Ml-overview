@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Feature Store Advanced
+status: unread
+tags: [productionml, ml, system-design-feature-store-ad]
+---
 # Feature Store Architecture
 
 A feature store is the data infrastructure layer between raw data and ML models. Getting it wrong causes training-serving skew, stale features, and repeated feature computation across teams.
@@ -350,3 +357,41 @@ A: The decision turns on two axes: how fast the feature changes, and how much it
 
 **Q: How do you backfill a streaming feature for historical training data?**  
 A: Streaming features are challenging to backfill because the computation is defined on an event stream with a specific timestamp. The correct approach: replay the raw event stream (from Kafka's topic retention or S3 archive) through the same Flink/Spark streaming job, but in batch mode, writing outputs with their original event timestamps to the offline store (S3/BigQuery). This produces historically correct feature values that match what the streaming pipeline would have produced in real time. Key gotchas: (1) ensure watermarking logic handles late arrivals the same way as production; (2) write results with `feature_timestamp = window_end_time`, not backfill time; (3) backfilled features must pass point-in-time parity checks against any held-out period before using for training.
+
+## Flashcards
+
+**Different aggregation windows (7 days exact vs approximately 7 days)?** #flashcard
+Different aggregation windows (7 days exact vs approximately 7 days)
+
+**Different null handling?** #flashcard
+Different null handling
+
+**Different data sources (warehouse vs operational DB)?** #flashcard
+Different data sources (warehouse vs operational DB)
+
+**Staleness (serving cache is hours behind training data)?** #flashcard
+Staleness (serving cache is hours behind training data)
+
+**Mean feature value?** #flashcard
+within 5% between online/offline
+
+**KS statistic?** #flashcard
+< 0.1
+
+**Null rate?** #flashcard
+within 1 percentage point
+
+**Feature changes in < 5 min and impacts model output → streaming required?** #flashcard
+Feature changes in < 5 min and impacts model output → streaming required
+
+**Feature changes hourly and model runs < 1 day before prediction → batch OK?** #flashcard
+Feature changes hourly and model runs < 1 day before prediction → batch OK
+
+**Feature changes daily → can use offline store with daily refresh?** #flashcard
+Feature changes daily → can use offline store with daily refresh
+
+**name?** #flashcard
+txn_count_7d
+
+**name?** #flashcard
+total_spend_30d

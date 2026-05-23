@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Ai System Design Snappy
+status: unread
+tags: [llms, ml, interview-notes-ai-system-desi]
+---
 # AI system design — Azure/DevOps-fluent templates
 
 These are **system design skeletons** you can speak out loud. Short, structured, and production-minded.
@@ -342,3 +349,580 @@ These are **system design skeletons** you can speak out loud. Short, structured,
 
 ---
 
+## Flashcards
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**RAG note?** #flashcard
+chunking + hybrid search + reranking + citations; store metadata for audit.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Code note?** #flashcard
+structured output + sandbox execution + policy checks; never auto-merge without review.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Decisioning note?** #flashcard
+offline training + online serving; guardrails for feedback loops and abuse.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Regulated note?** #flashcard
+audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**RAG note?** #flashcard
+chunking + hybrid search + reranking + citations; store metadata for audit.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Code note?** #flashcard
+structured output + sandbox execution + policy checks; never auto-merge without review.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**RAG note?** #flashcard
+chunking + hybrid search + reranking + citations; store metadata for audit.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Reliability?** #flashcard
+multi-region + fallback models + queueing + graceful degradation.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Reliability?** #flashcard
+multi-region + fallback models + queueing + graceful degradation.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**RAG note?** #flashcard
+chunking + hybrid search + reranking + citations; store metadata for audit.
+
+**Regulated note?** #flashcard
+audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Decisioning note?** #flashcard
+offline training + online serving; guardrails for feedback loops and abuse.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+**Clarify (30s)?** #flashcard
+users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+**Core architecture?** #flashcard
+client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+**Azure mapping?** #flashcard
+API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+**Quality gates?** #flashcard
+eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+**Safety?** #flashcard
+prompt injection defenses, allow-listed tools, HITL for high-risk actions.

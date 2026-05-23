@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Methods
+subtopic: Segmentation
+status: unread
+tags: [deeplearning, ml, methods-segmentation]
+---
 # Segmentation & Pose Estimation
 
 > Covers semantic segmentation (FCN → U-Net → DeepLab → SegFormer), instance segmentation (Mask R-CNN → SOLOv2 → Mask2Former), panoptic segmentation, and pose estimation (OpenPose → HRNet → ViTPose). Metrics and interview points included.
@@ -474,3 +481,38 @@ Cross-entropy averages equally over pixels — small foreground regions contribu
 
 **SegFormer's trick for resolution-agnostic inference**
 Standard ViT uses fixed positional embeddings — changing input resolution at test time misaligns them. SegFormer removes positional embeddings and adds depth-wise 3×3 convolutions inside the FFN (Mix-FFN). The convolutions provide implicit positional signal without fixing a resolution, enabling arbitrary-size inference without interpolation artifacts.
+
+## Flashcards
+
+**Efficient self-attention?** #flashcard
+reshape K and V by reduction ratio R before computing attention, reducing cost from O(N²) to O(N²/R). R decreases across stages: {64, 16, 4, 1}.
+
+**Mix-FFN: x + Conv_{3×3}(FFN(x))?** #flashcard
+the 3×3 conv carries implicit positional signal.
+
+**Top-down?** #flashcard
+detect bounding boxes first → crop each person → run pose network. Accurate; inference time scales linearly with person count.
+
+**Bottom-up?** #flashcard
+detect all keypoints globally → group into individuals. Fixed inference time regardless of crowd size.
+
+**A prediction is TP if its mask/box IoU with the matched ground-truth exceeds a threshold.?** #flashcard
+A prediction is TP if its mask/box IoU with the matched ground-truth exceeds a threshold.
+
+**COCO AP: average of AP at IoU thresholds {0.50, 0.55, ..., 0.95}?** #flashcard
+10 thresholds.
+
+**mAP?** #flashcard
+mean AP over all categories.
+
+**d_k?** #flashcard
+Euclidean distance between predicted and ground-truth keypoint.
+
+**s?** #flashcard
+object scale (√bounding box area).
+
+**σ_k?** #flashcard
+per-keypoint constant reflecting annotation noise (hip σ=0.107, eye σ=0.025).
+
+**v_k?** #flashcard
+visibility flag.

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Ml Coding Patterns
+status: unread
+tags: [interviewprep, ml, llm-ml-coding-patterns]
+---
 # ML Coding Patterns — First-Principles Interview Reference
 
 Each pattern starts with what breaks in the naive version, then derives why the pattern exists. The insight should make the pattern obvious in retrospect.

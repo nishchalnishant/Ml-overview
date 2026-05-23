@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Context Window Extension
+status: unread
+tags: [llms, ml, applications-context-window-ex]
+---
 # Context Window Extension
 
 ---
@@ -240,3 +247,11 @@ Mamba's key innovation: make B, C, and the discretization step Δ input-dependen
 ---
 
 *Related: [RAG](rag.md) | [Inference Optimization](inference-optimization.md) | [Speculative Decoding](speculative-decoding.md)*
+
+## Flashcards
+
+**Memory: the attention matrix must be materialized in GPU high-bandwidth memory?** #flashcard
+at n=32k in float16, roughly 2 GB per layer.
+
+**Compute?** #flashcard
+FLOPs scale quadratically, making long-context inference slow even when memory holds.

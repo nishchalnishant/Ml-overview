@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Behavioral And Scenario Based Questions Snappy
+status: unread
+tags: [llms, ml, interview-notes-behavioral-and]
+---
 # Behavioral & scenario questions — answers that sound like you’ve shipped
 
 These aren’t “soft” questions. They’re **risk questions**.
@@ -119,3 +126,89 @@ These aren’t “soft” questions. They’re **risk questions**.
 
 # Q22: Better benchmark agentic system vs simpler maintainable RAG — decide?
 - **Direct answer:** Optimize for total cost of ownership: maintainability + safety + on-call burden. Use agents only where they add real value.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+AI engineering focuses on shipping AI features end-to-end (LLMs, RAG, agents, safety, cost). ML engineering often centers on training/serving predictive models.
+
+**Direct answer?** #flashcard
+If rules are stable → code it. If language/ambiguity is core → AI. If failure cost is high → add constraints/humans.
+
+**Direct answer?** #flashcard
+Define a business metric (deflection, conversion, time saved) + unit cost (tokens/req) + quality guardrails.
+
+**Direct answer?** #flashcard
+Triage scope → reproduce with traces → add grounding/constraints → ship fix behind flags → add eval to prevent regression.
+
+**Direct answer?** #flashcard
+API for speed and capability; self-host for control/cost at scale/privacy. Decide by latency, data sensitivity, and ops maturity.
+
+**Direct answer?** #flashcard
+Show demos + known failure modes early. Define “good enough” with metrics. Don’t promise magic.
+
+**Direct answer?** #flashcard
+Check retrieval first (chunking, top-k, hybrid, rerank). Then prompt/format. Then evals.
+
+**Mini prompt?** #flashcard
+If answers are fluent but wrong, what broke first? → retrieval/grounding.
+
+**Direct answer?** #flashcard
+Track a few reliable sources, run small experiments, and focus on principles (retrieval, evals, safety) over hype.
+
+**Direct answer?** #flashcard
+Ship experiments behind flags, use eval gates, canary releases, and rollback plans.
+
+**Use this frame:?** #flashcard
+Use this frame:
+
+**Stakes?** #flashcard
+what broke / what mattered
+
+**Constraints?** #flashcard
+latency, privacy, budget
+
+**Decision?** #flashcard
+prompt vs RAG vs fine-tune
+
+**Guardrails?** #flashcard
+schema, filters, HITL
+
+**Result?** #flashcard
+metric lift + incident reduction
+
+**Direct answer?** #flashcard
+Contain (disable feature/route to safer mode), investigate, fix data/policy, add monitoring + audits.
+
+**Direct answer?** #flashcard
+Reduce tokens (context compression), cache, route to smaller models, reduce retries, batch.
+
+**Direct answer?** #flashcard
+Tie to user value (p95 SLA) and business cost. Use routing: fast model default, slow model for hard cases.
+
+**Direct answer?** #flashcard
+Monitor drift (data + behavior), refresh retrieval corpus, retrain/fine-tune when needed, add continuous evals.
+
+**Direct answer?** #flashcard
+Use analogies: “autocomplete with confidence.” Show examples + safety rails. Set expectations with metrics.
+
+**Direct answer?** #flashcard
+Start with prompting + RAG, then synthetic data + PEFT; build a golden eval set early.
+
+**Direct answer?** #flashcard
+Align on definitions (success/failure), document contracts (schemas), and agree on escalation paths.
+
+**Direct answer?** #flashcard
+More routing, more eval automation, more on-device, more governance—less “prompt vibes,” more engineering.
+
+**Direct answer?** #flashcard
+Tie to shipping + operating AI systems: reliability, cost control, and user value.
+
+**Direct answer?** #flashcard
+Translate to user harm + support load + legal risk. Offer mitigations: scope limits, RAG, refusals, HITL.
+
+**Direct answer?** #flashcard
+Explain stochastic generation + incomplete info. Compare to humans: high skill, not perfect; build guardrails and appeal paths.
+
+**Direct answer?** #flashcard
+Optimize for total cost of ownership: maintainability + safety + on-call burden. Use agents only where they add real value.

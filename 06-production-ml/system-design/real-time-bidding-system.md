@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Real Time Bidding System
+status: unread
+tags: [productionml, ml, system-design-real-time-biddin]
+---
 # Real-Time Bidding (RTB) / Programmatic Advertising ML System
 
 End-to-end ML system for programmatic display and video advertising. Canonical system design question at ad-tech companies (The Trade Desk, Criteo, Google DV360, Amazon DSP) and interview loops for senior/staff ML engineers in adtech.
@@ -900,3 +907,182 @@ RTB has severe training-serving skew because: (1) bid requests are filtered befo
 - **Criteo AI Lab** — "A Practical Exploration of Echo Chamber Effects in Online Advertising" (offline evaluation bias)
 - **Google Privacy Sandbox** — Protected Audience API spec (FLEDGE successor)
 - **IAB Tech Lab** — Seller.json, ads.txt, SupplyChain Object (supply path validation)
+
+## Flashcards
+
+**DSP or SSP perspective? Demand-Side Platform (DSP) bids to buy impressions; Supply-Side Platform (SSP) runs the auction and passes through bids. Most ML complexity lives on the DSP side.?** #flashcard
+DSP or SSP perspective? Demand-Side Platform (DSP) bids to buy impressions; Supply-Side Platform (SSP) runs the auction and passes through bids. Most ML complexity lives on the DSP side.
+
+**Display vs. video? Video CPMs are 5–10x higher; viewability and completion rate replace CTR as primary signals. Video allows pre-roll, mid-roll, outstream; each has different user intent.?** #flashcard
+Display vs. video? Video CPMs are 5–10x higher; viewability and completion rate replace CTR as primary signals. Video allows pre-roll, mid-roll, outstream; each has different user intent.
+
+**Brand vs. performance campaign? Brand?** #flashcard
+optimize reach, frequency, viewability, brand lift lift surveys. Performance: optimize CPA, ROAS, down-funnel conversions. Model objectives and bid formulas differ fundamentally.
+
+**First-price vs. second-price auction? Most exchanges moved to first-price (2019+). Bid shading is mandatory in first-price; not needed in second-price (Vickrey). The system must know the auction type per exchange.?** #flashcard
+First-price vs. second-price auction? Most exchanges moved to first-price (2019+). Bid shading is mandatory in first-price; not needed in second-price (Vickrey). The system must know the auction type per exchange.
+
+**Retargeting vs. prospecting? Retargeting (known converters)?** #flashcard
+high signal, small audience. Prospecting (lookalike): relies heavily on pCTR/pCVR model generalization.
+
+**What conversion window? 7-day, 30-day, 60-day post-click? Longer windows mean delayed labels, which break standard online learning and require survival modeling.?** #flashcard
+What conversion window? 7-day, 30-day, 60-day post-click? Longer windows mean delayed labels, which break standard online learning and require survival modeling.
+
+**Privacy regime? EU GDPR, US CCPA/CPRA, Canada PIPEDA. Cookieless environments (Safari ITP, Chrome Privacy Sandbox) affect user ID resolution fundamentally.?** #flashcard
+Privacy regime? EU GDPR, US CCPA/CPRA, Canada PIPEDA. Cookieless environments (Safari ITP, Chrome Privacy Sandbox) affect user ID resolution fundamentally.
+
+**Budget allocation? Fixed daily budget per campaign, or portfolio bidding across multiple campaigns with shared budget?** #flashcard
+Budget allocation? Fixed daily budget per campaign, or portfolio bidding across multiple campaigns with shared budget?
+
+**Network transit?** #flashcard
+~2–4ms (co-located PoP)
+
+**Bid request parsing?** #flashcard
+~0.5ms
+
+**User ID lookup?** #flashcard
+~1ms (in-memory hash map or local Redis)
+
+**Feature enrichment?** #flashcard
+~1–2ms (pre-computed batch features)
+
+**ML inference?** #flashcard
+~2–4ms (target for pCTR + pCVR)
+
+**Bid calculation + response serialization?** #flashcard
+~0.5ms
+
+**Latency budget: 10ms p99?** #flashcard
+not p50. p99 must hold under traffic spikes.
+
+**Availability?** #flashcard
+99.99% uptime. A 60-second outage = 30M+ missed bid opportunities.
+
+**Model size?** #flashcard
+pCTR model must fit in L3 cache or at most local DRAM. No network calls to model servers in hot path.
+
+**Feature freshness?** #flashcard
+User recency signals (last-click, session activity) must be ≤5 minutes stale.
+
+**Budget atomicity?** #flashcard
+No overshooting daily budget by >1%. Requires distributed rate limiting with strong consistency for high-spend campaigns.
+
+**imp.bidfloor?** #flashcard
+Minimum acceptable bid (hard constraint on bid price)
+
+**user.buyeruid?** #flashcard
+DSP-mapped user ID (result of cookie sync)
+
+**site.cat?** #flashcard
+IAB content categories (contextual signal)
+
+**device.*?** #flashcard
+Device type, OS, browser (feature engineering)
+
+**at: Auction type?** #flashcard
+1=first-price, 2=second-price
+
+**Unified ID 2.0 (UID2)?** #flashcard
+Hashed+encrypted email/phone; DSP must hold decryption keys
+
+**Google Privacy Sandbox Topics API?** #flashcard
+Browser returns 3 interest topics per request; no cross-site user identifier
+
+**Contextual fallback?** #flashcard
+When no user ID is available, rely entirely on page context, device type, time-of-day features
+
+**Inference is a dot product?** #flashcard
+O(n_features) in microseconds
+
+**L1 regularization produces sparse models (millions of features, ~1M nonzero weights)?** #flashcard
+L1 regularization produces sparse models (millions of features, ~1M nonzero weights)
+
+**Online updates?** #flashcard
+weight updates can be applied to the serving model every few minutes without redeployment
+
+**Interpretable?** #flashcard
+SHAP values map directly to feature weights
+
+**P(convert | click) = pCVR?** #flashcard
+P(convert | click) = pCVR
+
+**P(convert within window W | convert) ~ exponential(λ)?** #flashcard
+P(convert within window W | convert) ~ exponential(λ)
+
+**At inference time, predict pCVR ignoring timing?** #flashcard
+At inference time, predict pCVR ignoring timing
+
+**Use importance weighting to correct for truncated observation window in training?** #flashcard
+Use importance weighting to correct for truncated observation window in training
+
+**Second-price (Vickrey)?** #flashcard
+Bid = true value = pCTR × pCVR × CPA_target. Dominant strategy; no strategic shading needed.
+
+**First-price?** #flashcard
+You pay what you bid. Optimal bid < true value. Bid shading required.
+
+**Hard stop?** #flashcard
+atomic counter in Redis, bid server checks before every response
+
+**Soft stop at 98%?** #flashcard
+reduce lambda aggressively to decelerate gracefully
+
+**Over-delivery cap?** #flashcard
+never exceed 110% of daily budget (contractual SLA)
+
+**Ghost bidding (PSA holdout)?** #flashcard
+Win the auction but serve a PSA (public service ad) instead of the campaign ad. Measure conversion rate of holdout vs. exposed group.
+
+**Geo holdout?** #flashcard
+Suppress bidding in randomly selected DMAs; compare conversion rates.
+
+**Conversion lift study?** #flashcard
+Run prospecting campaign; randomly assign 10% of eligible users to holdout.
+
+**Anomaly detection on win-rate-to-conversion-rate ratio (should be stable; IVT decouples them)?** #flashcard
+Anomaly detection on win-rate-to-conversion-rate ratio (should be stable; IVT decouples them)
+
+**Seller.json + ads.txt validation?** #flashcard
+reject inventory from unauthorized resellers
+
+**Data center IP range blocking?** #flashcard
+data center IPs should not appear as user IPs
+
+**User agent consistency check?** #flashcard
+UA string vs. device properties mismatch
+
+**Fallback features?** #flashcard
+if Redis lookup times out at 2ms, use average features for the campaign (stale but non-blocking)
+
+**Circuit breaker?** #flashcard
+if Redis error rate > 5%, bypass feature lookup entirely and use default CTR for campaign
+
+**Latency SLO alerting?** #flashcard
+p99 latency > 6ms triggers PagerDuty before the 10ms wall is hit
+
+**Shadow traffic?** #flashcard
+route 1% of bid requests to canary serving stack; measure latency distribution before full rollout
+
+**OpenRTB 2.6 Spec?** #flashcard
+IAB Tech Lab (protocol schema and timing requirements)
+
+**Chapelle, O. (2014)?** #flashcard
+"Modeling Delayed Feedback in Display Advertising" (KDD 2014; DFM for pCVR)
+
+**Zhang, W. et al. (2014)?** #flashcard
+"Optimal Real-Time Bidding for Display Advertising" (KDD 2014; KKT conditions)
+
+**McMahan, H.B. et al. (2013)?** #flashcard
+"Ad Click Prediction: A View from the Trenches" (KDD 2013; FTRL at Google scale)
+
+**Perlich, C. et al. (2012)?** #flashcard
+"Bid Optimizing and Inventory Scoring in Targeted Online Advertising" (KDD 2012)
+
+**Criteo AI Lab?** #flashcard
+"A Practical Exploration of Echo Chamber Effects in Online Advertising" (offline evaluation bias)
+
+**Google Privacy Sandbox?** #flashcard
+Protected Audience API spec (FLEDGE successor)
+
+**IAB Tech Lab?** #flashcard
+Seller.json, ads.txt, SupplyChain Object (supply path validation)

@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Model Interpretation
+subtopic: ""
+status: unread
+tags: [classicalml, ml, model-interpretation]
+---
 # Model Interpretation: SHAP, LIME, and Feature Importance
 
 Explaining ML model predictions is critical for debugging, regulatory compliance, and building trust. Essential knowledge for interviews at companies with high-stakes ML (credit, healthcare, fraud).
@@ -309,3 +316,62 @@ A: PDP computes the marginal effect of feature $x_j$ by setting it to a value $v
 
 **Q: A regulatory body is asking you to explain why your model denied a loan application. What do you provide?**  
 A: A SHAP waterfall plot showing the top features that reduced the probability below the approval threshold, with their actual values and how much each contributed. For the specific applicant, it shows: "Your income of $35K reduced your approval probability by -0.12; your debt-to-income ratio of 0.45 reduced it by -0.09; your 3 recent credit inquiries reduced it by -0.06." This is interpretable by a compliance officer, satisfies GDPR Article 22 "meaningful information about the logic involved," and is reproducible (same input always gives same SHAP). Importantly, also verify: none of the top features are proxies for protected attributes (race, gender), and the explanation aligns with domain knowledge (high debt-to-income should indeed reduce creditworthiness).
+
+## Flashcards
+
+**Explaining a single prediction to a customer → SHAP waterfall or LIME?** #flashcard
+Explaining a single prediction to a customer → SHAP waterfall or LIME
+
+**Debugging model generally → Permutation importance + PDP?** #flashcard
+Debugging model generally → Permutation importance + PDP
+
+**Regulatory audit (GDPR "right to explanation") → SHAP?** #flashcard
+Regulatory audit (GDPR "right to explanation") → SHAP
+
+**Real-time feature importance in serving → pre-computed SHAP on representative samples?** #flashcard
+Real-time feature importance in serving → pre-computed SHAP on representative samples
+
+**$F$ = full feature set?** #flashcard
+$F$ = full feature set
+
+**$S$ = subset of features excluding $i$?** #flashcard
+$S$ = subset of features excluding $i$
+
+**$v(S)$ = model prediction using only features in $S$?** #flashcard
+$v(S)$ = model prediction using only features in $S$
+
+**The fraction is the probability that $S$ appears in a random feature ordering?** #flashcard
+The fraction is the probability that $S$ appears in a random feature ordering
+
+**TreeSHAP?** #flashcard
+exact, fast (milliseconds per sample), tree models only
+
+**KernelSHAP?** #flashcard
+approximate, slow (seconds per sample), any model
+
+**Not additive?** #flashcard
+LIME explanations for subsets don't combine predictably
+
+**Sensitive to hyperparameters (kernel width σ, n_samples)?** #flashcard
+Sensitive to hyperparameters (kernel width σ, n_samples)
+
+**Local linearity assumption may not hold for highly non-linear boundaries?** #flashcard
+Local linearity assumption may not hold for highly non-linear boundaries
+
+**Different runs can give different explanations (sampling variance)?** #flashcard
+Different runs can give different explanations (sampling variance)
+
+**Correlated features: when two features carry the same info, shuffling one doesn't hurt because the other still provides it?** #flashcard
+both appear low importance. Check by computing importance on the residuals after removing the correlated feature.
+
+**It measures predictive importance, not causal importance.?** #flashcard
+It measures predictive importance, not causal importance.
+
+**Attention weights are intermediate computations, not causal attributions?** #flashcard
+Attention weights are intermediate computations, not causal attributions
+
+**The same attention pattern can be produced with different weight matrices?** #flashcard
+The same attention pattern can be produced with different weight matrices
+
+**Gradient-based methods (Integrated Gradients, SHAP for transformers) are more principled?** #flashcard
+Gradient-based methods (Integrated Gradients, SHAP for transformers) are more principled

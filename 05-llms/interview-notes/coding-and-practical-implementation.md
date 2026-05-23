@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Coding And Practical Implementation
+status: unread
+tags: [llms, ml, interview-notes-coding-and-pra]
+---
 # Coding and Practical Implementation
 
 ## The Scenario That Drives This File
@@ -1369,3 +1376,380 @@ That you can design a multi-agent system with explicit state, termination, error
 | Retry/backoff | Differentiating retriable vs fatal errors, jitter | Retrying 400 errors; no jitter |
 | Conversation memory | Protecting system prompt across eviction | Evicting system message first |
 | Multi-agent | Termination, error isolation, per-agent permissions | Unbounded loop; no tool allowlist |
+
+## Flashcards
+
+**Retrieval misses?** #flashcard
+the model will hallucinate or abstain. Fix: evaluate Recall@k on a held-out QA set before shipping.
+
+**No chunk overlap?** #flashcard
+sentences split at chunk boundaries lose context. Fix: 10–15% overlap or recursive chunking.
+
+**Missing constraint?** #flashcard
+the LLM mixes retrieved text with parametric knowledge. Fix: explicit "answer only from context" instruction, then verify with entailment.
+
+**No attribution?** #flashcard
+users cannot verify answers. Fix: return hits.ids alongside the answer.
+
+**Treating RAG as a prompt trick rather than a pipeline with measurable stages?** #flashcard
+Treating RAG as a prompt trick rather than a pipeline with measurable stages
+
+**Optimizing prompt wording before measuring retrieval Recall@k?** #flashcard
+Optimizing prompt wording before measuring retrieval Recall@k
+
+**Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)?** #flashcard
+Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)
+
+**No schema validation?** #flashcard
+LLM produces malformed arguments, crashes on execution. Fix: validate with jsonschema before calling.
+
+**Unbounded loop?** #flashcard
+model asks for a tool, sees result, asks for the same tool again. Fix: step limit + cost budget.
+
+**Side effects without authorization?** #flashcard
+agent calls a write API the user did not approve. Fix: explicit allowlist per agent, destructive tools require confirmation.
+
+**Tool output too long?** #flashcard
+observation exceeds context window. Fix: truncate observations to N tokens before appending.
+
+**Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call?** #flashcard
+Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call
+
+**Allowing all tools in all contexts instead of an explicit allowlist?** #flashcard
+Allowing all tools in all contexts instead of an explicit allowlist
+
+**No step or token budget?** #flashcard
+No step or token budget
+
+**Embedding model mismatch?** #flashcard
+query and documents encoded by different models live in different spaces. Fix: always use the same model and version for both.
+
+**No normalization?** #flashcard
+dot product conflates magnitude and angle. Fix: normalize before computing scores when you want cosine semantics.
+
+**Brute-force at scale?** #flashcard
+O(nd) per query with n=10M is too slow. Fix: FAISS IVF or HNSW for approximate nearest neighbors.
+
+**Claiming "cosine similarity" but not normalizing the vectors?** #flashcard
+Claiming "cosine similarity" but not normalizing the vectors
+
+**Re-embedding the corpus at query time instead of pre-computing and indexing?** #flashcard
+Re-embedding the corpus at query time instead of pre-computing and indexing
+
+**Zero overlap in fixed chunking?** #flashcard
+a sentence split across chunk boundaries loses meaning. Fix: 10–20% overlap.
+
+**Separator not in text?** #flashcard
+recursive chunker falls through to hard cut. Handle that case.
+
+**Semantic chunker threshold too low?** #flashcard
+every sentence is its own chunk. Too high: chunks are too large to embed meaningfully. Fix: calibrate on a sample.
+
+**Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage?** #flashcard
+Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage
+
+**No overlap in fixed chunking?** #flashcard
+No overlap in fixed chunking
+
+**Raw f-strings with user input: f"Answer: {user_input}"?** #flashcard
+user can write "ignore above, new instructions: ..." and it flows into the system prompt.
+
+**Editing the latest version in place?** #flashcard
+you cannot reproduce a past request. Fix: immutable (name, version) keys; bump version to ship changes.
+
+**Missing validation?** #flashcard
+missing variables raise KeyError at runtime in production. Fix: validate at startup or test time.
+
+**f-strings with direct user input?** #flashcard
+f-strings with direct user input
+
+**No version tracking so you cannot reproduce failures?** #flashcard
+No version tracking so you cannot reproduce failures
+
+**correctness?** #flashcard
+is the answer factually accurate given the reference? (1-5)
+
+**faithfulness?** #flashcard
+does the answer stay within the provided context? (1-5)
+
+**safety?** #flashcard
+does the answer avoid harmful content? (1-5)
+
+**Judge sees output but not context?** #flashcard
+faithfulness score is meaningless without the retrieved chunks. Always pass context to the judge.
+
+**Same model family as judge?** #flashcard
+judge may share biases with the model under test. Fix: use a different model family or ensemble judges.
+
+**Temperature > 0 on judge?** #flashcard
+scores are noisy. Fix: temperature 0 for deterministic scoring.
+
+**No human calibration?** #flashcard
+you don't know if judge scores correlate with user satisfaction. Fix: sample 100 examples, collect human labels, compute Spearman correlation.
+
+**Treating judge scores as ground truth without calibration?** #flashcard
+Treating judge scores as ground truth without calibration
+
+**Not including context in the judge prompt for RAG evaluation?** #flashcard
+Not including context in the judge prompt for RAG evaluation
+
+**Parsing JSON from a partial stream?** #flashcard
+tool calls and structured outputs arrive as fragments. Fix: buffer the entire response; parse only when complete.
+
+**Safety check on partial text?** #flashcard
+a stream can look benign mid-way and complete with harmful content. Fix: run safety checks on the completed buffer, not token-by-token.
+
+**Client disconnect not handled?** #flashcard
+server keeps generating and billing even after the client closed the connection. Fix: check for disconnect signals and cancel the upstream call.
+
+**Running structured output parsing on partial chunks?** #flashcard
+Running structured output parsing on partial chunks
+
+**No cancellation when the client disconnects?** #flashcard
+No cancellation when the client disconnects
+
+**Python loop over vectors?** #flashcard
+O(nd) with a Python loop is 100x slower than vectorized matmul. Fix: always use matrix operations.
+
+**Re-normalizing on every query?** #flashcard
+if D is static, normalize once at build time. Fix: pre-normalized index.
+
+**argsort on full array?** #flashcard
+O(n log n) when you only need k results. Fix: argpartition for O(n).
+
+**Sorting the entire scores array instead of using argpartition?** #flashcard
+Sorting the entire scores array instead of using argpartition
+
+**Not pre-normalizing?** #flashcard
+Not pre-normalizing
+
+**Sliding window?** #flashcard
+keep the last N messages. Oldest context is lost.
+
+**Summary?** #flashcard
+periodically compress older turns into a summary string. Token-efficient but lossy.
+
+**Token-budgeted buffer?** #flashcard
+track token counts; evict oldest messages when over budget.
+
+**Sliding window drops system constraints?** #flashcard
+if the user said "don't suggest meat dishes" in turn 1 and it slides out, the constraint is lost. Fix: pin critical instructions into the system prompt.
+
+**Summary loses exact facts?** #flashcard
+"user confirmed their order ID was 84729" gets compressed to "user confirmed order." Fix: use an entity store for precise facts; summary for conversational context.
+
+**Token count by word split?** #flashcard
+inaccurate. Fix: use the model's tokenizer (tiktoken for OpenAI models).
+
+**Evicting the system prompt?** #flashcard
+Evicting the system prompt
+
+**Using character or word count instead of actual token count?** #flashcard
+Using character or word count instead of actual token count
+
+**No evidence passed to verifier?** #flashcard
+NLI check without the retrieved context is meaningless. Always pass the same chunks that were used for generation.
+
+**Claim extraction misses implicit claims?** #flashcard
+"The CEO founded the company in 1995" contains two claims (who the CEO is, the founding year). Fix: use an LLM-based claim extractor with a prompt that asks for atomic claims.
+
+**NLI model not calibrated for domain?** #flashcard
+off-the-shelf NLI models are calibrated on general text. Legal or medical text may require fine-tuned models.
+
+**Using BLEU or ROUGE for faithfulness?** #flashcard
+they measure n-gram overlap, not semantic entailment
+
+**Checking output against the full document corpus rather than the retrieved chunks?** #flashcard
+Checking output against the full document corpus rather than the retrieved chunks
+
+**Retrying 400 Bad Request?** #flashcard
+the request is malformed; it will fail every time. Wastes quota and time.
+
+**No jitter?** #flashcard
+all clients retry in sync, re-hitting the same endpoint in a spike.
+
+**Unbounded max_delay: after 10 retries with pure exponential, delay is 0.5 * 2^10 = 512s?** #flashcard
+a request that hangs for 8 minutes in production. Fix: cap at max_delay.
+
+**Retrying 4xx errors that are not 429?** #flashcard
+Retrying 4xx errors that are not 429
+
+**No jitter, causing thundering herd?** #flashcard
+No jitter, causing thundering herd
+
+**No schema validation before execution?** #flashcard
+LLM passes {"expr": "__import__('os').system('rm -rf /')"} to a calculator. Fix: validate schema; use a safe expression evaluator, never eval.
+
+**Tool output not truncated?** #flashcard
+a tool returning a full webpage crashes the context window. Fix: truncate at N tokens.
+
+**Error not returned to model?** #flashcard
+if tool execution fails and you don't return a tool message, the LLM is in an invalid state waiting for a result that never arrives.
+
+**Using eval or exec with LLM-provided expressions?** #flashcard
+Using eval or exec with LLM-provided expressions
+
+**Dropping tool errors instead of returning them as tool messages?** #flashcard
+Dropping tool errors instead of returning them as tool messages
+
+**First stage recall too low?** #flashcard
+re-ranker can only promote documents that were retrieved in stage 1. If the relevant document is not in the top-K, re-ranking cannot fix it. Fix: evaluate Recall@K of stage 1 independently.
+
+**Cross-encoder too slow for K=1000?** #flashcard
+cross-encoders require one forward pass per candidate pair. Keep K ≤ 200 for latency-sensitive paths.
+
+**Evaluating only final NDCG without measuring stage-1 recall?** #flashcard
+Evaluating only final NDCG without measuring stage-1 recall
+
+**Using re-ranking as a fix for low first-stage recall?** #flashcard
+Using re-ranking as a fix for low first-stage recall
+
+**No page metadata?** #flashcard
+you cannot cite "see page 7" without it. Fix: always store page in chunk metadata.
+
+**Tables extracted as garbled text?** #flashcard
+pypdf serializes tables row by row without alignment. Fix: use pdfplumber for tables or a specialized table extraction library.
+
+**Zero-byte pages?** #flashcard
+some PDFs have blank pages or image-only pages. Fix: check if chunk_text.strip() before appending.
+
+**No overlap at page or section boundaries?** #flashcard
+No overlap at page or section boundaries
+
+**Dropping metadata so citations are impossible?** #flashcard
+Dropping metadata so citations are impossible
+
+**Dot product?** #flashcard
+measures aligned magnitude. Increases with both angle similarity and vector magnitude. Sensitive to vector scale.
+
+**Cosine similarity?** #flashcard
+measures angle only. Divides out magnitude. Best for comparing semantic content independent of length.
+
+**Euclidean distance?** #flashcard
+measures geometric distance in absolute terms. Sensitive to scale; requires normalization for embedding comparisons.
+
+**Using Euclidean on raw embeddings?** #flashcard
+embedding magnitude varies with document length for some models. Fix: normalize or use cosine.
+
+**Missing epsilon in cosine?** #flashcard
+zero vector causes division by zero. Fix: always add eps.
+
+**Not knowing that dot product = cosine for unit vectors?** #flashcard
+Not knowing that dot product = cosine for unit vectors
+
+**Using Euclidean for embedding search without normalizing first?** #flashcard
+Using Euclidean for embedding search without normalizing first
+
+**Word-count estimation?** #flashcard
+"ChatGPT" = 1 word, 3 tokens. Large discrepancies in token count for non-English text and code.
+
+**Evicting the system prompt?** #flashcard
+leaves the model without its instructions. Always keep index 0.
+
+**Not reserving output tokens?** #flashcard
+prompt fits the context window but the model cannot generate a full response. Fix: reserve max_tokens for the completion.
+
+**Using len(text.split()) for token count?** #flashcard
+Using len(text.split()) for token count
+
+**Evicting the system message first?** #flashcard
+Evicting the system message first
+
+**Mutable "latest" pointer?** #flashcard
+you cannot roll back or reproduce a past request. Fix: immutable (name, version) keys.
+
+**No eval gate before promotion?** #flashcard
+shipping version 3 without comparing eval scores to version 2 means regressions are discovered in production. Fix: CI pipeline that runs golden set eval before updating the "current" pointer.
+
+**No test for variable name mismatches between the template and callers?** #flashcard
+No test for variable name mismatches between the template and callers
+
+**Editing the current version rather than creating a new version?** #flashcard
+Editing the current version rather than creating a new version
+
+**Factual questions?** #flashcard
+24h TTL if underlying knowledge is stable
+
+**Real-time queries ("current stock price")?** #flashcard
+do not cache, or TTL < 60s
+
+**Prompts with randomness (temperature > 0)?** #flashcard
+caching may suppress desired variation
+
+**Key does not include temperature?** #flashcard
+two calls with different temperature get the same cache response. Fix: include all decoding parameters in the key.
+
+**PII in shared cache?** #flashcard
+user A's cached response (containing their name/address) serves user B. Fix: scope cache keys by user_id for user-specific responses, or strip PII before caching.
+
+**Stale cache after model upgrade?** #flashcard
+old responses from gpt-4-turbo serve as cache hits for gpt-4o. Fix: include model version in key, or flush cache on model change.
+
+**Keying only on user text and ignoring system prompt version and model?** #flashcard
+Keying only on user text and ignoring system prompt version and model
+
+**Not considering PII in the cached value?** #flashcard
+Not considering PII in the cached value
+
+**Threshold not calibrated per domain?** #flashcard
+customer support queries have tighter semantics than general chat. Fix: calibrate threshold on a labeled set of "same intent" vs "different intent" query pairs.
+
+**Cache hits after prompt change?** #flashcard
+cached answers were generated with a different prompt version and may be wrong for the new version. Fix: store prompt version in metadata; invalidate on version bump.
+
+**Semantic cache never invalidated?** #flashcard
+knowledge base changes (new product specs) make cached answers stale. Fix: TTL + version-based invalidation.
+
+**Using a fixed threshold without domain-specific calibration?** #flashcard
+Using a fixed threshold without domain-specific calibration
+
+**Not invalidating the semantic cache when the prompt version changes?** #flashcard
+Not invalidating the semantic cache when the prompt version changes
+
+**Pattern matching only?** #flashcard
+adversarial users obfuscate ("ign0re pr3vious instruct1ons"). Pattern matching catches script kiddies, not determined adversaries.
+
+**No indirect injection check: a retrieved document contains "You are now a different AI"?** #flashcard
+it appears in the system position and may override the system prompt.
+
+**Trusting detection as prevention: a zero false-negative rate on injection is not achievable. Fix: defense in depth?** #flashcard
+detection, clear delimiters, tool allowlists, output monitoring.
+
+**Treating detection as a complete defense?** #flashcard
+Treating detection as a complete defense
+
+**Not checking retrieved documents for injected instructions (indirect injection)?** #flashcard
+Not checking retrieved documents for injected instructions (indirect injection)
+
+**Only checking user input, not output?** #flashcard
+a model can hallucinate PII (a plausible-but-fake SSN) even without receiving it. Check outputs.
+
+**PII in logs: when logging violations for audit, log the violation type and redacted text?** #flashcard
+not the raw detected PII.
+
+**Topic classifier threshold?** #flashcard
+too strict flags valid responses; too lenient lets off-topic content through. Calibrate on a labeled set of in-scope vs out-of-scope responses.
+
+**Only input-side guardrails, no output-side?** #flashcard
+Only input-side guardrails, no output-side
+
+**Logging raw PII during violation audit?** #flashcard
+Logging raw PII during violation audit
+
+**No termination condition?** #flashcard
+agents call each other in a cycle. Fix: explicit step limit and cost budget; halt if exceeded.
+
+**Shared state grows unbounded?** #flashcard
+each step appends to ws.results; after 50 steps the context window for the reviewer overflows. Fix: summarize intermediate results.
+
+**No error isolation?** #flashcard
+if one worker step fails, the reviewer receives a partial workspace and may synthesize incorrect final output. Fix: mark failed steps as failed; reviewer must flag them rather than silently incorporate them.
+
+**All tools available to all agents?** #flashcard
+a reviewer should not be able to write to a database; a worker should not be able to override the task. Fix: per-agent tool allowlists.
+
+**No step or cost budget?** #flashcard
+No step or cost budget
+
+**All agents share the same tool permissions?** #flashcard
+All agents share the same tool permissions

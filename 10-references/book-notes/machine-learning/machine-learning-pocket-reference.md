@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Machine Learning Machine Learning Pocket Reference
+status: unread
+tags: [references, ml, book-notes-machine-learning]
+---
 # Machine Learning Pocket Reference
 
 ## Chapter 1: Introduction — The Python ML Ecosystem
@@ -341,3 +348,317 @@ Spark processes data in distributed memory across a cluster, with lazy evaluatio
 
 **What the book gets right / what to watch out for**
 The Spark API is correct and the Hadoop-to-Spark transition is accurately described. Dask is often sufficient and much easier to set up than Spark for single-node large-data problems. The key constraint: Spark is optimized for data-parallel operations on DataFrames — irregular operations (complex graph processing, sequential algorithms) are poorly suited for Spark. Arrow/Parquet is the standard interchange format between Spark, pandas, and ML frameworks.
+
+## Flashcards
+
+**scikit-learn?** #flashcard
+classification, regression, clustering, preprocessing, pipelines; consistent API
+
+**pandas?** #flashcard
+DataFrames for tabular data; read CSV/parquet, filter, group, join, transform
+
+**XGBoost/LightGBM?** #flashcard
+gradient boosted trees; dominant for tabular data competitions and production
+
+**Matplotlib/Seaborn/Plotly: visualization?** #flashcard
+exploratory analysis, evaluation plots
+
+**Interop?** #flashcard
+scikit-learn pipelines can wrap XGBoost; pandas DataFrames feed scikit-learn transformers
+
+**Business understanding?** #flashcard
+define the problem in business terms; translate to an ML objective and metric
+
+**Data understanding?** #flashcard
+explore data, assess quality, identify issues (missing values, class imbalance, outliers)
+
+**Data preparation?** #flashcard
+clean, transform, feature engineer, split into train/val/test
+
+**Modeling?** #flashcard
+select algorithm family, train, tune hyperparameters
+
+**Evaluation?** #flashcard
+assess on held-out test set with appropriate metrics; check against business criteria
+
+**Deployment?** #flashcard
+serve predictions via API or batch job; monitor for drift
+
+**Load?** #flashcard
+pd.read_csv('titanic.csv')
+
+**Explore?** #flashcard
+.describe(), .value_counts(), .isnull().sum()
+
+**Clean?** #flashcard
+handle missing values (median imputation for age, mode for embarked)
+
+**Encode?** #flashcard
+pd.get_dummies() or OrdinalEncoder for categoricals
+
+**Split?** #flashcard
+train_test_split(X, y, test_size=0.2, stratify=y)
+
+**Train?** #flashcard
+RandomForestClassifier(n_estimators=100).fit(X_train, y_train)
+
+**Evaluate?** #flashcard
+classification_report, roc_auc_score, confusion matrix
+
+**Learning curves: plot train/val score vs training size?** #flashcard
+diagnoses bias vs variance
+
+**Serialize?** #flashcard
+pickle.dump(model, open('model.pkl', 'wb'))
+
+**Serve?** #flashcard
+Flask endpoint loads pickle, returns JSON prediction
+
+**Visualization: missingno library?** #flashcard
+matrix plot shows missingness patterns; correlation heatmap shows if columns are missing together
+
+**Simple imputation: SimpleImputer(strategy='mean/median/most_frequent')?** #flashcard
+fast, loses variance
+
+**Iterative imputation: IterativeImputer?** #flashcard
+fits a model to predict each feature from others; better for MAR
+
+**Indicator columns: SimpleImputer(add_indicator=True)?** #flashcard
+adds binary column flagging if value was missing; lets model learn from missingness pattern
+
+**XGBoost/LightGBM?** #flashcard
+handle NaN natively; learn the best split direction for missing values during training
+
+**CatBoost?** #flashcard
+handles missing values for categorical features natively
+
+**Type fixing?** #flashcard
+df.astype({'col': 'float'}), pd.to_datetime(), pd.to_numeric(errors='coerce')
+
+**Deduplication?** #flashcard
+df.drop_duplicates(), df.drop_duplicates(subset=['id']) for key-based
+
+**Rename?** #flashcard
+df.rename(columns={'old': 'new'}) or pyjanitor clean_names() (lowercase, replace spaces)
+
+**Filter outliers: df[df['age'].between(0, 120)]?** #flashcard
+domain-driven bounds
+
+**pyjanitor?** #flashcard
+df.clean_names().remove_empty().rename_column('old', 'new').filter_column_isin('col', values)
+
+**Validation?** #flashcard
+after each step, assert shapes and value ranges to catch mistakes early
+
+**Dummy variables: pd.get_dummies(df['col'])?** #flashcard
+one-hot encoding; introduces (C-1) columns for C categories
+
+**Label encoding: OrdinalEncoder()?** #flashcard
+integer ID per category; suitable for tree models, not linear models
+
+**Frequency encoding: replace category with its frequency in training set?** #flashcard
+handles high cardinality without dummy explosion
+
+**Target encoding: replace category with mean target value per category; adds signal but risks data leakage?** #flashcard
+use cross-val target encoding (category_encoders.TargetEncoder)
+
+**Date features?** #flashcard
+extract year, month, day, hour, day-of-week, is_weekend, days_since_event
+
+**Interaction features?** #flashcard
+df['ab'] = df['a']  df['b']; or PolynomialFeatures from scikit-learn
+
+**Confusion matrix?** #flashcard
+TP, FP, TN, FN → foundation for all classification metrics
+
+**Precision = TP/(TP+FP)?** #flashcard
+of predictions that are positive, how many are correct
+
+**Recall = TP/(TP+FN)?** #flashcard
+of actual positives, how many were found
+
+**F1 = 2·P·R/(P+R)?** #flashcard
+harmonic mean; balances precision and recall
+
+**AUC-ROC?** #flashcard
+area under the TPR vs FPR curve as threshold varies; 0.5=random, 1.0=perfect; class-imbalance robust
+
+**ROC curve?** #flashcard
+plot TPR (recall) vs FPR (1-specificity) across all thresholds
+
+**Learning curves?** #flashcard
+plot train/val score vs training set size; gap → overfitting; both low → underfitting or need more data
+
+**Validation curves: plot train/val score vs hyperparameter value?** #flashcard
+identifies optimal hyperparameter range
+
+**Lift curve?** #flashcard
+plots how much better than random the model performs; useful for marketing campaigns
+
+**Cumulative gains?** #flashcard
+what fraction of positives found vs fraction of population targeted
+
+**Discrimination threshold?** #flashcard
+plot precision/recall/F1 vs threshold; choose threshold based on business cost of FP vs FN
+
+**Grid search: GridSearchCV(estimator, param_grid, cv=5)?** #flashcard
+exhaustive, O(k^d) evaluations
+
+**Random search: RandomizedSearchCV(estimator, param_distributions, n_iter=100, cv=5)?** #flashcard
+sample from distributions; use log-uniform for LR, uniform for regularization strength
+
+**Validation curves: validation_curve(estimator, X, y, param_name, param_range)?** #flashcard
+shows train/val score vs single hyperparameter
+
+**Optuna: study.optimize(objective, n_trials=100)?** #flashcard
+TPE sampler (Tree-structured Parzen Estimator); suggests next hyperparameter based on past results
+
+**Hyperopt?** #flashcard
+similar to Optuna; slightly lower-level API
+
+**Cross-validation?** #flashcard
+use stratified k-fold for classification; time-based split for time series; never use test set for tuning
+
+**AutoML/TPOT?** #flashcard
+automatically searches over algorithms and hyperparameters; useful baseline
+
+**Simple pipeline?** #flashcard
+Pipeline([('scaler', StandardScaler()), ('clf', LogisticRegression())])
+
+**Preprocessing + model?** #flashcard
+make_pipeline(SimpleImputer(), StandardScaler(), RandomForestClassifier())
+
+**ColumnTransformer?** #flashcard
+apply different transformers to different columns; remainder='passthrough' keeps untransformed columns
+
+**GridSearchCV with pipeline: GridSearchCV(pipeline, {'clf__C': [0.1, 1, 10]})?** #flashcard
+double underscore notation for nested params
+
+**Classification pipeline?** #flashcard
+impute → encode → scale → classify
+
+**Regression pipeline?** #flashcard
+impute → scale → regress
+
+**PCA pipeline?** #flashcard
+impute → scale → PCA → classify
+
+**Linear model coefficients: model.coef_?** #flashcard
+directly interpretable if features are scaled; sign and magnitude indicate direction and strength
+
+**Tree feature importance: model.feature_importances_?** #flashcard
+based on impurity reduction; biased toward high-cardinality features
+
+**Permutation importance: shuffle one feature at random; measure drop in performance?** #flashcard
+unbiased, works for any model
+
+**LIME?** #flashcard
+fit a local linear model around a specific prediction using perturbed samples; explains individual predictions
+
+**SHAP?** #flashcard
+Shapley values from game theory; computes each feature's contribution to each prediction; consistent and additive; TreeExplainer is fast for tree models
+
+**Partial dependence plots (PDPs): plot predicted outcome vs one feature while averaging over all others?** #flashcard
+shows marginal relationship
+
+**treeinterpreter: decomposes predictions of tree models into contributions per feature?** #flashcard
+fast for tree-based models
+
+**pickle: pickle.dump(model, open('model.pkl', 'wb')) / pickle.load(open('model.pkl', 'rb'))?** #flashcard
+simple but version-coupled
+
+**joblib: joblib.dump(model, 'model.joblib')?** #flashcard
+faster for NumPy-heavy objects; preferred for scikit-learn
+
+**Flask API?** #flashcard
+@app.route('/predict', methods=['POST']); load model at startup; parse JSON input; return JSON prediction
+
+**Save the entire pipeline, not just the model?** #flashcard
+preserves preprocessing
+
+**Include the scikit-learn version in the artifact metadata?** #flashcard
+Include the scikit-learn version in the artifact metadata
+
+**NLTK preprocessing?** #flashcard
+tokenize → lowercase → remove stopwords → stem/lemmatize
+
+**Bag of words: CountVectorizer()?** #flashcard
+frequency matrix; each column is a vocabulary word
+
+**TF-IDF: TfidfVectorizer()?** #flashcard
+weights word counts by inverse document frequency; downweights common words
+
+**Word embeddings: gensim.models.Word2Vec?** #flashcard
+train skip-gram on corpus; use document mean embedding as feature
+
+**Pipeline?** #flashcard
+Pipeline([('tfidf', TfidfVectorizer()), ('clf', LogisticRegression())])
+
+**Components?** #flashcard
+trend (long-term), seasonality (periodic), cycles (irregular), residuals
+
+**Stationarity test: Augmented Dickey-Fuller (ADF)?** #flashcard
+p < 0.05 → stationary; differencing achieves stationarity
+
+**ACF/PACF plots: autocorrelation and partial autocorrelation functions?** #flashcard
+identify AR and MA orders for ARIMA
+
+**ARIMA(p,d,q)?** #flashcard
+AutoRegressive Integrated Moving Average; p=AR order, d=differences, q=MA order; statsmodels.tsa.ARIMA
+
+**Exponential smoothing?** #flashcard
+simple (level), double (level+trend), triple (level+trend+seasonality/Holt-Winters)
+
+**Prophet?** #flashcard
+Facebook's model; additive decomposition; handles holidays, missing data, multiple seasonalities
+
+**Temporal split: train on first 80% of time period; validate on next 10%; test on last 10%?** #flashcard
+never shuffle
+
+**MLP?** #flashcard
+Linear → ReLU → Linear → Softmax; cross-entropy loss; Adam optimizer; early stopping
+
+**CNN?** #flashcard
+[Conv → BatchNorm → ReLU → MaxPool] × N → Flatten → FC; input normalized to [0,1], then ImageNet mean/std
+
+**RNN/LSTM?** #flashcard
+hidden state hₜ updated at each timestep; cross-entropy loss on next-token prediction
+
+**Transfer learning?** #flashcard
+load pretrained model (ResNet/BERT); freeze backbone; add task head; fine-tune head first, then optionally unfreeze backbone
+
+**Keras API?** #flashcard
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy']); model.fit(X_train, y_train, validation_split=0.2, epochs=100, callbacks=[EarlyStopping()])
+
+**K-means?** #flashcard
+KMeans(n_clusters=k).fit(X); initialize k centroids; assign each point to nearest centroid; recompute centroids; repeat
+
+**Choosing K?** #flashcard
+elbow method (plot inertia vs K, look for elbow); silhouette score (higher is better)
+
+**Hierarchical?** #flashcard
+AgglomerativeClustering(n_clusters=k, linkage='ward'); build dendrogram; cut at desired distance
+
+**Dendrogram: scipy.cluster.hierarchy.dendrogram(linkage(X, 'ward'))?** #flashcard
+visualizes merge distances
+
+**DBSCAN?** #flashcard
+DBSCAN(eps=0.5, min_samples=5); finds core points (≥min_samples within eps), expands clusters; marks outliers as -1
+
+**Hadoop?** #flashcard
+HDFS (distributed filesystem) + MapReduce (distributed compute); largely superseded by Spark for ML
+
+**Spark?** #flashcard
+DataFrames with lazy evaluation; MLlib for distributed ML (logistic regression, decision trees, ALS)
+
+**Spark ML pipeline?** #flashcard
+Pipeline([('indexer', StringIndexer()), ('encoder', OneHotEncoder()), ('lr', LogisticRegression())])
+
+**Dask: dask.dataframe.read_parquet('path/*.parquet')?** #flashcard
+lazy reads; .compute() triggers execution
+
+**Batch processing?** #flashcard
+process fixed data snapshots; high throughput, high latency
+
+**Stream processing?** #flashcard
+process data as it arrives (Kafka + Spark Streaming); low latency, lower throughput

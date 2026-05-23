@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Regularization
+status: unread
+tags: [deeplearning, ml, components-regularization]
+---
 # Regularization
 
 ---
@@ -209,3 +216,11 @@ A: Dropout zeroes each activation with probability p during training and scales 
 
 **Q: How do you detect and handle overfitting in a deep learning model?**  
 A: Detection: training loss much lower than validation loss and diverging, or validation metric plateaus while training metric continues improving. Diagnosis first — check if overfitting is from: (1) too few examples (get more data or augment), (2) model too large (reduce depth/width), (3) training too long (early stopping), or (4) features leaking label information. Mitigation stack in order of preference: (1) More data / data augmentation — always the first resort; augmentation creates synthetic variations the model shouldn't overfit to; (2) Early stopping — checkpoints at best validation metric, stop after K epochs without improvement; (3) Dropout — typically 0.1-0.3 in transformer FFNs, 0.5 in dense layers; (4) Weight decay (L2) — λ=0.01-0.1 for most cases; (5) Reduce model size if the gap is extreme. Anti-pattern: applying heavy regularization instead of diagnosing the root cause. If the model overfits with 1K training examples, adding dropout may hide the symptom but not address that you need more data.
+
+## Flashcards
+
+**$\alpha = 0.2$: $\lambda$ mostly near 0 or 1?** #flashcard
+nearly clean examples with mild mixing
+
+**$\alpha = 1.0$: $\lambda \sim \text{Uniform}(0,1)$?** #flashcard
+more aggressive blending

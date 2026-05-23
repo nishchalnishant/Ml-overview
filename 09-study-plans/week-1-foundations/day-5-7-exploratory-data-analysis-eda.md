@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 1 Foundations
+subtopic: Day 5 7 Exploratory Data Analysis Eda
+status: unread
+tags: [studyplans, ml, week-1-foundations-day-5-7-exp]
+---
 # Day 5-7: Exploratory Data Analysis (EDA)
 
 ## Why This Topic Comes Here
@@ -123,3 +130,41 @@ sns.pairplot(df, hue='target_label')
 import missingno as msno
 msno.matrix(df)  # visualize where values are missing
 ```
+
+## Flashcards
+
+**Central Tendency?** #flashcard
+Mean (sensitive to outliers), Median (robust), Mode.
+
+**Dispersion?** #flashcard
+Standard Deviation, Variance, Skewness, Kurtosis.
+
+**Skewness?** #flashcard
+Measure of asymmetry. Positive skew = long tail on the right.
+
+**Log-Transform?** #flashcard
+Useful for making skewed distributions more Normal.
+
+**Pearson Correlation ($r$)?** #flashcard
+Measures linear relationship. Range $[-1, 1]$.
+
+**Spearman Rank?** #flashcard
+Measures monotonic relationship (non-linear but increasing/decreasing).
+
+**Caution?** #flashcard
+Correlation $\neq$ Causation.
+
+**Box Plot?** #flashcard
+Shows Q1, Median, Q3, and "Whiskers". Any point beyond $1.5 \times IQR$ is a candidate for inspection.
+
+**Violin Plot?** #flashcard
+Combines box plots with a kernel density estimation of the data.
+
+**MCAR (Missing Completely at Random)?** #flashcard
+Missingness is unrelated to any variable. Safe to impute or drop.
+
+**MAR (Missing at Random)?** #flashcard
+Missingness depends on other observed variables. Can be modeled.
+
+**MNAR (Missing Not at Random): Missingness depends on the missing value itself. Dangerous?** #flashcard
+imputation will introduce systematic bias.

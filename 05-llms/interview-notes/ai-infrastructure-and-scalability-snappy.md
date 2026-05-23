@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Ai Infrastructure And Scalability Snappy
+status: unread
+tags: [llms, ml, interview-notes-ai-infrastruct]
+---
 # AI infrastructure & scalability — run LLMs like real services
 
 This is the “why is my GPU bill screaming?” section.
@@ -128,3 +135,104 @@ This is the “why is my GPU bill screaming?” section.
 # Q23: Model routing — route by complexity/cost?
 - **Direct answer:** send easy tasks to cheap models; hard tasks to expensive models; enforce budgets.
 - **Pattern:** classifier/router + fallbacks + eval gates.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+The big levers: batching, KV cache, quantization, speculative decoding, faster attention kernels, routing.
+
+**MI analogy?** #flashcard
+you win by field placement + shot selection, not by hoping every ball is a Yorker.
+
+**Criteria?** #flashcard
+VRAM (model + KV cache), bandwidth, tensor cores, concurrency, cost.
+
+**Rule?** #flashcard
+if it OOMs, it doesn’t matter how fast the FLOPs are.
+
+**Data parallel?** #flashcard
+split batch across GPUs.
+
+**Model parallel?** #flashcard
+split model weights across GPUs.
+
+**Direct answer?** #flashcard
+Split tensor operations (matrix mults) across GPUs; needed when a single GPU can’t hold compute/weights efficiently.
+
+**Direct answer?** #flashcard
+Split layers into stages across GPUs; micro-batch to keep pipeline busy.
+
+**Direct answer?** #flashcard
+Merge requests dynamically so GPUs run large batches even with staggered arrivals.
+
+**DevOps bridge?** #flashcard
+like request coalescing + queue-based workers.
+
+**Direct answer?** #flashcard
+Small “draft” model proposes tokens; big model verifies in chunks → faster perceived speed.
+
+**Direct answer?** #flashcard
+KV cache accelerates decode but consumes VRAM proportional to context and concurrency.
+
+**Fixes?** #flashcard
+shorter contexts, GQA/MQA, paged KV, cache quantization (careful), routing.
+
+**Direct answer?** #flashcard
+Manage KV cache like virtual memory pages to reduce fragmentation and improve concurrency.
+
+**Levers?** #flashcard
+smaller models, aggressive quantization, distillation, on-device batching, prune features.
+
+**Direct answer?** #flashcard
+lower precision saves memory/bandwidth; 8-bit near-lossless; 4-bit common; below that risky.
+
+**Signals?** #flashcard
+queue depth, GPU util, TTFT, p95 latency, error rate.
+
+**Caution?** #flashcard
+scaling too fast can thrash cold starts.
+
+**Direct answer?** #flashcard
+route to healthy GPUs, account for model residency and KV cache locality.
+
+**Patterns?** #flashcard
+model pooling, adapter swapping (LoRA), eviction policies, multi-model servers.
+
+**Direct answer?** #flashcard
+when model weights don’t fit on one GPU or you need multi-GPU throughput.
+
+**Direct answer?** #flashcard
+queues protect GPUs; priorities support VIP traffic and background jobs.
+
+**API?** #flashcard
+faster to ship, predictable-ish billing, less ops.
+
+**Self-host?** #flashcard
+control + potentially cheaper at scale, but you own reliability and capacity planning.
+
+**Fixes?** #flashcard
+warm pools, provisioned concurrency, model snapshotting, smaller models for first response.
+
+**Direct answer?** #flashcard
+prompt caching / prefix caching; reuse KV for repeated prefixes.
+
+**Sync?** #flashcard
+chat/interactive.
+
+**Async?** #flashcard
+batch jobs, long runs; better utilization.
+
+**Direct answer?** #flashcard
+both shard optimizer/grad/params to scale training; different implementations and trade-offs.
+
+**Key metrics?** #flashcard
+TTFT, tokens/sec, p95 latency, queue time, GPU memory/util, error rate.
+
+**DevOps bridge?** #flashcard
+treat them like SLIs + error budgets.
+
+**Direct answer?** #flashcard
+send easy tasks to cheap models; hard tasks to expensive models; enforce budgets.
+
+**Pattern?** #flashcard
+classifier/router + fallbacks + eval gates.

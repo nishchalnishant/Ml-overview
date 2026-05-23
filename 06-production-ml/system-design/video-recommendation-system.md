@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Video Recommendation System
+status: unread
+tags: [productionml, ml, system-design-video-recommenda]
+---
 # Video Recommendation System Design
 
 End-to-end ML system for personalized video recommendations at YouTube/TikTok scale. Canonical system design question at large-scale consumer tech companies (Google, Meta, ByteDance, Netflix).
@@ -825,3 +832,344 @@ This is the **missing data / counterfactual evaluation problem** — the fundame
 - Ribeiro et al. *Auditing Radicalization Pathways on YouTube*. FAT* 2020.
 - Dean et al. *Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer*. ICLR 2017.
 - Johnson, Douze, Jégou. *Billion-scale similarity search with GPUs (FAISS)*. IEEE T-BD 2021.
+
+## Flashcards
+
+**Which surface? YouTube homepage (intent-driven, logged-in) vs Up Next (continuation of current session) vs TikTok For You Page (pure discovery, often anonymous)?** #flashcard
+Which surface? YouTube homepage (intent-driven, logged-in) vs Up Next (continuation of current session) vs TikTok For You Page (pure discovery, often anonymous)
+
+**Logged-in vs anonymous? Anonymous users have no history?** #flashcard
+require session-based or demographic signals only
+
+**Optimization target? Watch time, satisfaction (survey-based), creator ecosystem health, or composite objective?** #flashcard
+Optimization target? Watch time, satisfaction (survey-based), creator ecosystem health, or composite objective
+
+**Content type? Short-form (<60s), long-form (>10 min), live streams, podcasts?** #flashcard
+each has distinct engagement signals
+
+**Cold start scope? New videos only, or also new users and new creators?** #flashcard
+Cold start scope? New videos only, or also new users and new creators?
+
+**Policy constraints? Age-gating, regional content restrictions, copyright enforcement, extremism pipeline avoidance?** #flashcard
+Policy constraints? Age-gating, regional content restrictions, copyright enforcement, extremism pipeline avoidance
+
+**Creator monetization? Are we responsible for creator reach/revenue or purely user engagement?** #flashcard
+Creator monetization? Are we responsible for creator reach/revenue or purely user engagement?
+
+**Normalize output to unit sphere → inner product = cosine similarity?** #flashcard
+Normalize output to unit sphere → inner product = cosine similarity
+
+**Attention over history (vs simple average) captures topical drift within a session?** #flashcard
+Attention over history (vs simple average) captures topical drift within a session
+
+**Real-time context injected separately to capture "right now I want X" vs "historically I watch Y"?** #flashcard
+Real-time context injected separately to capture "right now I want X" vs "historically I watch Y"
+
+**Positive pair?** #flashcard
+(user, video they watched significantly)
+
+**Negatives?** #flashcard
+other videos in the batch (random in-batch negatives)
+
+**Temperature τ ≈ 0.07 (tuned)?** #flashcard
+Temperature τ ≈ 0.07 (tuned)
+
+**Hard negative mining?** #flashcard
+add videos with high predicted score but not watched
+
+**New video embeddings computed within 2–3 minutes of upload (stream processing via Flink)?** #flashcard
+New video embeddings computed within 2–3 minutes of upload (stream processing via Flink)
+
+**Incremental index update (ScaNN supports online insertion without full rebuild)?** #flashcard
+Incremental index update (ScaNN supports online insertion without full rebuild)
+
+**Full index rebuild nightly to remove deleted videos and re-quantize?** #flashcard
+Full index rebuild nightly to remove deleted videos and re-quantize
+
+**Add position as a feature during training?** #flashcard
+Add position as a feature during training
+
+**At inference time, set position = 0 (or use a learned "position-free" inference)?** #flashcard
+At inference time, set position = 0 (or use a learned "position-free" inference)
+
+**The model learns to separate position effect from relevance signal?** #flashcard
+The model learns to separate position effect from relevance signal
+
+**Uniform sampling?** #flashcard
+1 frame per second for first 30s, 1 per 5s thereafter
+
+**Scene-change detection?** #flashcard
+dense sampling around cuts
+
+**Maximum 64 frames per video for embedding computation?** #flashcard
+Maximum 64 frames per video for embedding computation
+
+**Visual clarity (sharpness, contrast)?** #flashcard
+Visual clarity (sharpness, contrast)
+
+**Face presence and emotion (high CTR predictor)?** #flashcard
+Face presence and emotion (high CTR predictor)
+
+**Text overlay (informative vs misleading)?** #flashcard
+Text overlay (informative vs misleading)
+
+**Clickbait indicator: compare thumbnail visual content vs video content similarity?** #flashcard
+high divergence = potential bait
+
+**Run Whisper or similar ASR on audio track?** #flashcard
+Run Whisper or similar ASR on audio track
+
+**Apply BERTopic or LDA over transcript?** #flashcard
+Apply BERTopic or LDA over transcript
+
+**Topics used in video tower as additional sparse features?** #flashcard
+Topics used in video tower as additional sparse features
+
+**Enables cold-start recommendations based on topic before engagement data accumulates?** #flashcard
+Enables cold-start recommendations based on topic before engagement data accumulates
+
+**Extract visual, audio, transcript, title/description features immediately?** #flashcard
+Extract visual, audio, transcript, title/description features immediately
+
+**Compute video tower embedding from content features only (engagement stats = 0, treated as cold-start flag)?** #flashcard
+Compute video tower embedding from content features only (engagement stats = 0, treated as cold-start flag)
+
+**Insert into ANN index within 5 minutes?** #flashcard
+Insert into ANN index within 5 minutes
+
+**Reserve 1–3% of recommendation slots for "exploration"?** #flashcard
+new videos from followed channels and topically similar channels
+
+**Prioritize distribution to users with high exploration tolerance (identified from historical diversity preference)?** #flashcard
+Prioritize distribution to users with high exploration tolerance (identified from historical diversity preference)
+
+**Early engagement signals (CTR, 30-second retention rate) added to video features?** #flashcard
+Early engagement signals (CTR, 30-second retention rate) added to video features
+
+**Video embedding updated every 30 minutes as engagement data accumulates?** #flashcard
+Video embedding updated every 30 minutes as engagement data accumulates
+
+**Thompson sampling for impression allocation?** #flashcard
+treat each video as a Bernoulli arm, sample from Beta(α, β) where α = positive interactions, β = negative
+
+**No channel-level reputation signal?** #flashcard
+No channel-level reputation signal
+
+**No subscriber base for initial distribution?** #flashcard
+No subscriber base for initial distribution
+
+**Strategy?** #flashcard
+content-based routing to topically relevant audiences + capped exploration budget per creator per day
+
+**Viral detection (see Section 9) to amplify breakout new creator videos quickly?** #flashcard
+Viral detection (see Section 9) to amplify breakout new creator videos quickly
+
+**Clickbait?** #flashcard
+high CTR, high watch time (sunk cost), low satisfaction
+
+**Extreme/outrage content?** #flashcard
+high watch time (emotional activation), low self-reported satisfaction, high regret
+
+**Autoplay rabbit holes?** #flashcard
+cumulative watch time accrues, but user reports not meaning to watch that much
+
+**Sparse (~1% of sessions)?** #flashcard
+Sparse (~1% of sessions)
+
+**Used to calibrate the satisfaction proxy signal?** #flashcard
+Used to calibrate the satisfaction proxy signal
+
+**Direct training label for the "like" and "satisfaction" prediction heads?** #flashcard
+Direct training label for the "like" and "satisfaction" prediction heads
+
+**User watches video → within 30 minutes explicitly dislikes / clicks "not interested" / exits app abruptly = regret label = 1?** #flashcard
+User watches video → within 30 minutes explicitly dislikes / clicks "not interested" / exits app abruptly = regret label = 1
+
+**User watches video → returns to app within 2 hours = regret label = 0 (satisfied session)?** #flashcard
+User watches video → returns to app within 2 hours = regret label = 0 (satisfied session)
+
+**30-day retention rate?** #flashcard
+are users coming back month over month?
+
+**Self-reported wellbeing survey (annual, sampled)?** #flashcard
+Self-reported wellbeing survey (annual, sampled)
+
+**Subscription cancellation rate by recommendation quality segment?** #flashcard
+Subscription cancellation rate by recommendation quality segment
+
+**Track topic distribution of user's session?** #flashcard
+if last 5 recommendations are all in the same narrow subtopic cluster, flag as rabbit hole risk
+
+**Monitor engagement pattern?** #flashcard
+autoplay-driven (passive) vs active click-driven (intentional)
+
+**Inject diversity?** #flashcard
+insert a video from a different topic cluster after N consecutive similar videos
+
+**"Take a break" prompt after 45 minutes continuous watch?** #flashcard
+"Take a break" prompt after 45 minutes continuous watch
+
+**Reduce autoplay probability for content clusters flagged for rabbit hole potential?** #flashcard
+Reduce autoplay probability for content clusters flagged for rabbit hole potential
+
+**Exploration budget?** #flashcard
+reserve X% of total impressions for non-top-1% creators
+
+**Subscriber notification?** #flashcard
+prioritize new videos from subscribed channels in the first hour
+
+**Search surface?** #flashcard
+less biased toward engagement history, easier entry for new creators
+
+**CTR significantly above creator baseline (> 2 std deviations)?** #flashcard
+CTR significantly above creator baseline (> 2 std deviations)
+
+**Watch percentage > 70% on first 100 impressions?** #flashcard
+Watch percentage > 70% on first 100 impressions
+
+**Share rate > 3% (threshold tuned per category)?** #flashcard
+Share rate > 3% (threshold tuned per category)
+
+**Rapid social graph spread (being shared across disconnected user clusters)?** #flashcard
+Rapid social graph spread (being shared across disconnected user clusters)
+
+**Content ID fingerprinting runs in parallel to recommendation pipeline?** #flashcard
+Content ID fingerprinting runs in parallel to recommendation pipeline
+
+**Copyright-matched content flagged before entering ANN index?** #flashcard
+Copyright-matched content flagged before entering ANN index
+
+**Re-monetization decisions (split revenue vs block vs mute audio) resolved before first recommendation?** #flashcard
+Re-monetization decisions (split revenue vs block vs mute audio) resolved before first recommendation
+
+**Copyright status change propagates to index as video metadata update?** #flashcard
+Copyright status change propagates to index as video metadata update
+
+**User's topic distribution narrows?** #flashcard
+User's topic distribution narrows
+
+**Cross-topic discovery ceases?** #flashcard
+Cross-topic discovery ceases
+
+**Platform becomes an echo chamber?** #flashcard
+Platform becomes an echo chamber
+
+**Long-term user satisfaction (as measured by retention) decreases despite short-term engagement increase?** #flashcard
+Long-term user satisfaction (as measured by retention) decreases despite short-term engagement increase
+
+**Novelty seeker?** #flashcard
+high historical click rate on out-of-distribution recommendations
+
+**Comfort viewer?** #flashcard
+low historical click rate on novel content, high on familiar
+
+**Add regret prediction head?** #flashcard
+extreme content has high regret rate
+
+**Policy-enforced score penalty for videos from flagged content clusters?** #flashcard
+Policy-enforced score penalty for videos from flagged content clusters
+
+**Hard cap on consecutive recommendations from high-risk clusters?** #flashcard
+Hard cap on consecutive recommendations from high-risk clusters
+
+**Separate safety classifier score subtracted from ranking score?** #flashcard
+Separate safety classifier score subtracted from ranking score
+
+**Penalize high thumbnail-content divergence in ranking score?** #flashcard
+Penalize high thumbnail-content divergence in ranking score
+
+**Track creator-level history of clickbait signals; adjust baseline score?** #flashcard
+Track creator-level history of clickbait signals; adjust baseline score
+
+**Rate limit distribution for creators with repeated clickbait violations?** #flashcard
+Rate limit distribution for creators with repeated clickbait violations
+
+**Temporal decay?** #flashcard
+reduce ranking score boost from historical engagement as video ages (unless still generating strong engagement)
+
+**Exploration budget (Section 9)?** #flashcard
+reserve impressions for non-top content
+
+**Diversified retrieval?** #flashcard
+ensure ANN retrieval returns a diverse set, not just the globally most popular
+
+**Onboarding interest selection (explicit preferences at signup)?** #flashcard
+Onboarding interest selection (explicit preferences at signup)
+
+**Geographic and demographic priors (what do similar users in this region watch?)?** #flashcard
+Geographic and demographic priors (what do similar users in this region watch?)
+
+**Session-based warm-up?** #flashcard
+infer preferences from first 3–5 interactions within the session (real-time context window)
+
+**Multi-armed bandit to efficiently explore user preferences with minimal impressions?** #flashcard
+Multi-armed bandit to efficiently explore user preferences with minimal impressions
+
+**Anomaly detection on engagement pattern (bot-like?** #flashcard
+all watches exactly 31 seconds, all from same IP subnet)
+
+**Content classifier ensemble (separate from recommendation model)?** #flashcard
+Content classifier ensemble (separate from recommendation model)
+
+**Human review escalation pipeline for flagged content?** #flashcard
+Human review escalation pipeline for flagged content
+
+**Ranking score includes trust score from integrity systems?** #flashcard
+Ranking score includes trust score from integrity systems
+
+**New creator probation?** #flashcard
+limited reach until manual trust threshold
+
+**Ensemble of content safety classifiers (text, visual, audio)?** #flashcard
+harder to evade all simultaneously
+
+**Retrieval?** #flashcard
+ensure ANN retrieval doesn't over-index on globally popular or historically similar content. Use diverse retrieval strategies (topic-constrained retrieval, trending content, followed-channel content as separate pipelines that are merged).
+
+**Re-ranking?** #flashcard
+apply MMR to diversify the final slate by topic, creator, and format.
+
+**Exploration allocation?** #flashcard
+reserve slots for novel topics and creators.
+
+**Long-term metrics?** #flashcard
+track user topic distribution breadth over time. A narrowing distribution is an early signal before user churn.
+
+**Per-user novelty tuning?** #flashcard
+users with high exploration tolerance get more diverse recommendations; users who prefer familiar content get more familiar content (but with a minimum diversity floor).
+
+**Reduce ANN index update frequency to every 5–10 minutes for videos crossing a viral-signal threshold.?** #flashcard
+Reduce ANN index update frequency to every 5–10 minutes for videos crossing a viral-signal threshold.
+
+**Add a "viral signal" feature (rate of change of engagement, not absolute level) to the ranking model.?** #flashcard
+Add a "viral signal" feature (rate of change of engagement, not absolute level) to the ranking model.
+
+**Maintain a separate fast-path "trending videos" retrieval pipeline that bypasses the ANN index and directly injects viral candidates.?** #flashcard
+Maintain a separate fast-path "trending videos" retrieval pipeline that bypasses the ANN index and directly injects viral candidates.
+
+**Streaming feature pipeline (Flink)?** #flashcard
+update engagement statistics in near-real-time (seconds) rather than batch.
+
+**Decouple cold-start exploration (Section 7 Phase 1) from ANN retrieval so new videos can receive impressions even before full index insertion.?** #flashcard
+Decouple cold-start exploration (Section 7 Phase 1) from ANN retrieval so new videos can receive impressions even before full index insertion.
+
+**Covington, Adams, Sargin. Deep Neural Networks for YouTube Recommendations. RecSys 2016.?** #flashcard
+Covington, Adams, Sargin. Deep Neural Networks for YouTube Recommendations. RecSys 2016.
+
+**Liu et al. Monolith?** #flashcard
+Real Time Recommendation System With Collisionless Embedding Table. ByteDance, 2022.
+
+**Zhao et al. Recommending What Video to Watch Next?** #flashcard
+A Multitask Ranking System. RecSys 2019.
+
+**Steck. Calibrated Recommendations. RecSys 2018. (diversity / filter bubble)?** #flashcard
+Steck. Calibrated Recommendations. RecSys 2018. (diversity / filter bubble)
+
+**Ribeiro et al. Auditing Radicalization Pathways on YouTube. FAT* 2020.?** #flashcard
+Ribeiro et al. Auditing Radicalization Pathways on YouTube. FAT* 2020.
+
+**Dean et al. Outrageously Large Neural Networks?** #flashcard
+The Sparsely-Gated Mixture-of-Experts Layer. ICLR 2017.
+
+**Johnson, Douze, Jégou. Billion-scale similarity search with GPUs (FAISS). IEEE T-BD 2021.?** #flashcard
+Johnson, Douze, Jégou. Billion-scale similarity search with GPUs (FAISS). IEEE T-BD 2021.

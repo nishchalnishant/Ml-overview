@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 Algorithms
+subtopic: Day 8 9 Supervised Learning Algorithms
+status: unread
+tags: [studyplans, ml, week-2-algorithms-day-8-9-supe]
+---
 # Day 8-9: Supervised Learning (Ensembles & Kernels)
 
 ## Why This Topic Comes Here
@@ -102,3 +109,35 @@ rf = RandomForestClassifier(n_estimators=100, max_depth=None)
 # XGBoost: Focus on 'learning_rate' (eta) and 'early_stopping'
 xgb = XGBClassifier(learning_rate=0.1, n_estimators=1000, early_stopping_rounds=50)
 ```
+
+## Flashcards
+
+**Hard Margin?** #flashcard
+Assumes linear separability.
+
+**Soft Margin?** #flashcard
+Allows some misclassifications (controlled by $C$).
+
+**Kernel Trick?** #flashcard
+Maps data to high-dim space where it is linearly separable.
+
+**RBF Kernel?** #flashcard
+$K(x, x') = \exp(-\gamma ||x - x'||^2)$
+
+**Concept?** #flashcard
+Train $M$ models on $M$ random subsets (with replacement). Average their predictions.
+
+**Example?** #flashcard
+Random Forest.
+
+**Impact?** #flashcard
+Reduces Variance by averaging predictions.
+
+**Concept?** #flashcard
+Train models sequentially. Model $i+1$ corrects the errors of model $i$.
+
+**Examples?** #flashcard
+AdaBoost, Gradient Boosting, XGBoost.
+
+**Impact?** #flashcard
+Reduces Bias (and often Variance, though it can overfit).

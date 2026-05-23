@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: Books
+subtopic: ""
+status: unread
+tags: [productionml, ml, books]
+---
 # Books
 
 Recommended reading for production ML and MLOps. Ordered by how foundational they are.

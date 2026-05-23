@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Agentic Workflows
+status: unread
+tags: [llms, ml, applications-agentic-workflows]
+---
 # Agentic Workflows
 
 ---
@@ -215,3 +222,62 @@ Tooling: LangSmith, Weights & Biases Weave, Arize Phoenix, or custom OpenTelemet
 | Direct API | Full control, no abstractions | Simple tool use; production-critical paths |
 
 *Related: [RAG](rag.md) | [Hallucination Mitigation](hallucination-mitigation.md) | [Tuning and Optimization](tuning-optimization.md)*
+
+## Flashcards
+
+**Zero-shot: append "Let's think step by step."?** #flashcard
+the model imitates reasoning patterns from training data.
+
+**Few-shot?** #flashcard
+provide 2–5 worked examples with explicit step-by-step traces. The model imitates the pattern.
+
+**The generated scratchpad becomes part of the model's own context for the final answer.?** #flashcard
+The generated scratchpad becomes part of the model's own context for the final answer.
+
+**Define tools as JSON schemas (name, description, parameter types, required fields).?** #flashcard
+Define tools as JSON schemas (name, description, parameter types, required fields).
+
+**Pass tool definitions alongside the prompt.?** #flashcard
+Pass tool definitions alongside the prompt.
+
+**The model outputs a structured tool-call object instead of prose when it decides a tool is needed.?** #flashcard
+The model outputs a structured tool-call object instead of prose when it decides a tool is needed.
+
+**The host parses the call, executes the function, appends the result as a message, and calls the model again.?** #flashcard
+The host parses the call, executes the function, appends the result as a message, and calls the model again.
+
+**Hallucinated tool calls?** #flashcard
+the model invents a tool name or argument not in the schema. Mitigated by strict schema validation with required fields and enum constraints.
+
+**Wrong argument values?** #flashcard
+the model infers the right tool but the wrong parameter (wrong city, wrong date). Mitigated by unambiguous parameter descriptions.
+
+**Cascade errors?** #flashcard
+a wrong tool call returns a bad observation; the model reasons correctly from bad data and produces a confidently wrong answer.
+
+**Infinite loops?** #flashcard
+the model calls tools indefinitely without concluding. Always enforce a hard maximum iteration limit.
+
+**Multi-agent systems multiply every single-agent failure mode. One bad tool call in a subagent poisons the orchestrator's context.?** #flashcard
+Multi-agent systems multiply every single-agent failure mode. One bad tool call in a subagent poisons the orchestrator's context.
+
+**Coordination adds latency?** #flashcard
+2–4× more LLM calls than a single agent.
+
+**Inter-agent communication formats must be precise. If subagent A returns prose and subagent B expects JSON, the system breaks silently.?** #flashcard
+Inter-agent communication formats must be precise. If subagent A returns prose and subagent B expects JSON, the system breaks silently.
+
+**Attribution is hard?** #flashcard
+tracing which agent introduced an error requires full-trace observability.
+
+**Every LLM call?** #flashcard
+record model name, prompt tokens, completion tokens, latency, full output.
+
+**Every tool call?** #flashcard
+record tool name, input arguments, output, latency, success/failure.
+
+**Full agent trace?** #flashcard
+record the sequence of steps, state at each step, and final answer.
+
+**Cost?** #flashcard
+sum token costs across all LLM calls in a run.

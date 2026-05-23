@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Embedding Pipeline Design
+status: unread
+tags: [productionml, ml, system-design-embedding-pipeli]
+---
 # Embedding Pipeline at Scale
 
 ```mermaid

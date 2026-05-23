@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Scaling Laws And Chinchilla
+status: unread
+tags: [deeplearning, ml, components-scaling-laws-and-ch]
+---
 # Scaling Laws and Chinchilla
 
 How model size, data, and compute interact. Every foundation model team makes decisions based on these laws. Critical for L5/L6 LLM interviews.
@@ -224,3 +231,38 @@ A: C = 6 × N × D = 6 × 13B × 2T = 156 × 10²¹ ≈ 1.56 × 10²³ FLOPs. At
 
 **Q: What are "emergent capabilities" and are they real?**  
 A: Emergent capabilities appear to arise discontinuously at scale thresholds — absent at 7B, present at 70B. Examples: multi-step arithmetic, BIG-bench tasks, chain-of-thought. The debate: Schaeffer et al. (2023) argue emergence is a metric artifact — coarse accuracy metrics create step functions even when log-loss scales smoothly. With continuous metrics, many "emergent" capabilities show gradual improvement. The practical implication: don't assume capabilities are absent until a threshold — use continuous probing metrics, and test your specific capability of interest across model scales.
+
+## Flashcards
+
+**$N_{opt} \propto C^{0.45} \approx C^{0.5}$?** #flashcard
+$N_{opt} \propto C^{0.45} \approx C^{0.5}$
+
+**$D_{opt} \propto C^{0.55} \approx C^{0.5}$?** #flashcard
+$D_{opt} \propto C^{0.55} \approx C^{0.5}$
+
+**C4 heuristic?** #flashcard
+remove docs with <3 sentences
+
+**Perplexity filtering?** #flashcard
+train small LM, keep moderate-perplexity docs
+
+**Deduplication?** #flashcard
+MinHash at document and ngram level
+
+**Few-shot learning (not present at 1B)?** #flashcard
+Few-shot learning (not present at 1B)
+
+**Chain-of-thought reasoning (not present at 7B)?** #flashcard
+Chain-of-thought reasoning (not present at 7B)
+
+**Code generation?** #flashcard
+Code generation
+
+**N = 175B, D = 300B tokens?** #flashcard
+N = 175B, D = 300B tokens
+
+**C = 6 × 175B × 300B = 315 × 10²¹ FLOPs ≈ 3.1 × 10²³ FLOPs?** #flashcard
+C = 6 × 175B × 300B = 315 × 10²¹ FLOPs ≈ 3.1 × 10²³ FLOPs
+
+**At 312 TFLOP/s on V100 FP16?** #flashcard
+≈ 10⁹ GPU-seconds ≈ 32 GPU-years

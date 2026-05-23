@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Rag
+status: unread
+tags: [llms, ml, applications-rag]
+---
 # Retrieval-Augmented Generation (RAG)
 
 ---
@@ -251,3 +258,26 @@ A: (1) **Retrieval miss** (correct document not retrieved): fix with hybrid retr
 
 **Q: What is the difference between RAG and fine-tuning for injecting knowledge, and when do you use each?**
 A: **RAG**: retrieves relevant context at inference time. Strengths: knowledge is always up-to-date (add documents to the index); source-attributable (can cite which document); no training cost; can handle large knowledge bases (billions of tokens). Weaknesses: retrieval latency (~100-200ms); retrieval can fail; context window limits how much knowledge fits; requires a vector store in production. **Fine-tuning**: bakes knowledge into weights during training. Strengths: zero retrieval latency; knowledge is always available; can learn domain-specific reasoning patterns (not just facts). Weaknesses: knowledge becomes stale as the world changes; hallucinations increase for tail knowledge (fine-tuning on rare facts causes the model to confabulate similar-sounding facts); expensive to update — must retrain; can't cite sources. **Decision rule**: use RAG when (a) knowledge changes frequently, (b) you need source attribution, (c) the knowledge base is large, or (d) you need to add knowledge post-deployment. Use fine-tuning when (a) you need to change behavior/tone/format, (b) you need to teach reasoning patterns not just facts, (c) latency is critical. In practice: combine both — fine-tune for behavior and domain adaptation, RAG for up-to-date factual grounding.
+
+## Flashcards
+
+**Facts change frequently and the model needs current information?** #flashcard
+Facts change frequently and the model needs current information
+
+**Answers must be attributed to specific source documents?** #flashcard
+Answers must be attributed to specific source documents
+
+**The domain is proprietary or too narrow to justify retraining?** #flashcard
+The domain is proprietary or too narrow to justify retraining
+
+**Knowledge needs to be updatable without GPU budget?** #flashcard
+Knowledge needs to be updatable without GPU budget
+
+**The problem is behavioral (tone, format, style)?** #flashcard
+fine-tune instead
+
+**The latency budget cannot absorb retrieval overhead (50–300ms)?** #flashcard
+The latency budget cannot absorb retrieval overhead (50–300ms)
+
+**The knowledge is static and already well-covered in pretraining data?** #flashcard
+The knowledge is static and already well-covered in pretraining data

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Dl Architectures
+status: unread
+tags: [interviewprep, ml, llm-dl-architectures]
+---
 # Deep Learning Architectures — First-Principles Interview Guide
 
 ---
@@ -358,3 +365,26 @@ Whether you reason from task structure to architecture inductive bias — or def
 
 **Trap: recommending Transformers for tabular data.**
 ViT-style models for tabular data rarely beat XGBoost unless the dataset has millions of rows and rich categorical structure requiring learned embeddings. The Transformer's strength is scaling with data and compute; its weakness is requiring enormous data before the absence of inductive bias stops hurting performance. XGBoost has the right inductive bias for tabular data (decision tree splits naturally handle mixed numeric and categorical features, threshold-based splits capture nonlinear interactions efficiently) and trains in minutes. The correct framing: "XGBoost or LightGBM first; move to a neural approach only if you have > 1M rows, need to jointly embed high-cardinality IDs or raw text, or need to share representations across multiple tasks."
+
+## Flashcards
+
+**No translation invariance?** #flashcard
+a cat in the top-left corner is a completely different input vector than a cat in the bottom-right. The model must learn a separate detector for every position.
+
+**No locality?** #flashcard
+distant pixels get equal weight to adjacent ones. The correlation structure of natural images (local patches are highly correlated; distant pixels much less so) is invisible to the architecture.
+
+**Parameter explosion?** #flashcard
+every input pixel independently connected to every hidden unit forces massive parameter counts before any useful computation begins.
+
+**CNNs?** #flashcard
+locality and translation equivariance. Data where nearby elements are more correlated than distant ones, and where features appear at multiple positions.
+
+**Transformers?** #flashcard
+arbitrary pairwise relationships. Data where any element might be relevant to any other, and where global context is essential.
+
+**GNNs?** #flashcard
+graph topology. Data with explicit relational structure between entities.
+
+**MLPs / gradient boosting?** #flashcard
+tabular data with no spatial or sequential structure among features.

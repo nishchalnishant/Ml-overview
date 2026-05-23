@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Multi Modal Ai Snappy
+status: unread
+tags: [llms, ml, interview-notes-multi-modal-ai]
+---
 # Multi-modal AI — text, images, audio (without the hype)
 
 Multi-modal systems are just the same engineering story with more inputs: **bigger artifacts, higher cost, nastier safety**.
@@ -144,3 +151,106 @@ Multi-modal systems are just the same engineering story with more inputs: **bigg
 
 ---
 
+## Flashcards
+
+**Direct answer?** #flashcard
+Use encoders per modality and a fusion mechanism to reason/generate.
+
+**Direct answer?** #flashcard
+Vision encoder → tokens/patch embeddings → cross-attend with text.
+
+**Direct answer?** #flashcard
+Contrastive training aligns image/text embeddings for cross-modal search.
+
+**Azure/DevOps bridge?** #flashcard
+treat inputs as artifacts; validate, version, and monitor costs per request.
+
+**Direct answer?** #flashcard
+Encoder-decoder, cross-attention, unified token models, mixture-of-experts.
+
+**Direct answer?** #flashcard
+Denoise from noise with a learned score model; classifier-free guidance for control.
+
+**Mini prompt?** #flashcard
+what’s the first knob to turn for speed? → reduce steps / batch / cache.
+
+**Direct answer?** #flashcard
+Text → acoustic tokens/waveform via neural vocoders.
+
+**Direct answer?** #flashcard
+Audio → encoder → decoder predicts text tokens.
+
+**Direct answer?** #flashcard
+Retrieve text + images (and maybe OCR/layout) as evidence, not just text.
+
+**Azure/DevOps bridge?** #flashcard
+treat inputs as artifacts; validate, version, and monitor costs per request.
+
+**Direct answer?** #flashcard
+Ingest → OCR/layout → embed → retrieve → VLM → validate output.
+
+**Azure/DevOps bridge?** #flashcard
+treat inputs as artifacts; validate, version, and monitor costs per request.
+
+**Direct answer?** #flashcard
+Shared embedding space enables ‘text query → image results’ and vice versa.
+
+**Direct answer?** #flashcard
+Task metrics + human review; check hallucinations and grounding.
+
+**Direct answer?** #flashcard
+Compute, bandwidth, batching, latency; async pipelines help.
+
+**Direct answer?** #flashcard
+Sample frames + temporal modeling; retrieval of key segments.
+
+**Direct answer?** #flashcard
+Answer questions about images using visual + textual context.
+
+**Direct answer?** #flashcard
+OCR + layout tokens; treat page structure as features.
+
+**Direct answer?** #flashcard
+PEFT/LoRA on cross-attention and adapters; curate high-quality pairs.
+
+**Direct answer?** #flashcard
+Images/video are expensive; compress inputs, cache, route by complexity.
+
+**Azure/DevOps bridge?** #flashcard
+treat inputs as artifacts; validate, version, and monitor costs per request.
+
+**Direct answer?** #flashcard
+Detect unsafe content in images/video/audio + text; multi-stage filters.
+
+**Azure/DevOps bridge?** #flashcard
+treat inputs as artifacts; validate, version, and monitor costs per request.
+
+**Direct answer?** #flashcard
+Diffusion/transformer hybrids; expensive and currently noisy in control.
+
+**Direct answer?** #flashcard
+Early: fuse features early; Late: separate models combine decisions.
+
+**Direct answer?** #flashcard
+Force grounding (regions/OCR), lower temperature, add verification/citations.
+
+**Direct answer?** #flashcard
+Page-wise processing + layout-aware retrieval + hierarchical summarization.
+
+**Direct answer?** #flashcard
+Ensure image tokens present; better prompts; model choice; test with counterfactuals.
+
+**Direct answer?** #flashcard
+ControlNet, adapters, reference images, better conditioning, negative prompts.
+
+**Mini prompt?** #flashcard
+what’s the first knob to turn for speed? → reduce steps / batch / cache.
+
+**Direct answer?** #flashcard
+Tune guidance/temperature, diversity controls, better sampling schedules.
+
+**Direct answer?** #flashcard
+Fewer steps, distillation, better schedulers, faster kernels, smaller model.
+
+**Mini prompt?** #flashcard
+what’s the first knob to turn for speed? → reduce steps / batch / cache.

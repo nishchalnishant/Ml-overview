@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Distributed Training
+status: unread
+tags: [productionml, ml, system-design-distributed-trai]
+---
 # Distributed Training Architecture
 
 ```mermaid

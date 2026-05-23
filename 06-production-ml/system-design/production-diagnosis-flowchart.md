@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Production Diagnosis Flowchart
+status: unread
+tags: [productionml, ml, system-design-production-diagn]
+---
 # Production ML Diagnosis Flowcharts
 
 Decision trees for the four most common production ML incidents. Each tree is a structured interview framework — walk the interviewer through it to demonstrate systematic thinking.
@@ -370,3 +377,23 @@ A: PSI is batch (offline) — compare feature distributions between a reference 
 
 **Q: How do you prevent silent failures in ML pipelines?**  
 A: Defense in depth: (1) schema validation at every pipeline boundary (Great Expectations or custom), (2) feature distribution alerts via PSI on daily batch, (3) prediction distribution monitoring (score histogram) — catches bugs even before labels arrive, (4) shadow mode for new models before full traffic, (5) canary deployment with automated rollback trigger on P99 latency or score distribution shift, (6) data lineage tracking so you can trace any feature value to its source.
+
+## Flashcards
+
+**Training set feature stats (μ, σ, p50, p99)?** #flashcard
+Training set feature stats (μ, σ, p50, p99)
+
+**Serving feature stats (same features, live traffic)?** #flashcard
+Serving feature stats (same features, live traffic)
+
+**Calibration?** #flashcard
+Calibration
+
+**Upstream feature PSI?** #flashcard
+Upstream feature PSI
+
+**Continuous: stream training data in real time?** #flashcard
+high engineering cost, useful for fast-moving patterns (fraud, stock)
+
+**Periodic (daily/weekly): simpler, stable?** #flashcard
+sufficient for most recommendation/ranking

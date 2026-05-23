@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Vector Databases And Embeddings Snappy
+status: unread
+tags: [llms, ml, interview-notes-vector-databas]
+---
 # Vector databases & embeddings — semantic search infra (Azure/DevOps-fluent)
 
 Embeddings turn messy language into **geometry**. Vector databases turn that geometry into **fast retrieval**.
@@ -128,3 +135,116 @@ Embeddings turn messy language into **geometry**. Vector databases turn that geo
 
 # Q22: Short queries fail — improve?
 - **Fixes:** query expansion (LLM rewrite), hybrid search, user intent classification, add synonyms/metadata boosting.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Dense vectors that represent meaning so similarity becomes distance.
+
+**Fashion analogy?** #flashcard
+turning an outfit into a feature vector: fabric, cut, silhouette, vibe.
+
+**Direct answer?** #flashcard
+tokenize → encoder → pooled hidden state → vector; trained so semantically similar texts map nearby.
+
+**Sparse?** #flashcard
+keyword-like (BM25/TF-IDF-ish signals).
+
+**Dense?** #flashcard
+semantic meaning in continuous space.
+
+**Hybrid is common in production.?** #flashcard
+Hybrid is common in production.
+
+**Cosine?** #flashcard
+angle similarity (scale-invariant).
+
+**Dot product?** #flashcard
+similar to cosine if vectors are normalized; faster sometimes.
+
+**Euclidean?** #flashcard
+distance in space; sensitive to scale.
+
+**Direct answer?** #flashcard
+Stores vectors + runs approximate nearest neighbor search (ANN) efficiently.
+
+**DevOps bridge?** #flashcard
+classic DBs answer exact queries; vector DBs answer “closest neighbors.”
+
+**Criteria?** #flashcard
+domain fit, multilingual, cost/latency, dimension size, licensing.
+
+**Mini prompt?** #flashcard
+What breaks instantly? → indexing with one model, querying with another.
+
+**Higher dim can improve nuance but increases storage, memory bandwidth, index size.?** #flashcard
+Higher dim can improve nuance but increases storage, memory bandwidth, index size.
+
+**Lower dim is cheaper and often good enough.?** #flashcard
+Lower dim is cheaper and often good enough.
+
+**Direct answer?** #flashcard
+new model changes the coordinate space.
+
+**Safe rollout?** #flashcard
+dual-write embeddings, backfill, A/B evaluate retrieval, then cut over.
+
+**Direct answer?** #flashcard
+map text+image (etc.) into a shared space (e.g., CLIP).
+
+**Patterns?** #flashcard
+namespace per tenant, metadata filters, per-tenant keys, shard hot tenants.
+
+**DevOps bridge?** #flashcard
+it’s isolation + RBAC + noisy-neighbor control.
+
+**Direct answer?** #flashcard
+compress vectors (float16/int8/product quantization) to cut storage.
+
+**Trade-off?** #flashcard
+some recall loss.
+
+**Metrics?** #flashcard
+recall@k, MRR, nDCG; human relevance judgments.
+
+**Production?** #flashcard
+evaluate end-to-end (retrieval + answer quality for RAG).
+
+**Direct answer?** #flashcard
+filtering, access control, citations (source/page), time-based routing.
+
+**Patterns?** #flashcard
+sharding, HNSW/IVF/PQ, caching hot queries, batch ingestion, tiered storage.
+
+**Azure hint?** #flashcard
+treat it like search infra (index build + query SLA).
+
+**Direct answer?** #flashcard
+combine keyword (BM25) + vector similarity.
+
+**Why?** #flashcard
+exact IDs/numbers + semantic meaning.
+
+**Direct answer?** #flashcard
+contrastive training on domain pairs (query, relevant doc) and hard negatives.
+
+**Fixes?** #flashcard
+lower dimension, quantize, prune old docs, smaller top-k, better chunking.
+
+**Fixes?** #flashcard
+ANN index choice, shard/replicate, optimize ingestion, move to distributed index.
+
+**Fix?** #flashcard
+you can’t compare vectors across dims/spaces. Re-embed + rebuild index, or run dual indexes during migration.
+
+**Causes?** #flashcard
+bad chunking, wrong embedder, no metadata filters, semantic gap, no reranking.
+
+**Fix?** #flashcard
+reranker + hybrid search + better chunk boundaries.
+
+**Process?** #flashcard
+rollback, compare metrics, inspect queries with failures, recalibrate thresholds, ensure backfill complete.
+
+**Fixes?** #flashcard
+query expansion (LLM rewrite), hybrid search, user intent classification, add synonyms/metadata boosting.

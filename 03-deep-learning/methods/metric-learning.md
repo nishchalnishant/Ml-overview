@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Methods
+subtopic: Metric Learning
+status: unread
+tags: [deeplearning, ml, methods-metric-learning]
+---
 # Metric Learning
 
 > Learn an embedding space where similar items are close and dissimilar items are far, enabling similarity search, verification, and few-shot recognition without retraining a classifier.
@@ -502,3 +509,47 @@ Remove the query image itself from gallery results. For Market-1501 and similar 
 
 **Q: What is mAP vs. Recall@K — when is each preferred?**
 R@K is binary — did you find at least one correct match in the top-K? Good for understanding top-K coverage. mAP rewards ranking *all* relevant items highly, not just finding one — more informative when there are multiple correct matches per query (Re-ID, product retrieval with many SKU variants).
+
+## Flashcards
+
+**Collapsed negatives: most random pairs are easy negatives already beyond the margin?** #flashcard
+they contribute zero gradient and waste computation.
+
+**Pair construction cost?** #flashcard
+enumerating all valid pairs is O(N²) in dataset size.
+
+**Margin sensitivity?** #flashcard
+the right margin depends on embedding scale and is dataset-specific; wrong values make the loss uninformative.
+
+**Easy negatives (d(a,n) >> d(a,p)): already violate no constraint?** #flashcard
+zero gradient, wasted computation.
+
+**Hard negatives (d(a,n) < d(a,p))?** #flashcard
+cause large gradient but collapse embeddings early in training if encountered exclusively.
+
+**Semi-hard negatives: d(a,p) < d(a,n) < d(a,p) + margin?** #flashcard
+the constraint is violated but the negative is not harder than the positive. Stable, informative gradient throughout training.
+
+**Batch composition dependency?** #flashcard
+semi-hard negatives only exist if each batch contains multiple classes and multiple examples per class. Batches too small or too class-homogeneous starve the miner.
+
+**Collapsed training: fraction_positive_triplets approaching zero signals either convergence or mode collapse?** #flashcard
+monitor it.
+
+**Slow per-epoch learning?** #flashcard
+triplets enumerate 3-tuples; with N samples there are O(N³) possible triplets. Online mining from a batch samples a tiny fraction.
+
+**Large num_classes memory?** #flashcard
+the weight matrix W is (C × D). At C=1M identities and D=512, W is a 2 GB parameter. Requires distributed class sharding in very large-scale face recognition.
+
+**Margin tuning?** #flashcard
+m=0.5 is standard for faces. For fine-grained retrieval with higher intra-class variance, a smaller margin avoids over-constraining the embedding.
+
+**<1M vectors?** #flashcard
+IndexFlatL2 (exact search).
+
+**1M–50M?** #flashcard
+IndexIVFFlat with n_list ~ √N, n_probe ~ n_list/8.
+
+**>50M?** #flashcard
+IndexIVFPQ for memory compression, or IndexHNSWFlat for low latency.

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Optimization Theory
+status: unread
+tags: [interviewprep, ml, ml-optimization-theory]
+---
 # Optimization Theory — Deep Dive for ML Interviews
 
 ---
@@ -465,3 +472,92 @@ Treating optimization algorithms as black boxes. Every practical training failur
 ---
 
 *Cross-reference: `optimization.md` (gradient descent basics, Adam, AdamW, practical debugging), `deep-learning.md` (backpropagation, normalization, residual connections).*
+
+## Flashcards
+
+**"Deep learning is non-convex so convergence is not guaranteed." True but misleading?** #flashcard
+it implies optimization is unreliable. The correct framing: overparameterization makes global optima dense and easy to reach; the real concern is which local minimum you find, not whether you find one.
+
+**"Saddle points are the main obstacle to training." Empirically, training rarely stalls at saddle points in modern overparameterized networks. The more common failure mode is convergence to a sharp minimum that does not generalize. Saddle points are a theoretical concern for underparameterized problems.?** #flashcard
+"Saddle points are the main obstacle to training." Empirically, training rarely stalls at saddle points in modern overparameterized networks. The more common failure mode is convergence to a sharp minimum that does not generalize. Saddle points are a theoretical concern for underparameterized problems.
+
+**Conflating non-convexity with unpredictability. In the infinite-width NTK regime, the loss is approximately convex and training dynamics are analytically predictable. Non-convexity matters for finite networks in the feature-learning regime.?** #flashcard
+Conflating non-convexity with unpredictability. In the infinite-width NTK regime, the loss is approximately convex and training dynamics are analytically predictable. Non-convexity matters for finite networks in the feature-learning regime.
+
+**Treating variance reduction as strictly superior to SGD. For convex problems in classical ML, yes?** #flashcard
+it recovers linear convergence. For deep networks, SGD noise is a feature. Eliminating it may hurt generalization.
+
+**Forgetting that SVRG/SAGA convergence guarantees require strong convexity. In the non-convex case, the best-known rate is $O(1/T)$ to a stationary point?** #flashcard
+no better than SGD asymptotically. The linear convergence guarantee does not carry over.
+
+**Ignoring the $O(nd)$ memory cost of SAGA. This single constraint rules it out for modern large-scale deep learning, regardless of its theoretical properties.?** #flashcard
+Ignoring the $O(nd)$ memory cost of SAGA. This single constraint rules it out for modern large-scale deep learning, regardless of its theoretical properties.
+
+**"Second-order methods always converge faster." They converge in fewer iterations, but each iteration is more expensive. The relevant comparison is wall-clock time per unit of loss reduction. In the stochastic mini-batch regime, first-order methods often win because iteration cost is low and stochastic noise prevents the Hessian approximation from being accurate anyway.?** #flashcard
+"Second-order methods always converge faster." They converge in fewer iterations, but each iteration is more expensive. The relevant comparison is wall-clock time per unit of loss reduction. In the stochastic mini-batch regime, first-order methods often win because iteration cost is low and stochastic noise prevents the Hessian approximation from being accurate anyway.
+
+**Applying Newton's method to neural networks without damping. The Hessian is indefinite at saddle points?** #flashcard
+the Newton step points toward increasing loss in negative-curvature directions. Damped Newton ($H + \lambda I$) or trust-region Newton adds positive curvature to all directions, making the step safe.
+
+**Treating K-FAC's approximation as exact. K-FAC assumes input activations $a$ and gradient signals $\delta$ are independent within a layer. This is violated (especially with batch normalization), but the approximation is good enough to provide useful curvature information.?** #flashcard
+Treating K-FAC's approximation as exact. K-FAC assumes input activations $a$ and gradient signals $\delta$ are independent within a layer. This is violated (especially with batch normalization), but the approximation is good enough to provide useful curvature information.
+
+**"Natural gradient is just Newton's method with a different matrix." Formally they are both of the form $H^{-1} g$, but the matrices differ. Newton uses the Hessian of the loss $\nabla^2 L$ (which is indefinite at saddle points). Natural gradient uses the Fisher $F = \mathbb{E}[\nabla \log p \, \nabla \log p^\top]$ (which is always positive semi-definite). Under maximum likelihood, $F = -\mathbb{E}[\nabla^2 \log p]$?** #flashcard
+they coincide at the MLE optimum but not in general. The conceptual difference: Newton operates in parameter space, natural gradient operates in distribution space.
+
+**Treating natural gradient as computationally feasible without approximation. Computing and inverting $F \in \mathbb{R}^{d \times d}$ costs $O(d^3)$?** #flashcard
+same issue as Newton. K-FAC makes it tractable by exploiting layer structure. Without such approximations, natural gradient is purely theoretical.
+
+**Fisher?** #flashcard
+$F(\theta) = \nabla^2 A(\theta)$ (the Hessian of the log-partition function $A$)
+
+**Natural parameters $\theta$ and expectation parameters $\mu = \nabla A(\theta) = \mathbb{E}[T(x)]$ are dual coordinate systems connected by the Legendre transform?** #flashcard
+$A^*(\mu) = \theta^\top \mu - A(\theta)$
+
+**The EM algorithm?** #flashcard
+E-step is a projection in expectation parameter space (compute posterior expectations); M-step is optimization in natural parameter space
+
+**Treating information geometry as purely academic. It directly explains K-FAC (Kronecker approximation of the Fisher manifold geometry), TRPO/PPO (KL trust region = Fisher metric ball), variational inference (KL minimization = geodesic projection on the manifold), and natural language generation temperature scaling.?** #flashcard
+Treating information geometry as purely academic. It directly explains K-FAC (Kronecker approximation of the Fisher manifold geometry), TRPO/PPO (KL trust region = Fisher metric ball), variational inference (KL minimization = geodesic projection on the manifold), and natural language generation temperature scaling.
+
+**Confusing Fisher information with the Hessian of the loss. They are equal under maximum likelihood ($F = -\mathbb{E}[\nabla^2 \log p_\theta]$ = negative expected Hessian of log-likelihood), but the Fisher is always positive semi-definite while the loss Hessian is indefinite at saddle points. K-FAC specifically uses the Fisher because PSD is required for a valid metric.?** #flashcard
+Confusing Fisher information with the Hessian of the loss. They are equal under maximum likelihood ($F = -\mathbb{E}[\nabla^2 \log p_\theta]$ = negative expected Hessian of log-likelihood), but the Fisher is always positive semi-definite while the loss Hessian is indefinite at saddle points. K-FAC specifically uses the Fisher because PSD is required for a valid metric.
+
+**Ignoring coordinate system dependence. Gradient descent in natural parameters $\theta$ is not the same as gradient descent in expectation parameters $\mu$. The natural gradient is the correction that makes descent coordinate-invariant?** #flashcard
+the same distributional update regardless of how you parameterize the model.
+
+**"SAM finds the globally flattest minimum." SAM minimizes worst-case perturbed loss within a local $\ell_2$ ball of radius $\rho$. It finds a locally flat minimum?** #flashcard
+stable under perturbations of radius $\rho$, not necessarily the flattest minimum globally. The choice of $\rho$ matters.
+
+**Forgetting sharpness is not reparameterization-invariant without ASAM. Dinh et al. proved you can always reparameterize to make sharpness appear 0. Standard SAM's $\ell_2$-ball sharpness measure is coordinate-dependent. ASAM's adaptive norm is scale-invariant?** #flashcard
+a more principled definition.
+
+**Ignoring the 2× compute overhead. SAM requires two forward-backward passes per update. For large models, this is significant. In practice, apply SAM to a subset of steps (every $m$-th step) or use lookahead SAM variants to reduce overhead.?** #flashcard
+Ignoring the 2× compute overhead. SAM requires two forward-backward passes per update. For large models, this is significant. In practice, apply SAM to a subset of steps (every $m$-th step) or use lookahead SAM variants to reduce overhead.
+
+**Using the same absolute warmup step count regardless of total training steps. Warmup should be ~5–10% of total steps. A model trained for 1000 steps total with 1000 warmup steps never leaves the warmup phase.?** #flashcard
+Using the same absolute warmup step count regardless of total training steps. Warmup should be ~5–10% of total steps. A model trained for 1000 steps total with 1000 warmup steps never leaves the warmup phase.
+
+**Applying warmup to SGD for the same reason as Adam. Warmup for Adam is specifically about second moment stabilization. For SGD, the rationale is weaker?** #flashcard
+you might still use warmup to avoid catastrophically large early updates from random initialization, but the mechanism differs.
+
+**Treating cosine annealing as universally superior to step decay. Step decay is more interpretable and allows deliberate LR drops at known training milestones (e.g., after curriculum phase transitions). For problems with distinct training phases, step decay's explicit transitions can be better.?** #flashcard
+Treating cosine annealing as universally superior to step decay. Step decay is more interpretable and allows deliberate LR drops at known training milestones (e.g., after curriculum phase transitions). For problems with distinct training phases, step decay's explicit transitions can be better.
+
+**"Gradient clipping fixes exploding gradients." Clipping suppresses the symptom?** #flashcard
+it prevents large updates. It does not fix the underlying cause. For RNNs, the cause is eigenvalues of the recurrent weight matrix exceeding 1. This persists regardless of clipping. For a structural fix, use gated architectures (LSTM, GRU) or attention.
+
+**"By-value and by-norm clipping are equivalent for large enough $c$." They converge only when a single component completely dominates. During an instability event, typically many components are large simultaneously?** #flashcard
+by-value clipping changes the direction substantially, while by-norm clipping preserves it.
+
+**Treating clipping as a solution rather than a diagnostic tool. If clipping activates on more than 10% of training steps, the learning rate is too high or the loss has conditioning issues. Investigate the root cause; don't just increase max_norm.?** #flashcard
+Treating clipping as a solution rather than a diagnostic tool. If clipping activates on more than 10% of training steps, the learning rate is too high or the loss has conditioning issues. Investigate the root cause; don't just increase max_norm.
+
+**"NTK theory explains real network training." NTK is an infinite-width, infinitesimal-learning-rate idealization. Practical networks have finite width and train with large learning rates in the feature-learning regime where representations change and the NTK evolves. NTK is a useful analytical tool, not a description of GPT training dynamics.?** #flashcard
+"NTK theory explains real network training." NTK is an infinite-width, infinitesimal-learning-rate idealization. Practical networks have finite width and train with large learning rates in the feature-learning regime where representations change and the NTK evolves. NTK is a useful analytical tool, not a description of GPT training dynamics.
+
+**"Sharp minima always generalize worse than flat minima." The relationship is well-established for fixed parameterizations. But Dinh et al. (2017) proved you can reparameterize to make any sharp minimum appear flat and vice versa?** #flashcard
+sharpness as measured by $\lambda_{\max}(H)$ is coordinate-dependent. When discussing flat minima, you must specify the norm or coordinate system relative to which sharpness is defined. ASAM addresses this with scale-invariant sharpness.
+
+**"Mode connectivity means all local minima have the same loss." Mode connectivity says you can connect two independently trained networks by a path along which loss is approximately low. It does not say the networks are identical or that all paths between minima are loss-preserving. Direct interpolation without permutation alignment can still fail.?** #flashcard
+"Mode connectivity means all local minima have the same loss." Mode connectivity says you can connect two independently trained networks by a path along which loss is approximately low. It does not say the networks are identical or that all paths between minima are loss-preserving. Direct interpolation without permutation alignment can still fail.

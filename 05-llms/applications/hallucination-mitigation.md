@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Hallucination Mitigation
+status: unread
+tags: [llms, ml, applications-hallucination-mit]
+---
 # Hallucination Mitigation
 
 ---
@@ -244,3 +251,35 @@ Span-level hallucination detection. Labels individual sentences as factual or ha
 | RLHF/RLAIF | Very high (reward model + RL loop) | Most powerful; reward hacking risk |
 
 *Related: [RAG](rag.md) | [Tuning and Optimization](tuning-optimization.md) | [Agentic Workflows](agentic-workflows.md)*
+
+## Flashcards
+
+**Append "Think step by step before answering"?** #flashcard
+forces verifiable intermediate steps.
+
+**Include few-shot examples where the model says "I don't know" for uncertain questions.?** #flashcard
+Include few-shot examples where the model says "I don't know" for uncertain questions.
+
+**Add explicit instructions?** #flashcard
+"If you are less than 80% confident in a claim, preface it with 'I believe.' If you cannot verify from the provided context, say so."
+
+**Instruct citation?** #flashcard
+"After each factual claim, include [Doc N] referring to the source document."
+
+**Expected Calibration Error (ECE)?** #flashcard
+bin predictions by stated confidence; measure the average gap between confidence and accuracy within each bin. Low ECE = well calibrated.
+
+**Verbalized uncertainty?** #flashcard
+train or prompt the model to use phrases ("I believe," "I'm not certain") when it is less confident.
+
+**Token-level log-probabilities: for single-token answers, the model's own log-probability of the answer token is a calibration signal?** #flashcard
+imperfect but better than nothing.
+
+**Filter the SFT dataset to keep only examples with FactScore above a threshold.?** #flashcard
+Filter the SFT dataset to keep only examples with FactScore above a threshold.
+
+**Include TruthfulQA-style adversarial examples with correct answers (teaching the model not to repeat common misconceptions).?** #flashcard
+Include TruthfulQA-style adversarial examples with correct answers (teaching the model not to repeat common misconceptions).
+
+**Use FactScore as a reward signal?** #flashcard
+prefer high-FactScore responses during preference data collection.

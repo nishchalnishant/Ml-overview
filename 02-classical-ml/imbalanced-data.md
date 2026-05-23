@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Imbalanced Data
+subtopic: ""
+status: unread
+tags: [classicalml, ml, imbalanced-data]
+---
 # Imbalanced Data
 
 ---
@@ -424,3 +431,11 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, stratify=y, random_state=42
 )
 ```
+
+## Flashcards
+
+**$\gamma = 0$?** #flashcard
+reduces to weighted cross-entropy
+
+**$\gamma = 2$ (typical)?** #flashcard
+easy examples downweighted by ~100x

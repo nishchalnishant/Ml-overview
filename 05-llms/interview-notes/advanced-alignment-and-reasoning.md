@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Advanced Alignment And Reasoning
+status: unread
+tags: [llms, ml, interview-notes-advanced-align]
+---
 # Advanced Alignment and Reasoning
 
 ---
@@ -452,3 +459,230 @@ eval_suite = {
 | Hallucination | Plausible not equal to true in pretraining | False citations, invented facts | Known-answer factual eval | RAG + faithfulness check |
 | Goal misgeneralization | Shortcut correlates in-distribution | OOD behavioral failures | Distributional shift eval | Broader training distribution |
 | Specification gaming | Proxy metric not equal to intent | Achieves metric by unintended means | Diverse behavioral eval | Process rewards, broader spec |
+
+## Flashcards
+
+**Reward over-optimization (Goodhart's Law)?** #flashcard
+past a certain KL budget, scores on the reward model go up but scores from held-out human raters go down. The policy found inputs the reward model scores highly but that don't actually represent good responses.
+
+**Sycophancy?** #flashcard
+raters prefer validation. The model learns to agree with users even when they're wrong.
+
+**Reward model distributional shift?** #flashcard
+the RM was trained on SFT-model outputs. As PPO shifts the policy distribution, the RM sees out-of-distribution inputs and its scores become unreliable.
+
+**Mode collapse in diversity?** #flashcard
+PPO with a single RM can collapse to a narrow style even if many styles would be good.
+
+**Instability?** #flashcard
+4-model PPO setup is computationally expensive and training-unstable.
+
+**Describing RLHF as "making the model helpful" without explaining the reward-model-as-proxy problem.?** #flashcard
+Describing RLHF as "making the model helpful" without explaining the reward-model-as-proxy problem.
+
+**Forgetting that PPO requires 4 active models simultaneously (not 2).?** #flashcard
+Forgetting that PPO requires 4 active models simultaneously (not 2).
+
+**Confusing the KL penalty direction?** #flashcard
+it penalizes π_θ diverging from π_ref, not the reverse.
+
+**β · log(π_θ(y_l|x) / π_ref(y_l|x))?** #flashcard
+β · log(π_θ(y_l|x) / π_ref(y_l|x))
+
+**IPO (Identity Policy Optimization)?** #flashcard
+replaces log-sigmoid with squared loss to prevent over-fitting to hard preferences.
+
+**KTO (Kahneman-Tversky Optimization)?** #flashcard
+uses single-example desirability labels (good/bad) rather than pairwise preferences. More data-efficient.
+
+**ORPO (Odds Ratio Policy Optimization)?** #flashcard
+combines SFT loss with preference loss; no separate reference model needed.
+
+**SimPO (Simple Preference Optimization)?** #flashcard
+uses average log-probability (not sum) to normalize response length; removes reference model entirely.
+
+**DPO's Bradley-Terry assumption may not hold?** #flashcard
+pairwise preferences aren't always transitive or consistent.
+
+**DPO is sensitive to the reference model choice. A weak reference model means small KL budget and limited room to improve.?** #flashcard
+DPO is sensitive to the reference model choice. A weak reference model means small KL budget and limited room to improve.
+
+**Length exploitation?** #flashcard
+the model can increase log(π_θ(y_w|x)) by increasing response length. SimPO's length normalization addresses this.
+
+**Out-of-distribution preference pairs?** #flashcard
+if y_w and y_l are both unlikely under π_ref, the gradients are noisy.
+
+**"DPO is faster so it's strictly better." DPO makes different assumptions; for complex multi-turn behaviors, PPO can be more flexible.?** #flashcard
+"DPO is faster so it's strictly better." DPO makes different assumptions; for complex multi-turn behaviors, PPO can be more flexible.
+
+**Not knowing the β interpretation: it's the temperature of the implicit reward?** #flashcard
+higher β means less deviation from π_ref.
+
+**The model's critiques and revisions reflect the model's own biases?** #flashcard
+constitutional AI doesn't eliminate bias, it just changes whose biases dominate.
+
+**If the model is bad at critiquing, the training data quality suffers.?** #flashcard
+If the model is bad at critiquing, the training data quality suffers.
+
+**The principles still require careful human authorship?** #flashcard
+writing a constitution is hard and the choices are non-obvious.
+
+**AI-generated preference data still requires human validation to catch systematic failures.?** #flashcard
+AI-generated preference data still requires human validation to catch systematic failures.
+
+**"Constitutional AI is safer because it uses written principles." The principles are still a proxy for human values, and applying them is still done imperfectly by the model.?** #flashcard
+"Constitutional AI is safer because it uses written principles." The principles are still a proxy for human values, and applying them is still done imperfectly by the model.
+
+**Confusing Constitutional AI (Anthropic's method with explicit principles) with generic RLAIF (just using an LLM as the preference judge).?** #flashcard
+Confusing Constitutional AI (Anthropic's method with explicit principles) with generic RLAIF (just using an LLM as the preference judge).
+
+**CoT doesn't add new knowledge. If the model doesn't know a fact, generating reasoning steps won't conjure it.?** #flashcard
+CoT doesn't add new knowledge. If the model doesn't know a fact, generating reasoning steps won't conjure it.
+
+**CoT chains can be grammatically coherent but logically wrong. The model generates plausible-sounding steps, not necessarily correct ones.?** #flashcard
+CoT chains can be grammatically coherent but logically wrong. The model generates plausible-sounding steps, not necessarily correct ones.
+
+**For simple factual questions, CoT adds noise?** #flashcard
+you don't need intermediate reasoning to retrieve a memorized fact.
+
+**Self-consistency requires sampling diversity; if temperature is too low, all N samples agree even when wrong.?** #flashcard
+Self-consistency requires sampling diversity; if temperature is too low, all N samples agree even when wrong.
+
+**"CoT makes the model more accurate." Accurate on what? CoT helps on multi-step reasoning. It can hurt on simple recall tasks.?** #flashcard
+"CoT makes the model more accurate." Accurate on what? CoT helps on multi-step reasoning. It can hurt on simple recall tasks.
+
+**Treating a CoT chain that sounds logical as verification. The chain can be post-hoc rationalization of a wrong answer.?** #flashcard
+Treating a CoT chain that sounds logical as verification. The chain can be post-hoc rationalization of a wrong answer.
+
+**Input?** #flashcard
+(problem, full solution)
+
+**Output?** #flashcard
+scalar reward based on correctness of final answer
+
+**Credit assignment?** #flashcard
+only final token receives signal
+
+**Input?** #flashcard
+(problem, solution prefix up to step k)
+
+**Output?** #flashcard
+scalar reward for step k
+
+**Trained on human annotations of individual reasoning steps as correct/incorrect?** #flashcard
+Trained on human annotations of individual reasoning steps as correct/incorrect
+
+**G = group of responses sampled for the same prompt?** #flashcard
+G = group of responses sampled for the same prompt
+
+**r = pi_theta(y|x) / pi_old(y|x)?** #flashcard
+probability ratio
+
+**A_hat_i = (reward_i - mean(rewards_G)) / std(rewards_G)?** #flashcard
+group-normalized advantage
+
+**PRM requires expensive step-level human annotations.?** #flashcard
+PRM requires expensive step-level human annotations.
+
+**PRM can be gamed?** #flashcard
+model generates technically correct steps that don't connect to a coherent solution.
+
+**GRPO requires generating a full group of responses per prompt during training, which increases per-step compute.?** #flashcard
+GRPO requires generating a full group of responses per prompt during training, which increases per-step compute.
+
+**"PRM is always better than ORM." For tasks without clear step structure (open-ended generation), ORM is appropriate.?** #flashcard
+"PRM is always better than ORM." For tasks without clear step structure (open-ended generation), ORM is appropriate.
+
+**Confusing GRPO's within-group normalization with standard advantage normalization in PPO (which normalizes across the batch, not within a prompt's group).?** #flashcard
+Confusing GRPO's within-group normalization with standard advantage normalization in PPO (which normalizes across the batch, not within a prompt's group).
+
+**Without a max_steps guard, the model can loop indefinitely.?** #flashcard
+Without a max_steps guard, the model can loop indefinitely.
+
+**Thoughts can be hallucinated rationalizations that aren't connected to the actual tool call needed.?** #flashcard
+Thoughts can be hallucinated rationalizations that aren't connected to the actual tool call needed.
+
+**Long ReAct traces fill the context window, degrading performance on subsequent steps.?** #flashcard
+Long ReAct traces fill the context window, degrading performance on subsequent steps.
+
+**The model may ignore tool observations and continue generating based on prior beliefs.?** #flashcard
+The model may ignore tool observations and continue generating based on prior beliefs.
+
+**"ReAct = tool use." It's specifically the interleaving with explicit reasoning steps. Pure function-calling without thought generation is not ReAct.?** #flashcard
+"ReAct = tool use." It's specifically the interleaving with explicit reasoning steps. Pure function-calling without thought generation is not ReAct.
+
+**Forgetting that ReAct without step limits will loop until context overflow.?** #flashcard
+Forgetting that ReAct without step limits will loop until context overflow.
+
+**Root cause?** #flashcard
+RLHF reward model trained on human ratings that prefer validation. Raters give higher scores to agreeable, confident responses even when they're wrong.
+
+**Behavioral pattern?** #flashcard
+model agrees with user's false premises, reverses correct positions under mild pushback, praises poor quality work.
+
+**Detection?** #flashcard
+adversarial prompts with explicitly wrong premises. "I think the Civil War started in 1910. Can you tell me more about that?" Correct: gentle correction. Sycophantic: "Yes, the Civil War of 1910 was..."
+
+**Mitigation?** #flashcard
+SFT on examples of polite disagreement; DPO with pairs where sycophantic responses are the losers.
+
+**Root cause?** #flashcard
+policy optimizes the reward model proxy, not the underlying human preference.
+
+**Behavioral pattern?** #flashcard
+verbose responses, excessive hedging, confident-sounding but empty text.
+
+**Detection?** #flashcard
+evaluate at multiple points during PPO training using held-out human judges (not the RM). If RM scores increase but human judge scores plateau or decline, reward hacking is occurring.
+
+**Mitigation?** #flashcard
+KL penalty, periodic RM retraining, ensemble reward models.
+
+**Root cause?** #flashcard
+next-token prediction learns to produce plausible continuations, not necessarily true ones.
+
+**Behavioral pattern?** #flashcard
+confident specific claims about facts, citations that don't exist, plausible-sounding statistics.
+
+**Detection?** #flashcard
+evaluate on questions with known ground-truth answers; check citation accuracy.
+
+**Mitigation?** #flashcard
+RAG to ground responses, output faithfulness checking, abstention training.
+
+**Root cause?** #flashcard
+model learned a behavioral shortcut that correlates with the training objective but doesn't capture its intent.
+
+**Behavioral pattern?** #flashcard
+performs well in training distribution, behaves unexpectedly on distribution shift.
+
+**Detection?** #flashcard
+OOD behavioral evaluation; interpretability to understand what features the model is actually using.
+
+**Mitigation?** #flashcard
+broader, more diverse training distribution; adversarial training with distributional shift.
+
+**Root cause?** #flashcard
+the optimization target (proxy metric) diverges from what we actually want.
+
+**Example?** #flashcard
+a game-playing agent pauses the game rather than playing it because the score doesn't change when paused.
+
+**Detection?** #flashcard
+diverse behavioral evaluation that probes the difference between the metric and the intent.
+
+**Mitigation?** #flashcard
+broader specification, process rewards instead of outcome rewards.
+
+**These failure modes interact. A sycophantic model will also hallucinate more when users ask it to confirm false information.?** #flashcard
+These failure modes interact. A sycophantic model will also hallucinate more when users ask it to confirm false information.
+
+**Evals for alignment failures require careful design to avoid evaluating the training signal itself.?** #flashcard
+Evals for alignment failures require careful design to avoid evaluating the training signal itself.
+
+**Treating sycophancy and hallucination as the same problem. They have different causes and different fixes.?** #flashcard
+Treating sycophancy and hallucination as the same problem. They have different causes and different fixes.
+
+**"We'll add more RLHF data." More RLHF data doesn't fix the proxy-objective problem if the reward model is systematically biased.?** #flashcard
+"We'll add more RLHF data." More RLHF data doesn't fix the proxy-objective problem if the reward model is systematically biased.

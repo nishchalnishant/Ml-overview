@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Deep Learning Build A Large Language Model From Scratch
+status: unread
+tags: [references, ml, book-notes-deep-learning]
+---
 # Build a Large Language Model From Scratch
 
 ## Chapter 1: Understanding Large Language Models
@@ -214,3 +221,95 @@ PyTorch's execution model is eager by default (immediate execution, easy debuggi
 
 **What the book gets right / what to watch out for**
 The PyTorch appendix correctly identifies the common pitfall of forgetting `optimizer.zero_grad()` — gradients accumulate by default. For production training, add `torch.compile(model)` (PyTorch 2.0) for 30–50% speedup without code changes. Mixed precision (`torch.autocast`) is essential for GPU memory efficiency.
+
+## Flashcards
+
+**Two-phase development?** #flashcard
+pretraining (language modeling on unlabeled text) → fine-tuning (task-specific with labels or RLHF)
+
+**GPT uses only the transformer decoder?** #flashcard
+no encoder, no cross-attention
+
+**Emergent capabilities (zero-shot, few-shot) arise from pretraining; not explicitly trained?** #flashcard
+Emergent capabilities (zero-shot, few-shot) arise from pretraining; not explicitly trained
+
+**Custom LLMs justify their cost when?** #flashcard
+data is private, latency is critical, or domain specificity matters
+
+**BPE training?** #flashcard
+start with character vocabulary; repeatedly merge most frequent adjacent pair; stop at target vocab size (50k typical for GPT-2)
+
+**Encoding?** #flashcard
+greedily apply learned merges to new text
+
+**Special tokens?** #flashcard
+<|endoftext|> marks document boundaries; <|unk|> rarely needed with BPE
+
+**Token embedding?** #flashcard
+map each integer token ID to a d-dimensional vector via a lookup table (trained)
+
+**Simplified self-attention (no parameters)?** #flashcard
+A = softmax(X Xᵀ / √d) · X
+
+**Trainable self-attention?** #flashcard
+Q=XW_Q, K=XW_K, V=XW_V; A = softmax(QKᵀ/√d_k)·V
+
+**Causal mask?** #flashcard
+set upper-triangle of QKᵀ to -inf before softmax
+
+**Multi-head?** #flashcard
+run h heads with d_k = d_model/h; concatenate outputs; project with W_O
+
+**Cosine LR schedule with warmup?** #flashcard
+linearly increase to peak LR over first 2% of steps, then cosine decay
+
+**AdamW optimizer?** #flashcard
+Adam + weight decay on all non-bias/non-norm parameters
+
+**Evaluate perplexity on held-out validation text every N steps?** #flashcard
+Evaluate perplexity on held-out validation text every N steps
+
+**Save checkpoints; load GPT-2 weights with model.load_state_dict(torch.load(...))?** #flashcard
+Save checkpoints; load GPT-2 weights with model.load_state_dict(torch.load(...))
+
+**Remove LM head; add nn.Linear(d_model, num_classes)?** #flashcard
+Remove LM head; add nn.Linear(d_model, num_classes)
+
+**Forward pass?** #flashcard
+take hidden state at last token position → classification logits
+
+**Loss?** #flashcard
+cross-entropy on class labels
+
+**Selective freezing?** #flashcard
+freeze all transformer blocks, train only the head (faster, less data needed, more risk of underfitting)
+
+**Full fine-tuning?** #flashcard
+unfreeze all parameters (slower, needs more data, usually better)
+
+**Format?** #flashcard
+<|system|>You are a helpful assistant.<|user|>{instruction}<|assistant|>{response}
+
+**Supervised fine-tuning (SFT)?** #flashcard
+compute loss only on the response tokens (mask instruction tokens)
+
+**RLHF pipeline:?** #flashcard
+RLHF pipeline:
+
+**LoRA for efficient fine-tuning?** #flashcard
+freeze base model; add low-rank matrices ΔW = A·B to attention projections; train only A and B
+
+**nn.Module?** #flashcard
+base class for all models; .parameters() yields all trainable tensors; .train()/.eval() switches dropout/BN behavior
+
+**DataLoader?** #flashcard
+wraps a Dataset; handles batching, shuffling, multi-process loading
+
+**optimizer.zero_grad() → loss.backward() → optimizer.step()?** #flashcard
+standard training loop
+
+**torch.no_grad()?** #flashcard
+context manager that disables gradient tracking (inference, evaluation)
+
+**Model loading?** #flashcard
+model.load_state_dict(state_dict, strict=False) allows partial loading (e.g., loading GPT-2 weights into custom architecture)

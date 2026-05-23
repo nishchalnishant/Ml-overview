@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 Algorithms
+subtopic: Day 10 11 Unsupervised Learning Algorithms
+status: unread
+tags: [studyplans, ml, week-2-algorithms-day-10-11-un]
+---
 # Day 10-11: Unsupervised Learning Algorithms
 
 ## Why This Topic Comes Here
@@ -107,3 +114,26 @@ score = silhouette_score(X, model.labels_)
 
 **3. "Why is PCA considered a feature extraction technique rather than selection?"**
 > Feature selection keeps a subset of original features. PCA creates completely new features (linear combinations of the original ones), so it is "extracting" a new representation rather than selecting from the existing one.
+
+## Flashcards
+
+**Objective?** #flashcard
+Minimize Inertia (Within-cluster sum of squares).
+
+**The Elbow Method: Plot Inertia vs. $K$ to find the "elbow"?** #flashcard
+the point where adding clusters no longer significantly reduces inertia.
+
+**Agglomerative?** #flashcard
+Bottom-up approach. Start with individual points and merge them.
+
+**Dendrogram?** #flashcard
+A tree-like chart used to visualize the merging process and decide on the number of clusters.
+
+**Steps?** #flashcard
+Covariance matrix $\rightarrow$ Eigenvalues/Eigenvectors $\rightarrow$ Sort and pick top $k$.
+
+**Intuition?** #flashcard
+Maps neighbors in high-dim space to neighbors in low-dim space.
+
+**Warning?** #flashcard
+Does NOT preserve global distances; only local structure is guaranteed.

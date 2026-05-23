@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Ml System Design
+status: unread
+tags: [interviewprep, ml, llm-ml-system-design]
+---
 # ML System Design — Interview Playbook
 
 ---
@@ -348,3 +355,92 @@ Define before launch, not after:
 3. Canary: 1% → 10% → 50% → 100% with metric checks at each stage
 4. Rollback: one-command deployment of previous artifact; test quarterly that it works
 ```
+
+## Flashcards
+
+**Real-time when batch would do?** #flashcard
+you've built a 100ms serving pipeline for decisions that could be pre-computed. Latency budget wasted, complexity increased.
+
+**Batch when real-time needed?** #flashcard
+your fraud system scores transactions from yesterday. Every real fraud during the gap goes undetected.
+
+**Matrix Factorization (ALS): $\hat{r}_{ui} = u_i^T v_j$?** #flashcard
+fast retrieval, no cold start
+
+**Two-tower: separate user and item encoders, dot product at serving?** #flashcard
+scalable, handles cold start via content features
+
+**DCN (Deep & Cross Network): explicit feature crosses + deep network?** #flashcard
+strong ranking model
+
+**SASRec / BST: transformer over user's interaction sequence?** #flashcard
+best for session-aware recommendations
+
+**Exploration?** #flashcard
+$\epsilon$-greedy (random 5% of slots), UCB, Thompson sampling
+
+**Inverse propensity scoring?** #flashcard
+weight training examples by the probability that they were shown
+
+**Diversity constraints at re-ranking?** #flashcard
+cap same-category items
+
+**< 10ms latency required?** #flashcard
+GBT inference is microseconds; neural net is milliseconds
+
+**Tabular velocity features?** #flashcard
+GBT handles mixed types natively, no embedding needed
+
+**Interpretability?** #flashcard
+regulators require explainable decisions; SHAP on GBT is fast and reliable
+
+**Adversarial?** #flashcard
+fraudsters adapt. Retraining cadence matters more than model accuracy.
+
+**Imbalanced?** #flashcard
+0.1–1% positive rate. Default threshold 0.5 is wrong.
+
+**Temporal?** #flashcard
+time-since-last-transaction and velocity features are the most predictive. Missing these = large accuracy loss.
+
+**Spell correction → tokenization → intent classification (navigational / informational / transactional) → entity extraction?** #flashcard
+Spell correction → tokenization → intent classification (navigational / informational / transactional) → entity extraction
+
+**NDCG@K: position-discounted cumulative gain?** #flashcard
+standard metric
+
+**MRR: $\frac{1}{|Q|}\sum_q \frac{1}{\text{rank of first relevant doc}}$?** #flashcard
+good for navigational queries
+
+**A/B on CTR?** #flashcard
+the ground truth
+
+**70B model in BF16?** #flashcard
+140GB VRAM → minimum 2× H100 80GB with tensor parallelism
+
+**KV cache per request?** #flashcard
+$2 \times L \times H_{kv} \times d_h \times T$ bytes per token
+
+**LLaMA 3 70B (80 layers, 8 GQA heads, 128 head dim)?** #flashcard
+~160MB per 1K tokens
+
+**At 100 QPS and 500 token avg response?** #flashcard
+need KV cache capacity for ~50 concurrent active requests
+
+**INT8?** #flashcard
+~2% quality drop, 2× memory reduction, faster kernels
+
+**INT4 (GPTQ/AWQ): ~5% quality drop, 4× memory reduction?** #flashcard
+enables 70B on 2× A100 40GB
+
+**FP8?** #flashcard
+near-zero quality drop, 2× reduction, requires Hopper+ GPU
+
+**Scheduled?** #flashcard
+weekly regardless of drift (handles slow concept drift)
+
+**Triggered?** #flashcard
+PSI > 0.25 on critical features, or business KPI drop > threshold
+
+**Continuous: online learning for high-velocity signals (ads, fraud)?** #flashcard
+requires careful validation to avoid training on noise

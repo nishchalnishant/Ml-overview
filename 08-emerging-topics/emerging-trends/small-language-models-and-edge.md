@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Small Language Models And Edge
+status: unread
+tags: [emergingtopics, ml, emerging-trends-small-language]
+---
 # Small Language Models and Edge AI
 
 How SLMs achieve near-frontier performance at 1-7B parameters, what quantization formats actually do at the bit level, and the engineering constraints that govern on-device AI deployment.
@@ -404,3 +411,38 @@ At batch_size=1, arithmetic intensity=4 is far below every hardware's roofline �
   - For RTX 4090 INT4: batch ≥ 82 × 0.5 / 2 = 20.5 → batch_size > 20 is compute-bound
 
 Practical implication: for batch_size=1 deployment (interactive apps), buy hardware with high memory bandwidth (H100 NVL has 7.2 TB/s; A100 SXM has 2 TB/s). For batch inference (offline), buy hardware with high FLOP/s and use large batches. The RTX 4090's high memory bandwidth (relative to cost) makes it excellent for small-batch consumer inference — a better buy for a startup than a single A100 at 5× the price.
+
+## Flashcards
+
+**KV cache per token = 2 × n_layers × G × d_head × 2 bytes?** #flashcard
+KV cache per token = 2 × n_layers × G × d_head × 2 bytes
+
+**Llama 3.1-8B?** #flashcard
+2 × 32 × 8 × 128 × 2 = 131 KB/token (vs 327 KB for 70B with GQA-8)
+
+**At G=1 (MQA?** #flashcard
+Multi-Query Attention): 2 × 32 × 1 × 128 × 2 = 16.4 KB/token
+
+**Most weights?** #flashcard
+4-bit quantized in blocks of 256
+
+**Super-blocks?** #flashcard
+8-bit scales stored for blocks of 8 sub-blocks (256×8=2048 weights)
+
+**Attention and FFN output projections?** #flashcard
+6-bit (higher precision for sensitive layers)
+
+**Embedding and output layer?** #flashcard
+6-8 bit
+
+**FLOPs per second is nearly irrelevant for single-user latency?** #flashcard
+FLOPs per second is nearly irrelevant for single-user latency
+
+**Memory bandwidth determines tokens/sec?** #flashcard
+tokens/sec ≈ bandwidth / (model_size_bytes)
+
+**To reach compute-bound operation?** #flashcard
+batch_size must exceed hardware_FLOP_byte × bytes_per_param / 2
+
+**For RTX 4090 INT4?** #flashcard
+batch ≥ 82 × 0.5 / 2 = 20.5 → batch_size > 20 is compute-bound

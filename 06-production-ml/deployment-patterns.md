@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: Deployment Patterns
+subtopic: ""
+status: unread
+tags: [productionml, ml, deployment-patterns]
+---
 # Deployment Patterns
 
 ---
@@ -782,3 +789,26 @@ Three signals in order of detection speed: (1) data drift — input feature dist
 **"How do you handle a bad model in production?"**
 
 Rollback immediately to the previous versioned artifact. Do not investigate while users are affected. After rollback: run a post-mortem, compare training data distribution vs production at time of failure, check shadow logs for prediction divergence, review feature pipeline for any upstream data changes. Automate rollback triggers so humans only need to approve, not execute.
+
+## Flashcards
+
+**name?** #flashcard
+triton
+
+**Train on a fixed snapshot of historical data?** #flashcard
+Train on a fixed snapshot of historical data
+
+**Deploy periodically (daily, weekly, monthly)?** #flashcard
+Deploy periodically (daily, weekly, monthly)
+
+**Simple, auditable, reproducible?** #flashcard
+Simple, auditable, reproducible
+
+**ADWIN?** #flashcard
+maintains an adaptive window; triggers when the mean within sub-windows differs significantly
+
+**DDM?** #flashcard
+tracks error rate and standard deviation; alerts when error exceeds baseline + threshold
+
+**Page-Hinkley test?** #flashcard
+sequential test that triggers when cumulative deviation exceeds a threshold

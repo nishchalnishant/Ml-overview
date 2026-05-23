@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Mcp
+subtopic: ""
+status: unread
+tags: [deeplearning, ml, mcp]
+---
 # MCP — Model Context Protocol
 
 ---
@@ -660,3 +667,125 @@ Servers: validate inputs, enforce resource-level access controls (path constrain
 **Q: How does multi-agent coordination work with MCP?**
 
 Each specialist agent exposes its capabilities as an MCP server. The orchestrator agent holds clients connected to each specialist. Calling a specialist looks identical to calling a tool — structured input, structured output. This unifies the tool-use and agent-coordination interfaces. Specialists should be stateless; the orchestrator holds all session state and passes context explicitly in each call.
+
+## Flashcards
+
+**How does the model know what tools are available?** #flashcard
+How does the model know what tools are available?
+
+**How are tool inputs described and validated?** #flashcard
+How are tool inputs described and validated?
+
+**How are results returned and formatted?** #flashcard
+How are results returned and formatted?
+
+**How do you distinguish "actions the model should trigger" from "data the application should inject"?** #flashcard
+How do you distinguish "actions the model should trigger" from "data the application should inject"?
+
+**how clients discover available capabilities (capability negotiation)?** #flashcard
+how clients discover available capabilities (capability negotiation)
+
+**how tools, resources, and prompts are described (structured schemas)?** #flashcard
+how tools, resources, and prompts are described (structured schemas)
+
+**how tool calls are issued and results returned?** #flashcard
+how tool calls are issued and results returned
+
+**how errors are communicated?** #flashcard
+how errors are communicated
+
+**the lifecycle of a client-server connection?** #flashcard
+the lifecycle of a client-server connection
+
+**manages the lifecycle of one or more MCP clients?** #flashcard
+manages the lifecycle of one or more MCP clients
+
+**decides which servers to connect to?** #flashcard
+decides which servers to connect to
+
+**applies safety policies before passing tool definitions to the model?** #flashcard
+applies safety policies before passing tool definitions to the model
+
+**presents tool results to the user?** #flashcard
+presents tool results to the user
+
+**initializes the connection and negotiates capabilities?** #flashcard
+initializes the connection and negotiates capabilities
+
+**sends requests (tools/list, tools/call, resources/read, prompts/get)?** #flashcard
+sends requests (tools/list, tools/call, resources/read, prompts/get)
+
+**receives structured responses and returns them to the host?** #flashcard
+receives structured responses and returns them to the host
+
+**Is this tool allowed in this context?** #flashcard
+Is this tool allowed in this context?
+
+**Do the arguments look safe?** #flashcard
+Do the arguments look safe?
+
+**Does this action require user confirmation?** #flashcard
+Does this action require user confirmation?
+
+**Tied to a specific provider's API?** #flashcard
+Tied to a specific provider's API
+
+**Application code handles execution?** #flashcard
+Application code handles execution
+
+**No standardized server format or discovery?** #flashcard
+No standardized server format or discovery
+
+**Not reusable across applications?** #flashcard
+Not reusable across applications
+
+**Abstracts provider-specific function calling?** #flashcard
+Abstracts provider-specific function calling
+
+**Rich ecosystem of pre-built tools?** #flashcard
+Rich ecosystem of pre-built tools
+
+**Tools are embedded in application code?** #flashcard
+Tools are embedded in application code
+
+**Couples you to the LangChain ecosystem?** #flashcard
+Couples you to the LangChain ecosystem
+
+**Provider-agnostic?** #flashcard
+any model that supports MCP works
+
+**Tools are independently deployable services?** #flashcard
+Tools are independently deployable services
+
+**Reusable across hosts and applications?** #flashcard
+Reusable across hosts and applications
+
+**Standardized discovery, execution, and error handling?** #flashcard
+Standardized discovery, execution, and error handling
+
+**Higher deployment complexity than inline functions?** #flashcard
+Higher deployment complexity than inline functions
+
+**Return tool results as structured data, not raw text that could be mistaken for instructions?** #flashcard
+Return tool results as structured data, not raw text that could be mistaken for instructions
+
+**Use a distinct tool_result message role?** #flashcard
+not interpolation into the system prompt
+
+**Keep high-risk tools (delete, send, write) behind explicit user confirmation?** #flashcard
+Keep high-risk tools (delete, send, write) behind explicit user confirmation
+
+**Validate that results don't contain known injection patterns before returning them to the model?** #flashcard
+Validate that results don't contain known injection patterns before returning them to the model
+
+**Restrict all access to a root directory?** #flashcard
+prevent path traversal
+
+**Separate read and write tools?** #flashcard
+easier to grant different permissions
+
+**Return metadata (size, modified time) alongside content?** #flashcard
+Return metadata (size, modified time) alongside content
+
+**Implement a whitelist of allowed file types?** #flashcard
+Implement a whitelist of allowed file types

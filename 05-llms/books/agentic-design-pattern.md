@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Books
+subtopic: Agentic Design Pattern
+status: unread
+tags: [llms, ml, books-agentic-design-pattern]
+---
 # Agentic Design Patterns — First-Principles Notes
 
 Each pattern below is introduced by the specific failure mode it exists to fix.
@@ -678,3 +685,491 @@ Use case: Google Co-Scientist applies this pattern to autonomously design chemis
 - **Circular discovery**: Without a mechanism to track which hypotheses have already been tested, the agent re-discovers the same finding repeatedly.
 - **Quality control at scale**: Automated hypothesis generation without human review can flood AgentRxiv-type repositories with low-quality findings that corrupt future retrieval.
 - **Exploitation-exploration balance**: An agent that always explores never delivers useful output. An agent that always exploits never discovers anything new. Balancing requires an explicit exploration budget.
+
+## Flashcards
+
+**Instruction neglect?** #flashcard
+With many constraints in one prompt, the model skips some.
+
+**Context drift?** #flashcard
+Long outputs cause the model to lose the thread of earlier constraints.
+
+**Error propagation?** #flashcard
+A wrong assumption in paragraph one compounds through the rest.
+
+**Hallucination surface area?** #flashcard
+The more the model must invent in one pass, the more it invents incorrectly.
+
+**Under-decomposed chains?** #flashcard
+If a single step still carries two responsibilities, you have the original problem with extra wiring.
+
+**Context contamination?** #flashcard
+Passing too much history from prior steps overloads context and re-introduces drift.
+
+**Silent schema violations?** #flashcard
+If step 2 emits malformed JSON, step 3 fails silently or hallucinates a fix, and the error becomes invisible.
+
+**LangGraph?** #flashcard
+Conditional edges between graph nodes encode the routing logic explicitly.
+
+**Google ADK: A Coordinator agent with registered sub-agents routes implicitly?** #flashcard
+the LLM decides which sub-agent's scope matches the request.
+
+**Ambiguous boundaries?** #flashcard
+If "billing issue" overlaps with both "Order Status" and "Technical Support", the router misclassifies consistently at the boundary.
+
+**Embedding drift?** #flashcard
+Semantic routing fails when the user's phrasing is unusual. "My parcel hasn't shown up" may not embed near "Order Status" if the training distribution didn't include informal language.
+
+**Router hallucination?** #flashcard
+LLM-based routers instructed to output a category sometimes output a sentence instead. Enforce structured output or parse with a fallback.
+
+**LangChain LCEL: RunnableParallel({...})?** #flashcard
+a dict of chains that execute concurrently, results collected as a map.
+
+**LangGraph?** #flashcard
+A single state node can transition to multiple child nodes; convergence is handled at an aggregation node.
+
+**Google ADK?** #flashcard
+ParallelAgent class manages concurrent sub-agent execution natively.
+
+**Rate limits?** #flashcard
+Parallel agents fire multiple API calls simultaneously. Burst usage can hit provider rate limits and cause all branches to fail at once.
+
+**Aggregation logic?** #flashcard
+Parallel branches produce unordered results. If the aggregation step assumes a specific result order, it will misread inputs.
+
+**False independence?** #flashcard
+If Branch B actually needs a fact from Branch A to compute correctly, parallelising them produces silently wrong results. Dependency analysis must be done before parallelising.
+
+**Cost amplification?** #flashcard
+Parallelisation reduces wall-clock time but not total token spend. Costs accumulate across all branches simultaneously.
+
+**Missing exit condition?** #flashcard
+Without max_retries, an agent that can never satisfy the Critic loops infinitely.
+
+**Critic hallucination?** #flashcard
+A critic LLM can generate plausible-sounding criticism that is itself wrong. If the producer obeys, output quality degrades.
+
+**Role collapse?** #flashcard
+When the same model instance plays both Producer and Critic in the same prompt, it tends to validate its own work. Separate prompts, ideally separate model instances, are needed.
+
+**Latency multiplication?** #flashcard
+N reflection cycles = N× the generation latency and N× the API cost of a single call.
+
+**Function Calling is vendor-specific. OpenAI's schema differs from Google's. The integration is hardcoded.?** #flashcard
+Function Calling is vendor-specific. OpenAI's schema differs from Google's. The integration is hardcoded.
+
+**Model Context Protocol (MCP) is an open standard. The LLM client queries the MCP server dynamically at runtime?** #flashcard
+"What tools do you expose?" The server responds with a live tool manifest. This separates tool definition from agent logic and allows hot-swapping.
+
+**Malformed structured output?** #flashcard
+If the LLM emits a malformed JSON tool call, the client cannot parse it. Enforce structured output schemas or add a parsing fallback.
+
+**Data format incompatibility?** #flashcard
+An MCP server that returns a raw PDF is useless to an LLM that needs text. Agent-friendliness requires the server to return parsed, readable data.
+
+**Blind trust?** #flashcard
+If the tool returns an error and the agent silently ignores it, subsequent reasoning is grounded in nothing. Tool results must be validated before being used as facts.
+
+**Google ADK distinction?** #flashcard
+Extensions are executed automatically by the Vertex AI platform. Function Calls require the client application to execute manually. Confusing these leads to agents that "call" tools but never see results.
+
+**Stale plans?** #flashcard
+If step 3 fails and the agent continues executing steps 4-7 as if step 3 succeeded, it propagates an invalid state through the rest of the plan.
+
+**Over-decomposition?** #flashcard
+Excessively granular plans waste tokens and introduce more points of failure.
+
+**Dependency blindness?** #flashcard
+A plan that lists "Book the venue" before "Confirm the date" will fail in execution. The planning prompt must instruct the model to identify dependencies.
+
+**Plan hallucination?** #flashcard
+The agent generates a plan that includes steps it has no tools to execute. Validate the plan against available tools before starting execution.
+
+**A Manager agent breaks down the goal, delegates tasks to Worker agents, aggregates their outputs.?** #flashcard
+A Manager agent breaks down the goal, delegates tasks to Worker agents, aggregates their outputs.
+
+**Workers report results back; they do not communicate with each other directly.?** #flashcard
+Workers report results back; they do not communicate with each other directly.
+
+**Researcher → Writer → Editor. Each agent receives the prior agent's full output.?** #flashcard
+Researcher → Writer → Editor. Each agent receives the prior agent's full output.
+
+**Simple but brittle?** #flashcard
+a bad handoff at any step corrupts all subsequent agents.
+
+**Multiple agents (or the same model playing different roles) propose and critique solutions.?** #flashcard
+Multiple agents (or the same model playing different roles) propose and critique solutions.
+
+**The adversarial dynamic filters out hallucinations and weak reasoning before the final answer is committed.?** #flashcard
+The adversarial dynamic filters out hallucinations and weak reasoning before the final answer is committed.
+
+**Chief Editor → Section Editors → Writers. Useful for large-scale document generation.?** #flashcard
+Chief Editor → Section Editors → Writers. Useful for large-scale document generation.
+
+**CrewAI?** #flashcard
+Designed specifically for this pattern. Define Agent (role, backstory, goal), Task (assignment), Crew (team + execution order).
+
+**Google ADK?** #flashcard
+Coordinator + sub-agents with auto-flow delegation.
+
+**LangGraph?** #flashcard
+Explicit state machine where edges carry handoffs between agents.
+
+**Context window starvation?** #flashcard
+Each agent has its own context window. If the Manager tries to pass the entire conversation history to every Worker, all workers hit their limits simultaneously.
+
+**Silent failure in workers?** #flashcard
+If a Worker fails and returns a plausible-looking error embedded in natural language, the Manager may treat it as a valid result.
+
+**Attribution difficulty?** #flashcard
+When a multi-agent output is wrong, tracing the error to the responsible agent requires tracing message provenance through the entire chain.
+
+**Cost explosion?** #flashcard
+N agents × M turns = N×M LLM calls per user request. The economics must be validated before deploying this architecture at scale.
+
+**Holds current conversation history, tool outputs, and workflow progress.?** #flashcard
+Holds current conversation history, tool outputs, and workflow progress.
+
+**Limited by the context window. Once full, older items are evicted unless explicitly saved.?** #flashcard
+Limited by the context window. Once full, older items are evicted unless explicitly saved.
+
+**Implemented as InMemorySessionService (Google ADK) or ConversationBufferMemory (LangChain).?** #flashcard
+Implemented as InMemorySessionService (Google ADK) or ConversationBufferMemory (LangChain).
+
+**Survives across sessions. Accessed via retrieval, not by stuffing everything into context.?** #flashcard
+Survives across sessions. Accessed via retrieval, not by stuffing everything into context.
+
+**Three cognitive subtypes:?** #flashcard
+Three cognitive subtypes:
+
+**Episodic?** #flashcard
+What happened in past sessions. ("User asked about refund policy last Tuesday.")
+
+**Semantic?** #flashcard
+Domain facts and knowledge base. ("Company travel policy: max $250/night hotel.")
+
+**Procedural: Rules for how to behave. Can be updated by Reflection?** #flashcard
+the agent rewrites its own system prompt based on past mistakes.
+
+**Context window overflow?** #flashcard
+Injecting too much history defeats the purpose of memory management. Only inject what is relevant, retrieved by similarity.
+
+**Stale memory?** #flashcard
+A fact stored in long-term memory may be outdated. Without a TTL (time-to-live) or versioning, the agent cites obsolete information confidently.
+
+**Procedural memory corruption?** #flashcard
+If Reflection incorrectly rewrites the agent's own instructions, the degraded instructions persist and worsen over time.
+
+**Session/knowledge confusion?** #flashcard
+Treating ephemeral session state as permanent knowledge (or the reverse) causes agents to forget ongoing tasks or over-persist irrelevant details.
+
+**Sub-agents?** #flashcard
+Execute specific tasks, produce performance data.
+
+**Overseer agent?** #flashcard
+Monitors sub-agent performance, manages the learning pipeline, prevents runaway self-modification.
+
+**Reward hacking?** #flashcard
+The agent finds ways to maximize the reward signal that do not correspond to the intended behavior.
+
+**Context saturation?** #flashcard
+Learned examples accumulated in the system prompt or retrieved context can crowd out the actual task.
+
+**Runaway self-modification?** #flashcard
+An agent that rewrites its own instructions without an overseer can degrade its own behavior irreversibly in a single session.
+
+**False generalization?** #flashcard
+An agent that learned "always retry three times" from one API may apply that rule to every tool, including ones where retries cause side effects (double-posting, double-charging).
+
+**MCP Host (the application, e.g., Claude Desktop, an IDE)?** #flashcard
+Owns the connection lifecycle and permissions.
+
+**MCP Client (the LLM/agent)?** #flashcard
+Queries servers for capabilities, sends structured requests.
+
+**MCP Server (wraps a tool or data source)?** #flashcard
+Exposes three things:
+
+**Resources?** #flashcard
+Static data the agent can read (files, DB records, logs).
+
+**Prompts?** #flashcard
+Pre-written templates for using the server effectively.
+
+**Tools?** #flashcard
+Executable functions the agent can invoke.
+
+**Data format mismatch?** #flashcard
+An MCP server that returns raw bytes or a binary PDF is protocol-compliant but agent-useless. Servers must return agent-readable formats (text, Markdown).
+
+**Dynamic discovery latency?** #flashcard
+If an agent queries the server's tool manifest on every request, that round-trip adds latency. Cache the manifest and invalidate on server version change.
+
+**Permissions ambiguity?** #flashcard
+The Host manages permissions, but if the Host grants broad access, a misbehaving agent can call destructive tools it should not reach.
+
+**Specific?** #flashcard
+Clear, unambiguous objective.
+
+**Measurable?** #flashcard
+A state the system can check programmatically.
+
+**Achievable?** #flashcard
+Within the agent's tool inventory.
+
+**Relevant?** #flashcard
+Aligned with the user's actual need.
+
+**Time-bound?** #flashcard
+With a deadline or step budget.
+
+**Underspecified goals?** #flashcard
+"Help the user plan a trip" has no measurable completion condition. The agent can loop indefinitely or stop too early.
+
+**Metric gaming?** #flashcard
+An agent optimized for a proxy metric (e.g., "number of tasks completed") can satisfy the metric while missing the real objective.
+
+**Monitoring overhead?** #flashcard
+Continuous state evaluation adds latency to every step. For high-frequency actions, lightweight monitoring is required.
+
+**Goal drift?** #flashcard
+In long sessions, an agent's accumulated context can shift its interpretation of the original goal. The goal must be re-injected into context at regular intervals.
+
+**Programmatic?** #flashcard
+catch HTTP 4xx/5xx, parse errors, timeouts.
+
+**Semantic?** #flashcard
+a Critic agent flags that the output makes no logical sense.
+
+**Log?** #flashcard
+Always. Visibility is prerequisite to debugging.
+
+**Retry with exponential backoff?** #flashcard
+For transient failures (rate limits, network blips).
+
+**Fallback?** #flashcard
+If primary method fails, try a secondary. Graceful degradation: provide a partial answer rather than nothing.
+
+**Silent failures?** #flashcard
+If a tool returns a plausible-looking error embedded in natural language, the agent may not detect it programmatically and proceeds on false data.
+
+**Infinite retry loops?** #flashcard
+Retrying a structurally broken request (wrong endpoint, malformed payload) will always fail. Distinguish transient from permanent failures before retrying.
+
+**Cascading fallbacks?** #flashcard
+If fallback A fails and triggers fallback B, which triggers fallback C, the agent may end up multiple hops from its original intent with no record of how it got there.
+
+**Active?** #flashcard
+Human is a required step in every execution of this workflow.
+
+**Passive?** #flashcard
+Human monitors dashboards; only intervenes when an alert fires.
+
+**Approval bottleneck?** #flashcard
+If every action requires human sign-off, the agent provides no latency benefit over a human doing the work directly. Reserve approval gates for high-stakes, irreversible actions only.
+
+**Context-free review?** #flashcard
+If the human sees only the agent's proposed action, not its reasoning, they cannot meaningfully evaluate it. HITL requires a reasoning log UI, not just a Yes/No button.
+
+**Trust erosion?** #flashcard
+If humans approve agent actions without reviewing them (rubber-stamping), the oversight provides legal cover but not actual safety.
+
+**Retrieval quality ceiling?** #flashcard
+RAG cannot improve an answer if the correct information is not in the database. The retrieval system is only as good as its data.
+
+**Chunk boundary artifacts?** #flashcard
+If the answer spans two chunks that are retrieved separately, the model may see each half but not the complete picture.
+
+**Query-answer embedding gap?** #flashcard
+Questions ("What is the CEO's salary?") and answers ("$4.2M annually") may not embed near each other because they are semantically different in form. Bi-encoder fine-tuning on Q-A pairs addresses this.
+
+**Hallucination despite retrieval?** #flashcard
+If the retrieval returns irrelevant chunks, the model may still hallucinate rather than returning "I don't know." Add a relevance threshold: if no chunk exceeds it, return a "no information found" response.
+
+**Request/Response (Polling)?** #flashcard
+Agent A sends a task, waits for Agent B's reply. Simple but ties up resources during wait.
+
+**Webhooks (Event-driven)?** #flashcard
+Agent B notifies Agent A when work is complete. Agent A can do other work in the meantime.
+
+**Agent Card staleness?** #flashcard
+If an agent's capabilities change but its Agent Card is not updated, other agents delegate tasks it can no longer handle.
+
+**Trust between agents?** #flashcard
+In an open A2A ecosystem, a malicious agent could present a fraudulent Agent Card and intercept delegated tasks. Authentication and capability verification are required.
+
+**Cascading latency?** #flashcard
+A task delegated A → B → C has the combined latency of three network hops plus three LLM generations. Depth of delegation chains must be bounded.
+
+**Misclassification?** #flashcard
+If the complexity router routes a hard question to a small model, the answer is wrong and the optimization backfires. Router accuracy is a system requirement, not an optimization.
+
+**Switching overhead?** #flashcard
+The latency of the routing decision itself must be smaller than the latency savings it produces. Heavyweight routing models negate the benefit.
+
+**Pruning loss?** #flashcard
+Aggressive context pruning can discard a detail the model needs 10 turns later. Pruning strategy must distinguish between ephemeral context and load-bearing facts.
+
+**Prompt the model to "think step by step." Each intermediate step is generated as text, and that text becomes input to the next step.?** #flashcard
+Prompt the model to "think step by step." Each intermediate step is generated as text, and that text becomes input to the next step.
+
+**Benefit?** #flashcard
+The model cannot skip a logical step without it being visible. Errors in step 3 can be caught by the logic of steps 4 and 5.
+
+**Zero-Shot CoT: append "Let's think step by step"?** #flashcard
+no examples required.
+
+**Non-linear. The model generates multiple possible next steps from the current state, evaluates each branch, and prunes unpromising ones.?** #flashcard
+Non-linear. The model generates multiple possible next steps from the current state, evaluates each branch, and prunes unpromising ones.
+
+**Analogy?** #flashcard
+a chess player simulating three candidate moves before choosing.
+
+**Appropriate for problems where the optimal path is non-obvious and backtracking has value.?** #flashcard
+Appropriate for problems where the optimal path is non-obvious and backtracking has value.
+
+**The loop?** #flashcard
+Thought → Action (tool call) → Observation (tool result) → Thought → ...
+
+**Grounds reasoning in real-world feedback. The model does not just plan; it updates the plan based on what tools actually return.?** #flashcard
+Grounds reasoning in real-world feedback. The model does not just plan; it updates the plan based on what tools actually return.
+
+**Considered the gold standard for autonomous agents.?** #flashcard
+Considered the gold standard for autonomous agents.
+
+**Multi-agent adversarial reasoning. One agent proposes; another attacks; a judge decides.?** #flashcard
+Multi-agent adversarial reasoning. One agent proposes; another attacks; a judge decides.
+
+**Filters hallucinations and weak logic through structured disagreement before committing to an answer.?** #flashcard
+Filters hallucinations and weak logic through structured disagreement before committing to an answer.
+
+**CoT hallucinated steps?** #flashcard
+The model can generate plausible-sounding intermediate steps that are logically incorrect. The chain produces a confident wrong answer.
+
+**ToT computational explosion?** #flashcard
+Evaluating every branch of a reasoning tree is expensive. Without effective pruning, ToT costs grow exponentially.
+
+**ReAct tool loops?** #flashcard
+An agent in a ReAct loop that encounters repeated tool failures can loop indefinitely, generating Thought/Action cycles that never converge.
+
+**Debate convergence failure?** #flashcard
+In GoD, if the judge agent has a systematic bias, it will consistently select wrong answers regardless of the quality of the debate.
+
+**Detect jailbreak attempts (prompts engineered to bypass safety rules).?** #flashcard
+Detect jailbreak attempts (prompts engineered to bypass safety rules).
+
+**Block requests that violate policy on first contact.?** #flashcard
+Block requests that violate policy on first contact.
+
+**Use a fast, cheap model for this?** #flashcard
+latency cost must be minimal.
+
+**"Do not provide financial, legal, or medical advice."?** #flashcard
+"Do not provide financial, legal, or medical advice."
+
+**"If the user asks about competitors, acknowledge and redirect."?** #flashcard
+"If the user asks about competitors, acknowledge and redirect."
+
+**These are soft constraints?** #flashcard
+they can be overridden by sufficiently adversarial prompts. Not the only safety layer.
+
+**Read-only database access prevents accidental deletions.?** #flashcard
+Read-only database access prevents accidental deletions.
+
+**Restricted API scopes prevent the agent from calling endpoints it should not reach.?** #flashcard
+Restricted API scopes prevent the agent from calling endpoints it should not reach.
+
+**Principle of least privilege applied to tool permissions.?** #flashcard
+Principle of least privilege applied to tool permissions.
+
+**A secondary reviewer model checks for toxicity, bias, and PII.?** #flashcard
+A secondary reviewer model checks for toxicity, bias, and PII.
+
+**If the check fails?** #flashcard
+block the response and regenerate, or substitute a safe fallback.
+
+**CrewAI pattern?** #flashcard
+a Policy Enforcer agent outputs {"compliance_status": "compliant/non-compliant", "evaluation_summary": "..."}, validated by Pydantic schema before being acted upon.
+
+**Layer bypass?** #flashcard
+A user who defeats the input filter with an indirect jailbreak still faces the behavioral constraints, the tool restrictions, and the output filter. No single bypass defeats all layers.
+
+**Guardrail latency?** #flashcard
+Each safety layer adds a model call. Four layers = 4× the baseline latency. Use fast models (Flash-tier) for guardrails specifically.
+
+**Over-restriction?** #flashcard
+Guardrails set too aggressively block legitimate requests. The cost of false positives (rejected valid requests) must be weighed against the cost of false negatives (passed harmful requests).
+
+**Pydantic validation dependency?** #flashcard
+If the Policy Enforcer agent outputs malformed JSON, Pydantic schema validation fails and the pipeline stalls. The enforcer must be prompted with strict output format requirements.
+
+**Golden Datasets (Evalsets)?** #flashcard
+Curated input/expected-outcome pairs. Agent is run against the full set; pass rate is the primary quality metric.
+
+**A/B Testing?** #flashcard
+Two agent versions run against real traffic simultaneously. Version with higher metric scores wins.
+
+**Drift Detection?** #flashcard
+Continuous monitoring for performance degradation. If model provider updates a base model or external data sources change, agent behavior can degrade silently.
+
+**Evalset staleness?** #flashcard
+A golden dataset curated at launch stops being representative as user behavior evolves. Evalsets must be continuously updated with real production inputs.
+
+**LLM-as-Judge bias?** #flashcard
+The judge model has its own preferences and biases. If the judge model and the agent model are from the same training lineage, the judge will systematically favor the agent's style regardless of correctness.
+
+**Trajectory gaming?** #flashcard
+An agent can be optimized to produce good trajectories on the evalset while failing on novel real-world inputs. Evalset diversity is a requirement, not an afterthought.
+
+**Vanity metrics?** #flashcard
+Monitoring only token counts or response time misses quality degradation. All four dimensions must be monitored simultaneously.
+
+**Urgency?** #flashcard
+How time-sensitive is this? (SLA deadline, user frustration signal)
+
+**Importance?** #flashcard
+How much does this move the primary objective?
+
+**Dependency?** #flashcard
+Does this task unblock other tasks?
+
+**Strategic?** #flashcard
+What overall goals should the agent pursue first?
+
+**Tactical?** #flashcard
+In the current execution step, which tool call or action has highest priority?
+
+**Priority inversion?** #flashcard
+A low-priority task that blocks a high-priority task must be treated as high-priority. Static ranking that ignores dependencies causes deadlocks.
+
+**Starvation?** #flashcard
+Low-priority tasks that are never prioritized above urgent ones are never completed. Aging (gradually increasing the priority of old tasks) prevents indefinite starvation.
+
+**Reprioritization overhead?** #flashcard
+Continuously re-ranking a large task queue using an LLM is expensive. Use lightweight heuristics for frequent re-ranking; reserve LLM-based ranking for initial priority assessment.
+
+**Researcher Agent?** #flashcard
+Literature review and hypothesis generation.
+
+**Software Engineer Agent?** #flashcard
+Data preparation code.
+
+**ML Engineer Agent?** #flashcard
+Model training code.
+
+**AgentRxiv?** #flashcard
+A shared repository where agents deposit and retrieve research artifacts, enabling cumulative building across sessions.
+
+**Hallucinated experiments?** #flashcard
+An agent that generates experiments it cannot actually run (requires physical lab equipment, access to restricted data) produces hypotheses that are untestable in its operating environment.
+
+**Circular discovery?** #flashcard
+Without a mechanism to track which hypotheses have already been tested, the agent re-discovers the same finding repeatedly.
+
+**Quality control at scale?** #flashcard
+Automated hypothesis generation without human review can flood AgentRxiv-type repositories with low-quality findings that corrupt future retrieval.
+
+**Exploitation-exploration balance?** #flashcard
+An agent that always explores never delivers useful output. An agent that always exploits never discovers anything new. Balancing requires an explicit exploration budget.

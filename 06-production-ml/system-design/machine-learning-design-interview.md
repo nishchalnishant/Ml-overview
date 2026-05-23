@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Machine Learning Design Interview
+status: unread
+tags: [productionml, ml, system-design-machine-learning]
+---
 # Machine Learning Design Interview
 
 ```mermaid
@@ -817,3 +824,89 @@ Optimization techniques:
 When offline and online diverge: investigate position bias in offline data, check if A/B test traffic is representative, verify that serving features match training features exactly.
 
 **What breaks**: A/B tests have minimum detectable effect sizes. A 0.1% revenue improvement requires millions of users to detect at 95% confidence. Teams run underpowered experiments, see "no significant difference," and ship anyway — accumulating many small errors that compound over time.
+
+## Flashcards
+
+**"Is this for cold-start users or established ones?"?** #flashcard
+"Is this for cold-start users or established ones?"
+
+**"What's the latency budget?** #flashcard
+50ms or 500ms?"
+
+**"What does success look like as a business metric?"?** #flashcard
+"What does success look like as a business metric?"
+
+**What is the label? How is it defined?** #flashcard
+What is the label? How is it defined?
+
+**Pointwise score, pairwise preference, or sequence?** #flashcard
+Pointwise score, pairwise preference, or sequence?
+
+**What logs exist? What implicit signals are available?** #flashcard
+What logs exist? What implicit signals are available?
+
+**User features, item features, context features, interaction features?** #flashcard
+User features, item features, context features, interaction features
+
+**Justify complexity vs latency vs interpretability?** #flashcard
+Justify complexity vs latency vs interpretability
+
+**Data splits, loss function, optimization?** #flashcard
+Data splits, loss function, optimization
+
+**Offline metrics → online A/B test → monitoring?** #flashcard
+Offline metrics → online A/B test → monitoring
+
+**Feature retrieval (user profile, item features)?** #flashcard
+5ms
+
+**Candidate generation (ANN search)?** #flashcard
+5ms
+
+**Feature assembly for ranking?** #flashcard
+3ms
+
+**Ranking model inference (top-1000 -> top-50)?** #flashcard
+15ms
+
+**Re-ranking and business logic?** #flashcard
+5ms
+
+**Response serialization and network?** #flashcard
+10ms
+
+**Model quantization (FP32 to INT8)?** #flashcard
+2-4x inference speedup with <1% accuracy loss
+
+**ONNX export?** #flashcard
+portable format with optimized runtime
+
+**Pre-compute item embeddings offline; only compute query embedding at serve time?** #flashcard
+Pre-compute item embeddings offline; only compute query embedding at serve time
+
+**Cascade?** #flashcard
+use fast model to filter candidates; expensive model only on top-100
+
+**Primary label?** #flashcard
+booking confirmation (binary, delayed by days)
+
+**Feature engineering?** #flashcard
+listing features (reviews, photos, price/night, amenities), guest features (verification level, booking history, response rate), search context (check-in date, group size, destination)
+
+**Listing quality score trained separately from ranking; both fed into a joint model?** #flashcard
+Listing quality score trained separately from ranking; both fed into a joint model
+
+**Geo features?** #flashcard
+distance from destination center, proximity to attractions
+
+**Primary training signal?** #flashcard
+video completion rate = watched_seconds / video_duration
+
+**Secondary signals?** #flashcard
+like, comment, share, follow (positive); skip, scroll past (negative)
+
+**Two-tower model?** #flashcard
+user tower (watch history, follow graph, device, locale) x video tower (visual features from frame sampling, audio features, caption embeddings, hashtags)
+
+**Cold-start for new videos?** #flashcard
+initial traffic allocation based on creator history and content features; boost if early viewers show high completion

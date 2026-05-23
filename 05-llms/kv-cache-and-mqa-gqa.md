@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Kv Cache And Mqa Gqa
+subtopic: ""
+status: unread
+tags: [llms, ml, kv-cache-and-mqa-gqa]
+---
 # KV Cache, MQA, GQA, and Memory-Efficient Attention
 
 How Transformer inference memory scales and the architectures used to reduce it.
@@ -318,3 +325,23 @@ A: MLA stores only the compressed latent c_KV ∈ ℝ^{d_c} per token, not full 
 
 **Q: When would prefix caching not help, and what are its failure modes?**  
 A: Prefix caching only helps when multiple requests share an identical token prefix. Failure modes: (1) slight prefix variation (different system prompt version → cache miss) — requires exact token match; (2) high cardinality — if each user has a personalized system prompt, cache hit rate is low; (3) memory pressure — the prefix KV must stay cached long enough to be reused; under heavy load, LRU eviction may evict prefixes before they're hit. Mitigation: pin high-value prefixes (shared system prompts for all users), use session affinity routing (send same user's requests to same server to hit warm cache).
+
+## Flashcards
+
+**Cache all K, V from positions 1..t?** #flashcard
+Cache all K, V from positions 1..t
+
+**Reuse instead of recomputing?** #flashcard
+Reuse instead of recomputing
+
+**TTFT reduction?** #flashcard
+prefix tokens skip prefill computation
+
+**KV memory?** #flashcard
+prefix KV shared across N requests (effective 1/N memory overhead)
+
+**Llama-3 8B at 8K context, fp16 → int8?** #flashcard
+536MB → 268MB per request
+
+**Doubles concurrent batch size on same hardware?** #flashcard
+Doubles concurrent batch size on same hardware

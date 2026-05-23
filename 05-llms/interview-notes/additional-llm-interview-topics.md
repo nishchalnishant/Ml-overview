@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Additional Llm Interview Topics
+status: unread
+tags: [llms, ml, interview-notes-additional-llm]
+---
 # Additional LLM Interview Topics
 
 Concrete failures first, then derived solutions. Each concept: problem → core insight → mechanics → what breaks → what the interviewer is testing → common traps.
@@ -625,3 +632,341 @@ Post-deployment:
 | MoE routing | y = Σ_{i∈topk} gate_i · Expert_i(x) |
 | Distillation loss | α·KL(student/T \|\| teacher/T)·T² + (1-α)·CE(student, labels) |
 | Prefix cache key | hash(model_id, tokenizer_version, prefix_token_ids) |
+
+## Flashcards
+
+**Data quality dominates at scale. Chinchilla ratios assume high-quality text; noisy data shifts the optimal frontier.?** #flashcard
+Data quality dominates at scale. Chinchilla ratios assume high-quality text; noisy data shifts the optimal frontier.
+
+**The laws were measured on pretraining loss, not task benchmarks. Emergent capabilities on specific tasks may appear non-smoothly.?** #flashcard
+The laws were measured on pretraining loss, not task benchmarks. Emergent capabilities on specific tasks may appear non-smoothly.
+
+**"Chinchilla-optimal" applies to a one-shot training run. Fine-tuning, continued pretraining, and RLHF have different dynamics.?** #flashcard
+"Chinchilla-optimal" applies to a one-shot training run. Fine-tuning, continued pretraining, and RLHF have different dynamics.
+
+**Diminishing returns?** #flashcard
+past a certain threshold, more data on the same distribution yields smaller gains.
+
+**Citing scaling laws as universal laws that apply outside pretrain distribution. They don't.?** #flashcard
+Citing scaling laws as universal laws that apply outside pretrain distribution. They don't.
+
+**Saying "bigger is always better." Chinchilla showed the opposite for fixed compute.?** #flashcard
+Saying "bigger is always better." Chinchilla showed the opposite for fixed compute.
+
+**Forgetting that inference cost scales with N, not D. The compute-optimal model for training may not be the best production choice.?** #flashcard
+Forgetting that inference cost scales with N, not D. The compute-optimal model for training may not be the best production choice.
+
+**Conflating "parameter count" with "FLOPs per token"?** #flashcard
+MoE models break this assumption.
+
+**Actor π_θ?** #flashcard
+current policy being updated
+
+**Reference π_ref?** #flashcard
+frozen SFT model (provides KL baseline)
+
+**Reward model r_φ?** #flashcard
+frozen, provides scalar reward
+
+**Critic V_ψ?** #flashcard
+estimates value for variance reduction
+
+**RLHF?** #flashcard
+reward hacking. The policy learns to generate outputs that score high according to the reward model without being genuinely good. The reward model is an imperfect proxy; PPO will find and exploit its weaknesses.
+
+**RLHF: requires 4 models in GPU memory simultaneously during PPO?** #flashcard
+expensive and operationally complex.
+
+**DPO?** #flashcard
+assumes the reference model is good. If SFT base quality is low, the log-ratio baseline is unreliable.
+
+**DPO: offline?** #flashcard
+trained on a fixed preference dataset. Can't adapt to new preferences without retraining.
+
+**Both?** #flashcard
+sycophancy. Models learn to give answers that sound good to evaluators, not answers that are correct.
+
+**Saying "DPO replaces RLHF everywhere." It's a simpler training procedure, not a universally better one.?** #flashcard
+Saying "DPO replaces RLHF everywhere." It's a simpler training procedure, not a universally better one.
+
+**Forgetting the reference model in DPO. Without π_ref, there's no anchor and the model degrades.?** #flashcard
+Forgetting the reference model in DPO. Without π_ref, there's no anchor and the model degrades.
+
+**Describing PPO without mentioning the 4-model structure or KL penalty.?** #flashcard
+Describing PPO without mentioning the 4-model structure or KL penalty.
+
+**Not knowing what the reward model loss looks like (Bradley-Terry pairwise preference).?** #flashcard
+Not knowing what the reward model loss looks like (Bradley-Terry pairwise preference).
+
+**Load imbalance: without the auxiliary loss, the router collapses?** #flashcard
+all tokens go to one or two experts, others idle.
+
+**Communication cost: in distributed serving, different experts live on different devices. All-to-all communication is required for each MoE layer?** #flashcard
+high bandwidth requirements.
+
+**Training instability?** #flashcard
+routing decisions are discrete, making gradient flow complex. Straight-through estimators and soft-routing mitigate this.
+
+**Serving complexity?** #flashcard
+cannot simply shard a MoE model the way you shard a dense model. Requires expert parallelism.
+
+**Saying "MoE is cheaper at inference because it has fewer parameters." Wrong?** #flashcard
+it has more parameters, but fewer activated per token.
+
+**Not mentioning load balancing?** #flashcard
+it's a central training challenge.
+
+**Forgetting all-to-all communication overhead in multi-GPU serving.?** #flashcard
+Forgetting all-to-all communication overhead in multi-GPU serving.
+
+**"Lost in the middle": even with working positional encoding, LLMs show U-shaped attention quality?** #flashcard
+strong recall at beginning and end of context, degraded in the middle. A 128k-context model cannot reliably use the middle 60k tokens.
+
+**KV cache memory?** #flashcard
+grows linearly with sequence length. At 128k tokens, KV cache alone can exceed GPU memory for large models.
+
+**Extrapolation ≠ generalization?** #flashcard
+RoPE scaling prevents garbage output but does not guarantee the model reasons correctly over long contexts without long-context fine-tuning.
+
+**Claiming any model generalizes to 10x context without fine-tuning or evaluation.?** #flashcard
+Claiming any model generalizes to 10x context without fine-tuning or evaluation.
+
+**Not mentioning KV cache memory as the practical system bottleneck.?** #flashcard
+Not mentioning KV cache memory as the practical system bottleneck.
+
+**Conflating positional encoding extrapolation with context utilization quality.?** #flashcard
+Conflating positional encoding extrapolation with context utilization quality.
+
+**RAG doesn't eliminate hallucination?** #flashcard
+the model can still ignore retrieved context and generate from its parametric memory.
+
+**NLI faithfulness checkers have their own error rates; they can miss subtle unfaithful claims.?** #flashcard
+NLI faithfulness checkers have their own error rates; they can miss subtle unfaithful claims.
+
+**Abstention policies that are too aggressive reduce utility; need calibration via eval.?** #flashcard
+Abstention policies that are too aggressive reduce utility; need calibration via eval.
+
+**Retrieval failure?** #flashcard
+if the right chunk isn't retrieved, the model hallucinates even with RAG.
+
+**"Just tell the model not to hallucinate in the system prompt." This reduces frequency but doesn't solve the underlying problem.?** #flashcard
+"Just tell the model not to hallucinate in the system prompt." This reduces frequency but doesn't solve the underlying problem.
+
+**Not mentioning faithfulness evaluation as a required production component.?** #flashcard
+Not mentioning faithfulness evaluation as a required production component.
+
+**Conflating hallucination rate with calibration?** #flashcard
+both matter but are different.
+
+**Legal next tokens?** #flashcard
+" (string value), { (nested object), [ (array), true, false, null, digit
+
+**Illegal?** #flashcard
+,, }, arbitrary text
+
+**Grammar-constrained generation can force the model down paths it wouldn't take naturally, producing semantically wrong but syntactically valid JSON.?** #flashcard
+Grammar-constrained generation can force the model down paths it wouldn't take naturally, producing semantically wrong but syntactically valid JSON.
+
+**Latency overhead?** #flashcard
+computing the valid token mask requires running a parser state machine at each decoding step. Cost is manageable for simple grammars, higher for complex CFGs.
+
+**Pydantic/schema validation catches type errors but not semantic errors ("age"?** #flashcard
+-5 is valid JSON but wrong).
+
+**Shipping prompt-only JSON instructions and then patching broken outputs in a regex repair loop. This is the common failure mode; grammar-masked decoding is the correct fix.?** #flashcard
+Shipping prompt-only JSON instructions and then patching broken outputs in a regex repair loop. This is the common failure mode; grammar-masked decoding is the correct fix.
+
+**Thinking JSON mode solves all structured output problems?** #flashcard
+it guarantees valid JSON syntax, not correct field values.
+
+**Using LLM judge as the sole safety gate. It's too easy to jailbreak and doesn't catch all policy violations.?** #flashcard
+Using LLM judge as the sole safety gate. It's too easy to jailbreak and doesn't catch all policy violations.
+
+**Optimizing your model against LLM judge scores?** #flashcard
+Goodhart's Law applies. Your model will learn to produce verbose, structured, confident-sounding text that wins position A, not genuinely good answers.
+
+**Changing the judge model mid-experiment and treating scores as comparable.?** #flashcard
+Changing the judge model mid-experiment and treating scores as comparable.
+
+**Describing only the basic "LLM scores outputs" setup without mentioning any of the biases.?** #flashcard
+Describing only the basic "LLM scores outputs" setup without mentioning any of the biases.
+
+**Not mentioning human validation as a required calibration component.?** #flashcard
+Not mentioning human validation as a required calibration component.
+
+**Treating LLM judge scores across different model versions as directly comparable without recalibration.?** #flashcard
+Treating LLM judge scores across different model versions as directly comparable without recalibration.
+
+**Sequence-level distillation?** #flashcard
+generate outputs from teacher, train student on those generations (useful when teacher logits aren't available).
+
+**Feature distillation?** #flashcard
+match intermediate hidden states, not just output logits.
+
+**On-policy distillation: sample from student during training, use teacher to score?** #flashcard
+avoids distribution mismatch.
+
+**Distribution shift?** #flashcard
+if the teacher was trained on different data or domain, distillation transfers teacher's errors too.
+
+**Sequence-level distillation loses calibration?** #flashcard
+greedy decoding from teacher produces lower-entropy targets than the full distribution.
+
+**At very large scale, the student may not have enough capacity to match the teacher's distribution even with perfect training.?** #flashcard
+At very large scale, the student may not have enough capacity to match the teacher's distribution even with perfect training.
+
+**Only describing "train small model on teacher outputs"?** #flashcard
+that's sequence-level distillation, one variant, not the general concept.
+
+**Forgetting the T² factor in the KL loss formula.?** #flashcard
+Forgetting the T² factor in the KL loss formula.
+
+**Not knowing that distillation and quantization are orthogonal and can be combined.?** #flashcard
+Not knowing that distillation and quantization are orthogonal and can be combined.
+
+**RAG retrieved documents?** #flashcard
+RAG retrieved documents
+
+**Web browsing tool outputs?** #flashcard
+Web browsing tool outputs
+
+**Email/calendar content processed by the agent?** #flashcard
+Email/calendar content processed by the agent
+
+**Tool return values from external APIs?** #flashcard
+Tool return values from external APIs
+
+**Structural delimiters reduce injection risk but don't eliminate it. Sufficiently clever injections can confuse even well-structured prompts.?** #flashcard
+Structural delimiters reduce injection risk but don't eliminate it. Sufficiently clever injections can confuse even well-structured prompts.
+
+**Model-level training on injection resistance (e.g., instruction hierarchy training) helps but is not a complete solution.?** #flashcard
+Model-level training on injection resistance (e.g., instruction hierarchy training) helps but is not a complete solution.
+
+**The fundamental problem?** #flashcard
+no architectural separation of code from data — requires system-level mitigations: tool allowlists, output validation, sandboxed execution, minimal-privilege agents.
+
+**Conflating prompt injection with jailbreaking. They share mechanisms but different attack surfaces and defenses.?** #flashcard
+Conflating prompt injection with jailbreaking. They share mechanisms but different attack surfaces and defenses.
+
+**Claiming RLHF or safety training eliminates injection risk.?** #flashcard
+Claiming RLHF or safety training eliminates injection risk.
+
+**Proposing only prompt-level defenses ("tell the model to ignore injected instructions") without system-level architecture changes.?** #flashcard
+Proposing only prompt-level defenses ("tell the model to ignore injected instructions") without system-level architecture changes.
+
+**Long static prefixes?** #flashcard
+system prompts, RAG documents, few-shot examples
+
+**High reuse rate?** #flashcard
+the same prefix used across many requests
+
+**Prefix must be exactly at the start of the prompt (can't cache middle segments without attention masking changes)?** #flashcard
+Prefix must be exactly at the start of the prompt (can't cache middle segments without attention masking changes)
+
+**Cache invalidation?** #flashcard
+model version update, prompt template change, or document reindex must invalidate affected cache entries. Without versioned keys, you'll serve stale KV activations.
+
+**Privacy?** #flashcard
+shared KV cache across users risks cross-tenant leakage. Cache keys must be ACL-scoped.
+
+**Cold cache?** #flashcard
+after deployment or model update, all requests pay full prefill until cache warms up. This creates a latency spike on rollouts.
+
+**Storage vs compute tradeoff?** #flashcard
+KV cache for a long prefix in a large model takes significant memory. Cache size limits must be managed.
+
+**Confusing prefix caching (reusing KV activations) with semantic caching (reusing LLM responses for similar queries). These are different techniques with different tradeoffs.?** #flashcard
+Confusing prefix caching (reusing KV activations) with semantic caching (reusing LLM responses for similar queries). These are different techniques with different tradeoffs.
+
+**Not mentioning versioning in cache keys?** #flashcard
+a common production bug.
+
+**Expecting cache hits when every prompt is unique or changes slightly per request.?** #flashcard
+Expecting cache hits when every prompt is unique or changes slightly per request.
+
+**Quality degrades on quantization-sensitive tasks first?** #flashcard
+long-context reasoning, code with precise syntax, math.
+
+**Calibration data mismatch?** #flashcard
+if the calibration set doesn't represent deployment distribution, saliency/error estimates are off.
+
+**Both methods quantize weights, not activations. KV cache still in float16 unless you add activation quantization (SmoothQuant, FP8).?** #flashcard
+Both methods quantize weights, not activations. KV cache still in float16 unless you add activation quantization (SmoothQuant, FP8).
+
+**Saying "4-bit is free quality-wise, just run your benchmarks." Quality loss is task-dependent and must be measured.?** #flashcard
+Saying "4-bit is free quality-wise, just run your benchmarks." Quality loss is task-dependent and must be measured.
+
+**Conflating PTQ (post-training quantization) with QAT (quantization-aware training). QAT is much higher quality but requires training.?** #flashcard
+Conflating PTQ (post-training quantization) with QAT (quantization-aware training). QAT is much higher quality but requires training.
+
+**Thinking INT4 reduces all inference costs uniformly. Memory bandwidth improves significantly; compute improvement depends on hardware support for INT4 GEMM.?** #flashcard
+Thinking INT4 reduces all inference costs uniformly. Memory bandwidth improves significantly; compute improvement depends on hardware support for INT4 GEMM.
+
+**Base model, fine-tuning recipe, training data sources?** #flashcard
+Base model, fine-tuning recipe, training data sources
+
+**Model version, date, contact?** #flashcard
+Model version, date, contact
+
+**Primary intended use cases?** #flashcard
+Primary intended use cases
+
+**Out-of-scope uses (explicit)?** #flashcard
+Out-of-scope uses (explicit)
+
+**Primary intended users?** #flashcard
+Primary intended users
+
+**Dataset provenance, licenses, curation methodology?** #flashcard
+Dataset provenance, licenses, curation methodology
+
+**Known biases in the training distribution?** #flashcard
+Known biases in the training distribution
+
+**DISAGGREGATED metrics by demographic groups, domains, languages?** #flashcard
+DISAGGREGATED metrics by demographic groups, domains, languages
+
+**Intersectional evaluation where relevant?** #flashcard
+Intersectional evaluation where relevant
+
+**Safety evaluations?** #flashcard
+refusal rate, jailbreak resistance, bias benchmarks
+
+**Known failure modes?** #flashcard
+Known failure modes
+
+**Conditions under which the model degrades?** #flashcard
+Conditions under which the model degrades
+
+**What the model should not be used for?** #flashcard
+What the model should not be used for
+
+**Training compute (kWh, CO2 equivalent if known)?** #flashcard
+Training compute (kWh, CO2 equivalent if known)
+
+**Potential for misuse?** #flashcard
+Potential for misuse
+
+**Populations at risk from failure modes?** #flashcard
+Populations at risk from failure modes
+
+**Dual-use risks?** #flashcard
+Dual-use risks
+
+**Average metrics hide subgroup failures. A model with 95% overall accuracy can have 70% accuracy on the minority group?** #flashcard
+you never know without disaggregation.
+
+**Model cards written once and never updated. The model's effective behavior changes as it's fine-tuned or used in new contexts; the card must track this.?** #flashcard
+Model cards written once and never updated. The model's effective behavior changes as it's fine-tuned or used in new contexts; the card must track this.
+
+**Release checklists treated as rubber stamps. Red-teaming that finds no issues is usually insufficient red-teaming.?** #flashcard
+Release checklists treated as rubber stamps. Red-teaming that finds no issues is usually insufficient red-teaming.
+
+**Describing only average accuracy metrics without mentioning disaggregation.?** #flashcard
+Describing only average accuracy metrics without mentioning disaggregation.
+
+**Not mentioning versioning?** #flashcard
+the model card must be updated when the model changes.
+
+**Treating the model card as a public relations document rather than an accountability artifact.?** #flashcard
+Treating the model card as a public relations document rather than an accountability artifact.

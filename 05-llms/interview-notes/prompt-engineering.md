@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Prompt Engineering
+status: unread
+tags: [llms, ml, interview-notes-prompt-enginee]
+---
 # Prompt Engineering — Interview Notes
 
 ---
@@ -293,3 +300,53 @@ Key metrics by task type:
 **What the interviewer is testing**: whether you would diagnose structured — identifying which component is failing — rather than randomly adjusting the prompt.
 
 **Common traps**: adding more instructions when the problem is retrieval quality (the model cannot give a correct answer if the context doesn't contain the answer); increasing top-k retrieval chunks when the problem is lost-in-the-middle; testing prompt changes on examples you already know fail, not on the full eval distribution.
+
+## Flashcards
+
+**Instruction design?** #flashcard
+role + task + constraints narrows what the model treats as in-scope
+
+**Context design?** #flashcard
+what facts are present, where they appear, how they are delimited
+
+**Output design?** #flashcard
+format schema, stop conditions, refusal behavior
+
+**Zero-shot: no examples?** #flashcard
+only task description. Works when the task maps cleanly to a well-represented pattern in the training distribution.
+
+**One-shot?** #flashcard
+one (input, output) demonstration pair before the test input.
+
+**Few-shot?** #flashcard
+k demonstrations (typically k=3–8). Useful when zero-shot produces wrong format or framing.
+
+**Direct injection?** #flashcard
+user message contains "Ignore your previous instructions and do X." The model may follow X.
+
+**Indirect injection?** #flashcard
+malicious text is embedded in a retrieved document. When the document is inserted into the RAG prompt, the model follows the embedded instructions.
+
+**Structured output?** #flashcard
+schema validity rate, field accuracy, parse error rate
+
+**RAG Q&A?** #flashcard
+faithfulness (answer grounded in context), answer relevance, citation accuracy
+
+**Classification?** #flashcard
+accuracy, calibration, F1 by class
+
+**Safety?** #flashcard
+refusal rate on adversarial inputs, policy compliance rate
+
+**Sliding window?** #flashcard
+keep the last N turns verbatim. Simple. Loses early context that may still be relevant (e.g., user preferences stated at turn 1).
+
+**Summarization?** #flashcard
+when history exceeds a token budget, summarize older turns into a compact summary appended to the system message. Loses detail; good for conversational context. Requires a separate summarization call.
+
+**Entity/state extraction?** #flashcard
+parse conversation for structured facts (user preferences, stated constraints, confirmed decisions) and store as a structured memory block. Re-insert at each turn. Retains key facts without verbatim history.
+
+**RAG memory?** #flashcard
+embed conversation turns and retrieve relevant past context based on semantic similarity to the current query. Complex infrastructure; useful for very long-lived sessions.

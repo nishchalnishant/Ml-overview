@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Supervised Learning
+subtopic: ""
+status: unread
+tags: [classicalml, ml, supervised-learning]
+---
 # Supervised Learning
 
 ---
@@ -245,3 +252,14 @@ A: **Algorithm level** (preferred, doesn't discard data): (1) class_weight='bala
 
 **Q: A classification model has 95% accuracy but the product team says it's useless. Why might this be, and how do you debug it?**  
 A: Classic class imbalance trap. If 95% of examples are negative class, a model that always predicts negative achieves 95% accuracy without learning anything. Debug steps: (1) check class distribution — if majority class > 90%, accuracy is misleading; (2) compute confusion matrix — if precision or recall on the minority class is near zero, the model is failing on the important cases; (3) switch to appropriate metric: F1-score for balanced precision/recall, PR-AUC for overall performance across thresholds, or a business metric (e.g., revenue recovered for fraud detection); (4) check if the model learned a trivial solution — inspect prediction distribution: if all predictions are >0.9 or <0.1, the model isn't discriminating; (5) inspect feature importances — if the top feature is a proxy for the label or a data leakage feature, the accuracy is inflated. Fix: use class_weight='balanced', tune classification threshold to maximize the business metric, retrain with proper evaluation on held-out stratified splits.
+
+## Flashcards
+
+**Gini Importance?** #flashcard
+total reduction of Gini impurity provided by a feature across all trees. Fast but biased toward high-cardinality features.
+
+**Permutation Importance?** #flashcard
+model score drop when a feature's values are randomly shuffled. Slower but more reliable and model-agnostic.
+
+**SHAP values?** #flashcard
+game-theoretically fair attribution. Best choice when explanation quality matters.

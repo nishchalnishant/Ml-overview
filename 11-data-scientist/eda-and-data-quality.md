@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: Eda And Data Quality
+subtopic: ""
+status: unread
+tags: [datascientist, ml, eda-and-data-quality]
+---
 # EDA and Data Quality
 
 ---
@@ -579,3 +586,152 @@ Expectations are saved and re-run on every new data batch. Failures generate a s
 **Where Great Expectations fits in the workflow**: use it to productionize the findings from EDA. Every anomaly you discover manually in exploration is a candidate expectation. The transition from "I noticed during exploration that X" to "the pipeline will fail loudly if X is violated in the future" is what transforms EDA findings into durable data quality guarantees.
 
 **What breaks**: expectations encode your understanding of the data at a point in time. If the valid range of a feature legitimately changes (a new product category is introduced), the expectation becomes wrong and will generate spurious failures. Expectations need maintenance as the system evolves.
+
+## Flashcards
+
+**40% of rows had a target-adjacent column accidentally left in the feature set.?** #flashcard
+40% of rows had a target-adjacent column accidentally left in the feature set.
+
+**The "age" column contained the default fill value 999 for nulls.?** #flashcard
+The "age" column contained the default fill value 999 for nulls.
+
+**Train and test were sampled from different time periods, so the test set looks nothing like production.?** #flashcard
+Train and test were sampled from different time periods, so the test set looks nothing like production.
+
+**Bimodality?** #flashcard
+two humps strongly suggest two sub-populations mixed together. This changes what preprocessing and what model families make sense.
+
+**Sharp cutoffs at round numbers?** #flashcard
+a flood of values exactly at 100 or 0 typically indicates truncation or a sensor ceiling, not a real concentration of the quantity.
+
+**Spikes at specific values?** #flashcard
+a spike at 0, -1, 999, or 9999 almost always indicates a sentinel encoding for null rather than a real data point.
+
+**Extreme right skew?** #flashcard
+common for monetary amounts, counts, and durations. Log-transforming makes the distribution more legible and often more useful for linear models.
+
+**The median (horizontal line inside the box)?** #flashcard
+the center of the distribution, robust to outliers.
+
+**Q1 and Q3 (box edges)?** #flashcard
+the middle 50% of the data.
+
+**Whiskers extending to the most extreme point within $1.5 \times \text{IQR}$ of the quartiles?** #flashcard
+the "typical" spread.
+
+**Individual points beyond the whiskers?** #flashcard
+flagged as potential outliers.
+
+**S-curve (sigmoid shape)?** #flashcard
+the tails are heavier than Normal. Values cluster near zero (the kurtosis is high). Common for financial returns, network latency.
+
+**Inverted S-curve: the distribution is platykurtic?** #flashcard
+lighter tails and a flatter center than Normal.
+
+**Points curve up on the right only?** #flashcard
+right-skewed distribution. The largest values are larger than the Normal would predict.
+
+**Points curve down on the left only?** #flashcard
+left-skewed.
+
+**Hex bins?** #flashcard
+divide the plane into hexagonal cells, color by count. Density becomes visible. Use kind='hex' in pandas or hexbin in matplotlib.
+
+**Alpha transparency?** #flashcard
+set point opacity to 0.1 so dense regions appear darker. Quick but less precise than hex bins.
+
+**2D KDE contour plot?** #flashcard
+smooth density estimate in two dimensions; contour lines show equal-density regions.
+
+**Clusters of highly correlated features (e.g., all > 0.8 with each other)?** #flashcard
+these are redundant. Including all of them in a regularized model is fine; including them in a logistic regression inflates coefficient variance.
+
+**Features with near-zero correlation with everything including the target?** #flashcard
+these are likely noise.
+
+**Any feature with suspiciously high correlation with the target (> 0.95)?** #flashcard
+potential leakage.
+
+**Sensitivity analysis?** #flashcard
+impute under different assumptions (lower bound, upper bound, mean) and check how much your conclusions change.
+
+**Selection models?** #flashcard
+model the missingness mechanism explicitly alongside the outcome model.
+
+**Domain fill?** #flashcard
+use external knowledge about what the missing values likely are.
+
+**Flag and include?** #flashcard
+create a binary is_missing indicator for the column and include it as a feature. The missingness itself may be the most predictive signal.
+
+**Are primary keys consistent between joined tables?** #flashcard
+Are primary keys consistent between joined tables?
+
+**Do derived columns match the columns they are derived from (e.g., does total = quantity × price hold)?** #flashcard
+Do derived columns match the columns they are derived from (e.g., does total = quantity × price hold)?
+
+**Are categorical codes consistent with lookup tables?** #flashcard
+Are categorical codes consistent with lookup tables?
+
+**Do numeric ranges make physical sense?** #flashcard
+Do numeric ranges make physical sense?
+
+**Do categorical values match a controlled vocabulary?** #flashcard
+Do categorical values match a controlled vocabulary?
+
+**For joins on names/addresses, are string representations normalized?** #flashcard
+For joins on names/addresses, are string representations normalized?
+
+**Target encoding?** #flashcard
+replace each category with its mean target value (with regularization to prevent overfitting on rare categories). Leaks signal from the target if not done in a cross-validation fold; always compute within folds.
+
+**Embeddings?** #flashcard
+learn a dense vector representation per category during model training. This is standard for neural networks dealing with user IDs or product IDs in recommendation systems.
+
+**Frequency encoding?** #flashcard
+replace each category with its frequency of occurrence. Captures rarity without creating sparse features.
+
+**Parse all date fields with explicit format strings; do not rely on auto-parsing.?** #flashcard
+Parse all date fields with explicit format strings; do not rely on auto-parsing.
+
+**Check the range?** #flashcard
+are there dates in the future? Before the business existed? These are sentinel values or errors.
+
+**After parsing, create numeric features (day of week, month, days since reference date) rather than passing raw datetime objects to models.?** #flashcard
+After parsing, create numeric features (day of week, month, days since reference date) rather than passing raw datetime objects to models.
+
+**PSI < 0.1?** #flashcard
+distribution is stable. Model can be trusted.
+
+**0.1 ≤ PSI < 0.25?** #flashcard
+moderate shift. Investigate which bins changed. Monitor closely.
+
+**PSI ≥ 0.25?** #flashcard
+major shift. The training distribution and current distribution are substantially different. The model should be retrained before continued use.
+
+**Temporal drift?** #flashcard
+model trained on historical data, deployed on future data. Seasonal patterns, trends, and regime changes all cause the feature distribution to evolve over time.
+
+**Population shift?** #flashcard
+the user base, customer base, or data source changes. A model trained on desktop users deployed to mobile users.
+
+**Feature pipeline bug?** #flashcard
+training code and serving code compute a feature differently. Training uses fillna(0) after a join; serving code fills with the mean. The distributions diverge.
+
+**Label shift?** #flashcard
+the class proportions change. If your model was trained on 10% fraud rate and fraud rises to 30%, calibration breaks even if the feature distributions are stable.
+
+**Per-column distribution histogram, descriptive statistics, and missingness count.?** #flashcard
+Per-column distribution histogram, descriptive statistics, and missingness count.
+
+**A missingness matrix showing which columns are simultaneously missing on the same rows?** #flashcard
+structure in joint missingness is a strong indicator of MAR.
+
+**A correlation matrix across all numeric features.?** #flashcard
+A correlation matrix across all numeric features.
+
+**Duplicate row count.?** #flashcard
+Duplicate row count.
+
+**Automatic warnings for?** #flashcard
+constant columns (zero variance), high cardinality columns, high missingness, columns with high correlation to other columns.

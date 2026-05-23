@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Deep Learning Alice In Differentiable Wonderland
+status: unread
+tags: [references, ml, book-notes-deep-learning]
+---
 # Alice in Differentiable Wonderland
 
 ## Chapter 1: Scaling Laws
@@ -589,3 +596,365 @@ MLPs with a single hidden layer of sufficient width can approximate any continuo
 
 **What the book gets right / what to watch out for**
 UAT is an existence theorem — it says a solution exists but gives no recipe for finding it or bound on the required width. In practice, depth is more parameter-efficient than width, which is why deep networks dominate. UAT also doesn't address generalization: fitting training data ≠ generalizing to test data.
+
+## Flashcards
+
+**Loss ~ N^(-α) where N is parameters, α ≈ 0.05–0.1 depending on architecture?** #flashcard
+Loss ~ N^(-α) where N is parameters, α ≈ 0.05–0.1 depending on architecture
+
+**Optimal allocation?** #flashcard
+given a fixed compute budget C, split it between model size N and tokens D such that N ~ D (Chinchilla scaling: train smaller models longer rather than huge models on few tokens)
+
+**Foundation models exploit this?** #flashcard
+pretrain once at scale, fine-tune cheaply for tasks
+
+**Scalar = 0-d tensor, vector = 1-d, matrix = 2-d, higher orders for batched data?** #flashcard
+Scalar = 0-d tensor, vector = 1-d, matrix = 2-d, higher orders for batched data
+
+**Matrix multiply?** #flashcard
+(a×b) @ (b×c) → (a×c); cost O(abc)
+
+**Hadamard (element-wise) product?** #flashcard
+same shape required; used in gating mechanisms
+
+**Reduction ops: sum, mean, max along axes?** #flashcard
+change shape by collapsing dimensions
+
+**Gradient ∇L ∈ ℝⁿ points in the direction of steepest ascent of L?** #flashcard
+Gradient ∇L ∈ ℝⁿ points in the direction of steepest ascent of L
+
+**Jacobian J ∈ ℝ^(m×n) for f?** #flashcard
+ℝⁿ → ℝᵐ; entry J_{ij} = ∂fᵢ/∂xⱼ
+
+**Directional derivative?** #flashcard
+∇L · v gives rate of change in direction v
+
+**In practice: you rarely construct the full Jacobian?** #flashcard
+vector-Jacobian products (VJPs) are computed instead
+
+**True risk?** #flashcard
+R(f) = E_{(x,y)~P}[L(f(x), y)]
+
+**Empirical risk?** #flashcard
+R̂(f) = (1/n) Σ L(f(xᵢ), yᵢ)
+
+**Training = argmin_θ R̂(f_θ)?** #flashcard
+Training = argmin_θ R̂(f_θ)
+
+**Generalization gap?** #flashcard
+R(f) - R̂(f); controlled by model complexity and dataset size
+
+**Gaussian prior on θ → L2 (weight decay) regularization?** #flashcard
+Gaussian prior on θ → L2 (weight decay) regularization
+
+**Laplace prior on θ → L1 regularization (sparse solutions)?** #flashcard
+Laplace prior on θ → L1 regularization (sparse solutions)
+
+**Full Bayesian: integrate out θ for predictions?** #flashcard
+intractable for large nets, approximated via variational inference or MCMC
+
+**Model?** #flashcard
+ŷ = Wx + b
+
+**MSE loss?** #flashcard
+L = (1/n)||Xw - y||²
+
+**Normal equations?** #flashcard
+w* = (XᵀX)⁻¹Xᵀy (exact, O(d³) cost)
+
+**Gradient?** #flashcard
+∇_w L = (2/n)Xᵀ(Xw - y) → use SGD for large n
+
+**Binary?** #flashcard
+p(y=1|x) = σ(wᵀx + b) where σ(z) = 1/(1+e^(-z))
+
+**Multiclass?** #flashcard
+p(yₖ|x) = softmax(Wx+b)ₖ = exp(zₖ)/Σⱼexp(zⱼ)
+
+**Loss?** #flashcard
+L = -Σᵢ log p(yᵢ|xᵢ) (cross-entropy)
+
+**Gradient of cross-entropy + softmax simplifies to?** #flashcard
+∂L/∂z = p̂ - y (one-hot)
+
+**Layer?** #flashcard
+h = activation(Wx + b)
+
+**ReLU: max(0, z)?** #flashcard
+dead neurons when z ≤ 0 (dying ReLU problem)
+
+**GELU: z·Φ(z)?** #flashcard
+smoother, preferred in transformers
+
+**Sigmoid/tanh?** #flashcard
+saturate for large |z|, causing vanishing gradients in deep nets
+
+**Stack L layers?** #flashcard
+f(x) = W_L · activation(W_{L-1}...activation(W_1 x + b_1)...)
+
+**Full gradient?** #flashcard
+g = (1/n) Σᵢ ∇L(θ; xᵢ, yᵢ)
+
+**Mini-batch gradient: ĝ = (1/B) Σᵢ∈B ∇L(θ; xᵢ, yᵢ)?** #flashcard
+unbiased estimate
+
+**Update?** #flashcard
+θ ← θ - η·ĝ
+
+**Learning rate η controls step size; too large → diverge, too small → slow convergence?** #flashcard
+Learning rate η controls step size; too large → diverge, too small → slow convergence
+
+**Momentum?** #flashcard
+accumulate gradient history to smooth updates and accelerate convergence
+
+**Forward mode?** #flashcard
+propagate dual numbers (x + εẋ); gives directional derivative Jv in one pass; O(1) per input direction
+
+**Reverse mode?** #flashcard
+store computation graph during forward pass; propagate adjoints backward; O(1) per output
+
+**VJP?** #flashcard
+v·J computed in O(forward pass cost) in reverse mode
+
+**Autograd in PyTorch?** #flashcard
+each tensor op creates a node in the computation graph; .backward() traverses it in reverse
+
+**Convolution?** #flashcard
+(W * x)[i,j] = Σ_{k,l} W[k,l] · x[i+k, j+l]
+
+**Kernel size K × K; filters F; output channels = F?** #flashcard
+Kernel size K × K; filters F; output channels = F
+
+**Translation equivariance?** #flashcard
+conv(shift(x)) = shift(conv(x))
+
+**Pooling: max or average over spatial neighborhoods?** #flashcard
+reduces spatial resolution, builds translation invariance
+
+**Receptive field?** #flashcard
+the region of input that influences a single output unit; grows with depth and dilation
+
+**After L conv layers with kernel size K?** #flashcard
+receptive field ≈ 1 + L(K-1)
+
+**Stride-2 pooling?** #flashcard
+halves spatial dimensions → doubles effective receptive field growth per layer
+
+**Dilated convolutions?** #flashcard
+insert gaps between kernel weights with dilation d; receptive field = K + (K-1)(d-1) without downsampling
+
+**1D conv?** #flashcard
+(W * x)[t] = Σ_k W[k] · x[t-k]
+
+**Causal padding: pad K-1 zeros on the left only?** #flashcard
+output at t depends only on x[0..t]
+
+**Dilated causal convolutions?** #flashcard
+achieve exponentially growing receptive field while maintaining causality (WaveNet architecture)
+
+**Depth-wise separable convolutions?** #flashcard
+factorize K×K×C into K×K×1 followed by 1×1×C; reduces FLOPs by factor C
+
+**μ_B = (1/B) Σ xᵢ; σ²_B = (1/B) Σ (xᵢ - μ_B)²?** #flashcard
+μ_B = (1/B) Σ xᵢ; σ²_B = (1/B) Σ (xᵢ - μ_B)²
+
+**x̂ᵢ = (xᵢ - μ_B) / √(σ²_B + ε)?** #flashcard
+x̂ᵢ = (xᵢ - μ_B) / √(σ²_B + ε)
+
+**yᵢ = γ x̂ᵢ + β (learned scale and shift)?** #flashcard
+yᵢ = γ x̂ᵢ + β (learned scale and shift)
+
+**At inference?** #flashcard
+use running statistics computed during training (not mini-batch stats)
+
+**Training?** #flashcard
+mask each activation with Bernoulli(1-p); scale by 1/(1-p) (inverted dropout)
+
+**Inference?** #flashcard
+no dropout; activations unchanged
+
+**Typical rates?** #flashcard
+p=0.5 for FC layers, p=0.1 for convolutional layers
+
+**Variational dropout, MC dropout?** #flashcard
+keep dropout active at inference for uncertainty estimation
+
+**ResNet block?** #flashcard
+output = F(x) + x (when same dimensions)
+
+**When dimensions differ?** #flashcard
+output = F(x) + W_s·x (1×1 conv projection)
+
+**Gradient highway: ∂L/∂x = ∂L/∂output · (∂F/∂x + I)?** #flashcard
+identity term prevents vanishing
+
+**Enables training 100–1000+ layer networks?** #flashcard
+Enables training 100–1000+ layer networks
+
+**Queries, keys, values?** #flashcard
+Q = XW_Q, K = XW_K, V = XW_V
+
+**Attention?** #flashcard
+A = softmax(QKᵀ / √d_k) · V
+
+**Scale by √d_k to prevent softmax saturation when d_k is large?** #flashcard
+Scale by √d_k to prevent softmax saturation when d_k is large
+
+**Causal mask?** #flashcard
+set upper triangle of QKᵀ to -∞ before softmax for autoregressive models
+
+**head_h = Attention(XW_Q^h, XW_K^h, XW_V^h) for h=1..H?** #flashcard
+head_h = Attention(XW_Q^h, XW_K^h, XW_V^h) for h=1..H
+
+**MultiHead(X) = Concat(head_1, ..., head_H) W_O?** #flashcard
+MultiHead(X) = Concat(head_1, ..., head_H) W_O
+
+**Typically?** #flashcard
+d_k = d_model / H (each head works in a lower-dimensional subspace)
+
+**Total parameters ≈ same as single large attention head?** #flashcard
+Total parameters ≈ same as single large attention head
+
+**Sinusoidal?** #flashcard
+PE(pos, 2i) = sin(pos/10000^(2i/d)), PE(pos, 2i+1) = cos(pos/10000^(2i/d))
+
+**Learned absolute: one embedding per position?** #flashcard
+doesn't generalize beyond training length
+
+**RoPE (Rotary Position Embedding): rotate Q, K vectors by angle proportional to position; dot product Q·K depends only on relative position?** #flashcard
+better length generalization
+
+**ALiBi?** #flashcard
+subtract linear bias from attention logits proportional to distance
+
+**Encoder?** #flashcard
+bidirectional self-attention + FFN; produces context vectors C = {c₁,...,cₙ}
+
+**Decoder?** #flashcard
+causal self-attention + cross-attention over encoder outputs + FFN
+
+**Cross-attention?** #flashcard
+Q from decoder, K and V from encoder
+
+**Generation?** #flashcard
+sample or beam-search from decoder until end-of-sequence token
+
+**Patch size P×P; image H×W; number of tokens = (H/P)×(W/P)?** #flashcard
+Patch size P×P; image H×W; number of tokens = (H/P)×(W/P)
+
+**Each patch → linear projection to d-dimensional embedding?** #flashcard
+Each patch → linear projection to d-dimensional embedding
+
+**Prepend [CLS] token; add 2D or 1D positional embeddings?** #flashcard
+Prepend [CLS] token; add 2D or 1D positional embeddings
+
+**Fine-tune on downstream tasks by attaching head to [CLS] token?** #flashcard
+Fine-tune on downstream tasks by attaching head to [CLS] token
+
+**Wav2Vec 2.0?** #flashcard
+CNN → quantized latents; mask portions; contrastive loss between true quantized latent and distractors
+
+**Whisper?** #flashcard
+large-scale supervised training on 680k hours; log-mel spectrogram → CNN → encoder-decoder transformer
+
+**Multitask?** #flashcard
+transcription, translation, language ID, VAD in one model via task tokens
+
+**GCN layer?** #flashcard
+H^(l+1) = σ(D̃^(-1/2) Ã D̃^(-1/2) H^(l) W^(l))
+
+**Where Ã = A + I (add self-loops), D̃ = degree matrix of Ã?** #flashcard
+Where Ã = A + I (add self-loops), D̃ = degree matrix of Ã
+
+**Normalization by degree prevents high-degree nodes from dominating?** #flashcard
+Normalization by degree prevents high-degree nodes from dominating
+
+**Stack L layers → each node aggregates from L-hop neighborhood?** #flashcard
+Stack L layers → each node aggregates from L-hop neighborhood
+
+**Attention?** #flashcard
+α_{ij} = softmax_j(LeakyReLU(aᵀ[W·hᵢ || W·hⱼ]))
+
+**Aggregation?** #flashcard
+h'ᵢ = σ(Σⱼ α_{ij} W hⱼ)
+
+**Multi-head?** #flashcard
+run K heads, concatenate or average outputs
+
+**Message?** #flashcard
+m_{ij} = M(hᵢ, hⱼ, e_{ij}) where e_{ij} is edge feature
+
+**Aggregate: a_i = AGG({m_{ij} : j ∈ N(i)})?** #flashcard
+sum, mean, or max
+
+**Update?** #flashcard
+h'ᵢ = U(hᵢ, aᵢ)
+
+**Readout?** #flashcard
+graph-level prediction via global pooling R({hᵢ})
+
+**RNN?** #flashcard
+hₜ = tanh(W_hh · hₜ₋₁ + W_xh · xₜ + b)
+
+**BPTT?** #flashcard
+unroll T steps, chain-rule through all state transitions
+
+**Gradient at step t?** #flashcard
+∂L/∂h₀ = ∏ₜ (∂hₜ/∂hₜ₋₁) · ...
+
+**Gradient clipping: if ||g|| > threshold, scale g down?** #flashcard
+prevents explosions, doesn't fix vanishing
+
+**LSTM?** #flashcard
+cell state cₜ = fₜ ⊙ cₜ₋₁ + iₜ ⊙ g̃ₜ
+
+**Forget gate?** #flashcard
+fₜ = σ(W_f[hₜ₋₁, xₜ] + b_f)
+
+**Input gate?** #flashcard
+iₜ = σ(W_i[hₜ₋₁, xₜ] + b_i); candidate: g̃ₜ = tanh(...)
+
+**Output gate?** #flashcard
+oₜ = σ(W_o[hₜ₋₁, xₜ] + b_o); hₜ = oₜ ⊙ tanh(cₜ)
+
+**GRU?** #flashcard
+simpler, merges cell and hidden state; uses reset and update gates
+
+**Gradient through cell state: ∂cₜ/∂cₜ₋₁ = fₜ?** #flashcard
+when fₜ ≈ 1, gradient flows unattenuated
+
+**SSM?** #flashcard
+h'(t) = Ah(t) + Bx(t); y(t) = Ch(t)
+
+**Discretize A, B for sequences?** #flashcard
+h_t = Ā h_{t-1} + B̄ x_t
+
+**Parallel scan?** #flashcard
+compute all h_t simultaneously in O(n log n) using parallel prefix sum
+
+**Mamba selective?** #flashcard
+Δ, B, C are functions of input x_t → model can selectively "focus" on relevant tokens
+
+**RWKV?** #flashcard
+reformulates attention as an RNN for O(n) inference; uses time-mixing and channel-mixing blocks
+
+**Expectation?** #flashcard
+E[f(X)] = ∫ f(x)p(x)dx (continuous) or Σ f(x)p(x) (discrete)
+
+**Variance?** #flashcard
+Var(X) = E[(X-μ)²] = E[X²] - E[X]²
+
+**KL divergence: KL(P||Q) = ∫ p(x) log(p(x)/q(x))dx?** #flashcard
+non-symmetric measure of P vs Q difference
+
+**Cross-entropy?** #flashcard
+H(P,Q) = H(P) + KL(P||Q); minimizing CE ≡ minimizing KL when P is fixed (true labels)
+
+**Formal statement?** #flashcard
+For any ε > 0 and continuous f: [0,1]ⁿ → ℝ, there exists a one-hidden-layer network N such that |N(x) - f(x)| < ε for all x
+
+**Applies to any non-polynomial activation function (sigmoid, ReLU, etc.)?** #flashcard
+Applies to any non-polynomial activation function (sigmoid, ReLU, etc.)
+
+**Depth efficiency?** #flashcard
+some functions require exponentially wide shallow networks but only polynomial depth in deep networks (depth separation theorems)

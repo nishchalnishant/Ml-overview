@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Fine Tuning At Scale
+subtopic: ""
+status: unread
+tags: [llms, ml, fine-tuning-at-scale]
+---
 # Fine-tuning at Scale
 
 How to fine-tune LLMs efficiently — from LoRA math to QLoRA to full fine-tuning with ZeRO. Essential for Staff/L6 interviews at companies running training workloads.
@@ -307,3 +314,26 @@ A: Base model frozen in NF4 (4-bit): ~35 GB. LoRA adapters in bf16 (r=16): ~3 GB
 
 **Q: How do you decide between LoRA and full fine-tuning?**  
 A: Four factors: (1) Data scale — less than 100K examples generally doesn't justify full fine-tuning; LoRA is less prone to overfitting; (2) Task shift — if the task is far from pretraining distribution (e.g., medical domain with specialized terminology and reasoning), full fine-tuning learns better representations; if it's just format/instruction following, LoRA is sufficient; (3) Compute budget — LoRA enables fine-tuning 70B models on a single GPU; full fine-tuning needs 16+ A100s; (4) Deployment — LoRA adapters can be hot-swapped for different tasks on the same base model (100MB adapter vs 140GB weights), crucial for multi-tenant serving. In practice: start with LoRA, evaluate quality gap vs full fine-tuning on held-out test set, only invest in full fine-tuning if the gap exceeds 3–5%.
+
+## Flashcards
+
+**Model weights (bf16)?** #flashcard
+2 bytes
+
+**Gradients (bf16)?** #flashcard
+2 bytes
+
+**Optimizer states (fp32 master weights + momentum + variance)?** #flashcard
+12 bytes
+
+**Activations (depends on batch/seq size)?** #flashcard
+Activations (depends on batch/seq size)
+
+**Total?** #flashcard
+~16 bytes/param (before activations)
+
+**8B model?** #flashcard
+~20 GB total (weights frozen in bf16 + small LoRA grads/optimizer)
+
+**Fits on a single 24GB GPU?** #flashcard
+Fits on a single 24GB GPU

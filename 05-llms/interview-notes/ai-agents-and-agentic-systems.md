@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Ai Agents And Agentic Systems
+status: unread
+tags: [llms, ml, interview-notes-ai-agents-and-]
+---
 # AI Agents and Agentic Systems
 
 ---
@@ -966,3 +973,386 @@ class AgentState(TypedDict):
 | HITL | In-the-loop (blocking), On-the-loop (monitoring) | Blocking: destructive/irreversible. Monitoring: routine with audit |
 | Guardrails | System prompt, secondary LLM, deterministic code | All three; code for hard constraints |
 | Code execution | Host, container, VM | Container/VM always; never host |
+
+## Flashcards
+
+**Stateful loop?** #flashcard
+enables multi-step execution that a single call cannot do
+
+**Memory?** #flashcard
+prevents context loss across steps
+
+**Tool execution?** #flashcard
+enables interaction with the real world
+
+**Max steps?** #flashcard
+prevents infinite loops
+
+**Terminal detection?** #flashcard
+clean stopping when the task is complete
+
+**Without max_steps?** #flashcard
+infinite loops, especially on ambiguous tasks.
+
+**Without memory management?** #flashcard
+context window overflow; early context is truncated and the agent forgets the original task.
+
+**Without structured stopping conditions?** #flashcard
+the agent hallucinates completion or loops indefinitely.
+
+**"An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.?** #flashcard
+"An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.
+
+**Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.?** #flashcard
+Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.
+
+**What it is: the current context window?** #flashcard
+system prompt, recent conversation history, recent tool results
+
+**What it solves?** #flashcard
+immediate coherence across the last N turns
+
+**Limit?** #flashcard
+fixed size; earlier context is truncated when exceeded
+
+**Management?** #flashcard
+sliding window, summarization of old context, selective pruning
+
+**What it is?** #flashcard
+a vector database of previous observations, facts, documents
+
+**What it solves?** #flashcard
+retrieval of relevant past information that no longer fits in context
+
+**Mechanism?** #flashcard
+embed current query, retrieve top-k similar stored items, inject into context
+
+**What it is?** #flashcard
+structured log of what actions were taken, what results were returned
+
+**What it solves?** #flashcard
+reproducibility, reflection, debugging; "what did I already try?"
+
+**Used for?** #flashcard
+agent reflection ("I already searched for X and found Y"), avoiding repeated failures
+
+**Using only short-term memory?** #flashcard
+agent forgets the original task on long sequences.
+
+**Using only long-term memory without short-term?** #flashcard
+no coherence in the current task thread.
+
+**Retrieving too much long-term context?** #flashcard
+injects irrelevant information that confuses the model.
+
+**Not managing episodic memory?** #flashcard
+agent retries actions that already failed without knowing they failed.
+
+**Treating the context window as "the memory." This works for short tasks and breaks for long ones.?** #flashcard
+Treating the context window as "the memory." This works for short tasks and breaks for long ones.
+
+**No memory eviction strategy?** #flashcard
+context overflow at step 50 is predictable and must be handled.
+
+**Tools that raise exceptions?** #flashcard
+crash the agent loop unless you catch everything.
+
+**Tools that return huge outputs?** #flashcard
+fill the context window, crowd out relevant information.
+
+**Tools without clear descriptions?** #flashcard
+the model doesn't know when to use them.
+
+**Too many tools in context?** #flashcard
+model can't distinguish which to use; tool routing is required.
+
+**"The model calls the API." The model generates a JSON description of a call; the application executes it.?** #flashcard
+"The model calls the API." The model generates a JSON description of a call; the application executes it.
+
+**Tools that return exceptions instead of error strings?** #flashcard
+breaks the agent loop.
+
+**Without max_steps?** #flashcard
+infinite loop when the model can't complete the task.
+
+**Thoughts can be hallucinated rationalizations that precede wrong tool calls.?** #flashcard
+Thoughts can be hallucinated rationalizations that precede wrong tool calls.
+
+**Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.?** #flashcard
+Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.
+
+**The model may generate a "Thought" that ignores the previous Observation.?** #flashcard
+The model may generate a "Thought" that ignores the previous Observation.
+
+**Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.?** #flashcard
+Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.
+
+**Forgetting max_steps?** #flashcard
+the most common production bug in ReAct agents.
+
+**The planner can generate a bad plan; the executor faithfully executes wrong steps.?** #flashcard
+The planner can generate a bad plan; the executor faithfully executes wrong steps.
+
+**If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.?** #flashcard
+If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.
+
+**Synthesizer must reason over potentially inconsistent results from different executor contexts.?** #flashcard
+Synthesizer must reason over potentially inconsistent results from different executor contexts.
+
+**Using Plan-and-Execute for short, adaptive tasks?** #flashcard
+the overhead isn't worth it.
+
+**Not handling plan failures?** #flashcard
+if step 3 fails, what happens to steps 4-10 that depend on it?
+
+**The code execution agent has NO web browsing tools?** #flashcard
+it can't be weaponized by malicious web content.
+
+**The research agent has NO code execution tools?** #flashcard
+it can't run arbitrary code from scraped pages.
+
+**The document agent has access only to the document index, not to files outside the index.?** #flashcard
+The document agent has access only to the document index, not to files outside the index.
+
+**Synchronous?** #flashcard
+orchestrator waits for specialist result before continuing.
+
+**Asynchronous?** #flashcard
+orchestrator dispatches to multiple specialists in parallel, aggregates results.
+
+**Peer-to-peer: specialists can invoke each other directly (use carefully?** #flashcard
+creates hard-to-debug loops).
+
+**Over-communication?** #flashcard
+agents passing full contexts between themselves causes combinatorial context growth.
+
+**Circular dependencies?** #flashcard
+Agent A calls Agent B which calls Agent A.
+
+**No result validation?** #flashcard
+the orchestrator trusts specialist outputs without checking for hallucination or errors.
+
+**Privilege escalation?** #flashcard
+if a specialist agent can invoke the orchestrator, an attacker might use the specialist to gain orchestrator-level capabilities.
+
+**"Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.?** #flashcard
+"Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.
+
+**Not defining clear interfaces between agents?** #flashcard
+what format does the specialist return? What happens on error?
+
+**MCP doesn't solve authentication?** #flashcard
+the server must still implement auth.
+
+**MCP doesn't prevent prompt injection via tool outputs?** #flashcard
+a malicious tool result can contain instructions.
+
+**Version compatibility?** #flashcard
+if the server updates its tool schema, clients must be updated.
+
+**"MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.?** #flashcard
+"MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.
+
+**Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.?** #flashcard
+Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.
+
+**Infinite retries without a cap?** #flashcard
+agent loops on a broken tool forever.
+
+**Silently swallowing errors?** #flashcard
+agent continues with stale state, producing downstream hallucinations.
+
+**Reflection without external grounding?** #flashcard
+if the agent "decides" the error didn't happen, reflection produces wrong reasoning.
+
+**Using raise in tool functions instead of return error_string.?** #flashcard
+Using raise in tool functions instead of return error_string.
+
+**No backoff on retries?** #flashcard
+rate-limited APIs will stay rate-limited if you retry immediately.
+
+**max_steps?** #flashcard
+derived from task complexity. Research tasks: 20-50 steps. Simple Q&A: 3-5 steps.
+
+**token_budget?** #flashcard
+derived from cost tolerance. Set as a hard cap, not a soft warning.
+
+**Emergency stop: if the agent produces the same tool call 3 times in a row, it's looping?** #flashcard
+force stop.
+
+**Only LLM-driven stopping?** #flashcard
+model hallucinates "FINAL_ANSWER:" on a failed task.
+
+**Only system-driven stopping?** #flashcard
+legitimate long tasks are killed before completion.
+
+**No loop detection?** #flashcard
+an agent making the same failing call repeatedly until budget exhausted.
+
+**"We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.?** #flashcard
+"We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.
+
+**Token budget too generous?** #flashcard
+a runaway agent can consume $1000 in API costs before the budget is hit.
+
+**Evaluating only final state?** #flashcard
+agents that succeed via unsafe paths pass.
+
+**LLM-as-judge with position bias?** #flashcard
+judge prefers responses it sees first.
+
+**No adversarial test cases?** #flashcard
+agent looks good on benign inputs, fails on edge cases.
+
+**"We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.?** #flashcard
+"We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.
+
+**Only running happy-path tests without error injection.?** #flashcard
+Only running happy-path tests without error injection.
+
+**Direct injection?** #flashcard
+user input contains instructions that override the system prompt.
+
+**Indirect injection?** #flashcard
+malicious content in retrieved data (web pages, documents, tool outputs) contains instructions.
+
+**Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.?** #flashcard
+Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.
+
+**Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).?** #flashcard
+Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).
+
+**HITL adds latency; attackers can craft slow-burn attacks that pass individual review.?** #flashcard
+HITL adds latency; attackers can craft slow-burn attacks that pass individual review.
+
+**"We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.?** #flashcard
+"We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.
+
+**No tool allowlists?** #flashcard
+an agent with unrestricted tool access is a fully general remote code execution vulnerability.
+
+**Blocking on every action?** #flashcard
+removes the value of automation.
+
+**No approval timeout?** #flashcard
+agent waits forever for a reviewer who never sees the notification.
+
+**No audit log of auto-executed actions?** #flashcard
+"on-the-loop" monitoring with no logs is just theater.
+
+**"We'll add human review for everything." This makes the system slower than doing it manually.?** #flashcard
+"We'll add human review for everything." This makes the system slower than doing it manually.
+
+**No state persistence?** #flashcard
+if the process dies while waiting for approval, the task is lost.
+
+**Output-only guardrails?** #flashcard
+malicious inputs can manipulate the reasoning process even if the final output is filtered.
+
+**System prompt-only guardrails?** #flashcard
+bypassed by direct or indirect injection.
+
+**No independent input and output layers?** #flashcard
+guardrails can be constructed to fail by exploiting the gap.
+
+**"Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.?** #flashcard
+"Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.
+
+**Single-layer guardrails (only input or only output)?** #flashcard
+always need both.
+
+**Format errors?** #flashcard
+"Your JSON is malformed" → model fixes it
+
+**Incomplete task coverage?** #flashcard
+"You missed addressing part 3 of the question"
+
+**Logical inconsistency?** #flashcard
+model can see contradictions in its own text
+
+**Factual errors?** #flashcard
+the model doesn't have access to ground truth, so it can't correct wrong facts
+
+**After ~3 iterations?** #flashcard
+diminishing returns; additional reflection rarely changes the answer
+
+**Without external grounding?** #flashcard
+factual accuracy requires retrieval, not self-critique
+
+**Unlimited reflection loops?** #flashcard
+no improvement after N=3, just costs
+
+**Reflection inside the same context?** #flashcard
+model confirms itself
+
+**No external grounding for factual claims?** #flashcard
+reflection can't fix hallucinations
+
+**"We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.?** #flashcard
+"We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.
+
+**Multiple reflection rounds without checking whether anything changed.?** #flashcard
+Multiple reflection rounds without checking whether anything changed.
+
+**[ ] Code executes in container/VM, not on host?** #flashcard
+[ ] Code executes in container/VM, not on host
+
+**[ ] No network access (or strictly allowlisted)?** #flashcard
+[ ] No network access (or strictly allowlisted)
+
+**[ ] No access to host filesystem?** #flashcard
+[ ] No access to host filesystem
+
+**[ ] Hard timeout (default 30s)?** #flashcard
+[ ] Hard timeout (default 30s)
+
+**[ ] Memory and CPU limits?** #flashcard
+[ ] Memory and CPU limits
+
+**[ ] Fresh container per execution (no state leakage)?** #flashcard
+[ ] Fresh container per execution (no state leakage)
+
+**[ ] Output sanitized before returning to model (no file paths, no secrets)?** #flashcard
+[ ] Output sanitized before returning to model (no file paths, no secrets)
+
+**Running code on host?** #flashcard
+any LLM error or injection → system compromise.
+
+**No timeout?** #flashcard
+an infinite loop hangs the agent.
+
+**Shared container across executions?** #flashcard
+state from execution N leaks to execution N+1.
+
+**No output sanitization?** #flashcard
+the sandbox output can itself contain injected instructions.
+
+**"We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.?** #flashcard
+"We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.
+
+**Persistent containers?** #flashcard
+state from previous executions (files, installed packages) contaminates later ones.
+
+**State?** #flashcard
+a typed dict shared across all nodes. Each node reads from and writes to state.
+
+**Nodes?** #flashcard
+functions that take state, do computation, return updated state.
+
+**Edges?** #flashcard
+connect nodes; can be conditional (route based on state values).
+
+**Missing checkpointer?** #flashcard
+no pause/resume capability, agent state lost on process restart.
+
+**No Reducers for concurrent writes?** #flashcard
+last-write-wins causes data loss.
+
+**Unbounded cycles?** #flashcard
+without a maximum iteration condition, cycles run forever.
+
+**"LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.?** #flashcard
+"LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.
+
+**Using LangGraph for simple linear workflows?** #flashcard
+the overhead isn't justified.

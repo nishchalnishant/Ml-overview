@@ -1,3 +1,10 @@
+---
+module: Specialized Domains
+topic: Reinforcement Learning
+subtopic: Advanced Rl
+status: unread
+tags: [specializeddomains, ml, reinforcement-learning-advance]
+---
 # Advanced Reinforcement Learning
 
 Extends core RL (MDPs, Q-learning, PPO) with multi-agent, imitation learning, inverse RL, hierarchical RL, and sim-to-real transfer.
@@ -399,3 +406,35 @@ Requires safe initial policy and careful reward shaping in real environment.
 - HER: reuse failed trajectories by treating the final state as a hindsight goal — key for sparse reward robotics. Generates positive reward signal from every trajectory regardless of outcome.
 - Domain randomization: vary sim parameters so the policy generalizes; the real world is "just another sample." The key assumption is that the real world falls within the randomization distribution.
 - Offline RL needs conservative Q-estimates (CQL) or avoidance of OOD actions entirely (IQL, Decision Transformer) because the dataset is fixed and errors cannot be corrected by collecting new data.
+
+## Flashcards
+
+**I ⊆ S?** #flashcard
+initiation set (when option can start)
+
+**π_ω?** #flashcard
+option policy (what to do during option)
+
+**β?** #flashcard
+S → [0,1]: termination condition
+
+**BC is simple but suffers from compounding error; DAgger fixes this by iteratively querying the expert on states the current policy actually visits.?** #flashcard
+BC is simple but suffers from compounding error; DAgger fixes this by iteratively querying the expert on states the current policy actually visits.
+
+**GAIL?** #flashcard
+discriminator distinguishes expert vs policy trajectories; PPO maximizes discriminator "fooling" → implicit imitation without reward design.
+
+**IRL?** #flashcard
+learn a reward function that makes the expert's behavior optimal. MaxEntIRL is the classic formulation; RLHF preference learning is its modern application.
+
+**MARL: non-stationarity is the core challenge?** #flashcard
+as agents learn, the environment each agent faces changes. CTDE (centralized training, decentralized execution) is the standard paradigm.
+
+**HER: reuse failed trajectories by treating the final state as a hindsight goal?** #flashcard
+key for sparse reward robotics. Generates positive reward signal from every trajectory regardless of outcome.
+
+**Domain randomization?** #flashcard
+vary sim parameters so the policy generalizes; the real world is "just another sample." The key assumption is that the real world falls within the randomization distribution.
+
+**Offline RL needs conservative Q-estimates (CQL) or avoidance of OOD actions entirely (IQL, Decision Transformer) because the dataset is fixed and errors cannot be corrected by collecting new data.?** #flashcard
+Offline RL needs conservative Q-estimates (CQL) or avoidance of OOD actions entirely (IQL, Decision Transformer) because the dataset is fixed and errors cannot be corrected by collecting new data.

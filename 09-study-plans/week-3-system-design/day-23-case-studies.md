@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 3 System Design
+subtopic: Day 23 Case Studies
+status: unread
+tags: [studyplans, ml, week-3-system-design-day-23-ca]
+---
 # Day 23: Case Studies (Google Context)
 
 ## Why This Topic Comes Here
@@ -99,3 +106,26 @@ When answering case study questions in interviews:
 
 **3. "Why does Google Search use multiple models for one query?"**
 > Complexity. One model handles spelling, another handles synonyms, another handles semantic intent (BERT), and finally, a ranking model combines all signals. This is called a **Modular Architecture** and it enables independent improvement of each component.
+
+## Flashcards
+
+**Metric?** #flashcard
+Not just CTR (Click-Through Rate) but Watch Time (engagement quality).
+
+**Task?** #flashcard
+Identify people/objects/scenes without explicit tags from users.
+
+**Tech?** #flashcard
+Models like CLIP or contrastive learning to align images and text in a shared embedding space.
+
+**One module handles spelling correction.?** #flashcard
+One module handles spelling correction.
+
+**One handles synonym expansion.?** #flashcard
+One handles synonym expansion.
+
+**One handles semantic intent (BERT-based).?** #flashcard
+One handles semantic intent (BERT-based).
+
+**A ranking model combines all signals.?** #flashcard
+A ranking model combines all signals.

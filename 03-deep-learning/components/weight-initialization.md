@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Weight Initialization
+status: unread
+tags: [deeplearning, ml, components-weight-initializati]
+---
 # Weight Initialization
 
 ---

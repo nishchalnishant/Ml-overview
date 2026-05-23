@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Frontier Ai Developments 2025
+status: unread
+tags: [emergingtopics, ml, emerging-trends-frontier-ai-de]
+---
 # Frontier AI Developments 2025
 
 Key technical developments across multimodal AI, long-context architectures, model memory, autonomous coding agents, and the new inference paradigms reshaping how AI is deployed.
@@ -257,3 +264,53 @@ A: Model Context Protocol is a standardized client-server protocol for connectin
 
 **Q: What is the "lost in the middle" problem in long-context models, and how do modern architectures address it?**
 A: Studies (Liu et al., 2023) showed that when relevant information is placed in the middle of a long context, model performance degrades significantly compared to information at the start or end. Attention mechanisms are biased toward recency (the end) and primacy (the start). For a 128K context, information at position 60K can be nearly invisible to the model. Modern architectures address this via: (1) Flash Attention with no numerical differences from standard attention — doesn't fix the distribution problem but enables the long context in the first place; (2) Training on long-context tasks specifically with relevant information placed at varying positions — LLaMA 3.1 was trained with this; (3) Sliding window + global attention hybrids — global attention layers specifically attend to distant positions, partially compensating for middle blindness; (4) Explicit retrieval augmentation — rather than stuffing everything in the context, retrieve only the relevant 3-5 chunks (avoids the problem entirely). In practice: for production RAG, use retrieval over a long context; for code understanding, use a language server for precise symbol lookup rather than pasting the entire codebase.
+
+## Flashcards
+
+**Chart/figure understanding?** #flashcard
+extract data from graphs, answer questions about trends
+
+**Document understanding?** #flashcard
+OCR + reasoning on complex PDFs with tables, formulas
+
+**Code screenshot → executable code?** #flashcard
+convert UI mockups or screenshots to code
+
+**Video understanding?** #flashcard
+process frames at 1 FPS, answer temporal questions ("when does X happen?")
+
+**Spatial reasoning?** #flashcard
+identify relative positions, distances in images
+
+**Memory: O(n²) attention matrices = 1M² = 1T elements?** #flashcard
+impossible
+
+**Compute: quadratic?** #flashcard
+a 1M-token sequence takes 1000² = 1M× more compute than 1K tokens
+
+**Tools?** #flashcard
+functions the AI can call (execute_code, search_web, read_file)
+
+**Resources?** #flashcard
+data sources the AI can read (files, database records, APIs)
+
+**Prompts?** #flashcard
+parameterized prompt templates provided by the server
+
+**"the" ✓, "cat" ✓, "sat" ✓, "on" ✗ (would have said "jumped")?** #flashcard
+"the" ✓, "cat" ✓, "sat" ✓, "on" ✗ (would have said "jumped")
+
+**Accept first 3 tokens, correct token 4?** #flashcard
+Accept first 3 tokens, correct token 4
+
+**Net?** #flashcard
+3 tokens accepted + 1 correction in 1 forward pass = 4/1 = 4 tokens per forward pass
+
+**Literature search and synthesis (thousands of papers in minutes)?** #flashcard
+Literature search and synthesis (thousands of papers in minutes)
+
+**Hypothesis generation (given experimental results, propose next experiments)?** #flashcard
+Hypothesis generation (given experimental results, propose next experiments)
+
+**Computation (structure prediction, simulation)?** #flashcard
+Computation (structure prediction, simulation)

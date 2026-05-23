@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Content Moderation System
+status: unread
+tags: [productionml, ml, system-design-content-moderati]
+---
 # Content Moderation System Design
 
 End-to-end ML system for detecting policy-violating content at platform scale. Canonical system design question at Meta, Google/YouTube, Twitter/X, TikTok, and any UGC platform.
@@ -793,3 +800,170 @@ A: Coordinated evasion of this type leaves multiple signals: (1) Many accounts p
 **Q: How do you handle policy changes — for example, the platform updates its definition of hate speech to include a new category. How do you update the system without creating inconsistency?**
 
 A: Policy changes create three problems: (1) existing labels are wrong (they reflect old policy); (2) the deployed model encodes old policy; (3) content that was previously allowed may need retroactive removal. Process: (1) Policy team publishes policy change with an effective date and clear examples; (2) Relabeling sprint: sample ~10K items from the affected category, re-label under new policy, compute kappa between old and new labels to quantify the scope of change; (3) Retrain with new labels only from items labeled under the new policy (version tag policy on every label); (4) Retroactive enforcement: run new model in shadow mode over recently-allowed content, queue items newly flagged for expedited human review rather than auto-removing (retroactive auto-removal creates significant user trust risk); (5) For content already removed that may now be allowed under relaxed policy — run appeal-style review on a sample rather than mass reinstatement. The key constraint: never mix labels from before and after a policy change in the same training batch without explicit policy-version conditioning.
+
+## Flashcards
+
+**What content types? Text (posts, comments, DMs), images, video (live + recorded), audio, mixed-media posts?** #flashcard
+What content types? Text (posts, comments, DMs), images, video (live + recorded), audio, mixed-media posts
+
+**What violation categories? CSAM, imminent violence/terrorism, hate speech, harassment, spam/scams, misinformation, self-harm, synthetic media/deepfakes?** #flashcard
+What violation categories? CSAM, imminent violence/terrorism, hate speech, harassment, spam/scams, misinformation, self-harm, synthetic media/deepfakes
+
+**Proactive vs reactive? Proactive (scan every upload) vs reactive (user reports only) vs hybrid?** #flashcard
+Proactive vs reactive? Proactive (scan every upload) vs reactive (user reports only) vs hybrid
+
+**What action space? Remove, label/interstitial, reduce distribution, suspend account, refer to law enforcement?** #flashcard
+What action space? Remove, label/interstitial, reduce distribution, suspend account, refer to law enforcement
+
+**Geographic scope? Global → policy must reflect local laws (NetzDG in Germany, DSA in EU, FOSTA-SESTA in US)?** #flashcard
+Geographic scope? Global → policy must reflect local laws (NetzDG in Germany, DSA in EU, FOSTA-SESTA in US)
+
+**Who gets harmed by errors? False negative?** #flashcard
+victim not protected, violator remains; false positive: legitimate speaker silenced
+
+**Appeal mechanism? Yes/no, SLA on appeals, who reviews appeals?** #flashcard
+Appeal mechanism? Yes/no, SLA on appeals, who reviews appeals
+
+**Live content? Live streaming requires real-time action with near-zero latency and no rewind?** #flashcard
+Live content? Live streaming requires real-time action with near-zero latency and no rewind
+
+**XLM-RoBERTa over English-only BERT?** #flashcard
+covers 100 languages in one model
+
+**Multi-label head?** #flashcard
+real content often violates multiple policies simultaneously
+
+**Temperature calibration post-training?** #flashcard
+raw sigmoid scores are poorly calibrated
+
+**Context window?** #flashcard
+include conversation thread for comments, not just isolated post
+
+**CNN backbone (ResNet-50 or EfficientNet-B3) fine-tuned on policy violation data?** #flashcard
+CNN backbone (ResNet-50 or EfficientNet-B3) fine-tuned on policy violation data
+
+**Outputs?** #flashcard
+P(nudity), P(graphic_violence), P(hate_symbol), P(spam_visual)
+
+**<50ms per image?** #flashcard
+<50ms per image
+
+**ViT-L/16 with policy-specific fine-tuning?** #flashcard
+ViT-L/16 with policy-specific fine-tuning
+
+**Used for borderline cases where Stage 1 score is 0.3–0.7?** #flashcard
+Used for borderline cases where Stage 1 score is 0.3–0.7
+
+**Context?** #flashcard
+image + OCR text overlay + alt text
+
+**1 fps for most content (90% of compute budget)?** #flashcard
+1 fps for most content (90% of compute budget)
+
+**5 fps if initial score > 0.3?** #flashcard
+5 fps if initial score > 0.3
+
+**All frames if score > 0.6 or account is flagged?** #flashcard
+All frames if score > 0.6 or account is flagged
+
+**Policy version tag on every training label?** #flashcard
+Policy version tag on every training label
+
+**When policy changes, relabel affected sample with new policy before retraining?** #flashcard
+When policy changes, relabel affected sample with new policy before retraining
+
+**Use policy change date as a feature cutoff?** #flashcard
+don't mix pre/post-policy labels
+
+**Fast retrain cycle for high-impact policy changes (days, not weeks)?** #flashcard
+Fast retrain cycle for high-impact policy changes (days, not weeks)
+
+**Exposure limits?** #flashcard
+no moderator reviews CSAM/graphic violence >4h/day
+
+**Greyscale/blurred preview mode?** #flashcard
+show blurred image unless reviewer confirms
+
+**Queue assignment?** #flashcard
+new moderators not assigned to CSAM queue
+
+**Mandatory breaks enforced by the review UI after N consecutive graphic items?** #flashcard
+Mandatory breaks enforced by the review UI after N consecutive graphic items
+
+**Escalation path?** #flashcard
+reviewer can escalate without making a decision (no decision pressure)
+
+**Maintain rules layer (fast to update, no retraining) for emerging evasions?** #flashcard
+Maintain rules layer (fast to update, no retraining) for emerging evasions
+
+**Weekly model updates for trending evasion patterns (not monthly)?** #flashcard
+Weekly model updates for trending evasion patterns (not monthly)
+
+**Human monitoring of adversarial forums (4chan, Telegram) to get ahead of new techniques?** #flashcard
+Human monitoring of adversarial forums (4chan, Telegram) to get ahead of new techniques
+
+**Red team?** #flashcard
+internal team attempts to evade current model; findings drive rule/model updates
+
+**Separate models per cultural/political context (or heavy per-region fine-tuning)?** #flashcard
+Separate models per cultural/political context (or heavy per-region fine-tuning)
+
+**Policy teams in every major market, not just HQ?** #flashcard
+Policy teams in every major market, not just HQ
+
+**Explicit "counter-speech" and "news reporting" exemptions in classifier training?** #flashcard
+Explicit "counter-speech" and "news reporting" exemptions in classifier training
+
+**Regular regional audits of removal patterns?** #flashcard
+Regular regional audits of removal patterns
+
+**Prioritize low-resource languages in human review (active learning score boost)?** #flashcard
+Prioritize low-resource languages in human review (active learning score boost)
+
+**Translation-based review?** #flashcard
+translate to high-resource language, review there (lossy but better than nothing)
+
+**Cross-lingual transfer learning with targeted fine-tuning on 5K high-quality samples per language?** #flashcard
+Cross-lingual transfer learning with targeted fine-tuning on 5K high-quality samples per language
+
+**Track per-language coverage gap in metrics; make it a P1 engineering priority?** #flashcard
+Track per-language coverage gap in metrics; make it a P1 engineering priority
+
+**Do not publish precision/recall breakdown by evasion technique?** #flashcard
+Do not publish precision/recall breakdown by evasion technique
+
+**Model randomization?** #flashcard
+add noise to scores before exposing any API signal
+
+**Multiple independent classifiers?** #flashcard
+evading one does not evade all
+
+**Network-level detection catches the coordination even if individual posts evade?** #flashcard
+Network-level detection catches the coordination even if individual posts evade
+
+**Random sample of low-scoring content sent to human review regardless of model score?** #flashcard
+Random sample of low-scoring content sent to human review regardless of model score
+
+**This is the "exploration budget"?** #flashcard
+typically 1–3% of queue capacity
+
+**Treat as a bandit problem?** #flashcard
+balance exploitation (review high-score content) vs. exploration (review uncertain + low-score content)
+
+**Geo-routing?** #flashcard
+apply regional policy models based on content's target audience, not just poster's location
+
+**Cultural context metadata as feature in classifier?** #flashcard
+Cultural context metadata as feature in classifier
+
+**Regional policy teams with veto power over automated decisions on their region's content?** #flashcard
+Regional policy teams with veto power over automated decisions on their region's content
+
+**Facebook AI: "Hate Speech Detection in Hinglish"?** #flashcard
+code-switching between Hindi and English requires specialized models
+
+**Google Jigsaw: Perspective API?** #flashcard
+public hate speech scoring API, trained on Wikipedia talk page data
+
+**Twitter: "Abuse and Harassment" paper?** #flashcard
+account-level features matter as much as post-level features

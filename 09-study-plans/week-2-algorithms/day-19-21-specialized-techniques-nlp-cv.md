@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 Algorithms
+subtopic: Day 19 21 Specialized Techniques Nlp Cv
+status: unread
+tags: [studyplans, ml, week-2-algorithms-day-19-21-sp]
+---
 # Day 19-21: Specialized Techniques (NLP & CV)
 
 ## Why This Topic Comes Here
@@ -117,3 +124,23 @@ inputs = tokenizer(text, return_tensors="pt", padding=True, truncation=True)
 outputs = model(**inputs)
 cls_embedding = outputs.last_hidden_state[:, 0, :]  # [CLS] token
 ```
+
+## Flashcards
+
+**Self-Attention?** #flashcard
+Allows each token to weigh every other token when computing its representation.
+
+**BERT?** #flashcard
+Encoder-only. Pre-trained on masked language modeling. Best for understanding tasks (classification, NER, question answering).
+
+**GPT?** #flashcard
+Decoder-only. Pre-trained on next-token prediction (causal). Best for generation tasks.
+
+**Filters/Kernels?** #flashcard
+Shared weights that slide across the input and detect local patterns (edges, textures, shapes). Early layers detect low-level features; later layers combine them into high-level ones.
+
+**Pooling?** #flashcard
+Reduces spatial dimensions. Max pooling keeps the strongest activation in each region, providing approximate translation invariance.
+
+**Invariance?** #flashcard
+The same filter detects a feature regardless of its position in the image.

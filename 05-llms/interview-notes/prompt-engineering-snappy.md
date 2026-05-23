@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Prompt Engineering Snappy
+status: unread
+tags: [llms, ml, interview-notes-prompt-enginee]
+---
 # Prompt engineering — reliability patterns (Azure/DevOps edition)
 
 Prompting isn’t cute wording. It’s **interface + policy design** for a stochastic service.
@@ -190,3 +197,113 @@ graph TD
 
 # Q30: Zero-shot cross-lingual transfer fails—how fix?
 - **Fix:** translate, add few-shot per language, or fine-tune adapters.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Designing system/user messages + constraints so the model is predictable, safe, and cost-efficient.
+
+**Azure/DevOps bridge?** #flashcard
+It’s your API contract + quality gates.
+
+**Fashion analogy?** #flashcard
+Styling with a strict dress code—beautiful and compliant.
+
+**Direct answer?** #flashcard
+Zero-shot = no examples; one-shot = 1 example; few-shot = several examples.
+
+**Trade-off?** #flashcard
+More shots = more tokens = more cost/latency.
+
+**Direct answer?** #flashcard
+Encourage step-by-step reasoning. Use for complex reasoning; avoid exposing sensitive reasoning; prefer verifiable tools.
+
+**Direct answer?** #flashcard
+Sample multiple solutions and pick the most consistent (vote/score).
+
+**Direct answer?** #flashcard
+Search multiple reasoning branches and prune; powerful but expensive.
+
+**Direct answer?** #flashcard
+Reason → act (tool) → observe → repeat.
+
+**DevOps bridge?** #flashcard
+It’s orchestration with tools (like a pipeline that can run tasks).
+
+**Direct answer?** #flashcard
+Highest-priority instructions: role, constraints, format, refusal rules.
+
+**Common mistake?** #flashcard
+putting secrets in prompts.
+
+**Direct answer?** #flashcard
+Explicit schema + “ONLY JSON” + few-shot + constrained decoding / structured outputs when available.
+
+**Direct answer?** #flashcard
+Untrusted text tries to override instructions.
+
+**Defense?** #flashcard
+delimit untrusted content, least-privilege tools, validation, red-team evals.
+
+**Direct answer?** #flashcard
+Attempts to bypass safety with role-play, obfuscation, multi-turn manipulation.
+
+**Direct answer?** #flashcard
+Reduce tokens and retries; keep top-k retrieval small; prefer schemas over repair loops.
+
+**Direct answer?** #flashcard
+Engineering = text instructions; tuning = learned “soft prompts”/vectors.
+
+**Direct answer?** #flashcard
+Parameterized prompt with placeholders; version it like code.
+
+**Direct answer?** #flashcard
+Summarize + keep key facts; don’t paste endless chat logs.
+
+**Direct answer?** #flashcard
+Assign a role to bias style; constraints still matter.
+
+**Direct answer?** #flashcard
+Multi-step prompts: extract → validate → decide → format.
+
+**Direct answer?** #flashcard
+Build an eval set + regression tests; measure task success and format validity.
+
+**Direct answer?** #flashcard
+Prompts that generate prompts (useful, but can reduce determinism).
+
+**Direct answer?** #flashcard
+Hallucination, format drift, instruction failure, verbosity, tool misuse. Fix via tighter contracts + evals.
+
+**Direct answer?** #flashcard
+Treat like API threat model: validation, allow-lists, monitoring.
+
+**Direct answer?** #flashcard
+Middle content is used less reliably. Put best chunks at top/bottom; keep prompts short.
+
+**Direct answer?** #flashcard
+Validate/normalize output into typed structures; prevents stringly-typed chaos.
+
+**Direct answer?** #flashcard
+Keep instructions consistent; use multilingual models/embeddings; budget for token tax.
+
+**Fix?** #flashcard
+normalize inputs; curate/reorder examples; reduce temperature; add schemas.
+
+**Fix?** #flashcard
+constrain label set; add counterexamples; structured output; eval-driven iteration.
+
+**Direct answer?** #flashcard
+Don’t store secrets in prompts; separate policy from data; use server-side rules.
+
+**Direct answer?** #flashcard
+treat tool inputs as untrusted; validate args; sandbox tools; log/audit.
+
+**Fix?** #flashcard
+decompose task; add verifiers/tools; ensure needed context via RAG.
+
+**Fix?** #flashcard
+locale-specific examples + evals; retrieval in target language; multilingual embeddings.
+
+**Fix?** #flashcard
+translate, add few-shot per language, or fine-tune adapters.

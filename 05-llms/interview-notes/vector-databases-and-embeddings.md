@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Vector Databases And Embeddings
+status: unread
+tags: [llms, ml, interview-notes-vector-databas]
+---
 # Vector Databases and Embeddings — Interview Notes
 
 ---
@@ -313,3 +320,89 @@ qv = embed_model.encode([hypothesis])[0]
 **What the interviewer is testing**: whether you can diagnose *why* short queries fail (underspecified embedding) and propose a principled fix (expand toward what a relevant document looks like).
 
 **Common traps**: applying HyDE universally without testing (it degrades quality on some query distributions); not knowing that BM25 often outperforms dense search for very short exact-term queries; over-expanding queries in ways that introduce intent drift.
+
+## Flashcards
+
+**Cosine similarity: (q·d) / (||q|| ||d||)?** #flashcard
+measures directional alignment; scale-invariant
+
+**Dot product: q·d?** #flashcard
+equivalent to cosine if vectors are L2-normalized; faster if you skip normalization
+
+**L2 distance: ||q - d||²?** #flashcard
+finds absolute proximity; valid but less common for retrieval
+
+**Mean pooling?** #flashcard
+average over all non-padding token positions. Most common.
+
+**CLS token pooling?** #flashcard
+use the hidden state of the special [CLS] token (BERT-style). Designed for classification but used for embeddings in some models.
+
+**Attention pooling?** #flashcard
+learn a weighted combination of token states. More expressive; rarely used in standard embedding models.
+
+**Embedding vectors (the float arrays)?** #flashcard
+Embedding vectors (the float arrays)
+
+**Raw text or document IDs (references to the original content)?** #flashcard
+Raw text or document IDs (references to the original content)
+
+**Metadata (source, date, tenant_id, access level, etc.)?** #flashcard
+Metadata (source, date, tenant_id, access level, etc.)
+
+**ANN index for fast similarity search (HNSW or IVF+PQ)?** #flashcard
+ANN index for fast similarity search (HNSW or IVF+PQ)
+
+**Metadata filtering (combine similarity search with structured predicates)?** #flashcard
+Metadata filtering (combine similarity search with structured predicates)
+
+**CRUD operations (upsert, delete, update)?** #flashcard
+CRUD operations (upsert, delete, update)
+
+**Layer 0 (base layer)?** #flashcard
+all vectors, each connected to M nearest neighbors (dense connections)
+
+**Layer 1?** #flashcard
+a random subset of vectors (~1/e of layer 0), connected to M neighbors in this sparser subgraph
+
+**Layer 2?** #flashcard
+sparser still (~1/e of layer 1)
+
+**... up to log(N) layers?** #flashcard
+... up to log(N) layers
+
+**M?** #flashcard
+connections per node. More connections = better recall, more memory. Typical: 16–64.
+
+**efConstruction?** #flashcard
+beam size during index build. Higher = better quality index, slower build. Typical: 100–400.
+
+**efSearch?** #flashcard
+beam size during query. Higher = better recall, slower query. Tune to meet recall SLA.
+
+**Recall@K?** #flashcard
+fraction of queries where the relevant document appears in the top-K results. Most important for RAG.
+
+**MRR (Mean Reciprocal Rank)?** #flashcard
+1/rank of the first relevant result, averaged over queries. Penalizes relevant documents at lower ranks.
+
+**NDCG@K?** #flashcard
+normalized discounted cumulative gain; useful when multiple relevance levels exist.
+
+**Max sequence length?** #flashcard
+must equal or exceed your chunk size. If chunks are 512 tokens, models with 256-token max length will truncate your chunks.
+
+**Dimensionality?** #flashcard
+higher d → better recall ceiling, higher storage cost.
+
+**Latency?** #flashcard
+self-hosted GPU vs. API (cloud API adds network latency, sends data off-premise).
+
+**Domain coverage?** #flashcard
+models trained on domain-specific data (legal, biomedical, code) outperform general models in those domains.
+
+**Positives?** #flashcard
+known query-document relevant pairs (from human annotations, click logs, or LLM-generated synthetic queries for your documents).
+
+**Hard negatives?** #flashcard
+documents that are superficially similar but not the correct answer (retrieve with BM25 or the current embedding model, take top results that are not the true relevant document). Hard negatives force the model to learn fine-grained distinctions.

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Model Evaluation
+status: unread
+tags: [interviewprep, ml, ml-model-evaluation]
+---
 # Model Evaluation
 
 ---
@@ -295,3 +302,77 @@ The key design decisions:
 - Stopping the experiment early when a significant positive result appears. This is peeking. The false positive rate for a test that is evaluated continuously and stopped whenever p < 0.05 is far above 5% — it can reach 20–30%. Fix by committing to a fixed duration and sample size before the experiment starts, or by using sequential testing (alpha spending) methods.
 - Running multiple simultaneous A/B tests without interaction analysis. Two concurrent tests with independent 2% improvements may not combine to 4% if the user populations overlap and the effects interact. Test for interaction effects or ensure tests run on independent user segments.
 - Network effects: in social or marketplace systems, assigning users randomly violates the Stable Unit Treatment Value Assumption (SUTVA) — users in the control group interact with treatment users and vice versa, contaminating both groups. Use cluster randomization (randomize by social cluster or geographic area) instead.
+
+## Flashcards
+
+**Reporting training loss as model quality. The only interesting question is held-out performance. Training loss answers a different question entirely?** #flashcard
+"did the optimization converge?"
+
+**Evaluating against the test set repeatedly during development. Each time you use the test set to inform a modeling decision, you are implicitly using it as a validation set. After 20 evaluation-adjust cycles, you have effectively trained on the test set through your choices. The final reported number is optimistic.?** #flashcard
+Evaluating against the test set repeatedly during development. Each time you use the test set to inform a modeling decision, you are implicitly using it as a validation set. After 20 evaluation-adjust cycles, you have effectively trained on the test set through your choices. The final reported number is optimistic.
+
+**Evaluating a model only on aggregate metrics without investigating which examples it gets wrong. Understanding the failure pattern is more actionable than knowing the average failure rate. A model that fails on a specific demographic, or on a specific data type, needs targeted fixes, not more general regularization.?** #flashcard
+Evaluating a model only on aggregate metrics without investigating which examples it gets wrong. Understanding the failure pattern is more actionable than knowing the average failure rate. A model that fails on a specific demographic, or on a specific data type, needs targeted fixes, not more general regularization.
+
+**Defaulting to F1 without justifying that precision and recall have equal cost. They rarely do. Use $F_\beta$ with a $\beta$ derived from the actual cost ratio.?** #flashcard
+Defaulting to F1 without justifying that precision and recall have equal cost. They rarely do. Use $F_\beta$ with a $\beta$ derived from the actual cost ratio.
+
+**Reporting precision or recall in isolation. They are trivially gameable in opposite directions. A model that predicts nothing positive achieves perfect precision (undefined or 1.0 depending on convention) and 0% recall. A model that predicts everything positive achieves 100% recall and precision equal to the base rate. Always report both together.?** #flashcard
+Reporting precision or recall in isolation. They are trivially gameable in opposite directions. A model that predicts nothing positive achieves perfect precision (undefined or 1.0 depending on convention) and 0% recall. A model that predicts everything positive achieves 100% recall and precision equal to the base rate. Always report both together.
+
+**Using ROC-AUC as the primary metric for fraud detection, anomaly detection, medical diagnosis, or any other setting where the positive class is rare. In these settings, the denominator of FPR (number of true negatives) is so large that even many false positives contribute negligible FPR. Use PR-AUC.?** #flashcard
+Using ROC-AUC as the primary metric for fraud detection, anomaly detection, medical diagnosis, or any other setting where the positive class is rare. In these settings, the denominator of FPR (number of true negatives) is so large that even many false positives contribute negligible FPR. Use PR-AUC.
+
+**Not plotting the full curve. A single AUC number hides the shape of the tradeoff. A model might have high PR-AUC because it achieves very high precision at low recall, or very high recall at low precision. These imply completely different operating strategies. The curve reveals which.?** #flashcard
+Not plotting the full curve. A single AUC number hides the shape of the tradeoff. A model might have high PR-AUC because it achieves very high precision at low recall, or very high recall at low precision. These imply completely different operating strategies. The curve reveals which.
+
+**Treating a well-ranked model as automatically well-calibrated. AUC and calibration are orthogonal. Many practitioners skip calibration assessment entirely because they only look at AUC.?** #flashcard
+Treating a well-ranked model as automatically well-calibrated. AUC and calibration are orthogonal. Many practitioners skip calibration assessment entirely because they only look at AUC.
+
+**Applying calibration on the training set. Calibration must be fit on a held-out validation set (or via cross-validation), otherwise the calibration curve is optimistic and the model is overfit to training data probabilities.?** #flashcard
+Applying calibration on the training set. Calibration must be fit on a held-out validation set (or via cross-validation), otherwise the calibration curve is optimistic and the model is overfit to training data probabilities.
+
+**Using RMSE when the target has outliers you don't want to dominate the metric. Outliers squared in RMSE can be 10,000x more influential than normal errors. If those outliers are rare, unusual events where the model's accuracy is less critical, use MAE or Huber loss (which transitions from quadratic to linear beyond a threshold).?** #flashcard
+Using RMSE when the target has outliers you don't want to dominate the metric. Outliers squared in RMSE can be 10,000x more influential than normal errors. If those outliers are rare, unusual events where the model's accuracy is less critical, use MAE or Huber loss (which transitions from quadratic to linear beyond a threshold).
+
+**Interpreting $R^2$ as a percentage of "variance explained" without checking whether predictions fall within the data distribution. A model that always predicts a value slightly outside the range of $y$ can produce negative $R^2$, which is surprising until you understand the formula.?** #flashcard
+Interpreting $R^2$ as a percentage of "variance explained" without checking whether predictions fall within the data distribution. A model that always predicts a value slightly outside the range of $y$ can produce negative $R^2$, which is surprising until you understand the formula.
+
+**Comparing log loss across models trained on different problems. Log loss is not scale-free. A binary classification problem with 50/50 class balance has a different log loss scale than one with 99/1 balance. Log loss comparisons are only valid within the same problem.?** #flashcard
+Comparing log loss across models trained on different problems. Log loss is not scale-free. A binary classification problem with 50/50 class balance has a different log loss scale than one with 99/1 balance. Log loss comparisons are only valid within the same problem.
+
+**Not using log loss when the model outputs probabilities that feed downstream decisions. If the model just ranks examples and a human picks the top K, accuracy or AUC is sufficient. If the probabilities are consumed numerically in a pricing formula or risk calculation, log loss or Brier score are the right metrics.?** #flashcard
+Not using log loss when the model outputs probabilities that feed downstream decisions. If the model just ranks examples and a human picks the top K, accuracy or AUC is sufficient. If the probabilities are consumed numerically in a pricing formula or risk calculation, log loss or Brier score are the right metrics.
+
+**Preprocessing outside the cross-validation loop. This is the most common CV mistake in practice. The scaler or imputer fitted on all data embeds the validation fold's statistics into the training representation.?** #flashcard
+Preprocessing outside the cross-validation loop. This is the most common CV mistake in practice. The scaler or imputer fitted on all data embeds the validation fold's statistics into the training representation.
+
+**Using K-fold CV on time series data. Any shuffle of temporal data allows future information to appear in training. Time-based splits are mandatory.?** #flashcard
+Using K-fold CV on time series data. Any shuffle of temporal data allows future information to appear in training. Time-based splits are mandatory.
+
+**Using 0.5 as the default threshold without checking whether it makes sense for the class distribution and cost structure. For any imbalanced problem (class rate < 30%), 0.5 is almost certainly too high?** #flashcard
+it under-predicts the rare class relative to the actual optimal threshold.
+
+**Tuning the threshold on the test set. The threshold is a hyperparameter. Selecting it based on test set performance inflates the test metric. Choose the threshold on the validation set or through cross-validation.?** #flashcard
+Tuning the threshold on the test set. The threshold is a hyperparameter. Selecting it based on test set performance inflates the test metric. Choose the threshold on the validation set or through cross-validation.
+
+**Shipping based on offline evaluation alone. Even a large, clean offline improvement can hurt production metrics due to the mechanisms above. Shadow mode costs almost nothing and catches distribution anomalies before they reach users.?** #flashcard
+Shipping based on offline evaluation alone. Even a large, clean offline improvement can hurt production metrics due to the mechanisms above. Shadow mode costs almost nothing and catches distribution anomalies before they reach users.
+
+**Not defining guardrail metrics before deployment. "We will watch for negative effects" is not a plan. Before deployment, define?** #flashcard
+which metrics are guardrails (must not degrade by more than X%), what the rollback trigger is, and who has authority to roll back. This turns a vague monitoring intention into an operational procedure.
+
+**Using AUC for ranking problems. AUC is a threshold-independent metric measuring the probability that a random positive ranks above a random negative. It does not account for position within the list. A model with AUC = 0.95 might still place the most relevant item at the bottom of the top-10 list.?** #flashcard
+Using AUC for ranking problems. AUC is a threshold-independent metric measuring the probability that a random positive ranks above a random negative. It does not account for position within the list. A model with AUC = 0.95 might still place the most relevant item at the bottom of the top-10 list.
+
+**Not accounting for diversity alongside relevance. A list of 10 nearly identical items can score perfectly on any relevance metric while providing low value to users who want variety. Diversity metrics (coverage, intra-list diversity, novelty) need to be measured separately.?** #flashcard
+Not accounting for diversity alongside relevance. A list of 10 nearly identical items can score perfectly on any relevance metric while providing low value to users who want variety. Diversity metrics (coverage, intra-list diversity, novelty) need to be measured separately.
+
+**Stopping the experiment early when a significant positive result appears. This is peeking. The false positive rate for a test that is evaluated continuously and stopped whenever p < 0.05 is far above 5%?** #flashcard
+it can reach 20–30%. Fix by committing to a fixed duration and sample size before the experiment starts, or by using sequential testing (alpha spending) methods.
+
+**Running multiple simultaneous A/B tests without interaction analysis. Two concurrent tests with independent 2% improvements may not combine to 4% if the user populations overlap and the effects interact. Test for interaction effects or ensure tests run on independent user segments.?** #flashcard
+Running multiple simultaneous A/B tests without interaction analysis. Two concurrent tests with independent 2% improvements may not combine to 4% if the user populations overlap and the effects interact. Test for interaction effects or ensure tests run on independent user segments.
+
+**Network effects: in social or marketplace systems, assigning users randomly violates the Stable Unit Treatment Value Assumption (SUTVA)?** #flashcard
+users in the control group interact with treatment users and vice versa, contaminating both groups. Use cluster randomization (randomize by social cluster or geographic area) instead.

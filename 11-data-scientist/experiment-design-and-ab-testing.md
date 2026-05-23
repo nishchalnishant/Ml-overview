@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: Experiment Design And Ab Testing
+subtopic: ""
+status: unread
+tags: [datascientist, ml, experiment-design-and-ab-testi]
+---
 # Experiment Design and A/B Testing
 
 ---
@@ -402,3 +409,14 @@ A: CUPED (Controlled-Experiment Using Pre-Experiment Data) is a variance reducti
 
 **Q: How do you handle the multiple testing problem when running 20 A/B tests simultaneously?**
 A: With 20 independent tests at α=0.05, the expected number of false positives is 20 × 0.05 = 1. You'll get on average 1 "significant" result purely by chance. Three approaches: (1) **Bonferroni correction**: set α' = α/m = 0.05/20 = 0.0025. Conservative (assumes all tests independent, which is rarely true), but simple and widely used. Reduces power — a 1% effect may not reach significance. (2) **Benjamini-Hochberg (FDR control)**: controls the False Discovery Rate (expected fraction of rejections that are false positives) rather than the Family-Wise Error Rate. Sort p-values p_(1) ≤ ... ≤ p_(m); reject all H_(i) where p_(i) ≤ (i/m)·α. Less conservative than Bonferroni; used when you can tolerate some false positives (e.g., 5% of launched features are duds). (3) **Sequential testing / always-valid p-values**: use e-values or mSPRT — the test is valid at any stopping time, solving the "peeking" problem without correction overhead. Most appropriate when you're monitoring a running experiment dashboard. In practice at Meta/Google: FDR with q=0.05-0.1 is standard for simultaneous metric monitoring; Bonferroni for a small number of pre-specified primary metrics.
+
+## Flashcards
+
+**Halving MDE ($\delta \to \delta/2$) quadruples required $n$, because $\delta$ appears squared in the denominator. The quadratic relationship means aggressive MDE choices are expensive.?** #flashcard
+Halving MDE ($\delta \to \delta/2$) quadruples required $n$, because $\delta$ appears squared in the denominator. The quadratic relationship means aggressive MDE choices are expensive.
+
+**Increasing power from 80% to 90% increases $(z_{\alpha/2} + z_\beta)^2$ from $(1.96+0.84)^2 = 7.84$ to $(1.96+1.28)^2 = 10.50$, roughly a 34% increase in sample.?** #flashcard
+Increasing power from 80% to 90% increases $(z_{\alpha/2} + z_\beta)^2$ from $(1.96+0.84)^2 = 7.84$ to $(1.96+1.28)^2 = 10.50$, roughly a 34% increase in sample.
+
+**Tightening $\alpha$ from 0.05 to 0.01 raises $z_{\alpha/2}$ from 1.96 to 2.58, increasing sample by $\approx 44\%$.?** #flashcard
+Tightening $\alpha$ from 0.05 to 0.01 raises $z_{\alpha/2}$ from 1.96 to 2.58, increasing sample by $\approx 44\%$.

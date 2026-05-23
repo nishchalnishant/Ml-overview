@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Fraud Detection Full System
+status: unread
+tags: [productionml, ml, system-design-fraud-detection-]
+---
 # Fraud Detection System Design
 
 End-to-end ML system for detecting fraudulent transactions in real time. Canonical system design question at fintech and payment companies (Stripe, PayPal, Meta Payments).
@@ -386,3 +393,74 @@ A: (1) Log every decision with features at decision time; (2) Join chargeback an
 
 **Q: A fraudster is testing stolen cards with small $1 transactions before a large purchase. How do you detect this?**  
 A: Card testing leaves velocity signatures: rapid succession of small transactions followed by a larger one. Features: txn_count_1h (spike of 10+ small transactions), amount_variance_1h (low then high), time_between_txns (very fast — bot-like). Sequence model captures this temporal pattern better than tabular GBM. Additionally: merchant category diversity in 1h (card testers try different merchants), micro-transaction flag (amount < $2 on a card that usually spends >$50). Rule: if txn_count_1h > 5 AND any_amount_under_$2 in last hour AND current_amount > $200 → escalate to manual review.
+
+## Flashcards
+
+**What type of fraud? Card-not-present, account takeover, synthetic identity, merchant fraud?** #flashcard
+What type of fraud? Card-not-present, account takeover, synthetic identity, merchant fraud
+
+**Decision latency? Real-time (<100ms) or near-real-time (<5s)?** #flashcard
+Decision latency? Real-time (<100ms) or near-real-time (<5s)
+
+**False positive cost? Declined legitimate transaction → customer friction, churn?** #flashcard
+False positive cost? Declined legitimate transaction → customer friction, churn
+
+**False negative cost? Fraud loss + chargeback fee ($15–50/incident)?** #flashcard
+False negative cost? Fraud loss + chargeback fee ($15–50/incident)
+
+**Feedback delay? Chargebacks arrive 30–90 days after transaction?** #flashcard
+Feedback delay? Chargebacks arrive 30–90 days after transaction
+
+**XGBoost or LightGBM?** #flashcard
+XGBoost or LightGBM
+
+**Handles tabular features, missing values, non-linear interactions?** #flashcard
+Handles tabular features, missing values, non-linear interactions
+
+**500 trees, depth 6, ~30ms inference?** #flashcard
+500 trees, depth 6, ~30ms inference
+
+**Interpretable via SHAP?** #flashcard
+Interpretable via SHAP
+
+**Embed user history, merchant, device fingerprint?** #flashcard
+Embed user history, merchant, device fingerprint
+
+**Captures sequence patterns (series of transactions)?** #flashcard
+Captures sequence patterns (series of transactions)
+
+**~20ms inference?** #flashcard
+~20ms inference
+
+**Insensitive to true negatives (99.9% of transactions)?** #flashcard
+Insensitive to true negatives (99.9% of transactions)
+
+**Directly measures useful fraud detection at low FPR?** #flashcard
+Directly measures useful fraud detection at low FPR
+
+**Use Level 1+2 labels for daily model refresh (low delay, lower quality)?** #flashcard
+Use Level 1+2 labels for daily model refresh (low delay, lower quality)
+
+**Use Level 1–4 for monthly full retrain (high delay, high quality)?** #flashcard
+Use Level 1–4 for monthly full retrain (high delay, high quality)
+
+**Positive label = any level flagged, negative = 120 days without any flag?** #flashcard
+Positive label = any level flagged, negative = 120 days without any flag
+
+**Precision drops >5% at fixed threshold (new fraud pattern bypassing model)?** #flashcard
+Precision drops >5% at fixed threshold (new fraud pattern bypassing model)
+
+**Recall drops >5% (false negatives increasing, unreported fraud rise)?** #flashcard
+Recall drops >5% (false negatives increasing, unreported fraud rise)
+
+**PSI > 0.25 on top-10 features (covariate shift)?** #flashcard
+PSI > 0.25 on top-10 features (covariate shift)
+
+**Fraud rate exceeds 2× expected (emerging attack)?** #flashcard
+Fraud rate exceeds 2× expected (emerging attack)
+
+**Rules?** #flashcard
+interpretable, fast, easy to audit, brittle (adversaries adapt)
+
+**ML?** #flashcard
+adaptive, catches subtle patterns, black box, needs labels

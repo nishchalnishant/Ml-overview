@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Books
+subtopic: Handson Large Language Models Jay Alammar
+status: unread
+tags: [llms, ml, books-handson-large-language-m]
+---
 # Hands-On Large Language Models — Jay Alammar
 ## First-Principles Notes: Problem First, Concept Second
 
@@ -496,3 +503,305 @@ DPO (Direct Preference Optimization, new approach):
 - LoRA rank selection: too small a rank (r=1, r=2) underfits — the adapter cannot represent the required adaptations. Too large a rank approaches full fine-tuning. r=8 or r=16 are common starting points.
 - DPO over-optimization (Alignment Tax): heavily aligning the model to human preference data can reduce output diversity. The model converges to "safe and agreeable" responses and loses capability on tasks requiring creative or unconventional reasoning. Heavy alignment can measurably degrade coding and reasoning benchmark scores.
 - Base model as the wrong starting point: fine-tuning a base model on instruction data without first applying SFT from the provider's pipeline produces erratic behavior. Always start SFT from the base model, not from a partially-aligned checkpoint you cannot inspect.
+
+## Flashcards
+
+**Proprietary (OpenAI, Cohere)?** #flashcard
+API access, no hardware required, black box, usage costs, privacy concerns.
+
+**Open Source (Hugging Face, Llama)?** #flashcard
+Requires GPU, full access to weights and internals, privacy, customization.
+
+**Using a generative model for classification when a BERT-class model would be 10× cheaper and faster.?** #flashcard
+Using a generative model for classification when a BERT-class model would be 10× cheaper and faster.
+
+**Dismissing a model as "not an LLM" because it is small?** #flashcard
+the relevant question is whether it effectively captures language for the target task.
+
+**Relying on proprietary APIs when data cannot leave the organization (healthcare, legal, finance).?** #flashcard
+Relying on proprietary APIs when data cannot leave the organization (healthcare, legal, finance).
+
+**Subword tokenization (BERT)?** #flashcard
+"CAPITALIZATION" → ['CA', '##PI', '##TA', '##L', '##I', '##Z', '##AT', '##ION']. Rare or compound words are decomposed into known subword units.
+
+**Special tokens?** #flashcard
+[CLS] (start of sequence), [SEP] (sequence separator), [PAD] (batch padding), [UNK] (out-of-vocabulary fallback).
+
+**Vocabulary sizes?** #flashcard
+typically 30,000–100,000 tokens.
+
+**Capitalization matters?** #flashcard
+the same word in different cases may produce different token IDs.
+
+**Bag-of-Words for any task requiring semantic understanding?** #flashcard
+it is a frequency table, not a meaning representation.
+
+**Ignoring tokenization when debugging?** #flashcard
+if a model performs badly on rare technical terms, inspect how those terms are tokenized first.
+
+**Using static Word2Vec embeddings for tasks where word meaning shifts with context (sentiment, ambiguity resolution).?** #flashcard
+Using static Word2Vec embeddings for tasks where word meaning shifts with context (sentiment, ambiguity resolution).
+
+**Q (Query)?** #flashcard
+what this token is looking for.
+
+**K (Key)?** #flashcard
+what each other token offers.
+
+**V (Value)?** #flashcard
+the actual content each token contributes.
+
+**Division by √d_k?** #flashcard
+as d_k grows, dot products grow in magnitude, pushing softmax into near-zero-gradient regions. Scaling by √d_k keeps variance around 1.
+
+**Long sequences?** #flashcard
+attention is the most computationally expensive part of the forward pass. Processing a 100,000-token document with full attention is prohibitively expensive.
+
+**KV cache exhaustion?** #flashcard
+for long conversations or large batch sizes, the KV cache fills GPU VRAM. This is why real-time chatbots have context limits in production.
+
+**Abrupt output cutoff: when max_new_tokens is hit, generation stops mid-sentence. The model is not confused?** #flashcard
+it hit the limit you set.
+
+**Using GPT-4 to classify 10 million emails?** #flashcard
+the cost is unjustifiable when a 110M-parameter BERT model achieves similar accuracy at 1/1000th the cost.
+
+**Failing to constrain generative model output?** #flashcard
+a generative model prompted to classify will sometimes produce a sentence of explanation instead of the label. Enforce strict output format.
+
+**Zero-shot embedding classification on domain-specific jargon?** #flashcard
+the embedding space may not meaningfully separate technical categories that a general model has not seen.
+
+**K-Means requires you to specify the number of clusters in advance.?** #flashcard
+K-Means requires you to specify the number of clusters in advance.
+
+**HDBSCAN finds arbitrarily shaped clusters based on density.?** #flashcard
+HDBSCAN finds arbitrarily shaped clusters based on density.
+
+**Critically?** #flashcard
+HDBSCAN assigns label -1 to points that don't belong to any dense cluster. These noise points are excluded from topic descriptions rather than being forced into the nearest cluster.
+
+**Embedding quality ceiling?** #flashcard
+if the underlying model does not understand your domain's jargon (legal, biomedical), semantically related documents will not embed near each other. Domain-specific embedding models are required.
+
+**UMAP stochasticity?** #flashcard
+UMAP results vary across runs. Cluster assignments can change between executions with no change in input data. Set a random seed for reproducibility.
+
+**Trusting keyword lists blindly?** #flashcard
+inspect actual documents within each cluster. A keyword like "patient" could describe a medical cluster or, coincidentally, a cluster about customer service.
+
+**Embed query and all documents independently using a Bi-Encoder.?** #flashcard
+Embed query and all documents independently using a Bi-Encoder.
+
+**At query time?** #flashcard
+embed the query, find the K nearest document embeddings by cosine similarity.
+
+**Documents are pre-embedded and pre-indexed?** #flashcard
+query time is just a vector lookup.
+
+**Scales to millions of documents with ANN (Approximate Nearest Neighbor) indexes?** #flashcard
+FAISS (Facebook AI Similarity Search), HNSW.
+
+**Weakness?** #flashcard
+query and answer may not be near each other in embedding space because they look different ("Who is the CEO?" ≠ "Satya Nadella").
+
+**Cross-Encoder?** #flashcard
+takes (query, document) as a pair, processes them together, outputs a relevance score.
+
+**Far more accurate than Bi-Encoder because it can model the relationship between query and document.?** #flashcard
+Far more accurate than Bi-Encoder because it can model the relationship between query and document.
+
+**Cannot scale to millions of documents?** #flashcard
+must process each pair at query time.
+
+**Used as a second pass?** #flashcard
+Dense Retrieval returns top-100 candidates; Reranker scores each and returns top-10.
+
+**Bi-Encoder recall ceiling?** #flashcard
+queries phrased unusually may not embed near the correct answer. Reranking is not optional for high-stakes retrieval.
+
+**Chunk boundary artifacts?** #flashcard
+if the answer spans two non-adjacent chunks, the model sees half the context from each and may miss the connection.
+
+**Hallucination despite RAG?** #flashcard
+if all retrieved chunks are irrelevant, the model may still generate a confident wrong answer. Enforce "If the provided text does not contain the answer, say so."
+
+**Dense retrieval on exact-match queries?** #flashcard
+semantic embeddings of "order #83291" and "order #83292" are essentially identical. Keyword search is required for exact matches.
+
+**Pros?** #flashcard
+maximum fidelity, nothing forgotten.
+
+**Cons?** #flashcard
+context window fills fast; cost and latency grow linearly with conversation length.
+
+**Pros?** #flashcard
+bounded context size, saves tokens.
+
+**Cons?** #flashcard
+summary call adds latency; summarization loses nuance; errors in the summary compound over time.
+
+**Single-pass complex generation?** #flashcard
+long-form coherent content requires sequential planning steps. One-shot prompts drift and lose consistency.
+
+**Memory without pruning?** #flashcard
+ConversationBufferMemory for long sessions will eventually hit the context window limit and crash the application.
+
+**Summary compounding errors?** #flashcard
+if the summary in turn 20 incorrectly summarizes turn 10, every subsequent turn inherits that error. Summaries must be validated or kept append-only.
+
+**CoT without commitment?** #flashcard
+some models generate reasoning steps and then ignore them when formulating the final answer. Force the model to reference its own chain explicitly in the final answer.
+
+**Documents are embedded once, offline, and stored in a FAISS index.?** #flashcard
+Documents are embedded once, offline, and stored in a FAISS index.
+
+**At query time?** #flashcard
+single embedding computation + nearest-neighbor lookup. Millisecond latency at millions-of-document scale.
+
+**FAISS supports both exact search (IVF) and approximate search (HNSW). Approximate is faster; exact is more accurate.?** #flashcard
+FAISS supports both exact search (IVF) and approximate search (HNSW). Approximate is faster; exact is more accurate.
+
+**Input?** #flashcard
+[CLS] query [SEP] document [SEP]
+
+**Output?** #flashcard
+a single relevance score.
+
+**The model sees query-document interaction explicitly, not just their independent embeddings.?** #flashcard
+The model sees query-document interaction explicitly, not just their independent embeddings.
+
+**"Vastly improved results" compared to Bi-Encoder alone, at the cost of O(candidates) inference calls per query.?** #flashcard
+"Vastly improved results" compared to Bi-Encoder alone, at the cost of O(candidates) inference calls per query.
+
+**Generic Bi-Encoders on domain-specific corpora?** #flashcard
+a general embedding model has no notion of your internal taxonomy. Fine-tuning the retrieval model on domain-specific Q-A pairs is necessary for high retrieval recall.
+
+**Indexing without chunking?** #flashcard
+embedding an entire 50-page document as a single vector produces a vector that averages over all topics in the document. The query "what is the refund policy?" will not find the correct paragraph if it is averaged with 49 other pages.
+
+**Returning results past the relevance threshold?** #flashcard
+for uncommon queries with no good match in the corpus, the nearest result may still be wrong. A distance cutoff is mandatory.
+
+**Trained on millions of (image, caption) pairs.?** #flashcard
+Trained on millions of (image, caption) pairs.
+
+**Loss?** #flashcard
+maximize similarity between matched image-text pairs, minimize similarity between mismatched pairs.
+
+**Result: image embeddings and text embeddings are aligned?** #flashcard
+embed("a photo of a dog") is near the embedding of an actual dog photo.
+
+**Application?** #flashcard
+zero-shot image classification. Classify by finding which text label embedding is nearest to the image embedding. No image-specific training required.
+
+**Context window consumption?** #flashcard
+image patches are tokens. A 224×224 image at 16×16 patches = 196 tokens, filling roughly 2-3% of a 8k context window per image. High-resolution images consume context rapidly.
+
+**Resolution sensitivity?** #flashcard
+ViT models expect specific input sizes (224×224 is standard). Images that are not resized to this specification before input produce degraded results or errors.
+
+**CLIP on domain-specific imagery?** #flashcard
+CLIP was trained on internet images. Medical imaging, satellite imagery, or industrial inspection images may not embed correctly without domain-specific fine-tuning.
+
+**Layout vs. content?** #flashcard
+multimodal models can read text within images, but spatial understanding of document layout (tables, forms, flowcharts) requires architectures specifically designed for document understanding, not just general ViT + LLM.
+
+**Positive pairs?** #flashcard
+(document A, document B) where A and B are semantically equivalent under your definition of similarity.
+
+**Negative pairs?** #flashcard
+(document A, document C) where A and C are not similar.
+
+**Hard negatives?** #flashcard
+(document A, document D) where D looks similar (shared keywords) but is actually wrong. Hard negatives are far more informative than random negatives.
+
+**Before?** #flashcard
+"I love this movie" ≈ "I hate this movie" (both are movie reviews)
+
+**After?** #flashcard
+"I love this movie" ≈ "This was wonderful" and far from "I hate this movie"
+
+**Catastrophic forgetting?** #flashcard
+aggressive fine-tuning can cause the model to lose general language understanding while becoming expert at the target task. Use a low learning rate and mix in general-domain examples.
+
+**Low-quality negatives?** #flashcard
+random negatives are easy to separate. The model learns trivially and fails on hard cases. Curate hard negatives explicitly.
+
+**Misdefining similarity?** #flashcard
+if you want to cluster by author style but your training pairs reflect topic similarity, the fine-tuned model will cluster by topic. The model learns what you show it, not what you intend.
+
+**Evaluation against the wrong metric?** #flashcard
+if you fine-tune for sentiment similarity but evaluate with a topic-similarity benchmark, the model looks like it got worse. Define your evaluation metric before defining your training pairs.
+
+**Frozen BERT + Logistic Regression (Chapter 4)?** #flashcard
+F1 = 0.80
+
+**Full fine-tuning (this chapter)?** #flashcard
+F1 = 0.85
+
+**Freeze bottom N layers (basic grammar features?** #flashcard
+these generalize well), fine-tune top layers (complex semantics — these are task-specific).
+
+**Reduces compute while preserving most accuracy gain.?** #flashcard
+Reduces compute while preserving most accuracy gain.
+
+**Overfitting on small datasets?** #flashcard
+fine-tuning a 110M-parameter model on 500 examples will memorize the training data. Monitor validation loss; stop training when it starts increasing.
+
+**Catastrophic forgetting?** #flashcard
+a model fine-tuned too aggressively on task-specific data loses general language understanding. Regularization (low learning rate, dropout) mitigates this.
+
+**Deployment proliferation?** #flashcard
+full fine-tuning produces a separate 12GB model file per task. Storing a fine-tuned BERT for 20 classification tasks = 240GB. Parameter-efficient fine-tuning (LoRA) addresses this but is not covered in depth in this chapter.
+
+**Base Model?** #flashcard
+trained on raw text, predicts next token. Useful for researchers, not users.
+
+**Instruct Model?** #flashcard
+fine-tuned to follow instructions. The product users interact with.
+
+**Freeze all original model weights.?** #flashcard
+Freeze all original model weights.
+
+**For each target weight matrix W (usually Q and V in attention layers), add two small matrices?** #flashcard
+W = W_0 + BA, where B is (d × r) and A is (r × d), with r << d.
+
+**Only B and A are trained. If r = 8 and d = 4096, you train 2 × 4096 × 8 = 65,536 parameters instead of 4096 × 4096 = 16,777,216.?** #flashcard
+Only B and A are trained. If r = 8 and d = 4096, you train 2 × 4096 × 8 = 65,536 parameters instead of 4096 × 4096 = 16,777,216.
+
+**Reduces trainable parameters by 99%+ while achieving performance close to full fine-tuning.?** #flashcard
+Reduces trainable parameters by 99%+ while achieving performance close to full fine-tuning.
+
+**Quantize the frozen base model to 4-bit precision (reduces model size by 4×).?** #flashcard
+Quantize the frozen base model to 4-bit precision (reduces model size by 4×).
+
+**Apply LoRA adapters in 16-bit precision.?** #flashcard
+Apply LoRA adapters in 16-bit precision.
+
+**Fine-tune a 70B model on a single 48GB GPU.?** #flashcard
+Fine-tune a 70B model on a single 48GB GPU.
+
+**Input?** #flashcard
+pairs of (chosen response, rejected response) for the same prompt.
+
+**Loss?** #flashcard
+directly optimize the model to prefer "chosen" over "rejected."
+
+**No separate Reward Model. No PPO. One stable training loop.?** #flashcard
+No separate Reward Model. No PPO. One stable training loop.
+
+**Result?** #flashcard
+equivalent alignment quality, significantly simpler implementation.
+
+**SFT on low-quality data: the model learns to follow the format of the training data, including its errors and biases. Garbage in, garbage out?** #flashcard
+at massive scale.
+
+**LoRA rank selection: too small a rank (r=1, r=2) underfits?** #flashcard
+the adapter cannot represent the required adaptations. Too large a rank approaches full fine-tuning. r=8 or r=16 are common starting points.
+
+**DPO over-optimization (Alignment Tax)?** #flashcard
+heavily aligning the model to human preference data can reduce output diversity. The model converges to "safe and agreeable" responses and loses capability on tasks requiring creative or unconventional reasoning. Heavy alignment can measurably degrade coding and reasoning benchmark scores.
+
+**Base model as the wrong starting point?** #flashcard
+fine-tuning a base model on instruction data without first applying SFT from the provider's pipeline produces erratic behavior. Always start SFT from the base model, not from a partially-aligned checkpoint you cannot inspect.

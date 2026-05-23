@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Scenario Based Questions
+status: unread
+tags: [interviewprep, ml, llm-scenario-based-questions]
+---
 # Scenario-Based Questions — First-Principles Interview Guide
 
 These questions test whether you think like someone who runs systems, not just trains models. The underlying competency: systematic diagnosis before action, and proportional intervention before heroic solutions.
@@ -455,3 +462,77 @@ Choose $\tau^* = \arg\min_\tau \text{Expected cost}(\tau)$. Typical values: $C_{
 - FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)
 - Rule engine block rate (sudden spike = possible data quality issue)
 - Feature null rates (velocity features returning null = Redis failure)
+
+## Flashcards
+
+**Noisy labels: if 20% of labels are wrong, no model can achieve < 20% error?** #flashcard
+it looks like underfitting but more capacity makes it worse
+
+**Wrong loss function?** #flashcard
+MSE on a classification problem produces slow convergence and instability
+
+**Bad feature engineering?** #flashcard
+the features don't contain the information needed to predict the target
+
+**Learning rate too high or too low?** #flashcard
+learning rate too high → loss oscillates; too low → essentially doesn't move
+
+**Increase model capacity (more layers, more hidden units)?** #flashcard
+Increase model capacity (more layers, more hidden units)
+
+**Reduce regularization strength?** #flashcard
+Reduce regularization strength
+
+**Engineer domain-specific features that the model doesn't have to discover from scratch?** #flashcard
+Engineer domain-specific features that the model doesn't have to discover from scratch
+
+**Regulatory compliance?** #flashcard
+SHAP values per feature on individual predictions (local)
+
+**Model debugging?** #flashcard
+global feature importance, partial dependence plots
+
+**User-facing explanation?** #flashcard
+simplified rule (LIME) or top-3 features
+
+**Historical bias in labels?** #flashcard
+training labels encode historical discrimination (e.g., loan default rates reflect historical lending discrimination, not just creditworthiness)
+
+**Underrepresentation: minority group is 2% of training data?** #flashcard
+model doesn't generalize to them
+
+**Proxy features?** #flashcard
+ZIP code → neighborhood → race. The feature encodes a protected attribute indirectly
+
+**Feedback loops?** #flashcard
+model deprioritizes a group → less interaction data from them → worse model for them → further deprioritization
+
+**Pre-processing?** #flashcard
+reweight training samples, oversample underrepresented group
+
+**In-processing: adversarial debiasing?** #flashcard
+add an adversary that tries to predict the protected attribute from the model's representations; penalize if it succeeds
+
+**Post-processing: calibrate different thresholds per group to equalize FPR (requires knowing the group at serving time?** #flashcard
+may be legally constrained)
+
+**PSI 0.1–0.25?** #flashcard
+increase monitoring frequency, alert on-call
+
+**PSI > 0.25?** #flashcard
+trigger retraining, evaluate whether to switch to fallback model
+
+**Concept drift (accuracy on labeled slice drops)?** #flashcard
+retrain immediately with fresh data
+
+**Model score distribution (daily PSI)?** #flashcard
+Model score distribution (daily PSI)
+
+**FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)?** #flashcard
+FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)
+
+**Rule engine block rate (sudden spike = possible data quality issue)?** #flashcard
+Rule engine block rate (sudden spike = possible data quality issue)
+
+**Feature null rates (velocity features returning null = Redis failure)?** #flashcard
+Feature null rates (velocity features returning null = Redis failure)

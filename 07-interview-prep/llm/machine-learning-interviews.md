@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Machine Learning Interviews
+status: unread
+tags: [interviewprep, ml, llm-machine-learning-interview]
+---
 # Machine Learning Interview — Complete Preparation Guide
 
 ---
@@ -349,3 +356,101 @@ The right answer to any tradeoff question is: "it depends on these factors, and 
 - [ ] Fraud detection pipeline (Redis velocity → rule engine → ML model → cost-aware threshold)
 - [ ] LLM serving stack (load balancer → vLLM → KV cache → streaming)
 - [ ] Temporal train/val/test split — why random splits fail for time-series
+
+## Flashcards
+
+**L3 / junior?** #flashcard
+60% ML coding + theory, 30% system design foundations, 10% behavioral
+
+**L4 / mid?** #flashcard
+40% system design, 35% theory depth, 25% behavioral
+
+**L5+ / senior?** #flashcard
+50% system design + failure modes, 30% behavioral with strong ownership framing, 20% theory depth
+
+**L1?** #flashcard
+Normalizes activations over the batch dimension per feature: $\hat{x} = (x - \mu_B)/\sigma_B$, then rescales with learnable $\gamma, \beta$.
+
+**L2: Without it, each layer sees inputs whose distribution shifts as the preceding layers change during training?** #flashcard
+called internal covariate shift. The layer must simultaneously learn its task and adapt to a moving input distribution. BatchNorm fixes the input distribution, allowing a higher learning rate and faster convergence.
+
+**L3: Breaks at small batch sizes (noisy $\mu_B, \sigma_B$ estimates corrupt the normalization). Breaks for variable-length sequences (different valid positions per sample?** #flashcard
+batch statistics are meaningless). Interacts badly with dropout (dropout changes the effective batch statistics at inference if ordering matters). For these cases: LayerNorm normalizes over the feature dimension per sample — sequence-length agnostic, works at batch size 1.
+
+**L1?** #flashcard
+$\text{ReLU}(x) = \max(0, x)$; gradient is 1 for positive inputs, 0 for negative.
+
+**L2: Sigmoid saturates at both ends?** #flashcard
+its derivative $\sigma(x)(1-\sigma(x))$ approaches 0 for large positive or negative inputs. Backpropagating through 20 layers of sigmoid multiplies gradients by $< 0.25^{20} \approx 10^{-13}$ — effectively zero. ReLU has gradient exactly 1 for positive pre-activations, so gradients don't shrink through ReLU layers.
+
+**L3: Dying ReLU problem?** #flashcard
+if a neuron's pre-activation is always negative (e.g., from a bad initialization or a large weight update), the gradient is always 0 and the neuron never updates. Fix: LeakyReLU ($0.01x$ for $x < 0$) or careful He initialization. For Transformers, GELU is preferred — smooth approximation of ReLU that performs better on language tasks.
+
+**L1?** #flashcard
+$\lambda\sum|w_i|$; L2: $\lambda\sum w_i^2$.
+
+**L2: The penalty on large weights is dominated by the gradient-of-squared-term, which shrinks weights proportionally. Some weight may get small but never exactly zero?** #flashcard
+the gradient at $w = 0$ is $2\lambda w = 0$, so no further push.
+
+**L1: The penalty is $\lambda \cdot \text{sign}(w)$?** #flashcard
+a constant push toward zero regardless of magnitude. For small nonzero weights, this push exceeds any gradient from the data, forcing them exactly to zero. This is why L1 produces sparse solutions. Probabilistic interpretation: L2 = Gaussian prior on weights (MAP), L1 = Laplace prior (fatter tails near zero — encourages sparsity).
+
+**Tradeoff?** #flashcard
+L1 for feature selection and interpretability. L2 when all features are plausibly relevant. ElasticNet ($\alpha L1 + (1-\alpha) L2$) for both sparsity and stability.
+
+**L1?** #flashcard
+CE: $-\sum y_k \log \hat{p}_k$; MSE: $\sum(y - \hat{p})^2$.
+
+**L2: Near the decision boundary, the MSE gradient with respect to the logit is small because the sigmoid's derivative is small there. You're in the middle of learning, and the gradient provides almost no update signal. Cross-entropy's gradient with respect to the logit is $\hat{p} - y$?** #flashcard
+large and informative when the prediction is wrong, regardless of where you are in probability space.
+
+**L3: MSE assumes Gaussian noise around the target, which is appropriate for regression. Classification outputs are Bernoulli (binary) or Categorical?** #flashcard
+cross-entropy is the correct log-likelihood for these distributions. Using MSE for classification is using the wrong probabilistic model.
+
+**[ ] Sigmoid, softmax, numerically stable BCE?** #flashcard
+[ ] Sigmoid, softmax, numerically stable BCE
+
+**[ ] Precision, recall, F1 with correct denominators stated verbally?** #flashcard
+[ ] Precision, recall, F1 with correct denominators stated verbally
+
+**[ ] Bias-variance decomposition formula + one-sentence interpretation of each term?** #flashcard
+[ ] Bias-variance decomposition formula + one-sentence interpretation of each term
+
+**[ ] Bayes theorem applied to the rare-disease test example (the answer is ~9%, not 99%)?** #flashcard
+[ ] Bayes theorem applied to the rare-disease test example (the answer is ~9%, not 99%)
+
+**[ ] Correct p-value interpretation + two wrong interpretations stated explicitly?** #flashcard
+[ ] Correct p-value interpretation + two wrong interpretations stated explicitly
+
+**[ ] Two-stage retrieval + ranking sketch?** #flashcard
+[ ] Two-stage retrieval + ranking sketch
+
+**[ ] The 10-step system design framework?** #flashcard
+[ ] The 10-step system design framework
+
+**[ ] L1 vs L2 vs Dropout vs Early stopping (mechanism, not just effect)?** #flashcard
+[ ] L1 vs L2 vs Dropout vs Early stopping (mechanism, not just effect)
+
+**[ ] BatchNorm vs LayerNorm?** #flashcard
+with the BatchNorm failure conditions
+
+**[ ] Batch vs real-time serving?** #flashcard
+with the hybrid pattern
+
+**[ ] Precision vs recall as a cost matrix problem?** #flashcard
+[ ] Precision vs recall as a cost matrix problem
+
+**[ ] XGBoost vs neural net?** #flashcard
+with specific decision criteria
+
+**[ ] Two-tower recommendation system (retrieval + ranking + cold start path)?** #flashcard
+[ ] Two-tower recommendation system (retrieval + ranking + cold start path)
+
+**[ ] Fraud detection pipeline (Redis velocity → rule engine → ML model → cost-aware threshold)?** #flashcard
+[ ] Fraud detection pipeline (Redis velocity → rule engine → ML model → cost-aware threshold)
+
+**[ ] LLM serving stack (load balancer → vLLM → KV cache → streaming)?** #flashcard
+[ ] LLM serving stack (load balancer → vLLM → KV cache → streaming)
+
+**[ ] Temporal train/val/test split?** #flashcard
+why random splits fail for time-series

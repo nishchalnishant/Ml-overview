@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Ai Agents And Agentic Systems Snappy
+status: unread
+tags: [llms, ml, interview-notes-ai-agents-and-]
+---
 # AI agents & agentic systems — workflow orchestration (Azure/DevOps-fluent)
 
 Agents are what happens when you stop asking for a single answer and start running a **loop**: plan → call tools → verify → repeat.
@@ -183,3 +190,161 @@ Agents are what happens when you stop asking for a single answer and start runni
 
 # Q32: Right tool but wrong parameters — fix extraction?
 - **Fixes:** schema-first design, structured outputs, validation + repair, canonicalization of inputs.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+An agent runs a closed-loop process (think-act-observe) with tools and state; a simple LLM call is one-shot text generation.
+
+**DevOps bridge?** #flashcard
+LLM call = a single script. Agent = a pipeline/job runner with retries, state, and external steps.
+
+**Direct answer?** #flashcard
+ReAct interleaves reasoning with tool calls: reason → act → observe → reason.
+
+**Why it works?** #flashcard
+tools provide ground truth; reasoning stitches tool outputs into a plan.
+
+**Direct answer?** #flashcard
+First create a plan (task graph), then execute steps with tool calls.
+
+**MI analogy?** #flashcard
+match plan first, then over-by-over adjustments.
+
+**Direct answer?** #flashcard
+The model outputs a structured tool invocation (name + args) instead of free text.
+
+**DevOps bridge?** #flashcard
+typed APIs beat “stringly-typed” bash.
+
+**Direct answer?** #flashcard
+Small, explicit, least-privilege functions with clear schemas.
+
+**Checklist?** #flashcard
+allow-lists, timeouts, idempotency, dry-run support, audit logs.
+
+**Direct answer?** #flashcard
+Single-agent = one controller; multi-agent = specialists that coordinate.
+
+**Trade-off?** #flashcard
+multi-agent adds coordination cost and failure modes.
+
+**Direct answer?** #flashcard
+A standard for connecting models to tools/resources in a consistent, discoverable way.
+
+**DevOps bridge?** #flashcard
+like a common interface spec so integrations don’t become bespoke glue.
+
+**Short-term?** #flashcard
+recent messages + working state.
+
+**Long-term?** #flashcard
+stored knowledge (vector DB / DB).
+
+**Episodic?** #flashcard
+“what happened last time,” traces, lessons.
+
+**Direct answer?** #flashcard
+Treat tool calls like unreliable dependencies.
+
+**Patterns?** #flashcard
+retries with backoff, circuit breakers, fallbacks, escalation.
+
+**Direct answer?** #flashcard
+A loop that runs until a stop condition: goal met, budget hit, max steps hit, or human approval required.
+
+**Direct answer?** #flashcard
+scenario suites + tool-mocking + regression tests + safety tests.
+
+**DevOps bridge?** #flashcard
+evals are your CI gates.
+
+**Risks?** #flashcard
+prompt injection, data exfiltration, tool abuse, privilege escalation.
+
+**Mitigations?** #flashcard
+sandboxing, least privilege, allow-lists, secrets isolation, human approvals.
+
+**Reactive?** #flashcard
+respond to requests.
+
+**Proactive?** #flashcard
+watch signals, trigger actions.
+
+**Caution?** #flashcard
+proactive agents need stronger guardrails to avoid “automation surprise.”
+
+**Fixes?** #flashcard
+summarize state, store memory externally, retrieve selectively, compress tool outputs.
+
+**Direct answer?** #flashcard
+require explicit approval for risky actions or low-confidence decisions.
+
+**DevOps bridge?** #flashcard
+approval gates before prod deploy.
+
+**Controls?** #flashcard
+allow-list tools, parameter validation, policy layer, rate limits, irreversible-action blocks.
+
+**Direct answer?** #flashcard
+post-step critique + improvement (“did I follow rules?” “did I cite evidence?”).
+
+**Trade-off?** #flashcard
+more tokens/latency.
+
+**Code-gen?** #flashcard
+writes code to do work; riskier, harder to sandbox.
+
+**Tool-calling?** #flashcard
+uses predefined functions; safer and more auditable.
+
+**Direct answer?** #flashcard
+support images/audio/etc via specialized models + tool routing; store artifacts with metadata.
+
+**Direct answer?** #flashcard
+explicit state machine / DAG; persist state; make steps idempotent.
+
+**DevOps bridge?** #flashcard
+workflow engines > ad-hoc loops.
+
+**Pattern?** #flashcard
+triage → retrieve policy → answer → if uncertain/risky → escalate to human.
+
+**Mini prompt?** #flashcard
+what’s the escalation signal? → low confidence, policy conflict, PII, refunds.
+
+**Direct answer?** #flashcard
+model the agent as a graph of nodes (tools/LLM steps) with edges (conditions).
+
+**Direct answer?** #flashcard
+sandbox (container/VM), no network by default, CPU/mem limits, timeouts, filesystem jail.
+
+**Controls?** #flashcard
+max steps, repeated-state detection, “no progress” heuristic, budget enforcement.
+
+**Pattern?** #flashcard
+prefer authoritative source, compare timestamps, ask follow-up queries, cite and surface uncertainty.
+
+**Fixes?** #flashcard
+shorter prompts, summarization, smaller top-k retrieval, structured outputs, avoid verbose reflection.
+
+**Direct answer?** #flashcard
+hard caps on tokens, tool calls, wall-clock time; stop with partial result + next steps.
+
+**Fixes?** #flashcard
+tool schema in prompt, constrained decoding, examples, tool-result validation.
+
+**Hard rule?** #flashcard
+no destructive ops without human approval.
+
+**Tech?** #flashcard
+read-only creds by default, “dry run,” multi-party approval, blast-radius limits.
+
+**Fixes?** #flashcard
+tool descriptions, routing rules, tool-choice evals, reduce tool set, hierarchical tool menus.
+
+**Fixes?** #flashcard
+parallelize retrieval/tool calls, caching, reduce model size for routing, cut steps.
+
+**Fixes?** #flashcard
+schema-first design, structured outputs, validation + repair, canonicalization of inputs.

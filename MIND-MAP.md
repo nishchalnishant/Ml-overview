@@ -1,3 +1,10 @@
+---
+module: ml-overview
+topic: Mind Map
+subtopic: ""
+status: unread
+tags: [mloverviewroot, ml, mind-map]
+---
 # ML Overview — Mind Map
 
 ```
@@ -8,6 +15,7 @@ MACHINE LEARNING
 │   ├── ML vs DL vs AI taxonomy
 │   ├── Bias–Variance Tradeoff
 │   ├── No Free Lunch Theorem
+│   ├── Linear Algebra & Numerical Methods
 │   └── Glossary (key terms)
 │
 ├── 02 CLASSICAL ML
@@ -49,51 +57,75 @@ MACHINE LEARNING
 │   │   ├── Feature Engineering
 │   │   ├── Scaling (standard, min-max, robust)
 │   │   ├── Imputation (mean, median, KNN, MICE)
-│   │   ├── Encoding (one-hot, target, ordinal)
-│   │   ├── Class Imbalance ← [NEW: 02-classical-ml/imbalanced-data.md]
-│   │   │   ├── SMOTE, ADASYN, Tomek Links
-│   │   │   ├── Focal Loss, Cost-Sensitive Learning
-│   │   │   └── Threshold Moving, PR curves
-│   │   ├── Feature Selection ← [NEW: 02-classical-ml/feature-selection.md]
-│   │   │   ├── Filter (MI, chi², ANOVA F)
-│   │   │   ├── Wrapper (RFE, sequential)
-│   │   │   └── Embedded (Lasso, tree importance, SHAP)
-│   │   ├── Ensemble Methods ← [NEW: 02-classical-ml/ensemble-methods.md]
-│   │   │   ├── Bagging, Boosting, Voting
-│   │   │   └── Stacking (OOF predictions)
-│   │   ├── Cross-Validation ← [NEW: 02-classical-ml/cross-validation.md]
-│   │   │   ├── Stratified, Group, Time Series CV
-│   │   │   └── Nested CV (unbiased HP + perf estimation)
-│   │   └── Hyperparameter Optimization ← [NEW: 02-classical-ml/hyperparameter-optimization.md]
-│   │       ├── Bayesian Optimization (Optuna, TPE)
-│   │       └── Hyperband, BOHB, PBT
+│   │   └── Encoding (one-hot, target, ordinal)
+│   │
+│   ├── CLASS IMBALANCE
+│   │   ├── SMOTE, ADASYN, Tomek Links
+│   │   ├── Focal Loss, Cost-Sensitive Learning
+│   │   └── Threshold Moving, PR curves
+│   │
+│   ├── FEATURE SELECTION
+│   │   ├── Filter (MI, chi², ANOVA F)
+│   │   ├── Wrapper (RFE, sequential)
+│   │   └── Embedded (Lasso, tree importance, SHAP)
+│   │
+│   ├── ENSEMBLE METHODS
+│   │   ├── Bagging, Boosting, Voting
+│   │   └── Stacking (OOF predictions)
+│   │
+│   ├── CROSS-VALIDATION
+│   │   ├── Stratified, Group, Time Series CV
+│   │   └── Nested CV (unbiased HP + perf estimation)
+│   │
+│   ├── HYPERPARAMETER OPTIMIZATION
+│   │   ├── Bayesian Optimization (Optuna, TPE)
+│   │   └── Hyperband, BOHB, PBT
 │   │
 │   ├── CALIBRATION & UNCERTAINTY
 │   │   ├── Platt Scaling
 │   │   ├── Isotonic Regression
 │   │   ├── Temperature Scaling
-│   │   └── Conformal Prediction ← [NEW: 02-classical-ml/conformal-prediction.md]
+│   │   └── Conformal Prediction
 │   │
-│   ├── ANOMALY DETECTION ← [NEW: 02-classical-ml/anomaly-detection.md]
+│   ├── ANOMALY DETECTION
 │   │   ├── Isolation Forest
 │   │   ├── One-Class SVM
 │   │   ├── Local Outlier Factor
 │   │   ├── Elliptic Envelope
 │   │   └── Autoencoders for anomaly detection
 │   │
-│   ├── ACTIVE LEARNING ← [NEW: 02-classical-ml/active-learning.md]
+│   ├── ACTIVE LEARNING
 │   │   ├── Uncertainty Sampling
 │   │   ├── Query by Committee
 │   │   ├── Expected Model Change
 │   │   └── Core-Set Methods
 │   │
-│   └── BAYESIAN METHODS ← [NEW: 02-classical-ml/bayesian-methods.md]
-│       ├── Bayes' Theorem in ML
-│       ├── MAP vs MLE
-│       ├── Gaussian Processes
-│       ├── Bayesian Neural Networks
-│       ├── Variational Inference
-│       └── Probabilistic Programming (Pyro, NumPyro)
+│   ├── BAYESIAN METHODS
+│   │   ├── Bayes' Theorem in ML
+│   │   ├── MAP vs MLE
+│   │   ├── Gaussian Processes
+│   │   ├── Bayesian Neural Networks
+│   │   ├── Variational Inference
+│   │   └── Probabilistic Programming (Pyro, NumPyro)
+│   │
+│   ├── ONLINE LEARNING
+│   │   ├── Perceptron, Passive-Aggressive
+│   │   ├── Online Gradient Descent
+│   │   └── Streaming algorithms
+│   │
+│   ├── TIME SERIES ANALYSIS
+│   │   ├── ARIMA, SARIMA, Holt-Winters
+│   │   ├── Stationarity, ACF/PACF
+│   │   └── Granger Causality
+│   │
+│   ├── MODEL INTERPRETATION
+│   │   ├── SHAP, LIME
+│   │   ├── Partial Dependence Plots
+│   │   └── Global vs Local explanations
+│   │
+│   └── WHEN CLASSICAL ML WINS
+│       ├── Tabular data heuristics
+│       └── Compute / data constraints
 │
 ├── 03 DEEP LEARNING
 │   ├── COMPONENTS (building blocks)
@@ -101,14 +133,22 @@ MACHINE LEARNING
 │   │   ├── Loss Functions (MSE, cross-entropy, focal, triplet, ranking)
 │   │   ├── Optimizers (SGD, Adam, AdaGrad, LAMB, Lion)
 │   │   ├── Regularization (Dropout, BatchNorm, LayerNorm, weight decay)
+│   │   ├── Normalization (BN/LN/GN/RMSNorm/SpectralNorm)
+│   │   ├── Weight Initialization (Xavier, He, orthogonal)
 │   │   ├── Backpropagation (chain rule, vanishing/exploding gradients)
+│   │   ├── Hidden Layers (depth, width, capacity)
 │   │   ├── Attention (scaled dot-product, multi-head, cross-attention)
-│   │   └── Model Compression (quantization, distillation, pruning)
+│   │   ├── Model Compression (quantization, distillation, pruning)
+│   │   ├── Quantization & Pruning (PTQ, QAT, structured/unstructured)
+│   │   ├── Scaling Laws & Chinchilla
+│   │   ├── Distributed Training & Parallelism (DDP, FSDP, tensor/pipeline)
+│   │   ├── Instruction Tuning & Alignment
+│   │   └── RNN / LSTM / GRU (sequence modeling)
 │   │
 │   ├── ARCHITECTURES
 │   │   ├── MLPs / Feedforward Networks
 │   │   ├── CNNs (LeNet → ResNet → EfficientNet → ConvNeXt)
-│   │   ├── RNNs, LSTMs, GRUs (sequence modeling)
+│   │   ├── RNNs, LSTMs, GRUs
 │   │   ├── Transformers (full architecture)
 │   │   ├── Autoencoders (AE, VAE, VQVAE)
 │   │   ├── U-Net (encoder-decoder with skip connections)
@@ -117,43 +157,42 @@ MACHINE LEARNING
 │   ├── COMPUTER VISION
 │   │   ├── Image Classification (ResNet, ViT, EfficientNet)
 │   │   ├── Object Detection (YOLO, Faster R-CNN, DETR)
-│   │   ├── Segmentation ← [NEW: 03-deep-learning/methods/segmentation.md]
+│   │   ├── Segmentation
 │   │   │   ├── Semantic (FCN, DeepLab, SegFormer)
 │   │   │   ├── Instance (Mask R-CNN, SOLOv2, Mask2Former)
 │   │   │   └── Panoptic (PQ metric, Panoptic FPN)
-│   │   ├── Pose Estimation ← [NEW: 03-deep-learning/methods/segmentation.md]
+│   │   ├── Pose Estimation
 │   │   │   ├── OpenPose (bottom-up, PAFs)
 │   │   │   ├── HRNet (top-down, high-res representations)
 │   │   │   └── ViTPose (Transformer-based)
-│   │   ├── Metric Learning & Retrieval ← [NEW: 03-deep-learning/methods/metric-learning.md]
+│   │   ├── Metric Learning & Retrieval
 │   │   │   ├── Contrastive / Triplet / ArcFace Loss
 │   │   │   ├── FAISS indexing, Recall@K
 │   │   │   └── Person Re-ID
 │   │   ├── Generative (GANs, Diffusion, FLUX)
 │   │   ├── Self-Supervised (SimCLR, DINO, MAE)
-│   │   ├── Video Understanding ← [NEW: 03-deep-learning/methods/video-understanding.md]
+│   │   ├── Video Understanding
 │   │   │   ├── 3D CNNs (C3D, I3D)
 │   │   │   ├── Video Transformers (TimeSformer, VideoMAE)
 │   │   │   └── Optical Flow
-│   │   └── 3D Vision ← [NEW: 03-deep-learning/methods/3d-vision.md]
+│   │   └── 3D Vision
 │   │       ├── Point Clouds (PointNet, PointNet++)
 │   │       ├── Voxels
 │   │       └── NeRF / 3D Gaussian Splatting
 │   │
 │   ├── NLP (Natural Language Processing)
-│   │   ├── NLP Fundamentals ← [NEW: 03-deep-learning/methods/nlp-fundamentals.md]
+│   │   ├── NLP Fundamentals
 │   │   │   ├── Tokenization (BPE, WordPiece, SentencePiece)
 │   │   │   ├── Embeddings (Word2Vec, GloVe, FastText, ELMo, BERT)
 │   │   │   ├── Seq2Seq + Attention, Beam Search
 │   │   │   ├── NER (BIO tagging, BERT token classification)
 │   │   │   └── MT Metrics (BLEU, ROUGE, BERTScore)
-│   │   ├── NLP Advanced ← [NEW: 03-deep-learning/methods/nlp-advanced.md]
+│   │   ├── NLP Advanced
 │   │   │   ├── Summarization (BART, TextRank, ROUGE)
 │   │   │   ├── Semantic Similarity (SBERT)
 │   │   │   ├── NLI / Zero-Shot Classification
 │   │   │   ├── Coreference Resolution
 │   │   │   └── Dependency Parsing, Relation Extraction
-│   │   ├── Sequence Models (RNN, LSTM, GRU)
 │   │   ├── Transformers (BERT, GPT, T5, RoBERTa)
 │   │   └── Machine Translation
 │   │
@@ -164,14 +203,12 @@ MACHINE LEARNING
 │   │   ├── Flow Models (Normalizing Flows, FLUX)
 │   │   └── Score-Based Models
 │   │
-│   ├── TIME SERIES
-│   │   ├── Classical (ARIMA, SARIMA, Holt-Winters)
-│   │   ├── ML Models (Prophet, LightGBM on lag features)
-│   │   ├── Deep Learning (LSTM, TCN, N-BEATS, PatchTST)
+│   ├── TIME SERIES (deep learning)
+│   │   ├── LSTM, TCN, N-BEATS, PatchTST
 │   │   ├── Anomaly Detection (iForest, OCSVM, VAE)
 │   │   └── Forecasting Systems Design
 │   │
-│   ├── TRANSFER LEARNING & DOMAIN ADAPTATION ← [NEW: 03-deep-learning/transfer-learning.md]
+│   ├── TRANSFER LEARNING & DOMAIN ADAPTATION
 │   │   ├── Pre-training → Fine-tuning paradigm
 │   │   ├── Feature Extraction vs Full Fine-tuning
 │   │   ├── Domain Adaptation (DANN, CORAL)
@@ -179,10 +216,12 @@ MACHINE LEARNING
 │   │   ├── Meta-Learning
 │   │   └── Zero-Shot Learning
 │   │
+│   ├── MCP (Model Context Protocol)
+│   │
 │   └── PYTORCH
-│       ├── Tensors and Autograd
+│       ├── Foundations (tensors, autograd)
 │       ├── Training Loops and DataLoaders
-│       ├── Distributed Training (DDP, FSDP) ← [NEW coverage]
+│       ├── Distributed Training (DDP, FSDP)
 │       ├── Mixed Precision (AMP)
 │       └── Model Serialization and Export
 │
@@ -193,12 +232,13 @@ MACHINE LEARNING
 │   │   ├── Model-Free (Q-learning, SARSA, DQN, DDQN)
 │   │   ├── Policy Gradient (REINFORCE, PPO, A3C, SAC)
 │   │   ├── Model-Based RL
+│   │   ├── Advanced RL (MARL, imitation learning, sim-to-real)
 │   │   ├── Multi-Armed Bandits
 │   │   ├── Exploration Strategies (ε-greedy, UCB, Thompson)
 │   │   └── RLHF → LLM alignment
 │   │
 │   ├── RECOMMENDER SYSTEMS
-│   │   ├── Collaborative Filtering (user-based, item-based, matrix factorization)
+│   │   ├── Collaborative Filtering (user-based, item-based, MF)
 │   │   ├── Content-Based Filtering
 │   │   ├── Hybrid Systems
 │   │   ├── Two-Tower Models
@@ -215,7 +255,7 @@ MACHINE LEARNING
 │       ├── Knowledge Graphs (TransE, RotatE)
 │       ├── Heterogeneous Graphs
 │       ├── Scalability (mini-batch sampling, GraphSAINT)
-│       └── Dynamic Graphs & Graph Generation ← [NEW: 03-deep-learning/methods/dynamic-graphs.md]
+│       └── Dynamic Graphs & Graph Generation
 │           ├── Temporal GNNs (TGN, TGAT, EvolveGCN)
 │           ├── VGAE, GraphRNN, GRAN
 │           └── Molecule Generation (Junction Tree VAE)
@@ -225,8 +265,8 @@ MACHINE LEARNING
 │   │   ├── Transformer (attention, FFN, positional encoding)
 │   │   ├── Positional Encodings (RoPE, ALiBi, learned)
 │   │   ├── Attention Variants (MHA, MQA, GQA, FlashAttention)
+│   │   ├── KV-Cache & MQA/GQA (memory/compute tradeoffs)
 │   │   ├── Mixture of Experts (routing, load balancing)
-│   │   ├── KV-Cache (memory/compute tradeoffs)
 │   │   └── Long Context (ring attention, streaming)
 │   │
 │   ├── TRAINING
@@ -238,11 +278,15 @@ MACHINE LEARNING
 │   │   ├── Data Quality and Synthetic Data
 │   │   └── Training Stability (loss spikes, mixed precision)
 │   │
+│   ├── TOKENIZATION
+│   │   ├── BPE, WordPiece, SentencePiece
+│   │   └── Vocabulary design tradeoffs
+│   │
 │   ├── EFFICIENT FINE-TUNING
 │   │   ├── LoRA / QLoRA / DoRA
 │   │   ├── PEFT Adapters
 │   │   ├── Prompt Tuning / Prefix Tuning
-│   │   └── Full Fine-tuning with FSDP
+│   │   └── Full Fine-tuning at Scale (FSDP)
 │   │
 │   ├── INFERENCE OPTIMIZATION
 │   │   ├── Quantization (INT8, INT4, GPTQ, AWQ)
@@ -255,35 +299,69 @@ MACHINE LEARNING
 │   │   ├── RAG (retrieval-augmented generation)
 │   │   ├── Agentic Workflows (tool use, planning, memory)
 │   │   ├── Prompt Engineering (CoT, few-shot, ReAct)
+│   │   ├── Prompt Optimization & Versioning
 │   │   ├── Multimodal (CLIP, LLaVA, Flamingo, GPT-4V)
-│   │   ├── Model Merging ← [NEW: 05-llms/applications/model-merging.md]
-│   │   │   ├── Task Arithmetic, SLERP, TIES, DARE
-│   │   │   └── Model Soup, MergeKit
-│   │   ├── Hallucination Mitigation ← [NEW: 05-llms/applications/hallucination-mitigation.md]
+│   │   ├── Model Merging (SLERP, TIES, DARE, MergeKit)
+│   │   ├── Hallucination Mitigation
 │   │   │   ├── SelfCheckGPT, FactScore, NLI-checking
 │   │   │   └── Calibration, Constrained Decoding
-│   │   └── Context Window Extension ← [NEW: 05-llms/applications/context-window-extension.md]
+│   │   └── Context Window Extension
 │   │       ├── RoPE Scaling (YaRN, NTK), ALiBi
 │   │       ├── Sparse Attention (Longformer, BigBird)
 │   │       └── FlashAttention, Mamba/SSM alternatives
 │   │
-│   └── EVALUATION
-│       ├── Benchmarks (MMLU, GSM8K, HumanEval, HELM)
-│       ├── LLM-as-Judge
-│       ├── Human Evaluation
-│       └── Red-Teaming and Safety Evals
+│   ├── EVALUATION
+│   │   ├── Benchmarks (MMLU, GSM8K, HumanEval, HELM)
+│   │   ├── LLM-as-Judge
+│   │   ├── Human Evaluation
+│   │   └── Red-Teaming and Safety Evals
+│   │
+│   ├── MoE ADVANCED & ROUTING
+│   │   ├── Expert routing strategies
+│   │   └── DeepSeek-MoE, Mixtral internals
+│   │
+│   ├── ARCHITECTURE DEEP DIVE
+│   │   └── Layer-by-layer dissection, attention patterns
+│   │
+│   ├── SCALING & DATA
+│   │   ├── Data pipelines, deduplication, quality filters
+│   │   └── Synthetic data generation
+│   │
+│   ├── BOOKS
+│   │   ├── Hand-On Large Language Models (Alammar)
+│   │   └── Agentic Design Patterns
+│   │
+│   └── INTERVIEW NOTES
+│       ├── LLM Fundamentals
+│       ├── Fine-Tuning & Model Adaptation
+│       ├── Efficient LLM Deployment
+│       ├── RAG (detailed)
+│       ├── Prompt Engineering
+│       ├── Vector Databases & Embeddings
+│       ├── AI Agents & Agentic Systems
+│       ├── Multi-Modal AI
+│       ├── AI System Design
+│       ├── AI Infrastructure & Scalability
+│       ├── LLMOps & Production AI
+│       ├── Evaluation & Testing
+│       ├── Advanced Alignment & Reasoning
+│       ├── AI Safety, Ethics & Responsible AI
+│       ├── Behavioral & Scenario-Based Questions
+│       ├── Coding & Practical Implementation
+│       ├── Additional LLM Interview Topics
+│       └── Production Alignment Failures
 │
 ├── 06 PRODUCTION ML
 │   ├── MLOPS PIPELINE
 │   │   ├── Data Versioning (DVC, Delta Lake)
-│   │   ├── Feature Stores (Feast, Tecton) ← [NEW coverage]
+│   │   ├── Feature Stores (Feast, Tecton)
 │   │   ├── Experiment Tracking (MLflow, W&B)
 │   │   ├── CI/CD for ML (retraining triggers, model promotion)
-│   │   ├── Model Registry
+│   │   ├── Model Registry & Versioning
 │   │   └── A/B Testing Infrastructure
 │   │
 │   ├── SERVING & DEPLOYMENT
-│   │   ├── Serving Frameworks (TorchServe, BentoML, KServe) ← [NEW coverage]
+│   │   ├── Serving Frameworks (TorchServe, BentoML, KServe)
 │   │   ├── REST vs gRPC APIs
 │   │   ├── Batching (offline, online, micro-batch)
 │   │   ├── Edge Deployment (TFLite, CoreML, ONNX)
@@ -295,67 +373,80 @@ MACHINE LEARNING
 │   │   ├── Metrics Logging and Dashboards
 │   │   └── Alerting and Retraining Triggers
 │   │
-│   ├── SYSTEM DESIGN
-│   │   ├── Recommendation Systems
-│   │   ├── Search Ranking
-│   │   ├── Fraud Detection
-│   │   ├── Content Moderation
-│   │   └── NLP Services
-│   │
-│   ├── DEPLOYMENT PATTERNS ← [NEW: 06-production-ml/deployment-patterns.md]
+│   ├── DEPLOYMENT PATTERNS
 │   │   ├── Canary / Blue-Green / Shadow Mode
 │   │   ├── Latency Optimization (quantization, ONNX, TensorRT)
-│   │   ├── Feature Store Design (Feast, online/offline consistency)
+│   │   ├── Feature Store Design (online/offline consistency)
 │   │   ├── Training-Serving Skew Detection
 │   │   └── Model Rollback and Versioning
 │   │
-│   └── MODEL GOVERNANCE
-│       ├── Model Cards and Documentation
-│       ├── Audit Trails
-│       ├── GDPR / Compliance
-│       └── Champion-Challenger Testing
+│   ├── MODEL GOVERNANCE
+│   │   ├── Model Cards and Documentation
+│   │   ├── Audit Trails
+│   │   ├── GDPR / Compliance
+│   │   └── Champion-Challenger Testing
+│   │
+│   └── SYSTEM DESIGN CASE STUDIES
+│       ├── Ad CTR Prediction
+│       ├── End-to-End Recommendation System
+│       ├── Video Recommendation System
+│       ├── News Feed Ranking
+│       ├── Search Ranking System
+│       ├── Personalization System
+│       ├── Fraud Detection (full system)
+│       ├── Content Moderation System
+│       ├── Real-Time Bidding System
+│       ├── Real-Time ML Systems
+│       ├── Streaming ML Pipeline
+│       ├── Embedding Pipeline Design
+│       ├── Feature Store Architecture & Advanced
+│       ├── Distributed Training
+│       ├── LLM Inference Ops
+│       ├── ETA & Surge Pricing
+│       ├── Customer LTV Prediction
+│       ├── Clinical ML System
+│       ├── A/B Testing & Experimentation
+│       ├── Cost Optimization
+│       ├── Data Engineering for ML
+│       ├── Production Diagnosis Flowchart
+│       ├── Model Registry & Versioning
+│       ├── ML Design Patterns
+│       ├── ML Design Interview (framework)
+│       └── Books (ML Engineering, Building ML-Powered Apps)
 │
-├── 07 MATHEMATICS & STATISTICS
-│   ├── LINEAR ALGEBRA
-│   │   ├── Vectors, matrices, tensors
-│   │   ├── Eigenvalues/eigenvectors (PCA connection)
-│   │   ├── SVD
-│   │   └── Matrix calculus
+├── 07 INTERVIEW PREP
+│   ├── ML INTERVIEWS
+│   │   ├── Algorithms
+│   │   ├── Fundamentals of ML
+│   │   ├── Deep Learning
+│   │   ├── NLP
+│   │   ├── Computer Vision
+│   │   ├── Large Language Models
+│   │   ├── Optimization
+│   │   ├── Optimization Theory
+│   │   ├── Probabilistic Graphical Models
+│   │   ├── Model Evaluation
+│   │   ├── Data Preprocessing & Feature Engineering
+│   │   ├── Probability & Statistics
+│   │   ├── Maths & Math Derivations
+│   │   ├── Coding
+│   │   ├── Practical ML Scenarios
+│   │   ├── Privacy & Fairness
+│   │   ├── System Design & MLOps
+│   │   ├── Behavioral & Scenario-Based Questions
+│   │   └── Additional ML Interview Topics
 │   │
-│   ├── PROBABILITY & STATISTICS
-│   │   ├── Distributions (Gaussian, Bernoulli, Categorical, Dirichlet)
-│   │   ├── Bayes' Theorem
-│   │   ├── MLE and MAP estimation
-│   │   ├── Hypothesis Testing
-│   │   ├── Confidence Intervals
-│   │   └── A/B Testing (power, p-values, MDE)
-│   │
-│   ├── CALCULUS & OPTIMIZATION
-│   │   ├── Gradient Descent (batch, SGD, mini-batch)
-│   │   ├── Convexity and Local Minima
-│   │   ├── Second-order Methods (Newton, L-BFGS)
-│   │   ├── Constrained Optimization (Lagrangians, KKT)
-│   │   └── Learning Rate Schedules (warmup, cosine, cyclic)
-│   │
-│   ├── INFORMATION THEORY
-│   │   ├── Entropy, KL Divergence
-│   │   ├── Mutual Information
-│   │   ├── Cross-Entropy Loss connection
-│   │   └── Rate-Distortion Theory
-│   │
-│   ├── PROBABILISTIC GRAPHICAL MODELS ← [NEW: 07-interview-prep/ml/probabilistic-graphical-models.md]
-│   │   ├── Bayesian Networks, HMMs (Viterbi, Baum-Welch)
-│   │   ├── MRFs, Belief Propagation (sum-product)
-│   │   ├── Variational Inference (ELBO, mean-field, CAVI)
-│   │   ├── MCMC (Gibbs, HMC, NUTS)
-│   │   ├── LDA (topic modeling)
-│   │   └── CRFs (sequence labeling)
-│   │
-│   └── OPTIMIZATION THEORY ← [NEW: 07-interview-prep/ml/optimization-theory.md]
-│       ├── Variance Reduction (SVRG, SAGA)
-│       ├── Natural Gradient & Information Geometry
-│       ├── SAM (Sharpness-Aware Minimization)
-│       └── Loss Landscape & NTK
+│   └── LLM INTERVIEWS
+│       ├── ML Revision (rapid review)
+│       ├── DL Architectures
+│       ├── NLP & Transformers
+│       ├── ML System Design
+│       ├── ML Coding Patterns
+│       ├── Math Derivations
+│       ├── Statistics & Probability
+│       ├── Scenario-Based Questions
+│       ├── Top ML Interview Questions
+│       └── Machine Learning Interviews (book notes)
 │
 ├── 08 EMERGING TOPICS
 │   ├── STATE SPACE MODELS
@@ -363,17 +454,54 @@ MACHINE LEARNING
 │   │   ├── Mamba (selective SSMs)
 │   │   └── Hybrid Mamba-Transformer
 │   │
-│   ├── TEST-TIME COMPUTE
+│   ├── LARGE REASONING MODELS
 │   │   ├── Chain-of-Thought generation
 │   │   ├── Best-of-N sampling
 │   │   ├── Monte Carlo Tree Search for LLMs
 │   │   └── Process Reward Models (PRMs)
 │   │
-│   ├── MIXTURE OF EXPERTS
+│   ├── MIXTURE OF EXPERTS (emerging)
 │   │   ├── Top-K routing
 │   │   ├── Load balancing (aux loss)
 │   │   ├── DeepSeek-MoE, Mixtral
 │   │   └── Expert specialization
+│   │
+│   ├── MULTIMODAL ARCHITECTURES
+│   │   ├── Vision-Language Models
+│   │   ├── Audio-Text fusion
+│   │   └── Unified multimodal training
+│   │
+│   ├── AGENTIC AI SYSTEMS
+│   │   ├── Tool use, planning, memory
+│   │   ├── Multi-agent coordination
+│   │   └── Autonomous agent evaluation
+│   │
+│   ├── ADVANCED RAG & MEMORY
+│   │   ├── GraphRAG, HyDE, FLARE
+│   │   ├── Long-term memory systems
+│   │   └── Retrieval evaluation
+│   │
+│   ├── POST-TRAINING & ALIGNMENT
+│   │   ├── DPO, GRPO, Constitutional AI
+│   │   ├── Reward modeling
+│   │   └── Alignment tax
+│   │
+│   ├── 2025 FRONTIER MODELS
+│   │   ├── GPT-4o, Claude 3.x, Gemini 1.5/2.0
+│   │   ├── DeepSeek-R1, Llama 3
+│   │   └── Frontier AI Developments 2025
+│   │
+│   ├── SMALL LANGUAGE MODELS & EDGE
+│   │   ├── Phi-3, Gemma, Mistral-7B
+│   │   └── On-device inference
+│   │
+│   ├── VECTOR DATABASES
+│   │   ├── FAISS, Pinecone, Weaviate, Qdrant
+│   │   └── ANN algorithms (HNSW, IVF)
+│   │
+│   ├── AGI & ASI
+│   │   ├── Definitions and timelines debate
+│   │   └── Safety implications
 │   │
 │   ├── INTERPRETABILITY & XAI
 │   │   ├── Feature Importance (SHAP, LIME, permutation)
@@ -382,7 +510,7 @@ MACHINE LEARNING
 │   │   ├── Concept-Based Explanations (TCAV)
 │   │   └── Explainability in Production
 │   │
-│   ├── CAUSAL INFERENCE
+│   ├── CAUSAL INFERENCE & EXPERIMENTATION
 │   │   ├── A/B Testing (design, power, pitfalls)
 │   │   ├── Causal Graphs (DAGs, d-separation)
 │   │   ├── Potential Outcomes Framework
@@ -390,112 +518,91 @@ MACHINE LEARNING
 │   │   ├── Instrumental Variables
 │   │   └── Uplift Modeling
 │   │
-│   ├── PRIVACY-PRESERVING ML ← [NEW: 08-emerging-topics/privacy-preserving-ml.md]
+│   ├── PRIVACY-PRESERVING ML
 │   │   ├── Differential Privacy (ε-δ DP, DP-SGD)
 │   │   ├── Federated Learning (FedAvg, FedProx)
 │   │   ├── Secure Multi-Party Computation
 │   │   ├── Homomorphic Encryption for ML
 │   │   └── Membership Inference Attacks
 │   │
-│   ├── CONTINUOUS / ONLINE LEARNING ← [NEW: 08-emerging-topics/continual-learning.md]
+│   ├── CONTINUAL / ONLINE LEARNING
 │   │   ├── Catastrophic Forgetting
 │   │   ├── Elastic Weight Consolidation (EWC)
 │   │   ├── Progressive Neural Networks
 │   │   ├── Replay Buffers / Experience Replay
 │   │   └── Neural Architecture Search (NAS)
 │   │
-│   ├── ADVERSARIAL ROBUSTNESS ← [NEW: 08-emerging-topics/adversarial-robustness.md]
+│   ├── ADVERSARIAL ROBUSTNESS
 │   │   ├── FGSM, PGD, C&W, AutoAttack
 │   │   ├── Adversarial Training (Madry, TRADES)
 │   │   └── Certified Defenses (Randomized Smoothing)
 │   │
-│   └── FAIRNESS & BIAS ← [NEW: 08-emerging-topics/fairness-and-bias.md]
+│   ├── RED TEAMING & ALIGNMENT FAILURES
+│   │   ├── Jailbreaks, prompt injection
+│   │   └── Production failure case studies
+│   │
+│   └── FAIRNESS & BIAS
 │       ├── Fairness Metrics (demographic parity, equalized odds)
 │       ├── Impossibility Theorem
 │       ├── Pre/In/Post-processing Mitigations
 │       └── LLM Bias (WinoBias, RLHF amplification)
 │
-├── 09 EVALUATION & METRICS
-│   ├── CLASSIFICATION
-│   │   ├── Accuracy, Precision, Recall, F1
-│   │   ├── ROC-AUC, PR-AUC
-│   │   ├── Confusion Matrix analysis
-│   │   └── Multi-class (macro, micro, weighted)
+├── 09 STUDY PLANS
+│   ├── WEEK 1 — FOUNDATIONS
+│   │   ├── Day 1–2: Introduction to Machine Learning
+│   │   ├── Day 3–4: Data Preprocessing Techniques
+│   │   └── Day 5–7: Exploratory Data Analysis (EDA)
 │   │
-│   ├── REGRESSION
-│   │   ├── MAE, MSE, RMSE, MAPE
-│   │   └── R², Adjusted R²
+│   ├── WEEK 2 — ALGORITHMS
+│   │   ├── Day 8–9: Supervised Learning Algorithms
+│   │   ├── Day 10–11: Unsupervised Learning Algorithms
+│   │   ├── Day 12–14: Neural Networks
+│   │   ├── Day 15–16: Evaluation Metrics
+│   │   ├── Day 17–18: Hyperparameter Tuning
+│   │   └── Day 19–21: Specialized Techniques (NLP, CV)
 │   │
-│   ├── RANKING
-│   │   ├── NDCG, MAP, MRR
-│   │   └── Hit Rate, Recall@K
+│   ├── WEEK 3 — SYSTEM DESIGN
+│   │   ├── Day 22: ML System Design
+│   │   ├── Day 23: Case Studies
+│   │   └── Day 24–25: Behavioral / Soft Skills
 │   │
-│   ├── GENERATION
-│   │   ├── BLEU, ROUGE, METEOR (NLP)
-│   │   ├── FID, IS (images)
-│   │   └── Perplexity (LMs)
-│   │
-│   └── OFFLINE vs ONLINE EVALUATION
-│       ├── Hold-out sets, K-fold CV
-│       ├── Temporal splits for time series
-│       ├── Shadow mode testing
-│       └── Canary deployments
+│   └── WEEK 4 — FINAL PREP
+│       └── Day 26–30: Final Prep & Mock Interviews
 │
-└── 10 AI SAFETY & ETHICS
-    ├── ALIGNMENT
-    │   ├── RLHF, DPO, Constitutional AI
-    │   ├── Reward Hacking
-    │   └── Mesa-Optimization
-    ├── FAIRNESS
-    │   ├── Group Fairness (demographic parity, equalized odds)
-    │   ├── Individual Fairness
-    │   └── Fairness-Accuracy tradeoff
-    ├── ROBUSTNESS
-    │   ├── Adversarial Examples (FGSM, PGD)
-    │   ├── Distribution Shift
-    │   └── Certified Defenses
-    └── GOVERNANCE
-        ├── EU AI Act
-        ├── Model Cards
-        └── Risk Classification
+├── 10 REFERENCES
+│   ├── BOOK NOTES
+│   │   ├── Deep Learning
+│   │   │   ├── Alice in Differentiable Wonderland
+│   │   │   ├── Build a Large Language Model from Scratch
+│   │   │   ├── Deep Learning: A Practitioner's Approach
+│   │   │   ├── Deep Learning with PyTorch
+│   │   │   ├── Dive into Deep Learning
+│   │   │   └── Grokking Deep Learning
+│   │   ├── Machine Learning
+│   │   │   └── Machine Learning Pocket Reference
+│   │   └── MLOps
+│   │       ├── Designing Machine Learning Systems
+│   │       ├── Keras to Kubernetes
+│   │       ├── Machine Learning Design Patterns
+│   │       └── Machine Learning Engineering
+│   │
+│   └── RESEARCH PAPERS
+│       ├── ML (classical)
+│       ├── MLOps
+│       └── Deep Learning
+│           ├── Computer Vision
+│           ├── LLMs
+│           └── Time Series
+│
+└── 11 DATA SCIENTIST
+    ├── Statistics & Probability
+    ├── Experiment Design & A/B Testing
+    ├── Causal Inference
+    ├── EDA & Data Quality
+    ├── Metrics & Business Analytics
+    ├── SQL & Data Manipulation
+    └── Data Scientist Interview Prep
 ```
-
----
-
-## Gap Analysis — Topics Added or Expanded
-
-| # | Gap | New File Created |
-|---|-----|------------------|
-| 1 | Anomaly Detection (classical) | `02-classical-ml/anomaly-detection.md` |
-| 2 | Active Learning | `02-classical-ml/active-learning.md` |
-| 3 | Bayesian Methods | `02-classical-ml/bayesian-methods.md` |
-| 4 | Conformal Prediction | `02-classical-ml/conformal-prediction.md` |
-| 5 | Imbalanced Data (SMOTE, focal loss, threshold) | `02-classical-ml/imbalanced-data.md` |
-| 6 | Feature Selection (filter/wrapper/embedded/SHAP) | `02-classical-ml/feature-selection.md` |
-| 7 | Ensemble Methods (stacking, OOF, blending) | `02-classical-ml/ensemble-methods.md` |
-| 8 | Cross-Validation (grouped, time-series, nested) | `02-classical-ml/cross-validation.md` |
-| 9 | Hyperparameter Optimization (Optuna, Hyperband) | `02-classical-ml/hyperparameter-optimization.md` |
-| 10 | Weight Initialization (Xavier, He, orthogonal) | `03-deep-learning/components/weight-initialization.md` |
-| 11 | Normalization (BN/LN/GN/RMSNorm/SpectralNorm) | `03-deep-learning/components/normalization.md` |
-| 12 | Transfer Learning & Domain Adaptation | `03-deep-learning/transfer-learning.md` |
-| 13 | NLP Fundamentals (tokenization, embeddings, NER) | `03-deep-learning/methods/nlp-fundamentals.md` |
-| 14 | NLP Advanced (summarization, SBERT, NLI, coref) | `03-deep-learning/methods/nlp-advanced.md` |
-| 15 | Segmentation + Pose Estimation | `03-deep-learning/methods/segmentation.md` |
-| 16 | Metric Learning & Image Retrieval | `03-deep-learning/methods/metric-learning.md` |
-| 17 | Video Understanding | `03-deep-learning/methods/video-understanding.md` |
-| 18 | 3D Vision & Point Clouds | `03-deep-learning/methods/3d-vision.md` |
-| 19 | Dynamic Graphs & Graph Generation | `03-deep-learning/methods/dynamic-graphs.md` |
-| 20 | Advanced RL (MARL, imitation, sim-to-real) | `04-specialized-domains/reinforcement-learning/advanced-rl.md` |
-| 21 | Model Merging (SLERP, TIES, DARE, MergeKit) | `05-llms/applications/model-merging.md` |
-| 22 | Hallucination Mitigation | `05-llms/applications/hallucination-mitigation.md` |
-| 23 | Context Window Extension (YaRN, FlashAttention) | `05-llms/applications/context-window-extension.md` |
-| 24 | Deployment Patterns (canary, shadow, feature store) | `06-production-ml/deployment-patterns.md` |
-| 25 | Probabilistic Graphical Models (HMM, BP, LDA, CRF) | `07-interview-prep/ml/probabilistic-graphical-models.md` |
-| 26 | Optimization Theory (SVRG, natural gradient, SAM) | `07-interview-prep/ml/optimization-theory.md` |
-| 27 | Privacy-Preserving ML | `08-emerging-topics/privacy-preserving-ml.md` |
-| 28 | Continual / Online Learning + NAS | `08-emerging-topics/continual-learning.md` |
-| 29 | Adversarial Robustness (FGSM, PGD, certified) | `08-emerging-topics/adversarial-robustness.md` |
-| 30 | Fairness & Bias (metrics, mitigations, LLM bias) | `08-emerging-topics/fairness-and-bias.md` |
 
 ---
 
@@ -510,13 +617,69 @@ MACHINE LEARNING
 **By interview type:**
 - Classical ML coding → `07-interview-prep/ml/algorithms.md` + `coding.md`
 - ML system design → `06-production-ml/system-design/machine-learning-design-interview.md`
-- LLM theory → `05-llms/architecture-deep-dive.md` + `interview-notes/llm-fundamentals.md`
+- LLM theory → `05-llms/architecture-deep-dive.md` + `05-llms/interview-notes/llm-fundamentals.md`
 - LLM system design → `05-llms/interview-notes/ai-system-design.md`
+- Data scientist → `11-data-scientist/data-scientist-interview-prep.md`
 - Behavioral → `07-interview-prep/ml/behavioral-and-scenario-based-questions.md`
 
 **By domain:**
 - Vision → `03-deep-learning/methods/computer-vision.md`
 - NLP → `03-deep-learning/methods/nlp.md` + `05-llms/`
-- Time Series → `03-deep-learning/methods/time-series.md`
+- Time Series → `02-classical-ml/time-series-analysis.md` + `03-deep-learning/methods/time-series.md`
 - RL → `04-specialized-domains/reinforcement-learning/`
 - RecSys → `04-specialized-domains/recommender-systems/`
+- GNNs → `04-specialized-domains/graph-neural-networks/`
+- Emerging → `08-emerging-topics/emerging-trends/`
+
+## Flashcards
+
+**Beginner → 01-foundations → 09-study-plans/week-1?** #flashcard
+Beginner → 01-foundations → 09-study-plans/week-1
+
+**Intermediate → 02-classical-ml → 03-deep-learning/components → 07-interview-prep/ml?** #flashcard
+Intermediate → 02-classical-ml → 03-deep-learning/components → 07-interview-prep/ml
+
+**Advanced → 04-specialized-domains → 05-llms → 06-production-ml/system-design?** #flashcard
+Advanced → 04-specialized-domains → 05-llms → 06-production-ml/system-design
+
+**Expert → 08-emerging-topics → 05-llms/applications → 10-references?** #flashcard
+Expert → 08-emerging-topics → 05-llms/applications → 10-references
+
+**Classical ML coding → 07-interview-prep/ml/algorithms.md + coding.md?** #flashcard
+Classical ML coding → 07-interview-prep/ml/algorithms.md + coding.md
+
+**ML system design → 06-production-ml/system-design/machine-learning-design-interview.md?** #flashcard
+ML system design → 06-production-ml/system-design/machine-learning-design-interview.md
+
+**LLM theory → 05-llms/architecture-deep-dive.md + 05-llms/interview-notes/llm-fundamentals.md?** #flashcard
+LLM theory → 05-llms/architecture-deep-dive.md + 05-llms/interview-notes/llm-fundamentals.md
+
+**LLM system design → 05-llms/interview-notes/ai-system-design.md?** #flashcard
+LLM system design → 05-llms/interview-notes/ai-system-design.md
+
+**Data scientist → 11-data-scientist/data-scientist-interview-prep.md?** #flashcard
+Data scientist → 11-data-scientist/data-scientist-interview-prep.md
+
+**Behavioral → 07-interview-prep/ml/behavioral-and-scenario-based-questions.md?** #flashcard
+Behavioral → 07-interview-prep/ml/behavioral-and-scenario-based-questions.md
+
+**Vision → 03-deep-learning/methods/computer-vision.md?** #flashcard
+Vision → 03-deep-learning/methods/computer-vision.md
+
+**NLP → 03-deep-learning/methods/nlp.md + 05-llms/?** #flashcard
+NLP → 03-deep-learning/methods/nlp.md + 05-llms/
+
+**Time Series → 02-classical-ml/time-series-analysis.md + 03-deep-learning/methods/time-series.md?** #flashcard
+Time Series → 02-classical-ml/time-series-analysis.md + 03-deep-learning/methods/time-series.md
+
+**RL → 04-specialized-domains/reinforcement-learning/?** #flashcard
+RL → 04-specialized-domains/reinforcement-learning/
+
+**RecSys → 04-specialized-domains/recommender-systems/?** #flashcard
+RecSys → 04-specialized-domains/recommender-systems/
+
+**GNNs → 04-specialized-domains/graph-neural-networks/?** #flashcard
+GNNs → 04-specialized-domains/graph-neural-networks/
+
+**Emerging → 08-emerging-topics/emerging-trends/?** #flashcard
+Emerging → 08-emerging-topics/emerging-trends/

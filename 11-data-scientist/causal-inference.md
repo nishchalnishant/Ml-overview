@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: Causal Inference
+subtopic: ""
+status: unread
+tags: [datascientist, ml, causal-inference]
+---
 # Causal Inference
 
 ---
@@ -628,3 +635,65 @@ The Area Under the Uplift Curve (AUUC) summarizes performance across all targeti
 **Uplift@k**: The uplift (incremental outcome rate) when targeting the top $k$% of predicted responders. Most practically useful for fixed-budget deployment decisions.
 
 **CATE variance**: In RCT data, you can also test whether the predicted $\hat{\tau}(x)$ actually explains heterogeneity: regress observed individual DiM estimates on $\hat{\tau}(x)$ and test whether the slope is significantly different from zero. A flat relationship means the model isn't capturing real heterogeneity.
+
+## Flashcards
+
+**$Y_i(1)$?** #flashcard
+what outcome unit $i$ would have if treated
+
+**$Y_i(0)$?** #flashcard
+what outcome unit $i$ would have if not treated
+
+**$D_i \in \{0,1\}$?** #flashcard
+observed treatment indicator
+
+**$Y_i = D_i Y_i(1) + (1 - D_i) Y_i(0)$?** #flashcard
+you only ever see one of the two
+
+**$\beta$?** #flashcard
+time-invariant difference between groups
+
+**$\gamma$?** #flashcard
+common time trend
+
+**$\tau$: the DiD estimator?** #flashcard
+the extra change in the treatment group relative to control
+
+**Always-takers?** #flashcard
+treated regardless of $Z$
+
+**Never-takers?** #flashcard
+untreated regardless of $Z$
+
+**Defiers?** #flashcard
+do the opposite of what $Z$ suggests (usually assumed away via monotonicity)
+
+**$\beta_0$?** #flashcard
+pre-policy intercept
+
+**$\beta_1$?** #flashcard
+pre-policy slope (time trend)
+
+**$\beta_2$?** #flashcard
+immediate level change at the interruption (step change)
+
+**$\beta_3$?** #flashcard
+change in slope after the interruption (ramp change)
+
+**Berkson's paradox?** #flashcard
+In a hospital, having disease A and disease B are independent in the general population. But in hospitalized patients (conditioning on hospitalization = collider), they appear negatively correlated, because either disease can cause hospitalization.
+
+**Selection bias as collider bias: If you study a phenomenon in a selected sample (people who respond to surveys, firms that survived), you've conditioned on a collider?** #flashcard
+survival or participation is often a common effect of the study variables.
+
+**Controlling for mediators: If $X \to M \to Y$ and you condition on $M$, you've conditioned on a descendant of $X$ and blocked the causal path?** #flashcard
+this is a case where conditioning introduces bias by blocking the mechanism.
+
+**Total effect (TE)?** #flashcard
+the full causal effect of $X$ on $Y$
+
+**Natural Direct Effect (NDE): the effect of $X$ on $Y$ when $M$ is fixed at its value under control?** #flashcard
+i.e., the path not through $M$
+
+**Natural Indirect Effect (NIE)?** #flashcard
+the effect of $X$ on $Y$ that operates through $M$ changing

@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Search Ranking System
+status: unread
+tags: [productionml, ml, system-design-search-ranking-s]
+---
 # Search Ranking System Design
 
 End-to-end search ranking system covering query understanding, retrieval, and learning-to-rank. Canonical system design for Google/Meta/Amazon interviews.
@@ -323,3 +330,35 @@ A: Multiple complementary approaches: (1) Dense retrieval (bi-encoder) embeds qu
 
 **Q: How do you train a learning-to-rank model when you only have click logs?**  
 A: Clicks are a noisy proxy for relevance due to position bias, selection bias, and temporal effects. Pipeline: (1) Collect impression logs with position, document, query, and whether it was clicked; (2) Apply position bias correction — estimate propensity scores by randomization (A/B test where you randomly re-rank results to break position/click correlation) or EM-based estimation; (3) Create pairwise training examples: (query, clicked_doc, skipped_doc) pairs where the skipped_doc was shown above the clicked_doc (skipped docs at lower positions are stronger negatives); (4) Train LambdaMART on these pairwise preferences with propensity-weighted loss; (5) Supplement with human relevance judgments (editorial labels) for tail queries where clicks are sparse; (6) Evaluate on held-out queries with editorial labels to avoid circular evaluation.
+
+## Flashcards
+
+**$\text{IDF}(t) = \log\frac{N - df(t) + 0.5}{df(t) + 0.5}$?** #flashcard
+inverse document frequency
+
+**$k_1 \in [1.2, 2.0]$?** #flashcard
+term frequency saturation (prevents very frequent terms from dominating)
+
+**$b = 0.75$?** #flashcard
+length normalization factor
+
+**$avgdl$?** #flashcard
+average document length
+
+**Vocabulary mismatch?** #flashcard
+query "cardiovascular disease" doesn't match document "heart attack"
+
+**Paraphrase?** #flashcard
+"cheap flights" vs "affordable airfare"
+
+**Semantic?** #flashcard
+"Apple earnings" might prefer tech documents over orchard documents depending on context
+
+**Position 1 weight?** #flashcard
+$1/\log_2(2) = 1.0$
+
+**Position 2 weight?** #flashcard
+$1/\log_2(3) = 0.63$
+
+**Position 10 weight?** #flashcard
+$1/\log_2(11) = 0.29$

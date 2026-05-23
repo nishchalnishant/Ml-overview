@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: When Classical Ml Wins
+subtopic: ""
+status: unread
+tags: [classicalml, ml, when-classical-ml-wins]
+---
 # When Classical ML Wins
 
 ---
@@ -234,3 +241,14 @@ Input: problem specification
 | Class imbalance | Composable levers: class weights + SMOTE + threshold | Focal loss; one mechanism |
 | Domain expertise available | Feature engineering directly encodes domain knowledge | Domain knowledge must be discovered from data |
 | No domain expertise, novel domain | — | Learned representations from raw input |
+
+## Flashcards
+
+**Simulatability?** #flashcard
+A human steps through the model manually. A decision tree with depth ≤ 5 satisfies this. No neural network does.
+
+**Local explanations?** #flashcard
+Explain one prediction. Logistic regression coefficients × feature values give exact local attribution. TreeSHAP gives exact local attribution for gradient-boosted trees in milliseconds.
+
+**Global feature importance?** #flashcard
+Which features drive the model across the dataset. MDI importance from random forests (biased toward high-cardinality features) or permutation importance and SHAP summary plots (unbiased) work directly.

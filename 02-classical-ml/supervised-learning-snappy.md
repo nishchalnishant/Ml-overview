@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Supervised Learning Snappy
+subtopic: ""
+status: unread
+tags: [classicalml, ml, supervised-learning-snappy]
+---
 # Supervised Learning — 1-Page Cheat Sheet
 
 ## Algorithm Table
@@ -60,3 +67,26 @@ Only inner products needed → kernel K(x,y) computes similarity in high-D space
 - High-dim, small N, clear margin → SVM
 - Interpretability required → single decision tree or logistic regression
 - Best accuracy on tabular → XGBoost / LightGBM
+
+## Flashcards
+
+**Impurity/Gini importance?** #flashcard
+fast; can favour high-cardinality features
+
+**Permutation importance?** #flashcard
+shuffle feature, measure score drop; more reliable
+
+**CSV, unknown shape, 1 hour → logistic/linear baseline → gradient boosting with CV?** #flashcard
+CSV, unknown shape, 1 hour → logistic/linear baseline → gradient boosting with CV
+
+**Text, fast inference → Naive Bayes or logistic with TF-IDF?** #flashcard
+Text, fast inference → Naive Bayes or logistic with TF-IDF
+
+**High-dim, small N, clear margin → SVM?** #flashcard
+High-dim, small N, clear margin → SVM
+
+**Interpretability required → single decision tree or logistic regression?** #flashcard
+Interpretability required → single decision tree or logistic regression
+
+**Best accuracy on tabular → XGBoost / LightGBM?** #flashcard
+Best accuracy on tabular → XGBoost / LightGBM

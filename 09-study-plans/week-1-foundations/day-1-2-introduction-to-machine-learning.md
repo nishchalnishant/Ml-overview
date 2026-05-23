@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 1 Foundations
+subtopic: Day 1 2 Introduction To Machine Learning
+status: unread
+tags: [studyplans, ml, week-1-foundations-day-1-2-int]
+---
 # Day 1-2: Introduction to Machine Learning
 
 ## Why This Topic Comes First
@@ -118,3 +125,26 @@ preds = reg.predict(X_test)
 clf = LogisticRegression().fit(X_train, y_train)
 probs = clf.predict_proba(X_test)
 ```
+
+## Flashcards
+
+**Regression?** #flashcard
+Output is continuous. $y \in \mathbb{R}$.
+
+**Classification?** #flashcard
+Output is discrete/categorical. $y \in \{0, 1, \dots, K\}$.
+
+**Clustering?** #flashcard
+Grouping similar instances.
+
+**Dimensionality Reduction?** #flashcard
+Projecting high-dim data to low-dim space while preserving maximum information.
+
+**Cost Function (MSE)?** #flashcard
+$J(\theta) = \frac{1}{2m} \sum_{i=1}^{m} (h_\theta(x^{(i)}) - y^{(i)})^2$
+
+**Optimization?** #flashcard
+Gradient Descent $\theta_j := \theta_j - \alpha \frac{\partial}{\partial \theta_j} J(\theta)$
+
+**Loss (Binary Cross-Entropy)?** #flashcard
+$L(y, \hat{y}) = -[y \log(\hat{y}) + (1-y) \log(1-\hat{y})]$

@@ -1,3 +1,10 @@
+---
+module: Foundations
+topic: Introduction To Ai
+subtopic: ""
+status: unread
+tags: [foundations, ml, introduction-to-ai]
+---
 # Introduction to AI
 
 ---
@@ -644,3 +651,182 @@ The dot product QKᵀ measures how relevant each position is to each other posit
 - Transformers require positional encodings to represent sequence order, since attention itself is permutation-invariant.
 - The O(N²) attention cost makes very long sequences expensive.
 - Transformers have no inductive bias for sequences the way RNNs do — they learn sequence structure from data, which requires more data.
+
+## Flashcards
+
+**The absolute-value penalty has a corner at zero; the gradient is discontinuous there. Optimization pushes weights exactly to zero?** #flashcard
+the model performs implicit feature selection.
+
+**The squared penalty produces a smooth gradient everywhere. Weights shrink proportionally toward zero but never reach it exactly. Numerically stable; works well when all features contribute.?** #flashcard
+The squared penalty produces a smooth gradient everywhere. Weights shrink proportionally toward zero but never reach it exactly. Numerically stable; works well when all features contribute.
+
+**Combines both penalties. Handles correlated features better than pure L1 (which arbitrarily zeros one of a correlated pair).?** #flashcard
+Combines both penalties. Handles correlated features better than pure L1 (which arbitrarily zeros one of a correlated pair).
+
+**Training set (60–80%)?** #flashcard
+The model sees and learns from this.
+
+**Validation set (10–20%)?** #flashcard
+Used to compare models and tune hyperparameters. Each time you look at validation performance to make a decision, you are implicitly using it as a training signal.
+
+**Test set (10–20%)?** #flashcard
+Touched exactly once, after all decisions are final. This produces the only honest performance estimate.
+
+**Stratified K-Fold?** #flashcard
+Preserves class distribution in each fold. Required for imbalanced classification.
+
+**Time Series Split?** #flashcard
+Each validation fold is strictly in the future relative to its training fold. Never shuffle time series before splitting.
+
+**Leave-One-Out (LOO)?** #flashcard
+K = N. Maximally uses data but is computationally expensive and produces high-variance estimates on noisy problems.
+
+**Need interpretability?** #flashcard
+Linear/Logistic Regression, Decision Tree
+
+**High-dimensional data?** #flashcard
+Lasso, Ridge, Random Forest
+
+**Categorical features?** #flashcard
+CatBoost, LightGBM
+
+**Limited data?** #flashcard
+Naive Bayes, regularized linear models
+
+**Fast inference required?** #flashcard
+Linear models, Naive Bayes
+
+**Maximum accuracy on tabular?** #flashcard
+XGBoost, LightGBM, CatBoost
+
+**Oversample minority class?** #flashcard
+SMOTE synthesizes new minority examples by interpolating between existing ones. ADASYN focuses synthesis near decision boundaries.
+
+**Undersample majority class?** #flashcard
+Randomly remove majority examples. Faster but discards potentially useful data.
+
+**Combined?** #flashcard
+Oversample minority + undersample majority.
+
+**Class weights?** #flashcard
+Pass class_weight='balanced' or manual weights to your loss function. The model pays more for minority misclassifications without touching the data.
+
+**Focal loss?** #flashcard
+Down-weights easy majority examples dynamically during training, forcing the model to focus on hard minority cases.
+
+**Use ReLU activations (gradient is 1 in the positive domain, not < 1)?** #flashcard
+Use ReLU activations (gradient is 1 in the positive domain, not < 1)
+
+**Batch normalization (keeps activations in a range where gradients are well-scaled)?** #flashcard
+Batch normalization (keeps activations in a range where gradients are well-scaled)
+
+**Residual connections (skip paths provide gradient highways that bypass layers)?** #flashcard
+Residual connections (skip paths provide gradient highways that bypass layers)
+
+**Careful weight initialization (Xavier for sigmoid/tanh, He for ReLU)?** #flashcard
+Careful weight initialization (Xavier for sigmoid/tanh, He for ReLU)
+
+**Gradient clipping?** #flashcard
+cap the gradient norm before applying the update
+
+**Lower learning rate?** #flashcard
+Lower learning rate
+
+**Batch normalization?** #flashcard
+Batch normalization
+
+**Warm-up then decay?** #flashcard
+Start with a small learning rate, linearly increase to the target, then decay. Prevents early instability from large random gradients.
+
+**Cosine annealing?** #flashcard
+Smoothly reduce LR following a cosine curve. Can restart periodically to explore different loss landscape regions.
+
+**Step decay?** #flashcard
+Multiply LR by a fixed factor at predetermined epochs.
+
+**Missing values?** #flashcard
+are they handled the same way in training and inference?
+
+**Data leakage?** #flashcard
+do any features contain information from the future, or from the label itself?
+
+**Feature scaling?** #flashcard
+applied before splitting? (Leakage.) Applied consistently to train, val, and test?
+
+**Class imbalance?** #flashcard
+addressed before training, not after?
+
+**Is domain knowledge incorporated?** #flashcard
+Is domain knowledge incorporated?
+
+**Are interaction terms or polynomial features needed?** #flashcard
+Are interaction terms or polynomial features needed?
+
+**Does feature importance analysis reveal irrelevant columns consuming capacity?** #flashcard
+Does feature importance analysis reveal irrelevant columns consuming capacity?
+
+**High training error + high validation error → high bias → increase capacity, reduce regularization?** #flashcard
+High training error + high validation error → high bias → increase capacity, reduce regularization
+
+**Low training error + high validation error → high variance → reduce capacity, increase regularization, collect more data?** #flashcard
+Low training error + high validation error → high variance → reduce capacity, increase regularization, collect more data
+
+**Learning rate?** #flashcard
+the most important hyperparameter; search it first
+
+**Regularization strength?** #flashcard
+Regularization strength
+
+**Architecture depth / width?** #flashcard
+Architecture depth / width
+
+**Quantization?** #flashcard
+Reduce weights from FP32 to INT8 or INT4. Large memory and latency reduction; small accuracy cost.
+
+**Pruning?** #flashcard
+Remove weights with small magnitude. Can be structured (entire neurons) or unstructured.
+
+**Knowledge distillation?** #flashcard
+Train a small student model to match the output distribution of the large teacher. The student is faster; it learns the teacher's soft probabilities, which contain more information than hard labels.
+
+**ONNX / TensorRT?** #flashcard
+Hardware-optimized inference runtimes.
+
+**Model accuracy / precision / recall (lagged; requires ground truth)?** #flashcard
+Model accuracy / precision / recall (lagged; requires ground truth)
+
+**Prediction score distribution?** #flashcard
+Prediction score distribution
+
+**Feature value distributions?** #flashcard
+Feature value distributions
+
+**Inference latency and throughput?** #flashcard
+Inference latency and throughput
+
+**Error rates?** #flashcard
+Error rates
+
+**Version control for code (Git)?** #flashcard
+Version control for code (Git)
+
+**Data versioning (DVC, Delta Lake)?** #flashcard
+Data versioning (DVC, Delta Lake)
+
+**Experiment tracking?** #flashcard
+log hyperparameters, metrics, and model artifacts (MLflow, Weights & Biases)
+
+**Containerize environments for reproducibility (Docker)?** #flashcard
+Containerize environments for reproducibility (Docker)
+
+**Set random seeds for all sources of stochasticity?** #flashcard
+Set random seeds for all sources of stochasticity
+
+**Transformers require positional encodings to represent sequence order, since attention itself is permutation-invariant.?** #flashcard
+Transformers require positional encodings to represent sequence order, since attention itself is permutation-invariant.
+
+**The O(N²) attention cost makes very long sequences expensive.?** #flashcard
+The O(N²) attention cost makes very long sequences expensive.
+
+**Transformers have no inductive bias for sequences the way RNNs do?** #flashcard
+they learn sequence structure from data, which requires more data.

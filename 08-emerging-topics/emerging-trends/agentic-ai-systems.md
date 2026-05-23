@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Agentic Ai Systems
+status: unread
+tags: [emergingtopics, ml, emerging-trends-agentic-ai-sys]
+---
 # Agentic AI Systems
 
 How AI agents actually work in production — from the core loop and memory architecture to multi-agent orchestration, tool use, and the failure modes that kill real deployments.
@@ -318,3 +325,14 @@ A: Orchestrator-worker architecture: (1) Triage agent reads the issue, classifie
 
 **Q: How do you handle an agent that keeps failing on a subtask and getting stuck in a retry loop?**
 A: Several layered defenses: (1) Exponential backoff with max retries (3-5 attempts, not infinite) — after max retries, emit a structured failure and let the orchestrator decide whether to try an alternative approach or fail gracefully. (2) Action deduplication — if the same (tool, params) pair appears twice in recent history, skip it and try something different (the same action is unlikely to succeed a second time without any change). (3) Diverse retry strategies — don't retry with identical input; modify the approach: different search query, different decomposition of the problem, different tool. (4) Failure escalation — after 3 failed retries on a subtask, escalate to the orchestrator with a summary of what was tried; the orchestrator can reassign to a different worker agent or request human guidance. (5) Timeout budgets — each subtask has a wall-clock time budget; exceeding it triggers graceful failure with partial results rather than running indefinitely.
+
+## Flashcards
+
+**Thought?** #flashcard
+what does it need and why
+
+**Action?** #flashcard
+tool call with structured parameters
+
+**Observation?** #flashcard
+tool result (grounded in reality)

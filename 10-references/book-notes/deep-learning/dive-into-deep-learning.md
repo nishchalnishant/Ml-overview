@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Deep Learning Dive Into Deep Learning
+status: unread
+tags: [references, ml, book-notes-deep-learning]
+---
 # Dive into Deep Learning
 
 ## Chapter 1: Introduction to Deep Learning
@@ -500,3 +507,389 @@ Collaborative filtering exploits the fact that users with similar past behavior 
 
 **What the book gets right / what to watch out for**
 Matrix factorization is the correct starting model for recommendation. Pure collaborative filtering fails at cold start — new users or items have no interactions. In production, a two-stage approach (recall → ranking) scales to billions of items: ANN search over embeddings retrieves candidates; a full feature model ranks them. Modern systems (YouTube, TikTok) use transformer-based sequential models that treat a user's history as a sequence.
+
+## Flashcards
+
+**Core components?** #flashcard
+data (raw input), model (function from input to prediction), objective function (measures error), optimization algorithm (adjusts parameters to reduce error)
+
+**Learning paradigms?** #flashcard
+supervised (labeled input→output pairs), unsupervised (structure in input alone), reinforcement (reward signal from environment)
+
+**Deep learning adds?** #flashcard
+automatic feature learning through stacked nonlinear transformations, gradient-based optimization over millions of parameters
+
+**Tensor creation?** #flashcard
+torch.zeros/ones/rand/randn, torch.tensor([...]), from_numpy()
+
+**Shape ops?** #flashcard
+.view(shape), .reshape(shape), .squeeze/unsqueeze, .permute(dims); .contiguous() required before .view() after .permute()
+
+**Autodiff?** #flashcard
+requires_grad=True on leaf tensors; operations recorded in computation graph; .backward() computes all gradients via chain rule in one reverse pass; torch.no_grad() disables tracking for inference
+
+**Probability?** #flashcard
+expectation E[X] = Σ x·P(X=x); variance Var[X] = E[(X-μ)²]; Bayes' theorem P(H|E) = P(E|H)P(H)/P(E); MLE = maximize log-likelihood over parameters
+
+**Model?** #flashcard
+ŷ = Xw + b; X is (n,d), w is (d,), b is scalar
+
+**MSE loss?** #flashcard
+L = ||Xw + b - y||² / n
+
+**Normal equations: w* = (XᵀX)⁻¹Xᵀy?** #flashcard
+exact but O(d³)
+
+**SGD update?** #flashcard
+w ← w - η·∇_w L; b ← b - η·∇_b L
+
+**With PyTorch?** #flashcard
+define nn.Linear(in, out), use nn.MSELoss(), torch.optim.SGD
+
+**Softmax?** #flashcard
+ŷ = softmax(Xw + b); output is a (n, C) probability matrix
+
+**Cross-entropy loss?** #flashcard
+L = -(1/n) Σᵢ log(ŷᵢ[yᵢ]); penalizes confident wrong predictions heavily
+
+**Gradient?** #flashcard
+∂L/∂o = ŷ - y_onehot (softmax + cross-entropy gradient is clean)
+
+**In PyTorch: nn.CrossEntropyLoss() takes raw logits (not softmax output)?** #flashcard
+it combines log-softmax and NLL internally for numerical stability
+
+**MLP?** #flashcard
+z₁ = σ(W₁x + b₁); z₂ = σ(W₂z₁ + b₂); ŷ = W₃z₂ + b₃
+
+**Activation functions?** #flashcard
+sigmoid σ(z) = 1/(1+e^-z) (saturates → vanishing gradients), tanh (zero-centered, still saturates), ReLU max(0,z) (non-saturating, fast, default), Leaky ReLU max(αz,z) (fixes dying ReLU), GELU (smooth approximation, used in transformers)
+
+**Vanishing gradients?** #flashcard
+sigmoid/tanh saturate → derivative ≈ 0 → gradients vanish in deep networks → use ReLU
+
+**Xavier initialization: Var[w] = 2/(fan_in + fan_out)?** #flashcard
+keeps variance stable across layers; critical for training deep networks
+
+**Dropout?** #flashcard
+h_dropped = h ⊙ Bernoulli(1-p) / (1-p) (inverted dropout, standard in PyTorch)
+
+**L2 weight decay?** #flashcard
+add λ||w||² to loss; equivalent to Gaussian prior on weights
+
+**Apply only during training?** #flashcard
+model.train() enables dropout; model.eval() disables it
+
+**Typical p=0.5 for FC layers; p=0.1-0.2 for conv layers?** #flashcard
+Typical p=0.5 for FC layers; p=0.1-0.2 for conv layers
+
+**Define?** #flashcard
+class MyModel(nn.Module): def __init__(self): super().__init__(); self.layer = nn.Linear(in, out)
+
+**model.parameters()?** #flashcard
+flat iterator for optimizer
+
+**model.state_dict()?** #flashcard
+save checkpoints; model.load_state_dict(state_dict, strict=False): load (partial) checkpoints
+
+**model.to(device)?** #flashcard
+move all parameters to GPU/CPU
+
+**nn.Sequential, nn.ModuleList, nn.ModuleDict?** #flashcard
+register collections of modules
+
+**Conv layer?** #flashcard
+output[i,j] = Σ_{k,l} filter[k,l] × input[i+k, j+l] + bias
+
+**Hyperparameters?** #flashcard
+kernel size (3×3 standard), stride (default 1), padding ('same' preserves spatial size), number of filters
+
+**Max pooling?** #flashcard
+takes max over 2×2 window, halves spatial dimensions
+
+**LeNet?** #flashcard
+Conv(1,6,5)→AvgPool→Conv(6,16,5)→AvgPool→Flatten→FC(400,120)→FC(120,84)→FC(84,10)
+
+**AlexNet?** #flashcard
+5 conv layers + 3 FC; ReLU activations; dropout 0.5 in FC; data augmentation
+
+**VGG block?** #flashcard
+[Conv(3×3, same padding) → ReLU] × 2-3 → MaxPool; 16 layers total
+
+**NiN (Network in Network): 1×1 convolutions as pointwise FC layers?** #flashcard
+reduces parameters, adds nonlinearity per-channel
+
+**GoogLeNet/Inception: parallel branches with 1×1, 3×3, 5×5 convolutions and max pooling; concatenate outputs?** #flashcard
+captures multi-scale features
+
+**BatchNorm?** #flashcard
+normalize each mini-batch to zero mean unit variance per channel; trainable γ, β; stabilizes training, allows higher LR; place after linear/conv, before activation
+
+**ResNet block?** #flashcard
+y = F(x, {W}) + x; if dimensions mismatch, use 1×1 conv shortcut
+
+**DenseNet?** #flashcard
+each layer connected to all subsequent layers; x_l = H_l([x_0, x_1, ..., x_{l-1}]); maximizes gradient flow, parameter-efficient
+
+**RNN?** #flashcard
+hₜ = tanh(Wₓhxₜ + Wₕₕhₜ₋₁ + b); output: ŷₜ = Whyₕₜ
+
+**LSTM?** #flashcard
+fₜ = σ(Wf·[hₜ₋₁,xₜ]+bf); iₜ = σ(Wi·[hₜ₋₁,xₜ]+bi); cₜ = fₜ⊙cₜ₋₁ + iₜ⊙tanh(Wc·[hₜ₋₁,xₜ]); oₜ = σ(Wo·[hₜ₋₁,xₜ]+bo); hₜ = oₜ⊙tanh(cₜ)
+
+**GRU?** #flashcard
+rₜ (reset gate), zₜ (update gate); hₜ = zₜ⊙hₜ₋₁ + (1-zₜ)⊙tanh(W·[rₜ⊙hₜ₋₁,xₜ])
+
+**Backprop through time (BPTT): unroll T steps, apply chain rule?** #flashcard
+gradients vanish/explode for large T
+
+**Gradient clipping: if ||g|| > threshold, g ← g × threshold/||g||?** #flashcard
+prevents gradient explosion
+
+**Language model perplexity: exp(cross-entropy loss)?** #flashcard
+measures how surprised the model is by test text; lower is better
+
+**seq2seq?** #flashcard
+encoder RNN produces context vector from input; decoder RNN generates output token by token
+
+**Beam search?** #flashcard
+keep top-k hypotheses at each decoding step; k=1 is greedy, k=∞ is exhaustive; k=4-10 is typical
+
+**Bahdanau attention?** #flashcard
+score(hₜ, hs) = vᵀ tanh(W₁hₜ + W₂hs); αₜₛ = softmax(scores); context cₜ = Σs αₜₛ hs
+
+**Scaled dot-product attention?** #flashcard
+A = softmax(QKᵀ/√d_k)·V; scaling prevents softmax saturation in high dimensions
+
+**Multi-head attention?** #flashcard
+h heads with d_k = d_model/h; concatenate outputs and project with W_O
+
+**Causal mask (GPT): set upper-triangle of QKᵀ to -∞ before softmax?** #flashcard
+prevents attending to future tokens
+
+**Positional encoding?** #flashcard
+since attention is permutation-invariant, inject position information; sinusoidal: PE(pos,2i) = sin(pos/10000^(2i/d)); learned positional embeddings (GPT) are equally common
+
+**Transformer encoder block?** #flashcard
+LayerNorm → MultiHeadAttention → residual + LayerNorm → FFN → residual
+
+**Pre-LayerNorm (GPT-style): LayerNorm before each sublayer?** #flashcard
+more training-stable than original Post-LN
+
+**FFN: Linear(d_model, 4×d_model) → GELU → Linear(4×d_model, d_model)?** #flashcard
+4× expansion, independent per-token
+
+**Patch embedding?** #flashcard
+divide H×W image into (H/P)×(W/P) patches of size P×P; flatten to P²×C; project to d_model via linear layer
+
+**Add learned positional embedding to each patch token?** #flashcard
+Add learned positional embedding to each patch token
+
+**[CLS] token?** #flashcard
+prepended; its final hidden state used for classification
+
+**Standard transformer encoder blocks follow?** #flashcard
+Standard transformer encoder blocks follow
+
+**ViT-Base?** #flashcard
+d_model=768, 12 heads, 12 layers; ViT-Large: d_model=1024, 16 heads, 24 layers
+
+**BERT masked LM?** #flashcard
+randomly mask 15% of tokens; predict original tokens from context (bidirectional)
+
+**NSP?** #flashcard
+predict whether sentence B follows sentence A (less useful in practice, dropped in RoBERTa)
+
+**Fine-tuning BERT?** #flashcard
+add task-specific head on [CLS] token; fine-tune all parameters on labeled examples
+
+**GPT?** #flashcard
+autoregressive LM; left-to-right context only; fine-tune by prompting or adding classification head on last token
+
+**T5?** #flashcard
+both input and target are text; unifies summarization, translation, QA into one format
+
+**Batch GD: gradient over full dataset?** #flashcard
+exact but O(n) per step; impractical
+
+**Mini-batch SGD?** #flashcard
+gradient over B examples (B=32–256 typical); parallelizable; noise acts as regularization
+
+**Momentum?** #flashcard
+vₜ = γvₜ₋₁ + η∇L; θ ← θ - vₜ; γ=0.9 typical
+
+**Adagrad: gₜ accumulates squared gradients; η_i = η/√(Gᵢᵢ+ε)?** #flashcard
+adapts per parameter; aggressive decay for frequent features
+
+**RMSProp: Eₜ = ρEₜ₋₁ + (1-ρ)gₜ²; η_i = η/√(Eₜ+ε)?** #flashcard
+fixes Adagrad's monotonically decreasing LR
+
+**Adam?** #flashcard
+first moment mₜ = β₁mₜ₋₁ + (1-β₁)gₜ; second moment vₜ = β₂vₜ₋₁ + (1-β₂)gₜ²; bias-corrected: m̂ₜ, v̂ₜ; θ ← θ - η·m̂ₜ/(√v̂ₜ+ε); defaults: β₁=0.9, β₂=0.999, ε=1e-8
+
+**AdamW: decouple weight decay from adaptive gradient update?** #flashcard
+use for modern LLM training
+
+**LR scheduling?** #flashcard
+step decay, cosine annealing (η follows cosine curve), warm restarts; linear warmup for the first 2% of training steps prevents instability
+
+**Hybrid programming?** #flashcard
+torch.jit.script compiles Python control flow to TorchScript for optimization; torch.compile (PyTorch 2.0) provides static-graph speedup while keeping dynamic semantics
+
+**Mixed precision: torch.autocast('cuda', dtype=torch.float16)?** #flashcard
+forward/backward in FP16; optimizer step in FP32; BF16 preferred for training stability (same range as FP32, less precision)
+
+**Data parallelism?** #flashcard
+replicate model on each GPU; each GPU processes different data shard; ring-allreduce synchronizes gradients without a central parameter server
+
+**torch.nn.parallel.DistributedDataParallel (DDP)?** #flashcard
+the standard multi-GPU training wrapper; scales linearly with number of GPUs
+
+**Geometric augmentation?** #flashcard
+random horizontal/vertical flip, rotation (±30°), random crop and resize
+
+**Intensity augmentation?** #flashcard
+color jitter (brightness ±20%, contrast ±20%, saturation, hue), Gaussian blur, grayscale
+
+**Modern augmentations?** #flashcard
+MixUp (blend two images linearly, blend labels accordingly), CutMix (paste rectangular crop from one image into another)
+
+**Apply augmentation only during training?** #flashcard
+never on validation/test
+
+**Transfer learning?** #flashcard
+load ImageNet weights; replace final FC layer for new task; freeze backbone initially; optionally unfreeze and fine-tune at lower LR (1/10th of head LR)
+
+**Bounding box?** #flashcard
+(x_center, y_center, width, height) normalized to [0,1] relative to image size
+
+**IoU (Intersection over Union)?** #flashcard
+IoU = area(A∩B) / area(A∪B); used for anchor assignment and NMS threshold
+
+**Anchor assignment?** #flashcard
+IoU > 0.5 → positive; IoU < 0.3 → negative; 0.3–0.5 → ignored
+
+**NMS?** #flashcard
+sort boxes by confidence; iteratively remove boxes with IoU > threshold with higher-confidence box
+
+**SSD (Single Shot MultiBox Detector)?** #flashcard
+predict from multiple feature map scales; fast, single-stage
+
+**R-CNN family?** #flashcard
+Region Proposal Network (RPN) generates candidate regions; separate branch classifies and refines each → more accurate but slower than single-stage
+
+**FCN?** #flashcard
+replace FC with 1×1 Conv; output is H×W×C feature map; bilinear upsample to input resolution
+
+**Transposed convolution?** #flashcard
+learnable upsampling with stride > 1; opposite of strided convolution
+
+**U-Net?** #flashcard
+encoder (Conv→MaxPool ×4, halves spatial, doubles channels); bottleneck; decoder (Upsample→Conv ×4); skip connections concatenate encoder features to decoder at each scale
+
+**Dice loss?** #flashcard
+L = 1 - (2×|P∩T|) / (|P|+|T|); handles class imbalance; background pixels don't dominate the loss
+
+**BCE + Dice combined?** #flashcard
+BCE penalizes individual pixels; Dice penalizes structural overlap
+
+**Skip-gram?** #flashcard
+maximize P(context|target) = softmax(uᵀ_context · v_target)
+
+**Negative sampling: instead of softmax over full vocabulary, maximize P(positive pair) while minimizing P(K negative pairs)?** #flashcard
+reduces training cost from O(V) to O(K)
+
+**GloVe?** #flashcard
+minimize Σᵢⱼ f(Xᵢⱼ)(wᵢᵀw̃ⱼ + bᵢ + b̃ⱼ - log Xᵢⱼ)²; Xᵢⱼ is co-occurrence count
+
+**fastText?** #flashcard
+represent word as sum of character n-gram embeddings; handles OOV and morphology
+
+**BPE (Byte Pair Encoding)?** #flashcard
+start with character vocabulary; iteratively merge most frequent adjacent pair; handles arbitrary input without OOV
+
+**BERT?** #flashcard
+bidirectional transformer; pretrain with masked LM (predict 15% masked tokens) + NSP; fine-tune with task-specific head
+
+**Sentiment analysis?** #flashcard
+[CLS] → Linear(d, 2) → softmax; fine-tune with labeled sentiment examples
+
+**NLI (Natural Language Inference)?** #flashcard
+encode [CLS, premise, SEP, hypothesis, SEP]; classify as entailment/contradiction/neutral
+
+**RNN-based sentiment?** #flashcard
+apply Bi-LSTM to token embeddings; concatenate final forward/backward hidden states → classify
+
+**CNN-based sentiment?** #flashcard
+1D conv with multiple kernel sizes (2,3,4 n-grams); max-over-time pooling → classify
+
+**Machine translation?** #flashcard
+encoder-decoder with attention; beam search decoding
+
+**MDP?** #flashcard
+V(s) = max_a Σs' P(s'|s,a)[R(s,a,s') + γV(s')]; discount γ ∈ [0,1)
+
+**Value iteration?** #flashcard
+initialize V(s) = 0; repeat V(s) ← max_a Σs' P(s'|s,a)[R + γV(s')] until convergence
+
+**Q-learning?** #flashcard
+Q(s,a) ← Q(s,a) + α[r + γ max_a' Q(s',a') - Q(s,a)]; off-policy, model-free
+
+**Deep Q-Network (DQN)?** #flashcard
+parameterize Q(s,a;θ) with CNN; experience replay buffer; target network for stability
+
+**RBF kernel?** #flashcard
+k(x,x') = σ² exp(-||x-x'||²/(2l²)); l controls smoothness, σ² controls scale
+
+**GP inference?** #flashcard
+mean μ(x) = K(x,x)[K(x,x)+σ²I]⁻¹y; variance σ²(x) = K(x,x) - K(x,x)[K(x,x)+σ²I]⁻¹K(x,x*)
+
+**Prediction?** #flashcard
+returns μ(x) ± 2σ(x) for 95% credible interval
+
+**GPyTorch?** #flashcard
+scalable GP implementation with GPU support; ExactGP for exact inference; ApproximateGP for large datasets
+
+**Grid search: O(k^d) evaluations for k values per d hyperparameters?** #flashcard
+exponential, impractical beyond d=3
+
+**Random search?** #flashcard
+sample each hyperparameter independently; covers each dimension in O(n) evaluations
+
+**Bayesian optimization?** #flashcard
+surrogate (GP) + acquisition (expected improvement, UCB); updates surrogate with each observation; scales to ~50 hyperparameters
+
+**Successive halving?** #flashcard
+start n configs at minimum budget; keep top half; double budget; repeat until one remains
+
+**Async Hyperband?** #flashcard
+runs successive halving in parallel with different random seeds; accounts for variance in early stopping
+
+**Minimax objective?** #flashcard
+min_G max_D E[log D(x)] + E[log(1-D(G(z)))]
+
+**Generator loss?** #flashcard
+-E[log D(G(z))] (non-saturating; provides stronger gradient when G is weak)
+
+**DCGAN?** #flashcard
+Generator: FC → Reshape → ConvTranspose × 4 → Tanh output; Discriminator: Conv × 4 with LeakyReLU → FC → Sigmoid
+
+**Mode collapse?** #flashcard
+G produces few sample types that fool D; mitigated by Wasserstein loss (Earth Mover's distance), spectral normalization, progressive growing
+
+**Neural style transfer?** #flashcard
+extract content features from content image; extract style features (Gram matrices) from style image; optimize input image to minimize combined loss
+
+**Collaborative filtering?** #flashcard
+find similar users, recommend items they liked; or find similar items, recommend items similar to those the user liked
+
+**Matrix factorization?** #flashcard
+minimize Σ(rᵢⱼ - uᵢᵀvⱼ)² over observed ratings; add bias terms; regularize with L2
+
+**Implicit feedback: clicks/views don't mean positive preference?** #flashcard
+reframe as binary classification with confidence weighting
+
+**Context-aware?** #flashcard
+incorporate user context (time, device, location) as additional features
+
+**Content-based?** #flashcard
+use item features (genre, text description) as item embeddings; handles cold-start for new items

@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: End To End Recommendation System
+status: unread
+tags: [productionml, ml, system-design-end-to-end-recom]
+---
 # End-to-End Recommendation System Design
 
 **Scale:** 100M users, 10M items, <100ms P99 latency, 1M QPS peak
@@ -342,3 +349,47 @@ A: (1) Content features prevent zero-shot cold start — item tower uses text/im
 
 **Q: Should your retrieval model and ranking model share embeddings?**  
 A: Generally no. Retrieval optimizes for recall (do I get good candidates?), ranking optimizes for precision (which candidate is best?). Different objectives → different representation optima. Exception: parameter-efficient scenarios where a shared backbone is fine-tuned with separate heads — acceptable when model size is constrained.
+
+## Flashcards
+
+**Explicit vs implicit feedback? (ratings vs clicks/watch-time)?** #flashcard
+Explicit vs implicit feedback? (ratings vs clicks/watch-time)
+
+**Real-time vs batch? (feed refresh on scroll vs daily email)?** #flashcard
+Real-time vs batch? (feed refresh on scroll vs daily email)
+
+**Cold start exposure? (new user, new item SLA)?** #flashcard
+Cold start exposure? (new user, new item SLA)
+
+**Business objective? (engagement, revenue, diversity, safety)?** #flashcard
+Business objective? (engagement, revenue, diversity, safety)
+
+**Feedback loop risk? (filter bubbles, popularity bias)?** #flashcard
+Feedback loop risk? (filter bubbles, popularity bias)
+
+**Offline?** #flashcard
+embed all 10M items → build FAISS IndexIVFPQ (IVF: 4096 cells, PQ: M=64 subspaces, 8 bits)
+
+**Query time?** #flashcard
+probe 128 cells → ~1M distance computations, ~2ms on CPU
+
+**Alternatives?** #flashcard
+ScaNN (Google), Milvus (distributed), Pinecone (managed)
+
+**Diversity?** #flashcard
+Maximal Marginal Relevance (MMR): rerank greedily penalizing similarity to already-selected items
+
+**Freshness?** #flashcard
+boost items < 24h old by factor λ
+
+**Safety?** #flashcard
+hard-remove policy-violating items
+
+**Exploration?** #flashcard
+ε-greedy or UCB slot (1 in 20 positions is exploration)
+
+**Team-draft interleaving?** #flashcard
+rank A and B independently, interleave top-k alternating
+
+**Outcome?** #flashcard
+which list's items got more clicks? 10× more sensitive than standard A/B for ranking

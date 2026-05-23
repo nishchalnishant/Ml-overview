@@ -1,3 +1,10 @@
+---
+module: ml-overview
+topic: Flowcharts
+subtopic: ""
+status: unread
+tags: [mloverviewroot, ml, flowcharts]
+---
 # ML Overview — Topic Flowcharts for Recall
 
 > One flowchart per topic area. Each node = concept. Arrow = "leads to" or "causes" or "is part of".
@@ -1197,9 +1204,143 @@ Probabilistic & Optimization Theory
 
 ---
 
-## PART 12 — MULTIMODAL MODELS
+## PART 12 — EMERGING TRENDS
 
-### 12.1 Vision-Language Models
+### 12.1 State Space Models
+
+```
+STATE SPACE MODELS
+│
+├── S4 (Structured State Space)
+│   ├── continuous-time SSM → xₜ' = Axₜ + Buₜ, yₜ = Cxₜ + Duₜ → state space ODE
+│   ├── HiPPO matrix → initializes A for long-range memory → polynomial projection
+│   └── O(N log N) via convolution → convolve input with learned kernel → parallelizable
+│
+├── Mamba (Selective SSM)
+│   ├── input-dependent SSM → A, B, C, Δ depend on input xₜ → selectivity
+│   ├── hardware-aware algorithm → parallel scan in SRAM → avoids materializing state
+│   ├── O(N) recurrent inference → O(N log N) parallel training → best of both worlds
+│   └── outperforms Transformer on language at equal params up to ~1B scale
+│
+└── Hybrid Mamba-Transformer
+    ├── interleave SSM layers + attention layers → capture local + global patterns
+    └── examples: Jamba, Zamba → better efficiency at long context than pure Transformer
+```
+
+### 12.2 Large Reasoning Models
+
+```
+LARGE REASONING MODELS
+│
+├── Test-Time Compute Scaling
+│   ├── chain-of-thought (CoT) → generate intermediate reasoning steps → improves accuracy
+│   ├── Best-of-N → sample N responses → pick best per reward model → exploits stochasticity
+│   ├── MCTS for LLMs → tree search over reasoning paths → process reward at each node
+│   └── key insight: more compute at inference ↔ better accuracy (orthogonal to model size)
+│
+├── Process Reward Models (PRMs)
+│   ├── score each reasoning step → step-level reward → not just final answer
+│   └── ORM (outcome) vs PRM → PRM better at catching early errors → more credit assignment
+│
+├── DeepSeek-R1
+│   ├── trained via GRPO with verifiable rewards → math + code → no human preference labels
+│   ├── emergent self-reflection → "aha moments" → model learns to revise reasoning chains
+│   └── long CoT at inference → extended thinking budget → o1-comparable benchmark scores
+│
+└── OpenAI o1/o3 Style
+    ├── extended thinking → hidden reasoning chain before final answer
+    └── MCTS + PRM → search over reasoning tree → select best path
+```
+
+### 12.3 Agentic AI Systems
+
+```
+AGENTIC AI SYSTEMS
+│
+├── Core Loop
+│   └── observe → think → act → observe → repeat → ReAct pattern
+│
+├── Tool Use
+│   ├── function calling → structured JSON tool invocation → model outputs schema-valid call
+│   ├── code interpreter → execute Python, handle outputs → sandboxed runtime
+│   └── web search, calculator, APIs → extend LLM with real-world grounding
+│
+├── Planning Paradigms
+│   ├── ReAct → interleaved Thought + Action + Observation → trace visible to model
+│   ├── Plan-and-Execute → separate planner + executor → replanning on failure
+│   └── Tree of Thoughts → explore multiple reasoning branches → BFS/DFS over thought space
+│
+├── Memory Systems
+│   ├── in-context → conversation history, retrieved docs → limited by context window
+│   ├── external → vector store, key-value → persistent across sessions → RAG-based recall
+│   └── parametric → fine-tuned into weights → implicit, hard to update
+│
+└── Multi-Agent Coordination
+    ├── role specialization → planner, coder, critic, executor agents → division of labor
+    ├── debate / critic → agents critique each other → improve answer quality
+    └── evaluation challenges → no ground truth for open-ended tasks → LLM-as-Judge
+```
+
+### 12.4 Advanced RAG & Memory
+
+```
+ADVANCED RAG
+│
+├── Retrieval Improvements
+│   ├── HyDE → hypothetical document embeddings → generate fake answer, embed, retrieve similar
+│   ├── FLARE → forward-looking active retrieval → retrieve only when uncertain mid-generation
+│   └── GraphRAG → build knowledge graph from corpus → entity + community-level retrieval
+│
+├── Reranking
+│   ├── two-stage → fast ANN retrieval (bi-encoder) → rerank with cross-encoder → quality/speed tradeoff
+│   └── Cohere Rerank / ColBERT → per-token interaction → more precise than bi-encoder similarity
+│
+├── Chunking Strategies
+│   ├── fixed-size → simple, ignores semantics → overlapping windows reduce boundary artifacts
+│   ├── semantic → split at sentence/paragraph boundaries → better coherence
+│   └── hierarchical → summary + chunk tree → retrieve at multiple granularities
+│
+└── Evaluation
+    ├── RAGAS → faithfulness + answer relevancy + context precision + recall → automated LLM eval
+    └── hallucination rate → fraction of claims not grounded in retrieved context
+```
+
+### 12.5 Frontier Models (2025)
+
+```
+FRONTIER MODELS 2025
+│
+├── OpenAI
+│   ├── GPT-4o → native multimodal (text+image+audio+video) → unified token stream
+│   └── o1/o3 → extended thinking via hidden CoT → MCTS + PRM search
+│
+├── Anthropic
+│   ├── Claude 3.x (Haiku/Sonnet/Opus) → constitutional AI, extended context
+│   └── Claude 4.x (Haiku 4.5, Sonnet 4.6, Opus 4.7) → latest generation, improved reasoning
+│
+├── Google DeepMind
+│   ├── Gemini 1.5/2.0 → 1M+ token context, native multimodal → mixture of experts backbone
+│   └── Gemma → open-weight efficient models → 2B/7B/27B variants
+│
+├── Meta
+│   └── Llama 3 → open-weight → 8B/70B/405B → GQA, extended vocab, long context
+│
+├── Mistral / DeepSeek
+│   ├── Mistral-7B/Mixtral-8×7B → sliding window + MoE → efficient inference
+│   └── DeepSeek-R1 → open reasoning model → GRPO training → o1-competitive
+│
+└── Key 2025 Trends
+    ├── reasoning models (o1/R1 style) → test-time compute scaling → new capability axis
+    ├── native multimodality → not bolted-on → joint pretraining across modalities
+    ├── long context (1M+ tokens) → full document / codebase in context → retrieval less critical
+    └── small + capable (SLMs) → Phi-3, Gemma → on-device, edge deployment
+```
+
+---
+
+## PART 13 — MULTIMODAL MODELS
+
+### 13.1 Vision-Language Models
 
 ```
 VISION-LANGUAGE MODELS
@@ -1233,7 +1374,7 @@ VISION-LANGUAGE MODELS
     └── token types: text, image patches, audio, video → unified sequence → single Transformer
 ```
 
-### 12.2 Multimodal Training Paradigms
+### 13.2 Multimodal Training Paradigms
 
 ```
 MULTIMODAL TRAINING PARADIGMS
@@ -1258,4 +1399,178 @@ MULTIMODAL TRAINING PARADIGMS
     ├── MMMU → multi-discipline university-level multimodal reasoning → 11.5K questions
     ├── MMBench → structured capability evaluation across 20 dimensions → GPT-4 judged
     └── SeedBench → 19K QA pairs across image + video understanding → 12 capability dimensions
+```
+
+---
+
+## PART 14 — DATA SCIENTIST
+
+### 14.1 Statistics & Probability
+
+```
+STATISTICS & PROBABILITY
+│
+├── Distributions
+│   ├── Normal → CLT basis → mean + variance fully characterize → N(μ, σ²)
+│   ├── Binomial → n Bernoulli trials → P(X=k) = C(n,k)pᵏ(1-p)^(n-k)
+│   ├── Poisson → rare events per interval → P(X=k) = λᵏe^{-λ}/k! → mean = variance = λ
+│   └── t-distribution → heavy tails, small samples → degrees of freedom ν → converges to N as ν→∞
+│
+├── Hypothesis Testing
+│   ├── null hypothesis H₀ → assume no effect → reject if p-value < α
+│   ├── p-value → P(data ≥ observed | H₀) → not probability H₀ is true
+│   ├── Type I error (α) → false positive → reject H₀ when true → controlled by significance level
+│   ├── Type II error (β) → false negative → fail to reject H₀ when false → 1-β = power
+│   └── t-test → compare means → one-sample, two-sample, paired → assumes Normality (or large N)
+│
+├── Confidence Intervals
+│   ├── x̄ ± z·(σ/√n) → 95% CI → z=1.96 for two-tailed → repeated sampling interpretation
+│   └── NOT: 95% probability true mean is in this interval → frequentist construction
+│
+└── Effect Size
+    ├── Cohen's d → (μ₁ - μ₂) / σ_pooled → 0.2 small, 0.5 medium, 0.8 large
+    └── separates practical from statistical significance → large N → tiny Δ is significant
+```
+
+### 14.2 A/B Testing & Experimentation
+
+```
+A/B TESTING
+│
+├── Design
+│   ├── randomization unit → user, session, device → choose to avoid network effects
+│   ├── sample size → n = 2·(z_α/2 + z_β)²·σ²/δ² → MDE δ determines cost
+│   └── pre-experiment analysis → check balance, set guardrail metrics
+│
+├── Running
+│   ├── avoid peeking → inflates Type I error → use sequential testing or fixed horizon
+│   ├── novelty effect → initial engagement spike → run ≥ 1-2 weeks → wait for washout
+│   └── network effects → SUTVA violation → switched randomization or cluster assignment
+│
+├── Analysis
+│   ├── z-test / t-test → metric is mean → assumes CLT for large N
+│   ├── bootstrap → non-parametric CI → resample with replacement → 10K iterations
+│   ├── ratio metrics → delta method → Var(Y/X) ≈ Var(Y)/μ_X² - 2·Cov/μ_X³ + ...
+│   └── multiple testing → Bonferroni / BH correction → FWER vs FDR control
+│
+├── Common Pitfalls
+│   ├── peeking at results early → inflated false positives → pre-commit to n
+│   ├── survivor bias → only analyze active users at end → include all exposed at start
+│   ├── Simpson's paradox → aggregate reversal → stratify by segment
+│   └── carryover effects → user remembers treatment → washout period between experiments
+│
+└── Advanced
+    ├── CUPED → reduce variance via pre-experiment covariate → θ̂ = ȳ - θ·(x̄ - E[x])
+    ├── stratified sampling → reduce variance by pre-stratification → Neyman allocation
+    └── interleaving → position-debiased ranking comparison → implicit comparison > A/B for rankers
+```
+
+### 14.3 Causal Inference
+
+```
+CAUSAL INFERENCE
+│
+├── Potential Outcomes (Rubin Framework)
+│   ├── Y(1), Y(0) → treated / untreated potential outcomes → only one observed per unit
+│   ├── ATE → E[Y(1) - Y(0)] → average treatment effect → population-level causal estimate
+│   └── SUTVA → no interference between units, single treatment version → often violated
+│
+├── DAGs (Structural Causal Models)
+│   ├── nodes = variables, edges = causal direction → d-separation → conditional independence
+│   ├── backdoor criterion → block all confounding paths → select valid adjustment set
+│   └── do-calculus → P(Y|do(X)) ≠ P(Y|X) → intervention vs observation
+│
+├── Estimation Methods
+│   ├── OLS with controls → unbiased if no unmeasured confounders → conditional ignorability
+│   ├── Propensity Score Matching → balance covariates across groups → e(X) = P(T=1|X)
+│   │   ├── IPW → reweight by 1/e(X) → creates pseudo-population → stabilized weights
+│   │   └── matching → nearest neighbor on e(X) → reduces covariate imbalance
+│   ├── DiD (Difference-in-Differences)
+│   │   ├── parallel trends assumption → pre-trends test → event study plot
+│   │   └── DiD = (Ȳ_T,post - Ȳ_T,pre) - (Ȳ_C,post - Ȳ_C,pre)
+│   └── Instrumental Variables (IV)
+│       ├── instrument Z → affects treatment but not outcome directly → exclusion restriction
+│       └── 2SLS → first stage: T̂ = α + γZ → second stage: Y = β + δT̂ → LATE estimate
+│
+└── Uplift Modeling
+    ├── estimate CATE → τ(x) = E[Y(1)-Y(0)|X=x] → individual causal effect
+    ├── T-learner → separate model per treatment group → subtract predictions
+    └── X-learner → iterative CATE estimation → better for unbalanced treatment
+```
+
+### 14.4 EDA & Data Quality
+
+```
+EDA & DATA QUALITY
+│
+├── Univariate Analysis
+│   ├── numeric → histogram, boxplot, KDE → check skewness, kurtosis, outliers
+│   └── categorical → bar chart, frequency table → cardinality, imbalance
+│
+├── Bivariate Analysis
+│   ├── numeric-numeric → scatter + Pearson/Spearman correlation → linear vs monotone
+│   ├── numeric-categorical → violin/box per group → ANOVA F-test for differences
+│   └── categorical-categorical → heatmap of crosstab proportions → chi² test of independence
+│
+├── Multivariate
+│   ├── pairplot → all variable pairs simultaneously → color by target → identify separability
+│   └── VIF (Variance Inflation Factor) → detect multicollinearity → VIF > 10 is problematic
+│
+└── Data Quality Checks
+    ├── missingness → MCAR / MAR / MNAR → missingness pattern matters for imputation choice
+    ├── outliers → Z-score > 3, IQR rule, isolation forest → domain context required
+    ├── duplicates → exact + near-duplicates → Levenshtein for text, hash for rows
+    └── distribution shift → compare train vs prod → PSI per feature → flag before retraining
+```
+
+### 14.5 Metrics & Business Analytics
+
+```
+METRICS & BUSINESS ANALYTICS
+│
+├── North Star Metric
+│   └── single metric capturing core product value → DAU, GMV, NPS → aligns teams
+│
+├── Metric Decomposition
+│   ├── revenue = users × conversion × ARPU → isolate which lever is moving
+│   └── funnel → impressions → clicks → signups → activations → retention
+│
+├── Cohort Analysis
+│   ├── group users by join date → track retention over time → triangular retention matrix
+│   └── identify vintage effects → newer cohorts performing differently → product changes
+│
+├── Customer Metrics
+│   ├── LTV → Σ(margin × retention^t) → discount rate → LTV/CAC > 3 rule of thumb
+│   ├── churn rate → 1 - retention → monthly vs annual → compounding matters
+│   └── NPS → % promoters − % detractors → scale -100 to +100
+│
+└── Metric Pitfalls
+    ├── Goodhart's Law → measure becomes the target → optimize proxy, miss true goal
+    ├── Simpson's Paradox → aggregate trend reversed when disaggregated → stratify always
+    └── survivorship bias → only see successful examples → include churned users in analysis
+```
+
+### 14.6 SQL & Data Manipulation
+
+```
+SQL PATTERNS FOR DATA SCIENCE
+│
+├── Window Functions
+│   ├── ROW_NUMBER() / RANK() / DENSE_RANK() → ranking within partition
+│   ├── LAG() / LEAD() → access previous/next row → session gap detection
+│   └── SUM() OVER (PARTITION BY ... ORDER BY ... ROWS BETWEEN ...) → running totals
+│
+├── Cohort Queries
+│   └── JOIN users on first_event date → group by cohort_month → pivot on period offset
+│
+├── Funnel Analysis
+│   └── COUNT(DISTINCT user_id) at each step → LEFT JOIN steps → calculate drop-off %
+│
+├── Session Construction
+│   └── LAG(event_time) → gap > 30min → new session → CONDITIONAL_COUNT pattern
+│
+└── Performance
+    ├── avoid SELECT * → project only needed columns → reduce IO
+    ├── predicate pushdown → filter early → use WHERE not HAVING when possible
+    └── partition pruning → filter on partition column → avoid full table scan
 ```

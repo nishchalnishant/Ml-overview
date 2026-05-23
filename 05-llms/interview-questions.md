@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Questions
+subtopic: ""
+status: unread
+tags: [llms, ml, interview-questions]
+---
 # LLM Interview Questions — First-Principles Structure
 
 Each question is structured as:
@@ -256,3 +263,188 @@ Enumerate the intervention points:
 - Confusing tensor parallelism and pipeline parallelism — they have fundamentally different communication patterns and latency profiles.
 - Not knowing the practical numbers: a 70B model in fp16 is ~140GB. In int8 it's ~70GB. In 4-bit it's ~35GB. These numbers should be recalled without calculation.
 - Forgetting that quantization affects activation memory and KV cache in addition to weight memory. Full memory footprint is not just the weights.
+
+## Flashcards
+
+**What the interviewer is testing?** #flashcard
+What the interviewer is testing
+
+**The reasoning structure a first-principles thinker uses?** #flashcard
+The reasoning structure a first-principles thinker uses
+
+**Common traps?** #flashcard
+Common traps
+
+**Saying "KV Cache speeds things up" without explaining what it avoids recomputing and why that computation was redundant.?** #flashcard
+Saying "KV Cache speeds things up" without explaining what it avoids recomputing and why that computation was redundant.
+
+**Forgetting the memory cost. The interviewer may follow up?** #flashcard
+"What happens when the KV cache fills up?" The answer: eviction strategies (sliding window), or the context window limit is a hard constraint imposed by available VRAM, not just model design.
+
+**Conflating the KV cache (inference optimization) with model checkpointing (training) or gradient caching.?** #flashcard
+Conflating the KV cache (inference optimization) with model checkpointing (training) or gradient caching.
+
+**Memorizing "prevents large values" without connecting it to gradient behavior during training.?** #flashcard
+Memorizing "prevents large values" without connecting it to gradient behavior during training.
+
+**Saying the scaling "helps the model focus on fewer tokens"?** #flashcard
+this confuses the effect of Softmax saturation (attention collapse to one token) with the cause (large pre-softmax values).
+
+**Missing the √?** #flashcard
+some candidates say "divide by d_k" (which would over-correct).
+
+**W_effective = W_0 + BA where B is (d × r) and A is (r × d), r << d.?** #flashcard
+W_effective = W_0 + BA where B is (d × r) and A is (r × d), r << d.
+
+**The frozen original weights remain unchanged. The adapter is additive.?** #flashcard
+The frozen original weights remain unchanged. The adapter is additive.
+
+**Effect on context window?** #flashcard
+zero. LoRA does not consume any input token positions.
+
+**The adapter can be added and removed without changing the model's architecture.?** #flashcard
+The adapter can be added and removed without changing the model's architecture.
+
+**These virtual tokens are not real input tokens?** #flashcard
+they are learned parameters that act as soft conditioning.
+
+**Effect on context window?** #flashcard
+the prefix tokens occupy positions at the start of every layer's K and V. Effectively reduces the usable input length by the prefix length.
+
+**For a prefix of length 20 with a 2048 context model?** #flashcard
+2028 tokens available for actual input.
+
+**LoRA?** #flashcard
+tasks requiring new capabilities or domain adaptation. No context window penalty.
+
+**Prefix-Tuning?** #flashcard
+tasks where "style" or "persona" conditioning is the primary need. Small number of trainable parameters.
+
+**Describing Prefix-Tuning as "prepending tokens to the input"?** #flashcard
+the prefix is injected at every layer's K and V, not just the input embedding layer.
+
+**Claiming LoRA "changes the architecture"?** #flashcard
+it does not. The adapter weights are summed with the original weights at inference, resulting in a standard-shaped weight matrix.
+
+**Missing the context window trade-off of Prefix-Tuning entirely.?** #flashcard
+Missing the context window trade-off of Prefix-Tuning entirely.
+
+**Low learning rate (1e-5 to 3e-5)?** #flashcard
+small gradient steps minimize overwriting of pre-trained representations.
+
+**PEFT (LoRA): by freezing the original weights entirely and training only adapter parameters, the pre-trained knowledge is structurally preserved. Forgetting requires actually updating weights that encode prior knowledge?** #flashcard
+LoRA does not touch them.
+
+**Experience replay?** #flashcard
+mix a small fraction (5-15%) of general pre-training data into the fine-tuning batch. The model continues to receive gradient signal to maintain general capabilities.
+
+**Track a held-out "general capability" evaluation set. Stop training if the general score drops more than an acceptable threshold (e.g., 5 percentage points below baseline).?** #flashcard
+Track a held-out "general capability" evaluation set. Stop training if the general score drops more than an acceptable threshold (e.g., 5 percentage points below baseline).
+
+**Treating forgetting as a bug to be debugged rather than an inherent tension in neural learning.?** #flashcard
+Treating forgetting as a bug to be debugged rather than an inherent tension in neural learning.
+
+**Claiming "use a larger model"?** #flashcard
+parameter count does not prevent forgetting; it may reduce its severity, but the mechanism is the same.
+
+**Forgetting that PEFT is the most practically effective mitigation for fine-tuning at scale, not just regularization tricks.?** #flashcard
+Forgetting that PEFT is the most practically effective mitigation for fine-tuning at scale, not just regularization tricks.
+
+**Saying "SFT doesn't use human feedback"?** #flashcard
+SFT absolutely uses human-written responses, which are a form of human feedback. The distinction is comparative vs. absolute feedback.
+
+**Confusing the Reward Model with the policy (the LLM being aligned). These are separate models.?** #flashcard
+Confusing the Reward Model with the policy (the LLM being aligned). These are separate models.
+
+**Not knowing the cost of RLHF?** #flashcard
+it requires three separate training runs (SFT, Reward Model, PPO) and is notoriously unstable. This is why DPO was developed.
+
+**Treating the "20 tokens per parameter" ratio as a hard law rather than an approximation from a specific compute range. It may not hold at extreme scales.?** #flashcard
+Treating the "20 tokens per parameter" ratio as a hard law rather than an approximation from a specific compute range. It may not hold at extreme scales.
+
+**Missing the inference cost implication?** #flashcard
+smaller models that are trained longer have better inference economics (lower latency, lower cost per query) while matching larger undertrained models on capability benchmarks.
+
+**Confusing Chinchilla the model with Chinchilla the paper. The paper's contribution is the scaling law; the model demonstrated it.?** #flashcard
+Confusing Chinchilla the model with Chinchilla the paper. The paper's contribution is the scaling law; the model demonstrated it.
+
+**Training data has a cutoff.?** #flashcard
+Training data has a cutoff.
+
+**Laws change. A retrained model will hallucinate new amendments.?** #flashcard
+Laws change. A retrained model will hallucinate new amendments.
+
+**You cannot teach every jurisdiction's legal code through fine-tuning without degrading general capability.?** #flashcard
+You cannot teach every jurisdiction's legal code through fine-tuning without degrading general capability.
+
+**Suggesting prompt engineering alone ("tell the model to be accurate")?** #flashcard
+instructions do not fill knowledge gaps; they only modulate behavior within the model's existing knowledge.
+
+**Treating RAG as a complete solution without addressing retrieval quality. If the retrieval returns the wrong statute, the model grounds its answer in the wrong text.?** #flashcard
+Treating RAG as a complete solution without addressing retrieval quality. If the retrieval returns the wrong statute, the model grounds its answer in the wrong text.
+
+**Suggesting fine-tuning as the first intervention?** #flashcard
+fine-tuning on legal text would improve general legal reasoning but cannot guarantee accuracy on any specific fact, especially one that changes over time.
+
+**8-bit (int8)?** #flashcard
+~70GB. Fits on the A100 with minimal accuracy loss.
+
+**4-bit (int4/NF4, as in QLoRA)?** #flashcard
+~35GB. Fits easily, with small accuracy degradation on some tasks.
+
+**Mechanism?** #flashcard
+store weights as lower-precision integers; dequantize to fp16 during computation.
+
+**Trade-off?** #flashcard
+faster loading, smaller VRAM footprint, small accuracy cost. Inference latency may increase or decrease depending on implementation.
+
+**Tensor parallelism?** #flashcard
+split individual weight matrices across GPUs. Each GPU holds a shard; each forward pass requires cross-GPU communication. Low latency when GPUs are on the same node.
+
+**Pipeline parallelism?** #flashcard
+different layers on different GPUs. Layer 0-10 on GPU 1, layers 11-20 on GPU 2. Forward pass goes through GPUs in sequence. Higher latency due to pipeline bubbles, but works across nodes.
+
+**Tools?** #flashcard
+DeepSpeed, Megatron-LM, Accelerate.
+
+**Load some layers to system RAM, stream to GPU for computation.?** #flashcard
+Load some layers to system RAM, stream to GPU for computation.
+
+**Dramatically slower (PCIe bandwidth is ~32 GB/s vs. GPU-to-GPU at ~600 GB/s).?** #flashcard
+Dramatically slower (PCIe bandwidth is ~32 GB/s vs. GPU-to-GPU at ~600 GB/s).
+
+**Used for inference where latency is not critical. Not practical for interactive applications.?** #flashcard
+Used for inference where latency is not critical. Not practical for interactive applications.
+
+**If the goal is fine-tuning rather than inference?** #flashcard
+LoRA freezes the base model and trains only adapter weights. The base model can be quantized to 4-bit (QLoRA), fitting in ~35GB. Adapter parameters are small.
+
+**Train a smaller student model to replicate the larger model's outputs.?** #flashcard
+Train a smaller student model to replicate the larger model's outputs.
+
+**Produces a permanently smaller model that runs on less hardware.?** #flashcard
+Produces a permanently smaller model that runs on less hardware.
+
+**Expensive upfront; pays off at scale.?** #flashcard
+Expensive upfront; pays off at scale.
+
+**Inference only?** #flashcard
+quantization first (easiest, minimal accuracy cost), then multi-GPU if needed.
+
+**Fine-tuning on one GPU?** #flashcard
+QLoRA.
+
+**Production multi-model serving?** #flashcard
+model parallelism with a serving framework (vLLM, TGI).
+
+**Listing options without discussing trade-offs. The interviewer wants to know when you'd choose each.?** #flashcard
+Listing options without discussing trade-offs. The interviewer wants to know when you'd choose each.
+
+**Confusing tensor parallelism and pipeline parallelism?** #flashcard
+they have fundamentally different communication patterns and latency profiles.
+
+**Not knowing the practical numbers?** #flashcard
+a 70B model in fp16 is ~140GB. In int8 it's ~70GB. In 4-bit it's ~35GB. These numbers should be recalled without calculation.
+
+**Forgetting that quantization affects activation memory and KV cache in addition to weight memory. Full memory footprint is not just the weights.?** #flashcard
+Forgetting that quantization affects activation memory and KV cache in addition to weight memory. Full memory footprint is not just the weights.

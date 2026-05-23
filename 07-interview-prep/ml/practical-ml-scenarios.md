@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Practical Ml Scenarios
+status: unread
+tags: [interviewprep, ml, ml-practical-ml-scenarios]
+---
 # Practical ML Scenarios
 
 ## What This File Is For
@@ -537,3 +544,152 @@ The diagnostic order matters. Retraining before diagnosing the root cause fixes 
 3. Explain how you would validate the diagnosis
 4. Describe the fix that addresses the root cause
 5. Add monitoring to detect the same failure earlier next time
+
+## Flashcards
+
+**PSI on "days since last login"?** #flashcard
+0.31 (above the 0.25 threshold). The offline training data was from a period of normal usage. A product change two weeks ago changed login patterns significantly.
+
+**Prediction distribution?** #flashcard
+scores cluster near 0.2–0.4. Offline they were distributed across 0.1–0.9. The model is not discriminating.
+
+**Feature computation: offline "days since login" was capped at 30 days. Serving version was not capped and includes users with 180+ days?** #flashcard
+an entire bucket that training never saw.
+
+**False negative (missed fraud)?** #flashcard
+financial loss plus reputational damage
+
+**False positive (flagged legitimate transaction)?** #flashcard
+review cost plus customer friction
+
+**Precision-recall AUC?** #flashcard
+measures the tradeoff between catching fraud and generating false alarms, independent of class balance
+
+**Recall at target precision?** #flashcard
+what fraction of fraud do we catch if we constrain false positive rate to X%?
+
+**Cost-sensitive evaluation?** #flashcard
+expected cost = FN_cost × FN_rate + FP_cost × FP_rate
+
+**Was the correct source document in the top-k retrieved context? (Retrieval recall)?** #flashcard
+Was the correct source document in the top-k retrieved context? (Retrieval recall)
+
+**If yes, did the answer contradict the retrieved context? (Generation faithfulness)?** #flashcard
+If yes, did the answer contradict the retrieved context? (Generation faithfulness)
+
+**If the source was retrieved, was it at position 1 or position 8? (Position matters?** #flashcard
+"lost in the middle" effect)
+
+**Chunking strategy?** #flashcard
+if chunks are too large, the relevant information is diluted. If too small, context is fragmented. Typical sweet spot: 300–500 tokens with 50-token overlap.
+
+**Retrieval method?** #flashcard
+BM25 (keyword matching) for precise factual queries; dense retrieval (vector similarity) for semantic queries. Hybrid often outperforms either alone.
+
+**Reranking?** #flashcard
+a cross-encoder reranker (e.g., a BERT-based relevance model) reranks top-k candidates with much higher precision than vector similarity.
+
+**Metadata filtering?** #flashcard
+filter retrieved chunks by document type, date, source before final selection.
+
+**Prompt constraints?** #flashcard
+"Answer only based on the provided context. If the information is not in the context, say 'I don't know.'" This reduces hallucination but may increase non-answers.
+
+**Grounded citation?** #flashcard
+require the model to cite which retrieved passage supports each claim. If it cannot cite, it should not claim.
+
+**Answer verification?** #flashcard
+a separate model or rule checks whether each sentence in the response is supported by any retrieved passage (Natural Language Inference or string overlap).
+
+**Temperature?** #flashcard
+lower temperature reduces creative generation but also reduces hallucination.
+
+**Retrieval recall@5 (fraction of queries where the answer-containing chunk is in the top 5)?** #flashcard
+0.61. This means 39% of queries fail at retrieval.
+
+**Of the 61% where retrieval succeeds?** #flashcard
+generation faithfulness (answer consistent with retrieved context) = 0.81. So 19% of successful retrievals still hallucinate.
+
+**Quantization?** #flashcard
+int8 inference reduces memory bandwidth pressure. 2–4× speedup on CPU, 1.5–2× on GPU.
+
+**Distillation?** #flashcard
+train a smaller student model (4-layer BERT instead of 12-layer). 3–5× speedup with 2–3% quality loss.
+
+**Pruning?** #flashcard
+remove attention heads or MLP neurons with low gradient norms. Structured pruning gives real speedups; unstructured pruning does not.
+
+**ONNX + TensorRT compilation?** #flashcard
+graph optimization and kernel fusion. 1.5–3× improvement without model changes.
+
+**Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).?** #flashcard
+Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).
+
+**Use in-process caching?** #flashcard
+cache recent lookups to avoid repeated Redis calls for the same user within a session.
+
+**Two-stage architecture?** #flashcard
+fast ANN retrieval (10–20ms) to get 500 candidates, then a lighter ranker on candidates. The expensive model does not score all items.
+
+**Asynchronous precomputation?** #flashcard
+compute recommendations for users who are likely to visit soon (e.g., users active in the last hour) in background, serve from cache.
+
+**Onboarding quiz?** #flashcard
+ask the user to rate 5–10 items or select preferred categories. Build a content-based user profile immediately.
+
+**Demographic priors?** #flashcard
+use coarse user attributes (location, device type) to assign a population-level prior. "New users from this region typically engage with X."
+
+**Popularity?** #flashcard
+show globally popular items while personalization data accumulates. Not ideal, but better than random.
+
+**Content-based similarity?** #flashcard
+embed new items using their metadata (genre, tags, description, cast). Find existing items with similar embeddings. Recommend to users who interacted with those similar items.
+
+**Cold start item injection?** #flashcard
+mix a fraction of new items into all users' recommendations. Collect feedback to bootstrap the CF signal.
+
+**Context-aware popularity?** #flashcard
+a new movie in genre X should be shown to users with strong genre X preference, not to the general population.
+
+**Run a content-based system initially?** #flashcard
+Run a content-based system initially
+
+**Track all user interactions with full logging?** #flashcard
+Track all user interactions with full logging
+
+**Switch to collaborative filtering after enough signal accumulates?** #flashcard
+Switch to collaborative filtering after enough signal accumulates
+
+**Define the transition threshold?** #flashcard
+"when the CF model's offline AUC on held-out interactions exceeds content-based by X%, switch"
+
+**Data drift?** #flashcard
+P(X) changes. The input distribution shifts. The model may still perform well if P(Y|X) is stable.
+
+**Concept drift?** #flashcard
+P(Y|X) changes. The same input now has a different label. The model's learned function is no longer correct regardless of how the inputs are distributed.
+
+**Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.?** #flashcard
+Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.
+
+**Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.?** #flashcard
+Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.
+
+**Monitor prediction distributions?** #flashcard
+if the model's score distribution shifts substantially while input distributions remain stable, the model is responding differently to the same inputs.
+
+**Proxy signals?** #flashcard
+in fraud, use chargeback rates as a lagged label. In recommendations, use downstream engagement as a label proxy.
+
+**Drift detectors?** #flashcard
+ADWIN (Adaptive Windowing) or DDM (Drift Detection Method) on incoming predictions or calibrated errors.
+
+**Interpreting coefficients (regulatory requirements, fairness analysis)?** #flashcard
+Interpreting coefficients (regulatory requirements, fairness analysis)
+
+**Stable coefficient estimates across different data samples?** #flashcard
+Stable coefficient estimates across different data samples
+
+**Feature selection based on coefficient magnitude?** #flashcard
+Feature selection based on coefficient magnitude

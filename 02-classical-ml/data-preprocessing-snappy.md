@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Data Preprocessing Snappy
+subtopic: ""
+status: unread
+tags: [classicalml, ml, data-preprocessing-snappy]
+---
 # Data preprocessing & engineering (deep-dive)
 
 **Cold open:** Models eat **what you feed them**. In production, the “bug” is often **train ≠ serve**, **leakage**, or **drift** — same class of pain as deploying config that only worked on your laptop.
@@ -75,3 +82,20 @@
 ---
 
 > **Code path:** For sklearn `Pipeline` + `ColumnTransformer` patterns, see [ML coding patterns](../ml-interview-notes/coding.md) — one artifact, reproducible stages, fewer “works on my machine” ghosts.
+
+## Flashcards
+
+**Z-score (standardize): Zero mean, unit variance?** #flashcard
+friends with SVM, logistic regression, PCA (Gaussian-ish assumptions / distance fairness).
+
+**Min–max [0,1]: Bounded range?** #flashcard
+often seen with neural nets and some distance models where scale matters to bounded activations.
+
+**$\text{IQR} = Q3 - Q1$?** #flashcard
+$\text{IQR} = Q3 - Q1$
+
+**Fences?** #flashcard
+$[Q1 - 1.5 \times \text{IQR},\; Q3 + 1.5 \times \text{IQR}]$
+
+**Winsorize / cap often beats blind delete?** #flashcard
+keeps sample size, dulls extremes.

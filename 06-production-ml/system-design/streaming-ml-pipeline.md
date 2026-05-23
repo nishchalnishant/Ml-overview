@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Streaming Ml Pipeline
+status: unread
+tags: [productionml, ml, system-design-streaming-ml-pip]
+---
 # Streaming ML Pipeline Architecture
 
 ```mermaid
@@ -272,3 +279,11 @@ feature_age = Gauge('feature_age_seconds', 'Feature staleness', ['feature_view']
 ```
 
 **What breaks**: monitoring Kafka broker health but not consumer lag. The cluster appears healthy while the pipeline falls minutes behind, silently degrading feature freshness. Always monitor consumer lag per group with lag-based alerts.
+
+## Flashcards
+
+**alert?** #flashcard
+ConsumerLagHigh
+
+**alert?** #flashcard
+PipelineLatencySLABreach

@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Active Learning
+subtopic: ""
+status: unread
+tags: [classicalml, ml, active-learning]
+---
 # Active Learning
 
 ---
@@ -208,3 +215,14 @@ query_idx    = np.argsort(bald_score)[-n_query:]
 The right metric for active learning is the learning curve: model performance on a fixed test set as a function of the number of labeled examples used. Active learning should reach a given performance level with fewer labels than random sampling — the curve should be higher (fewer labels for the same accuracy) than the random baseline.
 
 Always compare against a random sampling baseline. If active learning doesn't outperform random sampling on your problem, the overhead of the query loop isn't justified.
+
+## Flashcards
+
+**Fixed budget?** #flashcard
+Stop after labeling k examples. Simple and business-aligned.
+
+**Performance plateau?** #flashcard
+Stop when the model improvement per additional label falls below a threshold. Compute a learning curve; stop when the marginal gain diminishes.
+
+**Uncertainty convergence?** #flashcard
+Stop when the maximum uncertainty across the unlabeled pool drops below a threshold. The model has become confident about everything it can see.

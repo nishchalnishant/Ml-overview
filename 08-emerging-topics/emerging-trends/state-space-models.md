@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: State Space Models
+status: unread
+tags: [emergingtopics, ml, emerging-trends-state-space-mo]
+---
 # State Space Models
 
 How Mamba, RWKV, and Jamba solve the O(n²) quadratic attention bottleneck — with the mathematical intuition behind selective state spaces, the recurrence-convolution duality, and the engineering trade-offs that determine when to use SSMs over transformers.
@@ -425,3 +432,32 @@ Attention fraction → Quality (vs pure transformer, at fixed params):
 The 12.5% (1:7) threshold is practically significant: it reduces quadratic attention cost by 7× while recovering most of the quality gap vs pure Mamba. Below 10%, recall-heavy tasks degrade noticeably. The right ratio depends on the intended use case: for pure text generation where users don't ask specific recall questions, 5% attention may suffice; for RAG or document QA, 12-25% is needed.
 
 Theoretically: information theory suggests that a fixed-size Mamba state cannot store more than O(N·log(vocab_size)) bits of information. For N=16 state dims and vocab 50K: ~800 bits per layer — sufficient for slow-changing contextual information but insufficient for precise storage of arbitrary token identities. Attention layers provide O(d·n) bits of capacity (the KV cache) — perfect retrieval at O(n) memory. Hybrid models distribute these two memory regimes: SSM for dense, slowly-varying context; attention KV cache for precise sparse facts.
+
+## Flashcards
+
+**Sequences are very long (>100K tokens)?** #flashcard
+genomics (entire chromosomes), audio (waveforms at 16kHz → millions of samples), time series, video frame sequences
+
+**Deployment is memory-constrained: the fixed-size SSM state is constant regardless of sequence length?** #flashcard
+no KV cache memory growth
+
+**Streaming inference?** #flashcard
+new tokens processed O(1) without growing memory; transformers require O(n) computation and O(n) memory per new token with KV cache
+
+**Task requires precise retrieval of specific past tokens: "in the document at page 2, what was the exact definition of X?"?** #flashcard
+SSMs cannot reliably retrieve specific tokens because history is lossy
+
+**Training data is large and training compute is not the bottleneck?** #flashcard
+at the same parameter count, transformers currently achieve slightly higher quality on most benchmarks
+
+**Short sequences (<10K tokens)?** #flashcard
+the O(n²) cost is manageable; transformer's advantages (better in-context learning, precise recall) dominate
+
+**Needle-in-a-haystack tasks (find specific information in very long context)?** #flashcard
+SSMs compress and may lose the needle
+
+**In-context learning with many examples?** #flashcard
+transformers leverage all examples exactly; SSMs may underweight early examples
+
+**Associative recall ("what is the value paired with key X?")?** #flashcard
+SSMs fail when X appeared only once early in a long sequence

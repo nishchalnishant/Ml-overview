@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Top Ml Interview Questions
+status: unread
+tags: [interviewprep, ml, llm-top-ml-interview-questions]
+---
 # Top ML Interview Questions — Reference Answers
 
 Concept + intuition + tradeoff for each question.
@@ -282,3 +289,50 @@ where $f_{-k}$ is trained on all folds except $k$, evaluated on fold $k$.
 | BF16 memory | 2 bytes/param |
 | FP32 memory | 4 bytes/param |
 | 70B model BF16 VRAM | ~140GB |
+
+## Flashcards
+
+**Supervised: labeled $(x, y)$ pairs?** #flashcard
+classification, regression
+
+**Unsupervised: unlabeled $x$?** #flashcard
+clustering, density estimation, representation learning
+
+**Reinforcement?** #flashcard
+agent learns by interacting with environment, maximizing cumulative reward
+
+**High bias (underfitting)?** #flashcard
+model too simple, misses patterns. Fix: more capacity, better features
+
+**High variance (overfitting)?** #flashcard
+model too complex, memorizes noise. Fix: regularization, more data
+
+**Goal?** #flashcard
+minimize total error, not just training error
+
+**High precision needed?** #flashcard
+spam filter (don't block legitimate email)
+
+**High recall needed?** #flashcard
+cancer screening (don't miss cases)
+
+**F1?** #flashcard
+balanced. PR-AUC better than ROC-AUC for rare positive classes.
+
+**Reduces internal covariate shift?** #flashcard
+distribution of inputs to each layer stays stable
+
+**Allows higher learning rates (gradients stay well-scaled)?** #flashcard
+Allows higher learning rates (gradients stay well-scaled)
+
+**Acts as regularizer (noise from batch statistics)?** #flashcard
+Acts as regularizer (noise from batch statistics)
+
+**Non-saturating for positive values → no vanishing gradient problem?** #flashcard
+Non-saturating for positive values → no vanishing gradient problem
+
+**Computationally cheap (threshold operation)?** #flashcard
+Computationally cheap (threshold operation)
+
+**Sparse activations (half the neurons off) → implicit regularization?** #flashcard
+Sparse activations (half the neurons off) → implicit regularization

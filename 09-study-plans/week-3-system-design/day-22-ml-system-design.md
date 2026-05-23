@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 3 System Design
+subtopic: Day 22 Ml System Design
+status: unread
+tags: [studyplans, ml, week-3-system-design-day-22-ml]
+---
 # Day 22: Designing ML Systems
 
 ## Why This Topic Comes Here
@@ -151,3 +158,71 @@ Query → Query Rewriting (LLM) → BM25 + Dense Retrieval → RRF fusion
 - [ ] Fallback if model fails or is slow?
 - [ ] Class imbalance and calibration handled?
 - [ ] Retraining frequency and trigger defined?
+
+## Flashcards
+
+**Offline (Batch)?** #flashcard
+Predict on all data once per day (e.g., daily recommendations). High throughput, low cost. Predictions can be precomputed and cached.
+
+**Online (Real-time)?** #flashcard
+Predict on-the-fly at request time (e.g., fraud check). Requires ultra-low latency (<100ms). Model must be small or response can be asynchronous.
+
+**Feature Store: A centralized repository that stores precomputed features, serving them consistently to both training pipelines and inference services. This prevents train-serve skew?** #flashcard
+the bug where training and serving compute the same feature differently.
+
+**Retrieval & Ranking: Standard in search and recommendation. Stage 1 (Retrieval) narrows billions of items to hundreds using efficient approximate nearest neighbor search. Stage 2 (Ranking) applies a complex model to order the top results. The cheap model does not need to be accurate?** #flashcard
+it needs to keep the relevant items in the candidate set.
+
+**Cascading Classifiers?** #flashcard
+Use a cheap model (e.g., Logistic Regression) to filter 90% of easy cases, then a heavy model (e.g., Transformer) only for the difficult ones. This reduces average compute cost while preserving quality on hard cases.
+
+**Goal: maximize watch time (not clicks?** #flashcard
+avoids clickbait)
+
+**Scale?** #flashcard
+300M users, 500M items, 100M daily active users
+
+**Latency requirement?** #flashcard
+<200ms for homepage load
+
+**XGBoost for interpretability (regulatory audit, dispute resolution)?** #flashcard
+XGBoost for interpretability (regulatory audit, dispute resolution)
+
+**DNN only for hard cases XGBoost is uncertain about?** #flashcard
+DNN only for hard cases XGBoost is uncertain about
+
+**Calibration?** #flashcard
+ensure P(fraud | score=0.8) ≈ 0.8
+
+**Daily retrain?** #flashcard
+fraud patterns shift fast (adversarial)
+
+**Hybrid retrieval (sparse + dense) covers keyword-exact and semantic needs?** #flashcard
+Hybrid retrieval (sparse + dense) covers keyword-exact and semantic needs
+
+**Cross-encoder reranker adds 100-200ms but significantly improves precision?** #flashcard
+Cross-encoder reranker adds 100-200ms but significantly improves precision
+
+**Cache frequent query embeddings to reduce latency?** #flashcard
+Cache frequent query embeddings to reduce latency
+
+**[ ] Success metric aligned with business goal?** #flashcard
+[ ] Success metric aligned with business goal?
+
+**[ ] Monitoring strategy for data drift?** #flashcard
+[ ] Monitoring strategy for data drift?
+
+**[ ] Cold-start handling for new users/items?** #flashcard
+[ ] Cold-start handling for new users/items?
+
+**[ ] Data pipeline scalable (Spark/Flink)?** #flashcard
+[ ] Data pipeline scalable (Spark/Flink)?
+
+**[ ] Fallback if model fails or is slow?** #flashcard
+[ ] Fallback if model fails or is slow?
+
+**[ ] Class imbalance and calibration handled?** #flashcard
+[ ] Class imbalance and calibration handled?
+
+**[ ] Retraining frequency and trigger defined?** #flashcard
+[ ] Retraining frequency and trigger defined?

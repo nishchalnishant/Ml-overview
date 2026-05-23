@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: News Feed Ranking
+status: unread
+tags: [productionml, ml, system-design-news-feed-rankin]
+---
 # News Feed Ranking System Design
 
 End-to-end ML system for ranking a personalized social media feed. Canonical system design question at Meta, LinkedIn, Twitter/X, TikTok, and YouTube.
@@ -664,3 +671,203 @@ A: Filter bubble intensity is multi-dimensional. Content-side metrics: topic div
 **Q: Walk me through how you would design a fair ranking system for creators — ensuring small creators can get discovered, not just large ones.**
 
 A: The core problem is a self-reinforcing rich-get-richer dynamic: large creators have engagement history → high affinity scores → high ranking → more impressions → more engagement. Four interventions: (1) Exploration budget: reserve 10–15% of feed slots for content from creators the user has not interacted with (discovery bucket). Within this bucket, rank by engagement relative to peer creators (same follower tier, same content category) to give small creators fair competitive standing. (2) Propensity correction in training: a post from a creator with 100M followers that gets 1% engagement is shown to vastly more users than a post from a creator with 10K followers getting 1% engagement. Correct for this in training so both receive equal credit for the same relative engagement quality. (3) Audience saturation correction: a creator's posts reaching the same users repeatedly are less valuable than posts reaching new users. Penalize repeated delivery of the same creator to the same user. (4) Early signal bootstrapping: use content embeddings (CLIP, BERT) to match new creator content to users who have engaged with similar content, bypassing the cold start problem for new creators entirely. LinkedIn's "creator mode" and Instagram's "Reels ranking" both describe variants of this approach.
+
+## Flashcards
+
+**Consumption model?** #flashcard
+push vs pull? Facebook/Instagram are pull (user opens app → feed constructed on-demand). Twitter historically used push (precompute fan-out to followers). Pull is harder to serve fast but more personalized; push is cheaper at read time but expensive for celebrities with 50M followers (fan-out problem).
+
+**What signals define "good"? Engagement (likes, comments, shares) vs time-spent vs meaningful interactions vs self-reported satisfaction. These diverge?** #flashcard
+outrage content maximizes engagement, wellness content maximizes satisfaction.
+
+**Ads integration? Are ads ranked inline with organic content or separately budgeted? Inline ranking creates a single auction but risks ad-organic quality conflation.?** #flashcard
+Ads integration? Are ads ranked inline with organic content or separately budgeted? Inline ranking creates a single auction but risks ad-organic quality conflation.
+
+**Objective hierarchy? Is wellbeing a hard constraint (floor) or a soft objective in the optimization? Meta's 2018 "meaningful social interaction" pivot was a policy decision to re-weight creator/page content down and friends content up?** #flashcard
+not purely ML.
+
+**Creator vs social graph content? LinkedIn is mostly creator content (articles, posts from strangers); Facebook is mostly social graph (friends, family). This determines candidate retrieval strategy.?** #flashcard
+Creator vs social graph content? LinkedIn is mostly creator content (articles, posts from strangers); Facebook is mostly social graph (friends, family). This determines candidate retrieval strategy.
+
+**New user cold start threshold? How many interactions before the personalization kicks in? What's the fallback?** #flashcard
+trending content, demographic-based priors, onboarding interest selection?
+
+**Real-time vs near-real-time? Should posts published 10 seconds ago appear in the feed immediately (requires real-time indexing) or is 1–5 minute lag acceptable?** #flashcard
+Real-time vs near-real-time? Should posts published 10 seconds ago appear in the feed immediately (requires real-time indexing) or is 1–5 minute lag acceptable?
+
+**Fetch all friends (avg ~300 on Facebook) + followed pages/groups?** #flashcard
+Fetch all friends (avg ~300 on Facebook) + followed pages/groups
+
+**For each source, retrieve last N posts (N=5–10)?** #flashcard
+For each source, retrieve last N posts (N=5–10)
+
+**Implementation?** #flashcard
+graph database (TAO at Meta) → per-user adjacency list cached in RAM → O(1) lookup
+
+**User has a learned interest embedding (128-dim, updated daily)?** #flashcard
+User has a learned interest embedding (128-dim, updated daily)
+
+**Posts are embedded at publish time (CLIP for images, BERT for text)?** #flashcard
+Posts are embedded at publish time (CLIP for images, BERT for text)
+
+**FAISS / ScaNN index on post embeddings → ANN search returns top-K semantically similar posts from non-friends?** #flashcard
+FAISS / ScaNN index on post embeddings → ANN search returns top-K semantically similar posts from non-friends
+
+**This is how Instagram's "suggested posts" and LinkedIn's "posts you might like" work?** #flashcard
+This is how Instagram's "suggested posts" and LinkedIn's "posts you might like" work
+
+**Logistic regression or shallow MLP (10–20 features)?** #flashcard
+Logistic regression or shallow MLP (10–20 features)
+
+**Features?** #flashcard
+post age (log-scaled), source affinity score (precomputed), post engagement rate (likes+comments / impressions), media type (video > image > text in most feeds), user's historical interaction rate with this source
+
+**Trained on same labels as heavy ranker but must be maximally fast?** #flashcard
+Trained on same labels as heavy ranker but must be maximally fast
+
+**At Meta scale?** #flashcard
+LR inference on 5,000 posts ≈ 1ms on CPU
+
+**affinity_score?** #flashcard
+how often the user interacted with this edge (person/page)
+
+**edge_weight?** #flashcard
+type of interaction (comment > like > view)
+
+**time_decay: recency factor?** #flashcard
+older content ranked lower
+
+**Wellbeing guardrails?** #flashcard
+Cap consecutive video posts at 3 (reduce passive scroll). Demote posts flagged as "emotionally negative" by a classifier. Enforce cross-session limits on content categories associated with low self-reported satisfaction.
+
+**Diversity injection?** #flashcard
+No more than 2 consecutive posts from the same creator. Ensure at least 3 different topic clusters in top-10. See Section 8.
+
+**Integrity filters?** #flashcard
+Posts under manual review for misinformation → score penalty or removal. CSAM, hate speech → hard remove. Spam accounts → demotion.
+
+**Boost rules?** #flashcard
+"New content" freshness boost for posts under 2 hours (prevents feed staleness). Occasional "time capsule" post from 1 year ago (on this day features).
+
+**Comments and shares re-weighted 5–10× relative to likes?** #flashcard
+Comments and shares re-weighted 5–10× relative to likes
+
+**Content from friends/family boosted relative to pages and creators?** #flashcard
+Content from friends/family boosted relative to pages and creators
+
+**Video content (associated with passive consumption) specifically penalized?** #flashcard
+Video content (associated with passive consumption) specifically penalized
+
+**"Meaningful" classifier trained on user surveys about whether a post "was worth their time"?** #flashcard
+"Meaningful" classifier trained on user surveys about whether a post "was worth their time"
+
+**60% social graph content (friends, family)?** #flashcard
+60% social graph content (friends, family)
+
+**20% creator/page content user follows?** #flashcard
+20% creator/page content user follows
+
+**15% suggested content (interest-based, ANN retrieval)?** #flashcard
+15% suggested content (interest-based, ANN retrieval)
+
+**5% ads?** #flashcard
+5% ads
+
+**Creator diversity constraint?** #flashcard
+cap any single creator at N% of a user's feed slots per day
+
+**Exploration budget?** #flashcard
+reserve 10–15% of feed slots for creators the user hasn't interacted with (discovery)
+
+**Small creator boost?** #flashcard
+apply a mild multiplicative boost to posts from creators with <10K followers who have strong engagement relative to their size
+
+**Engagement velocity?** #flashcard
+rate of change of engagement rate (2nd derivative)
+
+**Cross-network spread?** #flashcard
+is this being shared across different social clusters?
+
+**Early commenter diversity?** #flashcard
+high-diversity early engagers → organic virality vs. coordinated behavior
+
+**Exploration budget?** #flashcard
+Reserve N% of feed slots for content outside the user's historical interest clusters. LinkedIn calls this "feed diversification."
+
+**Cross-partisan exposure?** #flashcard
+On political content, deliberately mix content from different viewpoints (Meta's Civic Feed integrity work).
+
+**Interest graph perturbation?** #flashcard
+Periodically add random walks from the user's interest graph to expose to adjacent topics.
+
+**Track "content trajectory" per user?** #flashcard
+is the average extremism score of consumed content increasing over time?
+
+**Flag users whose content trajectory shows consistent drift toward high-extremism content?** #flashcard
+Flag users whose content trajectory shows consistent drift toward high-extremism content
+
+**Hard cap on extremism score?** #flashcard
+posts above a threshold get a large score penalty regardless of engagement prediction
+
+**"Rabbit hole" detection?** #flashcard
+if a user has consumed N consecutive posts on the same high-risk topic, inject diverse content
+
+**Return rate after session?** #flashcard
+did the user come back tomorrow?
+
+**Session end behavior?** #flashcard
+did the user close the app or did the app expire in background?
+
+**Post-session survey (shown to random sample)?** #flashcard
+"Was this time on [app] worth it?"
+
+**Passive consumption ratio?** #flashcard
+high ratio of scroll-without-engagement may indicate addiction vs. satisfaction
+
+**Ego-cluster randomization?** #flashcard
+Assign entire social neighborhoods to the same arm. Reduces power but reduces interference.
+
+**Two-sided marketplaces: Treat feed separately from distribution?** #flashcard
+randomize at creator level for distribution experiments.
+
+**Novelty effects?** #flashcard
+New features boost engagement initially, then fade
+
+**Content ecosystem effects?** #flashcard
+If a ranking change reduces reach for creators, creators may post less (takes months to detect)
+
+**User behavior adaptation?** #flashcard
+Users learn the new feed ordering and adapt their behavior
+
+**Run organic and ads experiments on disjoint user sets?** #flashcard
+Run organic and ads experiments on disjoint user sets
+
+**Measure ad metrics as secondary guardrail metrics in organic experiments?** #flashcard
+Measure ad metrics as secondary guardrail metrics in organic experiments
+
+**Use revenue-neutral ad insertion (adjust ad count dynamically to maintain revenue parity across arms)?** #flashcard
+Use revenue-neutral ad insertion (adjust ad count dynamically to maintain revenue parity across arms)
+
+**Feed load latency P99?** #flashcard
+Feed load latency P99
+
+**App crash rate?** #flashcard
+App crash rate
+
+**Ad revenue per DAU?** #flashcard
+Ad revenue per DAU
+
+**Meaningful interactions rate (comments + shares per session)?** #flashcard
+Meaningful interactions rate (comments + shares per session)
+
+**7-day return rate?** #flashcard
+7-day return rate
+
+**Likes per session (lower weight)?** #flashcard
+Likes per session (lower weight)
+
+**Time-on-platform (controversial?** #flashcard
+can be good or bad)
+
+**Negative feedback rate (hide / unfollow / report)?** #flashcard
+Negative feedback rate (hide / unfollow / report)

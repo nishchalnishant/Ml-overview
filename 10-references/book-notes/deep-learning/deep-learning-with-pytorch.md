@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Deep Learning Deep Learning With Pytorch
+status: unread
+tags: [references, ml, book-notes-deep-learning]
+---
 # Deep Learning with PyTorch
 
 ## Chapter 1: Introducing Deep Learning and the PyTorch Library
@@ -232,3 +239,134 @@ The key production question is: what's the deployment target? Python server → 
 
 **What the book gets right / what to watch out for**
 The deployment chapter correctly covers the full production spectrum. TorchScript's `trace` mode (records operations for a specific input) vs `script` mode (compiles Python control flow) — use `script` for models with dynamic control flow (LSTMs, conditionals); `trace` for simple feedforward models. ONNX is best for cross-framework portability but not all PyTorch ops are supported.
+
+## Flashcards
+
+**Core abstractions?** #flashcard
+torch.Tensor (multi-dim array with GPU support), autograd (automatic differentiation), nn.Module (composable model building block), DataLoader/Dataset (data pipeline)
+
+**GPU acceleration?** #flashcard
+move tensors with .to('cuda'); operations on GPU tensors execute asynchronously on the GPU
+
+**Dynamic graphs?** #flashcard
+requires_grad=True tensors record operations; .backward() computes all gradients in one reverse pass
+
+**Deployment path?** #flashcard
+Python training → TorchScript/ONNX export → C++/production server
+
+**Creation?** #flashcard
+torch.zeros/ones/rand/randn, torch.tensor([...]), from_numpy()
+
+**Shape ops?** #flashcard
+.view(shape), .reshape(shape) (vs .contiguous()); .squeeze/unsqueeze; .permute(dims)
+
+**Math?** #flashcard
++, -, *, / (element-wise); @ or torch.mm (matrix multiply); torch.einsum
+
+**Type: .float(), .double(), .half(), .to(dtype)?** #flashcard
+always keep consistent dtype
+
+**In-place ops: _ suffix (add_, relu_)?** #flashcard
+modify tensor in-place; breaks autograd if applied to leaf variables
+
+**optimizer.zero_grad() must be called?** #flashcard
+gradients accumulate by default
+
+**model.train() vs model.eval()?** #flashcard
+switches dropout and BatchNorm behavior
+
+**with torch.no_grad()?** #flashcard
+disables gradient tracking for inference (saves memory)
+
+**nn.Sequential?** #flashcard
+convenience wrapper for linear chains
+
+**nn.ModuleList/ModuleDict?** #flashcard
+register lists/dicts of modules
+
+**model.state_dict(): returns all parameter tensors as an ordered dict?** #flashcard
+use for checkpointing
+
+**3D CT volumes?** #flashcard
+load with SimpleITK or pydicom; voxel intensities in Hounsfield units; resample to uniform voxel spacing
+
+**DataLoader?** #flashcard
+custom Dataset.__getitem__ handles disk I/O and augmentation lazily
+
+**Class imbalance?** #flashcard
+balance training batches (equal positive/negative samples) in __iter__; SMOTE for tabular features
+
+**U-Net segmentation?** #flashcard
+encoder-decoder with skip connections; Dice loss for pixel-level segmentation
+
+**Geometric?** #flashcard
+random horizontal/vertical flip, rotation (±30°), crop and resize
+
+**Intensity?** #flashcard
+brightness ±20%, contrast ±20%, Gaussian noise
+
+**For CT?** #flashcard
+random affine transforms on 3D volumes; be careful with left-right flips (anatomically meaningful asymmetry)
+
+**Implementation?** #flashcard
+compose transforms in torchvision.transforms.Compose; apply only to training set (not validation/test)
+
+**Confusion matrix?** #flashcard
+TP, FP, TN, FN → precision = TP/(TP+FP), recall = TP/(TP+FN)
+
+**ROC curve?** #flashcard
+plot sensitivity vs (1-specificity) as threshold varies from 0 to 1
+
+**AUC?** #flashcard
+area under ROC; 0.5 = random, 1.0 = perfect; insensitive to class imbalance
+
+**During training?** #flashcard
+log train loss, val loss, val AUC every N batches; save checkpoint at best val AUC
+
+**Ablation?** #flashcard
+baseline → add augmentation → add balanced sampling → add deeper architecture; measure val AUC at each step
+
+**Learning curves: plot val AUC vs training set size?** #flashcard
+still increasing = more data helps; plateaued = model is the bottleneck
+
+**Error analysis: inspect false positives and false negatives?** #flashcard
+what do they have in common?
+
+**Calibration?** #flashcard
+check if model probabilities match actual frequencies; use Platt scaling or isotonic regression if not
+
+**U-Net?** #flashcard
+encoder (Conv → MaxPool, halves spatial, doubles channels) × 4; bottleneck; decoder (Upsample → Conv, halves channels, doubles spatial) × 4; skip connections concatenate encoder features to decoder at each scale
+
+**Dice loss?** #flashcard
+L = 1 - (2 × |P∩T|) / (|P| + |T|); P=prediction, T=target; handles class imbalance naturally (background pixels don't dominate)
+
+**BCE + Dice combined: BCE penalizes individual pixels; Dice penalizes structural overlap?** #flashcard
+combining improves convergence
+
+**Evaluation?** #flashcard
+Dice score (segmentation overlap), IoU (intersection over union)
+
+**Stage 1?** #flashcard
+segmentation model produces voxel-level masks; extract connected components as candidate nodules
+
+**Stage 2?** #flashcard
+for each candidate, crop a 3D patch centered on it; classify with a separate CNN
+
+**Malignancy scoring: soft score output (probability) rather than hard threshold?** #flashcard
+defer threshold decision to clinical use
+
+**False positive reduction?** #flashcard
+classifier trained to distinguish true nodules from segmentation false positives
+
+**Flask/Sanic?** #flashcard
+wrap model(input_tensor) in an HTTP endpoint; return prediction as JSON
+
+**ONNX export: torch.onnx.export(model, dummy_input, "model.onnx")?** #flashcard
+framework-agnostic format; run with ONNXRuntime
+
+**TorchScript: torch.jit.script(model) or torch.jit.trace(model, example_input)?** #flashcard
+serializable, runnable in C++ via LibTorch
+
+**TorchServe?** #flashcard
+production model server; handles batching, versioning, logging; deploy with torch-model-archiver

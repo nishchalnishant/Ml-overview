@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Building Machine Learning Powered Applications
+status: unread
+tags: [productionml, ml, system-design-building-machine]
+---
 # Building Machine Learning Powered Applications
 
 > **See also:** [MLOps](../mlops.md) | [Deployment Patterns](../deployment-patterns.md) | [Model Governance](../model-governance.md)
@@ -653,3 +660,44 @@ def compute_decision_economics(
 **Reporting accuracy on a balanced test set when production is imbalanced:** fraud is 0.1% of transactions. 99.9% accuracy is achieved by predicting nothing. Report precision and recall at the operating threshold.
 
 **Omitting the baseline comparison:** "our model has 84% accuracy" means nothing without knowing what the rule-based system or random chance achieves on the same task.
+
+## Flashcards
+
+**API contract between model and product?** #flashcard
+API contract between model and product
+
+**Actual latency requirements (rule runs in microseconds; model in milliseconds)?** #flashcard
+Actual latency requirements (rule runs in microseconds; model in milliseconds)
+
+**Data format issues in the real input stream?** #flashcard
+Data format issues in the real input stream
+
+**Edge cases?** #flashcard
+empty strings, very long documents, non-English input
+
+**Downstream failures?** #flashcard
+what happens when the model returns None?
+
+**Input schema validation (type, range, presence)?** #flashcard
+Input schema validation (type, range, presence)
+
+**Graceful error handling (never propagate raw exceptions to callers)?** #flashcard
+Graceful error handling (never propagate raw exceptions to callers)
+
+**Health check endpoint?** #flashcard
+Health check endpoint
+
+**Request logging (for debugging production failures)?** #flashcard
+Request logging (for debugging production failures)
+
+**Version information in every response?** #flashcard
+Version information in every response
+
+**fp * cost_table["fp_cost"]?** #flashcard
+fp * cost_table["fp_cost"]
+
+**fn * cost_table["fn_cost"]?** #flashcard
+fn * cost_table["fn_cost"]
+
+**(fp + tn) * cost_table["fp_cost"]?** #flashcard
+(fp + tn) * cost_table["fp_cost"]

@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Feature Store Architecture
+status: unread
+tags: [productionml, ml, system-design-feature-store-ar]
+---
 # Feature Store Architecture
 
 ```mermaid
@@ -489,3 +496,62 @@ SageMaker FS | S3             | DynamoDB           | Partial   | AWS only
 - Example: `txn_count_5min` must be <1 minute stale; `purchase_count_30d` may be up to 24 hours stale
 - Freshness SLA drives choice of batch vs streaming ingestion
 - Monitor feature freshness as a production metric; alert when SLA is violated
+
+## Flashcards
+
+**Partition offline store by date to reduce scan scope?** #flashcard
+Partition offline store by date to reduce scan scope
+
+**Cache feature snapshots at regular intervals (hourly) and binary-search the nearest snapshot?** #flashcard
+Cache feature snapshots at regular intervals (hourly) and binary-search the nearest snapshot
+
+**Use Apache Iceberg's time-travel queries which maintain metadata for efficient historical reads?** #flashcard
+Use Apache Iceberg's time-travel queries which maintain metadata for efficient historical reads
+
+**Sorted merge join?** #flashcard
+both tables sorted by (entity_id, timestamp); single pass with two pointers
+
+**Snapshot materialization?** #flashcard
+store feature snapshots at fixed intervals (hourly); binary search for the nearest snapshot before cutoff
+
+**SQL with AS OF?** #flashcard
+Iceberg and Delta Lake support SELECT ... AS OF TIMESTAMP natively
+
+**Identify which features need real-time (velocity) vs batch (user history)?** #flashcard
+Identify which features need real-time (velocity) vs batch (user history)
+
+**Describe the offline store schema and point-in-time join logic?** #flashcard
+Describe the offline store schema and point-in-time join logic
+
+**Specify online store choice (Redis) and explain the materialization job?** #flashcard
+Specify online store choice (Redis) and explain the materialization job
+
+**Define SLAs?** #flashcard
+<5ms online lookup, <100ms offline historical retrieval
+
+**Address?** #flashcard
+how do you handle schema evolution (new feature added)?
+
+**Single feature definition in the registry, shared by training and serving?** #flashcard
+Single feature definition in the registry, shared by training and serving
+
+**Bundle transformation logic with the feature definition (not in the model)?** #flashcard
+Bundle transformation logic with the feature definition (not in the model)
+
+**Log the feature vector used at serving time; periodically compare with what training pipeline would produce?** #flashcard
+Log the feature vector used at serving time; periodically compare with what training pipeline would produce
+
+**Run a shadow serving job that recomputes features from scratch and compares with cached values (detects drift in transformation logic)?** #flashcard
+Run a shadow serving job that recomputes features from scratch and compares with cached values (detects drift in transformation logic)
+
+**The maximum acceptable age of a feature value at serving time?** #flashcard
+The maximum acceptable age of a feature value at serving time
+
+**Example?** #flashcard
+txn_count_5min must be <1 minute stale; purchase_count_30d may be up to 24 hours stale
+
+**Freshness SLA drives choice of batch vs streaming ingestion?** #flashcard
+Freshness SLA drives choice of batch vs streaming ingestion
+
+**Monitor feature freshness as a production metric; alert when SLA is violated?** #flashcard
+Monitor feature freshness as a production metric; alert when SLA is violated

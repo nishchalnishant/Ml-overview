@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Context Window Extension
+subtopic: ""
+status: unread
+tags: [llms, ml, context-window-extension]
+---
 # Context Window Extension
 
 How to extend Transformer context beyond training length. Critical topic for 2024/2025 LLM interviews — every major model (Llama 3, Qwen3, Gemini, GPT-4) uses these techniques.
@@ -302,3 +309,32 @@ A: LLMs recall information at the beginning and end of context much better than 
 
 **Q: ALiBi vs RoPE — when would you choose ALiBi for a new model?**  
 A: ALiBi natively extrapolates to longer sequences without any rescaling — if you're training a model where inference context will vary widely and you don't want to engineer context extension, ALiBi is simpler. Trade-off: ALiBi slightly underperforms RoPE on short-context tasks (the linear bias is suboptimal for close-range attention patterns). For a model where you know the context length upfront and want maximum quality, RoPE + NTK/YaRN is better. ALiBi is rarely chosen for new foundation models since 2023 — RoPE with high base has largely superseded it.
+
+## Flashcards
+
+**High-frequency (short-range)?** #flashcard
+very sensitive, should not be scaled (keep original)
+
+**Low-frequency (long-range)?** #flashcard
+less sensitive, can be linearly interpolated
+
+**No positional encoding during training?** #flashcard
+No positional encoding during training
+
+**Linear extrapolation is built-in (linear penalty for distance)?** #flashcard
+Linear extrapolation is built-in (linear penalty for distance)
+
+**Handles arbitrarily long sequences without fine-tuning?** #flashcard
+Handles arbitrarily long sequences without fine-tuning
+
+**Used in?** #flashcard
+BLOOM, MPT
+
+**Chunked prefill (process prompt in 4K chunks)?** #flashcard
+Chunked prefill (process prompt in 4K chunks)
+
+**PagedAttention (virtual memory for KV cache)?** #flashcard
+PagedAttention (virtual memory for KV cache)
+
+**Multi-GPU with tensor parallelism?** #flashcard
+Multi-GPU with tensor parallelism

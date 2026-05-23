@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: Mlops
+subtopic: ""
+status: unread
+tags: [productionml, ml, mlops]
+---
 # MLOps — Machine Learning Operations
 
 ---
@@ -606,3 +613,179 @@ Three layers of signals: input drift (PSI/KS on feature distributions, detectabl
 **"Batch vs real-time inference trade-offs?"**
 
 Batch: higher throughput, can use larger models, cost-effective, but predictions are stale by the time they are served. Real-time: low latency (target < 100ms), always fresh, but constrained model complexity and higher serving cost. The deciding factor is how quickly the ground truth changes and whether a stale prediction is still useful.
+
+## Flashcards
+
+**Schema validation before any transformation (fail fast on bad data)?** #flashcard
+Schema validation before any transformation (fail fast on bad data)
+
+**Data versioning?** #flashcard
+snapshot the training set, not just the model
+
+**Point-in-time correctness?** #flashcard
+labels must only use features available before the event
+
+**Offline store (Parquet/Delta Lake)?** #flashcard
+historical features for training, with point-in-time joins
+
+**Online store (Redis/DynamoDB)?** #flashcard
+pre-materialized features for inference, < 10ms lookup
+
+**Feature definitions are canonical?** #flashcard
+computed once, used everywhere
+
+**Point-in-time correctness prevents data leakage in training?** #flashcard
+Point-in-time correctness prevents data leakage in training
+
+**Feature reuse across teams reduces duplicate computation?** #flashcard
+Feature reuse across teams reduces duplicate computation
+
+**Consistent features between training and serving eliminates training-serving skew?** #flashcard
+Consistent features between training and serving eliminates training-serving skew
+
+**Development?** #flashcard
+Experimental models, not validated
+
+**Staging?** #flashcard
+Validated offline, pending production testing
+
+**Production?** #flashcard
+Serving live traffic
+
+**Archived?** #flashcard
+Deprecated, kept for audit and rollback
+
+**name?** #flashcard
+ml_model_alerts
+
+**alert?** #flashcard
+ModelAccuracyDrop
+
+**alert?** #flashcard
+PredictionLatencyHigh
+
+**PSI (Population Stability Index)?** #flashcard
+PSI < 0.1 stable, 0.1-0.2 monitor, > 0.2 retrain
+
+**KL Divergence?** #flashcard
+Statistical distance between distributions; sensitive to tail behavior
+
+**Kolmogorov-Smirnov Test?** #flashcard
+Non-parametric test for continuous feature distribution shift
+
+**Retrain model with recent data (scheduled or triggered by drift signal)?** #flashcard
+Retrain model with recent data (scheduled or triggered by drift signal)
+
+**Online learning with a sliding window (incremental partial_fit)?** #flashcard
+Online learning with a sliding window (incremental partial_fit)
+
+**Ensemble the current model with a recently-trained model?** #flashcard
+Ensemble the current model with a recently-trained model
+
+**cron?** #flashcard
+"0 2   *"  # Nightly retraining
+
+**uses?** #flashcard
+actions/checkout@v3
+
+**name?** #flashcard
+Set up Python
+
+**name?** #flashcard
+Install dependencies
+
+**name?** #flashcard
+Run unit tests
+
+**name?** #flashcard
+Validate data
+
+**name?** #flashcard
+Train model
+
+**name?** #flashcard
+Evaluate model
+
+**name?** #flashcard
+Register model
+
+**Minimum accuracy threshold vs baseline?** #flashcard
+Minimum accuracy threshold vs baseline
+
+**No performance regression vs current production model?** #flashcard
+No performance regression vs current production model
+
+**Shadow mode testing (at least 24 hours of shadow comparison)?** #flashcard
+Shadow mode testing (at least 24 hours of shadow comparison)
+
+**Gradual rollout with monitoring at each step?** #flashcard
+Gradual rollout with monitoring at each step
+
+**Replicas based on traffic (HPA on CPU/GPU utilization)?** #flashcard
+Replicas based on traffic (HPA on CPU/GPU utilization)
+
+**Health checks?** #flashcard
+readiness (is the model loaded?) and liveness (is the server responding?)
+
+**Resource limits?** #flashcard
+GPU memory must be specified explicitly or pods will be evicted at runtime
+
+**Version code (git), data (DVC or snapshot hash), models (registry), environment (Docker)?** #flashcard
+Version code (git), data (DVC or snapshot hash), models (registry), environment (Docker)
+
+**Set random seeds in all training scripts?** #flashcard
+Set random seeds in all training scripts
+
+**Log every experiment with full metadata (hyperparameters, data version, code commit)?** #flashcard
+Log every experiment with full metadata (hyperparameters, data version, code commit)
+
+**Use Docker for consistent training environments?** #flashcard
+not conda environments on individual machines
+
+**Unit tests?** #flashcard
+individual data processing functions, feature transformations
+
+**Integration tests?** #flashcard
+end-to-end pipeline from raw data to prediction
+
+**Model validation tests?** #flashcard
+accuracy thresholds, fairness checks, regression vs baseline
+
+**Data quality checks?** #flashcard
+schema, ranges, distributions, missing value rates
+
+**Track model performance metrics (with lag-aware strategies for delayed labels)?** #flashcard
+Track model performance metrics (with lag-aware strategies for delayed labels)
+
+**Monitor data drift on all features with PSI/KS?** #flashcard
+Monitor data drift on all features with PSI/KS
+
+**Set up alerts for latency regression and error rate spikes?** #flashcard
+Set up alerts for latency regression and error rate spikes
+
+**Log predictions with timestamps for offline analysis?** #flashcard
+Log predictions with timestamps for offline analysis
+
+**Encrypt data at rest and in transit?** #flashcard
+Encrypt data at rest and in transit
+
+**Use secrets management (AWS Secrets Manager, HashiCorp Vault)?** #flashcard
+never hardcode credentials
+
+**Implement access control (IAM, RBAC) on model endpoints and data stores?** #flashcard
+Implement access control (IAM, RBAC) on model endpoints and data stores
+
+**Audit logging?** #flashcard
+who deployed what model, when, with what approval
+
+**Use spot instances for training jobs (tolerate interruption with checkpointing)?** #flashcard
+Use spot instances for training jobs (tolerate interruption with checkpointing)
+
+**Auto-scaling for inference (scale to zero when idle, scale out on traffic)?** #flashcard
+Auto-scaling for inference (scale to zero when idle, scale out on traffic)
+
+**Model compression (quantization, pruning, distillation) to reduce serving cost?** #flashcard
+Model compression (quantization, pruning, distillation) to reduce serving cost
+
+**Batch similar requests together for GPU efficiency?** #flashcard
+Batch similar requests together for GPU efficiency

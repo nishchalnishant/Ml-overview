@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Maths
+status: unread
+tags: [interviewprep, ml, ml-maths]
+---
 # Maths for ML Interviews
 
 ---
@@ -321,3 +328,113 @@ $I(X; Y)$ measures how much knowing $Y$ reduces uncertainty about $X$. It is sym
 | Cross-entropy | $-\sum P \log Q$ | Classification loss |
 | Entropy | $-\sum P \log P$ | Uncertainty, information content |
 | Mutual information | $H(X) - H(X\|Y)$ | Feature selection, independence |
+
+## Flashcards
+
+**Symmetric matrices ($A = A^T$) have real eigenvalues and orthogonal eigenvectors?** #flashcard
+this is the spectral theorem, which is why PCA works cleanly
+
+**$\sum \lambda_i = \text{tr}(A)$; $\prod \lambda_i = \det(A)$?** #flashcard
+$\sum \lambda_i = \text{tr}(A)$; $\prod \lambda_i = \det(A)$
+
+**Eigenvalues of a covariance matrix are non-negative because covariance matrices are PSD?** #flashcard
+Eigenvalues of a covariance matrix are non-negative because covariance matrices are PSD
+
+**Mixing up eigenvectors and principal components. PCA's principal components are the eigenvectors of the covariance matrix, but they become useful by projecting data onto them?** #flashcard
+computing $Xv$ for each eigenvector $v$.
+
+**Assuming eigenvalues are always real. They are real for symmetric matrices. For arbitrary square matrices, eigenvalues can be complex.?** #flashcard
+Assuming eigenvalues are always real. They are real for symmetric matrices. For arbitrary square matrices, eigenvalues can be complex.
+
+**Saying "the eigenvalue is the variance explained." The eigenvalue of the covariance matrix equals the variance in the direction of its eigenvector?** #flashcard
+but only after the data is properly centered and the covariance is correctly computed.
+
+**$U \in \mathbb{R}^{m \times m}$: left singular vectors (orthonormal columns)?** #flashcard
+the "output directions"
+
+**$\Sigma \in \mathbb{R}^{m \times n}$?** #flashcard
+diagonal matrix of singular values $\sigma_1 \geq \sigma_2 \geq \cdots \geq 0$
+
+**$V \in \mathbb{R}^{n \times n}$: right singular vectors (orthonormal columns)?** #flashcard
+the "input directions"
+
+**Confusing SVD with eigendecomposition. SVD works on rectangular matrices and produces left and right singular vectors; eigendecomposition requires square matrices and produces one set of eigenvectors. The singular values of $A$ relate to eigenvalues of $A^TA$, not directly to eigenvalues of $A$.?** #flashcard
+Confusing SVD with eigendecomposition. SVD works on rectangular matrices and produces left and right singular vectors; eigendecomposition requires square matrices and produces one set of eigenvectors. The singular values of $A$ relate to eigenvalues of $A^TA$, not directly to eigenvalues of $A$.
+
+**Not knowing that PCA is computed via SVD of the data matrix, not eigendecomposition of the covariance matrix?** #flashcard
+they produce the same result but SVD is numerically superior and does not require explicitly forming $X^TX$.
+
+**Forgetting to center the data before PCA. Uncentered PCA finds directions of maximum variance including the mean offset, not directions of maximum variance around the mean.?** #flashcard
+Forgetting to center the data before PCA. Uncentered PCA finds directions of maximum variance including the mean offset, not directions of maximum variance around the mean.
+
+**Interpreting PCA as removing noise. PCA removes low-variance directions?** #flashcard
+which are often noise, but not always. If important signal lies in low-variance directions (which can happen in adversarial settings), PCA discards it.
+
+**$H \succ 0$ (positive definite): local minimum?** #flashcard
+loss curves upward in all directions
+
+**$H \prec 0$ (negative definite)?** #flashcard
+local maximum
+
+**Mixed eigenvalues?** #flashcard
+saddle point
+
+**Treating the Hessian as computationally accessible for deep learning. For a model with $10^9$ parameters, the Hessian has $10^{18}$ entries?** #flashcard
+storing it is impossible. Fisher information matrix approximations and diagonal Hessian approximations are used in practice.
+
+**Confusing saddle points with local minima. In high-dimensional loss landscapes, what appears to be a local minimum under a few directions is often a saddle point in other directions. Deep networks are believed to have very few poor local minima but many saddle points.?** #flashcard
+Confusing saddle points with local minima. In high-dimensional loss landscapes, what appears to be a local minimum under a few directions is often a saddle point in other directions. Deep networks are believed to have very few poor local minima but many saddle points.
+
+**Confusing PSD and PD. PSD allows zero eigenvalues; PD requires all eigenvalues strictly positive. A covariance matrix can be singular (PSD but not PD) if some features are exact linear combinations of others.?** #flashcard
+Confusing PSD and PD. PSD allows zero eigenvalues; PD requires all eigenvalues strictly positive. A covariance matrix can be singular (PSD but not PD) if some features are exact linear combinations of others.
+
+**Thinking any symmetric matrix is PSD. A symmetric matrix with negative eigenvalues is not PSD?** #flashcard
+for example, the matrix $[[-1, 0], [0, -1]]$ is symmetric but not PSD.
+
+**Saying "L1 works better for feature selection without explaining why." The geometric reason (corner structure of the L1 ball) is what interviewers want.?** #flashcard
+Saying "L1 works better for feature selection without explaining why." The geometric reason (corner structure of the L1 ball) is what interviewers want.
+
+**Choosing L1 when features are highly correlated. L1 tends to arbitrarily select one feature from a correlated group and zero out the rest. Elastic Net handles this by combining L1's sparsity with L2's stability under correlation.?** #flashcard
+Choosing L1 when features are highly correlated. L1 tends to arbitrarily select one feature from a correlated group and zero out the rest. Elastic Net handles this by combining L1's sparsity with L2's stability under correlation.
+
+**$D_{KL}(P \| Q) \geq 0$ (Gibbs' inequality), with equality iff $P = Q$?** #flashcard
+$D_{KL}(P \| Q) \geq 0$ (Gibbs' inequality), with equality iff $P = Q$
+
+**Not symmetric?** #flashcard
+$D_{KL}(P \| Q) \neq D_{KL}(Q \| P)$
+
+**Relation to cross-entropy?** #flashcard
+$D_{KL}(P \| Q) = H(P, Q) - H(P)$
+
+**$D_{KL}(P \| Q)$ (forward, "inclusive divergence"): $Q$ must be non-zero wherever $P$ is non-zero. If $P(x) > 0$ and $Q(x) = 0$, the divergence is infinite. This forces $Q$ to spread to cover all modes of $P$?** #flashcard
+it is zero-avoiding for $Q$. In variational inference, this overestimates the variance of the approximate posterior.
+
+**$D_{KL}(Q \| P)$ (reverse, "exclusive divergence"): if $Q(x) > 0$ but $P(x) = 0$, the divergence is infinite. This forces $Q$ to concentrate on regions where $P$ is large?** #flashcard
+it is zero-forcing, producing mode-seeking behavior. Used in variational inference mean-field approximations.
+
+**VAE ELBO: $D_{KL}(q_\phi(z|x) \| p(z))$?** #flashcard
+penalizes deviation of approximate posterior from prior
+
+**Knowledge distillation?** #flashcard
+$D_{KL}(p_{\text{teacher}} \| p_{\text{student}})$
+
+**RLHF KL penalty: $D_{KL}(\pi_\phi \| \pi_{\text{SFT}})$?** #flashcard
+prevents reward hacking
+
+**Treating KL divergence as a distance. It is not symmetric and does not satisfy the triangle inequality. It is a divergence, not a metric.?** #flashcard
+Treating KL divergence as a distance. It is not symmetric and does not satisfy the triangle inequality. It is a divergence, not a metric.
+
+**Forgetting the asymmetry when discussing loss functions. Cross-entropy minimization (which is equivalent to minimizing $D_{KL}(P_{\text{true}} \| P_{\text{model}})$) is not the same as minimizing $D_{KL}(P_{\text{model}} \| P_{\text{true}})$.?** #flashcard
+Forgetting the asymmetry when discussing loss functions. Cross-entropy minimization (which is equivalent to minimizing $D_{KL}(P_{\text{true}} \| P_{\text{model}})$) is not the same as minimizing $D_{KL}(P_{\text{model}} \| P_{\text{true}})$.
+
+**Applying Lagrange multipliers to inequality constraints. Lagrange multipliers are for equality constraints; KKT conditions generalize to inequalities. The key addition is complementary slackness.?** #flashcard
+Applying Lagrange multipliers to inequality constraints. Lagrange multipliers are for equality constraints; KKT conditions generalize to inequalities. The key addition is complementary slackness.
+
+**Not checking constraint qualification (KKT regularity conditions). KKT conditions are necessary for optimality only when certain regularity conditions hold?** #flashcard
+in particular, the gradients of the active constraints must be linearly independent.
+
+**Confusing entropy and cross-entropy. Entropy $H(P)$ measures the uncertainty in $P$?** #flashcard
+a property of the data. Cross-entropy $H(P, Q)$ measures the cost of approximating $P$ with $Q$ — a property of both the data and the model. Minimizing training loss minimizes cross-entropy, not entropy.
+
+**Treating mutual information as only applicable to discrete distributions. Mutual information extends to continuous distributions via density integrals, though it is harder to estimate from samples.?** #flashcard
+Treating mutual information as only applicable to discrete distributions. Mutual information extends to continuous distributions via density integrals, though it is harder to estimate from samples.

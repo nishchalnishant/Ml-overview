@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Large Language Model
+status: unread
+tags: [interviewprep, ml, ml-large-language-model]
+---
 # Large Language Models
 
 ---
@@ -344,3 +351,161 @@ Identify the bottleneck first. Prefill-bound (long prompts)? Optimize prompt com
 
 **If asked about LLM reliability in production:**
 Raise: hallucination rates, output format consistency, latency distribution, cost per query, context length limits, behavior on adversarial or out-of-distribution prompts, and monitoring strategy. A reliable LLM system is a system built around an LLM — with retrieval, verification, fallbacks, and monitoring — not just an LLM with a good system prompt.
+
+## Flashcards
+
+**Treating scale as the only variable. Architecture choices, data quality, and training curriculum all interact with scale. A larger model trained on noisier data can underperform a smaller model trained on curated data?** #flashcard
+data quality matters as much as parameter count.
+
+**Treating emergent capabilities as magical. They are well-defined empirically?** #flashcard
+performance on a task is near-random at small scale and jumps discontinuously at large scale. The explanation is likely that some tasks require many capabilities simultaneously; the model acquires each capability gradually, but only crosses the threshold for all of them at once at large scale.
+
+**Token count drives API cost for commercial models?** #flashcard
+Token count drives API cost for commercial models
+
+**Token count determines how much content fits in the context window?** #flashcard
+Token count determines how much content fits in the context window
+
+**Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units?** #flashcard
+Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units
+
+**Languages differ in tokenization efficiency?** #flashcard
+English-centric tokenizers produce long sequences for morphologically rich languages
+
+**Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects.?** #flashcard
+Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects.
+
+**Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications.?** #flashcard
+Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications.
+
+**Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of.?** #flashcard
+Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of.
+
+**Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent.?** #flashcard
+Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent.
+
+**Query?** #flashcard
+what this position is looking for
+
+**Key?** #flashcard
+what each position offers for matching
+
+**Value?** #flashcard
+the information carried if the match is strong
+
+**Saying attention tells the model "which words are important" without specifying: important for what? Attention patterns are query-dependent?** #flashcard
+the same word is important for different queries in different ways. Describing attention as a static importance score misses this.
+
+**Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small.?** #flashcard
+Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small.
+
+**Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens.?** #flashcard
+Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens.
+
+**Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.?** #flashcard
+Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.
+
+**Is the problem that the model does not know something, or that knowledge changes? → RAG?** #flashcard
+Is the problem that the model does not know something, or that knowledge changes? → RAG
+
+**Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning?** #flashcard
+Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning
+
+**Is the problem solvable by better instructions or examples? → prompting?** #flashcard
+Is the problem solvable by better instructions or examples? → prompting
+
+**Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining?** #flashcard
+Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining
+
+**Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively.?** #flashcard
+Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively.
+
+**Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements.?** #flashcard
+Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements.
+
+**Attention computation cost?** #flashcard
+standard self-attention scales as $O(n^2)$ in sequence length
+
+**Latency?** #flashcard
+longer sequences take longer to process
+
+**Cost?** #flashcard
+API pricing typically scales with total tokens processed
+
+**Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it.?** #flashcard
+Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it.
+
+**Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it.?** #flashcard
+Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it.
+
+**Top-k sampling?** #flashcard
+sample only from the $k$ most probable tokens, zeroing the rest. Fixed cutoff regardless of distribution shape.
+
+**Top-p (nucleus) sampling: sample from the smallest set of tokens whose cumulative probability exceeds $p$?** #flashcard
+the set shrinks when the model is confident and grows when it is uncertain. Adapts to distribution shape at each step.
+
+**Beam search?** #flashcard
+maintain $k$ hypotheses in parallel, selecting the highest-probability complete sequence. Deterministic; often too conservative for creative tasks.
+
+**Framing temperature tuning as "improving the model." Temperature is a sampling parameter. The model's calibration?** #flashcard
+whether its top-probability tokens correspond to correct answers — comes from pretraining and fine-tuning, not from sampling parameters.
+
+**Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs.?** #flashcard
+Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs.
+
+**Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step.?** #flashcard
+Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step.
+
+**Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage.?** #flashcard
+Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage.
+
+**Thinking alignment training fundamentally changes the model's knowledge or capabilities. It primarily changes the probability of certain types of outputs?** #flashcard
+the underlying capabilities remain largely intact.
+
+**Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.?** #flashcard
+Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.
+
+**Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.?** #flashcard
+Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.
+
+**Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory.?** #flashcard
+Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory.
+
+**Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.?** #flashcard
+Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.
+
+**Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.?** #flashcard
+Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.
+
+**Knowledge gaps?** #flashcard
+the model lacks the specific information and generates a plausible-sounding substitute
+
+**Conflation?** #flashcard
+the model confuses similar entities or facts from training data
+
+**Context neglect?** #flashcard
+the model ignores provided context and generates from parametric memory
+
+**Overconfidence: the model assigns high probability to false statements?** #flashcard
+miscalibrated confidence
+
+**RAG?** #flashcard
+grounds responses in retrieved documents, reducing reliance on parametric memory for factual claims
+
+**Chain-of-thought prompting?** #flashcard
+forces explicit reasoning steps, making errors more detectable and easier to check
+
+**Calibration fine-tuning?** #flashcard
+train on examples where the model expresses uncertainty when it should, reducing confident wrong answers
+
+**Attribution requirements?** #flashcard
+require the model to cite the source for each claim; claims without citations are flagged
+
+**Output verification?** #flashcard
+pass generated claims through a separate fact-checking step before serving
+
+**Framing hallucination as something that will be "fixed" in the next model version. The training paradigm is fundamentally susceptible?** #flashcard
+improvements reduce frequency but do not eliminate the underlying mechanism. System design should assume hallucination occurs and build in verification.
+
+**Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data.?** #flashcard
+Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data.

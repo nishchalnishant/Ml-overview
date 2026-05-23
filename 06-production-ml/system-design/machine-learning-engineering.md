@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Machine Learning Engineering
+status: unread
+tags: [productionml, ml, system-design-machine-learning]
+---
 # Machine Learning Engineering
 
 Based on Andriy Burkov's _Machine Learning Engineering_.
@@ -1217,3 +1224,11 @@ def federated_round(global_model, client_datasets):
 ```
 
 **What breaks**: differential privacy guarantees hold for the noise level specified but say nothing about model quality. With strong privacy (epsilon=0.1), gradient noise can be so large that the model fails to converge. With weak privacy (epsilon=100), the guarantee is nearly meaningless. Calibrate epsilon based on the sensitivity of the data, not a default value.
+
+## Flashcards
+
+**Static?** #flashcard
+compute offline on a schedule (e.g., nightly churn scores)
+
+**Dynamic?** #flashcard
+compute at request time (e.g., real-time fraud score)

@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 Algorithms
+subtopic: Day 12 14 Neural Networks
+status: unread
+tags: [studyplans, ml, week-2-algorithms-day-12-14-ne]
+---
 # Day 12-14: Neural Networks & Deep Learning
 
 ## Why This Topic Comes Here
@@ -126,3 +133,41 @@ class SimpleNet(nn.Module):
         x = self.dropout(self.bn(self.relu(self.fc(x))))
         return self.out(x)
 ```
+
+## Flashcards
+
+**MLP (Multi-Layer Perceptron)?** #flashcard
+A stack of fully connected layers.
+
+**Universal Approximation Theorem?** #flashcard
+A network with one hidden layer can approximate any continuous function given enough neurons.
+
+**Sigmoid/Tanh?** #flashcard
+Saturate (output approaches ±1/0 at extreme inputs), causing vanishing gradients in deep networks.
+
+**ReLU?** #flashcard
+$\max(0, z)$. Non-saturating, fast to compute, but can "die" (neurons stuck at 0 if bias pushes pre-activation permanently negative).
+
+**Leaky ReLU / GELU?** #flashcard
+Fix ReLU's dying neuron problem.
+
+**SGD?** #flashcard
+Simple stochastic updates. Requires careful learning rate tuning. Can escape local minima due to noise.
+
+**Momentum SGD?** #flashcard
+Adds a velocity term to smooth out gradient noise.
+
+**Adam?** #flashcard
+Combines Momentum (don't stop) and RMSProp (adjust learning rate per parameter). Usually the default starting point.
+
+**L1/L2 Weight Decay?** #flashcard
+Penalizes large weights in the loss function.
+
+**Dropout?** #flashcard
+Randomly sets activations to zero during training. At test time, scales activations by the keep probability.
+
+**Batch Normalization?** #flashcard
+Normalizes activations within each mini-batch, stabilizing training and acting as a mild regularizer.
+
+**Early Stopping?** #flashcard
+Stop training when validation loss starts increasing.

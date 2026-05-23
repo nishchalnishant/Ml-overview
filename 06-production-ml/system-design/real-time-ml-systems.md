@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Real Time Ml Systems
+status: unread
+tags: [productionml, ml, system-design-real-time-ml-sys]
+---
 # Real-Time ML Systems
 
 **TL;DR**: Real-time ML is an engineering problem as much as a modeling problem. The hard parts are latency budget management, feature consistency between training and serving, feedback loops that poison future data, and graceful degradation when the stack falls apart. Interview signal comes from knowing where latency lives, how consistency breaks, and what to do when it does.
@@ -703,3 +710,23 @@ At 10ms, every network hop is expensive. Design principles: (1) embed the model 
 **Q7: You're designing a recommendation system that must serve 10,000 RPS with P99 < 100ms. What are the main risks and how do you mitigate them?**
 
 Main risks: (1) Feature fetch fan-out — if each request fetches features for 50 candidates, that's 500k Redis reads/sec. Mitigate with batch pipelining and candidate pre-filtering. (2) Model inference throughput — at 10k RPS, you need ~10k inferences/sec. Profile batch size vs latency tradeoff; GPU with dynamic batching likely required. (3) Cold start — new users/items have no features; need a fallback (popularity-based, demographic features). (4) Thundering herd — cache expiry causes simultaneous re-fetches; use staggered TTLs and probabilistic early expiration. (5) Feedback loop — showing only top-ranked items creates exposure bias; add exploration (epsilon-greedy or UCB) and log counterfactuals for unbiased offline evaluation.
+
+## Flashcards
+
+**GC pauses (JVM heap pressure, Python GC)?** #flashcard
+GC pauses (JVM heap pressure, Python GC)
+
+**Thundering herd on cache miss?** #flashcard
+Thundering herd on cache miss
+
+**Stragglers in batched feature fetch (wait for slowest key)?** #flashcard
+Stragglers in batched feature fetch (wait for slowest key)
+
+**CPU throttling in container (check cpu_throttled_seconds)?** #flashcard
+CPU throttling in container (check cpu_throttled_seconds)
+
+**High-value transactions?** #flashcard
+maximize recall (miss fewer frauds), tolerate 200ms
+
+**Micro-transactions?** #flashcard
+maximize precision (false positives are costly), require <20ms

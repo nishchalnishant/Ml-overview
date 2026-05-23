@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: System Design And Mlops
+status: unread
+tags: [interviewprep, ml, ml-system-design-and-mlops]
+---
 **Primary reference:** [Production ML](../../06-production-ml/README.md) | [System Design](../../06-production-ml/system-design/machine-learning-engineering.md)
 
 # ML System Design and MLOps
@@ -606,3 +613,212 @@ Follow the design order: goal → success metric → constraints → data and la
 **If asked how a two-stage retrieval-ranking system handles the relevance-latency tradeoff:**
 
 Retrieval trades precision for speed — it retrieves candidates fast using approximate methods (ANN, BM25) and optimizes recall at the cost of some irrelevant candidates. Ranking trades speed for precision — it scores only retrieved candidates with a heavy model optimized for precision. The system as a whole gets near-ranker precision at near-retrieval latency, because the heavy computation runs over hundreds of candidates, not millions.
+
+## Flashcards
+
+**Retrieval (recall-oriented)?** #flashcard
+fast, approximate method that finds a small candidate set. Misses some good candidates, but fast. Optimized for recall.
+
+**Ranking (precision-oriented)?** #flashcard
+accurate, heavy model scores only retrieved candidates. Can use expensive features. Optimized for precision on the candidate set.
+
+**Vector search / approximate nearest neighbors (FAISS, ScaNN)?** #flashcard
+precomputed embeddings, fast similarity search
+
+**Collaborative filtering (item-item or user-item)?** #flashcard
+based on historical co-engagement
+
+**Inverted index?** #flashcard
+keyword or tag matching for content retrieval
+
+**Rules-based?** #flashcard
+freshness filters, content type constraints
+
+**Gradient-boosted trees (fast, interpretable, good for tabular features)?** #flashcard
+Gradient-boosted trees (fast, interpretable, good for tabular features)
+
+**Deep neural networks (can incorporate embedding features, cross-features)?** #flashcard
+Deep neural networks (can incorporate embedding features, cross-features)
+
+**Cross encoders (most accurate, most expensive?** #flashcard
+joint encoding of query and candidate)
+
+**DCN (Deep & Cross Network)?** #flashcard
+explicitly models feature interactions
+
+**Different code paths?** #flashcard
+training uses batch preprocessing script; serving uses streaming computation. They disagree on how to handle nulls, outliers, or encoding.
+
+**Different data freshness?** #flashcard
+training uses a daily batch feature; serving uses a version computed an hour ago (or yesterday).
+
+**Leakage during training?** #flashcard
+training includes a feature that uses future information. At serving time, that information is not yet available.
+
+**Different normalization?** #flashcard
+training computes mean/std on training set; serving uses a stale statistics snapshot.
+
+**Offline store?** #flashcard
+historical feature values for training (data warehouse, columnar storage)
+
+**Online store?** #flashcard
+low-latency key-value lookup for inference (Redis, DynamoDB)
+
+**Feature registry?** #flashcard
+versioned definitions of how each feature is computed
+
+**Backfill pipeline?** #flashcard
+populates the offline store from the online computation history
+
+**Training?** #flashcard
+computed via SQL window function over historical transaction table. Gets the exact 24-hour count.
+
+**Serving?** #flashcard
+implemented in the fraud service. Queries a Redis counter that gets incremented on each transaction. Counter resets at midnight. Produces wrong values for IPs that span the midnight boundary.
+
+**Feature defined once?** #flashcard
+COUNT transactions WHERE ip = X AND timestamp > NOW() - 24h
+
+**Training?** #flashcard
+feature store backfills this value from the historical event log using the same logic
+
+**Serving?** #flashcard
+feature store online layer maintains the rolling counter with the same semantics
+
+**Guaranteed consistency?** #flashcard
+Guaranteed consistency
+
+**PSI (Population Stability Index)?** #flashcard
+compare feature bucket distributions between training and current data
+
+**KS test?** #flashcard
+compare empirical CDFs of continuous features
+
+**Chi-squared test?** #flashcard
+compare categorical feature distributions
+
+**Prediction distribution shift?** #flashcard
+monitor the distribution of model scores over time
+
+**Label-prediction agreement?** #flashcard
+when ground truth labels arrive (with delay), measure accuracy and flag changes
+
+**Business KPI monitoring?** #flashcard
+downstream metrics (CTR, conversion) that reflect whether the model is making useful decisions
+
+**Scheduled?** #flashcard
+weekly or monthly regardless of detected drift (baseline hygiene)
+
+**Triggered?** #flashcard
+PSI > 0.25 on key features, or prediction distribution shift > 2σ from baseline
+
+**Continuous?** #flashcard
+online learning for high-velocity signals (ads, fraud) where the world changes daily
+
+**Post-training quantization (PTQ)?** #flashcard
+quantize a pretrained model without retraining. Fast to apply.
+
+**Quantization-aware training (QAT)?** #flashcard
+simulate quantization during training. Better accuracy for aggressive quantization.
+
+**Accuracy cost?** #flashcard
+typically < 1% for int8; higher for int4 without calibration.
+
+**Unstructured pruning?** #flashcard
+zeroes out individual weights. Hard to accelerate on current hardware.
+
+**Structured pruning?** #flashcard
+removes entire neurons, heads, or layers. Directly reduces compute.
+
+**Match soft probabilities (temperature scaling), intermediate representations, or both.?** #flashcard
+Match soft probabilities (temperature scaling), intermediate representations, or both.
+
+**DistilBERT achieved 97% of BERT's performance with 40% fewer parameters and 60% speedup.?** #flashcard
+DistilBERT achieved 97% of BERT's performance with 40% fewer parameters and 60% speedup.
+
+**Requires training?** #flashcard
+higher upfront cost but no inference overhead.
+
+**Embedding precomputation?** #flashcard
+compute user/item embeddings in batch; serve from lookup table.
+
+**KV-cache for LLMs?** #flashcard
+reuse past key-value computations across tokens in autoregressive generation.
+
+**Dynamic batching?** #flashcard
+accumulate requests until batch is full or timeout fires.
+
+**Continuous batching (for LLMs)?** #flashcard
+interleave different-length sequences to maximize GPU utilization. Avoids the fixed-batch-size bottleneck that wastes compute on padding.
+
+**Model artifact (weights, architecture)?** #flashcard
+Model artifact (weights, architecture)
+
+**Training data reference (data hash or snapshot ID)?** #flashcard
+Training data reference (data hash or snapshot ID)
+
+**Feature definition version?** #flashcard
+Feature definition version
+
+**Training code commit SHA?** #flashcard
+Training code commit SHA
+
+**Evaluation metrics (at training time, by dataset and group)?** #flashcard
+Evaluation metrics (at training time, by dataset and group)
+
+**Serving configuration (batch size, hardware, preprocessing steps)?** #flashcard
+Serving configuration (batch size, hardware, preprocessing steps)
+
+**Deployment history (which versions were live when)?** #flashcard
+Deployment history (which versions were live when)
+
+**Latency at query time?** #flashcard
+effectively zero (lookup)
+
+**Feature space?** #flashcard
+can use rich features that take seconds to compute
+
+**Freshness?** #flashcard
+predictions can be stale (minutes to hours, depending on batch cadence)
+
+**Cost?** #flashcard
+amortized over batch
+
+**Latency?** #flashcard
+must meet SLA (typically < 100ms)
+
+**Feature space?** #flashcard
+only features computable within the latency budget
+
+**Freshness?** #flashcard
+always fresh
+
+**Cost?** #flashcard
+per-request model forward pass
+
+**For each user?** #flashcard
+compute top 20 recommended items using collaborative filtering + content model
+
+**Store?** #flashcard
+user_id → [item_1, item_2, ..., item_20]
+
+**Cost?** #flashcard
+5M users × 20 items × model forward pass = handled in batch job
+
+**Look up precomputed recommendations for each user?** #flashcard
+Look up precomputed recommendations for each user
+
+**Apply business rules (filter out out-of-stock items, exclude recently purchased)?** #flashcard
+Apply business rules (filter out out-of-stock items, exclude recently purchased)
+
+**Serve?** #flashcard
+Serve
+
+**AUC > 0.92 on holdout set?** #flashcard
+AUC > 0.92 on holdout set
+
+**AUC on each demographic group > 0.88 (fairness gate)?** #flashcard
+AUC on each demographic group > 0.88 (fairness gate)
+
+**Inference latency P99 < 50ms on standard hardware?** #flashcard
+Inference latency P99 < 50ms on standard hardware

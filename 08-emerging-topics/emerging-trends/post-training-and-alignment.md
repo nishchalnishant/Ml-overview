@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Post Training And Alignment
+status: unread
+tags: [emergingtopics, ml, emerging-trends-post-training-]
+---
 # Post-Training and Alignment
 
 The algorithms and training paradigms that transform a pretrained language model into a useful, safe, and instruction-following system — with exact mathematical differences between RLHF, DPO, KTO, and the synthetic data approaches that reduce dependence on human annotation.
@@ -447,3 +454,65 @@ Scalable oversight approaches beyond Constitutional AI:
 - **Automated interpretability:** use AI to generate natural language explanations of other AI's internal computations, making the reasoning process legible to humans.
 
 These approaches become increasingly important at frontier capability because: (1) we cannot rely on human preference labels for tasks where humans are systematically outperformed; (2) without scalable oversight, the alignment training signal degrades precisely when it is most needed (high-capability models); (3) the governance argument — auditors, regulators, and the public need mechanisms to verify alignment claims without requiring frontier-level ML expertise.
+
+## Flashcards
+
+**What pretraining optimizes?** #flashcard
+predict the next token over a broad text corpus
+
+**What deployment requires?** #flashcard
+follow instructions accurately, be helpful, avoid harm, maintain factual accuracy
+
+**No reward model training required?** #flashcard
+No reward model training required
+
+**No PPO optimization loop required?** #flashcard
+No PPO optimization loop required
+
+**Single training run on the preference dataset?** #flashcard
+Single training run on the preference dataset
+
+**Memory: only π_θ (the policy) and π_ref (frozen)?** #flashcard
+2× instead of 4× model copies
+
+**Your dataset doesn't have paired comparisons (common in practice?** #flashcard
+you have user thumbs up/down on individual responses)
+
+**The good/bad examples are imbalanced (KTO handles this naturally; DPO needs equal numbers of y_w and y_l pairs)?** #flashcard
+The good/bad examples are imbalanced (KTO handles this naturally; DPO needs equal numbers of y_w and y_l pairs)
+
+**Empirically?** #flashcard
+KTO matches or exceeds DPO on alignment benchmarks while requiring simpler annotation
+
+**Choose the response that is most helpful, harmless, and honest?** #flashcard
+Choose the response that is most helpful, harmless, and honest
+
+**Prefer responses that are least likely to encourage illegal activity?** #flashcard
+Prefer responses that are least likely to encourage illegal activity
+
+**Prefer responses that would make a reasonable person feel respected, not harassed?** #flashcard
+Prefer responses that would make a reasonable person feel respected, not harassed
+
+**Choose the most helpful response if the request is clearly benign?** #flashcard
+Choose the most helpful response if the request is clearly benign
+
+**Functional correctness?** #flashcard
+HumanEval (164 problems), MBPP (374 problems), SWE-bench (real GitHub issues). Primary metric: pass@k.
+
+**Code quality: cyclomatic complexity, docstring coverage, style conformance (pylint score)?** #flashcard
+automated but correlated with human preference.
+
+**Safety?** #flashcard
+does the model generate code with obvious security vulnerabilities (SQL injection, eval() on user input)? Red team evaluation with a set of security-focused prompts.
+
+**Alignment stability?** #flashcard
+does the model refuse unreasonable requests (write malware) while helping with reasonable ones (write a network scanner for pentesting with explicit authorization)?
+
+**Debate?** #flashcard
+two AI models argue for their respective answers; humans judge the debate (which is easier to evaluate than the underlying question). A correct debater can expose flaws in an incorrect debater's argument, making errors legible to humans who couldn't independently verify the answer.
+
+**Amplification?** #flashcard
+iteratively extend human judgment by using AI to decompose hard questions into easier sub-questions that humans can evaluate, then aggregating judgments up the decomposition tree.
+
+**Automated interpretability?** #flashcard
+use AI to generate natural language explanations of other AI's internal computations, making the reasoning process legible to humans.

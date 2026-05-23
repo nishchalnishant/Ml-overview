@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Optimization
+status: unread
+tags: [interviewprep, ml, ml-optimization]
+---
 # Optimization for ML Interviews
 
 ---
@@ -312,3 +319,77 @@ The scale $s$ and zero-point $z$ are stored per tensor (or per channel for highe
 **Common traps**:
 - Quantizing without benchmarking on the production task. Accuracy degradation from quantization is task- and distribution-dependent. Aggregate benchmarks may show 0.5% degradation while the specific input distribution the model will serve shows 5% degradation. Always benchmark on representative production data.
 - Assuming FP16 is always safe without gradient scaling. Naively running training in FP16 without loss scaling causes underflow: gradients with magnitude < $\sim 6 \times 10^{-8}$ (FP16 minimum positive) are rounded to zero. Framework mixed-precision implementations (`torch.cuda.amp.autocast`) handle this automatically via dynamic loss scaling — but do not implement manual FP16 without understanding this.
+
+## Flashcards
+
+**Conflating gradient descent (the update rule) with backpropagation (the gradient computation algorithm). Backpropagation computes $\nabla_\theta L$; gradient descent uses it. A model trained with automatic differentiation (PyTorch autograd) uses backprop for gradient computation, but could use any optimizer (SGD, Adam, L-BFGS) for the update step.?** #flashcard
+Conflating gradient descent (the update rule) with backpropagation (the gradient computation algorithm). Backpropagation computes $\nabla_\theta L$; gradient descent uses it. A model trained with automatic differentiation (PyTorch autograd) uses backprop for gradient computation, but could use any optimizer (SGD, Adam, L-BFGS) for the update step.
+
+**Treating gradient descent as an exact optimization algorithm. The update $\theta - \eta \nabla_\theta L$ exactly minimizes the linearized loss around $\theta$. But the actual loss is not linear, so the true minimum is not at $\theta - \eta \nabla_\theta L$ except infinitesimally. Each step is an approximation.?** #flashcard
+Treating gradient descent as an exact optimization algorithm. The update $\theta - \eta \nabla_\theta L$ exactly minimizes the linearized loss around $\theta$. But the actual loss is not linear, so the true minimum is not at $\theta - \eta \nabla_\theta L$ except infinitesimally. Each step is an approximation.
+
+**Assuming larger batches are strictly better because they estimate the gradient more accurately. Gradient accuracy and solution quality are not the same thing. The gradient noise in small-batch training is not a bug?** #flashcard
+it is an implicit regularizer.
+
+**Not scaling the learning rate when increasing batch size. The standard heuristic?** #flashcard
+multiply learning rate by the factor by which you scale the batch size. (With warmup: first warm up from the original LR to the scaled LR over ~5 epochs, then apply the scheduled LR.) Without this scaling, large-batch training undershoots the optimal LR for the landscape.
+
+**Setting learning rate once and leaving it constant. Learning rate scheduling?** #flashcard
+warmup + cosine decay — typically delivers more benefit than any other single hyperparameter choice. The specific LR value matters less than the schedule shape.
+
+**Using the same learning rate for all layers when fine-tuning. The first few layers of a pretrained network have learned generic low-level representations; they need minimal updating. Later layers need more adaptation. Using a single LR either destroys the generic early-layer representations or fails to adapt the task-specific later layers.?** #flashcard
+Using the same learning rate for all layers when fine-tuning. The first few layers of a pretrained network have learned generic low-level representations; they need minimal updating. Later layers need more adaptation. Using a single LR either destroys the generic early-layer representations or fails to adapt the task-specific later layers.
+
+**Setting $\beta$ too high (e.g., 0.99 or higher). The effective smoothing window is $1/(1-\beta)$ steps. At $\beta = 0.99$, the window is 100 steps?** #flashcard
+the velocity accumulates so much history that it overshoots minima and causes instability. Standard is $\beta = 0.9$ for SGD + momentum.
+
+**Not resetting the velocity when making large changes to the learning rate or task. The accumulated velocity encodes gradient information from the old learning rate or task. After a major LR reduction or a task switch in continual learning, reset momentum to zero.?** #flashcard
+Not resetting the velocity when making large changes to the learning rate or task. The accumulated velocity encodes gradient information from the old learning rate or task. After a major LR reduction or a task switch in continual learning, reset momentum to zero.
+
+**Using torch.optim.Adam with weight decay for deep learning. Standard Adam applies weight decay incorrectly?** #flashcard
+the weight decay term is adaptively scaled, so the regularization is weaker for high-gradient parameters. Use AdamW (see section 6).
+
+**Assuming Adam always converges faster than SGD. Adam converges in fewer steps for most problems and requires less hyperparameter tuning. But for vision models where SGD is carefully tuned (cosine schedule, right LR), SGD often achieves better final accuracy because its gradient noise produces flatter, more generalizable minima. Adam's adaptivity reduces noise and can cause convergence to sharper solutions.?** #flashcard
+Assuming Adam always converges faster than SGD. Adam converges in fewer steps for most problems and requires less hyperparameter tuning. But for vision models where SGD is carefully tuned (cosine schedule, right LR), SGD often achieves better final accuracy because its gradient noise produces flatter, more generalizable minima. Adam's adaptivity reduces noise and can cause convergence to sharper solutions.
+
+**Using torch.optim.Adam for any modern deep learning task. AdamW should be the default. Standard Adam with weight_decay is misleading because it does not implement L2 regularization correctly.?** #flashcard
+Using torch.optim.Adam for any modern deep learning task. AdamW should be the default. Standard Adam with weight_decay is misleading because it does not implement L2 regularization correctly.
+
+**Setting weight_decay > 0.1. AdamW with weight_decay=0.3 combined with dropout is excessive regularization that hurts performance. Typical effective range?** #flashcard
+0.01–0.1 for most tasks. Start at 0.01.
+
+**Applying gradient clipping to a vanishing gradient problem. Clipping restricts gradient magnitude downward?** #flashcard
+it cannot increase magnitude. A vanishing gradient needs architectural solutions: residual connections, better initialization, normalization, non-saturating activations.
+
+**Clipping by value instead of by norm. Clipping $g_1 = 1000$ and $g_2 = 0.001$ to $c = 1$ produces $(1, 0.001)$, which points almost entirely in the $g_1$ direction?** #flashcard
+the gradient direction has changed from (1, 0) to approximately (1, 0). Clipping by norm instead scales both components proportionally, preserving the direction exactly.
+
+**Using the same warmup step count regardless of total training steps. Warmup should be approximately 5–10% of total training steps, not a fixed number. A model trained for 100K steps needs ~5K-10K warmup steps; a model trained for 10K steps needs 500–1K steps.?** #flashcard
+Using the same warmup step count regardless of total training steps. Warmup should be approximately 5–10% of total training steps, not a fixed number. A model trained for 100K steps needs ~5K-10K warmup steps; a model trained for 10K steps needs 500–1K steps.
+
+**Applying warmup to SGD for the same reason as Adam. SGD does not have the moment stabilization problem?** #flashcard
+it has no second moment estimate. Warmup for SGD has a different motivation (gradual adaptation from random initialization) and different optimal duration.
+
+**Tuning hyperparameters against the test set. Hyperparameter search is model selection. Use a separate validation set or CV. Every hyperparameter selection based on test set performance inflates the reported final metric.?** #flashcard
+Tuning hyperparameters against the test set. Hyperparameter search is model selection. Use a separate validation set or CV. Every hyperparameter selection based on test set performance inflates the reported final metric.
+
+**Tuning hyperparameters one at a time. Learning rate and batch size interact (optimal LR scales with batch size). Model capacity and regularization interact (larger models need stronger regularization). Sequential single-hyperparameter tuning misses these interactions. Tune jointly.?** #flashcard
+Tuning hyperparameters one at a time. Learning rate and batch size interact (optimal LR scales with batch size). Model capacity and regularization interact (larger models need stronger regularization). Sequential single-hyperparameter tuning misses these interactions. Tune jointly.
+
+**Using Adagrad for deep learning. Adagrad accumulates squared gradients monotonically and never forgets?** #flashcard
+the effective learning rate decays toward zero over time, making long training runs impossible. For deep networks with long training, use RMSprop (which uses an exponential moving average of squared gradients) or Adam.
+
+**Forgetting to switch from Adam to AdamW when using weight decay. If weight_decay > 0 in torch.optim.Adam, the regularization is incorrect. Always use torch.optim.AdamW when applying weight decay.?** #flashcard
+Forgetting to switch from Adam to AdamW when using weight decay. If weight_decay > 0 in torch.optim.Adam, the regularization is incorrect. Always use torch.optim.AdamW when applying weight decay.
+
+**Changing multiple hyperparameters simultaneously when debugging. If you change LR, batch size, and architecture at once and performance improves, you do not know which change helped. Change one thing at a time. Keep a log.?** #flashcard
+Changing multiple hyperparameters simultaneously when debugging. If you change LR, batch size, and architecture at once and performance improves, you do not know which change helped. Change one thing at a time. Keep a log.
+
+**Not logging gradient norms. Gradient norm monitoring is cheap (one extra line per training step) and catches vanishing/exploding gradient issues before they become catastrophic. Add it from the start.?** #flashcard
+Not logging gradient norms. Gradient norm monitoring is cheap (one extra line per training step) and catches vanishing/exploding gradient issues before they become catastrophic. Add it from the start.
+
+**Quantizing without benchmarking on the production task. Accuracy degradation from quantization is task- and distribution-dependent. Aggregate benchmarks may show 0.5% degradation while the specific input distribution the model will serve shows 5% degradation. Always benchmark on representative production data.?** #flashcard
+Quantizing without benchmarking on the production task. Accuracy degradation from quantization is task- and distribution-dependent. Aggregate benchmarks may show 0.5% degradation while the specific input distribution the model will serve shows 5% degradation. Always benchmark on representative production data.
+
+**Assuming FP16 is always safe without gradient scaling. Naively running training in FP16 without loss scaling causes underflow: gradients with magnitude < $\sim 6 \times 10^{-8}$ (FP16 minimum positive) are rounded to zero. Framework mixed-precision implementations (torch.cuda.amp.autocast) handle this automatically via dynamic loss scaling?** #flashcard
+but do not implement manual FP16 without understanding this.

@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Data Preprocessing
+subtopic: ""
+status: unread
+tags: [classicalml, ml, data-preprocessing]
+---
 # Data Preprocessing and Feature Engineering
 
 ---
@@ -264,3 +271,44 @@ for col in numeric_features:
 ```
 
 **What breaks**: Drift detection on individual features misses multivariate drift — two features can each look stable while their joint distribution has shifted. High-dimensional drift detection requires either dimensionality reduction or multivariate tests (MMD). PSI thresholds are rules of thumb, not guarantees — a feature can show PSI > 0.25 due to seasonal variation that does not impair model performance.
+
+## Flashcards
+
+**Target leakage?** #flashcard
+A feature encodes the answer. Example: loan_approved = 1 as a feature when predicting default. The feature was created after the outcome was known.
+
+**Train/test contamination?** #flashcard
+Fitting a scaler or encoder on the full dataset before splitting. The scaler now contains test-set statistics; test data is no longer unseen.
+
+**Temporal leakage?** #flashcard
+Using a feature computed from events that happened after the prediction timestamp. Example: rolling 7-day average of future sales.
+
+**ID/proxy leakage: An ID column or timestamp that correlates with the outcome cohort. Example: customer IDs assigned sequentially?** #flashcard
+high IDs are newer customers with different behavior.
+
+**MCAR (Missing Completely At Random)?** #flashcard
+missingness is independent of any variable. The survey system randomly dropped 5% of rows. Dropping is safe.
+
+**MAR (Missing At Random)?** #flashcard
+missingness depends on other observed variables, not the missing value itself. Older patients skip the income field. Conditional imputation is appropriate.
+
+**MNAR (Missing Not At Random): missingness depends on the value that is missing. High-income people skip the income field. Both deletion and imputation introduce bias?** #flashcard
+missingness is itself a signal.
+
+**Covariate shift: $P(X)$ changes?** #flashcard
+the input distribution shifts. The relationship $P(y|X)$ may be stable.
+
+**Label shift: $P(y)$ changes?** #flashcard
+the prior probability of each class changes.
+
+**Concept drift: $P(y|X)$ changes?** #flashcard
+the underlying relationship the model learned no longer holds.
+
+**PSI < 0.1?** #flashcard
+stable
+
+**PSI 0.1–0.25?** #flashcard
+moderate shift, investigate
+
+**PSI > 0.25?** #flashcard
+major shift, retrain

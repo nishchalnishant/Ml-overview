@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: Metrics And Business Analytics
+subtopic: ""
+status: unread
+tags: [datascientist, ml, metrics-and-business-analytics]
+---
 # Metrics and Business Analytics
 
 ---
@@ -646,3 +653,116 @@ OKRs are designed to be somewhat uncomfortable — if you consistently hit 100% 
 | Are we improving the right thing? | Primary metric + counter-metrics | Goodhart's Law |
 | What are we trying to achieve? | OKRs | OKRs set too conservatively |
 | Is the business operating normally? | KPIs | KPIs turned into targets |
+
+## Flashcards
+
+**Some metrics measure what the team does (inputs). These are controllable, fast-moving, and leading.?** #flashcard
+Some metrics measure what the team does (inputs). These are controllable, fast-moving, and leading.
+
+**Some metrics measure what the business gets (outputs). These are the actual outcomes?** #flashcard
+slower-moving, harder to game, harder to move directly.
+
+**Some metrics exist only to detect harm (guardrails). These should not degrade when you optimize the others.?** #flashcard
+Some metrics exist only to detect harm (guardrails). These should not degrade when you optimize the others.
+
+**D1 retention?** #flashcard
+Percent of users who return on day 2 after signup. Measures first impression and activation quality.
+
+**D7 retention?** #flashcard
+Percent of users active in week 1 who return in week 2. Measures early habit formation.
+
+**D28 retention?** #flashcard
+Percent of users still active at one month. Measures whether the product has become part of a routine.
+
+**D90 retention?** #flashcard
+Three-month retention. For consumer apps, this approaches the "retained vs churned" bifurcation point.
+
+**DAU (Daily Active Users)?** #flashcard
+Unique users who performed a meaningful action on a given day. The highest-frequency measure of product health.
+
+**WAU (Weekly Active Users)?** #flashcard
+Unique users active in a 7-day window. Smooths day-of-week effects. More appropriate as a primary metric for products used on a work-week cadence.
+
+**MAU (Monthly Active Users)?** #flashcard
+Unique users active in a 30-day window. The standard denominator in DAU/MAU and the most commonly reported investor metric.
+
+**This formula assumes constant churn. Real churn is often front-loaded (many users churn in the first 1–3 months; survivors are much stickier). The formula will underestimate LTV for products with strong early churn and flat later churn.?** #flashcard
+This formula assumes constant churn. Real churn is often front-loaded (many users churn in the first 1–3 months; survivors are much stickier). The formula will underestimate LTV for products with strong early churn and flat later churn.
+
+**It uses average ARPU, which hides segment heterogeneity. Enterprise customers have radically different LTV than SMB customers.?** #flashcard
+It uses average ARPU, which hides segment heterogeneity. Enterprise customers have radically different LTV than SMB customers.
+
+**It uses gross margin?** #flashcard
+if you use revenue instead, you overstate LTV by the reciprocal of gross margin.
+
+**Cohort LTV requires enough historical data (ideally 24+ months) to observe the curve shape. Early-stage companies cannot yet calculate this accurately.?** #flashcard
+Cohort LTV requires enough historical data (ideally 24+ months) to observe the curve shape. Early-stage companies cannot yet calculate this accurately.
+
+**Product and pricing changes affect cohort survival. A cohort acquired under a different pricing model has a different LTV than current cohorts. Use only comparably acquired cohorts.?** #flashcard
+Product and pricing changes affect cohort survival. A cohort acquired under a different pricing model has a different LTV than current cohorts. Use only comparably acquired cohorts.
+
+**Projecting survival curves forward requires assuming the current curve shape continues. If you are actively improving retention, historical curves understate future LTV.?** #flashcard
+Projecting survival curves forward requires assuming the current curve shape continues. If you are actively improving retention, historical curves understate future LTV.
+
+**LTV:CAC < 1?** #flashcard
+You are destroying value on every customer acquired
+
+**LTV:CAC 1–3?** #flashcard
+Marginal; viable only with very fast payback periods
+
+**LTV:CAC 3?** #flashcard
+The traditional "healthy SaaS" benchmark
+
+**LTV:CAC > 5?** #flashcard
+Often a signal to invest more aggressively in acquisition (you are leaving money on the table)
+
+**NDR < 85%?** #flashcard
+Serious retention problem; growth requires massive acquisition to offset losses
+
+**NDR 85–100%?** #flashcard
+Adequate; growth requires new customers but churn is not catastrophic
+
+**NDR 100–110%?** #flashcard
+Good; existing customers are expanding
+
+**NDR > 120%?** #flashcard
+Exceptional; common in best-in-class PLG and enterprise SaaS
+
+**Seasonality?** #flashcard
+Day of week, time of year, holidays
+
+**Trend?** #flashcard
+Underlying growth or decay direction
+
+**Autocorrelation?** #flashcard
+Today's value is correlated with yesterday's
+
+**Seasonal decomposition (STL)?** #flashcard
+Decompose the time series into trend + seasonal + residual. Anomalies are unusual residuals.
+
+**Prophet (Facebook)?** #flashcard
+Handles multiple seasonality, holidays, and trend changepoints. Good default for business time series with weekly and annual patterns.
+
+**CUSUM (Cumulative Sum)?** #flashcard
+Detects persistent directional shifts (slow regressions) rather than single-day spikes. Appropriate when you care about "the metric has been gradually declining for 10 days" rather than "the metric dropped sharply today."
+
+**Lines of code as a productivity metric?** #flashcard
+Engineers write more, less efficient code.
+
+**NPS as a customer success metric?** #flashcard
+Customer success teams cherry-pick survey timing (just after a successful support resolution) to inflate scores.
+
+**Story points as a velocity metric?** #flashcard
+Teams inflate point estimates to hit velocity targets.
+
+**DAU as a product health metric?** #flashcard
+Teams add dark patterns (guilt-trip notifications, artificial reengagement prompts) to inflate daily opens.
+
+**Time-on-site as an engagement metric?** #flashcard
+Confusing interfaces, autoplay content, and infinite scroll inflate time-on-site without delivering value.
+
+**Objective?** #flashcard
+Qualitative statement of the desired outcome. Ambitious, motivating, memorable. "Make checkout so frictionless that paying feels effortless."
+
+**Key Results?** #flashcard
+Two to four quantitative measures that, if achieved, would demonstrate the objective was reached. "Reduce checkout drop-off by 25%; reduce average time-to-purchase by 40%; increase mobile conversion rate from 2.1% to 3.5%."

@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Machine Learning Design Patterns
+status: unread
+tags: [productionml, ml, system-design-machine-learning]
+---
 # Machine Learning Design Patterns
 
 ```mermaid
@@ -1073,3 +1080,11 @@ class AdversarialDebiasing(nn.Module):
 ```
 
 **What breaks**: demographic parity and equal opportunity are mutually incompatible when base rates differ across groups (proved mathematically by Chouldechova 2017). You cannot simultaneously have equal positive rates AND equal FPR AND equal FNR when the prevalence of the outcome differs by group. Every fairness criterion involves a value choice about which type of fairness to prioritize — that choice must be made explicitly and documented.
+
+## Flashcards
+
+**Use pre-trained (Word2Vec, GloVe, BERT) when data is scarce?** #flashcard
+Use pre-trained (Word2Vec, GloVe, BERT) when data is scarce
+
+**Train from scratch on task-specific data when you have sufficient labeled examples and domain-specific semantics?** #flashcard
+Train from scratch on task-specific data when you have sufficient labeled examples and domain-specific semantics

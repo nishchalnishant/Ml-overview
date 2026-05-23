@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Multimodal
+status: unread
+tags: [llms, ml, applications-multimodal]
+---
 # Multimodal AI
 
 ---
@@ -246,3 +253,17 @@ Optimization targets: reduce image resolution (448px vs 1024px gives 5× fewer p
 | Lost-in-the-middle | U-shaped attention over long context | Place most relevant images first or last |
 
 *Related: [Context Window Extension](context-window-extension.md) | [Hallucination Mitigation](hallucination-mitigation.md) | [Inference Optimization](inference-optimization.md)*
+
+## Flashcards
+
+**Input?** #flashcard
+log-mel spectrogram (80-channel, 25ms windows, 10ms hop)
+
+**Encoder?** #flashcard
+convolutional layers + transformer on spectrogram frames
+
+**Decoder?** #flashcard
+autoregressive text generation
+
+**Training?** #flashcard
+680K hours of internet audio with automatically generated transcripts

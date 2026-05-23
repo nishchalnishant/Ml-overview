@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Llm Fundamentals Snappy
+status: unread
+tags: [llms, ml, interview-notes-llm-fundamenta]
+---
 # LLM fundamentals — the “DevOps brain” edition
 
 You already ship systems. So we’ll talk about LLMs like systems: **interfaces, failure modes, cost, latency, and guardrails**.
@@ -278,3 +285,212 @@ ight)
 
 # Q47: Why is ROUGE or BLEU often insufficient for evaluating LLMs?
 - **Direct answer:** n-gram overlap misses semantic equivalence; use semantic/functional/judge-based evals.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+what you say in 10 seconds.
+
+**Azure/DevOps bridge?** #flashcard
+the mapping you already trust.
+
+**Analogy?** #flashcard
+fashion / Mumbai Indians / classic romance + Gulzar-style context.
+
+**Mini prompt?** #flashcard
+quick interactive break.
+
+**Direct answer?** #flashcard
+A foundation model is a huge self-supervised model trained on broad data that you adapt (prompt/RAG/fine-tune) for many tasks.
+
+**Azure/DevOps bridge?** #flashcard
+It’s “build on Azure” vs “build your own datacenter.” You spend less time on core modeling and more on integration + policy + observability.
+
+**Analogy?** #flashcard
+Capsule wardrobe—same staples, different styling.
+
+**Mini pop quiz?** #flashcard
+Name a non-text foundation model. → CLIP, Stable Diffusion, Wav2Vec.
+
+**Direct answer?** #flashcard
+An LLM generates text by predicting the next token repeatedly (autoregressive decoding), typically using Transformers.
+
+**Mechanics (one breath)?** #flashcard
+prompt → tokenize → Transformer → logits → softmax → decode → append token → repeat.
+
+**Mini prompt?** #flashcard
+temperature=0 gives you what vibe? → deterministic / strict.
+
+**Direct answer?** #flashcard
+Transformers use self-attention to connect tokens directly, enabling parallel training and long-range context.
+
+**Ghazal hook?** #flashcard
+Like a Gulzar line—meaning depends on what came before and what surrounds it. Attention is “who is this word in conversation with?”
+
+**Trade-off?** #flashcard
+naive attention has ugly scaling with long context.
+
+**Direct answer?** #flashcard
+embeddings + position signal + attention + FFN + residuals + LayerNorm.
+
+**DevOps bridge?** #flashcard
+residual paths are the “safe rollback route” for gradients.
+
+**Direct answer?** #flashcard
+Tokenization slices text into tokens (often subwords) and maps them to IDs.
+
+**Practical truths?** #flashcard
+1 token ≠ 1 word; tokenizers can create a token tax for some languages.
+
+**Direct answer?** #flashcard
+BPE iteratively merges frequent adjacent symbols until a fixed vocabulary is built (often byte-level).
+
+**Fashion analogy?** #flashcard
+threads → panels → outfit.
+
+**Direct answer?** #flashcard
+WordPiece uses likelihood-based merges; SentencePiece is language-agnostic and treats spaces as characters.
+
+**Mini prompt?** #flashcard
+Which is friendlier to languages without spaces? → SentencePiece.
+
+**Direct answer?** #flashcard
+Attention doesn’t encode order by itself, so we inject position info (absolute or relative-ish like RoPE/ALiBi).
+
+**Direct answer?** #flashcard
+A training-time mask that prevents decoder models from attending to future tokens.
+
+**DevOps bridge?** #flashcard
+blocks leakage at the mechanism level (like forbidding prod secrets in PR pipelines).
+
+**Direct answer:?** #flashcard
+Direct answer:
+
+**Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.?** #flashcard
+Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.
+
+**Direct answer?** #flashcard
+Q asks, K advertises, V carries payload. Dot(Q,K) gives weights; weights mix V.
+
+**Direct answer?** #flashcard
+Multiple heads learn different relationship patterns in parallel.
+
+**MI analogy?** #flashcard
+multiple fielders for different shots.
+
+**Direct answer?** #flashcard
+Max tokens (input + output) per call; outside the window = forgotten.
+
+**DevOps bridge?** #flashcard
+context window ≈ RAM; fine-tuning ≈ installed software; RAG ≈ read-through cache.
+
+**Direct answer?** #flashcard
+Temperature rescales logits before softmax:
+
+**Low T = deterministic; high T = diverse + more hallucination risk.?** #flashcard
+Low T = deterministic; high T = diverse + more hallucination risk.
+
+**Direct answer?** #flashcard
+Top-k keeps the k most likely tokens; Top-p keeps the smallest set with cumulative probability ≥ p.
+
+**Direct answer?** #flashcard
+Logits are raw scores per vocab token; softmax turns them into probabilities; decoding chooses/samples a token.
+
+**Direct answer?** #flashcard
+Add input back to sublayer output; improves stability and gradient flow.
+
+**Direct answer?** #flashcard
+Closed = strongest, fastest adoption; Open = control/customization/on-prem, but you own ops.
+
+**Azure lens?** #flashcard
+closed feels like managed PaaS; open feels like AKS.
+
+**Direct answer?** #flashcard
+Encoder-only for understanding/embeddings; decoder-only for generation; encoder-decoder for seq2seq transforms.
+
+**Direct answer?** #flashcard
+Cache past K/V tensors so decoding doesn’t recompute history every token.
+
+**Infra reality?** #flashcard
+it’s a latency win and a VRAM bill.
+
+**Direct answer?** #flashcard
+CLM predicts next token from past; MLM fills blanks using both sides.
+
+**Direct answer?** #flashcard
+Train a smaller student to mimic a larger teacher (often via soft targets/logits).
+
+**Direct answer?** #flashcard
+Route tokens to a subset of expert networks; huge capacity with sparse compute.
+
+**Direct answer?** #flashcard
+Dense runs all params each step; sparse conditionally activates subsets.
+
+**Direct answer?** #flashcard
+GPU-kernel optimization that reduces attention memory IO (tiling + fused ops) without changing math.
+
+**Direct answer?** #flashcard
+Share K/V across groups of query heads to shrink KV cache with little quality loss.
+
+**Direct answer?** #flashcard
+Rotate Q/K vectors by position so dot products encode relative distance; helps length extrapolation.
+
+**Direct answer?** #flashcard
+Combine system constraints + few-shot + constrained decoding/structured outputs (schema-driven).
+
+**Direct answer?** #flashcard
+Use RAG, map-reduce summarization, and/or agentic search tools.
+
+**Direct answer?** #flashcard
+Explicit escape hatch + grounding (retrieval) + low temperature + optional confidence gates.
+
+**Direct answer?** #flashcard
+Tighten format contract (“only code”), few-shot, stop sequences/structured output, lower temperature.
+
+**Direct answer?** #flashcard
+In long prompts, models use start/end info better than middle; recall can be U-shaped.
+
+**Direct answer?** #flashcard
+Reduce weight/activation precision (FP16 → INT8/INT4) to cut memory and bandwidth.
+
+**Direct answer?** #flashcard
+8-bit ≈ near-lossless; 4-bit ≈ best local/cheap; 2-bit often collapses quality.
+
+**Direct answer?** #flashcard
+GPTQ compensates quantization error layer-wise; AWQ protects salient weights via activation profiling.
+
+**Direct answer?** #flashcard
+Fine-tune by training a tiny subset (adapters/LoRA/prefix) while freezing the base.
+
+**Direct answer?** #flashcard
+Learn low-rank matrices \(A,B\) so \(\Delta Wpprox BA\), added to frozen weights.
+
+**Direct answer?** #flashcard
+Quantize base model (e.g., 4-bit NF4) during tuning while training LoRA adapters in 16-bit.
+
+**Direct answer?** #flashcard
+Alignment using preference feedback (reward signal) + optimization (historically PPO).
+
+**Direct answer?** #flashcard
+A rulebook-driven alignment approach using critique/rewrite against a “constitution,” reducing human labeling.
+
+**Direct answer?** #flashcard
+Supervised tuning on instruction→response pairs to make base models follow commands reliably.
+
+**Direct answer?** #flashcard
+Preference alignment via a stable supervised-style objective on (chosen, rejected) pairs.
+
+**Direct answer?** #flashcard
+RL algorithm with clipped updates to prevent destructive policy jumps.
+
+**Direct answer?** #flashcard
+Humans can’t label at scale; reward models provide scalable scalar feedback.
+
+**Direct answer?** #flashcard
+Perplexity, task benchmarks (MMLU/HumanEval), judge/human A/B.
+
+**Direct answer?** #flashcard
+How surprised the model is on held-out text:
+
+**Direct answer?** #flashcard
+n-gram overlap misses semantic equivalence; use semantic/functional/judge-based evals.

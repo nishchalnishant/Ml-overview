@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Ai Infrastructure And Scalability
+status: unread
+tags: [llms, ml, interview-notes-ai-infrastruct]
+---
 # AI Infrastructure & Scalability
 
 ## The Scenario That Drives Every Topic Here
@@ -843,3 +850,623 @@ Cost impact: routing 40% of requests to a model 10× cheaper reduces average cos
 - Routing only by user tier or request metadata, ignoring content complexity
 - Not A/B testing the routing policy against a baseline
 - Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)
+
+## Flashcards
+
+**Listing only training tricks when the question is about serving?** #flashcard
+Listing only training tricks when the question is about serving
+
+**Treating quantization and batching as alternatives rather than orthogonal?** #flashcard
+Treating quantization and batching as alternatives rather than orthogonal
+
+**Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)?** #flashcard
+Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)
+
+**Buying "most FLOPs" GPU when decode is memory-bandwidth-limited?** #flashcard
+Buying "most FLOPs" GPU when decode is memory-bandwidth-limited
+
+**Under-provisioning VRAM by forgetting KV cache grows with batch × context?** #flashcard
+Under-provisioning VRAM by forgetting KV cache grows with batch × context
+
+**Using PCIe-only topology for high tensor-parallelism degrees?** #flashcard
+communication dominates
+
+**Quoting only peak FLOPS without memory bandwidth?** #flashcard
+Quoting only peak FLOPS without memory bandwidth
+
+**Forgetting that KV cache is dynamic?** #flashcard
+it grows with every request in the batch
+
+**Spec-sheet comparisons without profiling on representative workloads?** #flashcard
+Spec-sheet comparisons without profiling on representative workloads
+
+**Each GPU holds identical full model weights?** #flashcard
+Each GPU holds identical full model weights
+
+**Each GPU processes a different batch of data?** #flashcard
+Each GPU processes a different batch of data
+
+**Gradients are all-reduced (averaged) across replicas?** #flashcard
+Gradients are all-reduced (averaged) across replicas
+
+**Memory per GPU = full model weights + activations for local batch?** #flashcard
+Memory per GPU = full model weights + activations for local batch
+
+**Tensor parallelism (TP)?** #flashcard
+Split individual weight matrices across GPUs. GPU 0 holds columns 0..d/2, GPU 1 holds columns d/2..d. AllReduce after each layer.
+
+**Pipeline parallelism (PP)?** #flashcard
+Assign consecutive layers to different GPUs. GPU 0 does layers 0–19, GPU 1 does layers 20–39. Activations pass between stages.
+
+**TP communication dominates at small batch sizes (AllReduce per layer adds latency)?** #flashcard
+TP communication dominates at small batch sizes (AllReduce per layer adds latency)
+
+**PP creates pipeline bubbles?** #flashcard
+GPU 0 is idle while downstream GPUs process
+
+**Combining both naively leads to communication storms on slow interconnects?** #flashcard
+Combining both naively leads to communication storms on slow interconnects
+
+**Using "model parallelism" to mean only TP (PP is also model parallel)?** #flashcard
+Using "model parallelism" to mean only TP (PP is also model parallel)
+
+**Assuming TP always helps?** #flashcard
+at TP degree > 8 on NVLink, communication often hurts
+
+**Forgetting that DP requires each device to hold a complete model replica?** #flashcard
+Forgetting that DP requires each device to hold a complete model replica
+
+**Column-split?** #flashcard
+GPU i holds W[:, ik:(i+1)k]. Compute local XWᵢ. AllGather outputs.
+
+**Row-split?** #flashcard
+GPU i holds W[ik:(i+1)k, :]. Compute local XᵢW. AllReduce sums.
+
+**TP=8 on PCIe is usually slower than TP=2 due to communication overhead?** #flashcard
+TP=8 on PCIe is usually slower than TP=2 due to communication overhead
+
+**TP requires all GPUs to participate in every forward pass?** #flashcard
+one slow GPU stalls the rest
+
+**Higher TP degrees reduce per-GPU memory but increase communication frequency?** #flashcard
+Higher TP degrees reduce per-GPU memory but increase communication frequency
+
+**Claiming TP always speeds up inference?** #flashcard
+Claiming TP always speeds up inference
+
+**Confusing TP (splits tensors within a layer) with PP (splits layers)?** #flashcard
+Confusing TP (splits tensors within a layer) with PP (splits layers)
+
+**Not knowing the AllReduce cost at different batch sizes?** #flashcard
+Not knowing the AllReduce cost at different batch sizes
+
+**Small batch sizes amplify bubble time?** #flashcard
+PP is much less efficient at low concurrency
+
+**More stages = more pipeline latency even when GPUs are busy?** #flashcard
+More stages = more pipeline latency even when GPUs are busy
+
+**Load imbalance?** #flashcard
+if layer 40 is twice as expensive as layer 20, GPU 2 becomes the bottleneck
+
+**Claiming PP always reduces latency?** #flashcard
+it often increases it for single requests
+
+**Confusing PP (splits by layer depth) with TP (splits tensor width)?** #flashcard
+Confusing PP (splits by layer depth) with TP (splits tensor width)
+
+**Not mentioning microbatching as the mitigation for bubbles?** #flashcard
+Not mentioning microbatching as the mitigation for bubbles
+
+**Without PagedAttention?** #flashcard
+admitting new requests requires contiguous KV memory that may not be available even if total free memory is sufficient (fragmentation)
+
+**Long requests can still monopolize batch slots?** #flashcard
+need preemption or length-based admission
+
+**p99 tail latency?** #flashcard
+short requests behind a long queue may still wait if admission control isn't length-aware
+
+**Thinking batching is only a training concern?** #flashcard
+Thinking batching is only a training concern
+
+**Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)?** #flashcard
+Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)
+
+**Claiming continuous batching eliminates tail latency?** #flashcard
+it improves throughput, not worst-case latency
+
+**Low acceptance rate?** #flashcard
+if draft and target disagree often, you run the large model more than unspeculative decoding
+
+**Draft model must run on same hardware?** #flashcard
+adds memory pressure
+
+**Doesn't help with prefill (only decode is the bottleneck)?** #flashcard
+Doesn't help with prefill (only decode is the bottleneck)
+
+**Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)?** #flashcard
+Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)
+
+**Claiming quality degrades?** #flashcard
+it doesn't, by construction of the acceptance criterion
+
+**Not knowing when it fails (low acceptance rate or memory-bound regime)?** #flashcard
+Not knowing when it fails (low acceptance rate or memory-bound regime)
+
+**Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding?** #flashcard
+Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding
+
+**Limit max_seq_len and batch_size?** #flashcard
+hard cap on KV memory
+
+**PagedAttention?** #flashcard
+don't pre-allocate for max length; allocate blocks on demand
+
+**KV quantization (INT8/FP8)?** #flashcard
+halve or quarter KV memory at some quality cost
+
+**Prefix caching?** #flashcard
+if many requests share a system prompt, compute its KV once and reuse
+
+**Forgetting KV cache in capacity planning?** #flashcard
+you can fit the model but not serve any requests
+
+**Pre-allocating contiguous max-length KV for every request?** #flashcard
+catastrophic fragmentation
+
+**Caching with PII in shared prefix cache?** #flashcard
+data leakage risk
+
+**Accounting for weights but not KV in VRAM planning?** #flashcard
+Accounting for weights but not KV in VRAM planning
+
+**Not knowing that GQA dramatically reduces KV cache size?** #flashcard
+Not knowing that GQA dramatically reduces KV cache size
+
+**Treating "KV cache" and "response cache" as the same thing (they're not)?** #flashcard
+Treating "KV cache" and "response cache" as the same thing (they're not)
+
+**Divide KV cache into fixed-size blocks, e.g., 16 tokens per block?** #flashcard
+Divide KV cache into fixed-size blocks, e.g., 16 tokens per block
+
+**Each sequence has a page table?** #flashcard
+logical token position → physical block index
+
+**Allocate one block at a time as generation proceeds?** #flashcard
+Allocate one block at a time as generation proceeds
+
+**On request completion, mark blocks as free for reuse?** #flashcard
+On request completion, mark blocks as free for reuse
+
+**Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)?** #flashcard
+Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)
+
+**Very small block sizes (e.g., 4 tokens)?** #flashcard
+too many page table lookups, kernel overhead
+
+**Very large block sizes (e.g., 256 tokens)?** #flashcard
+loses the fragmentation benefit
+
+**Prefix sharing with dynamic prefixes?** #flashcard
+copy-on-write overhead for sequences that diverge quickly
+
+**Thinking vLLM is primarily about the model?** #flashcard
+it's about the memory scheduler and serving stack
+
+**Not knowing the block size trade-off?** #flashcard
+Not knowing the block size trade-off
+
+**Confusing prefix caching (reuse computed KV) with response caching (reuse final output)?** #flashcard
+Confusing prefix caching (reuse computed KV) with response caching (reuse final output)
+
+**Assuming desktop benchmark numbers transfer to phone?** #flashcard
+Neural Engine throughput profiles differently from GPU
+
+**Thermal throttling?** #flashcard
+sustained inference degrades after 30–60 seconds on mobile
+
+**GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)?** #flashcard
+GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)
+
+**Applying datacenter optimization thinking to edge?** #flashcard
+Applying datacenter optimization thinking to edge
+
+**Ignoring battery/thermal as constraints?** #flashcard
+Ignoring battery/thermal as constraints
+
+**Not knowing platform-specific runtimes (CoreML, NNAPI)?** #flashcard
+Not knowing platform-specific runtimes (CoreML, NNAPI)
+
+**Quantizing with a calibration dataset that doesn't match production distribution?** #flashcard
+Quantizing with a calibration dataset that doesn't match production distribution
+
+**Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others?** #flashcard
+Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others
+
+**Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)?** #flashcard
+Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)
+
+**BF16 vs FP16?** #flashcard
+BF16 has wider exponent range (better for training stability); FP16 has higher precision in mantissa
+
+**Claiming quantization has no quality impact without eval?** #flashcard
+Claiming quantization has no quality impact without eval
+
+**Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)?** #flashcard
+Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)
+
+**Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)?** #flashcard
+Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)
+
+**GPU cold start: provisioning an A100, loading model weights (140 GB over NVMe/network), compiling CUDA graphs?** #flashcard
+3–10 minutes. This is not acceptable for burst handling.
+
+**Mitigation?** #flashcard
+min_replicas ≥ 1, warm pools with loaded weights, pre-pulled container images, compiled model artifacts cached
+
+**Pure CPU-based HPA for GPU workloads?** #flashcard
+Pure CPU-based HPA for GPU workloads
+
+**Setting min_replicas=0 for interactive SLOs?** #flashcard
+cold starts are unacceptably slow
+
+**Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools?** #flashcard
+Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools
+
+**Scaling only on CPU when GPU is the bottleneck?** #flashcard
+Scaling only on CPU when GPU is the bottleneck
+
+**Not knowing that model load time (not container start) dominates GPU cold start?** #flashcard
+Not knowing that model load time (not container start) dominates GPU cold start
+
+**Ignoring batch vs interactive traffic separation?** #flashcard
+Ignoring batch vs interactive traffic separation
+
+**Pure round-robin with variable-length requests (systematic load imbalance)?** #flashcard
+Pure round-robin with variable-length requests (systematic load imbalance)
+
+**No health checks?** #flashcard
+routing to a replica that loaded the wrong model or has OOM errors
+
+**Sticky sessions for stateless serving?** #flashcard
+usually wrong; state lives in the request, not the server
+
+**Assuming round-robin is fine because "it's stateless"?** #flashcard
+Assuming round-robin is fine because "it's stateless"
+
+**Not thinking about long prompts tying up one replica?** #flashcard
+Not thinking about long prompts tying up one replica
+
+**Conflating model routing (which model to use) with load balancing (which replica of the same model)?** #flashcard
+Conflating model routing (which model to use) with load balancing (which replica of the same model)
+
+**Forgetting KV cache when colocating models?** #flashcard
+the models fit in VRAM at zero requests, but KV pressure evicts models mid-request
+
+**LRU eviction without request-ahead loading?** #flashcard
+first request after eviction is slow
+
+**MIG partitions are fixed at setup?** #flashcard
+can't be resized per traffic pattern dynamically
+
+**Ignoring KV footprint when calculating "fits on the GPU"?** #flashcard
+Ignoring KV footprint when calculating "fits on the GPU"
+
+**Assuming MIG is always appropriate?** #flashcard
+it adds operational complexity and fixed capacity allocation
+
+**Not having a routing layer that knows model placement?** #flashcard
+Not having a routing layer that knows model placement
+
+**Shards parameters, gradients, and optimizer states across DP ranks?** #flashcard
+Shards parameters, gradients, and optimizer states across DP ranks
+
+**AllGather parameters before each layer's forward pass, free after?** #flashcard
+AllGather parameters before each layer's forward pass, free after
+
+**ReduceScatter gradients during backward?** #flashcard
+ReduceScatter gradients during backward
+
+**Memory per GPU?** #flashcard
+O(model_size / num_gpus) instead of O(model_size)
+
+**Stage 1?** #flashcard
+shard optimizer states only. Each GPU holds full weights, sharded optimizer state.
+
+**Stage 2?** #flashcard
++ shard gradients. Reduced gradient memory.
+
+**Stage 3?** #flashcard
++ shard parameters (equivalent to FSDP). Minimum memory.
+
+**ZeRO-Infinity?** #flashcard
+offload to CPU/NVMe for extreme scale.
+
+**Training, PyTorch ecosystem → FSDP?** #flashcard
+Training, PyTorch ecosystem → FSDP
+
+**Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity?** #flashcard
+Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity
+
+**Inference, single node → TP (fast interconnect required)?** #flashcard
+Inference, single node → TP (fast interconnect required)
+
+**Inference, multi-node → TP within node + PP across nodes?** #flashcard
+Inference, multi-node → TP within node + PP across nodes
+
+**High sharding degree with slow interconnect?** #flashcard
+AllGather/ReduceScatter communication dominates training time
+
+**ZeRO-3 with many small modules?** #flashcard
+excessive communication granularity
+
+**Mixing FSDP sharding with non-FSDP modules?** #flashcard
+gradient/parameter misalignment
+
+**Using "sharding" without specifying which type?** #flashcard
+Using "sharding" without specifying which type
+
+**Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)?** #flashcard
+Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)
+
+**Applying training sharding strategies to inference serving?** #flashcard
+Applying training sharding strategies to inference serving
+
+**When queue depth > max_queue_depth?** #flashcard
+reject new requests with 429 + Retry-After
+
+**When pending tokens > GPU_memory × 0.9: backpressure?** #flashcard
+stop admitting until KV memory clears
+
+**Never unbounded queues?** #flashcard
+they hide memory pressure and cause OOM under burst
+
+**Shortest-job-first (predict output length)?** #flashcard
+minimizes mean wait time
+
+**Weighted fair queuing?** #flashcard
+prevent starvation of low-priority tenants
+
+**Unbounded queue?** #flashcard
+requests accumulate, memory usage grows, OOM kills the server
+
+**Pure FIFO with long requests?** #flashcard
+short interactive requests starve
+
+**No backpressure?** #flashcard
+load balancer keeps sending requests that can't be served, cascading failure
+
+**Implementing FIFO and calling it "fair"?** #flashcard
+Implementing FIFO and calling it "fair"
+
+**Not limiting queue depth (unbounded queue = OOM vulnerability)?** #flashcard
+Not limiting queue depth (unbounded queue = OOM vulnerability)
+
+**Not distinguishing rate limiting (per-tenant) from admission control (global capacity)?** #flashcard
+Not distinguishing rate limiting (per-tenant) from admission control (global capacity)
+
+**GPU utilization?** #flashcard
+idle GPUs burn money. A 40% utilized GPU cluster costs 2.5× per token vs a busy one.
+
+**Engineering time?** #flashcard
+1–2 engineers full-time maintaining GPU infra vs zero for API.
+
+**On-call burden?** #flashcard
+GPU failures, CUDA OOM, model crashes at 3am.
+
+**Flexibility?** #flashcard
+self-hosted locks you to one model; API lets you switch cheaply.
+
+**Data residency / compliance requirements → self-host (no choice)?** #flashcard
+Data residency / compliance requirements → self-host (no choice)
+
+**High volume + stable workload + GPU ops expertise → evaluate self-host?** #flashcard
+High volume + stable workload + GPU ops expertise → evaluate self-host
+
+**Rapid iteration / uncertain volume / small team → API + gateway?** #flashcard
+Rapid iteration / uncertain volume / small team → API + gateway
+
+**Best of both?** #flashcard
+API for general traffic, self-host for private/high-volume paths
+
+**Comparing API price × volume vs GPU hardware cost only (ignoring ops)?** #flashcard
+Comparing API price × volume vs GPU hardware cost only (ignoring ops)
+
+**Assuming 100% GPU utilization in self-host projections?** #flashcard
+Assuming 100% GPU utilization in self-host projections
+
+**Ignoring vendor lock-in risk in API-first projections?** #flashcard
+Ignoring vendor lock-in risk in API-first projections
+
+**Recommending self-host without accounting for staffing cost?** #flashcard
+Recommending self-host without accounting for staffing cost
+
+**Not mentioning hybrid as a common real-world answer?** #flashcard
+Not mentioning hybrid as a common real-world answer
+
+**Scale-to-zero for interactive chat?** #flashcard
+users see 3–10 minute first-response latency
+
+**Over-provisioning warm pools?** #flashcard
+expensive for low-traffic applications
+
+**Not caching compiled CUDA graphs?** #flashcard
+repeated compilation on every restart
+
+**Assuming serverless = zero cold start with the right settings?** #flashcard
+Assuming serverless = zero cold start with the right settings
+
+**Not knowing that CUDA graph compilation adds substantial startup time?** #flashcard
+Not knowing that CUDA graph compilation adds substantial startup time
+
+**Treating cold start as a solvable problem rather than a managed trade-off?** #flashcard
+Treating cold start as a solvable problem rather than a managed trade-off
+
+**Cache key missing temperature: deterministic (temp=0) and stochastic (temp=0.7) responses share a key?** #flashcard
+wrong
+
+**Semantic cache false positives?** #flashcard
+"What's Python?" and "What's COBOL?" might be too similar by embedding
+
+**Prefix KV cache invalidation?** #flashcard
+any change to the system prompt invalidates all cached KV blocks
+
+**Treating all caches as equivalent (response cache and KV cache are very different)?** #flashcard
+Treating all caches as equivalent (response cache and KV cache are very different)
+
+**Missing decoder params in cache keys?** #flashcard
+Missing decoder params in cache keys
+
+**Caching PII without access controls?** #flashcard
+Caching PII without access controls
+
+**Sync long jobs with 30s gateway timeouts?** #flashcard
+requests fail mid-generation
+
+**Async without job cleanup?** #flashcard
+job state accumulates, storage fills
+
+**Streaming without backpressure?** #flashcard
+if client disconnects, GPU continues generating wasted tokens
+
+**Treating streaming as "async"?** #flashcard
+it's still a synchronous HTTP connection
+
+**Using sync for document generation without timeout planning?** #flashcard
+Using sync for document generation without timeout planning
+
+**No TTL on async job state?** #flashcard
+No TTL on async job state
+
+**Stage 1?** #flashcard
+shard optimizer states across DP ranks. Each GPU holds full weights and gradients, but only 1/N of optimizer state. Memory: ~60% of full DP.
+
+**Stage 2?** #flashcard
++ shard gradients. Memory: ~33% of full DP.
+
+**Stage 3?** #flashcard
++ shard parameters (equivalent to FSDP). Memory: O(1/N) per GPU.
+
+**Forward pass?** #flashcard
+AllGather parameters before each layer, free after layer completes
+
+**Backward pass?** #flashcard
+ReduceScatter gradients after each layer
+
+**Optimizer step?** #flashcard
+each rank updates its local shard; AllGather to reconstruct for next forward pass
+
+**FSDP?** #flashcard
+native PyTorch 2.0+, tight integration with torch.compile, better for HuggingFace-based training
+
+**DeepSpeed ZeRO-3?** #flashcard
+more features (CPU/NVMe offload, ZeRO-Infinity), custom launcher, more configuration options
+
+**Both achieve similar memory reduction at equivalent sharding levels?** #flashcard
+Both achieve similar memory reduction at equivalent sharding levels
+
+**High ZeRO/FSDP sharding with slow interconnect?** #flashcard
+AllGather for each layer dominates training time
+
+**ZeRO-3 with PyTorch compile?** #flashcard
+extra work needed for compatibility
+
+**Not using activation checkpointing alongside sharding?** #flashcard
+activations can still be a memory bottleneck
+
+**Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)?** #flashcard
+Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)
+
+**Not knowing CPU offload exists (ZeRO-Infinity)?** #flashcard
+Not knowing CPU offload exists (ZeRO-Infinity)
+
+**Conflating training sharding with inference serving strategies?** #flashcard
+Conflating training sharding with inference serving strategies
+
+**queue_wait = time from request arrival to GPU processing start?** #flashcard
+queue_wait = time from request arrival to GPU processing start
+
+**prefill_time = time to process all prompt tokens (compute-bound)?** #flashcard
+prefill_time = time to process all prompt tokens (compute-bound)
+
+**tpot = time per output token during decode (memory-bandwidth-bound)?** #flashcard
+tpot = time per output token during decode (memory-bandwidth-bound)
+
+**TTFT = queue_wait + prefill_time?** #flashcard
+TTFT = queue_wait + prefill_time
+
+**High queue_wait → request backlog, need more replicas or better load balancing?** #flashcard
+High queue_wait → request backlog, need more replicas or better load balancing
+
+**High prefill_time → long prompts or compute bottleneck; consider prompt compression?** #flashcard
+High prefill_time → long prompts or compute bottleneck; consider prompt compression
+
+**High TPOT → memory bandwidth saturated; consider quantization or larger batch?** #flashcard
+High TPOT → memory bandwidth saturated; consider quantization or larger batch
+
+**KV cache pressure → high fragmentation; check PagedAttention block allocation stats?** #flashcard
+KV cache pressure → high fragmentation; check PagedAttention block allocation stats
+
+**DCGM?** #flashcard
+GPU utilization, memory used, memory bandwidth utilization, PCIe/NVLink bandwidth
+
+**PyTorch Profiler?** #flashcard
+per-operation timing, kernel launch overhead, CUDA stream serialization
+
+**Nsight Systems?** #flashcard
+GPU timeline, kernel concurrency, memory copy overhead
+
+**TTFT p50/p95/p99?** #flashcard
+TTFT p50/p95/p99
+
+**TPOT p50/p95/p99 (inter-token latency)?** #flashcard
+TPOT p50/p95/p99 (inter-token latency)
+
+**Tokens/sec throughput?** #flashcard
+Tokens/sec throughput
+
+**GPU utilization (target > 80%)?** #flashcard
+GPU utilization (target > 80%)
+
+**KV cache block utilization?** #flashcard
+KV cache block utilization
+
+**Queue depth?** #flashcard
+Queue depth
+
+**Measuring only total latency?** #flashcard
+hides whether prefill or decode is the bottleneck
+
+**Alerting only on mean latency?** #flashcard
+p99 can be 5× mean under realistic load distributions
+
+**No per-request tracing?** #flashcard
+can't reproduce failures or attribute latency spikes
+
+**Measuring only total latency without phase breakdown?** #flashcard
+Measuring only total latency without phase breakdown
+
+**Conflating p50 and p99?** #flashcard
+LLM latency distributions have heavy tails
+
+**Not tracking KV cache pressure as a leading indicator of throughput collapse?** #flashcard
+Not tracking KV cache pressure as a leading indicator of throughput collapse
+
+**Classifier latency adds to TTFT?** #flashcard
+must be sub-10ms or route async
+
+**Misclassification?** #flashcard
+routing a complex reasoning task to the small model, then having to re-run → 2× cost
+
+**Quality regression monitoring?** #flashcard
+must track quality per route, not just average
+
+**Routing only by user tier or request metadata, ignoring content complexity?** #flashcard
+Routing only by user tier or request metadata, ignoring content complexity
+
+**Not A/B testing the routing policy against a baseline?** #flashcard
+Not A/B testing the routing policy against a baseline
+
+**Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)?** #flashcard
+Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)

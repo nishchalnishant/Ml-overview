@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Ml Revision
+status: unread
+tags: [interviewprep, ml, llm-ml-revision]
+---
 # Quick Revision Cheat Sheet
 
 Last-minute reference. Every entry includes the formula, one-line insight, and the key distinction from its nearest alternative.
@@ -202,3 +209,56 @@ PSI thresholds: $< 0.1$ = stable, $0.1$–$0.25$ = investigate, $> 0.25$ = retra
 **Bagging vs boosting:** Bagging = parallel, independent models, each on a bootstrap sample → reduces variance. Boosting = sequential, each model corrects the previous one's residuals → reduces bias. Random Forest = bagging. XGBoost = boosting. Boosting overfits more readily (more hyperparameters to tune).
 
 **BatchNorm vs LayerNorm:** BatchNorm normalizes over the batch dimension (statistics depend on batch size and composition). LayerNorm normalizes over the feature dimension per individual sample (statistics depend only on that sample). LayerNorm is the default for anything sequential or variable-length.
+
+## Flashcards
+
+**Spam filter?** #flashcard
+FP (blocking legitimate email) is costly → prioritize precision
+
+**Cancer screening?** #flashcard
+FN (missing a case) is costly → prioritize recall
+
+**Fraud?** #flashcard
+FN usually costs more (undetected fraud) → recall-oriented
+
+**ROC-AUC: measures separation across all thresholds. Optimistic on imbalanced data because TN is plentiful and easy?** #flashcard
+FPR = FP/(FP+TN) looks artificially small.
+
+**PR-AUC?** #flashcard
+does not involve TN. Better choice when the positive class is rare (fraud, disease). A random classifier gets PR-AUC ≈ class prevalence; ROC-AUC ≈ 0.5 regardless of prevalence.
+
+**Xavier / Glorot (sigmoid, tanh): $\sigma = \sqrt{2/(n_{in}+n_{out})}$?** #flashcard
+balances forward and backward variance
+
+**He (ReLU): $\sigma = \sqrt{2/n_{in}}$?** #flashcard
+accounts for ReLU zeroing ~half of activations
+
+**Warmup: linear ramp from 0 for first 1–5% of steps. Reason: at random initialization, gradient directions are chaotic?** #flashcard
+a high LR causes divergence. Warmup lets the network find a good basin first.
+
+**Cosine decay: $\alpha_t = \alpha_{\min} + \frac{1}{2}(\alpha_{\max} - \alpha_{\min})(1 + \cos(\pi t/T))$. Smooth decay?** #flashcard
+model fine-tunes as LR decreases.
+
+**Small batch ($B < 8$)?** #flashcard
+noisy mean/variance estimates corrupt normalization
+
+**Variable-length sequences?** #flashcard
+different samples have different valid positions; batch statistics are meaningless
+
+**Inference with batch size 1: uses running statistics from training?** #flashcard
+fine if distribution hasn't shifted
+
+**t-SNE?** #flashcard
+preserves local neighborhoods; not reproducible unless seeded; no inverse transform; only for visualization
+
+**UMAP?** #flashcard
+preserves both local and global structure better; faster; reproducible; can produce embeddings for downstream use
+
+**Data drift ($P(X)$ changes): feature distributions shift?** #flashcard
+model applies to different inputs than it trained on. Detect with KS test or PSI per feature.
+
+**Concept drift ($P(Y \mid X)$ changes)?** #flashcard
+the relationship between inputs and labels changes (e.g., fraud patterns evolve). Detect by monitoring accuracy on a recent labeled slice.
+
+**Label drift ($P(Y)$ changes)?** #flashcard
+class balance shifts (seasonal effects on click rates). Detect by monitoring score distribution.

@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Behavioral And Scenario Based Questions
+status: unread
+tags: [llms, ml, interview-notes-behavioral-and]
+---
 # Behavioral & Scenario-Based Questions
 
 ---
@@ -908,3 +915,758 @@ Whether you make architecture decisions based on evidence and operational realit
 | System debugging | Stage-by-stage diagnosis with measurement | "Tweak the prompt" without root-cause investigation |
 | Stakeholder alignment | Shared artifacts, demonstrated controls, business framing | ML jargon, no metrics, no escalation path |
 | Career/motivation | Specific company/product research, concrete fit | Generic AI enthusiasm, no preparation |
+
+## Flashcards
+
+**What did YOU specifically do? (Not "we"?** #flashcard
+the interviewer will probe until they isolate your contribution)
+
+**How did you measure success? (Concrete numbers, not "it worked well")?** #flashcard
+How did you measure success? (Concrete numbers, not "it worked well")
+
+**What went wrong, and how did you handle it? (Shows judgment and maturity)?** #flashcard
+What went wrong, and how did you handle it? (Shows judgment and maturity)
+
+**What would you do differently? (Shows learning and reflection)?** #flashcard
+What would you do differently? (Shows learning and reflection)
+
+**MLE?** #flashcard
+train.py, feature store, model registry, batch inference pipeline
+
+**AI Engineering?** #flashcard
+RAG pipeline, eval gates, LLM gateway, guardrails, prompt versioning, cost monitoring, runbooks
+
+**Equating the role with prompt engineering only?** #flashcard
+Equating the role with prompt engineering only
+
+**Describing MLE responsibilities (distributed training, feature stores) when asked about AI Engineering?** #flashcard
+Describing MLE responsibilities (distributed training, feature stores) when asked about AI Engineering
+
+**Not mentioning evaluation, safety, or operational concerns?** #flashcard
+Not mentioning evaluation, safety, or operational concerns
+
+**Saying "AI is always better for language tasks" without discussing when rules suffice?** #flashcard
+Saying "AI is always better for language tasks" without discussing when rules suffice
+
+**Not mentioning a baseline comparison?** #flashcard
+Not mentioning a baseline comparison
+
+**Not discussing the failure cost of incorrect AI outputs?** #flashcard
+Not discussing the failure cost of incorrect AI outputs
+
+**North star KPI?** #flashcard
+the one thing that matters (ticket deflection rate, checkout conversion, task completion rate)
+
+**Guardrail metrics?** #flashcard
+safety incidents, incorrect actions, latency SLO breaches
+
+**Leading indicators?** #flashcard
+latency per task, cost per successful task
+
+**Reporting token cost savings without measuring quality or user outcomes?** #flashcard
+Reporting token cost savings without measuring quality or user outcomes
+
+**Using model accuracy as the business metric (it's a proxy, not the outcome)?** #flashcard
+Using model accuracy as the business metric (it's a proxy, not the outcome)
+
+**Ignoring the ongoing cost of monitoring, fixing, and maintaining the system?** #flashcard
+Ignoring the ongoing cost of monitoring, fixing, and maintaining the system
+
+**Presenting only positive metrics (accuracy, CSAT) without risk or cost?** #flashcard
+Presenting only positive metrics (accuracy, CSAT) without risk or cost
+
+**Not having a baseline comparison to show incremental value?** #flashcard
+Not having a baseline comparison to show incremental value
+
+**Confusing model performance with product value?** #flashcard
+Confusing model performance with product value
+
+**Disable the feature flag or add a stricter safety/faithfulness check that routes to a fallback?** #flashcard
+Disable the feature flag or add a stricter safety/faithfulness check that routes to a fallback
+
+**Capture the exact request, retrieved context, prompt version, and model response?** #flashcard
+Capture the exact request, retrieved context, prompt version, and model response
+
+**Assess whether a retraction or user notification is needed?** #flashcard
+Assess whether a retraction or user notification is needed
+
+**Is the answer grounded in retrieved context? → retrieval failure (missing evidence)?** #flashcard
+Is the answer grounded in retrieved context? → retrieval failure (missing evidence)
+
+**Is the retrieved context correct but the answer contradicts it? → generation failure (faithfulness bug)?** #flashcard
+Is the retrieved context correct but the answer contradicts it? → generation failure (faithfulness bug)
+
+**Is the prompt asking for information outside the knowledge base? → abstention failure (missing "I don't know" behavior)?** #flashcard
+Is the prompt asking for information outside the knowledge base? → abstention failure (missing "I don't know" behavior)
+
+**Retrieval failure?** #flashcard
+add to eval set, improve chunking/hybrid search, increase top-k
+
+**Faithfulness bug?** #flashcard
+add faithfulness check or NLI verification step
+
+**Abstention failure?** #flashcard
+add "if answer not in context, say so" instruction + test cases
+
+**Add the failing case to regression test suite?** #flashcard
+Add the failing case to regression test suite
+
+**Add monitoring alert for similar query patterns?** #flashcard
+Add monitoring alert for similar query patterns
+
+**Canary redeploy with the new case as a regression gate?** #flashcard
+Canary redeploy with the new case as a regression gate
+
+**Only tweaking the prompt without fixing retrieval or adding faithfulness checks?** #flashcard
+Only tweaking the prompt without fixing retrieval or adding faithfulness checks
+
+**Not adding the failure case to the eval set → problem recurs after next prompt update?** #flashcard
+Not adding the failure case to the eval set → problem recurs after next prompt update
+
+**Fixing silently without logging the incident for postmortem?** #flashcard
+Fixing silently without logging the incident for postmortem
+
+**Saying "I'd tweak the prompt" without investigating the root cause?** #flashcard
+Saying "I'd tweak the prompt" without investigating the root cause
+
+**Not mentioning that you add regression test coverage?** #flashcard
+Not mentioning that you add regression test coverage
+
+**Treating hallucinations as unsolvable rather than diagnosable?** #flashcard
+Treating hallucinations as unsolvable rather than diagnosable
+
+**Data residency/privacy?** #flashcard
+can data leave your infrastructure? If no (HIPAA, financial, government) → self-host required
+
+**SLA requirements?** #flashcard
+APIs have global SLAs and multi-region failover that self-hosted clusters must match with engineering effort
+
+**TCO at your scale?** #flashcard
+API unit cost × projected volume vs GPU cluster cost + headcount + on-call
+
+**Customization need?** #flashcard
+if you need fine-tuning with proprietary data, self-host gives more control
+
+**Team ops capacity?** #flashcard
+self-hosting requires 24/7 reliability engineering; if the team can't staff it, reliability degrades
+
+**Self-hosting without 24/7 reliability planning → availability incidents?** #flashcard
+Self-hosting without 24/7 reliability planning → availability incidents
+
+**API-only without vendor abstraction → locked into one provider's pricing and outages?** #flashcard
+API-only without vendor abstraction → locked into one provider's pricing and outages
+
+**Not doing the TCO math → wrong decision for the company's scale?** #flashcard
+Not doing the TCO math → wrong decision for the company's scale
+
+**Choosing self-host because "open source is cool" without a TCO calculation?** #flashcard
+Choosing self-host because "open source is cool" without a TCO calculation
+
+**Not mentioning multi-provider abstraction as a risk mitigation for API dependence?** #flashcard
+Not mentioning multi-provider abstraction as a risk mitigation for API dependence
+
+**Ignoring data residency requirements?** #flashcard
+Ignoring data residency requirements
+
+**Problem and baseline?** #flashcard
+what's the current state, what metric defines success
+
+**Risks: hallucination rate, bias, cost, latency?** #flashcard
+with acceptable thresholds
+
+**Timeline tied to eval gates?** #flashcard
+"we ship when retrieval recall@5 > 80% AND faithfulness > 90% on 200 test cases"
+
+**Human-in-the-loop plan for edge cases?** #flashcard
+Human-in-the-loop plan for edge cases
+
+**Known failure modes and what happens when they occur (escalation path)?** #flashcard
+Known failure modes and what happens when they occur (escalation path)
+
+**Letting marketing claims get ahead of measured capability?** #flashcard
+Letting marketing claims get ahead of measured capability
+
+**Giving calendar-based dates instead of eval-milestone-based estimates?** #flashcard
+Giving calendar-based dates instead of eval-milestone-based estimates
+
+**Showing only polished demos → surprises executives with failures in production?** #flashcard
+Showing only polished demos → surprises executives with failures in production
+
+**Overpromising capability to keep stakeholders happy?** #flashcard
+Overpromising capability to keep stakeholders happy
+
+**Not having a shared definition of "done" with measurable criteria?** #flashcard
+Not having a shared definition of "done" with measurable criteria
+
+**Using jargon (BLEU, F1, tokens) instead of business-unit language?** #flashcard
+Using jargon (BLEU, F1, tokens) instead of business-unit language
+
+**Gold set?** #flashcard
+50–100 queries with known correct answer chunks
+
+**Measure?** #flashcard
+is the correct chunk in top-k results?
+
+**If recall@5 < 70%?** #flashcard
+fix retrieval (chunking, embedding model, hybrid search) before touching generation
+
+**Are chunks semantically coherent? Short/overlapping chunks can miss context?** #flashcard
+Are chunks semantically coherent? Short/overlapping chunks can miss context
+
+**Is metadata correct? Wrong ACL or stale documents in index?** #flashcard
+Is metadata correct? Wrong ACL or stale documents in index?
+
+**Is OCR/preprocessing clean?** #flashcard
+Is OCR/preprocessing clean?
+
+**Try BM25-only, vector-only, and hybrid?** #flashcard
+which has higher recall on your test set?
+
+**Add cross-encoder reranker if precision after recall is the issue?** #flashcard
+Add cross-encoder reranker if precision after recall is the issue
+
+**Only when retrieval is confirmed good?** #flashcard
+does the model ignore retrieved context? Add faithfulness check
+
+**Is the prompt too vague? Add "cite passage for each claim" instruction?** #flashcard
+Is the prompt too vague? Add "cite passage for each claim" instruction
+
+**Only rewriting the system prompt without checking if the right chunks were retrieved?** #flashcard
+Only rewriting the system prompt without checking if the right chunks were retrieved
+
+**Not logging retrieval results alongside query and response → can't diagnose?** #flashcard
+Not logging retrieval results alongside query and response → can't diagnose
+
+**Fixing chunking for one query type without checking regression on others?** #flashcard
+Fixing chunking for one query type without checking regression on others
+
+**Starting with prompt tuning before measuring retrieval recall?** #flashcard
+Starting with prompt tuning before measuring retrieval recall
+
+**Not having a labeled golden set to measure retrieval quality?** #flashcard
+Not having a labeled golden set to measure retrieval quality
+
+**Fixing problems in a way that creates regressions in working cases?** #flashcard
+Fixing problems in a way that creates regressions in working cases
+
+**Adopting every new model as a mandatory upgrade without eval → regressions?** #flashcard
+Adopting every new model as a mandatory upgrade without eval → regressions
+
+**Reading about techniques without experimenting → can't assess fit for your stack?** #flashcard
+Reading about techniques without experimenting → can't assess fit for your stack
+
+**Following AI Twitter as primary signal source → lots of noise, inconsistent signal?** #flashcard
+Following AI Twitter as primary signal source → lots of noise, inconsistent signal
+
+**Describing your reading list without mentioning experimentation or measured outcomes?** #flashcard
+Describing your reading list without mentioning experimentation or measured outcomes
+
+**Citing the latest benchmarks without saying what you'd actually change in your system?** #flashcard
+Citing the latest benchmarks without saying what you'd actually change in your system
+
+**Not being able to give a concrete example of something you adopted with measured results?** #flashcard
+Not being able to give a concrete example of something you adopted with measured results
+
+**Eval gates?** #flashcard
+define what must not regress before promotion to next stage
+
+**Feature flags?** #flashcard
+instantaneous rollback without redeployment
+
+**Behavioral monitoring: latency, error rate, safety incidents, task success rate?** #flashcard
+not just uptime
+
+**Incident playbook?** #flashcard
+who decides to roll back and on what signal?
+
+**Skipping shadow mode → surprises in production?** #flashcard
+Skipping shadow mode → surprises in production
+
+**No regression suite for safety/format → behavior changes that aren't caught before canary?** #flashcard
+No regression suite for safety/format → behavior changes that aren't caught before canary
+
+**Moving too fast → incident at 100% rollout with no rollback mechanism?** #flashcard
+Moving too fast → incident at 100% rollout with no rollback mechanism
+
+**Saying "we iterate fast" without describing what gates or monitoring catch regressions?** #flashcard
+Saying "we iterate fast" without describing what gates or monitoring catch regressions
+
+**Not mentioning rollback capability as a prerequisite for reliable innovation?** #flashcard
+Not mentioning rollback capability as a prerequisite for reliable innovation
+
+**Framing innovation and reliability as opposites rather than complementary with the right process?** #flashcard
+Framing innovation and reliability as opposites rather than complementary with the right process
+
+**Situation?** #flashcard
+business context, constraints (data, latency, compliance), what was failing and how you knew it
+
+**Task: your specific role and responsibility?** #flashcard
+not "the team did X"
+
+**Action?** #flashcard
+2-3 concrete decisions YOU made with YOUR reasoning
+
+**What alternative did you consider and reject, and why?** #flashcard
+What alternative did you consider and reject, and why?
+
+**What measurement did you take to validate your decision?** #flashcard
+What measurement did you take to validate your decision?
+
+**What failed and how did you adapt?** #flashcard
+What failed and how did you adapt?
+
+**Result?** #flashcard
+quantified outcome on a business metric AND a technical metric
+
+**"Task completion rate increased from 52% to 73%" AND "p95 latency dropped from 4.2s to 1.8s"?** #flashcard
+"Task completion rate increased from 52% to 73%" AND "p95 latency dropped from 4.2s to 1.8s"
+
+**Optional?** #flashcard
+what you'd do differently
+
+**"What would you do differently?" → show reflection?** #flashcard
+earlier eval, better chunking strategy, more stakeholder alignment
+
+**"What was the hardest part?" → show judgment?** #flashcard
+what tradeoff was genuinely difficult
+
+**"How did you measure success?" → concrete metrics, not "users loved it"?** #flashcard
+"How did you measure success?" → concrete metrics, not "users loved it"
+
+**Vague "we" without isolating your contribution?** #flashcard
+Vague "we" without isolating your contribution
+
+**No metrics?** #flashcard
+No metrics
+
+**Happy path only?** #flashcard
+no mention of what went wrong and how you adapted
+
+**Project that isn't challenging (no genuine trade-offs or obstacles)?** #flashcard
+Project that isn't challenging (no genuine trade-offs or obstacles)
+
+**Describing what the system does instead of what YOU did?** #flashcard
+Describing what the system does instead of what YOU did
+
+**Omitting the failure or difficulty?** #flashcard
+every good project has one
+
+**Metrics that are output-only ("the model scored 90%") without business impact?** #flashcard
+Metrics that are output-only ("the model scored 90%") without business impact
+
+**Disable or degrade the feature path that produced the harmful output?** #flashcard
+Disable or degrade the feature path that produced the harmful output
+
+**Preserve the full evidence trail?** #flashcard
+request, retrieved context, prompt version, output
+
+**Assess severity?** #flashcard
+one-off edge case vs systematic pattern; affected user population
+
+**Training data bias?** #flashcard
+was this demographic underrepresented or negatively represented in training/fine-tuning data?
+
+**Retrieval bias?** #flashcard
+did the RAG system retrieve biased or outdated source documents?
+
+**Prompt elicitation?** #flashcard
+did the prompt inadvertently amplify a bias?
+
+**Add test cases for the affected demographic slice to the eval set?** #flashcard
+Add test cases for the affected demographic slice to the eval set
+
+**Implement targeted safety filters or output classifiers for the identified category?** #flashcard
+Implement targeted safety filters or output classifiers for the identified category
+
+**If systematic → involve fine-tuning with bias-corrected data and human review?** #flashcard
+If systematic → involve fine-tuning with bias-corrected data and human review
+
+**Conduct formal bias evaluation across demographic slices before redeployment?** #flashcard
+Conduct formal bias evaluation across demographic slices before redeployment
+
+**Follow the company's incident communication policy; don't share engineering details publicly?** #flashcard
+Follow the company's incident communication policy; don't share engineering details publicly
+
+**Internal postmortem with corrective actions and timeline?** #flashcard
+Internal postmortem with corrective actions and timeline
+
+**Add demographic slice evaluation to the standard eval suite?** #flashcard
+Add demographic slice evaluation to the standard eval suite
+
+**Scheduled red-team exercises for bias dimensions relevant to your product?** #flashcard
+Scheduled red-team exercises for bias dimensions relevant to your product
+
+**Silent hotfix without adding eval coverage → problem recurs?** #flashcard
+Silent hotfix without adding eval coverage → problem recurs
+
+**Fixing the symptom (one output) without investigating whether it's systematic?** #flashcard
+Fixing the symptom (one output) without investigating whether it's systematic
+
+**Not involving legal/trust & safety where required by policy?** #flashcard
+Not involving legal/trust & safety where required by policy
+
+**Treating it as purely a technical problem ("just add a filter")?** #flashcard
+Treating it as purely a technical problem ("just add a filter")
+
+**Not mentioning the need for a postmortem and documentation?** #flashcard
+Not mentioning the need for a postmortem and documentation
+
+**Not proactively adding demographic evaluation to prevent recurrence?** #flashcard
+Not proactively adding demographic evaluation to prevent recurrence
+
+**Blindly switching to a smaller model without running task-specific eval → silent quality regression?** #flashcard
+Blindly switching to a smaller model without running task-specific eval → silent quality regression
+
+**Optimizing token count without measuring if information loss affects answer quality?** #flashcard
+Optimizing token count without measuring if information loss affects answer quality
+
+**Not getting stakeholder buy-in on the quality-cost trade-off operating point?** #flashcard
+Not getting stakeholder buy-in on the quality-cost trade-off operating point
+
+**Proposing "use a smaller model" as the first and only suggestion?** #flashcard
+Proposing "use a smaller model" as the first and only suggestion
+
+**Not mentioning semantic caching or cascade routing as high-ROI optimizations?** #flashcard
+Not mentioning semantic caching or cascade routing as high-ROI optimizations
+
+**Not mentioning that every change needs an eval gate?** #flashcard
+Not mentioning that every change needs an eval gate
+
+**Situation?** #flashcard
+product context and the specific trade-off
+
+**Task?** #flashcard
+you needed to decide before a launch deadline
+
+**Action?** #flashcard
+how you measured both dimensions, what alternatives you explored
+
+**Result?** #flashcard
+the decision you made, the monitoring you added, whether the decision held
+
+**Choosing accuracy without discussing user-facing latency impact?** #flashcard
+Choosing accuracy without discussing user-facing latency impact
+
+**Choosing latency without measuring quality degradation?** #flashcard
+Choosing latency without measuring quality degradation
+
+**Making the decision alone without involving the PM on the product implications?** #flashcard
+Making the decision alone without involving the PM on the product implications
+
+**"We always prioritize accuracy" or "we always prioritize latency"?** #flashcard
+neither is correct without context
+
+**Not mentioning that you measured both dimensions before deciding?** #flashcard
+Not mentioning that you measured both dimensions before deciding
+
+**Not involving stakeholders in the decision (PM, product owner)?** #flashcard
+Not involving stakeholders in the decision (PM, product owner)
+
+**Stale index?** #flashcard
+documents in the corpus are outdated; answers reference old policies/prices → schedule index refresh
+
+**Model API change?** #flashcard
+provider updated model behavior → monitor model version pinning, add regression test for known behaviors
+
+**Distribution shift?** #flashcard
+users now ask about new topics not covered in the corpus → add new content and eval cases
+
+**Prompt regression?** #flashcard
+someone changed a system prompt that caused behavioral regression → add prompt versioning + regression gate
+
+**Golden set evaluation on a weekly schedule?** #flashcard
+Golden set evaluation on a weekly schedule
+
+**Monitoring alerts when success rate drops > threshold vs baseline?** #flashcard
+Monitoring alerts when success rate drops > threshold vs baseline
+
+**Model bundle versioning?** #flashcard
+pin model version + prompt template + retrieval config; change together with eval gate
+
+**Only monitoring uptime and error rate, not behavioral metrics?** #flashcard
+Only monitoring uptime and error rate, not behavioral metrics
+
+**No golden set → can't detect quality degradation?** #flashcard
+No golden set → can't detect quality degradation
+
+**Not pinning model versions → surprise drift from provider updates?** #flashcard
+Not pinning model versions → surprise drift from provider updates
+
+**Saying "the model is fine" without checking retrieval or index freshness?** #flashcard
+Saying "the model is fine" without checking retrieval or index freshness
+
+**Not having a monitoring system that would have caught the degradation earlier?** #flashcard
+Not having a monitoring system that would have caught the degradation earlier
+
+**Proposing to "re-tune the model" without diagnosing the actual root cause?** #flashcard
+Proposing to "re-tune the model" without diagnosing the actual root cause
+
+**Lead with business impact?** #flashcard
+"This saves 3 hours of manual review per day with a 2% error rate that human review catches"
+
+**Avoid technical jargon; use analogies?** #flashcard
+"It's more like a very good search + summarize than a verified reference database"
+
+**Show, don't tell?** #flashcard
+demos on edge cases build credibility
+
+**Using jargon (logits, tokens, hallucinations) without translation?** #flashcard
+Using jargon (logits, tokens, hallucinations) without translation
+
+**Overpromising to stakeholders who then set the wrong expectations with customers?** #flashcard
+Overpromising to stakeholders who then set the wrong expectations with customers
+
+**Not connecting limitations to the specific risk management controls in place?** #flashcard
+Not connecting limitations to the specific risk management controls in place
+
+**Saying "100% is impossible with AI" without offering what IS guaranteed?** #flashcard
+Saying "100% is impossible with AI" without offering what IS guaranteed
+
+**Not connecting the limitation discussion to your mitigation controls?** #flashcard
+Not connecting the limitation discussion to your mitigation controls
+
+**Using the word "hallucination" with non-technical stakeholders without a plain-language explanation?** #flashcard
+Using the word "hallucination" with non-technical stakeholders without a plain-language explanation
+
+**You need at least 200-500 high-quality examples per class for reliable fine-tuning on classification?** #flashcard
+You need at least 200-500 high-quality examples per class for reliable fine-tuning on classification
+
+**If you have fewer, use PEFT/LoRA to limit parameter updates to a small adapter?** #flashcard
+If you have fewer, use PEFT/LoRA to limit parameter updates to a small adapter
+
+**Always use train/val/test split and early stopping?** #flashcard
+Always use train/val/test split and early stopping
+
+**Fine-tuning on 120 noisy examples without eval discipline → confident wrong outputs?** #flashcard
+Fine-tuning on 120 noisy examples without eval discipline → confident wrong outputs
+
+**Labeling randomly instead of targeting failure modes → slow improvement per label?** #flashcard
+Labeling randomly instead of targeting failure modes → slow improvement per label
+
+**No baseline measurement → can't tell if labeling effort is helping?** #flashcard
+No baseline measurement → can't tell if labeling effort is helping
+
+**Jumping to fine-tuning without trying zero/few-shot first?** #flashcard
+Jumping to fine-tuning without trying zero/few-shot first
+
+**Not splitting your 120 examples into train and eval (overfitting to training data)?** #flashcard
+Not splitting your 120 examples into train and eval (overfitting to training data)
+
+**Labeling without error analysis to guide where labels are most valuable?** #flashcard
+Labeling without error analysis to guide where labels are most valuable
+
+**Project kickoff: one-pager with success metrics (business + technical), guardrails, risks, timeline tied to eval milestones?** #flashcard
+not calendar dates
+
+**Shared definition of done?** #flashcard
+measurable criteria (e.g., "recall@5 > 80% AND faithfulness > 90% AND zero P0 safety failures in 1-week canary")
+
+**Legal/compliance early?** #flashcard
+loop in early on data handling, output policies, and liability; they're much harder to retrofit
+
+**Weekly rituals?** #flashcard
+short demo with real production edge cases; shared metrics dashboard visible to all stakeholders
+
+**Escalation path for disagreements?** #flashcard
+define who makes the final call on trade-offs (PM on scope, security team on safety thresholds, legal on compliance)
+
+**Not involving legal/compliance until the week before launch?** #flashcard
+Not involving legal/compliance until the week before launch
+
+**Metrics visible only to engineering → stakeholders don't know when targets are hit?** #flashcard
+Metrics visible only to engineering → stakeholders don't know when targets are hit
+
+**No escalation path → debates stall progress on high-risk decisions?** #flashcard
+No escalation path → debates stall progress on high-risk decisions
+
+**Describing cross-functional work as "we communicated" without concrete artifacts or processes?** #flashcard
+Describing cross-functional work as "we communicated" without concrete artifacts or processes
+
+**Not mentioning legal/compliance as a key stakeholder?** #flashcard
+Not mentioning legal/compliance as a key stakeholder
+
+**Framing your role as purely technical without ownership of communication and alignment?** #flashcard
+Framing your role as purely technical without ownership of communication and alignment
+
+**Smaller + specialized models?** #flashcard
+routing + smaller models replace monolithic large-model calls; requires better routing logic and per-model evaluation
+
+**Agentic systems at scale: tools, memory, planning?** #flashcard
+but the hard part is making them reliable and safe in production, not building a demo
+
+**Regulation and compliance: EU AI Act, NIST RMF, data residency requirements?** #flashcard
+AI engineering requires governance infrastructure, not just ML infrastructure
+
+**Evaluation infrastructure matures?** #flashcard
+from "run it and see" to systematic offline + online eval, red-team suites, and regression gates as standard practice
+
+**On-device / hybrid?** #flashcard
+privacy, latency, and cost drive compute to the edge for specific workloads
+
+**Pure technology speculation without engineering consequences?** #flashcard
+Pure technology speculation without engineering consequences
+
+**Predicting specific model capabilities that will exist in 3 years (nobody knows)?** #flashcard
+Predicting specific model capabilities that will exist in 3 years (nobody knows)
+
+**Not connecting the trends to what it means for the engineering team's priorities?** #flashcard
+Not connecting the trends to what it means for the engineering team's priorities
+
+**"Models will get smarter and do everything"?** #flashcard
+too vague and doesn't show system thinking
+
+**Only technical predictions with no mention of governance, cost, or organizational implications?** #flashcard
+Only technical predictions with no mention of governance, cost, or organizational implications
+
+**Not having a view on what you personally plan to invest in?** #flashcard
+Not having a view on what you personally plan to invest in
+
+**Read their engineering blog and recent technical talks?** #flashcard
+Read their engineering blog and recent technical talks
+
+**Look at their job description for specific technical challenges (RAG quality, agent reliability, evaluation infrastructure)?** #flashcard
+Look at their job description for specific technical challenges (RAG quality, agent reliability, evaluation infrastructure)
+
+**Know their product well enough to have a concrete opinion about one thing you'd improve or investigate?** #flashcard
+Know their product well enough to have a concrete opinion about one thing you'd improve or investigate
+
+**Generic AI enthusiasm without company-specific detail?** #flashcard
+Generic AI enthusiasm without company-specific detail
+
+**Flattery ("I've always admired your work") without substance?** #flashcard
+Flattery ("I've always admired your work") without substance
+
+**Talking only about what you want without connecting it to what you can offer them?** #flashcard
+Talking only about what you want without connecting it to what you can offer them
+
+**Only describing yourself ("I have RAG experience") without saying why that matters for their specific product?** #flashcard
+Only describing yourself ("I have RAG experience") without saying why that matters for their specific product
+
+**Not having a concrete question for them that shows you thought about their problems?** #flashcard
+Not having a concrete question for them that shows you thought about their problems
+
+**Mentioning only the model (GPT-4, Claude) they use rather than the engineering challenges they face?** #flashcard
+Mentioning only the model (GPT-4, Claude) they use rather than the engineering challenges they face
+
+**Project the error rate onto actual user volume?** #flashcard
+"15% of edge case queries × estimated 500/week = 75 incorrect answers per week"
+
+**Identify the category of harm?** #flashcard
+is the answer embarrassing, misleading, or potentially harmful?
+
+**Estimate downstream cost?** #flashcard
+support tickets, churn risk, regulatory exposure
+
+**Option A?** #flashcard
+ship with scope restriction (exclude edge case queries; route to fallback)
+
+**Option B?** #flashcard
+ship to 10% of users with monitoring, quality gate to expand
+
+**Option C?** #flashcard
+add human review for the affected query types before using AI response
+
+**Option D?** #flashcard
+delay 2 weeks to fix retrieval failure driving most errors
+
+**Arguing the risk without proposing solutions → you become "the person who blocks things"?** #flashcard
+Arguing the risk without proposing solutions → you become "the person who blocks things"
+
+**Agreeing without surfacing the risk in writing → you own the outcome if it goes wrong?** #flashcard
+Agreeing without surfacing the risk in writing → you own the outcome if it goes wrong
+
+**Using internal eval numbers without translating to user impact?** #flashcard
+Using internal eval numbers without translating to user impact
+
+**Pure technical framing ("15% hallucination rate is too high") without business translation?** #flashcard
+Pure technical framing ("15% hallucination rate is too high") without business translation
+
+**Not proposing alternatives?** #flashcard
+just objecting
+
+**Letting the PM decide without documenting your recommendation?** #flashcard
+Letting the PM decide without documenting your recommendation
+
+**"We measure our error rate and it's currently X% on in-scope questions"?** #flashcard
+"We measure our error rate and it's currently X% on in-scope questions"
+
+**"For high-risk actions (cancellations, financial decisions), human review is required before the AI response is acted on"?** #flashcard
+"For high-risk actions (cancellations, financial decisions), human review is required before the AI response is acted on"
+
+**"We monitor production output daily and have a correction process"?** #flashcard
+"We monitor production output daily and have a correction process"
+
+**"When we're uncertain, we say 'I don't know' rather than guess?** #flashcard
+here's an example"
+
+**"Hallucinations are just a limitation of LLMs"?** #flashcard
+sounds like you're making excuses
+
+**"We're working on it"?** #flashcard
+vague and doesn't build confidence
+
+**"99.9% isn't possible"?** #flashcard
+true but unhelpful; follow with what IS possible and how you get there
+
+**Jargon: "logits," "temperature," "tokens," "hallucination"?** #flashcard
+replace with plain language
+
+**Saying limitations without mitigations → sounds like an excuse?** #flashcard
+Saying limitations without mitigations → sounds like an excuse
+
+**Overpromising improvements → executive adjusts expectations in the wrong direction?** #flashcard
+Overpromising improvements → executive adjusts expectations in the wrong direction
+
+**Using the word "hallucination" without immediately translating it?** #flashcard
+Using the word "hallucination" without immediately translating it
+
+**Explaining why 100% is impossible without saying what the system DOES guarantee?** #flashcard
+Explaining why 100% is impossible without saying what the system DOES guarantee
+
+**Not connecting limitations to the specific safeguards in your system?** #flashcard
+Not connecting limitations to the specific safeguards in your system
+
+**Tool use is essential for the task (can't answer without calling an API, running code, or doing multi-step calculation)?** #flashcard
+Tool use is essential for the task (can't answer without calling an API, running code, or doing multi-step calculation)
+
+**Offline + online evals show durable quality lift on your traffic?** #flashcard
+Offline + online evals show durable quality lift on your traffic
+
+**You have security and observability maturity for agentic systems?** #flashcard
+You have security and observability maturity for agentic systems
+
+**The team can operate it sustainably (runbooks, incident response for tool failures)?** #flashcard
+The team can operate it sustainably (runbooks, incident response for tool failures)
+
+**Quality gain is marginal on your traffic?** #flashcard
+Quality gain is marginal on your traffic
+
+**Ops team lacks agent-specific reliability engineering experience?** #flashcard
+Ops team lacks agent-specific reliability engineering experience
+
+**The use case has low tolerance for tool-call errors or prompt injection risk?** #flashcard
+The use case has low tolerance for tool-call errors or prompt injection risk
+
+**λ * ops_risk?** #flashcard
+λ * ops_risk
+
+**μ * latency_cost?** #flashcard
+μ * latency_cost
+
+**Choosing based on benchmark delta without running on your production traffic?** #flashcard
+Choosing based on benchmark delta without running on your production traffic
+
+**Choosing simplicity without evaluating whether the quality gap matters for your users?** #flashcard
+Choosing simplicity without evaluating whether the quality gap matters for your users
+
+**Not having a pilot phase to measure the quality difference with real user traffic?** #flashcard
+Not having a pilot phase to measure the quality difference with real user traffic
+
+**"15% better is clearly worth it"?** #flashcard
+without checking if it's 15% better on YOUR data
+
+**"Simpler is always better"?** #flashcard
+without acknowledging when agent capabilities are genuinely necessary
+
+**Not mentioning the ops and security cost of the agent system?** #flashcard
+Not mentioning the ops and security cost of the agent system

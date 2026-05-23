@@ -1,3 +1,10 @@
+---
+module: References
+topic: Research Papers
+subtopic: Deep Learning Computer Vision
+status: unread
+tags: [references, ml, research-papers-deep-learning]
+---
 # Computer Vision — Key Papers
 
 The papers that built the field, and the ones that still get asked about in interviews.

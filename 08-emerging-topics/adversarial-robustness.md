@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Adversarial Robustness
+subtopic: ""
+status: unread
+tags: [emergingtopics, ml, adversarial-robustness]
+---
 # Adversarial Robustness
 
 ---
@@ -494,3 +501,68 @@ where Φ⁻¹ is the inverse normal CDF.
 This is a **provable** L2 robustness certificate — no adversary, regardless of algorithm, can construct an L2 perturbation of magnitude ≤ 0.32 that changes the output of `g` at input `x`.
 
 Key limitation: this is an L2 certificate. Converting to L∞ (the practically relevant norm for pixel attacks) gives R_∞ = R/√d ≈ 0.32/√3072 ≈ 0.006 — essentially zero. Randomized smoothing does not provide useful L∞ certificates.
+
+## Flashcards
+
+**Adversarial examples arise because models use non-robust features?** #flashcard
+directions in pixel space that correlate with labels but are imperceptible to humans. High-dimensional gradient descent on pixel-space features makes this structural, not accidental.
+
+**FGSM is one step in the gradient sign direction. PGD is iterated FGSM with projection and random start. C&W minimizes perturbation norm directly. PGD is the canonical white-box attack and the inner loop of adversarial training.?** #flashcard
+FGSM is one step in the gradient sign direction. PGD is iterated FGSM with projection and random start. C&W minimizes perturbation norm directly. PGD is the canonical white-box attack and the inner loop of adversarial training.
+
+**AutoAttack is the evaluation standard?** #flashcard
+four attacks including the gradient-free Square Attack. Results against FGSM alone or single-run PGD are not trustworthy.
+
+**Adversarial training solves min_θ E[max_{δ} L(f_θ(x+δ), y)]?** #flashcard
+inner PGD, outer SGD. Always costs clean accuracy.
+
+**TRADES decomposes robust error into natural + boundary components. KL regularization between clean and adversarial outputs achieves better Pareto efficiency than Madry AT.?** #flashcard
+TRADES decomposes robust error into natural + boundary components. KL regularization between clean and adversarial outputs achieves better Pareto efficiency than Madry AT.
+
+**Randomized smoothing is the only method with provable L2 guarantees at scale. Certified radius R = σ·Φ⁻¹(p_A). Higher σ means larger radius but lower clean accuracy.?** #flashcard
+Randomized smoothing is the only method with provable L2 guarantees at scale. Certified radius R = σ·Φ⁻¹(p_A). Higher σ means larger radius but lower clean accuracy.
+
+**Gradient masking is not robustness. AutoAttack specifically targets it via Square Attack and DLR loss.?** #flashcard
+Gradient masking is not robustness. AutoAttack specifically targets it via Square Attack and DLR loss.
+
+**State-of-the-art?** #flashcard
+~70–73% robust accuracy on CIFAR-10 L∞ ε=8/255 vs. ~95%+ clean. Report both.
+
+**Attacker type?** #flashcard
+white-box (assume attacker has model access; if internal tool, gray-box is realistic)
+
+**Norm constraint?** #flashcard
+L∞ ε = 4/255 (pixel-level perturbations), not L2 (physical attacks would use L∞)
+
+**Target?** #flashcard
+untargeted misclassification (defect → non-defect is the high-cost error direction)
+
+**Input preprocessing?** #flashcard
+JPEG compression at quality 75 + bit-depth reduction to 7 bits adds ~3% free robustness via input diversity.
+
+**Ensemble of 3 independently trained robust models?** #flashcard
+transferability across all three is harder to achieve than fooling a single model.
+
+**Monitor for distribution shift in production inputs; adversarially-trained models can be more sensitive to legitimate domain shift because the decision boundaries are tighter.?** #flashcard
+Monitor for distribution shift in production inputs; adversarially-trained models can be more sensitive to legitimate domain shift because the decision boundaries are tighter.
+
+**Run N = 100,000 Monte Carlo samples of f(x + ε_i) for ε_i ~ N(0, 0.25²I)?** #flashcard
+Run N = 100,000 Monte Carlo samples of f(x + ε_i) for ε_i ~ N(0, 0.25²I)
+
+**Estimate p̄_A via one-sided Clopper-Pearson interval at 99.5% confidence?** #flashcard
+Estimate p̄_A via one-sided Clopper-Pearson interval at 99.5% confidence
+
+**Suppose k_A = 90,000 votes for class A → p̄_A ≈ 0.899 (lower bound)?** #flashcard
+Suppose k_A = 90,000 votes for class A → p̄_A ≈ 0.899 (lower bound)
+
+**p̄_B ≤ 1 - p̄_A = 0.101?** #flashcard
+p̄_B ≤ 1 - p̄_A = 0.101
+
+**R = 0.25/2 · (Φ⁻¹(0.899) - Φ⁻¹(0.101))?** #flashcard
+R = 0.25/2 · (Φ⁻¹(0.899) - Φ⁻¹(0.101))
+
+**Φ⁻¹(0.899) ≈ 1.278, Φ⁻¹(0.101) ≈ -1.278?** #flashcard
+Φ⁻¹(0.899) ≈ 1.278, Φ⁻¹(0.101) ≈ -1.278
+
+**R = 0.125 · 2.556 ≈ 0.32?** #flashcard
+R = 0.125 · 2.556 ≈ 0.32

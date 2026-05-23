@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Model Compression
+status: unread
+tags: [deeplearning, ml, components-model-compression]
+---
 # Model Compression
 
 ---
@@ -215,3 +222,14 @@ Result: fine-tuning a 70B model on a single 48GB GPU. The quantized base uses ~3
 | **Distillation** | Knowledge transfer | Any | Smaller student architecture |
 | **Low-rank factorization** | Weight matrix rank | Any | Large linear/attention layers |
 | **Speculative decoding** | Token generation speed | Two models in memory | LLM inference throughput |
+
+## Flashcards
+
+**FP16?** #flashcard
+2× memory reduction, nearly zero accuracy loss. Start here.
+
+**INT8?** #flashcard
+4× reduction, $<1\%$ accuracy drop on most tasks with good calibration. Significant speed gains on CPUs and accelerators.
+
+**INT4: 8× reduction. More aggressive?** #flashcard
+accuracy drops more, requires careful calibration.

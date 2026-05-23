@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Data Engineering For Ml
+status: unread
+tags: [productionml, ml, system-design-data-engineering]
+---
 # Data Engineering for ML
 
 > **TL;DR**: ML models are only as good as the data pipelines that feed them. Most ML failures in production are data failures — stale features, silent schema changes, train-serve skew from format mismatches, and runaway compute costs from unpartitioned scans. This doc covers the infrastructure layer between raw data and model inputs.
@@ -895,3 +902,83 @@ Mitigation: for each target date in the backfill range, explicitly filter the so
 Secondary risks: cost (2 years × daily compute can be expensive — estimate and use spot instances); partial writes (if the job fails mid-backfill, use Delta Lake MERGE or idempotent writes partitioned by date to resume safely); pipeline conflicts (backfill job competing with production job for cluster resources — schedule during off-peak or use a separate cluster).
 
 After backfilling, validate a sample: take 10 random (user_id, date) pairs, manually compute the feature from raw data, and compare to the backfilled values. This catches off-by-one errors in the time window logic before the feature is used in training.
+
+## Flashcards
+
+**Lambda is operationally expensive?** #flashcard
+two codebases that must produce identical results for the same feature. Schema changes require coordinated updates in both paths.
+
+**Kappa requires the stream processor to handle replay at batch throughput?** #flashcard
+Kafka retention must cover the full reprocessing window (weeks or months of logs).
+
+**Modern default?** #flashcard
+prefer Kappa with Flink or Spark Structured Streaming. Fall back to Lambda only when you need exact historical correctness that streaming can't guarantee (e.g., late-arriving data beyond the watermark).
+
+**name?** #flashcard
+user_id
+
+**name?** #flashcard
+purchase_count_30d
+
+**name?** #flashcard
+feature_timestamp
+
+**preprocess.py?** #flashcard
+preprocess.py
+
+**data/raw.parquet?** #flashcard
+data/raw.parquet
+
+**data/processed.parquet?** #flashcard
+data/processed.parquet
+
+**train.py?** #flashcard
+train.py
+
+**data/processed.parquet?** #flashcard
+data/processed.parquet
+
+**models/model.pkl?** #flashcard
+models/model.pkl
+
+**metrics.json?** #flashcard
+metrics.json
+
+**Multi-engine shops (Trino for ad-hoc + Spark for ETL + Flink for streaming)?** #flashcard
+Multi-engine shops (Trino for ad-hoc + Spark for ETL + Flink for streaming)
+
+**Tables with frequent partition scheme changes (Iceberg's hidden partitioning avoids rewrites)?** #flashcard
+Tables with frequent partition scheme changes (Iceberg's hidden partitioning avoids rewrites)
+
+**Very large tables where Delta transaction log size becomes a bottleneck (>100K transactions)?** #flashcard
+Very large tables where Delta transaction log size becomes a bottleneck (>100K transactions)
+
+**Databricks-centric stack (native integration, Z-ordering, Auto Optimize)?** #flashcard
+Databricks-centric stack (native integration, Z-ordering, Auto Optimize)
+
+**Streaming + batch unification on Spark (DeltaStream API)?** #flashcard
+Streaming + batch unification on Spark (DeltaStream API)
+
+**Simpler operational model for small-to-medium teams?** #flashcard
+Simpler operational model for small-to-medium teams
+
+**name?** #flashcard
+user_30d_features
+
+**name?** #flashcard
+user_id
+
+**not_null?** #flashcard
+not_null
+
+**unique?** #flashcard
+unique
+
+**name?** #flashcard
+event_count_30d
+
+**not_null?** #flashcard
+not_null
+
+**dbt_utils.accepted_range:?** #flashcard
+dbt_utils.accepted_range:

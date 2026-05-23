@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Eta And Surge Pricing
+status: unread
+tags: [productionml, ml, system-design-eta-and-surge-pr]
+---
 # Ride-Hailing ETA Prediction & Dynamic Surge Pricing
 
 End-to-end ML system for real-time ETA estimation and dynamic pricing in ride-hailing platforms. Canonical system design question at Uber, Lyft, DoorDash, and any marketplace with real-time supply/demand balancing.
@@ -841,3 +848,224 @@ This is a classic marketplace optimization problem. A 2% drop in completion rate
 - Uber Research: [Surge Pricing Solves the Wild Goose Chase](https://faculty.chicagobooth.edu/christopher.knittel/research/papers/uber_surge_goose_chase.pdf) — Castillo et al., AER 2017
 - Valhalla map matching: [https://github.com/valhalla/valhalla](https://github.com/valhalla/valhalla)
 - OSRM routing engine: [http://project-osrm.org/](http://project-osrm.org/)
+
+## Flashcards
+
+**What is the ETA used for? Pre-booking estimate shown to rider, matching optimization, or driver dispatch?** #flashcard
+What is the ETA used for? Pre-booking estimate shown to rider, matching optimization, or driver dispatch?
+
+**Which leg of the trip? Pickup ETA (driver → rider), trip ETA (rider → destination), or both?** #flashcard
+Which leg of the trip? Pickup ETA (driver → rider), trip ETA (rider → destination), or both?
+
+**Acceptable error? ±2 minutes? ±20%? Does it change by trip length?** #flashcard
+Acceptable error? ±2 minutes? ±20%? Does it change by trip length?
+
+**Real-time vs batch? Should ETA update as the driver moves, or is a single pre-trip estimate sufficient?** #flashcard
+Real-time vs batch? Should ETA update as the driver moves, or is a single pre-trip estimate sufficient?
+
+**Uncertainty communication? Show a range ("8–12 min") or a point estimate?** #flashcard
+Uncertainty communication? Show a range ("8–12 min") or a point estimate?
+
+**Geographic granularity? City-level, neighborhood-level, or hexagonal cell-level?** #flashcard
+Geographic granularity? City-level, neighborhood-level, or hexagonal cell-level?
+
+**Price cap policy? Regulatory limits on surge multipliers vary by city/country?** #flashcard
+Price cap policy? Regulatory limits on surge multipliers vary by city/country
+
+**Driver-side incentives? Does surge only affect rider price, or also driver earnings?** #flashcard
+Driver-side incentives? Does surge only affect rider price, or also driver earnings?
+
+**Surge transparency? Do we show surge multiplier (1.8x) or just final price?** #flashcard
+Surge transparency? Do we show surge multiplier (1.8x) or just final price?
+
+**New city cold start? How long until the pricing model has enough data?** #flashcard
+New city cold start? How long until the pricing model has enough data?
+
+**Strong baseline, fast inference (~5ms)?** #flashcard
+Strong baseline, fast inference (~5ms)
+
+**Handles missing features (weather unavailable, GPS gaps)?** #flashcard
+Handles missing features (weather unavailable, GPS gaps)
+
+**Per-city model?** #flashcard
+train on last 90 days of trips, update weekly
+
+**Feature importance interpretable for debugging?** #flashcard
+Feature importance interpretable for debugging
+
+**Transformer-based encoder of road network segments?** #flashcard
+Transformer-based encoder of road network segments
+
+**Processes sequence of road segments on the route?** #flashcard
+Processes sequence of road segments on the route
+
+**Learns segment-level travel time embeddings?** #flashcard
+Learns segment-level travel time embeddings
+
+**Multi-task?** #flashcard
+predicts ETA + probability of route deviation
+
+**~50ms inference, significantly better MAPE vs GBT in complex cities?** #flashcard
+~50ms inference, significantly better MAPE vs GBT in complex cities
+
+**Model the road network as a directed graph?** #flashcard
+Model the road network as a directed graph
+
+**Node features?** #flashcard
+road type, speed limit, historical speed
+
+**Edge features?** #flashcard
+turn penalties, signal timing
+
+**GNN aggregates neighborhood context to improve segment-level estimates?** #flashcard
+GNN aggregates neighborhood context to improve segment-level estimates
+
+**Slower to train and serve; beneficial for cities with complex topology?** #flashcard
+Slower to train and serve; beneficial for cities with complex topology
+
+**Nodes $V$?** #flashcard
+Road intersections
+
+**Edges $E$?** #flashcard
+Road segments between intersections
+
+**Node features?** #flashcard
+Latitude, longitude, intersection type (signal/stop/free-flow)
+
+**Edge features?** #flashcard
+Speed limit, road type (highway/arterial/residential), lane count, length, historical travel times by hour/day
+
+**All neighbors are equidistant (not true for squares?** #flashcard
+diagonals are farther)
+
+**Clean hierarchical resolution (resolution 7 ≈ 1.4 km², resolution 9 ≈ 0.1 km²)?** #flashcard
+Clean hierarchical resolution (resolution 7 ≈ 1.4 km², resolution 9 ≈ 0.1 km²)
+
+**Efficient geospatial indexing?** #flashcard
+h3.geo_to_h3(lat, lng, resolution=9)
+
+**SDR < 1?** #flashcard
+excess demand → surge needed
+
+**SDR > 1.5?** #flashcard
+excess supply → reduce price
+
+**SDR ≈ 1?** #flashcard
+balanced market
+
+**Current SDR at cell + neighboring cells (spillover effects)?** #flashcard
+Current SDR at cell + neighboring cells (spillover effects)
+
+**SDR trend (improving or worsening)?** #flashcard
+SDR trend (improving or worsening)
+
+**Historical price elasticity for this cell/time?** #flashcard
+Historical price elasticity for this cell/time
+
+**Event indicator and estimated demand spike?** #flashcard
+Event indicator and estimated demand spike
+
+**Weather condition?** #flashcard
+Weather condition
+
+**Current driver earnings vs. daily target?** #flashcard
+Current driver earnings vs. daily target
+
+**wait_time < threshold?** #flashcard
+wait_time < threshold
+
+**surge_multiplier <= regulatory_cap?** #flashcard
+surge_multiplier <= regulatory_cap
+
+**State?** #flashcard
+SDR, time, weather, events, recent price history
+
+**Action?** #flashcard
+Surge multiplier from discrete set {1.0, 1.2, 1.5, 1.8, 2.0, 2.5}
+
+**Reward?** #flashcard
+completed_trips  fare - λ  unfulfilled_requests - μ * rider_cancellations
+
+**Environment?** #flashcard
+Simulated marketplace using historical demand/supply response curves
+
+**Emission probability?** #flashcard
+Gaussian around each road segment
+
+**Transition probability?** #flashcard
+route plausibility (consistent direction, no teleportation)
+
+**Solved with Viterbi algorithm?** #flashcard
+Solved with Viterbi algorithm
+
+**Subscribe to map change feeds (OpenStreetMap changesets, HERE Maps updates)?** #flashcard
+Subscribe to map change feeds (OpenStreetMap changesets, HERE Maps updates)
+
+**Invalidate per-segment feature cache when a change is detected?** #flashcard
+Invalidate per-segment feature cache when a change is detected
+
+**Trigger city-specific model retrain within 24 hours?** #flashcard
+Trigger city-specific model retrain within 24 hours
+
+**Increase prediction uncertainty for segments with stale features?** #flashcard
+Increase prediction uncertainty for segments with stale features
+
+**Hard override?** #flashcard
+if precipitation > threshold, multiply base ETA by weather scalar
+
+**Separate weather-conditioned model for rain/snow trained on historical storm data?** #flashcard
+Separate weather-conditioned model for rain/snow trained on historical storm data
+
+**Fallback to conservative (high) ETA estimates during declared weather events?** #flashcard
+Fallback to conservative (high) ETA estimates during declared weather events
+
+**Pre-announce surge before event ends ("prices will increase after the game")?** #flashcard
+Pre-announce surge before event ends ("prices will increase after the game")
+
+**Pre-position drivers by broadcasting surge ahead of time?** #flashcard
+Pre-position drivers by broadcasting surge ahead of time
+
+**Pre-warm ETA cache for venue → common destinations?** #flashcard
+Pre-warm ETA cache for venue → common destinations
+
+**Use event calendar to forecast demand and pre-scale infrastructure?** #flashcard
+Use event calendar to forecast demand and pre-scale infrastructure
+
+**Require sustained supply shortage (>5 min) before surge triggers?** #flashcard
+Require sustained supply shortage (>5 min) before surge triggers
+
+**Exclude drivers who recently went offline in that cell from surge earnings bonus?** #flashcard
+Exclude drivers who recently went offline in that cell from surge earnings bonus
+
+**Monitor for correlated offline patterns across driver cohorts?** #flashcard
+Monitor for correlated offline patterns across driver cohorts
+
+**Real-time traffic feed overrides segment speeds in feature assembly (Waze/HERE Traffic APIs)?** #flashcard
+Real-time traffic feed overrides segment speeds in feature assembly (Waze/HERE Traffic APIs)
+
+**Compare live GPS speed from driver fleet vs. model's assumed speed per segment?** #flashcard
+Compare live GPS speed from driver fleet vs. model's assumed speed per segment
+
+**If current_speed < 0.3 * model_assumed_speed on a segment, apply dynamic correction factor?** #flashcard
+If current_speed < 0.3 * model_assumed_speed on a segment, apply dynamic correction factor
+
+**Uber Engineering?** #flashcard
+[DeepETA: How Uber Predicts Arrival Times Using Deep Learning](https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/) (2022)
+
+**Uber Engineering?** #flashcard
+[H3: Uber's Hexagonal Hierarchical Spatial Index](https://www.uber.com/blog/h3/) (2018)
+
+**Uber Research?** #flashcard
+[Forecasting at Uber: An Introduction](https://www.uber.com/blog/forecasting-introduction/) (2018)
+
+**Lyft Engineering?** #flashcard
+[Lyft's Marketplace Pricing](https://eng.lyft.com/lyft-marketplace-pricing-b54c2c8e3a1b) (2018)
+
+**Uber Research: [Surge Pricing Solves the Wild Goose Chase](https://faculty.chicagobooth.edu/christopher.knittel/research/papers/uber_surge_goose_chase.pdf)?** #flashcard
+Castillo et al., AER 2017
+
+**Valhalla map matching?** #flashcard
+[https://github.com/valhalla/valhalla](https://github.com/valhalla/valhalla)
+
+**OSRM routing engine?** #flashcard
+[http://project-osrm.org/](http://project-osrm.org/)

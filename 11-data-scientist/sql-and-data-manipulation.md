@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: Sql And Data Manipulation
+subtopic: ""
+status: unread
+tags: [datascientist, ml, sql-and-data-manipulation]
+---
 # SQL and Data Manipulation
 
 ---
@@ -1085,3 +1092,29 @@ ORDER BY avg_ltv_all_users DESC;
 `QUALIFY` (Snowflake/BigQuery syntax) is a post-window filter equivalent to wrapping in a subquery and filtering on the row number — it avoids an extra CTE level.
 
 **What breaks**: `avg_ltv_paying` and `avg_ltv_all_users` tell different stories. A channel with high `avg_ltv_paying` but low conversion is not necessarily better than a channel with moderate LTV and high conversion. Always report both and compute expected value (`avg_ltv_all_users`) for budget allocation decisions.
+
+## Flashcards
+
+**ROWS BETWEEN: counts physical rows?** #flashcard
+6 PRECEDING means the 6 rows immediately above in the ordered result
+
+**RANGE BETWEEN: includes all rows whose ORDER BY value falls within the range?** #flashcard
+if two rows share the same date, both are included or excluded together
+
+**UNBOUNDED PRECEDING?** #flashcard
+all rows from the start of the partition
+
+**UNBOUNDED FOLLOWING?** #flashcard
+all rows to the end of the partition
+
+**Seq Scan on a large table with a restrictive filter → missing index?** #flashcard
+Seq Scan on a large table with a restrictive filter → missing index
+
+**Nested Loop where one side has many rows → should be a Hash Join or Merge Join?** #flashcard
+Nested Loop where one side has many rows → should be a Hash Join or Merge Join
+
+**rows=1000000 actual rows=3 → the optimizer's estimate is wildly wrong (stale statistics; run ANALYZE table)?** #flashcard
+rows=1000000 actual rows=3 → the optimizer's estimate is wildly wrong (stale statistics; run ANALYZE table)
+
+**High actual time on a node that appears early in the plan → bottleneck is there, not at the top?** #flashcard
+High actual time on a node that appears early in the plan → bottleneck is there, not at the top

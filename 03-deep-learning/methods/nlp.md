@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Methods
+subtopic: Nlp
+status: unread
+tags: [deeplearning, ml, methods-nlp]
+---
 # Deep Learning for NLP
 
 ---
@@ -484,3 +491,44 @@ Lower is better.
 
 > [!TIP]
 > **Interview structure:** For any NLP question — (1) **representation**: how you convert text to vectors, (2) **model**: which architecture and why, (3) **evaluation**: what metric and why it matters, (4) **production**: what breaks at scale.
+
+## Flashcards
+
+**TF?** #flashcard
+how often the term appears in this document
+
+**IDF: log of inverse document frequency?** #flashcard
+penalizes common words like "the"
+
+**CBOW (Continuous Bag of Words)?** #flashcard
+predict center word from context
+
+**Skip-gram?** #flashcard
+predict context words from center word
+
+**Translation?** #flashcard
+translate English to French: The cat sat on the mat
+
+**Summarization?** #flashcard
+summarize: [document]
+
+**Classification?** #flashcard
+sentiment: I loved this film → positive
+
+**ROUGE-N?** #flashcard
+n-gram recall between hypothesis and reference
+
+**ROUGE-L?** #flashcard
+longest common subsequence
+
+**Tokenizer mismatch: inference tokenizer different from training tokenizer?** #flashcard
+silent degradation
+
+**Label distribution shift: model trained on balanced data; production is 95% negative?** #flashcard
+threshold must be recalibrated
+
+**Max length truncation: truncating long documents drops the tail end silently?** #flashcard
+for some tasks (legal, medical) the conclusion is at the end
+
+**Batching with padding?** #flashcard
+padding to the longest sequence in a batch inflates compute; dynamic padding or bucketed batching mitigates this

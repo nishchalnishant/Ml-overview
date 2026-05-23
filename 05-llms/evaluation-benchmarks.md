@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Evaluation Benchmarks
+subtopic: ""
+status: unread
+tags: [llms, ml, evaluation-benchmarks]
+---
 # LLM Evaluation and Benchmarks
 
 ---
@@ -325,3 +332,14 @@ def regression_check(baseline_scores: dict, new_scores: dict, threshold: float =
 ```
 
 A 2% regression on a critical category can matter far more than a 5% improvement on aggregate metrics.
+
+## Flashcards
+
+**Errors have asymmetric costs (a false negative in a cancer screening context is far worse than a false positive)?** #flashcard
+Errors have asymmetric costs (a false negative in a cancer screening context is far worse than a false positive)
+
+**Facts are highly specialized (cardiology drug interactions vs. general medical knowledge)?** #flashcard
+Facts are highly specialized (cardiology drug interactions vs. general medical knowledge)
+
+**Style and format requirements are strict?** #flashcard
+Style and format requirements are strict

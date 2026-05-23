@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Evaluation And Testing Snappy
+status: unread
+tags: [llms, ml, interview-notes-evaluation-and]
+---
 # Evaluation & testing — CI/CD for LLMs
 
 LLMs are non-deterministic services. So “it worked once” is not a victory—**it’s a coincidence**.
@@ -155,3 +162,125 @@ LLMs are non-deterministic services. So “it worked once” is not a victory—
 
 # Q28: Red team multimodal models?
 - **Direct answer:** test cross-modal attacks (image text, hidden instructions), OCR paths, combined prompts.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Build evals first, iterate with metrics, and ship only when gates pass.
+
+**DevOps bridge?** #flashcard
+exactly like test-driven development + CI checks.
+
+**Common buckets?** #flashcard
+correctness, faithfulness, safety, format validity, latency/cost.
+
+**Mini prompt?** #flashcard
+If this is a SQL generator, what’s the best metric? → execution accuracy.
+
+**BLEU/ROUGE?** #flashcard
+n-gram overlap (good for constrained extraction, not free-form).
+
+**BERTScore?** #flashcard
+semantic similarity via embeddings.
+
+**Direct answer?** #flashcard
+rubric-based evaluation using an LLM to score outputs.
+
+**Risk?** #flashcard
+judge bias; mitigate with calibration and consistency checks.
+
+**Pros?** #flashcard
+scalable, captures nuance.
+
+**Limits?** #flashcard
+bias, contamination, preference drift, prompt sensitivity.
+
+**Direct answer?** #flashcard
+curated prompts + trained raters + rubric + inter-annotator agreement.
+
+**Direct answer?** #flashcard
+systematically attack your system with adversarial prompts to find failures.
+
+**DevOps bridge?** #flashcard
+security testing + chaos engineering for language.
+
+**Patterns?** #flashcard
+grounding checks, citation verification, claim extraction + evidence matching.
+
+**Direct answer?** #flashcard
+test robustness against prompt injection, jailbreaks, edge inputs, multilingual attacks.
+
+**Direct answer?** #flashcard
+fixed eval set + expected outputs/criteria; run on every prompt/model change.
+
+**Use?** #flashcard
+directional signal.
+
+**Caution?** #flashcard
+contamination and “teaching to the test.”
+
+**Retrieval?** #flashcard
+context precision/recall, recall@k.
+
+**Generation?** #flashcard
+faithfulness, answer relevance.
+
+**System?** #flashcard
+latency and cost.
+
+**Metrics?** #flashcard
+task success, tool correctness, safety violations, loop rate, cost, time.
+
+**Offline?** #flashcard
+curated datasets, repeatable.
+
+**Online?** #flashcard
+production signals, A/B tests, user feedback.
+
+**Techniques?** #flashcard
+claim checking against sources, citation audits, retrieval-based verification.
+
+**Metrics?** #flashcard
+goal completion, consistency, memory correctness, tone/safety.
+
+**Direct answer?** #flashcard
+high-quality labeled prompts used as regression anchors.
+
+**Direct answer?** #flashcard
+sample traffic, run shadow evals, alert on drift/regressions.
+
+**DevOps bridge?** #flashcard
+continuous testing + observability.
+
+**Direct answer?** #flashcard
+subgroup analysis, counterfactual tests, fairness metrics + qualitative review.
+
+**Direct answer?** #flashcard
+paired A/B tests, significance testing, control for prompt mix.
+
+**Direct answer?** #flashcard
+fuzzing with paraphrases, typos, dialects, adversarial templates.
+
+**Traditional ML?** #flashcard
+fixed labels, deterministic metrics.
+
+**LLMs?** #flashcard
+open-ended outputs; need rubrics, semantic/functional checks.
+
+**Steps?** #flashcard
+define success → collect prompts → define rubrics → automate scoring → set gates → monitor.
+
+**Direct answer?** #flashcard
+align with product risk/cost, document trade-offs, pick primary metric + constraints.
+
+**Direct answer?** #flashcard
+continuous eval + drift checks + periodic audits.
+
+**Controls?** #flashcard
+version prompts/models/data, log configs, deterministic settings, store eval datasets.
+
+**Plan?** #flashcard
+injection tests, jailbreaks, PII extraction, tool abuse, refusal quality, rate limit tests.
+
+**Direct answer?** #flashcard
+test cross-modal attacks (image text, hidden instructions), OCR paths, combined prompts.

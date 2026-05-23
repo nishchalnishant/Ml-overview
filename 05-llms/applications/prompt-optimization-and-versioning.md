@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Prompt Optimization And Versioning
+status: unread
+tags: [llms, ml, applications-prompt-optimizati]
+---
 # Prompt Optimization and Versioning
 
 Systematic prompt engineering — moving from ad-hoc manual tuning to reproducible, evaluated, optimized prompt pipelines.
@@ -370,3 +377,53 @@ A: DSPy (Declarative Self-improving Python) separates the program logic from the
 
 **Q: How do you prevent over-fitting to your eval set when optimizing prompts?**  
 A: Same principles as ML model evaluation: (1) strict train/test split — iterate only on dev set, evaluate final prompt on test set once; (2) stratify eval set by difficulty and category so improvements generalize; (3) set a minimum sample size for significance — any change claiming >2% improvement needs n ≥ 200 examples; (4) monitor calibration — if your eval set samples from 3 months ago, check if prompt performance on recent traffic matches; (5) use cross-validation for few-shot selection — never include the test example's neighbors in its own few-shot context; (6) track blind test failures — maintain a "hard examples" set that was never used for optimization, and periodically evaluate against it.
+
+## Flashcards
+
+**"Improved" prompts aren't validated on held-out data?** #flashcard
+"Improved" prompts aren't validated on held-out data
+
+**No version control?** #flashcard
+can't roll back when a prompt update breaks downstream tasks
+
+**No measurement?** #flashcard
+model performance measured informally or not at all
+
+**Duplicated effort?** #flashcard
+multiple teams write variations of the same prompts
+
+**Position bias?** #flashcard
+judges favor the first response in pairwise comparisons (randomize order and average)
+
+**Verbosity bias?** #flashcard
+judges favor longer outputs even when they add no value
+
+**Self-preference?** #flashcard
+a model judges its own outputs more favorably
+
+**Calibration?** #flashcard
+map judge scores to human labels using a held-out correlation set
+
+**Simple tasks?** #flashcard
+direct answer prompting is sufficient (CoT adds latency, no benefit)
+
+**Multi-step reasoning?** #flashcard
+CoT improves accuracy by 10–40% on benchmarks
+
+**Classification?** #flashcard
+CoT + "Verify your answer" reduces errors significantly
+
+**Rule?** #flashcard
+if the task requires >2 reasoning steps, try CoT
+
+**LLM-judge score drops > 5%?** #flashcard
+LLM-judge score drops > 5%
+
+**User negative feedback rate increases?** #flashcard
+User negative feedback rate increases
+
+**Latency P99 exceeds SLA (different prompt → different output length → different TPOT)?** #flashcard
+Latency P99 exceeds SLA (different prompt → different output length → different TPOT)
+
+**Error rate (JSON parse failures, refused completions) spikes?** #flashcard
+Error rate (JSON parse failures, refused completions) spikes

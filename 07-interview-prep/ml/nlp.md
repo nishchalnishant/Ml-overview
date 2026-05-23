@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Nlp
+status: unread
+tags: [interviewprep, ml, ml-nlp]
+---
 # Natural Language Processing
 
 **Primary reference:** [NLP methods](../../03-deep-learning/methods/nlp.md) | [LLM fundamentals](../../05-llms/interview-notes/llm-fundamentals.md)
@@ -261,3 +268,95 @@ Attention handles long-range relationships in O(n²) operations per layer rather
 
 **If asked to choose an approach for a new NLP task:**
 Ask first: What is the data size? What is the latency budget? Is the task generative or discriminative? What is the interpretability requirement? TF-IDF plus logistic regression is a legitimate production answer when data is limited, latency is strict, and interpretability matters. Fine-tuned transformers are the answer when those constraints do not bind.
+
+## Flashcards
+
+**Bag-of-words loses word order entirely?** #flashcard
+Bag-of-words loses word order entirely
+
+**TF-IDF loses order but recovers relative discriminative value across documents?** #flashcard
+TF-IDF loses order but recovers relative discriminative value across documents
+
+**Word embeddings capture distributional similarity but produce context-free representations?** #flashcard
+"bank" gets one vector regardless of whether the context is financial or riverbank
+
+**RNNs process order sequentially but lose long-range context to gradient decay?** #flashcard
+RNNs process order sequentially but lose long-range context to gradient decay
+
+**Transformers model relationships between all positions simultaneously, removing the sequential bottleneck?** #flashcard
+Transformers model relationships between all positions simultaneously, removing the sequential bottleneck
+
+**Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."?** #flashcard
+Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."
+
+**Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate.?** #flashcard
+Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate.
+
+**Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary.?** #flashcard
+Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary.
+
+**Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better.?** #flashcard
+Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better.
+
+**Input gate?** #flashcard
+how much new information to write to cell state
+
+**Forget gate: how much of existing cell state to preserve?** #flashcard
+can stay near 1.0 for many steps
+
+**Output gate?** #flashcard
+how much of cell state to expose as hidden state
+
+**Saying "RNNs are bad, Transformers are good" without articulating the specific failure. The interviewer wants the mechanism?** #flashcard
+sequential bottleneck plus vanishing gradient, solved by direct position-to-position routing in attention.
+
+**Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.?** #flashcard
+Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.
+
+**A position emits a query?** #flashcard
+what am I looking for?
+
+**Every position emits a key?** #flashcard
+what do I offer for matching?
+
+**The dot product of query and key gives a compatibility score?** #flashcard
+The dot product of query and key gives a compatibility score
+
+**The value is what actually gets aggregated when the match is strong?** #flashcard
+The value is what actually gets aggregated when the match is strong
+
+**Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.?** #flashcard
+Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.
+
+**Describing attention as "the model looks at all words." Attention is learned and task-specific. The model does not uniformly attend to all positions?** #flashcard
+it learns which positions are relevant for each query.
+
+**Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law.?** #flashcard
+Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law.
+
+**Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation.?** #flashcard
+Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation.
+
+**Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.?** #flashcard
+Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.
+
+**Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.?** #flashcard
+Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.
+
+**Comparing perplexity across models with different tokenizers. This produces misleading conclusions.?** #flashcard
+Comparing perplexity across models with different tokenizers. This produces misleading conclusions.
+
+**Treating perplexity reduction as a proxy for downstream task improvement. They often correlate but do not have to?** #flashcard
+a model can improve perplexity through memorization without improving reasoning or generalization.
+
+**Extractive?** #flashcard
+copy spans directly from the source document. Faithful by construction because no new words are introduced. Tends to produce choppy summaries because natural summaries often require paraphrase.
+
+**Abstractive: generate new text. More natural-sounding. Introduces the risk of hallucination?** #flashcard
+the model can produce plausible-sounding claims not present in the source.
+
+**Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination.?** #flashcard
+Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination.
+
+**Not raising the evaluation problem?** #flashcard
+reference summaries reflect one annotator's judgment about what is important, which may not match what the application actually needs.

@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Vector Databases
+status: unread
+tags: [emergingtopics, ml, emerging-trends-vector-databas]
+---
 # Vector Databases
 
 How semantic search works under the hood — from embedding storage to approximate nearest neighbor indexes, distance metrics, and production deployment patterns. Critical for RAG systems, recommendation engines, and any system that needs to find "similar" things at scale.
@@ -235,3 +242,32 @@ A: Naive post-filtering (ANN first, then filter) fails with strict filters — y
 
 **Q: Design the vector storage layer for a 100M-document RAG system with sub-100ms P99 query latency.**
 A: (1) Embedding: use a 768-dim model (BGE-M3 or e5-large) — 768 dims hits the sweet spot of quality vs storage. 100M × 768 × 4 bytes = 307 GB for raw vectors. (2) Index: HNSW with M=32, ef_construction=200, stored in RAM. With HNSW graph overhead: ~330 GB total — requires a cluster of 4-5 nodes with 128GB RAM each, with 2 replicas per shard. (3) Quantization: apply scalar quantization (float32→int8, 4× compression) to bring RAM to ~82 GB, fitting on 2 nodes with margin. Recall drop: ~1-2%. (4) Query: ef_search=64 gives >98% recall at ~3-5ms per query — well within 100ms budget. (5) Metadata: store full document text + metadata in a Postgres/S3 store, indexed by vector ID; return IDs from ANN, fetch payload from Postgres. (6) Updates: for new documents, insert immediately (HNSW supports online insertion). For deletions: soft-delete with metadata flag, compact index periodically.
+
+## Flashcards
+
+**Use when?** #flashcard
+n < 100K, or recall is non-negotiable (re-ranking stage)
+
+**FAISS?** #flashcard
+IndexFlatIP, IndexFlatL2
+
+**nlist (K) = number of clusters, typically √n to n/10?** #flashcard
+nlist (K) = number of clusters, typically √n to n/10
+
+**nprobe (C) = cells to search at query time, trade-off recall vs speed?** #flashcard
+nprobe (C) = cells to search at query time, trade-off recall vs speed
+
+**nprobe=1?** #flashcard
+fast, lower recall; nprobe=32: slower, higher recall
+
+**At 100M vectors with nlist=4096, nprobe=8?** #flashcard
+~100× speedup vs brute force
+
+**M = number of neighbors per node (16-64). Higher = better recall, more memory, slower build?** #flashcard
+M = number of neighbors per node (16-64). Higher = better recall, more memory, slower build
+
+**ef_construction = beam width during index build (100-500). Higher = better recall at cost of build time?** #flashcard
+ef_construction = beam width during index build (100-500). Higher = better recall at cost of build time
+
+**ef_search = beam width during query. Can be set at query time; higher = better recall, slower?** #flashcard
+ef_search = beam width during query. Can be set at query time; higher = better recall, slower

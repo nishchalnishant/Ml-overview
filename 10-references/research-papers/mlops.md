@@ -1,3 +1,10 @@
+---
+module: References
+topic: Research Papers
+subtopic: Mlops
+status: unread
+tags: [references, ml, research-papers-mlops]
+---
 # MLOps & Production ML — Key Papers
 
 Papers that define how ML gets built, deployed, monitored, and maintained at scale.

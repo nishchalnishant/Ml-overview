@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Efficient Llm Deployment
+status: unread
+tags: [llms, ml, interview-notes-efficient-llm-]
+---
 # Efficient LLM Deployment & Optimization
 
 ## The Bottleneck That Drives Every Technique Here
@@ -650,3 +657,65 @@ Every technique in this file is answering the same two questions:
 2. **Can we get more useful tokens per second from the hardware we have?** → Flash Attention (reduce HBM traffic), continuous batching (reduce GPU idle time), speculative decoding (parallelize sequential generation), tensor parallelism (use more GPUs)
 
 The key insight that ties everything together: **decode is memory-bandwidth-bound**. You're not waiting for compute — you're waiting for weights to move from HBM to compute cores. That's why smaller models (quantization), less data movement (Flash Attention), and better hardware utilization (batching) all help.
+
+## Flashcards
+
+**Weights?** #flashcard
+70B × 0.5B × 1.25 = ~44 GB
+
+**KV cache?** #flashcard
+2 × 80 × 8 × 128 × 8192 × 16 × 2 = ~43 GB
+
+**Total?** #flashcard
+~87 GB → requires 2× A100 80GB
+
+**KV cache divided into fixed-size pages (e.g., 16 tokens per page)?** #flashcard
+KV cache divided into fixed-size pages (e.g., 16 tokens per page)
+
+**Page table maps logical sequence positions to physical pages?** #flashcard
+Page table maps logical sequence positions to physical pages
+
+**Allocate pages on demand; release immediately when request finishes?** #flashcard
+Allocate pages on demand; release immediately when request finishes
+
+**Share physical pages across requests with identical prefixes (copy-on-write)?** #flashcard
+Share physical pages across requests with identical prefixes (copy-on-write)
+
+**Medusa?** #flashcard
+extra parallel LM heads at the final layer, each predicting k steps ahead. No separate draft model.
+
+**Eagle?** #flashcard
+a small draft model that reuses the target's hidden states, achieving higher acceptance rates than an independent draft model.
+
+**Memory: O(N) instead of O(N²)?** #flashcard
+attention matrices never materialize
+
+**Speed?** #flashcard
+2–4× faster for long sequences (less HBM traffic)
+
+**Output: mathematically identical?** #flashcard
+not an approximation
+
+**Tensor parallelism?** #flashcard
+split a single layer across GPUs (wide split). High communication frequency, low latency per communication.
+
+**Pipeline parallelism?** #flashcard
+split layers across GPUs (depth split). Low communication frequency, but GPUs can be idle waiting for the previous stage.
+
+**Config?** #flashcard
+INT4 weights, BF16 KV cache, batch=16, max_seq=8192
+
+**Weights?** #flashcard
+70 × 10⁹ × 0.5 bytes × 1.25 = 43.75 GB
+
+**KV cache?** #flashcard
+2 × 80 × 8 × 128 × 8192 × 16 × 2 bytes = 42.9 GB
+
+**Total?** #flashcard
+~87 GB → 2× A100 80GB with TP=2
+
+**Prefill (processing the input prompt)?** #flashcard
+compute-bound, scales with prompt length
+
+**Decode (generating output tokens)?** #flashcard
+memory-bandwidth-bound, scales with model size

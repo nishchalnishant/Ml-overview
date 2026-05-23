@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Transformers
+status: unread
+tags: [deeplearning, ml, components-transformers]
+---
 **Primary reference:** [LLM Architecture Deep Dive](../../05-llms/architecture-deep-dive.md) | [Interview Q&As](../../05-llms/interview-notes/llm-fundamentals.md)
 
 # Transformers
@@ -226,3 +233,11 @@ A: Self-attention is permutation-equivariant — without positional encoding, "c
 
 **Q: What architectural change makes LLaMA/Mistral different from the original transformer, and why does it matter?**  
 A: Several key changes: (1) RMSNorm instead of LayerNorm — removes mean subtraction, ~10% faster with no quality loss; (2) SwiGLU activation instead of ReLU in FFN — SwiGLU(x, W, V, W2) = (xW ⊙ SiLU(xV))W2; requires 3 weight matrices instead of 2, so FFN hidden dim is scaled down to keep params constant, but empirically converges 15-20% faster; (3) RoPE instead of absolute position encodings — handles long contexts better; (4) GQA instead of MHA — 4-8 KV heads instead of 32-64, reduces KV cache size by 8-16× which is the primary serving bottleneck; (5) Pre-normalization throughout. Together these changes make models faster to train (SwiGLU, RMSNorm), much cheaper to serve at long contexts (GQA), and better at long-context tasks (RoPE). At interview level: GQA's KV cache reduction is the most practically impactful change for production systems.
+
+## Flashcards
+
+**MQA (Multi-Query Attention)?** #flashcard
+all heads share one $K$, $V$ projection. Cache divided by $n_\text{heads}$.
+
+**GQA (Grouped-Query Attention)?** #flashcard
+$g$ heads share one $K$, $V$ pair. Cache reduced by $n_\text{heads}/g$. Quality-memory tradeoff between MQA and full MHA. Used in LLaMA 3.

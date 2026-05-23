@@ -1,3 +1,10 @@
+---
+module: References
+topic: Research Papers
+subtopic: Deep Learning Llm
+status: unread
+tags: [references, ml, research-papers-deep-learning]
+---
 # LLM Research Papers — Foundational Reading
 
 > 25 papers every ML engineer should know. One-sentence contribution, key result, and interview relevance for each.
@@ -311,3 +318,8 @@ Maximizes the gap in log-likelihood between the preferred and rejected response,
 ---
 
 *Last updated: May 2026 | 25 papers, tiered by interview importance*
+
+## Flashcards
+
+**β log (π_θ(y_l|x)/π_ref(y_l|x)))?** #flashcard
+β log (π_θ(y_l|x)/π_ref(y_l|x)))

@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Architecture Deep Dive
+subtopic: ""
+status: unread
+tags: [llms, ml, architecture-deep-dive]
+---
 # LLM Architecture: From First Principles
 
 ---

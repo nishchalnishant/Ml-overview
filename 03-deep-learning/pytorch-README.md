@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Pytorch Readme
+subtopic: ""
+status: unread
+tags: [deeplearning, ml, pytorch-readme]
+---
 # PyTorch — Content Index
 
 This folder has two PyTorch files. They cover different ground and are meant to be read in order.

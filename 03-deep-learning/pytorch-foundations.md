@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Pytorch Foundations
+subtopic: ""
+status: unread
+tags: [deeplearning, ml, pytorch-foundations]
+---
 # PyTorch Foundations
 
 ---

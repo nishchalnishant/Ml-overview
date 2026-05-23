@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Agi And Asi
+status: unread
+tags: [emergingtopics, ml, emerging-trends-agi-and-asi]
+---
 # AGI, ASI, and the Path to General Intelligence
 
 What AGI/ASI actually means technically, what the leading theories of how to get there are, what evidence exists, and why this matters for understanding where AI is heading.
@@ -173,3 +180,62 @@ A: The alignment problem: how do you ensure that a powerful AI system pursues go
 
 **Q: Is scaling alone sufficient to reach AGI, or are qualitative architectural changes needed?**
 A: Genuinely unsettled question in the field, but the evidence is mixed. Arguments that scaling is sufficient: emergent capabilities appear at threshold scales without architectural changes — chain-of-thought reasoning, multi-hop logic, and ARC-AGI-level performance all emerged from scaling variants of the transformer. The test-time compute scaling shown in o3 opens a new axis beyond parameter count. Arguments that qualitative changes are needed: current architectures lack persistent memory (weights don't update from experience), causal world models (no explicit representation of how actions cause state changes), and sample-efficient generalization. These seem like structural absences, not just insufficient scale. The most credible middle position: scaling will push current architectures very far (possibly to "weak AGI" — human-level on most cognitive benchmarks), but true AGI with human-like sample efficiency and robust generalization may require architectures that learn causal world models, not just statistical language models.
+
+## Flashcards
+
+**OpenAI?** #flashcard
+"highly autonomous systems that outperform humans at most economically valuable work"
+
+**DeepMind: five levels?** #flashcard
+(1) emerging, (2) competent, (3) expert, (4) virtuoso, (5) superhuman — across breadth (cognitive tasks) and performance (vs. human baseline). Current frontier models are Level 2-3 on narrow tasks, Level 1-2 on breadth.
+
+**ARC-AGI (François Chollet)?** #flashcard
+can the system solve novel visual reasoning puzzles that require generalization from minimal examples? Tests the thing LLMs specifically lack: sample-efficient generalization.
+
+**Score in top 1% of humans on bar exams, medical licensing, PhD-level knowledge tests?** #flashcard
+Score in top 1% of humans on bar exams, medical licensing, PhD-level knowledge tests
+
+**Write production-quality code, solve competition math at IMO level (o3)?** #flashcard
+Write production-quality code, solve competition math at IMO level (o3)
+
+**Reason through multi-step problems with backtracking (o1/o3/R1)?** #flashcard
+Reason through multi-step problems with backtracking (o1/o3/R1)
+
+**Learn new tasks from a few examples (in-context learning)?** #flashcard
+Learn new tasks from a few examples (in-context learning)
+
+**Sample-efficient generalization?** #flashcard
+LLMs need vast training data to "know" a domain; humans learn a new game or skill from 10 examples
+
+**Causal reasoning from scratch?** #flashcard
+LLMs statistical-correlate; they don't build causal models of novel environments they've never seen
+
+**Embodied learning?** #flashcard
+integrate perception, action, and learning in physical environments without prior training
+
+**True novelty?** #flashcard
+when asked to solve a problem that is genuinely outside all training data, performance degrades sharply
+
+**Continuous learning?** #flashcard
+LLMs have static weights after training; they cannot update their knowledge from new experiences without retraining
+
+**AI runs 24/7 at GHz, humans work 8 hours at biological speeds?** #flashcard
+AI runs 24/7 at GHz, humans work 8 hours at biological speeds
+
+**AI can run thousands of parallel copies?** #flashcard
+AI can run thousands of parallel copies
+
+**AI can be fine-tuned rapidly on targeted datasets?** #flashcard
+AI can be fine-tuned rapidly on targeted datasets
+
+**Understanding intelligence ≠ ability to improve it?** #flashcard
+Understanding intelligence ≠ ability to improve it
+
+**Hardware and data availability are real constraints?** #flashcard
+Hardware and data availability are real constraints
+
+**Many capabilities may not be improvable by self-generated data alone?** #flashcard
+Many capabilities may not be improvable by self-generated data alone
+
+**AGI → ASI may require qualitative, not quantitative, breakthroughs?** #flashcard
+AGI → ASI may require qualitative, not quantitative, breakthroughs

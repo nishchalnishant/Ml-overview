@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Multi Modal Ai
+status: unread
+tags: [llms, ml, interview-notes-multi-modal-ai]
+---
 # Multi-modal AI
 
 ---
@@ -1259,3 +1266,875 @@ Whether you know the actual techniques (DDIM, DPM-Solver, distillation) and unde
 | Real-time processing | Streaming + VAD + adaptive compute cascade | Fixed-rate full pipeline exceeds latency budget |
 | Image generation controllability | Structured control signals (ControlNet) + CFG | Text prompts too ambiguous for precise constraints |
 | Speed vs quality | Fewer steps + better samplers (DPM-Solver) | Quality regression without evaluation gate |
+
+## Flashcards
+
+**Preprocess?** #flashcard
+resize/crop images, tokenize text, extract log-mel spectrograms for audio
+
+**Encode?** #flashcard
+vision encoder (ViT or CNN) for images; audio encoder (transformer on mel features) for speech; text tokenizer + encoder for language
+
+**Align?** #flashcard
+contrastive training (CLIP-style) maps matching pairs close in embedding space; or cross-attention feeds visual tokens directly into a language decoder
+
+**Fuse?** #flashcard
+early fusion (merge tokens before reasoning) or late fusion (combine decisions after separate processing)
+
+**Output head?** #flashcard
+classification, captioning, generative decoding, or retrieval ranking
+
+**OCR/ASR errors propagate?** #flashcard
+bad extraction → bad embeddings → bad answers; measure each stage separately
+
+**Modality imbalance?** #flashcard
+if one modality is noisy or absent, the model silently falls back to the other
+
+**Alignment failures?** #flashcard
+embeddings trained on general data may not align for domain-specific content (medical images, specialized diagrams)
+
+**Cross-modal hallucination?** #flashcard
+model generates answers consistent with text priors, not actual image content
+
+**Saying "just concatenate pixels and tokens" without explaining why encoders + alignment are required?** #flashcard
+Saying "just concatenate pixels and tokens" without explaining why encoders + alignment are required
+
+**Treating multimodal systems as black boxes and skipping per-stage evaluation?** #flashcard
+Treating multimodal systems as black boxes and skipping per-stage evaluation
+
+**Assuming the model uses all modalities equally?** #flashcard
+in practice it learns shortcuts
+
+**Contrastive alignment (CLIP-style)?** #flashcard
+image embedding and text embedding are trained to be close for matching pairs; no generation, only similarity
+
+**Generative VLM (cross-attention)?** #flashcard
+visual tokens are fed via cross-attention into an autoregressive decoder that generates text
+
+**Token prepending (LLaVA-style)?** #flashcard
+visual tokens are prepended to the text token sequence and processed jointly
+
+**Contrastive loss for alignment (image-text matching)?** #flashcard
+Contrastive loss for alignment (image-text matching)
+
+**Language modeling loss for generation tasks (captioning, VQA)?** #flashcard
+Language modeling loss for generation tasks (captioning, VQA)
+
+**Instruction tuning with multimodal examples?** #flashcard
+Instruction tuning with multimodal examples
+
+**Small patch size?** #flashcard
+captures more detail but increases sequence length and quadratic attention cost
+
+**OCR-heavy images?** #flashcard
+models trained on natural images fail on text-dense documents; need specialized training or explicit OCR preprocessing
+
+**Visual hallucination?** #flashcard
+model generates plausible captions without grounding in actual patch content; measure with visual entailment checks
+
+**Truncation of visual tokens?** #flashcard
+if context window fills up, visual tokens may be dropped silently
+
+**Describing "the model sees the image" without explaining the projection step?** #flashcard
+Describing "the model sees the image" without explaining the projection step
+
+**Ignoring that vision encoder and LLM have different embedding dimensions requiring projection?** #flashcard
+Ignoring that vision encoder and LLM have different embedding dimensions requiring projection
+
+**Assuming that visual tokens are always attended to?** #flashcard
+in practice, truncation and positional encoding choices matter
+
+**Zero-shot classification: compare image embedding to text prompt embeddings ("a photo of a {class}")?** #flashcard
+no fine-tuning needed
+
+**Cross-modal retrieval?** #flashcard
+text query → nearest image embeddings
+
+**Backbone for generative VLMs?** #flashcard
+CLIP's vision encoder provides strong visual features
+
+**Prompt sensitivity?** #flashcard
+"a photo of a dog" vs "dog" can give meaningfully different similarity scores
+
+**Fine-grained attributes?** #flashcard
+CLIP struggles with counting, precise spatial relationships, and rare attributes not well-covered in training data
+
+**Distribution shift?** #flashcard
+similarity scores are not calibrated; high CLIP score ≠ correct answer for downstream tasks
+
+**Retrieval ≠ grounded generation?** #flashcard
+CLIP can retrieve relevant images but cannot explain or reason about them
+
+**Treating CLIP similarity scores as ground truth without calibration?** #flashcard
+Treating CLIP similarity scores as ground truth without calibration
+
+**Using CLIP for generation tasks where you need cross-attention and a language decoder?** #flashcard
+Using CLIP for generation tasks where you need cross-attention and a language decoder
+
+**Ignoring that the text encoder consumes prompts?** #flashcard
+prompt engineering matters for CLIP just as for LLMs
+
+**Compute z_img and z_txt independently; compare for retrieval?** #flashcard
+Compute z_img and z_txt independently; compare for retrieval
+
+**O(1) retrieval against precomputed index?** #flashcard
+O(1) retrieval against precomputed index
+
+**Cannot produce grounded text explanations?** #flashcard
+Cannot produce grounded text explanations
+
+**Visual tokens fed via cross-attention into LLM decoder?** #flashcard
+Visual tokens fed via cross-attention into LLM decoder
+
+**Can produce detailed, grounded text?** #flashcard
+Can produce detailed, grounded text
+
+**Higher cost per query; cannot precompute image representation at query time?** #flashcard
+Higher cost per query; cannot precompute image representation at query time
+
+**Merge modality tokens early in the network?** #flashcard
+Merge modality tokens early in the network
+
+**Stronger cross-modal interaction?** #flashcard
+Stronger cross-modal interaction
+
+**Higher compute; risk of overfitting when one modality is noisy?** #flashcard
+Higher compute; risk of overfitting when one modality is noisy
+
+**Encode modalities separately; combine scores or embeddings at decision level?** #flashcard
+Encode modalities separately; combine scores or embeddings at decision level
+
+**More robust and modular?** #flashcard
+More robust and modular
+
+**Weaker cross-modal interaction for complex reasoning?** #flashcard
+Weaker cross-modal interaction for complex reasoning
+
+**Small learned adapter bridges the vision encoder and LLM?** #flashcard
+Small learned adapter bridges the vision encoder and LLM
+
+**Compresses N visual tokens into K query tokens (K << N)?** #flashcard
+Compresses N visual tokens into K query tokens (K << N)
+
+**Reduces LLM context cost while preserving visual information?** #flashcard
+Reduces LLM context cost while preserving visual information
+
+**Using a dual encoder when the task requires generative grounded reasoning (retrieval finds the right image, but can't explain it)?** #flashcard
+Using a dual encoder when the task requires generative grounded reasoning (retrieval finds the right image, but can't explain it)
+
+**Using cross-attention generation for high-throughput retrieval (too slow per query)?** #flashcard
+Using cross-attention generation for high-throughput retrieval (too slow per query)
+
+**Early fusion when one modality has high noise rate (corrupts all representations)?** #flashcard
+Early fusion when one modality has high noise rate (corrupts all representations)
+
+**Conflating retrieval performance (CLIP score) with generation performance (answer quality)?** #flashcard
+Conflating retrieval performance (CLIP score) with generation performance (answer quality)
+
+**Not knowing that Q-Former/adapter approaches exist to reduce visual token cost?** #flashcard
+Not knowing that Q-Former/adapter approaches exist to reduce visual token cost
+
+**Describing architecture choices without mentioning latency or cost consequences?** #flashcard
+Describing architecture choices without mentioning latency or cost consequences
+
+**CFG too high?** #flashcard
+images follow prompt rigidly but look stylistically stiff and lose diversity
+
+**Too few steps?** #flashcard
+faster but lower quality; need to calibrate quality vs latency on your prompt distribution
+
+**Prompt ambiguity?** #flashcard
+vague prompts produce inconsistent results; precise attribute specification matters
+
+**Compute cost?** #flashcard
+video generation multiplies this by number of frames
+
+**Comparing diffusion outputs without controlling for steps, CFG scale, and resolution?** #flashcard
+Comparing diffusion outputs without controlling for steps, CFG scale, and resolution
+
+**Describing diffusion as "just adding and removing noise" without explaining the learned prediction objective?** #flashcard
+Describing diffusion as "just adding and removing noise" without explaining the learned prediction objective
+
+**Not knowing what latent diffusion is or why it matters for compute efficiency?** #flashcard
+Not knowing what latent diffusion is or why it matters for compute efficiency
+
+**Text normalization failures?** #flashcard
+"1.5 million" read as "one point five million" vs "one and a half million" depending on normalization
+
+**Prosody?** #flashcard
+flat or unnatural stress because the acoustic model lacks prosody annotation in training data
+
+**Vocoder mismatch?** #flashcard
+acoustic model and vocoder trained on different audio distributions produce artifacts
+
+**Voice cloning misuse?** #flashcard
+speaker embeddings enable impersonation; requires consent and policy controls
+
+**Skipping text normalization as an afterthought?** #flashcard
+it's where most production artifacts originate
+
+**Treating voice cloning as a pure technical feature without mentioning consent and policy requirements?** #flashcard
+Treating voice cloning as a pure technical feature without mentioning consent and policy requirements
+
+**Not knowing what a vocoder does or why it's separate from the acoustic model?** #flashcard
+Not knowing what a vocoder does or why it's separate from the acoustic model
+
+**Multilingual?** #flashcard
+single model handles 99+ languages
+
+**Robustness?** #flashcard
+trained on diverse noisy, accented audio
+
+**Optional timestamp decoding?** #flashcard
+aligns words to time positions
+
+**VAD (Voice Activity Detection)?** #flashcard
+detect speech segments before sending to Whisper; don't send silence
+
+**Chunking?** #flashcard
+Whisper processes 30s windows; overlap chunks to avoid word boundary artifacts
+
+**Diarization?** #flashcard
+speaker separation requires a separate model (Whisper identifies what was said, not who said it)
+
+**Fixed chunk size?** #flashcard
+word boundaries at chunk edges can produce garbled transcriptions; use overlap with deduplication
+
+**No diarization?** #flashcard
+"we have two speakers" requires a separate speaker diarization step
+
+**Proper nouns and domain terms?** #flashcard
+low WER on general speech but higher on technical terms, names, and specialized vocabulary
+
+**Real-time?** #flashcard
+Whisper is not inherently streaming; requires chunked architecture for low-latency transcription
+
+**Treating Whisper as a drop-in real-time ASR solution without addressing chunk latency?** #flashcard
+Treating Whisper as a drop-in real-time ASR solution without addressing chunk latency
+
+**Conflating transcription accuracy with diarization capability?** #flashcard
+Conflating transcription accuracy with diarization capability
+
+**Not mentioning VAD as a required preprocessing step in production?** #flashcard
+Not mentioning VAD as a required preprocessing step in production
+
+**Images?** #flashcard
+vision encoder embeddings + optional caption/OCR
+
+**Audio?** #flashcard
+ASR transcript embeddings + segment timestamps
+
+**Video?** #flashcard
+frame/segment embeddings + ASR transcript
+
+**Documents?** #flashcard
+layout-aware embeddings with bounding box metadata
+
+**Shared embedding space (CLIP-aligned) or separate indices per modality with merge step?** #flashcard
+Shared embedding space (CLIP-aligned) or separate indices per modality with merge step
+
+**Metadata filters?** #flashcard
+ACL, modality type, timestamps, speaker
+
+**Reranking with cross-modal cross-encoder?** #flashcard
+Reranking with cross-modal cross-encoder
+
+**OCR/ASR errors?** #flashcard
+bad extraction → irrelevant or wrong embeddings → retrieval misses relevant evidence
+
+**Missing provenance: answer cites "the document" but not which page/frame/timestamp?** #flashcard
+unverifiable
+
+**Prompt injection via embedded text?** #flashcard
+image OCR may contain adversarial instructions; treat extracted text as untrusted
+
+**Modality blindness?** #flashcard
+ACL enforcement for images must be in the retrieval backend, not the prompt layer
+
+**Treating multimodal evidence as plain text without preserving modality IDs and evidence references?** #flashcard
+Treating multimodal evidence as plain text without preserving modality IDs and evidence references
+
+**Ignoring that OCR/ASR quality directly limits retrieval recall?** #flashcard
+Ignoring that OCR/ASR quality directly limits retrieval recall
+
+**Not considering prompt injection from embedded text in images?** #flashcard
+Not considering prompt injection from embedded text in images
+
+**OCR/ASR?** #flashcard
+treat extracted text from images and audio as untrusted input (prompt injection vector)
+
+**ACL?** #flashcard
+enforce in vector DB retrieval filters, not in the prompt
+
+**Output moderation?** #flashcard
+run classifier on generated text for harmful content
+
+**Retrieval recall@k per modality (images vs text vs video segments)?** #flashcard
+Retrieval recall@k per modality (images vs text vs video segments)
+
+**Answer faithfulness against multimodal evidence?** #flashcard
+Answer faithfulness against multimodal evidence
+
+**Citation accuracy (does the answer cite the right evidence IDs?)?** #flashcard
+Citation accuracy (does the answer cite the right evidence IDs?)
+
+**Safety?** #flashcard
+moderation pass rate on outputs
+
+**Model ignores image tokens and generates from text priors (see Q23)?** #flashcard
+Model ignores image tokens and generates from text priors (see Q23)
+
+**Different image sizes cause resolution or aspect ratio issues; use consistent preprocessing with tiling for large images?** #flashcard
+Different image sizes cause resolution or aspect ratio issues; use consistent preprocessing with tiling for large images
+
+**Mixed-modality evidence mixes high-confidence and low-confidence signals without visibility?** #flashcard
+Mixed-modality evidence mixes high-confidence and low-confidence signals without visibility
+
+**Skipping ACL enforcement or placing it in the prompt (wrong layer)?** #flashcard
+Skipping ACL enforcement or placing it in the prompt (wrong layer)
+
+**Not mentioning prompt injection from OCR-extracted text?** #flashcard
+Not mentioning prompt injection from OCR-extracted text
+
+**Treating "call VLM with image" as sufficient without grounding or faithfulness verification?** #flashcard
+Treating "call VLM with image" as sufficient without grounding or faithfulness verification
+
+**Domain mismatch?** #flashcard
+CLIP trained on natural photos fails on medical images, technical diagrams, or specialized product photography
+
+**Similarity ≠ accuracy?** #flashcard
+high cosine similarity doesn't mean the image matches the semantic intent; evaluate on downstream task metrics, not just similarity scores
+
+**OCR/transcript errors?** #flashcard
+if text descriptions are built from OCR or ASR, errors propagate into the index
+
+**Claiming CLIP embeddings work universally without discussing domain adaptation needs?** #flashcard
+Claiming CLIP embeddings work universally without discussing domain adaptation needs
+
+**Placing ACL filtering in the application layer or prompt instead of retrieval backend?** #flashcard
+Placing ACL filtering in the application layer or prompt instead of retrieval backend
+
+**Not distinguishing ANN recall from reranking precision?** #flashcard
+Not distinguishing ANN recall from reranking precision
+
+**OCR character/word error rate on test documents?** #flashcard
+OCR character/word error rate on test documents
+
+**ASR word error rate on test audio?** #flashcard
+ASR word error rate on test audio
+
+**Frame detection quality for video (if applicable)?** #flashcard
+Frame detection quality for video (if applicable)
+
+**Recall@k and mAP by modality slice?** #flashcard
+Recall@k and mAP by modality slice
+
+**Per-modality recall?** #flashcard
+are image evidence units retrieved when needed?
+
+**VQA?** #flashcard
+exact match / F1 / human preference on answer quality
+
+**Captioning?** #flashcard
+BLEU/ROUGE as rough proxies (unreliable alone); supplement with human judgments
+
+**Faithfulness?** #flashcard
+NLI check that answer claims are entailed by retrieved evidence
+
+**Citation accuracy?** #flashcard
+do cited evidence IDs actually support the claims?
+
+**Moderation label pass rate on extracted text + generated outputs?** #flashcard
+Moderation label pass rate on extracted text + generated outputs
+
+**Adversarial test cases?** #flashcard
+text embedded in images, audio overlays
+
+**Evaluating only end-task?** #flashcard
+a 60% VQA score masks whether the problem is in OCR, retrieval, or generation
+
+**Ignoring temporal evaluation for video?** #flashcard
+accuracy per frame may look fine while temporal consistency is poor
+
+**Human eval without stratification?** #flashcard
+aggregate human ratings hide per-modality and per-difficulty failures
+
+**Reporting only captioning BLEU without faithfulness check (BLEU measures n-gram overlap, not factual accuracy)?** #flashcard
+Reporting only captioning BLEU without faithfulness check (BLEU measures n-gram overlap, not factual accuracy)
+
+**Not having separate eval sets for each extraction modality?** #flashcard
+Not having separate eval sets for each extraction modality
+
+**Skipping adversarial test cases for prompt injection via embedded text?** #flashcard
+Skipping adversarial test cases for prompt injection via embedded text
+
+**VAD-gated audio chunks?** #flashcard
+only process segments with detected speech
+
+**Adaptive frame sampling?** #flashcard
+motion-based or attention-based, not uniform fixed-rate
+
+**Partial ASR updates?** #flashcard
+streaming decoder emits incremental transcripts
+
+**Fast first-pass (small safety classifier, no generation) → route to slow path only when needed?** #flashcard
+Fast first-pass (small safety classifier, no generation) → route to slow path only when needed
+
+**Cache?** #flashcard
+image/segment embeddings for repeated content; partial ASR for ongoing stream
+
+**Per-stream token budget?** #flashcard
+max frames per window, max transcript tokens for cross-attention
+
+**Drop or downsample frames under load; emit confidence-aware partial results?** #flashcard
+Drop or downsample frames under load; emit confidence-aware partial results
+
+**Maintain per-stream context (speaker turns, prior segment summaries) for grounding consistency?** #flashcard
+Maintain per-stream context (speaker turns, prior segment summaries) for grounding consistency
+
+**Fixed-rate full pipeline?** #flashcard
+latency exceeds budget on resource spike; requires adaptive downsampling
+
+**No backpressure?** #flashcard
+unbounded queue builds up under load; drop or degrade gracefully
+
+**Inconsistent temporal context?** #flashcard
+if prior segment state is lost, model loses coherence
+
+**Incomplete transcript used for decision?** #flashcard
+abstain or use visual-only fallback when transcript is partial
+
+**Running full multimodal generation per frame with no downsampling?** #flashcard
+Running full multimodal generation per frame with no downsampling
+
+**Not mentioning VAD as a prerequisite for efficient audio processing?** #flashcard
+Not mentioning VAD as a prerequisite for efficient audio processing
+
+**Treating latency as only the model inference time, ignoring preprocessing?** #flashcard
+Treating latency as only the model inference time, ignoring preprocessing
+
+**Key event sampling failure?** #flashcard
+motion-based sampling can miss slow-moving but important changes; evaluate with temporal QA sets
+
+**Long videos?** #flashcard
+temporal attention over hundreds of segments exceeds context; use hierarchical segment summarization
+
+**No temporal grounding?** #flashcard
+answers don't cite segment timestamps → unverifiable
+
+**Summarizing entire videos without segmentation, losing temporal specificity?** #flashcard
+Summarizing entire videos without segmentation, losing temporal specificity
+
+**Not mentioning that ASR/OCR add valuable non-visual signals?** #flashcard
+Not mentioning that ASR/OCR add valuable non-visual signals
+
+**Not requiring timestamp citations in the output?** #flashcard
+Not requiring timestamp citations in the output
+
+**Classification-head VQA?** #flashcard
+map visual + text features to a fixed answer vocabulary; fast but limited to seen answer types
+
+**Generative VLM?** #flashcard
+cross-attend over visual tokens while generating answer text; flexible but needs faithfulness control
+
+**Exact match / F1 for factual questions?** #flashcard
+Exact match / F1 for factual questions
+
+**Human preference for open-ended descriptions?** #flashcard
+Human preference for open-ended descriptions
+
+**Visual entailment check?** #flashcard
+does the answer correspond to what's actually in the image?
+
+**Language prior dominance?** #flashcard
+model answers "what color is the banana?" with "yellow" regardless of image content
+
+**Ambiguous questions?** #flashcard
+"is there a dog?" with partial image view requires abstention, not a confident guess
+
+**Spatial reasoning?** #flashcard
+VLMs trained on natural images often fail on counting, left/right, above/below reasoning
+
+**Not knowing that language priors cause answers that ignore the image?** #flashcard
+Not knowing that language priors cause answers that ignore the image
+
+**Skipping visual entailment check (treating plausible text output as correct output)?** #flashcard
+Skipping visual entailment check (treating plausible text output as correct output)
+
+**Not mentioning the spatial reasoning limitations of current VLMs?** #flashcard
+Not mentioning the spatial reasoning limitations of current VLMs
+
+**OCR quality is the bottleneck?** #flashcard
+poor OCR propagates incorrect tokens into all downstream steps; measure OCR WER separately
+
+**Multi-column reading order?** #flashcard
+standard OCR may read across columns incorrectly; need layout-aware reading order reconstruction
+
+**Low-confidence fields without abstention?** #flashcard
+model extracts a value when it should say "not found in document"
+
+**Treating documents as plain text (dropping bounding boxes) and wondering why extraction is wrong?** #flashcard
+Treating documents as plain text (dropping bounding boxes) and wondering why extraction is wrong
+
+**Evaluating only field value accuracy without checking provenance correctness?** #flashcard
+Evaluating only field value accuracy without checking provenance correctness
+
+**Not adding abstention for low-confidence or missing fields?** #flashcard
+Not adding abstention for low-confidence or missing fields
+
+**Domain image-text pairs for alignment (contrastive loss)?** #flashcard
+Domain image-text pairs for alignment (contrastive loss)
+
+**Task-specific instruction examples?** #flashcard
+image + question → target answer with evidence citations
+
+**Hard negatives?** #flashcard
+examples where the correct answer contradicts text-only priors
+
+**Adversarial examples?** #flashcard
+prompt injection via OCR/image text
+
+**Retrieval recall if using RAG?** #flashcard
+Retrieval recall if using RAG
+
+**VQA accuracy + faithfulness to visual evidence?** #flashcard
+VQA accuracy + faithfulness to visual evidence
+
+**Structured output validity (JSON schema compliance)?** #flashcard
+Structured output validity (JSON schema compliance)
+
+**Hallucination rate?** #flashcard
+how often does the model claim to see things not in the image?
+
+**Small datasets + unfrozen encoder?** #flashcard
+overfits quickly; PEFT (LoRA/adapters) is safer for small domain datasets
+
+**No evidence-grounded examples?** #flashcard
+model learns to generate plausible outputs without actually using visual evidence
+
+**Missing abstention training?** #flashcard
+model over-confidently answers unanswerable visual questions
+
+**Fine-tuning without evidence/provenance supervision?** #flashcard
+Fine-tuning without evidence/provenance supervision
+
+**Freezing nothing (full fine-tune with 500 examples → severe overfitting)?** #flashcard
+Freezing nothing (full fine-tune with 500 examples → severe overfitting)
+
+**Not including adversarial or abstention examples in training data?** #flashcard
+Not including adversarial or abstention examples in training data
+
+**Embedding cache?** #flashcard
+hash image/document → cache vision encoder output; reuse across queries on the same image
+
+**Visual token compression?** #flashcard
+Q-Former or pooling reduces N visual tokens to K < N; cuts cross-attention cost
+
+**Cascade routing?** #flashcard
+fast classifier (cheap) → route to expensive VLM only when needed
+
+**Streaming?** #flashcard
+emit partial ASR/captions progressively; don't wait for full video
+
+**Per-stream budgets?** #flashcard
+max frames per window, max transcript tokens
+
+**Ignoring preprocessing?** #flashcard
+reporting only LLM latency misses the actual bottleneck
+
+**Uncached vision encoding?** #flashcard
+re-encoding the same product images per query wastes compute
+
+**No fast path?** #flashcard
+all queries go through full VLM generation even when retrieval-only is sufficient
+
+**Treating latency as only the LLM generation time?** #flashcard
+Treating latency as only the LLM generation time
+
+**Not knowing about visual token compression (Q-Former, pooling) as a cost-reduction mechanism?** #flashcard
+Not knowing about visual token compression (Q-Former, pooling) as a cost-reduction mechanism
+
+**Proposing a "use smaller model" solution without stage-level profiling to find the actual bottleneck?** #flashcard
+Proposing a "use smaller model" solution without stage-level profiling to find the actual bottleneck
+
+**Text (user-entered)?** #flashcard
+standard text classifier
+
+**OCR text from images?** #flashcard
+text classifier, but flagged as "extracted from image" for audit
+
+**Image frames?** #flashcard
+visual safety classifier (nudity, violence, IP violations)
+
+**Audio transcript?** #flashcard
+text classifier on ASR output
+
+**Final fusion?** #flashcard
+weighted combination of per-modality scores with calibrated thresholds
+
+**Moderating only explicit text fields?** #flashcard
+misses text-in-image attacks
+
+**No per-modality audit trail?** #flashcard
+can't explain why content was blocked
+
+**Over-blocking?** #flashcard
+visual classifiers have high false positive rates on culturally-specific content; requires localized calibration and appeal paths
+
+**Moderation of generated content?** #flashcard
+if VLM generates text from visual content, that generated text also needs moderation
+
+**Moderating only user-entered text while ignoring image/video overlays?** #flashcard
+Moderating only user-entered text while ignoring image/video overlays
+
+**Not maintaining evidence IDs for audit and appeals?** #flashcard
+Not maintaining evidence IDs for audit and appeals
+
+**Treating moderation as a single binary classifier rather than a per-modality pipeline with fusion?** #flashcard
+Treating moderation as a single binary classifier rather than a per-modality pipeline with fusion
+
+**Temporal attention layers?** #flashcard
+frames attend to neighboring frames
+
+**Motion conditioning?** #flashcard
+explicit optical flow or camera motion embeddings
+
+**Hierarchical generation?** #flashcard
+low-res keyframes first → interpolate + upscale
+
+**Temporal flickering?** #flashcard
+per-frame inconsistencies if temporal attention is insufficient
+
+**Compute cost?** #flashcard
+T× more expensive than image generation; 30 frames at 512×512 is a major memory and compute challenge
+
+**Prompt ambiguity?** #flashcard
+text prompts can't fully specify camera motion, lighting changes, or object trajectories
+
+**Content safety?** #flashcard
+generated video requires provenance/watermarking and moderation
+
+**Evaluating only per-frame quality and ignoring temporal consistency?** #flashcard
+Evaluating only per-frame quality and ignoring temporal consistency
+
+**Not knowing what latent video diffusion is?** #flashcard
+Not knowing what latent video diffusion is
+
+**Treating text-to-video as a solved problem rather than an active research area with significant compute and quality constraints?** #flashcard
+Treating text-to-video as a solved problem rather than an active research area with significant compute and quality constraints
+
+**Cross-modal attention from the start?** #flashcard
+Cross-modal attention from the start
+
+**Risk?** #flashcard
+if one modality is corrupted, it corrupts the joint representation
+
+**Independent per-modality quality; swap one without retraining the other?** #flashcard
+Independent per-modality quality; swap one without retraining the other
+
+**Can't capture cases where meaning requires jointly attending to both?** #flashcard
+Can't capture cases where meaning requires jointly attending to both
+
+**Early fusion + noisy modality?** #flashcard
+one bad image corrupts the entire representation
+
+**Late fusion + tightly coupled task?** #flashcard
+loses cross-modal interactions needed for correct answers
+
+**Wrong fusion for task?** #flashcard
+a retrieval model (late fusion) used for VQA will miss image-grounded details
+
+**Choosing one approach without justifying based on task type?** #flashcard
+Choosing one approach without justifying based on task type
+
+**Not knowing that cross-attention is the practical middle ground (most production VLMs)?** #flashcard
+Not knowing that cross-attention is the practical middle ground (most production VLMs)
+
+**Claiming early fusion is always better without acknowledging the noise and compute trade-offs?** #flashcard
+Claiming early fusion is always better without acknowledging the noise and compute trade-offs
+
+**Add hard negative training examples?** #flashcard
+prompts where correct answer contradicts text priors
+
+**Include region-level supervision?** #flashcard
+train model to cite bounding box regions for each claim
+
+**Include abstention examples?** #flashcard
+images where "I can't confirm X from this image" is the correct answer
+
+**Prompt-only fix without verification?** #flashcard
+model still generates plausible-sounding unchecked claims
+
+**Visual entailment check is expensive?** #flashcard
+running a separate VQA model per claim adds latency; balance rigor against cost
+
+**Feedback loop on corrections?** #flashcard
+if you just log incorrect outputs without adding them to the eval set, the problem recurs
+
+**Fixing with only prompt rewording and calling it done?** #flashcard
+Fixing with only prompt rewording and calling it done
+
+**Not adding a faithfulness verification step?** #flashcard
+Not adding a faithfulness verification step
+
+**Not building regression tests from observed hallucination cases?** #flashcard
+Not building regression tests from observed hallucination cases
+
+**Retrieval recall failure?** #flashcard
+the right page wasn't retrieved; check retrieval recall@k on a gold labeled set
+
+**OCR reading order error on multi-column layouts?** #flashcard
+breaks text extraction and therefore retrieval
+
+**Model ignores retrieved pages?** #flashcard
+enforce citation requirement and validate citation IDs
+
+**Trying to fit the entire document into context ("just use a 128k context window")?** #flashcard
+Trying to fit the entire document into context ("just use a 128k context window")
+
+**Running the VLM on the whole document as a single image without page evidence structure?** #flashcard
+Running the VLM on the whole document as a single image without page evidence structure
+
+**Not requiring page citations in the output?** #flashcard
+Not requiring page citations in the output
+
+**Reduce text context length to ensure visual tokens are not crowded out?** #flashcard
+Reduce text context length to ensure visual tokens are not crowded out
+
+**Use prefix position for visual tokens (before text), not suffix?** #flashcard
+Use prefix position for visual tokens (before text), not suffix
+
+**Check that cross-attention layers are actually reading visual tokens (attention visualization)?** #flashcard
+Check that cross-attention layers are actually reading visual tokens (attention visualization)
+
+**Hard negative examples?** #flashcard
+questions where image contradicts the text-prior answer
+
+**"Image-required" examples?** #flashcard
+questions that can only be answered from the image
+
+**Penalize answers that claim visual content not grounded in image tokens?** #flashcard
+Penalize answers that claim visual content not grounded in image tokens
+
+**Prompt-only fixes (adding "describe the image") don't work if the model has learned to ignore visual tokens architecturally?** #flashcard
+Prompt-only fixes (adding "describe the image") don't work if the model has learned to ignore visual tokens architecturally
+
+**Attention inspection is necessary but not sufficient?** #flashcard
+model may attend to visual tokens but apply them with near-zero weight
+
+**Only changing the prompt without verifying visual token utilization?** #flashcard
+Only changing the prompt without verifying visual token utilization
+
+**Not knowing that context truncation can silently drop visual tokens?** #flashcard
+Not knowing that context truncation can silently drop visual tokens
+
+**Reporting that "the model uses the image" based on anecdotal good cases without systematic evaluation?** #flashcard
+Reporting that "the model uses the image" based on anecdotal good cases without systematic evaluation
+
+**Use structured attribute lists?** #flashcard
+"object: red car; position: left; background: blue sky; no text, no watermark"
+
+**Negative prompts?** #flashcard
+"no grey, no center-position car"
+
+**Higher CFG scale to strengthen prompt adherence (may reduce diversity)?** #flashcard
+Higher CFG scale to strengthen prompt adherence (may reduce diversity)
+
+**Measure attribute compliance?** #flashcard
+color detection, object position detection, style label classification on generated outputs
+
+**Not just "does it look good"?** #flashcard
+measure whether specified attributes appear
+
+**CFG too high?** #flashcard
+strong adherence but artifacts and reduced diversity
+
+**Conflicting constraints?** #flashcard
+"vintage style" + "photorealistic" may conflict; model needs to resolve priority
+
+**Evaluation gap?** #flashcard
+qualitative review misses systematic attribute failures; need automated attribute measurement
+
+**Over-relying on natural language wording for precise constraints?** #flashcard
+Over-relying on natural language wording for precise constraints
+
+**Not knowing about ControlNet-style conditioning as a standard technique?** #flashcard
+Not knowing about ControlNet-style conditioning as a standard technique
+
+**Evaluating controllability qualitatively without automated attribute measurement?** #flashcard
+Evaluating controllability qualitatively without automated attribute measurement
+
+**High (≥10)?** #flashcard
+strong prompt adherence, low diversity
+
+**Low (2–5)?** #flashcard
+more variety, potentially weaker fidelity
+
+**Sweep on your distribution to find the Pareto frontier?** #flashcard
+Sweep on your distribution to find the Pareto frontier
+
+**Lowering CFG without checking attribute compliance on constrained prompts?** #flashcard
+Lowering CFG without checking attribute compliance on constrained prompts
+
+**Not evaluating on the full prompt distribution?** #flashcard
+some prompts are more sensitive to CFG changes
+
+**Diversity as measured by embedding distance may not match user-perceived diversity?** #flashcard
+Diversity as measured by embedding distance may not match user-perceived diversity
+
+**Claiming you can achieve high diversity and high adherence simultaneously without acknowledging the trade-off?** #flashcard
+Claiming you can achieve high diversity and high adherence simultaneously without acknowledging the trade-off
+
+**Not knowing that multiple seeds + candidate selection is standard practice for diversity?** #flashcard
+Not knowing that multiple seeds + candidate selection is standard practice for diversity
+
+**DDIM?** #flashcard
+deterministic, high-quality with 20-50 steps (vs 1000 for DDPM)
+
+**DPM-Solver++?** #flashcard
+10-20 steps with similar quality
+
+**These are ODE solvers that take larger, smarter steps through the noise schedule?** #flashcard
+These are ODE solvers that take larger, smarter steps through the noise schedule
+
+**Denoise in compressed latent space → decode once with VAE?** #flashcard
+Denoise in compressed latent space → decode once with VAE
+
+**~4-8× cheaper than pixel-space diffusion?** #flashcard
+~4-8× cheaper than pixel-space diffusion
+
+**Consistency models: train model to map any point on the trajectory to the final image?** #flashcard
+single step
+
+**Progressive distillation?** #flashcard
+iteratively distill a N-step model into N/2-step
+
+**Cache text embeddings (constant per prompt)?** #flashcard
+Cache text embeddings (constant per prompt)
+
+**Cache vision encoder outputs for reference images?** #flashcard
+Cache vision encoder outputs for reference images
+
+**Before deploying faster sampler, measure quality degradation on representative prompts at each step count?** #flashcard
+Before deploying faster sampler, measure quality degradation on representative prompts at each step count
+
+**Choose the Pareto-optimal point (minimal steps where quality degradation is acceptable)?** #flashcard
+Choose the Pareto-optimal point (minimal steps where quality degradation is acceptable)
+
+**Fewer steps with wrong sampler choice?** #flashcard
+artifacts and quality degradation
+
+**Distillation on wrong data?** #flashcard
+distilled model fails on out-of-distribution prompts
+
+**Not evaluating quality regression?** #flashcard
+shipping faster sampler without checking outputs
+
+**Suggesting "reduce steps" without knowing which sampler to use?** #flashcard
+Suggesting "reduce steps" without knowing which sampler to use
+
+**Not knowing that latent diffusion is the baseline for most modern systems?** #flashcard
+Not knowing that latent diffusion is the baseline for most modern systems
+
+**Not proposing an evaluation methodology to validate the speed-quality trade-off?** #flashcard
+Not proposing an evaluation methodology to validate the speed-quality trade-off

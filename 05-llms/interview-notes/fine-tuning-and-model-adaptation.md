@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Fine Tuning And Model Adaptation
+status: unread
+tags: [llms, ml, interview-notes-fine-tuning-an]
+---
 See also: [Fine-tuning deep dive](../applications/tuning-optimization.md)
 
 # Fine-Tuning and Model Adaptation — Interview Notes
@@ -329,3 +336,20 @@ Alternatives when merging fails: run adapters sequentially (apply one then the o
 **What the interviewer is testing**: whether you know the family of PEFT approaches beyond LoRA and can explain why LoRA has become dominant.
 
 **Common traps**: saying prompt tuning and prompt engineering are the same (prompt engineering modifies input text; prompt tuning learns continuous embedding vectors); not knowing that prefix tuning adds per-layer computation while LoRA adds none after merging; confusing "soft prompts" (learned vectors) with "hard prompts" (text).
+
+## Flashcards
+
+**LoRA (see below)?** #flashcard
+adds low-rank matrices to weight projections
+
+**QLoRA?** #flashcard
+LoRA on a quantized base model
+
+**Prefix tuning / prompt tuning?** #flashcard
+learn soft tokens that condition the model
+
+**Prompt tuning?** #flashcard
+add a small set of learned embedding vectors (the "soft prompt") to the input token embeddings before the first transformer layer. Only these vectors are trained. Effective for very large models (>10B) where the model has enough capacity to interpret arbitrary conditioning; works poorly for smaller models that lack this flexibility.
+
+**Prefix tuning: inject learned key-value pairs at every transformer layer's attention computation (prepended to K and V matrices). More expressive than prompt tuning?** #flashcard
+the conditioning is applied throughout the network, not just at the input. More parameters, better performance.

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Math Derivations
+status: unread
+tags: [interviewprep, ml, llm-math-derivations]
+---
 # Math Derivations — Whiteboard Reference
 
 For each derivation: state the goal, write the setup, identify the chain rule links, compute each partial derivative, simplify, then *interpret the result*. A derivation that ends with a boxed formula and no interpretation is incomplete.
@@ -315,3 +322,14 @@ The formula alone is never a complete answer. After $\partial \mathcal{L}/\parti
 
 **Not knowing Adam's bias correction is derived, not assumed:**
 The correction factor $(1 - \beta_1^t)$ falls directly out of taking the expectation of the unrolled EMA. It is not a heuristic. At $t = 1$ with $\beta_1 = 0.9$, the raw first moment is 10× too small. The correction inflates it to the correct scale. This is why Adam starts fast.
+
+## Flashcards
+
+**Reconstruction term?** #flashcard
+the decoder must be able to reconstruct $x$ from samples drawn from the encoder's distribution. Maximizing this trains the encoder-decoder pair.
+
+**KL term: the encoder's approximate posterior $q_\phi(z \mid x)$ must stay close to the prior $p(z) = \mathcal{N}(0, I)$. This regularizes the latent space?** #flashcard
+keeps it continuous and sample-able.
+
+**The gap: $\log p_\theta(x) - \text{ELBO} = D_\text{KL}(q_\phi(z \mid x) \| p_\theta(z \mid x))$?** #flashcard
+how well the encoder approximates the true posterior. Maximizing ELBO simultaneously improves the generative model and tightens this approximation.

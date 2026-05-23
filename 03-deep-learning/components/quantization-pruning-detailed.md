@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Quantization Pruning Detailed
+status: unread
+tags: [deeplearning, ml, components-quantization-prunin]
+---
 # Quantization and Pruning
 
 How to make large models smaller and faster without significant quality loss. Critical for LLM deployment interviews.
@@ -364,3 +371,29 @@ A: The key insight is that QLoRA doesn't update the quantized weights. The 4-bit
 
 **Q: What's the quality vs memory trade-off when choosing between fp16, int8, and int4 for serving a 70B model?**  
 A: fp16: 140GB, highest quality, needs 2× A100s. Int8 (LLM.int8): 70GB, <0.1% quality loss, fits on 1× A100 with ~10% inference overhead. Int4 (GPTQ/AWQ): 35GB, ~0.5–1% quality loss on most benchmarks, fits on 1× A100 with faster inference (lower bandwidth needed). In practice for production: int4 is the standard for deployment when GPU cost matters. For latency-critical paths: fp8 on H100 gives near-fp16 quality with 2× throughput using hardware-native fp8 matrix multiply.
+
+## Flashcards
+
+**4-bit integers mapped to quantiles of normal distribution (not uniform)?** #flashcard
+4-bit integers mapped to quantiles of normal distribution (not uniform)
+
+**Better preserves weight distribution than uniform int4?** #flashcard
+Better preserves weight distribution than uniform int4
+
+**Base model (4-bit)?** #flashcard
+~35GB
+
+**Gradients + optimizer (only LoRA params)?** #flashcard
+~1GB
+
+**Activations?** #flashcard
+~6GB
+
+**Total: ~42GB?** #flashcard
+fits on single A100 80GB
+
+**Unstructured?** #flashcard
+remove individual weights → sparse matrix → hard to accelerate (no hardware support for arbitrary sparsity)
+
+**Structured?** #flashcard
+remove entire neurons/heads/layers → dense smaller model → hardware-friendly

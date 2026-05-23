@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Fine Tuning And Model Adaptation Snappy
+status: unread
+tags: [llms, ml, interview-notes-fine-tuning-an]
+---
 # Fine-tuning & model adaptation — the “remaster, not rewrite” playbook
 
 Fine-tuning is how you change **behavior**. RAG is how you change **knowledge at runtime**. Prompting is how you change **instructions**.
@@ -153,3 +160,155 @@ Fine-tuning is how you change **behavior**. RAG is how you change **knowledge at
 
 # Q25: RLHF preference data has low annotator agreement. Ensure quality?
 - **Fixes:** clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Fine-tuning updates model parameters (fully or partially) so it behaves differently on your task.
+
+**Use it when?** #flashcard
+you need consistent style/format, domain behaviors, tool reliability, or latency/cost improvements vs huge prompts.
+
+**Avoid when?** #flashcard
+you just need fresh facts → use RAG.
+
+**Full FT?** #flashcard
+updates all weights → most flexible, most expensive, risk of forgetting.
+
+**PEFT?** #flashcard
+train a small set of params (LoRA/adapters/prefix) → cheaper, safer, easier multi-tenant.
+
+**DevOps bridge?** #flashcard
+full FT = fork the whole service; PEFT = ship a lightweight plugin.
+
+**Direct answer?** #flashcard
+Freeze base weights; learn low-rank update \(\Delta W pprox BA\) with tiny matrices.
+
+**Analogy (music)?** #flashcard
+You don’t re-record the track—you add an EQ/remix layer.
+
+**Direct answer?** #flashcard
+Quantize base weights (e.g., 4-bit NF4) during training while keeping LoRA adapters in 16-bit.
+
+**Why it matters?** #flashcard
+makes big-model tuning feasible on small GPUs.
+
+**Prompt tuning?** #flashcard
+learn soft prompt vectors.
+
+**Prefix tuning?** #flashcard
+learn soft “prefix” vectors injected into attention.
+
+**LoRA?** #flashcard
+modifies linear layers via low-rank updates; often stronger and widely used.
+
+**Direct answer?** #flashcard
+Insert small trainable modules between layers while freezing the base.
+
+**Note?** #flashcard
+can add inference overhead unless merged/optimized.
+
+**Direct answer?** #flashcard
+Use preference feedback to push outputs toward helpful/safe behavior (often via reward model + PPO historically).
+
+**DevOps bridge?** #flashcard
+policy training + compliance gates for a system that would otherwise “do whatever works.”
+
+**Direct answer?** #flashcard
+SFT on instruction→response pairs to make base models follow commands/chat format reliably.
+
+**Checklist?** #flashcard
+clear objective, clean templates, dedupe, balance, red-team examples, train/val split, PII scrubbing.
+
+**Mini prompt?** #flashcard
+What kills you fastest? → leakage (train examples repeated in eval).
+
+**Direct answer?** #flashcard
+Model overwrites general skills while learning new domain.
+
+**Fixes?** #flashcard
+PEFT, mix in general data, lower LR, fewer epochs, regularization, rehearsal.
+
+**Prompting?** #flashcard
+fastest iteration; best for formatting/instructions.
+
+**RAG?** #flashcard
+best for changing/adding facts + citations.
+
+**Fine-tuning?** #flashcard
+best for stable behavior, tone, domain style, tool reliability, latency/cost.
+
+**Direct answer?** #flashcard
+task success + format validity + safety + regression tests.
+
+**DevOps bridge?** #flashcard
+treat evals like CI checks; block promotion if regressions.
+
+**Direct answer?** #flashcard
+generate training pairs using a strong model/humans; filter and validate.
+
+**Risk?** #flashcard
+model learns your generator’s quirks; must diversify and audit.
+
+**LR?** #flashcard
+too high = forget/instability; too low = no learning.
+
+**Epochs?** #flashcard
+too many = memorization.
+
+**Batch size?** #flashcard
+affects stability; use grad accumulation.
+
+**LoRA rank?** #flashcard
+small ranks often saturate; higher ranks can overfit.
+
+**Direct answer?** #flashcard
+domain templates + terminology + safety constraints + eval sets.
+
+**Best practice?** #flashcard
+pair with RAG for latest policies/guidelines.
+
+**Direct answer?** #flashcard
+continue pre-training on large unlabeled domain text to shift the base distribution.
+
+**When?** #flashcard
+you need domain language modeling improvements, not just instruction format.
+
+**Options?** #flashcard
+merge sequentially (risk interference), route by task, or compose via weighted merges.
+
+**DevOps bridge?** #flashcard
+multiple plugins need versioning + compatibility tests.
+
+**SFT?** #flashcard
+learn “ideal answers.”
+
+**Alignment?** #flashcard
+learn preferences/safety trade-offs (RLHF/DPO/RLAIF).
+
+**Direct answer?** #flashcard
+reinforcement learning from AI feedback instead of humans (model judges with a constitution/rubric).
+
+**Direct answer?** #flashcard
+compress behavior from teacher to student.
+
+**Legal note?** #flashcard
+licensing/data provenance matters; don’t distill proprietary outputs into redistributable weights without rights.
+
+**Fixes?** #flashcard
+clean data, dedupe, add retrieval grounding, strengthen evals, add counterexamples, reduce epochs.
+
+**Choose LoRA/PEFT?** #flashcard
+limited GPUs, multi-tenant adapters, lower risk.
+
+**Choose full FT?** #flashcard
+you need deep capability shift and can afford the cost.
+
+**Fixes?** #flashcard
+more/cleaner data, stronger regularization, early stopping, lower LR, fewer epochs, better splits.
+
+**Fixes?** #flashcard
+PEFT, rehearsal mix, lower LR, fewer steps, add general eval gates.
+
+**Fixes?** #flashcard
+clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.

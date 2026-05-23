@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: How To Train Your Dragon Llm
+status: unread
+tags: [llms, ml, applications-how-to-train-your]
+---
 # How LLMs Actually Work
 
 ---

@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Multimodal Architectures
+status: unread
+tags: [emergingtopics, ml, emerging-trends-multimodal-arc]
+---
 # Multimodal Architectures
 
 How frontier models unify vision, audio, video, and language into a single representational space — and why this requires fundamentally rethinking tokenization, pretraining, and the attention mechanism.
@@ -299,3 +306,35 @@ The hypothesis: a model trained to predict the next frame of video must implicit
 **Evidence for:** Sora generates physically consistent videos — shadows move with objects, liquids spread realistically, rigid objects collide correctly without explicit physics simulation. These behaviors were not programmed; they emerged from video prediction. Genie (Google DeepMind, 2024) trained purely on platformer game videos generates interactive environments — demonstrating that video models learn controllable physics-governed state transitions.
 
 **Evidence against:** Sora fails on specific physical edge cases — it cannot reliably conserve matter (objects appear/disappear mid-video), violates rigid body physics in unusual configurations, and struggles with precise counting over time. These failures suggest the model learned visual statistics that correlate with physics rather than explicit causal physical models. Crucially: the "world model" is implicit in the weights and not directly queryable — you cannot ask a video diffusion model "what is the mass of this object?" Unlike a symbolic physics engine, the model has no explicit representation of physical quantities. Whether this constitutes a "world model" or "very good visual pattern matching" is a definitional question; practically, the model's physics understanding is reliable for common scenarios and brittle for edge cases.
+
+## Flashcards
+
+**RoPE layers?** #flashcard
+Apply standard 1D RoPE; image patches get sequential positions. These layers handle local sequential relationships.
+
+**Non-RoPE (NoPE) layers?** #flashcard
+No positional encoding at all. Attention is position-agnostic. Image patches can attend to each other based purely on content, regardless of where they appear in the sequence.
+
+**Deploying quickly with an existing LLM?** #flashcard
+Deploying quickly with an existing LLM
+
+**Images are simple (product photos, charts with clear structure)?** #flashcard
+Images are simple (product photos, charts with clear structure)
+
+**Budget is limited?** #flashcard
+no pretraining from scratch
+
+**Tasks require reasoning that combines modalities mid-answer ("the diagram on the left shows X, which contradicts the equation on the right")?** #flashcard
+Tasks require reasoning that combines modalities mid-answer ("the diagram on the left shows X, which contradicts the equation on the right")
+
+**Audio or video is required?** #flashcard
+bolt-on doesn't generalize beyond vision
+
+**Production scale where quality differences matter?** #flashcard
+Production scale where quality differences matter
+
+**Prefill dominates?** #flashcard
+1280² tokens = 1.6M attention ops
+
+**Each decode step must attend to 1280 key-value pairs + growing cache?** #flashcard
+Each decode step must attend to 1280 key-value pairs + growing cache

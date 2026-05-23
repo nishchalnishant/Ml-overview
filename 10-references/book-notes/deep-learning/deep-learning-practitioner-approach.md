@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Deep Learning Deep Learning Practitioner Approach
+status: unread
+tags: [references, ml, book-notes-deep-learning]
+---
 # Deep Learning: A Practitioner's Approach
 
 ## Chapter 1: Machine Learning Review
@@ -211,3 +218,146 @@ A model in production is a software system. It needs versioning, monitoring, err
 
 **What the book gets right / what to watch out for**
 The production awareness is valuable. The specific tooling (DL4J/ModelServer) is dated. Modern deployment stack: ONNX for model portability, Triton Inference Server or TorchServe for serving, MLflow or Weights & Biases for experiment tracking. The conceptual issues (train/serve skew, monitoring, versioning) are timeless.
+
+## Flashcards
+
+**Learning paradigms?** #flashcard
+supervised (labeled data, predict y from x), unsupervised (structure in x alone), reinforcement (reward signal from environment)
+
+**Core math: Ax = b formulation?** #flashcard
+features matrix A, weights x, labels b; solved via direct methods for small data, iterative (SGD) for large
+
+**Probability: Bayes' theorem P(H|E) = P(E|H)P(H)/P(E)?** #flashcard
+posterior = likelihood × prior / evidence
+
+**Statistics: mean, variance, distributions?** #flashcard
+describe data; conditional probability — describes relationships between variables
+
+**Neuron?** #flashcard
+z = activation(Σᵢ wᵢxᵢ + b)
+
+**Activation functions?** #flashcard
+sigmoid σ(z) = 1/(1+e^-z) (saturates, causes vanishing gradients), tanh (zero-centered sigmoid), ReLU max(0,z) (non-saturating, default choice), softmax (output layer for multiclass)
+
+**Backpropagation?** #flashcard
+compute ∂L/∂w for each weight by reverse application of chain rule
+
+**Hyperparameters?** #flashcard
+number of layers, neurons per layer, activation type, learning rate, batch size
+
+**Batch GD: gradient over full dataset?** #flashcard
+exact but O(n) per step
+
+**Mini-batch SGD: gradient over B examples?** #flashcard
+noisy but parallelizable; B=32–256 is typical
+
+**Momentum?** #flashcard
+vₜ = γvₜ₋₁ + η∇L; θ ← θ - vₜ; accumulates velocity in consistent gradient directions
+
+**Adam?** #flashcard
+mₜ = β₁mₜ₋₁ + (1-β₁)gₜ (first moment); vₜ = β₂vₜ₋₁ + (1-β₂)gₜ² (second moment); θ ← θ - η·m̂ₜ/√(v̂ₜ+ε)
+
+**Learning rate schedule?** #flashcard
+step decay, cosine annealing, warm restarts
+
+**Conv layer?** #flashcard
+output[i,j] = Σ_{k,l} filter[k,l] × input[i+k, j+l]
+
+**Hyperparameters?** #flashcard
+filter size (3×3 is standard), stride, padding ('same' preserves spatial size), number of filters
+
+**Typical architecture?** #flashcard
+[Conv → BN → ReLU] × N → Pool → repeat → Flatten → FC
+
+**Transfer learning?** #flashcard
+use pretrained ImageNet weights (AlexNet, VGG, ResNet) as feature extractor; fine-tune last layers on target task
+
+**RNN cell?** #flashcard
+hₜ = tanh(Wₓₓxₜ + Wₕₕhₜ₋₁ + b)
+
+**LSTM adds cell state cₜ with forget/input/output gates?** #flashcard
+enables long-range memory
+
+**Training: backpropagation through time (BPTT)?** #flashcard
+unroll T steps, backpropagate through all
+
+**Vanishing gradients: gradients decay exponentially for long sequences?** #flashcard
+use gradient clipping, LSTMs, or transformer attention instead
+
+**Data parallelism?** #flashcard
+each worker holds the full model, processes different data shards
+
+**ParameterAveragingTrainingMaster (DL4J)?** #flashcard
+average parameters every K batches across workers
+
+**Spark integration?** #flashcard
+use RDDs/DataFrames to distribute preprocessing; use SparkDl4jMultiLayer for distributed training
+
+**AllReduce (modern approach): ring-allreduce aggregates gradients without a parameter server?** #flashcard
+more bandwidth-efficient, standard in PyTorch DDP
+
+**Oversampling?** #flashcard
+duplicate minority class samples (random) or synthesize new ones (SMOTE: interpolate between nearest neighbor pairs in feature space)
+
+**Undersampling: remove majority class samples?** #flashcard
+simpler but throws away data
+
+**Cost-sensitive learning: multiply minority class loss by weight w = n_majority/n_minority?** #flashcard
+equivalent to upsampling
+
+**Threshold tuning?** #flashcard
+move decision threshold from 0.5 to a value that improves recall at acceptable precision
+
+**Diagnosis?** #flashcard
+plot training vs validation loss over epochs; large gap = overfitting; both high = underfitting
+
+**Dropout?** #flashcard
+zero activations with probability p during training; effective regularizer for FC layers
+
+**L2 weight decay?** #flashcard
+add λ||w||² to loss; equivalent to Gaussian prior on weights
+
+**Data augmentation: image flips, crops, color jitter?** #flashcard
+expands effective dataset size
+
+**Early stopping?** #flashcard
+halt training when validation loss stops improving; saves best checkpoint
+
+**CSV/tabular?** #flashcard
+normalize numeric features to zero mean unit variance; one-hot or ordinal encode categoricals
+
+**Text?** #flashcard
+tokenize → vocabulary → integer IDs → embedding lookup (trainable d-dimensional vectors)
+
+**Word2Vec/GloVe?** #flashcard
+pre-trained word embeddings that encode semantic relationships (king - man + woman ≈ queen)
+
+**Images?** #flashcard
+resize to fixed H×W, convert to float, normalize per-channel by ImageNet mean/std
+
+**Sequence padding?** #flashcard
+pad/truncate to fixed length T; use attention masks to ignore padding tokens
+
+**GMM?** #flashcard
+model P(x) = Σₖ πₖ N(x|μₖ, Σₖ); fit with EM algorithm; closed-form updates for each component
+
+**VAE?** #flashcard
+encoder q(z|x) approximates posterior; decoder p(x|z) reconstructs; ELBO = E[log p(x|z)] - KL(q(z|x)||p(z)); reparameterization trick for backprop through sampling
+
+**GAN?** #flashcard
+generator G(z) maps noise to data; discriminator D(x) classifies real vs fake; minimax game: min_G max_D E[log D(x)] + E[log(1-D(G(z)))]
+
+**Mode collapse in GANs?** #flashcard
+G produces few sample types that fool D; mitigated by Wasserstein loss, spectral normalization, progressive training
+
+**Model export?** #flashcard
+save weights + architecture together (not just weights) to avoid "architecture mismatch" bugs
+
+**Inference API?** #flashcard
+wrap model in REST endpoint; return predictions as JSON
+
+**Batch vs real-time inference?** #flashcard
+batch when latency is not critical (cheaper); real-time for interactive applications
+
+**Model monitoring?** #flashcard
+log prediction distributions; alert when they shift from training distribution (data drift)

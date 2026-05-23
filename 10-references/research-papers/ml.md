@@ -1,3 +1,10 @@
+---
+module: References
+topic: Research Papers
+subtopic: Ml
+status: unread
+tags: [references, ml, research-papers-ml]
+---
 # Classical ML & Statistics — Key Papers
 
 A curated list of foundational and interview-relevant papers in classical machine learning.

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Additional Ml Interview Topics
+status: unread
+tags: [interviewprep, ml, ml-additional-ml-interview-top]
+---
 # Additional ML Interview Topics
 
 ## What This File Is For
@@ -730,3 +737,170 @@ Ask: how large is the dataset, how many categorical features, how fast does retr
 **If a ranking model has good precision but the team reports users are unhappy with results:**
 
 Check where relevant items appear in the list, not just whether they appear. P@K can be high while NDCG is low if relevant items appear at positions 8–10 rather than 1–3. Compute position-weighted metrics (NDCG, AP) and verify whether the user experience problem is a ranking order problem, not a retrieval problem.
+
+## Flashcards
+
+**Small batch sizes?** #flashcard
+statistics are noisy, training unstable
+
+**Sequence models with variable-length sequences?** #flashcard
+batch statistics mix examples of different lengths
+
+**Test-time/inference?** #flashcard
+uses running statistics from training. If test distribution differs, these statistics are stale
+
+**Online learning or single-example inference?** #flashcard
+batch of 1 makes statistics undefined
+
+**Clusters are roughly spherical (equal variance in all directions)?** #flashcard
+Clusters are roughly spherical (equal variance in all directions)
+
+**Clusters are roughly equal in size?** #flashcard
+Clusters are roughly equal in size
+
+**k is known?** #flashcard
+k is known
+
+**Clusters have arbitrary shape?** #flashcard
+Clusters have arbitrary shape
+
+**Noise/outlier points exist (they should not be assigned to any cluster)?** #flashcard
+Noise/outlier points exist (they should not be assigned to any cluster)
+
+**Clusters are defined by density, not distance to a centroid?** #flashcard
+Clusters are defined by density, not distance to a centroid
+
+**Core point?** #flashcard
+has ≥ minPts points within radius ε
+
+**Border point?** #flashcard
+within ε of a core point but fewer than minPts neighbors
+
+**Noise point?** #flashcard
+not within ε of any core point
+
+**User-based CF?** #flashcard
+find similar users, recommend what they liked
+
+**Item-based CF?** #flashcard
+find similar items, recommend items similar to what the user liked
+
+**Matrix factorization (SVD, ALS)?** #flashcard
+decompose the interaction matrix into user and item latent factors
+
+**SVMs output margin distances, not probabilities. These are not calibrated.?** #flashcard
+SVMs output margin distances, not probabilities. These are not calibrated.
+
+**Tree ensembles?** #flashcard
+boosted trees tend to be overconfident (scores near 0 or 1). Random forests tend to be underconfident (scores pulled toward 0.5 because of averaging).
+
+**Neural networks?** #flashcard
+can be overconfident, especially on out-of-distribution examples.
+
+**The predicted probability is used directly in a decision (bid price in ad auction, risk score in medical triage)?** #flashcard
+The predicted probability is used directly in a decision (bid price in ad auction, risk score in medical triage)
+
+**Multiple models' scores are compared across populations (comparing fraud risk scores across geographies with different base rates)?** #flashcard
+Multiple models' scores are compared across populations (comparing fraud risk scores across geographies with different base rates)
+
+**GDPR-style right to explanation?** #flashcard
+"why was this loan denied?" requires trustworthy probability scores
+
+**You only care about ranking (movie recommendation?** #flashcard
+top-10 items, not their exact probabilities)
+
+**The downstream decision only uses the argmax (classification, not scoring)?** #flashcard
+The downstream decision only uses the argmax (classification, not scoring)
+
+**Problem?** #flashcard
+only one evaluation split; variance in the performance estimate is high.
+
+**Split 1?** #flashcard
+train on months 1–6, test on month 7
+
+**Split 2?** #flashcard
+train on months 1–7, test on month 8
+
+**Split 3?** #flashcard
+train on months 1–8, test on month 9
+
+**...?** #flashcard
+...
+
+**Split 1?** #flashcard
+train on months 1–6, test on month 7
+
+**Split 2?** #flashcard
+train on months 2–7, test on month 8
+
+**...?** #flashcard
+...
+
+**Captures the real contribution of a feature in the model's context?** #flashcard
+Captures the real contribution of a feature in the model's context
+
+**Measures importance for the specific model's decision function?** #flashcard
+Measures importance for the specific model's decision function
+
+**Fast to compute?** #flashcard
+Fast to compute
+
+**Aggregates across all examples (global, not per-example)?** #flashcard
+Aggregates across all examples (global, not per-example)
+
+**Satisfies local accuracy?** #flashcard
+feature contributions sum to the prediction
+
+**Handles correlated features by averaging over all possible subsets?** #flashcard
+Handles correlated features by averaging over all possible subsets
+
+**Provides per-example explanations (local interpretability)?** #flashcard
+Provides per-example explanations (local interpretability)
+
+**Computationally expensive for exact computation (O(2^d)); approximated via tree structures for tree models or kernel methods for black-box models?** #flashcard
+Computationally expensive for exact computation (O(2^d)); approximated via tree structures for tree models or kernel methods for black-box models
+
+**Poor calibration (probability 0.99 when correct probability is 0.8)?** #flashcard
+Poor calibration (probability 0.99 when correct probability is 0.8)
+
+**Poor generalization (fitting training noise)?** #flashcard
+Poor generalization (fitting training noise)
+
+**Brittle decisions near the decision boundary?** #flashcard
+Brittle decisions near the decision boundary
+
+**Improved calibration?** #flashcard
+model outputs are less extreme
+
+**Better generalization?** #flashcard
+prevents memorizing noisy labels
+
+**Improved robustness to adversarial examples (less sensitivity to input perturbations)?** #flashcard
+Improved robustness to adversarial examples (less sensitivity to input perturbations)
+
+**P@K?** #flashcard
+when you care about precision in the top K (news headline ranking)
+
+**R@K?** #flashcard
+when recall is critical (medical literature retrieval)
+
+**NDCG?** #flashcard
+when relevance is graded and position matters (search ranking)
+
+**MAP?** #flashcard
+when binary relevance across multiple queries (document retrieval benchmarks)
+
+**P?** #flashcard
+labeled positive examples (confirmed true)
+
+**U: unlabeled examples?** #flashcard
+some are positive, some are negative, but you do not know which
+
+**Fraud detection: you have confirmed fraud cases (P) and unreviewed transactions (U?** #flashcard
+some are fraud, most are not)
+
+**Medical screening?** #flashcard
+you have confirmed diagnoses (P) and unscreened patients (U)
+
+**Citation networks?** #flashcard
+you have known positive links (P) and the absence of links, which is not confirmation of non-linkage

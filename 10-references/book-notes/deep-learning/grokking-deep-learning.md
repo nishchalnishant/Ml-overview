@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Deep Learning Grokking Deep Learning
+status: unread
+tags: [references, ml, book-notes-deep-learning]
+---
 # Grokking Deep Learning
 
 ## Chapter 1: The Automation of Intelligence
@@ -312,3 +319,230 @@ Self-supervised learning creates supervision from the data itself via pretext ta
 
 **What the book gets right / what to watch out for**
 Self-supervised pretraining on unlabeled data followed by fine-tuning on labeled data is now the dominant paradigm for vision, NLP, and audio — the same principle BERT, GPT, and CLIP use. Triplet loss requires careful negative mining — easy negatives don't provide gradient signal; hard negatives (similar but different class) improve representations. SimCLR and BYOL have largely superseded triplet loss for image representations.
+
+## Flashcards
+
+**Automation of intelligence = learning input-output mappings from labeled examples?** #flashcard
+Automation of intelligence = learning input-output mappings from labeled examples
+
+**The three components?** #flashcard
+network (transforms input to prediction), loss (measures error), optimizer (updates network to reduce loss)
+
+**Every deep learning system reduces to these three components, regardless of complexity?** #flashcard
+Every deep learning system reduces to these three components, regardless of complexity
+
+**Supervised?** #flashcard
+learn f: X → Y from labeled pairs {(xᵢ, yᵢ)}; neural networks are parametric
+
+**Unsupervised?** #flashcard
+learn structure in {xᵢ} without labels; clustering, autoencoders, language models
+
+**Parametric?** #flashcard
+fixed number of parameters regardless of training set size; neural networks, linear models
+
+**Nonparametric?** #flashcard
+parameters grow with data; k-nearest neighbors, kernel methods, Gaussian processes
+
+**Single neuron?** #flashcard
+y = σ(wᵀx + b); w is (d,), b is scalar
+
+**Layer of n neurons?** #flashcard
+Y = activation(XW + b); X is (batch, d_in), W is (d_in, d_out), b is (d_out,)
+
+**Forward pass?** #flashcard
+repeatedly apply layer transformations; final layer produces prediction
+
+**NumPy?** #flashcard
+np.dot(X, W) + b is the core operation
+
+**MSE loss?** #flashcard
+L = (1/n) Σ(ŷᵢ - yᵢ)²; smooth, differentiable, squared penalizes large errors more
+
+**Hot/cold learning (conceptual): nudge parameter up and down; keep the direction that reduces loss?** #flashcard
+expensive but intuitive
+
+**Analytical gradient?** #flashcard
+∂L/∂w = (2/n) Σ(ŷᵢ - yᵢ) · ∂ŷ/∂w; exact, free (same cost as forward pass)
+
+**Update?** #flashcard
+w ← w - η · ∂L/∂w; η (learning rate) controls step size
+
+**Learning rate too high?** #flashcard
+overshoots, oscillates; too low: slow convergence
+
+**Multiple inputs, single output?** #flashcard
+∂L/∂wᵢ = (ŷ-y) · xᵢ; gradient is error weighted by input
+
+**Multiple outputs?** #flashcard
+ΔW is an outer product; ΔWᵢⱼ = δⱼ · xᵢ; δ is output error vector
+
+**Matrix form?** #flashcard
+ΔW = xᵀδ (outer product); shapes: (d_in,) × (d_out,) → (d_in, d_out)
+
+**Weight sensitivity: inputs with large magnitude produce large weight deltas?** #flashcard
+normalize inputs to prevent instability
+
+**Forward pass?** #flashcard
+store intermediate activations (needed for backward pass)
+
+**Output error?** #flashcard
+δ_out = ŷ - y (for MSE); δ_out = ŷ - y_onehot (for softmax + cross-entropy)
+
+**Hidden layer error?** #flashcard
+δ_h = (Wᵀ δ_out) ⊙ σ'(z_h); propagate error through weights, apply activation derivative
+
+**Weight update?** #flashcard
+ΔW = η · aᵢₙᵀ δ_out; where aᵢₙ is input activations to the layer
+
+**SGD vs mini-batch vs batch?** #flashcard
+SGD updates after each example (noisy, fast); mini-batch averages gradient over B examples (standard); batch uses full dataset (slow, exact)
+
+**Letter notation?** #flashcard
+x = input, h = hidden, ŷ = output, W = weights, b = bias, σ = activation
+
+**Layer?** #flashcard
+h = σ(Wₓh x + bₓh); subscripts indicate from/to layer
+
+**Shape tracking?** #flashcard
+(batch, d_in) @ (d_in, d_out) → (batch, d_out)
+
+**Parameter count per layer?** #flashcard
+d_in × d_out + d_out (weights + biases)
+
+**Total parameters?** #flashcard
+Σ over all layers; useful for sanity checking architecture size
+
+**Early stopping?** #flashcard
+track validation loss; stop when it increases for N consecutive epochs; save checkpoint at best validation performance
+
+**Dropout?** #flashcard
+Bernoulli mask M ~ Bernoulli(1-p); h_dropped = h ⊙ M / (1-p); applied during training, disabled at inference
+
+**p=0.5 for FC layers; p=0.1–0.2 for conv layers; inverted dropout (divide by 1-p) keeps expected activations consistent between train and test?** #flashcard
+p=0.5 for FC layers; p=0.1–0.2 for conv layers; inverted dropout (divide by 1-p) keeps expected activations consistent between train and test
+
+**Mini-batch GD?** #flashcard
+gradient over B examples; B=32–256 typical; noise in gradient prevents overfitting to individual examples; enables GPU parallelism
+
+**Sigmoid?** #flashcard
+σ(z) = 1/(1+e^-z) ∈ (0,1); output layer for binary probability; saturates → vanishing gradients in hidden layers
+
+**Tanh?** #flashcard
+tanh(z) = (e^z-e^-z)/(e^z+e^-z) ∈ (-1,1); zero-centered (better than sigmoid for hidden layers), still saturates
+
+**Softmax?** #flashcard
+ŷₖ = exp(oₖ) / Σⱼ exp(oⱼ); converts logits to probability distribution over K classes; sum = 1
+
+**ReLU?** #flashcard
+max(0,z); non-saturating; default for hidden layers; dead neurons possible if LR too high
+
+**Output layer choices?** #flashcard
+binary → sigmoid; multiclass → softmax; regression → linear (no activation); multilabel → independent sigmoids
+
+**2D convolution?** #flashcard
+output[i,j] = Σ_{k,l} filter[k,l] × input[i+k, j+l]
+
+**Weight sharing?** #flashcard
+same filter applied at all positions → O(k²) parameters per filter vs O(H×W) for FC
+
+**Max pooling?** #flashcard
+takes max over 2×2 window; halves spatial dimensions; provides translation invariance
+
+**Average pooling?** #flashcard
+averages over window; smoother downsampling
+
+**CNN architecture?** #flashcard
+[Conv → ReLU → MaxPool] × N → Flatten → FC
+
+**NumPy implementation: triple nested loop; educational but O(H×W×K²×C_in×C_out)?** #flashcard
+much slower than optimized implementations
+
+**Bag-of-words?** #flashcard
+document → vector of word counts; vocabulary size is vector dimension; ignores order
+
+**TF-IDF?** #flashcard
+weight each word count by inverse document frequency; downweights common words
+
+**Word embedding?** #flashcard
+lookup table V × d; each token ID maps to a d-dimensional vector; trained end-to-end
+
+**Skip-gram?** #flashcard
+maximize P(context|target) over a window of ±k words
+
+**Analogy?** #flashcard
+word_a - word_b + word_c → find nearest word in embedding space
+
+**RNN forward?** #flashcard
+for each timestep t: hₜ = tanh(Wₓₕxₜ + Wₕₕhₜ₋₁ + bₕ); ŷₜ = softmax(Wₕᵧhₜ + bᵧ)
+
+**Training objective?** #flashcard
+cross-entropy on next-character prediction at each step
+
+**Truncated BPTT?** #flashcard
+backpropagate through the last T=16–64 steps only; prevents gradient explosion and memory overflow on long sequences; treats hₜ₋ₜ as a constant (detach from graph)
+
+**Identity initialization of Wₕₕ?** #flashcard
+helps gradients flow at initialization; used by iRNN (Identity RNN)
+
+**Transition matrices?** #flashcard
+Wₕₕ encodes the "memory" of the network; its eigenvalues determine whether gradients vanish or explode
+
+**Tensor class?** #flashcard
+stores data (NumPy array), grad (accumulated gradient), grad_fn (how this tensor was created)
+
+**Computation graph?** #flashcard
+each operation creates a new tensor and records its inputs
+
+**Backward?** #flashcard
+traverse graph in reverse topological order; at each node: grad_inputs = backward_fn(grad_output); accumulate into input grads
+
+**SGD optimizer?** #flashcard
+loop over parameters; w.data -= lr * w.grad; w.grad = None (zero grad)
+
+**Layer base class?** #flashcard
+holds parameters; forward() defines computation; backward propagates gradients
+
+**Forget gate: fₜ = σ(Wf·[hₜ₋₁,xₜ]+bf)?** #flashcard
+decides what to erase from cell state
+
+**Input gate: iₜ = σ(Wi·[hₜ₋₁,xₜ]+bi); c̃ₜ = tanh(Wc·[hₜ₋₁,xₜ]+bc)?** #flashcard
+decides what new info to write
+
+**Cell update: cₜ = fₜ⊙cₜ₋₁ + iₜ⊙c̃ₜ?** #flashcard
+additive update preserves gradients
+
+**Output gate: oₜ = σ(Wo·[hₜ₋₁,xₜ]+bo); hₜ = oₜ⊙tanh(cₜ)?** #flashcard
+exposes filtered cell state
+
+**Truncated BPTT?** #flashcard
+still needed for LSTMs; standard range T=16–64 steps
+
+**Text generation?** #flashcard
+sample next character from softmax distribution; feed back as next input
+
+**Federated averaging?** #flashcard
+server sends model; each client trains for K steps on local data; clients send gradient updates; server averages and updates global model
+
+**Secure aggregation: clients add random noise (that cancels out in aggregate) before sending updates?** #flashcard
+server sees only the sum, not individual updates
+
+**Differential privacy?** #flashcard
+add calibrated Gaussian noise to gradients before sending; bounds the amount of individual information that can be inferred
+
+**Homomorphic encryption (PHE): clients encrypt gradients; server aggregates encrypted values; result decrypts to the correct aggregate?** #flashcard
+computationally expensive
+
+**Pretext tasks?** #flashcard
+predict randomly masked tokens (BERT), predict next sentence (NSP), predict image rotation angle, colorization, context prediction
+
+**Triplet loss?** #flashcard
+L = max(d(anchor, positive) - d(anchor, negative) + margin, 0); anchor and positive are augmentations of same input; negative is a different input
+
+**Contrastive loss (SimCLR)?** #flashcard
+for each input, create two augmented views; maximize similarity within pairs, minimize across pairs; InfoNCE loss
+
+**Positive pairs?** #flashcard
+different augmentations (crop, color jitter, blur) of the same image
+
+**Negative pairs?** #flashcard
+other images in the mini-batch (easy to obtain without explicit labeling)

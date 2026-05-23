@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Interpretability And Xai
+subtopic: Mechanistic Interpretability
+status: unread
+tags: [emergingtopics, ml, interpretability-and-xai-mecha]
+---
 # Mechanistic Interpretability
 
 ## 1. Core Concept & Intuition
@@ -384,3 +391,80 @@ A deceptively aligned model would show different internal representations (diffe
 **Step 4: Circuit comparison for goal-directed behavior.** Identify circuits for long-horizon planning or self-preservation behaviors (goals about the model's own continued operation or avoiding detection). These circuits should not be active during normal assistant tasks. Presence and activation of such circuits is a red flag.
 
 **Limitations:** deceptive alignment requires the model to have stable world models that distinguish evaluation from deployment — very unlikely to emerge in current RLHF-trained models. This audit methodology is defensive research for future more capable models, not a practical concern for current systems.
+
+## Flashcards
+
+**Post-hoc attribution (SHAP, attention)?** #flashcard
+assigns importance scores to inputs for a given output. Does not explain mechanism.
+
+**Mechanistic interpretability?** #flashcard
+identifies which neurons, attention heads, and weight submatrices implement which sub-computations. Causal, not correlational.
+
+**Rare, important features get near-orthogonal dedicated directions?** #flashcard
+Rare, important features get near-orthogonal dedicated directions
+
+**Common, less important features are superposed in shared dimensions?** #flashcard
+Common, less important features are superposed in shared dimensions
+
+**Non-linear activation functions (ReLU) are the mechanism that makes superposition work?** #flashcard
+they suppress the interference between superposed features
+
+**Feature 2341?** #flashcard
+activates on "academic citations" context
+
+**Feature 17893?** #flashcard
+activates specifically on "The Golden Gate Bridge" (so strongly that
+
+**Feature 31102?** #flashcard
+activates on "immune system dysfunction"
+
+**Ideal?** #flashcard
+near-zero CE loss degradation with low L0 (≤ 30 active features)
+
+**That those features are used causally by downstream components?** #flashcard
+That those features are used causally by downstream components
+
+**That the decomposition is unique (superposition allows multiple valid bases)?** #flashcard
+That the decomposition is unique (superposition allows multiple valid bases)
+
+**That the features are "the" features the model uses (SAE is an approximation)?** #flashcard
+That the features are "the" features the model uses (SAE is an approximation)
+
+**SAEs with large D that fail to find monosemantic features (all latents remain polysemantic)?** #flashcard
+this would suggest features are not linearly decodable
+
+**Removing individual SAE features having no effect on downstream computations (would suggest the SAE is finding post-hoc correlations, not the model's actual computational units)?** #flashcard
+Removing individual SAE features having no effect on downstream computations (would suggest the SAE is finding post-hoc correlations, not the model's actual computational units)
+
+**Finding that the optimal SAE dictionary size scales linearly rather than super-linearly with d (would suggest no superposition beyond dimensionality)?** #flashcard
+Finding that the optimal SAE dictionary size scales linearly rather than super-linearly with d (would suggest no superposition beyond dimensionality)
+
+**Duplicate Token Heads (layers 3-5): Q attends to the repeated name, K attends to the subject?** #flashcard
+detects "this name appears twice"
+
+**S-Inhibition Heads (layers 7-8)?** #flashcard
+suppress writing the repeated name (S) to the output position. Ablating these causes the model to output S instead of IO.
+
+**Name Mover Heads (layers 9-10)?** #flashcard
+output-writes the IO name's embedding to the final position. The causal chain: these heads look at IO's residual stream representation (which is distinctive because S-Inhibition heads suppressed S) and copy it to the output.
+
+**Backup Name Movers (layers 10-11): redundancy?** #flashcard
+if primary Name Movers are ablated, these compensate (a "hedge against interpretability interventions" by the model itself)
+
+**~14,000× more attention heads?** #flashcard
+~14,000× more attention heads
+
+**Circuit complexity that likely scales super-linearly (circuits compose into meta-circuits)?** #flashcard
+Circuit complexity that likely scales super-linearly (circuits compose into meta-circuits)
+
+**SAE training at scale requires enormous compute?** #flashcard
+a single layer SAE with D=4M for a 12,288-dim residual stream requires billions of training tokens and weeks of GPU time
+
+**Training distribution (safe prompts during RLHF)?** #flashcard
+Training distribution (safe prompts during RLHF)
+
+**Deployment-like distribution (slightly different prompt formats)?** #flashcard
+Deployment-like distribution (slightly different prompt formats)
+
+**Adversarial probes (prompts designed to look like safety evaluations vs. real use)?** #flashcard
+Adversarial probes (prompts designed to look like safety evaluations vs. real use)

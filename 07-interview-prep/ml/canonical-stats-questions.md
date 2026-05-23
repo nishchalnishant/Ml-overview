@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Canonical Stats Questions
+status: unread
+tags: [interviewprep, ml, ml-canonical-stats-questions]
+---
 # Canonical Statistics Interview Questions
 
 The statistical foundations that appear in every ML interview. Covers probability theory, inference, experimental design, and the traps interviewers set.
@@ -378,3 +385,68 @@ A: Income is a confounding variable — it may independently affect revenue and 
 
 **Q: What's the difference between confidence intervals and credible intervals?**  
 A: Confidence interval (frequentist): a procedure that, if repeated many times, would contain the true parameter 95% of the time. Any specific CI either contains the true value or doesn't — we can't say P(θ in CI) = 95%. Credible interval (Bayesian): given the data and prior, P(θ in CI | data) = 95%. It directly expresses uncertainty about the parameter given what we observed. Practically: credible intervals can be reported more intuitively ("there's a 95% probability the effect is between X and Y"). Confidence intervals have a subtle interpretation that's easy to misstate. For large samples with weak priors, the two are numerically similar.
+
+## Flashcards
+
+**Bonferroni?** #flashcard
+confirmatory study, FWER control critical (clinical trials, p-hacking risk high)
+
+**BH?** #flashcard
+exploratory study, many hypotheses (genomics, feature selection), willing to tolerate some FDR
+
+**Non-standard statistics (median, quantiles, AUC, F1 score)?** #flashcard
+Non-standard statistics (median, quantiles, AUC, F1 score)
+
+**Small samples where CLT doesn't apply?** #flashcard
+Small samples where CLT doesn't apply
+
+**Complex model metrics (e.g., "average NDCG across 5 folds")?** #flashcard
+Complex model metrics (e.g., "average NDCG across 5 folds")
+
+**CTR = 0.001 (1 in 1000), n = 100 users?** #flashcard
+CTR = 0.001 (1 in 1000), n = 100 users
+
+**Expected clicks = 0.1?** #flashcard
+CLT fails badly
+
+**Use exact binomial or Poisson test instead?** #flashcard
+Use exact binomial or Poisson test instead
+
+**99% accuracy on 1% positive class by predicting all negative?** #flashcard
+99% accuracy on 1% positive class by predicting all negative
+
+**Fix?** #flashcard
+precision, recall, F1, PR-AUC, cost-sensitive metrics
+
+**Scaling with statistics computed on full dataset (including test)?** #flashcard
+Scaling with statistics computed on full dataset (including test)
+
+**Fix?** #flashcard
+fit scaler on train only, transform train+test
+
+**"We ran 20 A/B tests and this one was significant"?** #flashcard
+"We ran 20 A/B tests and this one was significant"
+
+**Fix?** #flashcard
+Bonferroni or BH correction; pre-register primary metrics
+
+**Ice cream sales and drowning rates correlate (confounder?** #flashcard
+summer)
+
+**Fix?** #flashcard
+draw the DAG, identify confounders, use proper causal methods
+
+**Hypothesizing after results known, stopping data collection when p < 0.05?** #flashcard
+Hypothesizing after results known, stopping data collection when p < 0.05
+
+**Fix?** #flashcard
+pre-registration, sequential testing with alpha spending
+
+**Evaluating a trading model only on stocks that existed in 2020?** #flashcard
+Evaluating a trading model only on stocks that existed in 2020
+
+**Evaluating a cancer detection model only on confirmed cancer cases?** #flashcard
+Evaluating a cancer detection model only on confirmed cancer cases
+
+**Fix?** #flashcard
+ensure evaluation set represents the population the model will see

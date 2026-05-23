@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Privacy Preserving Ml
+subtopic: ""
+status: unread
+tags: [emergingtopics, ml, privacy-preserving-ml]
+---
 # Privacy-Preserving Machine Learning
 
 ---
@@ -464,3 +471,95 @@ If AUC(D_private) >> AUC(D_control): reject H₀ at chosen significance level
 ```
 
 Key limitation: DP-protected models are designed to resist this. If the competitor used DP training with ε ≤ 3, the MIA AUC will be statistically indistinguishable from 0.5 (random guessing), and you cannot prove membership regardless of ground truth. MIA is most effective against models with clear overfitting signals (high train/test gap).
+
+## Flashcards
+
+**Membership inference?** #flashcard
+determine whether a specific record was in the training set (privacy violation even without reconstruction)
+
+**Model inversion?** #flashcard
+reconstruct approximate training inputs from model outputs
+
+**Training data extraction?** #flashcard
+directly reproduce verbatim training examples
+
+**Differential privacy addresses the second problem?** #flashcard
+bound how much any individual's data can affect the model, so the encoding is provably limited.
+
+**Federated learning addresses the first problem?** #flashcard
+train without centralizing the raw data at all.
+
+**ε (epsilon)?** #flashcard
+privacy budget. Smaller = stronger privacy = more noise. ε = 1 is strong; ε > 10 is weak.
+
+**δ (delta)?** #flashcard
+failure probability. Typically 1/n² or smaller.
+
+**DP training quantifiably bounds MIA success?** #flashcard
+the DP guarantee directly limits how much the presence of any record can affect the output distribution
+
+**Regularization reduces overfitting, shrinking the confidence gap?** #flashcard
+Regularization reduces overfitting, shrinking the confidence gap
+
+**Output perturbation adds noise to probabilities?** #flashcard
+Output perturbation adds noise to probabilities
+
+**Confidence score restriction?** #flashcard
+only return top-k classes
+
+**PHE (Partial)?** #flashcard
+supports only one operation (+ or ×)
+
+**SHE (Somewhat)?** #flashcard
+limited depth of operations
+
+**FHE (Fully): arbitrary operations?** #flashcard
+100–10,000× slower than plaintext
+
+**Carlini et al. demonstrated verbatim training data extraction from GPT-2?** #flashcard
+models memorize training data, and that memorization can be queried. This is the foundational motivation for privacy-preserving ML.
+
+**DP and federated learning address two different aspects of the same root problem?** #flashcard
+DP limits how much any individual's data can influence the model; FL prevents raw data from reaching a central server at all.
+
+**(ε, δ)-DP: smaller ε = stronger privacy. ε = 1 is strong, ε = 10 is weak. The guarantee bounds how much the presence of any record changes the output distribution?** #flashcard
+which directly limits membership inference.
+
+**DP-SGD?** #flashcard
+clip per-sample gradients to norm ≤ C, add Gaussian noise N(0, σ²C²I), divide by batch size. Clipping bounds individual influence; noise hides presence. This is what makes DP-SGD expensive vs. standard SGD.
+
+**FL keeps raw data local?** #flashcard
+only weight deltas are shared. Gradients can still leak information via gradient inversion. Combine with DP or secure aggregation for full protection.
+
+**Best practice for LLMs?** #flashcard
+pre-train on large public data (no DP needed), fine-tune on small sensitive data with DP-SGD. Use LoRA to reduce trainable parameters and improve utility at the same privacy budget.
+
+**HE is theoretically powerful but 100–10,000× slower than plaintext?** #flashcard
+not feasible for training large networks.
+
+**N = 50,000 (CIFAR-10), B = 256, σ = 1.1, T = 60 epochs × 195 steps/epoch = 11,700 steps, C = 1.0, δ = 1e-5?** #flashcard
+N = 50,000 (CIFAR-10), B = 256, σ = 1.1, T = 60 epochs × 195 steps/epoch = 11,700 steps, C = 1.0, δ = 1e-5
+
+**Pairwise mask cancellation?** #flashcard
+hospital i and j exchange random masks r_{ij}
+
+**Server receives Σ_i (g_i + Σ_j mask_{ij}) = Σ_i g_i (masks cancel)?** #flashcard
+Server receives Σ_i (g_i + Σ_j mask_{ij}) = Σ_i g_i (masks cancel)
+
+**Per-hospital?** #flashcard
+track (ε_i, δ_i) per training round
+
+**Composition?** #flashcard
+after T rounds, report cumulative ε_i to hospital i
+
+**Stop accepting updates from a hospital when ε_i > ε_max (e.g., 10)?** #flashcard
+Stop accepting updates from a hospital when ε_i > ε_max (e.g., 10)
+
+**Full fine-tune, DP, ε=3?** #flashcard
+accuracy drops ~20% from non-private baseline
+
+**LoRA fine-tune, DP, ε=3?** #flashcard
+accuracy drops ~5-7% from non-private baseline
+
+**Best practice?** #flashcard
+rank=4 to rank=16, target ε=3-8 depending on sensitivity tier

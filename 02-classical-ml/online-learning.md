@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Online Learning
+subtopic: ""
+status: unread
+tags: [classicalml, ml, online-learning]
+---
 # Online Learning
 
 ---
@@ -557,3 +564,98 @@ Thompson Sampling is generally preferred in practice because: (1) it naturally h
 **Q7: Explain reservoir sampling. Why might it be inappropriate when concept drift is present?**
 
 Reservoir sampling maintains a uniform random sample of size k from a stream, where each element has probability k/t of being retained. It gives a statistically uniform sample over all examples seen so far. When concept drift is present, this is problematic: old examples (from a different distribution) are retained with the same probability as recent ones. A model trained on this reservoir learns a mixture of old and new distributions, degrading performance on the current distribution. Alternatives: (1) **sliding window**: only retain the last W examples — recency implies relevance; (2) **time-decayed reservoir**: replace elements with probability proportional to recency; (3) **ADWIN-based**: detect drift and reset the reservoir.
+
+## Flashcards
+
+**Streaming data: financial ticks, sensor feeds, log streams?** #flashcard
+data cannot be stored or reprocessed
+
+**Memory constraints?** #flashcard
+dataset is too large to fit in RAM; each example is processed and discarded
+
+**Non-stationarity: the generating distribution drifts?** #flashcard
+yesterday's model is stale; the model must adapt continuously
+
+**Low-latency personalization?** #flashcard
+the model must incorporate user feedback immediately (next-page recommendation)
+
+**w_t is the weight vector at round t?** #flashcard
+w_t is the weight vector at round t
+
+**η_t is the learning rate (step size), often η_t = η / √t?** #flashcard
+η_t is the learning rate (step size), often η_t = η / √t
+
+**∇ℓ_t(w_t) is the gradient of the loss at time t evaluated at w_t?** #flashcard
+∇ℓ_t(w_t) is the gradient of the loss at time t evaluated at w_t
+
+**Π_W is projection onto the feasible set W (ensures w stays in bounds)?** #flashcard
+Π_W is projection onto the feasible set W (ensures w stays in bounds)
+
+**OGD?** #flashcard
+learning rate for feature i decays as 1/√t regardless of how often feature i appeared. Rare features get unfairly penalized.
+
+**FTRL + AdaGrad: learning rate for feature i decays as 1/√(number of times feature i was non-zero). Rare features stay at high learning rates longer?** #flashcard
+they learn more when they do appear.
+
+**L1 regularization + FTRL: naturally produces sparse models. OGD with L1 does not produce exact zeros. FTRL-proximal does?** #flashcard
+critical for serving models with millions of features.
+
+**Online algorithms are not just streaming tools?** #flashcard
+they are valid optimization algorithms for batch problems
+
+**SGD with averaging (Polyak-Ruppert averaging) is exactly this?** #flashcard
+online GD followed by model averaging
+
+**In practice, exponential moving average (EMA) of weights is used instead of uniform average, giving more weight to recent models?** #flashcard
+In practice, exponential moving average (EMA) of weights is used instead of uniform average, giving more weight to recent models
+
+**δ?** #flashcard
+minimum magnitude of change to detect (sensitivity)
+
+**λ?** #flashcard
+alarm threshold (false alarm control)
+
+**Only sufficient statistics are stored per leaf (class counts, feature histograms)?** #flashcard
+Only sufficient statistics are stored per leaf (class counts, feature histograms)
+
+**Once a node is split, it transitions from leaf to internal node?** #flashcard
+no full dataset is retained
+
+**In practice, memory is bounded by capping the number of leaves (least-recently-used eviction)?** #flashcard
+In practice, memory is bounded by capping the number of leaves (least-recently-used eviction)
+
+**Streaming training data?** #flashcard
+maintain a representative sample when you cannot store everything
+
+**Class-balanced sampling?** #flashcard
+maintain per-class reservoirs to ensure balance for classifiers
+
+**Replay buffers?** #flashcard
+in continual learning, reservoir sampling provides a principled way to retain old examples to avoid catastrophic forgetting
+
+**Caveat: reservoir sampling gives a uniform sample over time, not over the current distribution?** #flashcard
+old (potentially drifted) examples are retained with equal probability as recent ones. When concept drift is present, a recency-biased reservoir (decaying acceptance probability) is preferred
+
+**Hashing trick for high-dimensional sparse features (no feature dictionary needed)?** #flashcard
+Hashing trick for high-dimensional sparse features (no feature dictionary needed)
+
+**Native support for FTRL-Proximal, AdaGrad, Adam?** #flashcard
+Native support for FTRL-Proximal, AdaGrad, Adam
+
+**Contextual bandits with exploration (epsilon-greedy, bagging, cover)?** #flashcard
+Contextual bandits with exploration (epsilon-greedy, bagging, cover)
+
+**Sub-second latency per example at billion-feature scale?** #flashcard
+Sub-second latency per example at billion-feature scale
+
+**Shadow deployment?** #flashcard
+run new model in parallel, log predictions, compare against live model offline before traffic cutover
+
+**Champion-Challenger?** #flashcard
+route a fraction of traffic (5–10%) to the new model; promote when metric improves
+
+**Rolling update?** #flashcard
+gradually increase challenger traffic; auto-rollback if metrics degrade by threshold
+
+**Versioned feature stores: online feature stores (Feast, Tecton) snapshot feature schemas per model version?** #flashcard
+prevents training-serving skew when features change

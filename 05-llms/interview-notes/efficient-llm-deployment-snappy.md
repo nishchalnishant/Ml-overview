@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Efficient Llm Deployment Snappy
+status: unread
+tags: [llms, ml, interview-notes-efficient-llm-]
+---
 # Efficient LLM deployment & optimization — “keep it fast, keep it sane”
 
 If you’ve ever tuned a Kubernetes service under load, this will feel familiar: **latency, throughput, memory, cost, and safety**.
@@ -88,3 +95,86 @@ If you’ve ever tuned a Kubernetes service under load, this will feel familiar:
 - **Observe:** App Insights + custom metrics; alert on error rate/latency + quality regressions.
 
 **Mini prompt:** What metric tells you users *feel* it’s slow? → **TTFT** (time-to-first-token).
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Lower numeric precision for weights/activations so models use less memory and run faster.
+
+**Music analogy?** #flashcard
+like compressing a classic track—8-bit is near-lossless, 4-bit is “still beautiful,” 2-bit often sounds underwater.
+
+**Practical?** #flashcard
+FP16/BF16 (training), 8-bit (near-lossless), 4-bit (common local/cheap), AWQ/GPTQ (popular PTQ flavors).
+
+**Direct answer?** #flashcard
+You pay for weights + KV cache + overhead.
+
+**Rule of thumb:?** #flashcard
+Rule of thumb:
+
+**weights?** #flashcard
+\(P \times \text{bytes/param}\)
+
+**KV cache grows with (context × concurrency × layers × hidden size)?** #flashcard
+KV cache grows with (context × concurrency × layers × hidden size)
+
+**Direct answer?** #flashcard
+Cache past Keys/Values so decoding doesn’t recompute history every token.
+
+**DevOps bridge?** #flashcard
+it’s memoization + locality. Great for speed, expensive for memory.
+
+**FlashAttention?** #flashcard
+faster attention via fused kernels and better GPU memory IO.
+
+**Paged attention?** #flashcard
+manages KV cache like virtual memory pages → fewer fragmentation issues and higher concurrency.
+
+**Direct answer?** #flashcard
+draft model proposes tokens; target model verifies in chunks.
+
+**MI analogy?** #flashcard
+a junior fielder predicts the shot, captain confirms the placement—fewer wasted moves.
+
+**Direct answer?** #flashcard
+dynamically pack incoming requests so the GPU stays busy.
+
+**Trade-off?** #flashcard
+better throughput, slightly more queueing delay.
+
+**Prefill?** #flashcard
+process the prompt (heavy compute once).
+
+**Decode?** #flashcard
+generate tokens one-by-one (where KV cache helps).
+
+**Direct answer?** #flashcard
+route based on model residency, GPU memory headroom, and queue depth—not just CPU.
+
+**Levers?** #flashcard
+smaller models, distillation, aggressive quantization, limited context, on-device caching.
+
+**Reality?** #flashcard
+correctness requirements must be lower or narrowly scoped.
+
+**Hard caps?** #flashcard
+max tokens, max tool calls, timeouts.
+
+**Validation?** #flashcard
+schema/JSON enforcement, allow-listed tools, safe parameter ranges.
+
+**Fallbacks?** #flashcard
+smaller model, cached responses, “insufficient data.”
+
+**Build?** #flashcard
+containerize inference server (vLLM/TGI/ONNX runtime).
+
+**Provision?** #flashcard
+AKS GPU node pool (or managed endpoints), autoscaling rules.
+
+**Release?** #flashcard
+blue/green or canary; monitor TTFT + tokens/sec + p95.
+
+**Observe?** #flashcard
+App Insights + custom metrics; alert on error rate/latency + quality regressions.

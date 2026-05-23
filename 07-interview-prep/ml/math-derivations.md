@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Math Derivations
+status: unread
+tags: [interviewprep, ml, ml-math-derivations]
+---
 # Math Derivations for ML Interviews
 
 ---
@@ -270,3 +277,11 @@ This gives consistent effective regularization regardless of each parameter's gr
 6. **Interpret the final form** — what does the gradient signal mean? When is it large/small/zero?
 
 Key simplification to watch for: sigmoid derivative $\hat{y}(1-\hat{y})$ cancels with terms in BCE and softmax+CE gradients, producing $\hat{y} - y$. This always happens when the activation and the loss are conjugates.
+
+## Flashcards
+
+**Error: $\hat{y} - y \approx -1$?** #flashcard
+large error
+
+**Sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$?** #flashcard
+near zero

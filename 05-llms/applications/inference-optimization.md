@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Inference Optimization
+status: unread
+tags: [llms, ml, applications-inference-optimiz]
+---
 # Inference Optimization
 
 ---
@@ -215,3 +222,14 @@ A: Speculative decoding uses a small "draft" model to propose K tokens at once, 
 
 **Q: Compare continuous batching vs static batching for LLM serving — why is continuous batching essential at scale?**
 A: **Static batching**: group N requests into a batch, run prefill + decode together, release the batch only when all sequences finish. Problem: sequences have different lengths — the batch must wait for the longest sequence before returning any results. A batch of 32 where one sequence generates 2000 tokens and others generate 50 tokens wastes 97.5% of compute on the short sequences while they wait. GPU utilization is low because slots are idle after short sequences finish. **Continuous batching** (iteration-level scheduling): after each decode step, evict finished sequences from the batch and immediately insert new waiting requests. The batch composition changes every step. Throughput improvement: 5-10× in practice because GPU utilization stays high. Complexity: need to manage variable batch sizes and KV cache memory dynamically. **PagedAttention** (vLLM): extends continuous batching by managing KV cache in fixed-size pages (like virtual memory), allowing non-contiguous KV cache allocation and enabling near-zero fragmentation. Without PagedAttention, KV cache fragmentation wastes 20-40% of GPU memory. Production: all serious LLM serving (vLLM, TGI, TensorRT-LLM) uses continuous batching + PagedAttention. Static batching is only viable for batch inference jobs where latency doesn't matter.
+
+## Flashcards
+
+**Slow time-to-first-token (prefill)?** #flashcard
+the bottleneck is processing the prompt. Long prompts → FlashAttention-2, chunked prefill, prefix caching. Same system prompt repeated across requests → prefix caching eliminates re-encoding cost.
+
+**Slow token generation (decode): check GPU utilization. If utilization is low, the GPU is memory-bandwidth-bound?** #flashcard
+it is waiting for weight reads from HBM, not doing compute. Solutions: reduce model size (quantize), improve batching (continuous batching), or add GPUs (tensor parallelism).
+
+**High latency for a single user but acceptable throughput?** #flashcard
+speculative decoding reduces per-token latency for a single request.

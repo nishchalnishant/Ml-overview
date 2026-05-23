@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Fundamentals Of Machine Learning
+status: unread
+tags: [interviewprep, ml, ml-fundamentals-of-machine-lea]
+---
 # Fundamentals of Machine Learning
 
 ---
@@ -306,3 +313,164 @@ Policy-based RL (REINFORCE, PPO): directly parameterize and optimize the policy 
 **Common traps**:
 - treating exploration as a minor implementation detail — in RL, insufficient exploration means the agent never discovers that better strategies exist; the explore-exploit tradeoff is a first-class problem, not an afterthought
 - not recognizing that RL is dramatically harder to debug than supervised learning — the training signal is delayed, noisy, non-stationary, and the data distribution changes as the policy changes; standard supervised learning debugging intuitions do not transfer directly
+
+## Flashcards
+
+**defining ML as "the model learns from data" without saying what generalization means?** #flashcard
+any system can memorize a training set; the hard part is performing on examples that were never seen during training
+
+**not recognizing that the training objective and the true goal can diverge?** #flashcard
+a model that minimizes cross-entropy on training data is not necessarily doing what the business wants; these need to be audited separately
+
+**fraud detection with historical labeled transactions → supervised?** #flashcard
+fraud detection with historical labeled transactions → supervised
+
+**customer segmentation without any labels → unsupervised?** #flashcard
+customer segmentation without any labels → unsupervised
+
+**training a model to play a game by receiving the score → reinforcement learning?** #flashcard
+training a model to play a game by receiving the score → reinforcement learning
+
+**treating these as mutually exclusive?** #flashcard
+many real systems blend them: self-supervised learning uses self-generated labels; semi-supervised uses a small labeled set plus a large unlabeled set; weakly supervised uses noisy labels from heuristics
+
+**treating unsupervised as "unguided"?** #flashcard
+you still make explicit choices about distance metric, number of clusters, and architecture; these embed prior assumptions about the structure you expect to find
+
+**"95% training accuracy, 70% validation accuracy" → variance. The gap reveals memorization. Prescriptions?** #flashcard
+regularization, more data, simpler model, dropout.
+
+**"70% training accuracy, 68% validation accuracy" → bias. The model is systematically wrong and does not have the capacity to learn the pattern. Prescriptions?** #flashcard
+more features, more expressive model, less regularization.
+
+**applying regularization to a high-bias model?** #flashcard
+this restricts an already underpowered model and makes it worse
+
+**assuming more data fixes variance?** #flashcard
+it helps, but a model with zero regularization will simply re-overfit to the larger training set; the fix requires a combination of more data and appropriate regularization
+
+**treating the tradeoff as a fixed curve?** #flashcard
+with a better model architecture or better features, you can reduce both bias and variance simultaneously; the tradeoff only holds within a fixed model family
+
+**Both high error?** #flashcard
+underfitting (bias problem)
+
+**Training error low, validation error high?** #flashcard
+overfitting (variance problem)
+
+**Both low with a small gap?** #flashcard
+the sweet spot
+
+**not having a validation set and only looking at training loss?** #flashcard
+you cannot diagnose overfitting without held-out data; training loss alone tells you nothing about generalization
+
+**using validation performance to repeatedly select models without a final held-out test set?** #flashcard
+after 20 rounds of model selection based on the validation set, the validation estimate has effectively been "trained on" and is optimistically biased
+
+**reporting training loss as model quality?** #flashcard
+loss magnitude is only meaningful relative to a baseline or when compared within the same loss function; an absolute cross-entropy number is not interpretable without context
+
+**using accuracy as the metric on imbalanced data?** #flashcard
+if 99% of examples are negative, predict-all-negative achieves 99% accuracy with 0% recall on the class you actually care about
+
+**not checking that the metric aligns with the business objective before training starts?** #flashcard
+discovering the metric mismatch after training is expensive
+
+**Epoch?** #flashcard
+one full pass through the training dataset
+
+**Batch?** #flashcard
+the subset of data used in one optimizer step
+
+**Batch size?** #flashcard
+number of examples in one batch
+
+**Iteration?** #flashcard
+one optimizer step (one batch processed)
+
+**confusing "faster training per epoch" with "better final performance" when increasing batch size?** #flashcard
+larger batches can converge faster per epoch but often generalize worse because noisy gradients from small batches act as implicit regularization
+
+**not knowing that larger batch sizes typically require a proportionally larger learning rate (linear scaling rule)?** #flashcard
+using a large batch with the small-batch learning rate will underfit because each step is too small relative to the gradient quality
+
+**the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)?** #flashcard
+the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)
+
+**the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)?** #flashcard
+the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)
+
+**calibration means different things in each case?** #flashcard
+calibration means different things in each case
+
+**treating a regression problem as classification by binning the output?** #flashcard
+you lose ordinal information and add sensitivity to the choice of bin boundaries, which is an arbitrary hyperparameter
+
+**using sigmoid output with MSE loss for binary classification?** #flashcard
+technically valid but creates poor gradient behavior near saturation; cross-entropy is the principled choice for classification outputs
+
+**assuming L1 is always better for interpretability?** #flashcard
+when features are grouped and correlated, L1 arbitrarily picks one from the group and discards the rest; Elastic Net (L1 + L2) is more stable in this case
+
+**applying strong regularization to a high-bias model?** #flashcard
+the model is already underpowered; adding regularization makes it worse by further restricting its capacity
+
+**applying dropout to small, already-underpowered networks?** #flashcard
+if the model has high bias, dropout reduces capacity further and makes it worse
+
+**forgetting to call model.eval() at inference time?** #flashcard
+active dropout at inference gives stochastic predictions with roughly half the neurons active each call, causing inconsistent outputs; this is a common production bug
+
+**applying dropout after the final output layer?** #flashcard
+almost never correct
+
+**treating pre-trained embeddings as permanently frozen when fine-tuning is available?** #flashcard
+if you have enough task data, fine-tuning the embeddings to your specific task often significantly improves performance; frozen embeddings may not encode the task-relevant distinctions
+
+**using very high-dimensional embeddings for low-cardinality categories?** #flashcard
+wasted parameters; a practical rule of thumb is embedding dimension ≈ min(50, category_count / 2)
+
+**using sigmoid at the output of a multiclass classifier?** #flashcard
+sigmoid applied per class does not constrain probabilities to sum to 1; use softmax for multiclass problems
+
+**computing softmax naively?** #flashcard
+exponentiating large logits causes numerical overflow; subtract the max logit first before exponentiating (mathematically equivalent but numerically stable)
+
+**performing feature selection or preprocessing before cross-validation and then evaluating inside the CV loop?** #flashcard
+the preprocessing has already seen all the validation data; this is leakage. Preprocessing must be refit inside each fold.
+
+**reporting the cross-validation score as the final generalization estimate after using it for model selection?** #flashcard
+the CV was used to select the model, so it is optimistically biased as a performance estimate. You need a held-out test set for the final number.
+
+**Spam filter?** #flashcard
+optimize precision. Missing real email is worse than seeing spam.
+
+**Cancer detection?** #flashcard
+optimize recall. Missing a real case is far worse than an unnecessary biopsy.
+
+**Fraud detection where the investigation team has limited capacity?** #flashcard
+use F1 or set the threshold to match the team's daily review capacity from the precision-recall curve.
+
+**using accuracy as the primary metric on imbalanced data?** #flashcard
+a model that predicts "not fraud" for every transaction achieves 99.9% accuracy on a 0.1% positive-rate dataset, with 0% recall on the class you care about
+
+**fixing the threshold at 0.5 without reasoning about error costs?** #flashcard
+0.5 assumes false positives and false negatives have equal cost; that is rarely true in practice
+
+**treating all anomaly detection as supervised binary classification?** #flashcard
+you will miss novel anomaly types and the model degrades as adversaries learn your detection patterns
+
+**setting the anomaly threshold without understanding the operational context?** #flashcard
+precision at very low recall is usually meaningless; set the threshold based on how many anomalies you can actually review per day
+
+**thinking regularization alone addresses high-dimensional problems?** #flashcard
+dimensionality reduction (PCA, feature selection) or a model architecture with appropriate inductive bias is often more important than regularization
+
+**treating all features as equally useful in high-dimensional settings?** #flashcard
+uninformative features drown out informative ones; feature selection becomes more critical, not less, as dimensionality grows
+
+**treating exploration as a minor implementation detail?** #flashcard
+in RL, insufficient exploration means the agent never discovers that better strategies exist; the explore-exploit tradeoff is a first-class problem, not an afterthought
+
+**not recognizing that RL is dramatically harder to debug than supervised learning?** #flashcard
+the training signal is delayed, noisy, non-stationary, and the data distribution changes as the policy changes; standard supervised learning debugging intuitions do not transfer directly

@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Llmops And Production Ai Snappy
+status: unread
+tags: [llms, ml, interview-notes-llmops-and-pro]
+---
 # LLMOps & production AI — ship it like a service
 LLMs in prod are **systems**, not demos: routing, budgets, safety, and observability.
 **One-line:** LLMOps = DevOps + evals + safety + prompts + retrieval/tool orchestration.
@@ -172,3 +179,164 @@ LLMs in prod are **systems**, not demos: routing, budgets, safety, and observabi
 - **Azure/DevOps bridge:** think *pipelines + gates + dashboards + rollbacks*.
 
 ---
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Define value+risks → build prototype → evals → ship behind flags → monitor → iterate.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+LLMOps adds prompts, context, safety, tool calls, and non-determinism on top of classic MLOps.
+
+**Direct answer?** #flashcard
+Managed API or self-hosted inference behind an API gateway with caching, batching, and guardrails.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Lower precision weights (FP16→INT8/INT4) to cut memory/cost with some quality trade-off.
+
+**Mini pop quiz?** #flashcard
+If costs spike, what do you inspect first? → token usage + retries + context size.
+
+**Direct answer?** #flashcard
+Track latency/cost + quality (hallucinations, refusals) + safety + retrieval metrics.
+
+**Direct answer?** #flashcard
+Tracing every step: prompt build, retrieval, tool calls, model response, validators, user outcome.
+
+**Direct answer?** #flashcard
+Policies + allow-lists + validators + refusal rules + human approvals for risky actions.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Pre/post filters + safety models + blocklists + policy rules + logging.
+
+**Direct answer?** #flashcard
+Tokens in/out × price + retrieval + tool costs + retries + infra; model it like a unit cost.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Route to cheaper models, cache, compress context, reduce retries, quantize/self-host if needed.
+
+**Mini pop quiz?** #flashcard
+If costs spike, what do you inspect first? → token usage + retries + context size.
+
+**Direct answer?** #flashcard
+Randomized routing with guardrails; measure task success and user metrics, not vibes.
+
+**Direct answer?** #flashcard
+Adds eval suites, prompt versioning, safety tests, dataset/version provenance.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Treat prompts as code: repo, reviews, semantic versions, changelogs, rollback.
+
+**Direct answer?** #flashcard
+Registry + canary + metrics gates; quick rollback on regression.
+
+**Direct answer?** #flashcard
+Token-based quotas, per-tenant limits, backpressure queues, graceful errors.
+
+**Direct answer?** #flashcard
+Blue/green, canary, dual-run, shadow traffic, staged rollouts.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Ship safely: enable per-tenant, ramp slowly, instant disable.
+
+**Direct answer?** #flashcard
+Correlate request IDs across retrieval/tools/model; redact PII; sample wisely.
+
+**Direct answer?** #flashcard
+Minimize collection, redact, encrypt, RBAC, retention policies, on-prem where needed.
+
+**Direct answer?** #flashcard
+Central layer for auth, routing, rate limits, caching, safety, provider abstraction.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Server-sent events/websockets; monitor TTFT and inter-token latency.
+
+**Direct answer?** #flashcard
+TTFT, tokens/sec, p95 latency, error rate, cost per task, retrieval recall/precision.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Cloud for capability; on-device for privacy/latency/offline; often hybrid.
+
+**Direct answer?** #flashcard
+Route to backup model/provider, degrade features, cached answers, async mode.
+
+**Direct answer?** #flashcard
+Schema-first + constrained decoding + validation+repair loops with strict budgets.
+
+**Direct answer?** #flashcard
+RAG + summarization + prefix caching + chunk re-ranking; avoid context bloat.
+
+**Mini pop quiz?** #flashcard
+If costs spike, what do you inspect first? → token usage + retries + context size.
+
+**Direct answer?** #flashcard
+Classifier/router chooses model/tool chain based on intent, complexity, and cost.
+
+**Direct answer?** #flashcard
+Key Vault/secret stores, short-lived tokens, RBAC, rotation, no secrets in prompts.
+
+**Direct answer?** #flashcard
+Queueing + continuous batching + autoscaling + caching + reduce context; watch KV cache.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Route, cache, compress context, limit retries, smaller models, quantize/self-host.
+
+**Direct answer?** #flashcard
+Backpressure queues, token budgets, adaptive routing, request shedding.
+
+**Direct answer?** #flashcard
+Gateway abstraction + dual-run + contract tests + gradual cutover.
+
+**Direct answer?** #flashcard
+Horizontal scale, batching, vLLM, sharding, queueing, model routing, caching.
+
+**Direct answer?** #flashcard
+Autoscale + queue + graceful degradation + cached responses + priority tiers.
+
+**Direct answer?** #flashcard
+Multi-region, multi-provider, fallback models, circuit breakers.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.
+
+**Direct answer?** #flashcard
+Step isolation, retries, compensation, timeouts, partial results.
+
+**Direct answer?** #flashcard
+Distributed tracing + structured logs + per-step metrics + replayable traces.
+
+**Direct answer?** #flashcard
+Use AWQ/GPTQ, mixed precision, calibrate on domain data, evaluate, rollback if needed.
+
+**Direct answer?** #flashcard
+Tiered features: best effort → safe fallback → ‘insufficient data’; never fail closed on UX.
+
+**Azure/DevOps bridge?** #flashcard
+think pipelines + gates + dashboards + rollbacks.

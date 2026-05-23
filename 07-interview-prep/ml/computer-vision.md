@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Computer Vision
+status: unread
+tags: [interviewprep, ml, ml-computer-vision]
+---
 # Computer Vision
 
 **Primary reference:** [Computer Vision deep dive](../../03-deep-learning/methods/computer-vision.md)
@@ -239,3 +246,122 @@ CNNs encode locality and translation equivariance as hard architectural constrai
 
 **If asked why a model performs well on test but poorly in production:**
 Enumerate the distribution shift sources: camera hardware differences, lighting differences, subject population differences, temporal drift in product appearances. Then enumerate pipeline consistency: same normalization? same resize interpolation? same color channel ordering? Offline accuracy gaps are data problems; pipeline bugs produce consistent systematic errors visible in specific input types.
+
+## Flashcards
+
+**Locality?** #flashcard
+the information needed to recognize any local region is mostly in that region and its immediate neighborhood
+
+**Translation equivariance: a cat in the upper-left and a cat in the lower-right share the same local appearance features?** #flashcard
+the feature representation should not depend on where it is in the image
+
+**Hierarchy?** #flashcard
+edges combine into shapes, shapes combine into parts, parts combine into objects
+
+**Saying "CNNs are better than MLPs for images" without explaining why. The answer is locality and translation equivariance as specific inductive biases that match the structure of natural images.?** #flashcard
+Saying "CNNs are better than MLPs for images" without explaining why. The answer is locality and translation equivariance as specific inductive biases that match the structure of natural images.
+
+**Treating inductive bias as universally good. An inductive bias is an assumption about the data distribution. If the assumption is wrong?** #flashcard
+for example, applying translation equivariance to images where position is diagnostically important — the bias is harmful.
+
+**Ignoring that Vision Transformers largely abandon these inductive biases and learn spatial relationships from scratch. The tradeoff is data efficiency (CNNs better) versus scalability with data (ViTs better).?** #flashcard
+Ignoring that Vision Transformers largely abandon these inductive biases and learn spatial relationships from scratch. The tradeoff is data efficiency (CNNs better) versus scalability with data (ViTs better).
+
+**Confusing what stride and padding do independently. Stride reduces spatial resolution and increases the receptive field covered per parameter. Padding preserves spatial dimensions. A common interview question: "why would you increase stride?"?** #flashcard
+the answer is to reduce spatial resolution quickly and cheaply, as in stem layers of efficient architectures where you want to reduce computation before the expensive later layers.
+
+**Treating depthwise separable convolutions as a separate topic rather than a factorization of standard convolutions. Interviewers asking about efficient architectures expect you to derive the FLOPs reduction?** #flashcard
+standard convolution has $k^2 \cdot C_{\text{in}} \cdot C_{\text{out}} \cdot H \cdot W$ multiplications; depthwise separable has $k^2 \cdot C_{\text{in}} \cdot H \cdot W + C_{\text{in}} \cdot C_{\text{out}} \cdot H \cdot W$, a reduction by approximately $1/C_{\text{out}} + 1/k^2$.
+
+**Treating pooling as mandatory. Strided convolutions achieve similar spatial compression and are learnable?** #flashcard
+the pooling window is fixed but a stride-2 convolution learns what to compress. Modern architectures (ResNet with stride-2 convolutions, ViT with patch embeddings) reduce or eliminate explicit pooling layers.
+
+**Conflating max pooling (used within the feature extraction network for local translation tolerance) with global average pooling (used at the end for spatial collapse before classification). They are different operations with different purposes.?** #flashcard
+Conflating max pooling (used within the feature extraction network for local translation tolerance) with global average pooling (used at the end for spatial collapse before classification). They are different operations with different purposes.
+
+**Saying residual connections "help gradients flow" without the specific mechanism. The claim is that the identity shortcut provides a gradient path that bypasses the block's nonlinearities?** #flashcard
+the gradient of the sum includes the identity matrix, which prevents complete vanishing.
+
+**Confusing the residual learning argument (easier to learn near-zero residuals than near-identity full mappings) with the gradient argument (identity shortcut prevents vanishing). Both are true and both are worth stating?** #flashcard
+they address different aspects of why the design works.
+
+**Conflating residual connections with dense connections (DenseNet). Residuals add the block's input to its output via a single shortcut. DenseNet concatenates all previous layer outputs to every subsequent layer?** #flashcard
+more parameter sharing but also more memory.
+
+**Defaulting to segmentation when detection suffices. Segmentation requires pixel-level annotation (15× more expensive to label), is computationally heavier, and provides no benefit if pixel-level location is not required.?** #flashcard
+Defaulting to segmentation when detection suffices. Segmentation requires pixel-level annotation (15× more expensive to label), is computationally heavier, and provides no benefit if pixel-level location is not required.
+
+**Treating semantic and instance segmentation as equivalent difficulty levels rather than different problem formulations. They differ on whether the model distinguishes individual instances of the same class?** #flashcard
+semantic segmentation cannot count two touching dogs; instance segmentation can.
+
+**Ignoring the anchor design problem. One-stage detectors historically required carefully designed anchor boxes tuned to expected object aspect ratios. Anchor-free detectors (FCOS, CenterNet) eliminate this requirement?** #flashcard
+important when deploying on datasets with unusual object shapes where prior anchor distributions are unavailable.
+
+**Treating mAP as the only relevant metric. Latency, hardware budget, and the cost asymmetry between false positives and false negatives often dominate the decision in practice.?** #flashcard
+Treating mAP as the only relevant metric. Latency, hardware budget, and the cost asymmetry between false positives and false negatives often dominate the decision in practice.
+
+**Reporting mAP without specifying the IoU threshold. mAP@0.5 and mAP@0.5:0.95 can differ dramatically, and comparisons across papers reporting different thresholds are invalid.?** #flashcard
+Reporting mAP without specifying the IoU threshold. mAP@0.5 and mAP@0.5:0.95 can differ dramatically, and comparisons across papers reporting different thresholds are invalid.
+
+**Assuming high overall mAP means good performance on all object sizes. COCO breaks mAP into AP_S (small, area < 32²), AP_M (medium), AP_L (large, area > 96²). A model can have high overall mAP but terrible AP_S, which matters enormously for applications involving small objects?** #flashcard
+aerial surveillance, satellite imagery, microorganism detection.
+
+**Treating mAP as sufficient when false positive and false negative costs are asymmetric. mAP is a symmetric metric; it does not capture whether your application cares more about missing objects (false negatives) or about raising false alarms (false positives).?** #flashcard
+Treating mAP as sufficient when false positive and false negative costs are asymmetric. mAP is a symmetric metric; it does not capture whether your application cares more about missing objects (false negatives) or about raising false alarms (false positives).
+
+**Horizontal flip is fine for ImageNet but wrong for digit recognition (a flipped "6" becomes a "9") and wrong for lateralized anatomy in medical images?** #flashcard
+Horizontal flip is fine for ImageNet but wrong for digit recognition (a flipped "6" becomes a "9") and wrong for lateralized anatomy in medical images
+
+**Aggressive color jitter is harmful when color is diagnostically relevant?** #flashcard
+pathology slides, food freshness assessment, skin lesion classification
+
+**Rotation by 90° is appropriate for aerial imagery (no canonical orientation) but wrong for text recognition?** #flashcard
+Rotation by 90° is appropriate for aerial imagery (no canonical orientation) but wrong for text recognition
+
+**Geometric (flip, rotation, crop, perspective): spatial invariances?** #flashcard
+the class does not depend on exact orientation or cropping
+
+**Color (brightness, contrast, saturation, hue jitter): photometric invariances?** #flashcard
+the class does not depend on exact lighting conditions
+
+**Cutout/CutMix: occlusion robustness?** #flashcard
+teaches the model not to rely on any single distinctive patch; CutMix additionally interpolates labels proportional to the area swapped, which is a form of label smoothing
+
+**MixUp: linear interpolation between two examples and their labels?** #flashcard
+$\tilde{x} = \lambda x_i + (1-\lambda)x_j$, $\tilde{y} = \lambda y_i + (1-\lambda)y_j$ — encourages smooth decision boundaries and reduces overconfidence
+
+**Applying augmentations without checking whether they are label-preserving for the specific task. This is the most important step and it is skipped constantly. The canonical failure?** #flashcard
+applying horizontal flip to digit recognition datasets because "flip is a standard augmentation."
+
+**Treating more augmentation as always better. Aggressive augmentation on large datasets can damage fine-grained discriminative features?** #flashcard
+augmenting away the exact visual differences that distinguish similar classes.
+
+**Not applying the same augmentation pipeline consistently between training and validation. Augmenting only training data is correct (the model should see varied training; evaluation should be clean). Applying training augmentations to the validation set inflates the difficulty of the evaluation.?** #flashcard
+Not applying the same augmentation pipeline consistently between training and validation. Augmenting only training data is correct (the model should see varied training; evaluation should be clean). Applying training augmentations to the validation set inflates the difficulty of the evaluation.
+
+**How was training data labeled? What is the inter-annotator agreement? What are the edge case definitions in the labeling protocol?** #flashcard
+How was training data labeled? What is the inter-annotator agreement? What are the edge case definitions in the labeling protocol?
+
+**What camera hardware is used in production? Resolution, lens characteristics, color space, compression artifacts?** #flashcard
+What camera hardware is used in production? Resolution, lens characteristics, color space, compression artifacts?
+
+**What are the lighting conditions? Indoor, outdoor, mixed, artificial, time-of-day variation?** #flashcard
+What are the lighting conditions? Indoor, outdoor, mixed, artificial, time-of-day variation?
+
+**What are the failure modes that matter? Are false positives or false negatives more costly?** #flashcard
+What are the failure modes that matter? Are false positives or false negatives more costly?
+
+**What is the monitoring plan? What signals detect when the model starts degrading?** #flashcard
+What is the monitoring plan? What signals detect when the model starts degrading?
+
+**What is the rollback plan?** #flashcard
+What is the rollback plan?
+
+**Optimizing for benchmark metrics without evaluating performance on the specific visual categories or conditions relevant to the application. A model at 94% top-1 accuracy on ImageNet may have 60% accuracy on the objects relevant to the use case.?** #flashcard
+Optimizing for benchmark metrics without evaluating performance on the specific visual categories or conditions relevant to the application. A model at 94% top-1 accuracy on ImageNet may have 60% accuracy on the objects relevant to the use case.
+
+**Ignoring inference latency during architecture selection. A model taking 200ms per image is fine for batch processing but unusable for real-time video. This constraint should be established at the start of architecture search, not after.?** #flashcard
+Ignoring inference latency during architecture selection. A model taking 200ms per image is fine for batch processing but unusable for real-time video. This constraint should be established at the start of architecture search, not after.
+
+**Neglecting preprocessing pipeline consistency. Training-serving skew in resizing interpolation method, normalization constants, or color channel ordering is a common cause of production performance drops that is completely invisible to offline evaluation. BILINEAR resizing in training and NEAREST in serving produces different input distributions to the model.?** #flashcard
+Neglecting preprocessing pipeline consistency. Training-serving skew in resizing interpolation method, normalization constants, or color channel ordering is a common cause of production performance drops that is completely invisible to offline evaluation. BILINEAR resizing in training and NEAREST in serving produces different input distributions to the model.

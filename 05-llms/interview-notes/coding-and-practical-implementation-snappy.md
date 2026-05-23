@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Coding And Practical Implementation Snappy
+status: unread
+tags: [llms, ml, interview-notes-coding-and-pra]
+---
 # Coding & practical implementation — patterns you can type under pressure
 
 This file is intentionally **code-forward** but not bloated. Each question gives a minimal, interview-safe skeleton.

@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Llm Fundamentals
+status: unread
+tags: [llms, ml, interview-notes-llm-fundamenta]
+---
 # LLM Fundamentals — Interview Notes
 
 ---
@@ -259,3 +266,41 @@ A load-balancing auxiliary loss encourages uniform expert utilization — withou
 **What the interviewer is testing**: do you understand that "MoE has more parameters" and "MoE is cheaper to infer" can both be true simultaneously?
 
 **Common traps**: confusing total parameters with active parameters; not knowing that MoE still requires full model memory (all experts must be on device or accessible quickly); saying that MoE improves quality for free — the quality gain requires careful load-balancing and hyperparameter tuning.
+
+## Flashcards
+
+**Encoder-only (BERT): no causal mask?** #flashcard
+each token attends to all others in both directions. Excellent for classification, NER, embedding generation. Cannot generate text autoregressively (would need to "see" tokens it hasn't emitted yet).
+
+**Decoder-only (GPT family, Llama, Claude): causal mask?** #flashcard
+token i can only attend to tokens 1..i. Trained as a next-token predictor. Everything current state-of-the-art LLMs do uses this architecture because the pretraining objective (next-token prediction) and the architecture (causal attention) are perfectly aligned.
+
+**Encoder-decoder (T5, BART)?** #flashcard
+encoder processes the full input bidirectionally; decoder generates output with cross-attention to the encoder's hidden states. Natural for tasks with explicit input/output structure (translation, summarization). More parameters to serve, slower inference.
+
+**Greedy?** #flashcard
+argmax over vocabulary. Deterministic, fast, often produces repetition loops.
+
+**Temperature?** #flashcard
+divide logits by T before softmax. T < 1 sharpens the distribution (more deterministic); T > 1 flattens it (more random). T = 0 approaches greedy.
+
+**Top-k?** #flashcard
+sample only from the k most probable tokens. Problem: k is fixed regardless of how peaked or flat the distribution is.
+
+**Top-p (nucleus sampling)?** #flashcard
+include the smallest set of tokens whose cumulative probability ≥ p (typically 0.9–0.95). The number of candidates adapts to the distribution's shape. Standard for most production deployments.
+
+**Beam search?** #flashcard
+maintain B candidate sequences simultaneously, expanding the most probable ones. Better for constrained tasks (translation, summarization) but produces generic text in open-ended generation.
+
+**Sinusoidal (original Transformer)?** #flashcard
+PE(pos, 2i) = sin(pos / 10000^(2i/d)), PE(pos, 2i+1) = cos(pos / 10000^(2i/d)). Different frequencies for different dimensions. Fixed, not learned. Cannot extrapolate beyond training sequence lengths.
+
+**Learned absolute positions?** #flashcard
+each position gets a learned embedding. Works well within training range; degrades outside it.
+
+**RoPE (Rotary Position Embedding): applied to Q and K before the dot product. Relative position enters as a rotation in embedding space?** #flashcard
+token i and token j's attention score depends naturally on (i - j). Used in Llama, Mistral, and most modern open models. Can be extended via RoPE scaling.
+
+**ALiBi (Attention with Linear Biases)?** #flashcard
+adds a linear bias to attention scores based on distance. Enables zero-shot extrapolation to longer sequences.

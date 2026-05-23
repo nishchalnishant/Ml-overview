@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Large Reasoning Models
+status: unread
+tags: [emergingtopics, ml, emerging-trends-large-reasonin]
+---
 # Large Reasoning Models
 
 How o1, o3, DeepSeek-R1, and Gemini 2.5 Pro achieve superhuman performance on math and code by separating "thinking time" from "answer time." The paradigm shift from next-token prediction to process-level reward optimization.
@@ -211,3 +218,44 @@ A: Both GRPO and PPO are policy gradient methods that optimize the language mode
 
 **Q: Why does test-time compute scaling work, and what are its limits?**
 A: Test-time compute scaling works because hard problems require searching a large reasoning tree — there are many possible solution paths, and the correct one requires navigating through many failed attempts. More thinking tokens = more tree nodes explored = higher probability of finding the correct path. This is similar to how humans "think harder" on difficult problems by considering more possibilities. The scaling continues because: (1) problems can have arbitrarily deep search trees; (2) the model can verify its own work and restart when it detects errors; (3) the quality of reasoning improves because more context (previous failed attempts) helps avoid the same mistakes. Limits: (1) diminishing returns — doubling thinking tokens from 32K to 64K gives much smaller gains than doubling from 512 to 1K; (2) context window bounds the maximum reasoning trace; (3) the model can still make systematic errors that more thinking doesn't fix (e.g., wrong mathematical axiom applied consistently); (4) hallucinated confidence — the model can generate plausible-looking long reasoning traces that are actually wrong, especially for claims it can't verify.
+
+## Flashcards
+
+**Self-verification?** #flashcard
+model spontaneously starts checking its own work
+
+**Backtracking?** #flashcard
+model writes "wait, that's wrong" and restarts
+
+**"Aha moments"?** #flashcard
+model discovers a shorter solution path mid-trace
+
+**Length increase?** #flashcard
+reasoning traces grow from ~500 to ~5000+ tokens as training progresses (model learns longer thinking = better answers)
+
+**Thinking: internal scratchpad?** #flashcard
+not shown to user, can use different formatting, allowed to "fail" and backtrack
+
+**Answer: final output?** #flashcard
+shown to user
+
+**Math (check numerical answer or proof validity)?** #flashcard
+Math (check numerical answer or proof validity)
+
+**Code (run test cases, check pass/fail)?** #flashcard
+Code (run test cases, check pass/fail)
+
+**Logic puzzles (check consistency)?** #flashcard
+Logic puzzles (check consistency)
+
+**Formal verification (SMT solver check)?** #flashcard
+Formal verification (SMT solver check)
+
+**Open-ended writing (no ground truth)?** #flashcard
+Open-ended writing (no ground truth)
+
+**Factual Q&A (ambiguous, hard to verify automatically)?** #flashcard
+Factual Q&A (ambiguous, hard to verify automatically)
+
+**Instruction following (requires human or LLM judge)?** #flashcard
+Instruction following (requires human or LLM judge)

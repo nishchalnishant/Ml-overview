@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Data Preprocessing And Feature Engineering
+status: unread
+tags: [interviewprep, ml, ml-data-preprocessing-and-feat]
+---
 # Data Preprocessing and Feature Engineering
 
 ---
@@ -239,3 +246,107 @@ Second — and more important — accuracy is the wrong metric. A model with 0% 
 **Common traps**:
 - oversampling the minority class with SMOTE without careful thought — SMOTE generates synthetic interpolations between minority class points, which can introduce geometrically unrealistic examples; class weighting usually achieves the same effect more cleanly and with fewer artifacts
 - choosing the threshold at 0.5 for imbalanced problems — with a 1% positive rate, a threshold of 0.5 means the model must be fairly confident before flagging anything; the right threshold should be chosen from the precision-recall curve based on operational constraints (how many alerts can be reviewed per day)
+
+## Flashcards
+
+**jumping to model selection before auditing the data?** #flashcard
+the fastest path to production is understanding why the data looks the way it does; a week of data investigation can prevent months of debugging
+
+**treating preprocessing as a one-time step?** #flashcard
+preprocessing logic must be implemented identically in the training pipeline and the inference pipeline, version-controlled alongside the model, and monitored for drift
+
+**fitting the scaler on the full dataset before splitting?** #flashcard
+this leaks test set distribution information (mean and variance of test features) into the training pipeline; it is a subtle form of data leakage
+
+**applying scaling to tree-based models expecting improvement?** #flashcard
+scaling changes nothing for trees and adds unnecessary pipeline complexity
+
+**Color (red/blue/green)?** #flashcard
+one-hot → 3 binary columns
+
+**City (10,000 unique values)?** #flashcard
+target encoding with smoothing → 1 numeric column per city
+
+**target encoding on the full dataset?** #flashcard
+the category mean is computed using the labels you are trying to predict; this is direct label leakage. Always use out-of-fold target encoding: compute statistics on training folds, apply to held-out folds
+
+**not handling unseen categories at inference time?** #flashcard
+a city not seen during training has no stored encoding; you need a fallback (global mean, a special "unseen" token, or a default value)
+
+**using ordinal encoding (1, 2, 3...) for nominal categories?** #flashcard
+this incorrectly encodes the assumption that the categories have a meaningful numeric ordering when they do not
+
+**MCAR (Missing Completely at Random)?** #flashcard
+missingness is independent of both observed and unobserved values. Row deletion or simple imputation is usually safe.
+
+**MAR (Missing At Random)?** #flashcard
+missingness depends on other observed features (e.g., older customers are less likely to fill in income). Model-based imputation using the observed features can recover the true distribution.
+
+**MNAR (Missing Not at Random): missingness depends on the unobserved value itself (e.g., high-income customers leave the income field blank). No imputation method can fully recover this?** #flashcard
+the missingness itself is informative.
+
+**treating all missingness as MCAR and applying mean imputation?** #flashcard
+mean imputation is only appropriate for MCAR; for MAR and MNAR it introduces bias by ignoring the dependence between missingness and other variables
+
+**dropping rows with missing values without checking what fraction of positive examples are lost?** #flashcard
+in imbalanced datasets, missingness may be correlated with the positive class; dropping rows can dramatically change your effective class distribution
+
+**fitting the imputer on the full dataset before splitting?** #flashcard
+fit the imputer (its mean, its KNN model) only on training data; apply it to validation and test using training statistics only
+
+**log-transforming a feature and forgetting the inverse transform at prediction time?** #flashcard
+if you model log(price), predictions are in log-space; you must exponentiate before reporting to users
+
+**applying log transform to features with zeros?** #flashcard
+$\log(0)$ is undefined; use $\log(x + 1)$ instead, or apply RobustScaler if the skewness is driven by outliers rather than the scale of the distribution
+
+**using IQR-based outlier removal blindly without understanding domain?** #flashcard
+a value being statistically extreme does not mean it is wrong; the IQR test is a detection heuristic, not a ground truth for validity
+
+**in fraud and anomaly detection, the outlier is often the target?** #flashcard
+removing statistical outliers in these domains destroys the very signal you are trying to model
+
+**engineering features that are not available at inference time?** #flashcard
+if you use the target variable or post-event information in feature construction, that is leakage; the feature must be computable using only information available at the moment of prediction
+
+**not validating that engineered features are stable across time?** #flashcard
+a feature predictive in historical data may stop being predictive when underlying behavior shifts; monitor feature distributions and predictive power in production
+
+**using cross-validation without re-fitting preprocessing inside each fold?** #flashcard
+this leaks validation fold statistics into the preprocessing fit; the scaler has already seen the validation examples
+
+**performing feature selection on the full dataset before splitting?** #flashcard
+the selected features are correlated with the test labels, inflating all downstream validation estimates
+
+**Filter methods?** #flashcard
+score each feature independently of the model (correlation with target, mutual information, chi-squared). Fast but ignore feature interactions.
+
+**Wrapper methods?** #flashcard
+train the model on different feature subsets and select the best-performing subset. Expensive but finds the optimal subset for the specific model.
+
+**Embedded methods?** #flashcard
+regularization during training selects features (L1/Lasso zeroes out unimportant features; XGBoost feature importance provides rankings).
+
+**performing feature selection before the train/test split?** #flashcard
+any method that computes statistics on the full dataset (even univariate correlation) leaks test information into the selection process
+
+**removing features with low individual correlation to the target without checking interactions?** #flashcard
+two individually uncorrelated features may be jointly predictive; filter methods miss interaction effects
+
+**using PCA-extracted features and then trying to explain the model using feature importances?** #flashcard
+the "features" are linear combinations of original features; the importance scores correspond to PCA components, not to original measurable variables
+
+**treating feature selection and extraction as equivalent alternatives?** #flashcard
+they have different tradeoffs and different downstream interpretability implications; choosing between them requires knowing whether interpretability is a hard requirement
+
+**designing feature computations in training that cannot be replicated in real-time in production?** #flashcard
+"I used 30 joins in the training query" needs a production-ready equivalent that can execute within the latency budget
+
+**not testing the inference pipeline with actual production feature values?** #flashcard
+offline validation metrics can look fine while production performance is degraded due to skew that only appears with real serving-time feature values
+
+**oversampling the minority class with SMOTE without careful thought?** #flashcard
+SMOTE generates synthetic interpolations between minority class points, which can introduce geometrically unrealistic examples; class weighting usually achieves the same effect more cleanly and with fewer artifacts
+
+**choosing the threshold at 0.5 for imbalanced problems?** #flashcard
+with a 1% positive rate, a threshold of 0.5 means the model must be fairly confident before flagging anything; the right threshold should be chosen from the precision-recall curve based on operational constraints (how many alerts can be reviewed per day)

@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Moe Advanced And Routing
+subtopic: ""
+status: unread
+tags: [llms, ml, moe-advanced-and-routing]
+---
 # Mixture of Experts (MoE) — Advanced and Routing
 
 MoE is the architecture behind Mixtral, DeepSeek, Qwen3, and GPT-4 (rumored). Understanding routing, load balancing, and failure modes is essential for 2024/2025 LLM interviews.
@@ -297,3 +304,53 @@ A: Check routing entropy at each MoE layer — if entropy dropped significantly,
 
 **Q: How does expert parallelism differ from tensor parallelism?**  
 A: Tensor parallelism splits a single weight matrix across GPUs — each GPU computes a partial result and all-reduces to get the full result. Every token uses every GPU. Expert parallelism assigns entire experts to different GPUs — each token only uses the GPU holding its assigned expert. EP requires all-to-all communication (each token goes to its expert's GPU, then returns), while TP requires all-reduce (sum across GPUs). EP is better when experts can fit on individual GPUs and all-to-all bandwidth is sufficient; TP is better when individual matrices are too large for one GPU and high-bandwidth NVLink is available.
+
+## Flashcards
+
+**Parameters?** #flashcard
+determine model capacity and memory footprint
+
+**Active FLOPs?** #flashcard
+determine compute cost per token
+
+**MoE decouples these?** #flashcard
+large capacity at dense-model inference cost
+
+**$f_i = \frac{\text{tokens dispatched to expert } i}{\text{total tokens}}$ (fraction of tokens)?** #flashcard
+$f_i = \frac{\text{tokens dispatched to expert } i}{\text{total tokens}}$ (fraction of tokens)
+
+**$P_i = \frac{1}{T}\sum_{x} G_i(x)$ (mean routing probability for expert i)?** #flashcard
+$P_i = \frac{1}{T}\sum_{x} G_i(x)$ (mean routing probability for expert i)
+
+**N = number of experts?** #flashcard
+N = number of experts
+
+**α = load balancing coefficient (typically 0.01–0.1)?** #flashcard
+α = load balancing coefficient (typically 0.01–0.1)
+
+**Shared experts (always active)?** #flashcard
+handle common knowledge
+
+**Routed experts (top-K selected)?** #flashcard
+handle specialized knowledge
+
+**capacity_factor ↑ → fewer dropped tokens, more memory?** #flashcard
+capacity_factor ↑ → fewer dropped tokens, more memory
+
+**capacity_factor ↓ → more dropped tokens (information loss), less memory?** #flashcard
+capacity_factor ↓ → more dropped tokens (information loss), less memory
+
+**Training?** #flashcard
+drop tokens (ignore their gradients) at overloaded experts
+
+**Inference?** #flashcard
+typically use capacity_factor=2.0 to minimize drops, or use "no drop" mode
+
+**Some experts activate on specific syntactic patterns (punctuation, numbers)?** #flashcard
+Some experts activate on specific syntactic patterns (punctuation, numbers)
+
+**Some on semantic domains (medical text, code, math)?** #flashcard
+Some on semantic domains (medical text, code, math)
+
+**Some on languages (English expert vs Chinese expert)?** #flashcard
+Some on languages (English expert vs Chinese expert)

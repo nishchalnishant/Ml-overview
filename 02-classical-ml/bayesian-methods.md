@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Bayesian Methods
+subtopic: ""
+status: unread
+tags: [classicalml, ml, bayesian-methods]
+---
 # Bayesian Methods in ML
 
 ---
@@ -301,3 +308,56 @@ def guide(X, y):
 - Deep ensembles often outperform variational BNNs for uncertainty, at the cost of compute.
 - Bayesian Optimization is the standard approach for expensive hyperparameter tuning (Optuna, Ax, HyperOpt internally use it).
 - ELBO = reconstruction term + KL regularization; used in VAEs and VI.
+
+## Flashcards
+
+**m(x) = mean function (often 0)?** #flashcard
+m(x) = mean function (often 0)
+
+**k(x, x') = kernel/covariance function (encodes smoothness, periodicity, etc.)?** #flashcard
+k(x, x') = kernel/covariance function (encodes smoothness, periodicity, etc.)
+
+**RBF (squared exponential): smooth functions?** #flashcard
+used when you expect the function to vary smoothly
+
+**Matérn: controls smoothness via ν parameter?** #flashcard
+less smooth than RBF, more realistic for many physical processes
+
+**Periodic?** #flashcard
+for functions with known periodicity
+
+**Linear?** #flashcard
+Bayesian linear regression as a special case
+
+**$N=5$ ensembles give strong uncertainty estimates, often beating VI-based BNNs?** #flashcard
+$N=5$ ensembles give strong uncertainty estimates, often beating VI-based BNNs
+
+**Expensive?** #flashcard
+$N\times$ training compute and memory
+
+**Prior?** #flashcard
+P(z) = N(0, I)
+
+**Likelihood?** #flashcard
+P(x | z) = N(μ_θ(z), σ_θ(z))
+
+**Approximate posterior?** #flashcard
+q_φ(z | x) = N(μ_φ(x), σ_φ(x))
+
+**MAP = MLE + prior; Ridge regression is MAP with Gaussian prior.?** #flashcard
+MAP = MLE + prior; Ridge regression is MAP with Gaussian prior.
+
+**GPs give principled uncertainty but scale as O(n³).?** #flashcard
+GPs give principled uncertainty but scale as O(n³).
+
+**MC-Dropout is the cheapest way to get uncertainty estimates from neural nets.?** #flashcard
+MC-Dropout is the cheapest way to get uncertainty estimates from neural nets.
+
+**Deep ensembles often outperform variational BNNs for uncertainty, at the cost of compute.?** #flashcard
+Deep ensembles often outperform variational BNNs for uncertainty, at the cost of compute.
+
+**Bayesian Optimization is the standard approach for expensive hyperparameter tuning (Optuna, Ax, HyperOpt internally use it).?** #flashcard
+Bayesian Optimization is the standard approach for expensive hyperparameter tuning (Optuna, Ax, HyperOpt internally use it).
+
+**ELBO = reconstruction term + KL regularization; used in VAEs and VI.?** #flashcard
+ELBO = reconstruction term + KL regularization; used in VAEs and VI.

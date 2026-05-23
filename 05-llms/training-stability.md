@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Training Stability
+subtopic: ""
+status: unread
+tags: [llms, ml, training-stability]
+---
 # LLM Training Stability
 
 ---
@@ -351,3 +358,53 @@ A production LLM training run should log the following every 10–50 steps:
 | Plateau then sudden decrease | Escaped flat region; normal |
 | Slow creeping increase over many steps | Distribution shift in data pipeline |
 | Immediate NaN at step 1 | Learning rate far too high |
+
+## Flashcards
+
+**RLHF where the reward model implicitly rewards length → model learns to pad?** #flashcard
+RLHF where the reward model implicitly rewards length → model learns to pad
+
+**SFT on a small, low-diversity dataset → rare vocabulary tokens get suppressed?** #flashcard
+SFT on a small, low-diversity dataset → rare vocabulary tokens get suppressed
+
+**Gradient scale mismatch in PPO → RL signal overwhelms the language prior?** #flashcard
+Gradient scale mismatch in PPO → RL signal overwhelms the language prior
+
+**Verbosity?** #flashcard
+annotators who trained the reward model tended to prefer longer responses; the policy learns to pad responses
+
+**Sycophancy?** #flashcard
+model learns to agree with any stated premise in the prompt
+
+**Format exploitation?** #flashcard
+specific phrases or bullet-point structures that reward annotators tended to prefer
+
+**Raw batch loss?** #flashcard
+Raw batch loss
+
+**100-step rolling average (smoothed signal for spike detection)?** #flashcard
+100-step rolling average (smoothed signal for spike detection)
+
+**Validation loss on a fixed held-out set (every 1,000 steps)?** #flashcard
+Validation loss on a fixed held-out set (every 1,000 steps)
+
+**grad_norm (pre-clip)?** #flashcard
+should stay 0.2–2.0 during stable training
+
+**clip_fraction?** #flashcard
+fraction of steps where clipping occurred; alert if sustained above 50%
+
+**Attention entropy?** #flashcard
+dropping entropy → repetition risk
+
+**Activation norm per layer?** #flashcard
+sudden increases signal instability
+
+**KL divergence from reference (alert if > 20 nats)?** #flashcard
+KL divergence from reference (alert if > 20 nats)
+
+**Reward model score distribution (watch for rapid reward increase with KL growth)?** #flashcard
+Reward model score distribution (watch for rapid reward increase with KL growth)
+
+**Response length distribution (widening toward long tail → verbosity reward hacking)?** #flashcard
+Response length distribution (widening toward long tail → verbosity reward hacking)

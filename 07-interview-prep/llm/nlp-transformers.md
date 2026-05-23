@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Nlp Transformers
+status: unread
+tags: [interviewprep, ml, llm-nlp-transformers]
+---
 # NLP and Transformers — First-Principles Interview Guide
 
 ---
@@ -341,3 +348,41 @@ Perplexity $k$ means the model is, on average, as uncertain as if choosing unifo
 
 **Why ROUGE-L for summarization:**
 LCS (Longest Common Subsequence) between generated and reference summary. Captures key phrases in order without requiring exact contiguous n-grams. More robust than ROUGE-1/2 for paraphrased summaries.
+
+## Flashcards
+
+**Query ($Q$)?** #flashcard
+what am I looking for?
+
+**Key ($K$)?** #flashcard
+what do I advertise?
+
+**Value ($V$)?** #flashcard
+what is my actual content?
+
+**Classification?** #flashcard
+"classify sentiment: This movie was great. → positive"
+
+**Translation?** #flashcard
+"translate English to French: Hello world. → Bonjour monde."
+
+**QA?** #flashcard
+"question: What is the capital? context: France is in Europe. → Paris"
+
+**Full matrix?** #flashcard
+$4096^2 = 16.8M$ parameters
+
+**LoRA: $16 \times (4096 + 4096) = 131K$ parameters?** #flashcard
+128× reduction
+
+**Penalizes paraphrases that use different but equivalent words?** #flashcard
+Penalizes paraphrases that use different but equivalent words
+
+**Sentence-level BLEU is unreliable; use corpus-level?** #flashcard
+Sentence-level BLEU is unreliable; use corpus-level
+
+**High BLEU doesn't imply fluency or factual accuracy?** #flashcard
+High BLEU doesn't imply fluency or factual accuracy
+
+**Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines?** #flashcard
+Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines

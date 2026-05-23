@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Methods
+subtopic: Video Understanding
+status: unread
+tags: [deeplearning, ml, methods-video-understanding]
+---
 # Video Understanding
 
 > Covers two-stream networks, 3D CNNs, SlowFast, video transformers, and key tasks (action recognition, temporal localization, segmentation, VQA).
@@ -339,3 +346,59 @@ Kinetics clips are labeled with fine-grained action classes (e.g., "kite surfing
 
 **For temporal localization, why is ActionFormer the current standard?**
 ActionFormer applies a transformer to temporal features of an untrimmed video, where each token represents a short temporal window. Global attention allows long-range context for action boundary detection. It predicts start/end directly (one-stage), avoiding the two-stage proposal-then-classify pipeline and its associated latency.
+
+## Flashcards
+
+**Temporal modeling?** #flashcard
+which frames matter, and how do they relate to each other?
+
+**Computational cost?** #flashcard
+videos run at 25–60 fps over minutes. Processing every frame at full resolution with a deep network is prohibitive.
+
+**Long-range dependencies: some actions (cooking a meal, playing a sport) require context from seconds or minutes apart?** #flashcard
+well beyond the receptive field of any practical 3D CNN.
+
+**Motion vs. appearance confusion?** #flashcard
+some actions look identical as still images but differ only in motion direction or speed. A model that ignores temporal order cannot distinguish them.
+
+**Optical flow is expensive?** #flashcard
+dense flow computation adds significant preprocessing time and storage. It's feasible offline but not for real-time pipelines.
+
+**Late fusion misses cross-stream interactions?** #flashcard
+the two streams are trained independently and only communicate at the prediction level. An arm moving in a way that only makes sense in context of the adjacent body part cannot be captured.
+
+**Flow estimation errors propagate?** #flashcard
+inaccurate flow (from motion blur, rapid scene changes, occlusion) produces noisy motion features that hurt the temporal stream.
+
+**Memory and compute?** #flashcard
+3D convolutions are ~K_t × more expensive than 2D. A 3×3×3 conv is 3× more operations per layer than a 3×3 conv, and memory scales with temporal depth T.
+
+**Pre-training data scarcity?** #flashcard
+3D representations require video pre-training to be useful. Unlike 2D models with ImageNet, 3D models can't leverage the vast image pre-training ecosystem as directly.
+
+**Short temporal range?** #flashcard
+C3D and I3D process 16-frame clips. Long-range dependencies (minutes apart) require separate architectural mechanisms.
+
+**Two-pathway cost?** #flashcard
+the Fast pathway runs at 8× the frame rate but with 1/8 the channels. The total FLOP cost is comparable to a single-pathway model, but the two-stage design adds engineering complexity.
+
+**Fixed ratio?** #flashcard
+the 4:1 or 8:1 frame-rate ratio is a hyperparameter that may not be optimal across all action categories.
+
+**Proposal + classification (BSN, BMN)?** #flashcard
+generate temporal proposals of varying durations, then classify each.
+
+**One-stage (AFSD, ActionFormer)?** #flashcard
+directly predict start/end/class from dense temporal features.
+
+**DETR-style (RTD-Net)?** #flashcard
+end-to-end with action queries that decode to (start, end, class) tuples.
+
+**Temporal stride > 1: read every other frame?** #flashcard
+halves temporal resolution and compute.
+
+**Knowledge distillation?** #flashcard
+distill a 3D CNN teacher into an efficient 2D CNN student for edge deployment.
+
+**Efficient attention: MViT pooling attention, TimeSformer factorized attention?** #flashcard
+reduce O(T²H²W²) attention to manageable cost.

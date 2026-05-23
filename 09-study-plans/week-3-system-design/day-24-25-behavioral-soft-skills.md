@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 3 System Design
+subtopic: Day 24 25 Behavioral Soft Skills
+status: unread
+tags: [studyplans, ml, week-3-system-design-day-24-25]
+---
 # Day 24-25: Behavioral & Soft Skills
 
 ## Why This Topic Comes Here
@@ -93,3 +100,50 @@ Be ready to defend every choice in your projects. "I used it because it's popula
 - **Be Technical but Intuitive**: Can you explain backpropagation to a 10-year-old? The ability to find the right level of abstraction for the audience is itself a senior-level skill.
 - **Ask Good Questions**: "How does the team handle model versioning?" and "What does the on-call rotation look like for production models?" show you understand the production dimension of ML. These are better questions than "What does a typical day look like?"
 - **Name the Tradeoff**: For any system design question, name the tradeoff you chose and what you sacrificed. "I chose simplicity over accuracy because the deployment timeline was fixed" is more credible than claiming you found a solution with no downsides.
+
+## Flashcards
+
+**Situation?** #flashcard
+Context.
+
+**Task?** #flashcard
+Your specific responsibility.
+
+**Action?** #flashcard
+What you specifically did (Code, meeting, analysis).
+
+**Result?** #flashcard
+The outcome (Quantified if possible: "Reduced latency by 20%").
+
+**ML Engineers translate math into production code.?** #flashcard
+ML Engineers translate math into production code.
+
+**They explain performance drops to business stakeholders without jargon.?** #flashcard
+They explain performance drops to business stakeholders without jargon.
+
+**They advocate for data quality improvements to data engineering teams.?** #flashcard
+They advocate for data quality improvements to data engineering teams.
+
+**They push back on unrealistic latency requirements from product teams.?** #flashcard
+They push back on unrealistic latency requirements from product teams.
+
+**Focus on?** #flashcard
+Imbalance, noise, or labeling issues. What specifically did you do about it? What did you measure to know it was actually a problem?
+
+**Focus on?** #flashcard
+Analogies, focusing on the "What" rather than the "How."
+
+**Focus on?** #flashcard
+Incident response, monitoring tools, identifying Data Drift.
+
+**Be Concise?** #flashcard
+The most common failure mode is setting up stories for too long. Practice cutting any answer to under 3 minutes for initial delivery.
+
+**Be Technical but Intuitive?** #flashcard
+Can you explain backpropagation to a 10-year-old? The ability to find the right level of abstraction for the audience is itself a senior-level skill.
+
+**Ask Good Questions?** #flashcard
+"How does the team handle model versioning?" and "What does the on-call rotation look like for production models?" show you understand the production dimension of ML. These are better questions than "What does a typical day look like?"
+
+**Name the Tradeoff?** #flashcard
+For any system design question, name the tradeoff you chose and what you sacrificed. "I chose simplicity over accuracy because the deployment timeline was fixed" is more credible than claiming you found a solution with no downsides.

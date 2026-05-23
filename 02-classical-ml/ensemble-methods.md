@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Ensemble Methods
+subtopic: ""
+status: unread
+tags: [classicalml, ml, ensemble-methods]
+---
 # Ensemble Methods
 
 ---
@@ -281,3 +288,41 @@ A: At step m, we have a model F_m(x). For a loss L(y, F(x)), the pseudo-residual
 
 **Q: How do you tune a XGBoost/LightGBM model for a competition vs for production?**  
 A: **Competition** (optimize validation metric): start with learning_rate=0.05, n_estimators=2000, early stopping on validation; then tune depth (3-8), subsample/colsample_bytree (0.6-0.9), min_child_weight/min_data_in_leaf; use Optuna for Bayesian optimization; try multiple seeds and average predictions. Time is not constrained. **Production** (optimize inference latency + monitoring + robustness): restrict tree depth (≤5), number of trees (≤200), to meet latency SLA; disable features that will drift (time-sensitive features without monitoring); use monotonicity constraints on features where the direction is known (e.g., higher credit score → higher approval probability must hold); add feature importance monitoring to detect when top features shift in production; prefer fewer, interpretable trees over many shallow ones for audit purposes. Key difference: competition models chase last 0.1% of accuracy; production models trade accuracy for reliability, interpretability, and operational stability.
+
+## Flashcards
+
+**Bagging reduces variance (averages out noise across models)?** #flashcard
+Bagging reduces variance (averages out noise across models)
+
+**Boosting reduces bias (focuses on hard examples the current ensemble gets wrong)?** #flashcard
+Boosting reduces bias (focuses on hard examples the current ensemble gets wrong)
+
+**Stacking can reduce both by learning how to combine models optimally?** #flashcard
+Stacking can reduce both by learning how to combine models optimally
+
+**voting='hard'?** #flashcard
+majority class vote
+
+**voting='soft': average probabilities?** #flashcard
+requires calibrated models but is almost always better
+
+**Bagging reduces variance (parallel); boosting reduces bias (sequential).?** #flashcard
+Bagging reduces variance (parallel); boosting reduces bias (sequential).
+
+**Random Forest adds random feature selection on top of bagging?** #flashcard
+key to diversity.
+
+**OOB score provides free validation without a held-out set.?** #flashcard
+OOB score provides free validation without a held-out set.
+
+**Stacking must use OOF predictions?** #flashcard
+fitting on base model predictions trained on the same data leaks labels.
+
+**Soft voting requires calibrated probabilities; hard voting does not.?** #flashcard
+Soft voting requires calibrated probabilities; hard voting does not.
+
+**Meta-learner in stacking is usually simple (logistic regression)?** #flashcard
+complex meta-learner overfits.
+
+**In practice?** #flashcard
+XGBoost/LightGBM alone often matches stacking on tabular data. Stacking matters most in competitions.

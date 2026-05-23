@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Llm Inference Ops
+status: unread
+tags: [productionml, ml, system-design-llm-inference-op]
+---
 # LLM Inference Operations
 
 Production serving of LLMs at scale. Covers TTFT/TPOT math, memory management, batching strategies, and capacity planning.
@@ -417,3 +424,92 @@ A: (1) Chunked prefill: process the 10K prompt in 512-token chunks, interleaved 
 
 **Q: What is continuous batching and how does it compare to static batching?**  
 A: Static batching: form a batch, wait for all requests to complete, form next batch. If batch has a 500-token request and a 10-token request, GPU sits idle after the short request finishes. Continuous batching re-forms the batch at every token generation step: when a request completes, the slot is immediately filled with a queued request. This keeps GPU utilization continuously high (>80% vs ~30% for static). Implemented in vLLM, TGI — essential for production serving with heterogeneous request lengths.
+
+## Flashcards
+
+**t_queue?** #flashcard
+waiting for a server to accept the request (batch scheduling delay)
+
+**t_prefill?** #flashcard
+processing the entire input prompt (compute-bound)
+
+**t_decode_per_token?** #flashcard
+one forward pass of the decoder (memory-bandwidth-bound)
+
+**E2E = 500 + 999 × 50 = 50.45 seconds?** #flashcard
+E2E = 500 + 999 × 50 = 50.45 seconds
+
+**2 = K and V?** #flashcard
+2 = K and V
+
+**L = num layers?** #flashcard
+L = num layers
+
+**H = num KV heads?** #flashcard
+H = num KV heads
+
+**d_k = head dimension?** #flashcard
+d_k = head dimension
+
+**S_context = max context tokens?** #flashcard
+S_context = max context tokens
+
+**L=32, H=8 (GQA), d_k=128, context=8192?** #flashcard
+L=32, H=8 (GQA), d_k=128, context=8192
+
+**KV = 2 × 32 × 8 × 128 × 8192 × 2 = 536 MB per request?** #flashcard
+KV = 2 × 32 × 8 × 128 × 8192 × 2 = 536 MB per request
+
+**KV = 53.6 GB?** #flashcard
+exceeds A100 80GB even before model weights (~16GB)
+
+**L=80, H=8 (GQA), d_k=128, context=4096?** #flashcard
+L=80, H=8 (GQA), d_k=128, context=4096
+
+**KV = 2 × 80 × 8 × 128 × 4096 × 2 = 671 MB per request?** #flashcard
+KV = 2 × 80 × 8 × 128 × 4096 × 2 = 671 MB per request
+
+**Allocate?** #flashcard
+assign physical blocks to new request (on demand, not upfront)
+
+**Free?** #flashcard
+return blocks when request completes
+
+**Copy-on-write?** #flashcard
+for beam search, parent and child share blocks until divergence
+
+**Input length (longer → harder)?** #flashcard
+Input length (longer → harder)
+
+**User tier (premium → larger model)?** #flashcard
+User tier (premium → larger model)
+
+**Task type (code → code-specialized, multimodal → vision model)?** #flashcard
+Task type (code → code-specialized, multimodal → vision model)
+
+**Confidence from small model (if >0.95 confidence, don't escalate)?** #flashcard
+Confidence from small model (if >0.95 confidence, don't escalate)
+
+**Tokens/sec = 10K × (1K + 500) = 15M tokens/sec total throughput?** #flashcard
+Tokens/sec = 10K × (1K + 500) = 15M tokens/sec total throughput
+
+**Effective decode tokens/sec = 10K × 500 = 5M tokens/sec?** #flashcard
+Effective decode tokens/sec = 10K × 500 = 5M tokens/sec
+
+**A100 80GB, Llama-3 70B (4-bit quantized, ~35GB model)?** #flashcard
+A100 80GB, Llama-3 70B (4-bit quantized, ~35GB model)
+
+**At batch_size=32, fp8?** #flashcard
+~3000 decode tokens/sec per GPU (empirical)
+
+**GPUs needed = 5M / 3000 ≈ 1667 GPUs?** #flashcard
+GPUs needed = 5M / 3000 ≈ 1667 GPUs
+
+**With 8× A100 nodes?** #flashcard
+~209 nodes
+
+**Each request holds 1.5K tokens × 671MB/8K × (1.5K/8K) = ~126MB?** #flashcard
+Each request holds 1.5K tokens × 671MB/8K × (1.5K/8K) = ~126MB
+
+**At 10K concurrent requests?** #flashcard
+1.26 TB KV cache → distributed across nodes

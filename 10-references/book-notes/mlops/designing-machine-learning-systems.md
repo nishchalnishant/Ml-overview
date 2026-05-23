@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Mlops Designing Machine Learning Systems
+status: unread
+tags: [references, ml, book-notes-mlops]
+---
 # Designing Machine Learning Systems
 
 ## Chapter 1: When to Use ML and ML in Production vs Research
@@ -238,3 +245,233 @@ ML systems affect real users and communities. A model that is technically correc
 
 **What the book gets right / what to watch out for**
 The inconsistency problem is one of the most overlooked UX issues in ML systems — users quickly notice when the same query returns different results, and it damages credibility. Bias mitigation is more effective pre-training (fix the data) than post-training (adjust thresholds) — post-processing adjustments can satisfy statistical fairness criteria while the model still encodes biased patterns.
+
+## Flashcards
+
+**ML is the right tool when?** #flashcard
+features are hard to engineer manually, data is abundant (millions of examples), patterns change over time (static rules go stale)
+
+**Production ML constraints?** #flashcard
+model accuracy (ML team), inference latency (engineering), fairness/bias (legal/compliance), explainability (regulators/users)
+
+**ML vs traditional software?** #flashcard
+behavior is encoded in data + model, not code; bugs are often statistical, not deterministic; debugging requires different tools
+
+**Data versioning: unlike code, data changes?** #flashcard
+you need to know which training data produced which model
+
+**Data poisoning: adversarial inputs can corrupt model behavior?** #flashcard
+important for security-sensitive applications
+
+**Business objective → ML objective?** #flashcard
+translate "increase revenue" to "increase CTR" to "binary classification on user-item pairs"
+
+**Task types?** #flashcard
+binary classification, multiclass, multilabel, regression, ranking, structured prediction
+
+**Reliability?** #flashcard
+what happens when the model fails? Graceful degradation (fallback to rule-based system) is usually required
+
+**Scalability?** #flashcard
+can the system handle 10× traffic? Online prediction scales differently from batch
+
+**Iterative process?** #flashcard
+data collection → feature engineering → model training → evaluation → deployment → monitoring → data collection
+
+**Row-major: CSV, JSON?** #flashcard
+easy to read/write, bad for ML (read entire row to access one column)
+
+**Column-major: Parquet, ORC?** #flashcard
+compress each column independently; fast analytical reads; standard for ML feature pipelines
+
+**Data models?** #flashcard
+relational (SQL, ACID transactions) for structured data; document (MongoDB) for flexible schemas; time-series (InfluxDB) for telemetry
+
+**OLTP vs OLAP?** #flashcard
+OLTP = transactional (insert/update/delete); OLAP = analytical (aggregate queries, reporting)
+
+**ETL vs ELT?** #flashcard
+Extract-Transform-Load (transform before storage) vs Extract-Load-Transform (transform in data warehouse); ELT is now standard with cheap storage
+
+**Dataflow modes?** #flashcard
+online (trigger on each event), batch (scheduled), stream (continuous but not per-event)
+
+**Batch processing?** #flashcard
+high throughput, high latency; MapReduce/Spark
+
+**Stream processing?** #flashcard
+low latency; Kafka + Flink/Spark Streaming
+
+**Sampling strategies?** #flashcard
+simple random (unbiased, may undersample rare events), stratified (preserves class distribution), weighted (intentionally oversample rare events), reservoir (streaming data), importance (reweight samples to match target distribution)
+
+**Labeling: hand labels (expensive, gold standard), natural labels (user behavior: clicks, purchases), weak supervision (Snorkel?** #flashcard
+label functions), semi-supervised (use model predictions on unlabeled data), active learning (query most uncertain examples)
+
+**Class imbalance?** #flashcard
+resampling (oversample minority, undersample majority), cost-sensitive loss (weight minority class loss by n_majority/n_minority), threshold tuning, anomaly detection for extreme imbalance
+
+**Data augmentation?** #flashcard
+geometric + intensity transforms for images; back-translation for text; Mixup/CutMix for both
+
+**Handling missing values?** #flashcard
+imputation (mean/median/model-based), flag as a separate category (for categoricals), indicator column (model learns from the fact of missingness)
+
+**Scaling?** #flashcard
+min-max normalization → [0,1]; standardization → zero mean unit variance; log transform for skewed distributions
+
+**Discretization?** #flashcard
+binning continuous → categorical; uniform bins, quantile bins, or k-means bins
+
+**Encoding?** #flashcard
+one-hot for low-cardinality; embedding lookup for high-cardinality; hashing trick for very high cardinality
+
+**Feature crossing?** #flashcard
+pairwise product of features; adds explicit nonlinearity; must be done identically at train and serve
+
+**Feature importance: SHAP, permutation importance?** #flashcard
+remove features that don't improve performance
+
+**Data leakage detection?** #flashcard
+check if feature values correlate suspiciously with the label; check that feature computation uses only data available at prediction time
+
+**Model selection?** #flashcard
+random forest and gradient boosting for tabular; fine-tuned transformers for text; CNNs or ViT for images
+
+**Experiment tracking: MLflow, Weights & Biases, DVC?** #flashcard
+log hyperparameters, metrics, artifacts, and data versions for every run
+
+**Distributed training?** #flashcard
+data parallelism (each GPU processes different batches), model parallelism (layers on different GPUs), pipeline parallelism (stages on different GPUs)
+
+**Baselines: majority class, mean prediction, simple rule-based, logistic regression?** #flashcard
+beat these before justifying complexity
+
+**AutoML?** #flashcard
+automated pipeline search; useful for baseline establishment; rarely produces optimal results for production
+
+**Offline evaluation?** #flashcard
+cross-validation for standard problems; held-out temporal test set for time series
+
+**Perturbation tests?** #flashcard
+model predictions should be robust to small input perturbations
+
+**Invariance tests?** #flashcard
+predictions should be invariant to irrelevant features (name, demographic in medical diagnosis)
+
+**Calibration?** #flashcard
+model probabilities should match actual frequencies; evaluate with reliability diagrams; fix with Platt scaling or isotonic regression
+
+**Slice-based evaluation: measure performance on subgroups (demographics, geographic regions, product categories)?** #flashcard
+aggregate metrics can hide subgroup failures
+
+**Ensembles?** #flashcard
+combine multiple models; bagging (average predictions of models trained on bootstrap samples), boosting (sequential models focused on errors), stacking (use model predictions as features for a meta-learner)
+
+**Online prediction?** #flashcard
+model server (TorchServe, TF Serving, Triton) receives request; runs inference; returns response; p99 latency < 100ms typical
+
+**Batch prediction?** #flashcard
+Spark/Beam job processes entire user base overnight; store predictions in database; serve from database at query time
+
+**Hybrid?** #flashcard
+pre-compute batch predictions for known entities; use online prediction for new entities
+
+**Model compression:?** #flashcard
+Model compression:
+
+**Low-rank factorization?** #flashcard
+decompose weight matrices into products of smaller matrices
+
+**Knowledge distillation?** #flashcard
+train small "student" model to match outputs of large "teacher" model
+
+**Pruning?** #flashcard
+zero out small weights; structured pruning (remove entire neurons) vs unstructured; retrain after pruning
+
+**Quantization?** #flashcard
+reduce weight precision from FP32 → INT8 → INT4; post-training quantization (no retraining) or quantization-aware training
+
+**Edge deployment?** #flashcard
+run on device (mobile, embedded); requires quantization + compilation for target hardware (CoreML, TFLite, ONNX Runtime)
+
+**Cloud vs edge tradeoffs?** #flashcard
+cloud has more compute, stale models; edge has lower latency, data privacy, works offline
+
+**Covariate shift?** #flashcard
+compare feature distributions at training vs serving time using KS test, PSI (Population Stability Index), or MMD
+
+**Label shift?** #flashcard
+monitor prediction distribution vs expected label distribution; compare with calibration checks
+
+**Concept drift?** #flashcard
+most dangerous; hardest to detect without ground truth labels; use proxy metrics or delayed labels
+
+**Feature changes?** #flashcard
+new categories appear, feature suddenly becomes null, value range expands
+
+**Label schema changes?** #flashcard
+class definitions change (new fraud patterns, new product categories)
+
+**Monitoring?** #flashcard
+log every prediction with timestamp and input features; compare recent distribution to reference window
+
+**Response?** #flashcard
+retrain on recent data, update reference distribution, add new data collection
+
+**Four stages of continual learning?** #flashcard
+(1) manual retraining on schedule, (2) automated retraining on schedule, (3) automated retraining on trigger (metric drop, data drift), (4) online learning (update on each example)
+
+**Catastrophic forgetting?** #flashcard
+fine-tuning on new data causes model to forget old patterns; mitigated by including old data in retraining
+
+**Shadow deployment?** #flashcard
+new model runs in parallel, predictions logged but not shown to users; compare offline against production model
+
+**A/B testing?** #flashcard
+split traffic between current and new model; measure business metrics; requires sufficient traffic for statistical significance
+
+**Canary deployment?** #flashcard
+route small percentage (1–5%) of traffic to new model; monitor for errors; gradually increase if no issues
+
+**Interleaving experiments?** #flashcard
+show results from both models in same session (eliminates user variance); used by search/recommendation systems
+
+**Bandits?** #flashcard
+Thompson sampling or UCB allocates more traffic to better-performing model dynamically; faster convergence than A/B test
+
+**Storage?** #flashcard
+object storage (S3/GCS) for raw data and model artifacts; feature store (Feast, Tecton) for serving consistent features; model store (MLflow, W&B) for versioned models
+
+**Compute?** #flashcard
+spot/preemptible instances for training (cheap but interruptible); dedicated instances for serving (predictable latency)
+
+**Development?** #flashcard
+Jupyter Notebooks for exploration; experiment tracking (MLflow, W&B, Neptune) for reproducibility; DVC for data versioning
+
+**Orchestration?** #flashcard
+Airflow (general DAG scheduler), Kubeflow (Kubernetes-native ML pipelines), Metaflow (data science workflows); use Kubeflow for complex GPU pipelines, Airflow for simpler ETL
+
+**ML platforms?** #flashcard
+SageMaker (AWS-integrated, managed), Vertex AI (GCP-integrated), Azure ML; full-service platforms reduce infra overhead but create vendor lock-in
+
+**Build vs buy?** #flashcard
+buy infrastructure (cloud compute, storage, orchestration); build features specific to your domain; don't build what cloud vendors already provide
+
+**UX inconsistency?** #flashcard
+different predictions for the same user on consecutive requests destroy trust; cache or deterministically seed predictions for consistency
+
+**Smooth failing?** #flashcard
+when model confidence is below a threshold, fall back to a rule-based system or present multiple options
+
+**Bias identification?** #flashcard
+measure performance metrics by demographic group, geographic region, and other relevant slices; use AI Fairness 360 (IBM) for statistical tests
+
+**Bias mitigation?** #flashcard
+pre-processing (rebalance training data), in-processing (fairness constraints during training), post-processing (adjust decision thresholds per group)
+
+**Cross-functional teams: ML engineers + data engineers + domain experts + legal/compliance + UX?** #flashcard
+decisions that affect any of these domains need their input
+
+**Responsible AI checklist?** #flashcard
+data collection consent, demographic representation, disparate impact analysis, explainability for regulated decisions, monitoring for bias drift

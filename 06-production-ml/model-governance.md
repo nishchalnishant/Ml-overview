@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: Model Governance
+subtopic: ""
+status: unread
+tags: [productionml, ml, model-governance]
+---
 # Model Governance
 
 > **See also:** [MLOps](mlops.md) | [Deployment Patterns](deployment-patterns.md) | [LLM Training Stability](../05-llms/training-stability.md)
@@ -922,3 +929,203 @@ A: Training-serving skew is a governance problem when: (a) it causes model behav
 **Q: How does the shadow deployment pattern satisfy regulators for high-stakes model transitions?**
 
 A: Regulators care about two things in model transitions: that the new model has been tested under realistic conditions before it affects decisions, and that there is evidence it performs comparably or better on the dimensions they care about (not just overall AUC, but specifically on protected class proxies). Shadow deployment satisfies the first requirement by accumulating predictions on real traffic without affecting decisions. Satisfying the second requires logging the shadow predictions and running the fairness analysis on actual production traffic — not just on the held-out test set. The shadow period produces a parallel validation dataset that is submitted as part of the compliance gate documentation for the new model version.
+
+## Flashcards
+
+**payment_history_12m?** #flashcard
+payment_history_12m
+
+**debt_to_income_ratio?** #flashcard
+debt_to_income_ratio
+
+**credit_utilization?** #flashcard
+credit_utilization
+
+**zip_code?** #flashcard
+"proxy for race under ECOA"
+
+**age?** #flashcard
+"ADEA protected characteristic"
+
+**gate?** #flashcard
+automated_validation
+
+**gate?** #flashcard
+model_owner_signoff
+
+**gate?** #flashcard
+risk_compliance
+
+**gate?** #flashcard
+business_signoff
+
+**Output type changes (probability → binary label)?** #flashcard
+Output type changes (probability → binary label)
+
+**Score range changes (0–1 → 0–100) even with rescaling?** #flashcard
+Score range changes (0–1 → 0–100) even with rescaling
+
+**New required input features (callers must update)?** #flashcard
+New required input features (callers must update)
+
+**Prediction semantics change (lower score now means higher risk)?** #flashcard
+Prediction semantics change (lower score now means higher risk)
+
+**Model framework change that alters numerical precision?** #flashcard
+Model framework change that alters numerical precision
+
+**Training data is appropriate for the use case?** #flashcard
+Training data is appropriate for the use case
+
+**Known failure modes are documented?** #flashcard
+Known failure modes are documented
+
+**Feature importance analysis was reviewed?** #flashcard
+Feature importance analysis was reviewed
+
+**No target leakage in feature set?** #flashcard
+No target leakage in feature set
+
+**[ ] Protected attributes reviewed (direct and proxy)?** #flashcard
+[ ] Protected attributes reviewed (direct and proxy)
+
+**[ ] Adverse action notice mechanism tested?** #flashcard
+[ ] Adverse action notice mechanism tested
+
+**[ ] GDPR Article 22 documentation prepared if automated individual decision?** #flashcard
+[ ] GDPR Article 22 documentation prepared if automated individual decision
+
+**[ ] ECOA/FHA/FCRA compliance review (for credit/housing models)?** #flashcard
+[ ] ECOA/FHA/FCRA compliance review (for credit/housing models)
+
+**[ ] Data retention policy attached to model version?** #flashcard
+[ ] Data retention policy attached to model version
+
+**[ ] Right to erasure impact assessed?** #flashcard
+[ ] Right to erasure impact assessed
+
+**Model is solving the intended business problem?** #flashcard
+Model is solving the intended business problem
+
+**Performance thresholds meet business requirements (not just statistical significance)?** #flashcard
+Performance thresholds meet business requirements (not just statistical significance)
+
+**Rollback decision criteria are agreed in advance?** #flashcard
+Rollback decision criteria are agreed in advance
+
+**On-call runbook exists?** #flashcard
+On-call runbook exists
+
+**Append-only (no DELETE, no UPDATE on audit rows)?** #flashcard
+Append-only (no DELETE, no UPDATE on audit rows)
+
+**Encrypted at rest (AES-256 minimum)?** #flashcard
+Encrypted at rest (AES-256 minimum)
+
+**Accessible only to audit/compliance role (not the serving application)?** #flashcard
+Accessible only to audit/compliance role (not the serving application)
+
+**Retention enforced by the data retention schedule, not manual deletion?** #flashcard
+Retention enforced by the data retention schedule, not manual deletion
+
+**Model inversion attack recovers training data from model weights?** #flashcard
+Model inversion attack recovers training data from model weights
+
+**Inference audit logs exposed (contains feature snapshots with PII)?** #flashcard
+Inference audit logs exposed (contains feature snapshots with PII)
+
+**Feature store breach (contains individual-level features)?** #flashcard
+Feature store breach (contains individual-level features)
+
+**Membership inference attack demonstrates training data presence?** #flashcard
+Membership inference attack demonstrates training data presence
+
+**Model type?** #flashcard
+Gradient Boosted Trees (XGBoost 1.7)
+
+**Version?** #flashcard
+2.4.1
+
+**Owners?** #flashcard
+Alice Smith (model), Lending Product (business)
+
+**Date?** #flashcard
+2024-03-08
+
+**License?** #flashcard
+Internal use only
+
+**Primary use case?** #flashcard
+Automated screening for personal loan applications ($1,000–$50,000)
+
+**Intended users?** #flashcard
+Loan origination system (automated), underwriting team (human review)
+
+**Out-of-scope uses:?** #flashcard
+Out-of-scope uses:
+
+**Small business loans (model not validated on business applicants)?** #flashcard
+Small business loans (model not validated on business applicants)
+
+**Mortgage lending (different regulatory framework, not validated)?** #flashcard
+Mortgage lending (different regulatory framework, not validated)
+
+**Applications outside the United States?** #flashcard
+Applications outside the United States
+
+**Dataset?** #flashcard
+Internal credit bureau data, 2017–2023
+
+**Size?** #flashcard
+2.3M applications (1.8M train, 230K validation, 230K test)
+
+**Geographic coverage?** #flashcard
+48 contiguous US states
+
+**Temporal coverage?** #flashcard
+2017–2023; outcome labels are 24-month default
+
+**Label definition?** #flashcard
+Default = 90+ days past due within 24 months of origination
+
+**Zip code excluded as proxy for race per ECOA?** #flashcard
+Zip code excluded as proxy for race per ECOA
+
+**Age excluded as direct protected characteristic per ADEA?** #flashcard
+Age excluded as direct protected characteristic per ADEA
+
+**SHAP-based adverse action reasons generated for all denials?** #flashcard
+SHAP-based adverse action reasons generated for all denials
+
+**Human review available on request per FCRA?** #flashcard
+Human review available on request per FCRA
+
+**Input?** #flashcard
+Feature vector per schema in schemas/credit_risk_v2_input.json
+
+**Output?** #flashcard
+Float in [0, 1] where higher = higher default probability
+
+**Decision threshold?** #flashcard
+0.15 (tuned for 12% approval rate target; business-configurable)
+
+**Adverse action?** #flashcard
+Call generate_adverse_action_notice() for all predictions ≥ threshold
+
+**[ ] Timeline of events (detection → diagnosis → rollback → resolution)?** #flashcard
+[ ] Timeline of events (detection → diagnosis → rollback → resolution)
+
+**[ ] Root cause identified (data drift? code bug? infrastructure failure? feature pipeline issue?)?** #flashcard
+[ ] Root cause identified (data drift? code bug? infrastructure failure? feature pipeline issue?)
+
+**[ ] Impact quantified (affected requests, affected subjects, estimated business impact)?** #flashcard
+[ ] Impact quantified (affected requests, affected subjects, estimated business impact)
+
+**[ ] Why monitoring did not catch it earlier (or why it did, and the response was slow)?** #flashcard
+[ ] Why monitoring did not catch it earlier (or why it did, and the response was slow)
+
+**[ ] Action items with owners and deadlines?** #flashcard
+[ ] Action items with owners and deadlines
+
+**[ ] Model card updated with the failure mode?** #flashcard
+[ ] Model card updated with the failure mode

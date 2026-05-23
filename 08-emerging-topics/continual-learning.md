@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Continual Learning
+subtopic: ""
+status: unread
+tags: [emergingtopics, ml, continual-learning]
+---
 # Continual Learning (Lifelong Learning)
 
 ---
@@ -434,3 +441,98 @@ Deployment:
 **Where CL applies to OFA in production:** when training data evolves (e.g., new product categories), the supernetwork itself must be updated without re-extracting and re-validating all previously deployed sub-networks. This is a CL problem at the supernetwork level — update the supernetwork weights on new data while preserving the accuracy of all already-deployed sub-network configurations.
 
 Practical relevance: OFA is widely used in on-device ML (Apple Neural Engine search, TensorFlow Model Optimization Toolkit). The continual update problem for deployed OFA networks is largely unsolved in the literature and is an active research area.
+
+## Flashcards
+
+**F_i?** #flashcard
+Fisher information for parameter i, estimated from task A gradients
+
+**θ*_A?** #flashcard
+optimal weights after task A
+
+**λ?** #flashcard
+regularization strength
+
+**Random replacement?** #flashcard
+simplest; biased toward recent data
+
+**Reservoir sampling: maintains an unbiased random sample of the full data stream?** #flashcard
+each example from the past has equal probability of remaining in the buffer
+
+**Greedy coreset (herding)?** #flashcard
+select samples that best represent the class distribution in feature space
+
+**Ring buffer?** #flashcard
+FIFO per class
+
+**Cell-based?** #flashcard
+search for repeating cell structures (macro-architecture fixed)
+
+**Layer-wise?** #flashcard
+search operation types per layer
+
+**Global?** #flashcard
+full architecture search
+
+**Catastrophic forgetting?** #flashcard
+SGD for task B finds a low-loss region that is high-loss for task A. No mechanism in standard training prevents this.
+
+**EWC, replay, and progressive networks each address a different aspect of the forgetting problem?** #flashcard
+EWC protects the weights that matter (via Fisher-weighted regularization); replay keeps old data visible; progressive networks give each task separate capacity.
+
+**EWC adds L2 penalty weighted by Fisher information (diagonal curvature estimate). Importance-weighted regularization, not flat.?** #flashcard
+EWC adds L2 penalty weighted by Fisher information (diagonal curvature estimate). Importance-weighted regularization, not flat.
+
+**Experience replay is empirically the most effective general approach. Reservoir sampling gives an unbiased buffer sample from the full data stream.?** #flashcard
+Experience replay is empirically the most effective general approach. Reservoir sampling gives an unbiased buffer sample from the full data stream.
+
+**Progressive networks have zero forgetting by design but linear parameter growth.?** #flashcard
+Progressive networks have zero forgetting by design but linear parameter growth.
+
+**Class-incremental is the hardest setting?** #flashcard
+no task ID at test time, must distinguish all classes, output head must grow.
+
+**In production LLMs, continual pre-training with data replay (old + new documents mixed) is standard practice.?** #flashcard
+In production LLMs, continual pre-training with data replay (old + new documents mixed) is standard practice.
+
+**DARTS enables gradient-based NAS in a single training run via a softmax relaxation over operation choices; Once-For-All trains one supernetwork deployable to any hardware constraint.?** #flashcard
+DARTS enables gradient-based NAS in a single training run via a softmax relaxation over operation choices; Once-For-All trains one supernetwork deployable to any hardware constraint.
+
+**Parameter correlations are high (early layers with shared feature detectors)?** #flashcard
+Parameter correlations are high (early layers with shared feature detectors)
+
+**Multiple tasks share parameters that are important in correlated directions?** #flashcard
+Multiple tasks share parameters that are important in correlated directions
+
+**Network is over-parameterized with degenerate directions in Fisher?** #flashcard
+Network is over-parameterized with degenerate directions in Fisher
+
+**Long-tail users appear rarely in replay buffers → under-represented → over-forgotten?** #flashcard
+Long-tail users appear rarely in replay buffers → under-represented → over-forgotten
+
+**New items have no embeddings → cold-start problem entangled with forgetting?** #flashcard
+New items have no embeddings → cold-start problem entangled with forgetting
+
+**Popularity shift?** #flashcard
+yesterday's trending items are over-represented in memory
+
+**Elastic depth?** #flashcard
+{2,3,4} blocks active
+
+**Elastic width?** #flashcard
+{0.25, 0.35, 0.5} × full width
+
+**Elastic kernel?** #flashcard
+{3,5,7} conv kernels
+
+**Given hardware constraint (latency budget T on device D):?** #flashcard
+Given hardware constraint (latency budget T on device D):
+
+**Run accuracy predictor + latency predictor on 1000 sub-network configs?** #flashcard
+Run accuracy predictor + latency predictor on 1000 sub-network configs
+
+**Select Pareto-optimal sub-network?** #flashcard
+max accuracy s.t. latency ≤ T
+
+**No retraining?** #flashcard
+extract weights directly from supernetwork

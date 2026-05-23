@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Cost Optimization
+status: unread
+tags: [productionml, ml, system-design-cost-optimizatio]
+---
 # Cost Optimization in ML Systems
 
 ```mermaid

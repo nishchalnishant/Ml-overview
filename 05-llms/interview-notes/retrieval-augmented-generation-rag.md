@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Retrieval Augmented Generation Rag
+status: unread
+tags: [llms, ml, interview-notes-retrieval-augm]
+---
 See also: [RAG deep dive](../applications/rag.md)
 
 # Retrieval-Augmented Generation (RAG) — Interview Notes
@@ -300,3 +307,44 @@ A medical assistant might be fine-tuned on clinical note format but use RAG to r
 **What the interviewer is testing**: whether you would start debugging from retrieval evaluation, not prompt adjustment. This is the key diagnostic insight most candidates miss.
 
 **Common traps**: adjusting the prompt when the retrieval recall is low (the model cannot answer a question whose answer is not in the context, regardless of prompt quality); increasing top-K when the problem is lost-in-the-middle (this makes the problem worse); treating all RAG failures as "LLM hallucination" without evaluating the retriever.
+
+## Flashcards
+
+**Fixed-size?** #flashcard
+split at fixed token count (e.g., 512 tokens) with N% overlap (~10–20%). Overlap prevents severing a fact that straddles a boundary. Fast, simple, ignores document structure. Breaks sentences arbitrarily.
+
+**Recursive?** #flashcard
+split on hierarchical delimiters: paragraph break → sentence boundary → word boundary. Preserves semantic units. Default for ~95% of production RAG systems.
+
+**Semantic?** #flashcard
+embed each sentence, split where cosine similarity between adjacent sentences drops below a threshold. Produces semantically coherent chunks. High quality, high compute cost. Use when document structure is irregular.
+
+**Routing?** #flashcard
+the model selects which knowledge source (finance DB, HR docs, web search) to query, rather than searching a single index.
+
+**Query decomposition?** #flashcard
+"Compare 2022 and 2023 revenue" becomes two sub-queries executed in sequence.
+
+**Multi-hop retrieval?** #flashcard
+result from sub-query A contains an entity; sub-query B is generated using that entity.
+
+**Self-correction?** #flashcard
+if retrieved chunks score low on relevance (checked by the model), retry with a rephrased query.
+
+**[Retrieve]?** #flashcard
+"I need external information before I can continue."
+
+**[IsRel]?** #flashcard
+"Is this retrieved chunk relevant to my query?" (yes/no)
+
+**[IsSup]?** #flashcard
+"Does this chunk support the claim I'm about to make?" (yes/no/partial)
+
+**[IsUse]?** #flashcard
+"Is my generated answer actually useful?" (score 1–5)
+
+**Local search?** #flashcard
+embed the query, find the nearest entities via vector search on graph nodes, then traverse outward via edges.
+
+**Global search?** #flashcard
+use precomputed community summaries rather than traversing the full graph; answers corpus-wide themes without exhaustive traversal.

@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Transfer Learning
+subtopic: ""
+status: unread
+tags: [deeplearning, ml, transfer-learning]
+---
 # Transfer Learning & Domain Adaptation
 
 ---

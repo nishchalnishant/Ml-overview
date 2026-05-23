@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Mlops Keras To Kubernetes
+status: unread
+tags: [references, ml, book-notes-mlops]
+---
 # Keras to Kubernetes
 
 ## Chapter 1: Big Data and AI — Why Now
@@ -208,3 +215,188 @@ An ML platform provides four capabilities: experiment tracking (log metrics, par
 
 **What the book gets right / what to watch out for**
 Kubeflow Pipelines is the right abstraction for production ML workflows — it enforces reproducibility and provides lineage tracking. The most common mistake with AutoML is using it in place of understanding the problem — AutoML finds a good solution in the space it's given; it doesn't improve the objective function or find important features. Use AutoML for baselines and competition benchmarks, not as a substitute for domain knowledge.
+
+## Flashcards
+
+**IoT data: sensors, smart devices, connected machinery generate continuous labeled telemetry?** #flashcard
+quality, failure, usage
+
+**GPU/TPU acceleration?** #flashcard
+100–1000× faster than CPU for matrix operations; makes training neural networks at scale economical
+
+**Analytics hierarchy?** #flashcard
+descriptive (what happened), diagnostic (why it happened), predictive (what will happen), prescriptive (what should we do)
+
+**Rules-based vs data-driven?** #flashcard
+rules require expert time and go stale; data-driven systems adapt as data changes
+
+**Unsupervised?** #flashcard
+K-means (assign to nearest centroid, update centroids), DBSCAN (density-based, finds arbitrary shapes), PCA (project to principal components of variance)
+
+**Supervised?** #flashcard
+linear regression (least squares), logistic regression (cross-entropy + sigmoid), decision trees, SVMs
+
+**RL?** #flashcard
+AlphaGo used deep RL (policy gradient + MCTS); reward signal replaces labels; sample-inefficient
+
+**Gradient descent?** #flashcard
+w ← w - η · ∂L/∂w; cost function defines what "better" means
+
+**Bias-variance tradeoff?** #flashcard
+high bias = underfitting (model too simple), high variance = overfitting (memorizes training data); regularization balances the two
+
+**Images?** #flashcard
+grayscale (1 channel, 0–255), edge detection (Sobel/Canny filters), histogram of oriented gradients, Haar cascades for object detection
+
+**Video?** #flashcard
+temporal sequence of frames; 3D convolutions or CNN per frame + LSTM for temporal modeling
+
+**NLP preprocessing?** #flashcard
+tokenization → lowercasing → stopword removal → stemming (suffix stripping) or lemmatization (dictionary lookup to base form) → TF-IDF or embedding
+
+**POS tagging?** #flashcard
+assign part-of-speech labels; NER (Named Entity Recognition) identifies entities (person, location, organization)
+
+**Audio: Fourier transform → frequency spectrum → MFCC (Mel-frequency cepstral coefficients)?** #flashcard
+summary of frequency content per time window
+
+**PCA for dimensionality reduction?** #flashcard
+retain top k principal components; useful for visualization and denoising
+
+**MLP in Keras?** #flashcard
+model = Sequential([Dense(128, activation='relu'), Dropout(0.5), Dense(10, activation='softmax')])
+
+**Compile?** #flashcard
+model.compile(optimizer='adam', loss='categorical_crossentropy', metrics=['accuracy'])
+
+**Fit?** #flashcard
+model.fit(X_train, y_train, batch_size=32, epochs=100, validation_split=0.2, callbacks=[EarlyStopping(patience=5)])
+
+**Optimizers?** #flashcard
+Adam (adaptive learning rates, fast convergence), SGD (slower, often better generalization for vision)
+
+**Activation functions?** #flashcard
+ReLU for hidden layers, softmax for multiclass output, sigmoid for binary output
+
+**Overfitting signals?** #flashcard
+train accuracy >> val accuracy, val loss increases while train loss decreases
+
+**Underfitting signals?** #flashcard
+both train and val accuracy low; try larger model or more training
+
+**CNN architecture?** #flashcard
+Conv2D → BatchNorm → ReLU → MaxPool (repeated); Flatten → Dense → Softmax
+
+**Data augmentation in Keras?** #flashcard
+ImageDataGenerator(rotation_range=20, horizontal_flip=True, zoom_range=0.2)
+
+**Transfer learning?** #flashcard
+base_model = VGG16(weights='imagenet', include_top=False); freeze layers; add custom head; fine-tune
+
+**Fine-tuning?** #flashcard
+unfreeze last N layers; use very small LR (1/10th of initial); prevent destroying pretrained weights
+
+**LSTM for sentiment?** #flashcard
+embed tokens → LSTM → Dense → Sigmoid; Embedding(vocab_size, 128) + LSTM(64) + Dense(1, activation='sigmoid')
+
+**Hyperparameter tuning?** #flashcard
+manual search → random search → Bayesian optimization (Keras Tuner)
+
+**Neural style transfer?** #flashcard
+content loss = MSE between content feature maps; style loss = MSE between Gram matrices of style feature maps; total loss = α·content_loss + β·style_loss; optimize input image via gradient descent (100–1000 steps)
+
+**Gram matrix?** #flashcard
+G = FᵀF where F is the feature map; captures texture/style statistics, ignores spatial layout
+
+**GAN?** #flashcard
+generator G(z) maps noise → image; discriminator D(x) classifies real vs generated; loss: min_G max_D E[log D(x)] + E[log(1-D(G(z)))]
+
+**DCGAN?** #flashcard
+batch normalization in both generator and discriminator; transposed convolutions for upsampling; LeakyReLU in discriminator
+
+**Autoencoder?** #flashcard
+encoder compresses x to z (bottleneck); decoder reconstructs x from z; train with reconstruction loss (MSE or BCE)
+
+**Anomaly detection?** #flashcard
+train autoencoder on normal examples only; at inference, high reconstruction error = anomaly
+
+**Docker?** #flashcard
+Dockerfile specifies base image + dependencies + entry point; docker build creates image; docker run launches container
+
+**Container vs VM?** #flashcard
+containers share the host OS kernel (lightweight, fast startup); VMs include full OS (heavier, stronger isolation)
+
+**Microservices vs SOA?** #flashcard
+microservices are independently deployable, single responsibility; communicate via REST/gRPC; vs monolith where all functionality is in one process
+
+**Kubernetes?** #flashcard
+cluster of nodes; Pod = one or more containers; Deployment = desired state (N replicas of Pod); Service = stable network endpoint for a Deployment
+
+**Horizontal Pod Autoscaler?** #flashcard
+scale Deployment based on CPU/memory usage or custom metrics
+
+**CI/CD?** #flashcard
+automated test → build Docker image → push to registry → deploy to staging → promote to production
+
+**Flask endpoint?** #flashcard
+@app.route('/predict', methods=['POST']); load model at startup (global variable); parse JSON input; preprocess; model.predict(); return JSON
+
+**Dockerfile?** #flashcard
+FROM python:3.11-slim; COPY requirements.txt .; RUN pip install -r requirements.txt; COPY . .; CMD ["python", "app.py"]
+
+**Build and push?** #flashcard
+docker build -t username/model-api:v1 .; docker push username/model-api:v1
+
+**Kubernetes Deployment?** #flashcard
+specifies image, replicas, resource limits (CPU, memory, GPU), readiness probe
+
+**Kubernetes Service?** #flashcard
+ClusterIP (internal), NodePort (external on fixed port), LoadBalancer (external with cloud LB)
+
+**YAML configuration?** #flashcard
+declarative; kubectl apply -f deployment.yaml creates or updates resources
+
+**Problem definition?** #flashcard
+what decision does the ML prediction inform? What is the cost of each type of error?
+
+**Ground truth?** #flashcard
+how is the label defined and collected? Is it available in real time or with a delay?
+
+**Data collection?** #flashcard
+are the collection conditions representative of deployment conditions?
+
+**Cleansing/preparation?** #flashcard
+handle missing values, outliers, class imbalance before splitting
+
+**Training?** #flashcard
+split train/val/test; track experiments; hyperparameter search
+
+**Validation?** #flashcard
+business metrics matter, not just model metrics; test on realistic samples
+
+**Deployment?** #flashcard
+canary → A/B test → full rollout
+
+**Monitoring?** #flashcard
+track feature distributions, prediction distributions, and business metrics; alert on drift
+
+**Edge deployment?** #flashcard
+run inference on device; requires quantization and compilation for target hardware
+
+**Jupyter Notebooks: interactive development; poor for reproducibility?** #flashcard
+always convert experiments to scripts before training at scale
+
+**AutoML?** #flashcard
+automated algorithm selection, hyperparameter tuning, feature engineering; useful for baseline; rarely optimal for specialized domains
+
+**Spark?** #flashcard
+distributed data preprocessing and feature engineering at scale; MLlib for distributed classical ML
+
+**TensorFlow Serving?** #flashcard
+high-performance model server; gRPC and REST APIs; versioned model management
+
+**Kubeflow?** #flashcard
+Kubernetes-native ML platform; Pipelines (DAG orchestration), Training Operators (distributed training), KFServing (model serving)
+
+**JupyterHub?** #flashcard
+shared Jupyter environment for teams; manages user isolation and resource allocation

@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Components
+subtopic: Activation Functions
+status: unread
+tags: [deeplearning, ml, components-activation-function]
+---
 # Activation Functions
 
 ---

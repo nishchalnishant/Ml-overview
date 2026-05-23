@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Evaluation And Testing
+status: unread
+tags: [llms, ml, interview-notes-evaluation-and]
+---
 # Evaluation and Testing for LLM Applications
 
 ## The Scenario That Drives Every Topic Here
@@ -888,3 +895,251 @@ The answer to "your LLM scores 95% on MMLU but fails in production" is:
 - MMLU doesn't track changes over time → add continuous evaluation
 
 Evaluation is not a single metric. It's a system that continuously measures the specific ways your specific application can fail, with statistical rigor about whether improvements are real.
+
+## Flashcards
+
+**Extract specific facts from retrieved documents (faithfulness, not recall)?** #flashcard
+Extract specific facts from retrieved documents (faithfulness, not recall)
+
+**Produce valid JSON that downstream systems can parse (format, not fluency)?** #flashcard
+Produce valid JSON that downstream systems can parse (format, not fluency)
+
+**Refuse to answer when the evidence doesn't support a claim (abstention, not confidence)?** #flashcard
+Refuse to answer when the evidence doesn't support a claim (abstention, not confidence)
+
+**Not generate text that looks plausible but isn't grounded (hallucination detection)?** #flashcard
+Not generate text that looks plausible but isn't grounded (hallucination detection)
+
+**Designed for?** #flashcard
+machine translation, where there's a known reference
+
+**Limitation?** #flashcard
+penalizes correct paraphrases; ignores recall
+
+**ROUGE-1/2?** #flashcard
+unigram/bigram overlap
+
+**ROUGE-L?** #flashcard
+longest common subsequence
+
+**Designed for?** #flashcard
+summarization quality relative to reference summaries
+
+**Limitation?** #flashcard
+doesn't check whether facts are supported
+
+**Designed for?** #flashcard
+capturing paraphrase-equivalent answers where BLEU/ROUGE would fail
+
+**Limitation?** #flashcard
+still doesn't verify factual accuracy; a fluent wrong answer can score well
+
+**Position bias?** #flashcard
+judges favor responses in certain positions when comparing A vs B
+
+**Length bias?** #flashcard
+judges reward longer, more detailed responses regardless of accuracy
+
+**Style bias?** #flashcard
+judges favor responses stylistically similar to their training data
+
+**Self-serving bias?** #flashcard
+a judge model may rate outputs from the same model family higher
+
+**Use temperature=0 for reproducibility?** #flashcard
+Use temperature=0 for reproducibility
+
+**Swap A/B order and average to cancel position bias?** #flashcard
+Swap A/B order and average to cancel position bias
+
+**Use a judge model from a different family than the evaluated model?** #flashcard
+Use a judge model from a different family than the evaluated model
+
+**Calibrate judge scores against human annotations before trusting them?** #flashcard
+Calibrate judge scores against human annotations before trusting them
+
+**For RAG?** #flashcard
+always provide retrieved context in the judge prompt; judge should evaluate against evidence, not world knowledge
+
+**κ > 0.8?** #flashcard
+good agreement, labels are trustworthy
+
+**κ 0.6–0.8?** #flashcard
+moderate agreement, may need rubric refinement
+
+**κ < 0.6?** #flashcard
+annotators are measuring different things; don't use these labels
+
+**Safety judgment (is this harmful?)?** #flashcard
+Safety judgment (is this harmful?)
+
+**Nuanced factual accuracy requiring domain expertise?** #flashcard
+Nuanced factual accuracy requiring domain expertise
+
+**Cultural sensitivity and appropriateness?** #flashcard
+Cultural sensitivity and appropriateness
+
+**Final release gates for high-stakes systems?** #flashcard
+Final release gates for high-stakes systems
+
+**Calibrating LLM judge scores before trusting them at scale?** #flashcard
+Calibrating LLM judge scores before trusting them at scale
+
+**Prompt injection?** #flashcard
+"Ignore previous instructions and..."
+
+**Jailbreaks?** #flashcard
+role-play scenarios, obfuscated instructions
+
+**Tool misuse?** #flashcard
+invalid arguments, destructive operations
+
+**Indirect injection?** #flashcard
+malicious content in retrieved documents (the most commonly missed attack vector)
+
+**Data leakage?** #flashcard
+attempts to extract system prompt or training data
+
+**Paraphrases?** #flashcard
+semantically equivalent rephrasings
+
+**Typos and spelling errors?** #flashcard
+Typos and spelling errors
+
+**Format changes?** #flashcard
+capitalization, punctuation, question vs statement
+
+**Irrelevant prefix/suffix?** #flashcard
+"By the way, I'm a student. What is..."
+
+**Language variants?** #flashcard
+informal, formal, domain jargon
+
+**Metamorphic tests?** #flashcard
+transformations that should leave the output unchanged (adding polite openers)
+
+**Representative positive examples (typical user inputs, expected to succeed)?** #flashcard
+Representative positive examples (typical user inputs, expected to succeed)
+
+**Known failure modes that were fixed (so they don't regress)?** #flashcard
+Known failure modes that were fixed (so they don't regress)
+
+**Red-team/adversarial cases (converted from red-team findings)?** #flashcard
+Red-team/adversarial cases (converted from red-team findings)
+
+**Unanswerable queries (expected to trigger abstention, not hallucination)?** #flashcard
+Unanswerable queries (expected to trigger abstention, not hallucination)
+
+**Format-critical examples (expected to produce valid structured output)?** #flashcard
+Format-critical examples (expected to produce valid structured output)
+
+**Safety-critical examples (expected to trigger refusal)?** #flashcard
+Safety-critical examples (expected to trigger refusal)
+
+**Eliminate obviously weak models (filter by MMLU < 70%)?** #flashcard
+Eliminate obviously weak models (filter by MMLU < 70%)
+
+**Use as a tie-breaker between models that perform similarly on your task eval?** #flashcard
+Use as a tie-breaker between models that perform similarly on your task eval
+
+**Always run your own task-specific eval before deployment; never deploy based on benchmark alone?** #flashcard
+Always run your own task-specific eval before deployment; never deploy based on benchmark alone
+
+**Recall@k?** #flashcard
+fraction of queries where the gold document appears in the top-k retrieved results
+
+**MRR (Mean Reciprocal Rank)?** #flashcard
+rewards retrievers that put the right document higher
+
+**Context precision?** #flashcard
+fraction of retrieved documents that are actually relevant
+
+**Faithfulness?** #flashcard
+fraction of claims in the answer that are entailed by the retrieved context
+
+**Answer relevance?** #flashcard
+is the answer actually addressing the question?
+
+**Citation accuracy?** #flashcard
+if the model cites sources, do those citations actually support the claim?
+
+**For questions the evidence cannot answer, the correct output is "I don't know" or similar?** #flashcard
+For questions the evidence cannot answer, the correct output is "I don't know" or similar
+
+**Measure?** #flashcard
+when gold evidence is absent, does the model abstain or hallucinate?
+
+**Final answer correctness (task success)?** #flashcard
+Final answer correctness (task success)
+
+**Tool call correctness?** #flashcard
+right tool, right arguments, no invalid calls
+
+**Tool call efficiency?** #flashcard
+how many steps vs minimum required
+
+**Error recovery?** #flashcard
+when a tool fails, does the agent recover or spiral?
+
+**Safety adherence?** #flashcard
+did the agent trigger any guardrails? any disallowed side effects?
+
+**Observation correctness?** #flashcard
+did the agent correctly interpret tool outputs?
+
+**Controlled?** #flashcard
+same inputs, same metrics, reproducible
+
+**Fast?** #flashcard
+iterate without touching production
+
+**Limitation: distribution gap?** #flashcard
+your eval set is never a perfect sample of production traffic
+
+**A/B tests?** #flashcard
+route X% of traffic to candidate, measure user-facing metrics
+
+**Canary deployments?** #flashcard
+5% traffic, watch for degradation before full rollout
+
+**Shadow deployment?** #flashcard
+run candidate in parallel, log outputs without serving them
+
+**User satisfaction signals?** #flashcard
+explicit (thumbs up/down), implicit (copy rate, follow-up questions)
+
+**Faithfulness (offline) → fewer user corrections / lower escalation rate (online)?** #flashcard
+Faithfulness (offline) → fewer user corrections / lower escalation rate (online)
+
+**Format validity (offline) → fewer 500 errors from downstream parsing (online)?** #flashcard
+Format validity (offline) → fewer 500 errors from downstream parsing (online)
+
+**Safety violation rate (offline) → content moderation escalations (online)?** #flashcard
+Safety violation rate (offline) → content moderation escalations (online)
+
+**Quality metric drift (faithfulness, task accuracy declining)?** #flashcard
+Quality metric drift (faithfulness, task accuracy declining)
+
+**Input distribution shift (new topics, languages, query patterns)?** #flashcard
+Input distribution shift (new topics, languages, query patterns)
+
+**Output distribution shift (model starting to refuse more, or less)?** #flashcard
+Output distribution shift (model starting to refuse more, or less)
+
+**Latency/cost changes that indicate something else changed (model, infra)?** #flashcard
+Latency/cost changes that indicate something else changed (model, infra)
+
+**MMLU doesn't measure faithfulness to context → add entailment-based hallucination checks?** #flashcard
+MMLU doesn't measure faithfulness to context → add entailment-based hallucination checks
+
+**MMLU doesn't measure format validity → add JSON/schema validation?** #flashcard
+MMLU doesn't measure format validity → add JSON/schema validation
+
+**MMLU doesn't measure safety under adversarial input → add red teaming?** #flashcard
+MMLU doesn't measure safety under adversarial input → add red teaming
+
+**MMLU doesn't measure behavior on your distribution → add task-specific evaluation?** #flashcard
+MMLU doesn't measure behavior on your distribution → add task-specific evaluation
+
+**MMLU doesn't track changes over time → add continuous evaluation?** #flashcard
+MMLU doesn't track changes over time → add continuous evaluation

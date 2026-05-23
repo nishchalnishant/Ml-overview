@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Tokenization
+subtopic: ""
+status: unread
+tags: [llms, ml, tokenization]
+---
 # Tokenization
 
 How text is split into model inputs: algorithms, tradeoffs, failure modes, and interview answers.
@@ -385,3 +392,62 @@ Key changes:
 5. **Preserve identifier boundaries at `_`**: avoid merging across underscores so `snake_case` parts are semantically consistent.
 
 ---
+
+## Flashcards
+
+**English with BPE-50K?** #flashcard
+~1.3 tokens/word
+
+**Finnish (highly inflected)?** #flashcard
+~2–3 tokens/word
+
+**Chinese/Japanese with a Latin-trained tokenizer?** #flashcard
+~2–4 tokens/character
+
+**High fertility = longer sequences = quadratic attention cost + truncated context.?** #flashcard
+High fertility = longer sequences = quadratic attention cost + truncated context.
+
+**Greedy, deterministic (given fixed merge rules)?** #flashcard
+Greedy, deterministic (given fixed merge rules)
+
+**Same string always maps to same token sequence (no stochasticity)?** #flashcard
+Same string always maps to same token sequence (no stochasticity)
+
+**No explicit handling of whitespace?** #flashcard
+GPT-2 BPE encodes leading space as part of the token (Ġword)
+
+**Written in Rust with Python bindings → very fast (10–100× faster than pure-Python HuggingFace tokenizers for throughput workloads)?** #flashcard
+Written in Rust with Python bindings → very fast (10–100× faster than pure-Python HuggingFace tokenizers for throughput workloads)
+
+**Uses byte-level BPE under the hood?** #flashcard
+Uses byte-level BPE under the hood
+
+**Regex-based pre-tokenization to split on whitespace, punctuation, digits?** #flashcard
+prevents cross-boundary merges
+
+**cl100k_base pre-tokenization pattern?** #flashcard
+splits numbers into individual digits, preventing multi-digit merges that hurt arithmetic
+
+**GPT-2 on Turkish?** #flashcard
+~4–6 tokens/word (vs ~1.3 for English)
+
+**GPT-2 on Arabic?** #flashcard
+~7–10 tokens/word (right-to-left, rich morphology)
+
+**Indentation?** #flashcard
+Python indentation encoded as repeated space tokens; 4 spaces may be 1 token or 4 tokens depending on tokenizer
+
+**Identifiers?** #flashcard
+snake_case_variable often fragments at underscores
+
+**Symbols?** #flashcard
+->, =>, :: may or may not be single tokens
+
+**Comments: tokenized same as code?** #flashcard
+no structural distinction
+
+**BPE?** #flashcard
+selects the most frequent adjacent pair.
+
+**WordPiece?** #flashcard
+selects the pair that maximizes corpus likelihood, equivalent to choosing pairs with highest PMI: score = count(AB) / (count(A) × count(B)).

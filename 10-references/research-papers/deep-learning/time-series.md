@@ -1,3 +1,10 @@
+---
+module: References
+topic: Research Papers
+subtopic: Deep Learning Time Series
+status: unread
+tags: [references, ml, research-papers-deep-learning]
+---
 # Time series
 
 
@@ -273,3 +280,157 @@ The paper emphasizes that policymakers need to adopt more sophisticated models t
 
 This comprehensive analysis illustrates that international trade networks are integral to economic forecasting, providing both theoretical and practical advances in understanding global economic dynamics.
 
+## Flashcards
+
+**Motivation?** #flashcard
+The paper begins by discussing the financial incentive behind stock market prediction and the challenges associated with it. A reference is made to Warren Buffett’s million-dollar bet with a hedge fund manager, which showed the difficulty of consistently beating the market. This paper aims to forecast stock prices for educational purposes.
+
+**Theoretical Background?** #flashcard
+Stock prices have historically been viewed as following a “random walk,” implying unpredictability in short-term price changes. The Efficient Market Hypothesis (EMH) argues similarly, stating that future stock prices are unpredictable due to market complexities. The authors, however, take a more practical approach by exploring the applicability of machine learning models on stock price data.
+
+**Objective?** #flashcard
+The study investigates whether machine learning (ML) can accurately predict stock prices. It applies two primary methods suitable for time-series data:
+
+**A linear Kalman filter for low-complexity forecasting.?** #flashcard
+A linear Kalman filter for low-complexity forecasting.
+
+**LSTM architectures for more advanced, memory-dependent forecasts. The goal is to assess these models’ effectiveness in predicting next-day stock prices.?** #flashcard
+LSTM architectures for more advanced, memory-dependent forecasts. The goal is to assess these models’ effectiveness in predicting next-day stock prices.
+
+**Data?** #flashcard
+Historical stock prices (1/1/2011 to 1/1/2021) for stocks from the technology sector (e.g., MSFT, TSLA) and market indices (e.g., NASDAQ) were sourced using the yfinance library. TSLA represents a volatile stock, and MSFT represents a non-volatile stock in this study.
+
+**Kalman Filter:?** #flashcard
+Kalman Filter:
+
+**The Kalman filter is a recursive algorithm often used in time-series prediction to balance measurement and prediction uncertainty. For stock price prediction, the Kalman filter treated the stock’s short-term movement as a random walk.?** #flashcard
+The Kalman filter is a recursive algorithm often used in time-series prediction to balance measurement and prediction uncertainty. For stock price prediction, the Kalman filter treated the stock’s short-term movement as a random walk.
+
+**Assumptions include a small variance in the last measured state (the previous day’s stock price) and local variance proportionality of the current state. In practice, the model worked well by using a 3-day local variance.?** #flashcard
+Assumptions include a small variance in the last measured state (the previous day’s stock price) and local variance proportionality of the current state. In practice, the model worked well by using a 3-day local variance.
+
+**LSTM Models:?** #flashcard
+LSTM Models:
+
+**The study utilized four LSTM architectures, which are recurrent neural networks (RNNs) optimized for long-term dependencies in data:?** #flashcard
+The study utilized four LSTM architectures, which are recurrent neural networks (RNNs) optimized for long-term dependencies in data:
+
+**Single-layer LSTM?** #flashcard
+A basic model with a single memory layer.
+
+**Stacked LSTM?** #flashcard
+Two or more LSTM layers, allowing deeper learning of data sequences.
+
+**Bidirectional LSTM?** #flashcard
+Processes data in both forward and backward directions for comprehensive sequence learning.
+
+**CNN-LSTM?** #flashcard
+Combines convolutional neural networks (CNNs) for feature extraction with LSTM for sequence learning, aiming for enhanced accuracy.
+
+**Model Training?** #flashcard
+Each model was individually optimized to achieve a balance between simplicity and predictive accuracy.
+
+**Parameters like node count (64 nodes) and memory size (3) were chosen based on optimization trials.?** #flashcard
+Parameters like node count (64 nodes) and memory size (3) were chosen based on optimization trials.
+
+**CNN-LSTM involved 1D convolution of stock data to enhance feature extraction before processing with LSTM.?** #flashcard
+CNN-LSTM involved 1D convolution of stock data to enhance feature extraction before processing with LSTM.
+
+**Evaluation Metrics?** #flashcard
+Models were evaluated on:
+
+**Root Mean Square Error (RMSE)?** #flashcard
+Lower values indicate better performance.
+
+**Mean Absolute Error (MAE)?** #flashcard
+Indicates average prediction error, with lower values preferred.
+
+**R² value?** #flashcard
+Measures fit; values closer to 1 indicate a better fit.
+
+**Results:?** #flashcard
+Results:
+
+**TSLA (volatile stock)?** #flashcard
+The CNN-LSTM model performed best, achieving RMSE of 2.20, MAE of 1.54, and R² of 0.96. Other LSTM models, such as the bidirectional LSTM, also performed well, but the dual-layer LSTM lagged in accuracy, possibly due to increased lag from added complexity.
+
+**MSFT (non-volatile stock)?** #flashcard
+The Kalman filter and bidirectional LSTM showed excellent performance for non-volatile stocks, with Kalman filter achieving RMSE of 4.78, MAE of 1.19, and R² of 0.99. For non-volatile stocks, simpler models like Kalman filter and bidirectional LSTM provided adequate accuracy without needing complex CNN-LSTM structures.
+
+**Generalization Test:?** #flashcard
+Generalization Test:
+
+**The study applied trained LSTM models on new data representing different volatility types to assess model generalization.?** #flashcard
+The study applied trained LSTM models on new data representing different volatility types to assess model generalization.
+
+**The bidirectional LSTM and CNN-LSTM models were applied to S\&P 500 (low volatility) and Russell Microcap Index (high volatility).?** #flashcard
+The bidirectional LSTM and CNN-LSTM models were applied to S\&P 500 (low volatility) and Russell Microcap Index (high volatility).
+
+**Findings?** #flashcard
+The models generalized well with R² values close to 0.99, demonstrating that pre-trained LSTM models can effectively predict similarly volatile stocks without additional training. This finding suggests that stock types (low or high volatility) could be clustered, with individual models trained for each category.
+
+**Key Takeaways:?** #flashcard
+Key Takeaways:
+
+**Simple models like the Kalman filter are effective for low-volatility stocks, while LSTM architectures, particularly the CNN-LSTM, excel at forecasting volatile stocks.?** #flashcard
+Simple models like the Kalman filter are effective for low-volatility stocks, while LSTM architectures, particularly the CNN-LSTM, excel at forecasting volatile stocks.
+
+**Model Selection by Stock Volatility?** #flashcard
+LSTM models are advantageous for high-volatility stocks like TSLA due to their ability to capture complex patterns, while simpler algorithms suffice for stable stocks like MSFT.
+
+**Practical Applications?** #flashcard
+The results support the potential use of machine learning in automated portfolio management or day-trading algorithms. The authors suggest clustering stocks by volatility to develop specialized predictive models for each category, facilitating automation in finance.
+
+**Future Work?** #flashcard
+Expanding this approach could involve clustering diverse stock types for optimized LSTM models, potentially enabling fully automated portfolio generation based on target return rates.
+
+**Strength?** #flashcard
+Sum of trade flows associated with a node, with in-strength representing imports and out-strength for exports.
+
+**PageRank?** #flashcard
+Centrality measure emphasizing the importance of countries based on import flows.
+
+**Clustering Coefficient (Transitivity)?** #flashcard
+Measures the extent to which trade partners form clusters, indicating the local clustering within networks.
+
+**Density?** #flashcard
+Represents the proportion of actual to potential trade connections, providing a measure of global trade network interconnectedness.
+
+**Assortativity?** #flashcard
+Indicates if countries with similar trade connectivity are linked, showing whether trade interactions are more homogenous or heterogenous.
+
+**Reciprocity?** #flashcard
+Measures the level of mutual trade exchanges.
+
+**Modularity?** #flashcard
+Examines the division of the network into communities, highlighting intra-community trade density versus inter-community connections.
+
+**Density?** #flashcard
+Initially, trade network density increased until 2017, suggesting more interconnected trade, followed by stagnation or decline, particularly post-2018. The COVID-19 pandemic further exacerbated this decline.
+
+**Assortativity?** #flashcard
+A general trend towards negative assortativity suggests that countries with different levels of trade connections increasingly trade with each other, particularly after 2017.
+
+**Reciprocity and Clustering?** #flashcard
+Both measures indicate growing reciprocal trade partnerships and clustering within trade networks, though clustering declined post-2019.
+
+**Modularity?** #flashcard
+Low modularity values reveal that while countries cluster locally, they are not isolated into distinct trade blocs, indicating fluidity across global trade networks.
+
+**Current and recent GDP growth?** #flashcard
+These autoregressive features are consistently significant across models, aligning with the concept of economic inertia.
+
+**Trade Network Density (particularly in Mineral and Chemical sections)?** #flashcard
+Trade network density ranks as a critical predictor, where moderate density correlates with positive economic growth predictions, but very high density can negatively impact forecasts.
+
+**Modularity of the Mechanical & Electrical Network, Population Growth, and Primary Sector’s Role?** #flashcard
+These are also among the most influential features, indicating the importance of structural factors within trade networks and demographic trends.
+
+**Threshold Effects in Trade Density?** #flashcard
+For the Mineral network, moderate density positively influences growth predictions, but an increase beyond a certain threshold correlates with lower growth forecasts.
+
+**Autoregressive Economic Growth Patterns?** #flashcard
+Current and past GDP growth values remain leading indicators, suggesting that recent economic performance has strong predictive power for future growth.
+
+**Reciprocity and Population Growth?** #flashcard
+Higher reciprocity in trade networks and positive population growth values correlate with positive economic outlooks, aligning with conventional economic growth theories.

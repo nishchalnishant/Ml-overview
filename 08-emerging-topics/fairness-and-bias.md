@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Fairness And Bias
+subtopic: ""
+status: unread
+tags: [emergingtopics, ml, fairness-and-bias]
+---
 # Fairness and Bias in Machine Learning
 
 ---
@@ -462,3 +469,32 @@ The operating point on this frontier is a values decision, not a technical one.
 - Pre/in/post-processing form a layered strategy: pre-processing is most flexible; in-processing provides tighter constraint enforcement; post-processing applies to any black-box model but requires sensitive attributes at inference.
 - Intersectionality requires explicit enumeration. Auditing sex and race separately does not reveal compounding harms. Flag low-sample intersections (n < 50) and report confidence intervals.
 - LLMs require benchmark-specific bias evaluation. WinoBias, BBQ, and red-teaming are the operational tools.
+
+## Flashcards
+
+**Data sparsity?** #flashcard
+confidence intervals widen at intersections; cells with n < 50 are statistically unreliable
+
+**Gerrymandering?** #flashcard
+an adversary can find a subgroup that violates fairness even when all marginal audits pass
+
+**The COMPAS case is the canonical example?** #flashcard
+both ProPublica and Northpointe were correct under different criteria. The impossibility theorem (Chouldechova 2017, Kleinberg 2016) proves that with unequal base rates, you cannot equalize FPR and maintain calibration simultaneously.
+
+**No fairness criterion is universally correct. Demographic parity, equal opportunity, equalized odds, and calibration formalize different normative positions. The tradeoff must be made explicitly?** #flashcard
+the harm of COMPAS was not picking the wrong criterion, it was making the choice invisible.
+
+**Bias sources are upstream of the model. Historical bias, representation bias, measurement bias, and aggregation bias all exist before training begins.?** #flashcard
+Bias sources are upstream of the model. Historical bias, representation bias, measurement bias, and aggregation bias all exist before training begins.
+
+**Disparate impact ratio below 0.8 is a legal threshold from employment law, not a definition of fairness. Real audits require the full metric suite plus context.?** #flashcard
+Disparate impact ratio below 0.8 is a legal threshold from employment law, not a definition of fairness. Real audits require the full metric suite plus context.
+
+**Pre/in/post-processing form a layered strategy?** #flashcard
+pre-processing is most flexible; in-processing provides tighter constraint enforcement; post-processing applies to any black-box model but requires sensitive attributes at inference.
+
+**Intersectionality requires explicit enumeration. Auditing sex and race separately does not reveal compounding harms. Flag low-sample intersections (n < 50) and report confidence intervals.?** #flashcard
+Intersectionality requires explicit enumeration. Auditing sex and race separately does not reveal compounding harms. Flag low-sample intersections (n < 50) and report confidence intervals.
+
+**LLMs require benchmark-specific bias evaluation. WinoBias, BBQ, and red-teaming are the operational tools.?** #flashcard
+LLMs require benchmark-specific bias evaluation. WinoBias, BBQ, and red-teaming are the operational tools.

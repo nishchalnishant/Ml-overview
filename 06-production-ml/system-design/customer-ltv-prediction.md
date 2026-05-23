@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Customer Ltv Prediction
+status: unread
+tags: [productionml, ml, system-design-customer-ltv-pre]
+---
 # Customer Lifetime Value (LTV) Prediction System Design
 
 End-to-end ML system for predicting customer lifetime value at e-commerce, subscription, and fintech scale. Canonical system design question at companies running performance marketing, CRM, and growth programs (Shopify, Airbnb, DoorDash, Stripe, Netflix).
@@ -886,3 +893,125 @@ Both companies emphasize that LTV models are only as good as their downstream us
 | Shopify Engineering Blog (2020) — "Predicting Customer Lifetime Value" | Practical BG/NBD deployment at e-commerce scale |
 | Rudolph et al. (2022) — "Survival Analysis Meets NLP" | Sequence model + survival analysis hybrid |
 | Lifetimes Python library | Open-source BG/NBD and Gamma-Gamma implementations |
+
+## Flashcards
+
+**Business model? Subscription (contractual) vs e-commerce/marketplace (non-contractual)?** #flashcard
+fundamentally different statistical models apply
+
+**Prediction horizon? 90-day LTV (tactical, for acquisition bidding) vs 1-year LTV (strategic, for cohort planning) vs lifetime (theoretical)?** #flashcard
+Prediction horizon? 90-day LTV (tactical, for acquisition bidding) vs 1-year LTV (strategic, for cohort planning) vs lifetime (theoretical)
+
+**Customer population? New users at acquisition (cold start) vs existing customers (full history available)?** #flashcard
+Customer population? New users at acquisition (cold start) vs existing customers (full history available)
+
+**Primary use case?** #flashcard
+Primary use case?
+
+**Acquisition bidding?** #flashcard
+bid = predicted LTV × margin − CAC → needs calibrated expected value
+
+**Retention/churn?** #flashcard
+who to target with discount/win-back → needs relative ranking
+
+**Upsell/pricing?** #flashcard
+what offer to show → needs segment-level calibration
+
+**Financial planning?** #flashcard
+cohort revenue forecasting → needs aggregate accuracy, not individual
+
+**Revenue definition? Gross revenue, net revenue (after refunds), contribution margin, gross profit?** #flashcard
+Revenue definition? Gross revenue, net revenue (after refunds), contribution margin, gross profit?
+
+**Discount rate? For DCF-based LTV, what WACC or hurdle rate to use?** #flashcard
+Discount rate? For DCF-based LTV, what WACC or hurdle rate to use?
+
+**Latency requirement? Acquisition bidding needs <200ms; CRM batch jobs can run nightly?** #flashcard
+Latency requirement? Acquisition bidding needs <200ms; CRM batch jobs can run nightly
+
+**Feedback delay? How long before we observe realized revenue for a prediction? (weeks to years)?** #flashcard
+Feedback delay? How long before we observe realized revenue for a prediction? (weeks to years)
+
+**Sparse data advantage?** #flashcard
+BG/NBD makes principled predictions from a single purchase event
+
+**Uncertainty quantification?** #flashcard
+Returns a distribution over future purchases, not just a point estimate
+
+**Interpretability?** #flashcard
+Model parameters (β, r, α, a, b) have business-meaningful interpretations
+
+**No feature engineering required?** #flashcard
+Model inputs are just recency, frequency, tenure (T)
+
+**x = number of observed transactions in [0, T]?** #flashcard
+x = number of observed transactions in [0, T]
+
+**t_x = recency (time of last transaction)?** #flashcard
+t_x = recency (time of last transaction)
+
+**T = customer age (time since acquisition)?** #flashcard
+T = customer age (time since acquisition)
+
+**Tweedie regression (compound Poisson-Gamma)?** #flashcard
+models zero-inflation natively
+
+**Two-stage?** #flashcard
+classify purchasers vs non-purchasers, then regress on purchaser LTV
+
+**Quantile regression?** #flashcard
+predict median LTV rather than mean
+
+**Acquisition channel and campaign?** #flashcard
+Acquisition channel and campaign
+
+**Device type, operating system, browser?** #flashcard
+Device type, operating system, browser
+
+**Geographic location (city, DMA)?** #flashcard
+Geographic location (city, DMA)
+
+**Landing page / product viewed?** #flashcard
+Landing page / product viewed
+
+**Time of day and day of week?** #flashcard
+Time of day and day of week
+
+**Referrer / UTM parameters?** #flashcard
+Referrer / UTM parameters
+
+**KS-test on prediction distribution vs 30-day rolling baseline?** #flashcard
+KS-test on prediction distribution vs 30-day rolling baseline
+
+**Feature drift detection on RFM features (population shift in new cohorts)?** #flashcard
+Feature drift detection on RFM features (population shift in new cohorts)
+
+**Cohort-level purchase rate changes?** #flashcard
+Cohort-level purchase rate changes
+
+**Include macroeconomic signals (consumer confidence, unemployment) as features?** #flashcard
+Include macroeconomic signals (consumer confidence, unemployment) as features
+
+**Weight recent cohorts more heavily in training (time-decay weighting)?** #flashcard
+Weight recent cohorts more heavily in training (time-decay weighting)
+
+**Monitor cohort-level calibration continuously?** #flashcard
+Monitor cohort-level calibration continuously
+
+**Maintain ensemble of models trained on different time windows?** #flashcard
+Maintain ensemble of models trained on different time windows
+
+**During shock detection, fall back to short-window (30-day) behavior model?** #flashcard
+During shock detection, fall back to short-window (30-day) behavior model
+
+**Add macro index features that can shift predictions without full retraining?** #flashcard
+Add macro index features that can shift predictions without full retraining
+
+**Do not expose LTV tiers directly to customers?** #flashcard
+Do not expose LTV tiers directly to customers
+
+**Use LTV for CPA bidding (external?** #flashcard
+customers can't observe), not for internal discount logic alone
+
+**Add anomaly detection for "strategically reduced engagement" patterns?** #flashcard
+Add anomaly detection for "strategically reduced engagement" patterns

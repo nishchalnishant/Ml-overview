@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Conformal Prediction
+subtopic: ""
+status: unread
+tags: [classicalml, ml, conformal-prediction]
+---
 # Conformal Prediction
 
 ---
@@ -231,3 +238,35 @@ y_pred, y_pred_intervals = mapie_reg.predict(X_test, alpha=0.1)
 - Bayesian inference (provides frequentist guarantees, not Bayesian posteriors — different conceptual framework).
 
 **Calibration set size**: Rule of thumb: at least 1000 calibration examples for $\alpha = 0.05$ to get a stable quantile estimate. For smaller calibration sets, the quantile estimate is noisier and the effective coverage may deviate from the nominal level.
+
+## Flashcards
+
+**Mondrian conformal prediction?** #flashcard
+Stratify by group, compute a separate $\hat{q}$ for each group from group-specific calibration examples.
+
+**Locally weighted CP?** #flashcard
+Weight calibration examples by their similarity to the test point, giving more influence to nearby calibration examples.
+
+**RAPS (Regularized Adaptive Prediction Sets)?** #flashcard
+Adds a regularization term to the APS score that penalizes large prediction sets, improving set efficiency without sacrificing coverage.
+
+**You need a provable coverage guarantee (not just a well-calibrated probability).?** #flashcard
+You need a provable coverage guarantee (not just a well-calibrated probability).
+
+**The deployment context is safety-critical?** #flashcard
+medical, legal, financial — and a point prediction is insufficient.
+
+**The model is ambiguous and you want to communicate that ambiguity as a set rather than hiding it behind a point estimate. A prediction set {cat, dog} is more honest than "cat (confidence 0.55)."?** #flashcard
+The model is ambiguous and you want to communicate that ambiguity as a set rather than hiding it behind a point estimate. A prediction set {cat, dog} is more honest than "cat (confidence 0.55)."
+
+**Regulatory compliance requires demonstrable coverage properties.?** #flashcard
+Regulatory compliance requires demonstrable coverage properties.
+
+**Calibration (conformal prediction says nothing about whether the probabilities are calibrated).?** #flashcard
+Calibration (conformal prediction says nothing about whether the probabilities are calibrated).
+
+**Uncertainty decomposition (does not separate aleatoric from epistemic uncertainty).?** #flashcard
+Uncertainty decomposition (does not separate aleatoric from epistemic uncertainty).
+
+**Bayesian inference (provides frequentist guarantees, not Bayesian posteriors?** #flashcard
+different conceptual framework).

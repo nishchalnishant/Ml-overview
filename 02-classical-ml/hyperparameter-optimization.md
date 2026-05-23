@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Hyperparameter Optimization
+subtopic: ""
+status: unread
+tags: [classicalml, ml, hyperparameter-optimization]
+---
 # Hyperparameter Optimization
 
 ---
@@ -224,3 +231,20 @@ Focus the remaining budget on the top 2–3 most important hyperparameters. Fixi
 | Hyperband / ASHA | Scales with n_configs | Deep learning, early stopping is meaningful |
 | BOHB | 20–100 | Expensive deep models, best general-purpose |
 | PBT | Population size × training cost | Hyperparameter schedules, RL-style training |
+
+## Flashcards
+
+**Expected Improvement (EI)?** #flashcard
+Expected gain over the current best, under the surrogate's uncertainty. Standard choice.
+
+**Upper Confidence Bound (UCB)?** #flashcard
+$\mu(\lambda) + \kappa \cdot \sigma(\lambda)$. Optimistic under uncertainty. $\kappa$ controls exploration.
+
+**Thompson Sampling?** #flashcard
+Sample a function from the surrogate's posterior, maximize it. Simple and parallelizable.
+
+**Grid and random search are trivially parallel?** #flashcard
+no communication needed between workers.
+
+**Bayesian optimization has a sequential bottleneck?** #flashcard
+each new configuration depends on all previous results. Use asynchronous variants or batch acquisition (evaluate k configurations simultaneously using approximate acquisition).

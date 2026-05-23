@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 4 Final Prep
+subtopic: Day 26 30 Final Prep
+status: unread
+tags: [studyplans, ml, week-4-final-prep-day-26-30-fi]
+---
 # Day 26-30: Final Review & Mental Prep
 
 ## Why This Topic Comes Here
@@ -139,3 +146,74 @@ In an interview, if you don't know a specific algorithm or paper: don't panic an
 ---
 
 30 days of deliberate study. The interview is a conversation between two engineers solving a problem together. Trust the foundations you built.
+
+## Flashcards
+
+**Precision = TP/(TP+FP), Recall = TP/(TP+FN), F1 = 2PR/(P+R)?** #flashcard
+Precision = TP/(TP+FP), Recall = TP/(TP+FN), F1 = 2PR/(P+R)
+
+**AUC-ROC?** #flashcard
+area under ROC curve (FPR vs TPR). AUC=0.5 → random; not reliable for imbalanced classes.
+
+**PR-AUC?** #flashcard
+preferred for imbalanced classes; directly reflects precision and recall.
+
+**Log loss: $-\sum y_i \log(\hat{y}_i)$?** #flashcard
+measures calibration, not just correctness.
+
+**L1 (Lasso)?** #flashcard
+sparsity, coefficients can go to exactly 0, implicit feature selection.
+
+**L2 (Ridge)?** #flashcard
+shrinkage without sparsity, all weights stay nonzero.
+
+**Dropout?** #flashcard
+equivalent to approximate ensemble over $2^N$ sub-networks.
+
+**Too high LR?** #flashcard
+oscillates / diverges. Too low: slow convergence, may get stuck.
+
+**Adam?** #flashcard
+adaptive per-parameter learning rate via first and second moment estimates ($m_t$ and $v_t$).
+
+**Gradient clipping?** #flashcard
+prevents exploding gradients in RNNs and Transformers.
+
+**Retrieval → Ranking pattern?** #flashcard
+billions of items → hundreds (cheap model) → ranked list (expensive model).
+
+**Feature store?** #flashcard
+prevents train-serve skew by sharing a single feature computation layer.
+
+**Shadow mode?** #flashcard
+run new model alongside existing one, compare outputs without serving new model's results.
+
+**Draw diagrams. Label axes. Show data flow. An interviewer watching you sketch a two-tower architecture while narrating it can assess your understanding far better than listening to an abstract verbal description.?** #flashcard
+Draw diagrams. Label axes. Show data flow. An interviewer watching you sketch a two-tower architecture while narrating it can assess your understanding far better than listening to an abstract verbal description.
+
+**Structure every answer?** #flashcard
+(1) direct statement of your position, (2) intuition or analogy, (3) production tradeoff.
+
+**The interviewer is a collaborator, not an examiner. Asking "Does that constraint match what you had in mind?" is a sign of good engineering judgment, not ignorance.?** #flashcard
+The interviewer is a collaborator, not an examiner. Asking "Does that constraint match what you had in mind?" is a sign of good engineering judgment, not ignorance.
+
+**[ ] Can I explain my 2 most important projects in under 3 minutes?** #flashcard
+[ ] Can I explain my 2 most important projects in under 3 minutes?
+
+**[ ] Do I have 3 thoughtful questions ready for the interviewer?** #flashcard
+[ ] Do I have 3 thoughtful questions ready for the interviewer?
+
+**[ ] Have I reviewed the math for the algorithms in my past projects?** #flashcard
+[ ] Have I reviewed the math for the algorithms in my past projects?
+
+**[ ] Can I implement attention, backprop, and k-means from scratch?** #flashcard
+[ ] Can I implement attention, backprop, and k-means from scratch?
+
+**[ ] Have I done at least one timed mock interview (aloud, not in my head)?** #flashcard
+[ ] Have I done at least one timed mock interview (aloud, not in my head)?
+
+**[ ] Is my setup (webcam, mic, internet, dev environment) confirmed working?** #flashcard
+[ ] Is my setup (webcam, mic, internet, dev environment) confirmed working?
+
+**[ ] Have I reviewed the [AI & ML Revision Guide](../../01-foundations/AI_ML_REVISION_GUIDE.md)?** #flashcard
+[ ] Have I reviewed the [AI & ML Revision Guide](../../01-foundations/AI_ML_REVISION_GUIDE.md)?

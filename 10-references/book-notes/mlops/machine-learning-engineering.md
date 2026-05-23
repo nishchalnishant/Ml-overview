@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Mlops Machine Learning Engineering
+status: unread
+tags: [references, ml, book-notes-mlops]
+---
 # Machine Learning Engineering
 
 ## Chapter 1: Introduction — What is ML Engineering
@@ -211,3 +218,197 @@ ML is becoming a mainstream software engineering discipline. The same principles
 
 **What the book gets right / what to watch out for**
 The engineering discipline framing is the most important cultural argument in the book. Teams that treat ML as research (no tests, no monitoring, no reproducibility) create systems they can't maintain. Democratization lowers the bar to deploying models but not the bar to deploying them responsibly — AutoML makes it easy to ship a model that is biased, uncalibrated, or silently degrading.
+
+## Flashcards
+
+**Mathematical notation?** #flashcard
+scalar (x), vector (x), matrix (X), set (S), Euclidean norm ||x||₂ = √(Σxᵢ²)
+
+**ML definition?** #flashcard
+a program is said to learn from experience E with respect to task T and performance measure P if P improves with E (Mitchell's definition)
+
+**Learning paradigms?** #flashcard
+supervised (labeled), unsupervised (structure), semi-supervised (few labels + many unlabeled), RL (reward signal from environment)
+
+**Model families?** #flashcard
+model-based (parameterized function, fast inference), instance-based (kNN, stores training data), deep vs shallow
+
+**Project lifecycle?** #flashcard
+goal definition → data collection → feature engineering → model training → evaluation → deployment → serving → monitoring → maintenance
+
+**Prioritization?** #flashcard
+priority = expected_impact / estimated_cost; favor high-impact, low-complexity projects for first ML deployments
+
+**Complexity estimation: non-linear progress?** #flashcard
+simple approaches achieve 80% of maximum performance quickly; avoiding the last 20% is usually the right business decision
+
+**Goal definition?** #flashcard
+what specific metric will improve? What is the baseline? What is the minimum acceptable performance for production?
+
+**Team structure: collaborative (ML and product teams work closely), integrated (ML engineers embedded in product teams)?** #flashcard
+integrated produces better alignment
+
+**Common project failures?** #flashcard
+lack of ML experience (underestimate complexity), lack of data infrastructure (data not accessible or queryable), misaligned teams (ML builds what product doesn't want)
+
+**Five data questions?** #flashcard
+accessible, sizeable (≥1000 examples per class for classification), usable, understandable, reliable
+
+**Common data problems?** #flashcard
+collection cost (expensive to label, slow to collect), selection bias (training data doesn't represent deployment population), low predictive power (features don't correlate with target), outdated labels (world changed since labeling), data leakage (future information in features)
+
+**Good data properties?** #flashcard
+collected without bias, representative of the deployment population, labeled consistently (inter-annotator agreement > 0.8 Cohen's kappa)
+
+**Data partitioning?** #flashcard
+training (60%), validation (20%), test (20%); test set is never used for any decisions
+
+**Imputation?** #flashcard
+mean/median for continuous, mode for categorical; consider model-based imputation (IterativeImputer) for high-value features
+
+**Class imbalance?** #flashcard
+oversampling (SMOTE, duplicate minority), undersampling (discard majority), cost-sensitive learning
+
+**Sampling strategies?** #flashcard
+simple random, systematic (every Kth element), stratified (preserves class ratios), cluster (sample whole groups)
+
+**Data versioning: DVC, Delta Lake, or timestamped snapshots?** #flashcard
+know exactly which data produced which model
+
+**Text features?** #flashcard
+one-hot encoding (binary bag-of-words), TF-IDF (frequency weighted), word embeddings (dense semantic vectors)
+
+**Feature hashing trick?** #flashcard
+map arbitrary feature values to fixed-size vector; hash(feature_value) % D; handles OOV without vocabulary
+
+**Feature stacking?** #flashcard
+concatenate features from different sources into a single vector
+
+**Feature selection?** #flashcard
+remove features in the long tail (low frequency, low predictive power); use permutation importance or SHAP to rank
+
+**Feature discretization?** #flashcard
+bin continuous feature into categories; uniform binning (equal-width intervals), k-means binning (cluster-based), quantile binning (equal-frequency)
+
+**Word embeddings?** #flashcard
+Word2Vec skip-gram, GloVe, fastText; pre-trained vectors encode semantic similarity; use as feature initialization
+
+**Data leakage prevention?** #flashcard
+never use information from validation/test time to construct training features; be especially careful with time-based features
+
+**Feature documentation?** #flashcard
+for each feature, document: definition, computation method, expected range, known correlations, production availability
+
+**Schema validation?** #flashcard
+before training, validate that features have expected types, ranges, and distributions; fail loudly on violations
+
+**Achievable performance?** #flashcard
+human accuracy on the task; defines the ceiling
+
+**Performance metric selection?** #flashcard
+precision/recall/F1 for classification; RMSE/MAE for regression; choose the metric that aligns with business cost
+
+**Baseline?** #flashcard
+random classifier (majority class), mean predictor (regression), linear model; must be beaten to justify any complexity
+
+**Label representation?** #flashcard
+multiclass → one-hot encoding; multilabel → bag-of-words binary vector
+
+**Algorithm selection?** #flashcard
+tabular data → gradient boosting (XGBoost/LightGBM); images → CNN or ViT; text → BERT/GPT fine-tune; time series → LightGBM with lag features or N-BEATS
+
+**Hyperparameter tuning?** #flashcard
+random search with log-uniform distributions is the efficient approach; Optuna/Hyperopt for Bayesian optimization
+
+**Bias-variance tradeoff?** #flashcard
+underfitting (high bias) → increase model capacity or train longer; overfitting (high variance) → more data, regularization, or reduce capacity
+
+**Performance metric vs cost function?** #flashcard
+accuracy is not differentiable; cross-entropy loss approximates it and is differentiable
+
+**Cost functions?** #flashcard
+MSE for regression, cross-entropy for classification, Dice loss for segmentation
+
+**Weight initialization: Xavier (Var[w] = 2/(fan_in+fan_out)) for tanh/sigmoid; He (Var[w] = 2/fan_in) for ReLU?** #flashcard
+prevents vanishing/exploding gradients at initialization
+
+**Optimization?** #flashcard
+Adam (β₁=0.9, β₂=0.999, ε=1e-8) default; AdamW (decoupled weight decay) preferred; SGD+momentum for vision tasks
+
+**Hyperparameter tuning?** #flashcard
+LR is the most important; try {1e-1, 1e-2, 1e-3, 1e-4} in log space; use LR warmup + cosine decay
+
+**Transfer learning?** #flashcard
+load pretrained weights; freeze backbone; train head; unfreeze; fine-tune at lower LR (10-100× smaller)
+
+**Regularization?** #flashcard
+L2 weight decay (λ=1e-4 typical), dropout (p=0.5 for FC, p=0.1-0.2 for conv), batch normalization (implicit regularization), data augmentation
+
+**Batch size?** #flashcard
+B=256 is a reasonable default; larger batches → lower variance gradients but weaker regularization and worse generalization; scale LR linearly with batch size when scaling
+
+**Offline evaluation?** #flashcard
+confusion matrix (classification), RMSE/MAE (regression), AUC-ROC (ranking), BLEU/ROUGE (generation)
+
+**Validation vs test?** #flashcard
+validation for all iterative model decisions; test set used exactly once for final evaluation
+
+**A/B testing?** #flashcard
+split users into treatment/control; measure primary metric + guardrail metrics; need statistical significance (p < 0.05) with adequate power (β > 0.8)
+
+**Multi-armed bandit: Thompson sampling?** #flashcard
+maintain a Beta distribution per arm; sample from each distribution; choose arm with highest sample; update distribution with observed outcome
+
+**Exploration vs exploitation?** #flashcard
+pure exploitation = A/B test (miss out during test period); bandit allocates more traffic to better arm as evidence accumulates
+
+**Online evaluation business metrics: revenue, engagement, retention?** #flashcard
+these are the ultimate measures of model value
+
+**Static deployment?** #flashcard
+serialize model to file (pickle/ONNX/TorchScript); load as DLL/shared library or embed in application; advantages: low latency (no network), no external dependency, works offline; disadvantages: slow to update (requires application redeployment), hard to A/B test
+
+**Dynamic deployment?** #flashcard
+model server (REST/gRPC API); request comes in, model runs inference, response returned; advantages: rapid updates, A/B testing, monitoring; disadvantages: network latency, infrastructure dependency
+
+**Streaming deployment?** #flashcard
+process events as they arrive (Kafka consumer + model); low latency, stateful
+
+**Canary deployment?** #flashcard
+route 1–5% of traffic to new model version; monitor metrics; gradually increase to 100% or rollback
+
+**Multi-armed bandit for deployment: allocate traffic adaptively based on observed performance?** #flashcard
+converges faster than fixed canary schedule
+
+**Automation?** #flashcard
+version control model artifacts; automated testing (unit, integration, performance) before deployment; approval gate for production
+
+**Serving properties?** #flashcard
+security (input validation, model encryption), ease of deployment (CI/CD pipeline), validity guarantees (input schema validation), rollback (version registry, instant rollback), no training-serving skew (same preprocessing code)
+
+**Hidden feedback loops?** #flashcard
+model predictions influence future data → future training data → next model; untreated, leads to self-reinforcing biases
+
+**Batch vs on-demand?** #flashcard
+batch (nightly job, cached results) for throughput; on-demand (per-request inference) for freshness
+
+**Performance drift?** #flashcard
+monitor prediction distribution and business metrics weekly; alert on statistical deviation
+
+**Adversarial inputs?** #flashcard
+users may craft inputs to fool the model (adversarial examples, prompt injection); input validation and anomaly detection at the API layer
+
+**Model maintenance?** #flashcard
+retrain when drift detected, when new data labels become available, or on a regular schedule; keep retraining pipeline automated and reproducible
+
+**Common pitfalls?** #flashcard
+data quality issues (garbage in, garbage out), technical debt (hardcoded paths, undocumented features, untested preprocessing), lack of understanding (shipping a model you can't explain)
+
+**Engineering standards for ML?** #flashcard
+version control (code + data + models), unit tests for preprocessing and postprocessing, integration tests for serving, monitoring dashboards, runbooks for common incidents
+
+**Democratization?** #flashcard
+open-source frameworks (PyTorch, sklearn, HuggingFace), cloud ML platforms (SageMaker, Vertex AI), AutoML tools lower the barrier to entry
+
+**Full lifecycle ownership?** #flashcard
+ML engineers own the model from conception to retirement; this includes monitoring, retraining, and deprecation

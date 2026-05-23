@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: Mlops Machine Learning Design Patterns
+status: unread
+tags: [references, ml, book-notes-mlops]
+---
 # Machine Learning Design Patterns
 
 ## Chapter 1: The Need for ML Design Patterns
@@ -209,3 +216,251 @@ Repeatability requires that: the same code produces the same result (version con
 
 **What the book gets right / what to watch out for**
 Training-serving skew is the single most impactful production ML bug — it is silent, pervasive, and often discovered only months after deployment when model performance is already degraded. The transform pattern (export preprocessing with the model) is the correct prevention. Containerization + version control are the minimum bar for reproducibility; adding data versioning (DVC, Delta Lake) is required for serious production systems.
+
+## Flashcards
+
+**Data quality dimensions?** #flashcard
+accuracy (correct values), completeness (no missing fields), consistency (same format across systems), timeliness (data available when needed)
+
+**ML lifecycle phases?** #flashcard
+discovery (problem definition, data exploration) → development (feature engineering, training, evaluation) → deployment (serving, monitoring, maintenance)
+
+**AI readiness levels?** #flashcard
+tactical (point solutions, individual models), strategic (platform, shared infrastructure), transformational (ML as core business capability)
+
+**Reproducibility?** #flashcard
+same code + same data + same environment → same result; requires version control for code, data, and dependencies
+
+**Standardization?** #flashcard
+(x - μ) / σ → zero mean unit variance; required for distance-based and gradient-sensitive models
+
+**Min-max normalization?** #flashcard
+(x - x_min) / (x_max - x_min) → [0,1]; use when bounds are known
+
+**Log transform?** #flashcard
+log(1+x) for right-skewed features; brings outliers closer to the bulk of the distribution
+
+**Problem: high-cardinality categoricals (user IDs, product SKUs) can't be one-hot encoded?** #flashcard
+vocabulary too large, cold-start for new values
+
+**Solution?** #flashcard
+hash(feature_value) % num_buckets maps any value to a fixed number of buckets; works for new values at inference
+
+**Trade-off?** #flashcard
+bucket collisions (two different values map to the same bucket) introduce noise; larger bucket count reduces collisions but increases parameters
+
+**Use when?** #flashcard
+feature cardinality > 10,000, or new values appear at serving time (cold-start problem)
+
+**Problem?** #flashcard
+a continuous output (regression) can be reframed as a classification over buckets; a binary label can be reframed as a regression over probability
+
+**Solution?** #flashcard
+regression → classification: bucket the output into ranges (e.g., rainfall in mm → {no rain, light, moderate, heavy}); lose ranking within buckets but gain more informative loss signal
+
+**When to reframe?** #flashcard
+when the distribution of the target is multimodal, or when you need calibrated interval predictions rather than point predictions
+
+**Problem?** #flashcard
+linear models can't capture interactions between features (user_age × product_category effects)
+
+**Solution?** #flashcard
+explicitly create a new feature that is the Cartesian product of two categorical features: hour_of_day × day_of_week → 168 combinations
+
+**Trade-off?** #flashcard
+multiplies feature space size; increases risk of overfitting; most useful for linear models
+
+**Modern alternative?** #flashcard
+embedding-based models (neural networks) learn feature interactions implicitly
+
+**Problem?** #flashcard
+real-world entities are described by multiple data types (product: image + text description + numerical price)
+
+**Solution?** #flashcard
+separate encoders per modality (CNN for image, BERT for text, FC for numerical); concatenate latent representations; joint fine-tuning
+
+**Late fusion vs early fusion?** #flashcard
+late fusion (concatenate after encoding) is simpler and handles missing modalities; early fusion (combine raw features) requires all modalities
+
+**Problem?** #flashcard
+class imbalance causes models to optimize for majority class; minority class performance is poor
+
+**Solutions?** #flashcard
+downsampling majority (discard majority examples until balanced), oversampling minority (duplicate or SMOTE-synthesize minority examples), class weighting (multiply minority loss by n_majority/n_minority)
+
+**Threshold tuning?** #flashcard
+move decision threshold from 0.5 to balance precision/recall; always tune on validation set
+
+**Problem?** #flashcard
+each example can belong to multiple classes simultaneously (article about sports AND politics)
+
+**Solution?** #flashcard
+replace softmax + cross-entropy with independent sigmoid per class + binary cross-entropy per class
+
+**Loss?** #flashcard
+L = -Σₖ [yₖ log(ŷₖ) + (1-yₖ) log(1-ŷₖ)]; optimizes each label independently
+
+**Evaluation?** #flashcard
+per-class AUC; micro/macro averaged F1; Hamming loss
+
+**Problem?** #flashcard
+a single model has high variance (random forest) or high bias (linear model); combining models reduces both
+
+**Bagging?** #flashcard
+train N models on bootstrap samples; average predictions; reduces variance
+
+**Boosting?** #flashcard
+train sequential models focused on errors of previous; reduces bias
+
+**Stacking?** #flashcard
+use predictions of N base models as features for a meta-learner; learns which base model to trust
+
+**When to use?** #flashcard
+accuracy is critical, compute budget allows training multiple models, interpretability is not required
+
+**Problem?** #flashcard
+one complex model tries to handle all cases, including easy ones that don't need it; expensive and slow
+
+**Solution?** #flashcard
+chain simpler models in sequence; first model handles easy cases and routes hard cases to next model
+
+**Example?** #flashcard
+spam filter → rule-based for obvious spam → simple classifier for moderate cases → complex model for hard cases
+
+**Trade-off?** #flashcard
+adds system complexity; each stage's errors propagate; latency depends on fraction reaching each stage
+
+**Problem?** #flashcard
+forcing binary classification on inherently ambiguous examples (borderline sentiment, uncertain medical diagnosis) produces noisy training signal and incorrect confident predictions
+
+**Solution?** #flashcard
+add a "neutral" or "uncertain" class; train model to predict neutral when evidence is insufficient
+
+**Effect?** #flashcard
+model learns to be uncertain in uncertain cases; reduces calibration error; improves actionability
+
+**Training loop?** #flashcard
+for batch in dataloader: optimizer.zero_grad(); output = model(batch.x); loss = criterion(output, batch.y); loss.backward(); optimizer.step()
+
+**Batching?** #flashcard
+mini-batch (B=32–256); larger batches → smoother gradients but lower generalization; gradient accumulation when GPU memory limits batch size
+
+**Early stopping?** #flashcard
+monitor val loss; stop when it doesn't improve for N epochs; restore_best_weights=True
+
+**LR scheduling?** #flashcard
+cosine annealing (smooth), step decay, warmup (linear increase for first 2–5% of training)
+
+**Custom loss functions: fraud detection?** #flashcard
+penalize false negatives more than false positives; loss = pos_weight  y  log(ŷ) + (1-y) * log(1-ŷ) with pos_weight > 1
+
+**Transfer learning?** #flashcard
+freeze pretrained layers → train new layers → unfreeze all → fine-tune at lower LR
+
+**Regularization?** #flashcard
+L1 (sparsity), L2 (small weights), dropout (random deactivation), data augmentation
+
+**Problem?** #flashcard
+batch inference produces predictions without traceability back to the source record
+
+**Solution?** #flashcard
+pass a unique key (row ID, user ID, request ID) through the prediction pipeline; output (key, prediction) pairs
+
+**Enables?** #flashcard
+joining predictions back to source data for analysis, debugging specific predictions, deduplication in streaming pipelines
+
+**Kubeflow Pipelines?** #flashcard
+DAG of ML steps (data validation, preprocessing, training, evaluation, deployment); each step is a containerized function; automatic dependency management
+
+**TFX?** #flashcard
+TensorFlow Extended; similar concept with TFX components; ExampleGen → StatisticsGen → SchemaGen → ExampleValidator → Transform → Trainer → Evaluator → Pusher
+
+**Model validation gate?** #flashcard
+only deploy if new model exceeds current production model on evaluation metrics
+
+**Maintain two identical production environments (blue = current, green = new model)?** #flashcard
+Maintain two identical production environments (blue = current, green = new model)
+
+**Route all traffic to blue; deploy and test green; switch DNS/load balancer to green; blue becomes standby?** #flashcard
+Route all traffic to blue; deploy and test green; switch DNS/load balancer to green; blue becomes standby
+
+**Instant rollback?** #flashcard
+switch load balancer back to blue if issues detected
+
+**Cost?** #flashcard
+running two identical environments simultaneously doubles infrastructure cost during rollout
+
+**New model receives all production requests; runs inference; logs predictions; predictions never shown to users?** #flashcard
+New model receives all production requests; runs inference; logs predictions; predictions never shown to users
+
+**Compare offline?** #flashcard
+are shadow model predictions better than production model predictions?
+
+**Safe?** #flashcard
+no user impact; captures real production traffic distribution
+
+**Limitation?** #flashcard
+doesn't measure impact on business metrics (no user interaction with shadow predictions)
+
+**Scheduled retraining?** #flashcard
+retrain on fixed schedule (weekly, monthly); simple but may miss rapid drift
+
+**Metric-triggered retraining?** #flashcard
+monitor model performance metrics; trigger retraining when metric drops below threshold
+
+**Data-triggered retraining?** #flashcard
+monitor feature distributions; trigger retraining when statistical test detects drift
+
+**Monitoring?** #flashcard
+log prediction distribution, feature distributions, business metrics; alert on anomalies
+
+**Problem?** #flashcard
+feature preprocessing computed at training time (scaling parameters, vocabulary mappings) must be applied identically at serving time; differences cause training-serving skew
+
+**Solution?** #flashcard
+export the preprocessing transformation as part of the model artifact; TFX Transform component exports a preprocessing function that is applied identically at train and serve
+
+**scikit-learn equivalent?** #flashcard
+always save the entire Pipeline (preprocessor + model), not just the model
+
+**Common skew bugs?** #flashcard
+computing mean/std on full dataset (including val/test) instead of train only; different tokenization at train vs serve; different categorical encoding mappings
+
+**Fixed random seeds: torch.manual_seed(42), np.random.seed(42), random.seed(42)?** #flashcard
+control all sources of randomness
+
+**Version control?** #flashcard
+code in git; data with DVC or MLflow; environments with Docker
+
+**Containerization?** #flashcard
+Docker image captures exact library versions; eliminates "works on my machine" problems
+
+**Experiment logging?** #flashcard
+log seed, hyperparameters, data version, code commit hash for every run
+
+**Monitor feature distributions?** #flashcard
+compare mean, std, quantiles of each feature between reference window and current window
+
+**Statistical tests?** #flashcard
+KS test (continuous features), chi-squared (categorical features); PSI > 0.25 = significant shift
+
+**Retraining strategy?** #flashcard
+retrain on data that includes the shifted distribution; expand training window vs sliding window trade-off
+
+**Batch?** #flashcard
+run model on entire dataset at once; store predictions in database; serve from cache; low latency, potentially stale
+
+**Online?** #flashcard
+run model on each request in real time; always fresh predictions; higher latency, higher compute cost
+
+**Hybrid?** #flashcard
+pre-compute batch predictions for high-frequency entities; use online for new or low-frequency entities
+
+**Airflow?** #flashcard
+general-purpose DAG scheduler; each DAG is a Python file; operators for Spark, BigQuery, Docker, etc.
+
+**Automation?** #flashcard
+once pipeline is defined as a DAG, it can be triggered on schedule, on data arrival, or on metric threshold
+
+**Reproducibility: a pipeline run captures inputs, outputs, and timing for each step?** #flashcard
+enables debugging and auditing

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Probabilistic Graphical Models
+status: unread
+tags: [interviewprep, ml, ml-probabilistic-graphical-mod]
+---
 # Probabilistic Graphical Models (PGMs)
 
 ---
@@ -494,3 +501,86 @@ VI is faster and scales better; MCMC is asymptotically unbiased. VI uses reverse
 
 **If asked about HMM vs CRF:**
 HMM is generative — models $P(X, Y)$, requires emission distribution, features must be conditionally independent given state. CRF is discriminative — models $P(Y \mid X)$, no emission assumption, features can be arbitrary functions of the entire observation sequence. Use CRF when rich feature engineering is possible and the generative model's assumptions are violated.
+
+## Flashcards
+
+**Saying MRFs require specifying causal direction. They do not?** #flashcard
+the absence of direction is the point.
+
+**Forgetting that the partition function $Z$ is the fundamental obstacle. Computing $Z$ requires summing over all variable configurations?** #flashcard
+exponential in the number of variables. This is why approximate inference exists.
+
+**Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.?** #flashcard
+Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.
+
+**Confusing the Markov blanket with the neighborhood. The Markov blanket includes co-parents (other parents of the node's children)?** #flashcard
+without them, the node is not screened off from its children's co-causes.
+
+**States?** #flashcard
+$S = \{s_1, \ldots, s_N\}$ (hidden)
+
+**Observations?** #flashcard
+$O = \{o_1, \ldots, o_K\}$ (visible)
+
+**Initial distribution?** #flashcard
+$\pi_i = P(q_1 = s_i)$
+
+**Transition matrix?** #flashcard
+$A[i,j] = P(q_{t+1} = s_j \mid q_t = s_i)$
+
+**Emission matrix?** #flashcard
+$B[i,k] = P(o_t = o_k \mid q_t = s_i)$
+
+**Forgetting to implement in log space. Forward/Viterbi probabilities underflow to zero for long sequences?** #flashcard
+always use log probabilities with log-sum-exp.
+
+**Confusing the three algorithms. Forward?** #flashcard
+sum-product, returns a scalar probability. Viterbi: max-product with backpointers, returns a sequence. Baum-Welch: EM with forward-backward in the E-step.
+
+**phi_data?** #flashcard
+pixel intensity matches label distribution
+
+**phi_smooth = exp(-lambda * 1[Yi != Yj])?** #flashcard
+penalty for neighboring pixels with different labels
+
+**Assuming the partition function is computable. For most real-world MRFs it is not?** #flashcard
+this is why all training and inference algorithms for MRFs involve approximations.
+
+**Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.?** #flashcard
+Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.
+
+**Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.?** #flashcard
+Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.
+
+**Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.?** #flashcard
+Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.
+
+**Saying VI is "just minimizing KL divergence." Minimizing $D_{KL}(q \| P)$ is the right framing, but the direction matters?** #flashcard
+reverse KL produces mode-seeking behavior; forward KL would produce mean-seeking behavior. Most VI uses reverse KL.
+
+**Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.?** #flashcard
+Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.
+
+**R-hat < 1.01 is necessary but not sufficient for convergence?** #flashcard
+also check ESS and trace plots.
+
+**Discarding too few warmup samples. The chain must reach stationarity before samples are useful.?** #flashcard
+Discarding too few warmup samples. The chain must reach stationarity before samples are useful.
+
+**Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.?** #flashcard
+Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.
+
+**Topic indices are not identifiable?** #flashcard
+topics may be permuted across different runs. Never compare topic $k=3$ from two independent runs.
+
+**sklearn's LDA uses online variational EM, not collapsed Gibbs?** #flashcard
+it is fast but produces biased estimates. For research-quality topic models, use collapsed Gibbs (gensim).
+
+**Forgetting that LDA assumes a bag-of-words representation?** #flashcard
+word order is discarded.
+
+**Treating CRF and HMM as equivalent with different parameter estimation. The key distinction is the feature expressiveness?** #flashcard
+CRFs can use overlapping, non-independent features; HMMs fundamentally cannot.
+
+**Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.?** #flashcard
+Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.

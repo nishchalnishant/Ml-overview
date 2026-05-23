@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Scaling And Data
+subtopic: ""
+status: unread
+tags: [llms, ml, scaling-and-data]
+---
 # Scaling Laws and Training Data
 
 ---
@@ -285,3 +292,17 @@ When scaling token count hits data walls and scaling parameters hits memory wall
 | Training tokens | ~15T (LLaMA 3) | High-quality web text near exhaustion |
 | Reasoning (inference-time) | Extended thinking (o1, R1, DeepSeek) | Verification accuracy at hard problems |
 | Modalities | Text + image + audio (GPT-4o) | Video, 3D, physical-world grounding |
+
+## Flashcards
+
+**Remove documents shorter than 100 or longer than 100,000 tokens?** #flashcard
+Remove documents shorter than 100 or longer than 100,000 tokens
+
+**Filter by character-level repetition ratio (> 20% flagged as degenerate)?** #flashcard
+Filter by character-level repetition ratio (> 20% flagged as degenerate)
+
+**Remove documents where most lines are punctuation or numbers?** #flashcard
+Remove documents where most lines are punctuation or numbers
+
+**Filter by word overlap with a known-quality reference corpus?** #flashcard
+Filter by word overlap with a known-quality reference corpus

@@ -1,3 +1,10 @@
+---
+module: Classical Ml
+topic: Anomaly Detection
+subtopic: ""
+status: unread
+tags: [classicalml, ml, anomaly-detection]
+---
 # Anomaly Detection
 
 ---
@@ -206,3 +213,14 @@ anomalies = labels == -1
 | Elliptic Envelope | Near-Gaussian low-dimensional data | Multimodal distributions, high dimensions |
 | Autoencoder | Images, sequences, unstructured or high-dimensional inputs | Small datasets (underfits), variable normal patterns |
 | HDBSCAN | When clustering structure is also needed | Online detection, streaming data |
+
+## Flashcards
+
+**Outlier detection?** #flashcard
+The training set may already contain anomalies. Goal: identify which training examples are outliers.
+
+**Novelty detection?** #flashcard
+Training set is clean (only normal examples). Goal: flag anomalies at inference time.
+
+**One-class classification: Training set contains only the normal class. Goal: binary decision?** #flashcard
+normal vs not-normal — for new inputs.

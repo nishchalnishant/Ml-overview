@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Llm
+subtopic: Statistics Probability
+status: unread
+tags: [interviewprep, ml, llm-statistics-probability]
+---
 # Statistics and Probability — Interview Reference
 
 ---
@@ -290,3 +297,62 @@ def ab_test(control_conversions, control_n, treatment_conversions, treatment_n, 
 **"Correlation of 0 means independence."** Only for Gaussian variables. In general, correlation measures only linear dependence. Mutual information is a better measure of general dependence.
 
 **"MAP is always better than MLE."** With large data, the likelihood overwhelms the prior and MAP ≈ MLE. MAP's advantage is with small data — when the prior matters. Using a strong prior on a large dataset can introduce bias.
+
+## Flashcards
+
+**Sum of independent Gaussians: $X+Y \sim \mathcal{N}(\mu_X+\mu_Y, \sigma_X^2+\sigma_Y^2)$?** #flashcard
+why adding noise sources adds variances
+
+**68-95-99.7 rule: $P(\mu \pm \sigma) \approx 68\%$, $P(\mu \pm 2\sigma) \approx 95\%$, $P(\mu \pm 3\sigma) \approx 99.7\%$?** #flashcard
+the basis for anomaly detection thresholds
+
+**Not $P(H_0 \text{ is true})$?** #flashcard
+that requires a prior (Bayesian reasoning)
+
+**Not "the probability your result is a fluke"?** #flashcard
+Not "the probability your result is a fluke"
+
+**Not a measure of effect size?** #flashcard
+a tiny, meaningless difference can be highly significant with enough data
+
+**Not stable?** #flashcard
+two experiments with $p = 0.049$ and $p = 0.051$ are effectively identical; the 0.05 threshold is arbitrary
+
+**$\alpha$ = significance level = Type I error rate. You set this; typical value 0.05.?** #flashcard
+$\alpha$ = significance level = Type I error rate. You set this; typical value 0.05.
+
+**Power = $1 - \beta$ = probability of detecting a true effect. Set target (commonly 0.8 or 0.9); determines required sample size.?** #flashcard
+Power = $1 - \beta$ = probability of detecting a true effect. Set target (commonly 0.8 or 0.9); determines required sample size.
+
+**Correct?** #flashcard
+"If we repeated this experiment many times and computed a CI each time, 95% of those intervals would contain the true parameter."
+
+**Incorrect?** #flashcard
+"There is a 95% probability the true value is in this specific interval."
+
+**It justifies treating test set accuracy (an average over test examples) as approximately Gaussian?** #flashcard
+enabling confidence intervals and hypothesis tests
+
+**It explains why neural network weights at initialization, if they're a sum of many random contributions, tend to be Gaussian?** #flashcard
+It explains why neural network weights at initialization, if they're a sum of many random contributions, tend to be Gaussian
+
+**It's why batch normalization works?** #flashcard
+the mean and variance of a minibatch approximate population statistics better as batch size grows
+
+**$D_{\text{KL}} \geq 0$, equals 0 iff $p = q$ exactly?** #flashcard
+$D_{\text{KL}} \geq 0$, equals 0 iff $p = q$ exactly
+
+**Not symmetric: $D_{\text{KL}}(p\|q) \neq D_{\text{KL}}(q\|p)$?** #flashcard
+the "forward" and "reverse" KL make different approximation choices
+
+**Minimizing cross-entropy loss = minimizing KL divergence to true labels + constant (since $H(p)$ is fixed)?** #flashcard
+Minimizing cross-entropy loss = minimizing KL divergence to true labels + constant (since $H(p)$ is fixed)
+
+**VAE loss?** #flashcard
+KL between the approximate posterior and the prior regularizes the latent space
+
+**DPO?** #flashcard
+KL penalty between the policy and the reference model controls how far fine-tuning can deviate
+
+**Knowledge distillation?** #flashcard
+KL between teacher and student output distributions

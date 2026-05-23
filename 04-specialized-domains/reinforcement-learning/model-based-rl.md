@@ -1,3 +1,10 @@
+---
+module: Specialized Domains
+topic: Reinforcement Learning
+subtopic: Model Based Rl
+status: unread
+tags: [specializeddomains, ml, reinforcement-learning-model-b]
+---
 # Model-Based RL & Advanced Planning
 
 **TL;DR:** Model-based RL learns a world model (dynamics + reward) to plan or generate synthetic experience, achieving 10–100× better sample efficiency than model-free methods at the cost of compounding model errors. Modern approaches (DreamerV3, MuZero) learn compact latent models that sidestep the need for pixel-level reconstruction. MCTS + learned value/policy functions underpin AlphaZero and o1-style LLM reasoning.
@@ -488,3 +495,80 @@ The Markov assumption breaks: from agent i's perspective, the environment's tran
 MuZero's dynamics model predicts: (1) the reward r for the action taken, and (2) a latent next state s' (abstract, not tied to pixel reconstruction). Its prediction network then maps s' to a policy prior p and value v — the two quantities needed for MCTS. The model never reconstructs the raw observation.
 
 This is sufficient because the world model is trained to be accurate *for planning*, not perceptually faithful. The latent states are supervised by consistency with downstream value and policy targets (through MCTS-derived π and eventual game outcomes z), forcing them to capture decision-relevant information. Pixel-level details (shadows, textures) that are irrelevant to the game outcome are simply not learned — which is exactly what you want.
+
+## Flashcards
+
+**p = policy prior over actions (used in UCT)?** #flashcard
+p = policy prior over actions (used in UCT)
+
+**v = value estimate (used instead of rollout)?** #flashcard
+v = value estimate (used instead of rollout)
+
+**Recurrent state h_t (deterministic)?** #flashcard
+h_t = f(h_{t-1}, z_{t-1}, a_{t-1})   ← GRU
+
+**Stochastic state z_t?** #flashcard
+z_t ~ q(z_t | h_t, x_t)   ← posterior (uses real observation)
+
+**Prior?** #flashcard
+z_t ~ p(z_t | h_t)   ← prior (used for rollouts without real obs)
+
+**Symlog predictions (log-scale targets) for reward normalization across scales?** #flashcard
+Symlog predictions (log-scale targets) for reward normalization across scales
+
+**Free bits KL?** #flashcard
+don't penalize if KL < threshold, preventing posterior collapse
+
+**Percentile return normalization for stable gradients?** #flashcard
+Percentile return normalization for stable gradients
+
+**Representation?** #flashcard
+h(o) → s (encode observation to latent state)
+
+**Dynamics?** #flashcard
+g(s,a) → (r, s') (predict reward and next latent state)
+
+**Prediction?** #flashcard
+f(s) → (p, v) (predict policy prior and value)
+
+**I_ω: initiation set?** #flashcard
+states where the option can be started
+
+**π_ω: option policy?** #flashcard
+a policy for the duration of the option
+
+**β_ω: termination condition?** #flashcard
+probability of ending the option at each state
+
+**Manager sets a subgoal g every k steps (in state space).?** #flashcard
+Manager sets a subgoal g every k steps (in state space).
+
+**Worker receives intrinsic reward for reaching g.?** #flashcard
+Worker receives intrinsic reward for reaching g.
+
+**Off-policy correction?** #flashcard
+relabel historical subgoals to make manager data consistent.
+
+**Each agent i has its own actor π_i(o_i)?** #flashcard
+takes only local observation.
+
+**Each agent has a centralized critic Q_i(o_1,...,o_N, a_1,...,a_N)?** #flashcard
+sees all agents' observations and actions during training.
+
+**At execution, only the actor is used.?** #flashcard
+At execution, only the actor is used.
+
+**State?** #flashcard
+current chain-of-thought prefix
+
+**Action?** #flashcard
+next reasoning step (sentence or token chunk)
+
+**Policy prior?** #flashcard
+base LLM p(next_step | prefix)
+
+**Value?** #flashcard
+PRM(prefix) → estimate of eventual correctness
+
+**Backprop?** #flashcard
+propagate outcome (correct/wrong) up the tree

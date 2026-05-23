@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Advanced Alignment And Reasoning Snappy
+status: unread
+tags: [llms, ml, interview-notes-advanced-align]
+---
 # Advanced alignment & reasoning — the “senior vibes” set
 
 This is where you stop saying “prompting” and start saying **policy, preferences, and verification**.
@@ -39,3 +46,35 @@ This is where you stop saying “prompting” and start saying **policy, prefere
 - **Guardrails:** max steps, budgets, allow-listed tools, HITL for irreversible actions.
 
 **MI analogy:** Great captains don’t bowl one plan for 20 overs—they adapt each over, but with guardrails.
+
+## Flashcards
+
+**Direct answer?** #flashcard
+Align a base model to be helpful/safe using preference feedback (often SFT → reward signal → optimization like PPO historically).
+
+**DevOps bridge?** #flashcard
+It’s like writing a policy + running continuous coaching so the system behaves under stress, not just in a unit test.
+
+**RLHF (PPO)?** #flashcard
+powerful but operationally finicky.
+
+**DPO?** #flashcard
+trains directly on (chosen, rejected) pairs with a stable supervised-style objective.
+
+**Direct answer?** #flashcard
+Encourage intermediate reasoning steps to improve performance on multi-step tasks.
+
+**Production note?** #flashcard
+Prefer hidden scratchpads + verifiers/tools over dumping long reasoning into user-visible output.
+
+**Direct answer?** #flashcard
+Combine reasoning with tool use: think → act (tool) → observe → repeat.
+
+**Why it matters?** #flashcard
+tools turn “guessing” into “checking.”
+
+**Direct answer?** #flashcard
+Systems that plan, call tools, track state, and stop when goals are met (or budgets hit).
+
+**Guardrails?** #flashcard
+max steps, budgets, allow-listed tools, HITL for irreversible actions.

@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Methods
+subtopic: Nlp Advanced
+status: unread
+tags: [deeplearning, ml, methods-nlp-advanced]
+---
 # NLP Advanced
 
 Advanced NLP: summarization, semantic similarity, inference, coreference, dependency parsing, and relation extraction — the layer above Transformers that powers real-world text understanding systems.
@@ -722,3 +729,140 @@ triples = json.loads(response.choices[0].message.content)
 - Distant supervision: scalable but noisy; multi-instance learning helps
 - LLM-based: zero-shot, open-schema, flexible — best for prototyping or low-resource scenarios
 - Full pipeline: NER → entity pair enumeration → RE model → knowledge graph population
+
+## Flashcards
+
+**Token masking?** #flashcard
+replace tokens with [MASK]
+
+**Token deletion?** #flashcard
+remove random tokens; model must infer positions
+
+**Text infilling?** #flashcard
+replace arbitrary spans with a single [MASK] token
+
+**Sentence permutation?** #flashcard
+shuffle sentence order
+
+**Document rotation?** #flashcard
+rotate to start from a random token
+
+**num_beams=4?** #flashcard
+beam search width
+
+**length_penalty=2.0?** #flashcard
+penalize short summaries (>1 favors longer)
+
+**no_repeat_ngram_size=3?** #flashcard
+prevent repetitive output
+
+**ROUGE-1?** #flashcard
+unigram overlap (content coverage)
+
+**ROUGE-2?** #flashcard
+bigram overlap (fluency, phrase preservation)
+
+**ROUGE-L?** #flashcard
+longest common subsequence (order-sensitive)
+
+**FactCC?** #flashcard
+classify each generated sentence as supported/contradicted/neutral with respect to source
+
+**SummaC: segment-level NLI?** #flashcard
+compute entailment probability between each source segment and each summary sentence; aggregate
+
+**QAEval?** #flashcard
+generate QA pairs from the reference, check if the system summary answers them correctly
+
+**PAWS?** #flashcard
+adversarial pairs constructed by word swapping + back-translation. Hard for surface-overlap models.
+
+**QQP (Quora Question Pairs)?** #flashcard
+400K question pairs, binary label
+
+**MRPC?** #flashcard
+Microsoft Research Paraphrase Corpus
+
+**SNLI (570K pairs)?** #flashcard
+crowd-sourced from image captions. Clean but narrow domain.
+
+**MultiNLI (433K pairs)?** #flashcard
+10 genres (fiction, government, telephone…). More generalizable.
+
+**ANLI?** #flashcard
+adversarially collected; much harder, three rounds of increasing difficulty.
+
+**Stanford CoreNLP: multi-pass sieve pipeline?** #flashcard
+deterministic rules first, then statistical models
+
+**SpanBERT (Lee et al., 2018)?** #flashcard
+encode all spans, score pairs end-to-end. Current gold standard.
+
+**Extractive?** #flashcard
+score and select sentences; fast, faithful, but grammatically choppy at boundaries
+
+**Abstractive?** #flashcard
+generate new text; more fluent and flexible, but can hallucinate
+
+**BART denoising: corrupts text (masking, deletion, permutation, shuffling) and trains decoder to reconstruct?** #flashcard
+gives both strong document encoding and fluent generation
+
+**ROUGE rewards n-gram surface overlap with a reference?** #flashcard
+penalizes valid paraphrases, rewards verbatim copying
+
+**High ROUGE does not imply factual correctness or fluency?** #flashcard
+High ROUGE does not imply factual correctness or fluency
+
+**Complement with BERTScore (semantic similarity), FactCC/SummaC (faithfulness to source)?** #flashcard
+Complement with BERTScore (semantic similarity), FactCC/SummaC (faithfulness to source)
+
+**Plain BERT?** #flashcard
+O(N²) cross-encoder forward passes for N-sentence comparison
+
+**SBERT?** #flashcard
+encode once → cached embeddings → cosine similarity search in O(1) at query time
+
+**Mean pooling over token embeddings outperforms CLS-only?** #flashcard
+Mean pooling over token embeddings outperforms CLS-only
+
+**Production pattern?** #flashcard
+SBERT for recall (retrieve top-K), cross-encoder for re-ranking (precision)
+
+**NLI models (MultiNLI fine-tuned) power zero-shot classification via hypothesis templates?** #flashcard
+NLI models (MultiNLI fine-tuned) power zero-shot classification via hypothesis templates
+
+**"This text is about {label}"?** #flashcard
+entailment probability is the classification score
+
+**Also used for fact-checking, summarization faithfulness (FactCC), paraphrase detection?** #flashcard
+Also used for fact-checking, summarization faithfulness (FactCC), paraphrase detection
+
+**Three stages?** #flashcard
+mention detection → pairwise scoring → clustering
+
+**SpanBERT end-to-end is the current standard?** #flashcard
+SpanBERT end-to-end is the current standard
+
+**Critical upstream of relation extraction?** #flashcard
+"He acquired it" cannot be resolved without knowing who "he" is
+
+**Every word has one head (except root); edges are labeled (nsubj, dobj, amod…)?** #flashcard
+Every word has one head (except root); edges are labeled (nsubj, dobj, amod…)
+
+**Universal Dependencies enables cross-lingual consistency?** #flashcard
+Universal Dependencies enables cross-lingual consistency
+
+**Used upstream of relation extraction, semantic role labeling, grammar correction?** #flashcard
+Used upstream of relation extraction, semantic role labeling, grammar correction
+
+**Supervised (TACRED)?** #flashcard
+fixed schema, high precision, does not generalize to unseen relations
+
+**Distant supervision?** #flashcard
+scalable but noisy; multi-instance learning helps
+
+**LLM-based: zero-shot, open-schema, flexible?** #flashcard
+best for prototyping or low-resource scenarios
+
+**Full pipeline?** #flashcard
+NER → entity pair enumeration → RE model → knowledge graph population

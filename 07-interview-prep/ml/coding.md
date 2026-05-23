@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Coding
+status: unread
+tags: [interviewprep, ml, ml-coding]
+---
 # Coding
 
 ## What This File Is For
@@ -745,3 +752,56 @@ Add one of: (1) input validation for edge cases, (2) a comment about the product
 **If asked to test your code:**
 
 Write a small test case with a known answer. For MSE: `mse([3, 4], [2, 4])` should return `0.5`. For K-Means: use 4 clearly separated clusters and verify that centroids converge to their centers. Testing with a known correct answer signals systematic quality thinking.
+
+## Flashcards
+
+**∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i?** #flashcard
+∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i
+
+**∂L/∂b = (2/n) Σ (ŷ_i - y_i)?** #flashcard
+∂L/∂b = (2/n) Σ (ŷ_i - y_i)
+
+**Learning rate too high → overshoots the minimum, diverges?** #flashcard
+Learning rate too high → overshoots the minimum, diverges
+
+**Learning rate too low → converges correctly but slowly?** #flashcard
+Learning rate too low → converges correctly but slowly
+
+**Number of epochs → stopping criterion; in practice, use early stopping on a validation loss?** #flashcard
+Number of epochs → stopping criterion; in practice, use early stopping on a validation loss
+
+**E-step?** #flashcard
+assign each point to the nearest centroid
+
+**M-step?** #flashcard
+update each centroid to the mean of its assigned points
+
+**Made explicitly (not by default)?** #flashcard
+Made explicitly (not by default)
+
+**Fit on training data only (not on the full dataset)?** #flashcard
+Fit on training data only (not on the full dataset)
+
+**Reproducible (same transformations at training and serving time)?** #flashcard
+Reproducible (same transformations at training and serving time)
+
+**"I am choosing clarity over micro-optimization here."?** #flashcard
+"I am choosing clarity over micro-optimization here."
+
+**"I would extract this into a separate function in a real codebase."?** #flashcard
+"I would extract this into a separate function in a real codebase."
+
+**"This is O(n²)?** #flashcard
+for production I would use [faster approach] instead."
+
+**"I am adding this edge case because [specific input] would otherwise fail."?** #flashcard
+"I am adding this edge case because [specific input] would otherwise fail."
+
+**Nothing (silence makes the interviewer uncertain about your reasoning)?** #flashcard
+Nothing (silence makes the interviewer uncertain about your reasoning)
+
+**"I think this is right" without explaining why?** #flashcard
+"I think this is right" without explaining why
+
+**Overly long explanations before writing a line?** #flashcard
+Overly long explanations before writing a line

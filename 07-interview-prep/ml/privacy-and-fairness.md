@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Privacy And Fairness
+status: unread
+tags: [interviewprep, ml, ml-privacy-and-fairness]
+---
 # Privacy and Fairness in Machine Learning
 
 ## What This File Is For
@@ -601,3 +608,212 @@ DP bounds the change in output distribution when any single training example is 
 **If asked why removing protected attributes is insufficient for fairness:**
 
 Proxy features encode protected attributes through correlations present in the data. ZIP code predicts race in US cities due to historical segregation. Name frequency distributions predict gender and ethnicity. College attended predicts socioeconomic background. The model learns these correlations whether or not the protected attribute is included. The solution is to test for disparate outcomes by group, not to remove attributes.
+
+## Flashcards
+
+**Black defendants were nearly twice as likely to be falsely flagged as high-risk (false positive rate?** #flashcard
+44.9% vs 23.5%)
+
+**White defendants were more likely to be falsely classified as low-risk (false negative rate?** #flashcard
+47.7% vs 28.0%)
+
+**Direct?** #flashcard
+name, email, phone number, SSN, passport number
+
+**Quasi-identifiers?** #flashcard
+ZIP code, date of birth, gender, job title, employer, medical condition, browser fingerprint
+
+**Lawful basis for processing?** #flashcard
+need consent or legitimate interest to train on personal data
+
+**Data minimization?** #flashcard
+collect only what you need (in tension with "collect everything" ML instinct)
+
+**Purpose limitation?** #flashcard
+data collected for fraud detection cannot be repurposed to train a recommendation model
+
+**Storage limitation?** #flashcard
+personal data cannot be retained indefinitely, creating challenges for models trained on historical records
+
+**Right to erasure?** #flashcard
+individuals can request deletion of their data
+
+**Anonymization requires k-anonymity (each record indistinguishable from at least k-1 others), l-diversity, t-closeness, or formal differential privacy guarantees?** #flashcard
+Anonymization requires k-anonymity (each record indistinguishable from at least k-1 others), l-diversity, t-closeness, or formal differential privacy guarantees
+
+**Simply removing identifying columns is not anonymization?** #flashcard
+Simply removing identifying columns is not anonymization
+
+**Every dataset released from a company should be treated as potentially re-identifiable?** #flashcard
+Every dataset released from a company should be treated as potentially re-identifiable
+
+**ε = 0?** #flashcard
+perfectly private, completely useless (output is constant)
+
+**ε small (0.1–1)?** #flashcard
+strong privacy, significant accuracy loss
+
+**ε = 1?** #flashcard
+industry academic standard for strong DP
+
+**ε = 10?** #flashcard
+Apple/Google range for telemetry; pragmatically private
+
+**ε large?** #flashcard
+weak guarantee, barely more than publishing raw data
+
+**sensitivity = 200K / 10,000 = 20?** #flashcard
+sensitivity = 200K / 10,000 = 20
+
+**ε = 1 → scale = 20/1 = 20 → standard deviation ≈ 28K?** #flashcard
+ε = 1 → scale = 20/1 = 20 → standard deviation ≈ 28K
+
+**ε = 10 → scale = 2 → standard deviation ≈ 2.8K?** #flashcard
+ε = 10 → scale = 2 → standard deviation ≈ 2.8K
+
+**Large models (more dimensions → more total noise)?** #flashcard
+Large models (more dimensions → more total noise)
+
+**Small batch sizes (noise-to-signal ratio is higher)?** #flashcard
+Small batch sizes (noise-to-signal ratio is higher)
+
+**Tight ε requirements (more noise needed)?** #flashcard
+Tight ε requirements (more noise needed)
+
+**Data is legally or contractually impossible to centralize (HIPAA, GDPR, inter-hospital data sharing)?** #flashcard
+Data is legally or contractually impossible to centralize (HIPAA, GDPR, inter-hospital data sharing)
+
+**Data is physically too large to move (satellite imagery, medical imaging across 10,000 hospitals)?** #flashcard
+Data is physically too large to move (satellite imagery, medical imaging across 10,000 hospitals)
+
+**Users do not consent to sharing their raw data (mobile keyboard input, health sensors)?** #flashcard
+Users do not consent to sharing their raw data (mobile keyboard input, health sensors)
+
+**FedProx: add proximal term to local objective: minimize L_local(w) + (μ/2)‖w - w_t‖²?** #flashcard
+penalizes diverging from the global model
+
+**SCAFFOLD: control variates that correct for client drift?** #flashcard
+each client tracks a local correction term
+
+**FedNova: normalizes updates by number of local steps before aggregation?** #flashcard
+removes scale differences between clients
+
+**Calibration (equal accuracy of predicted probabilities)?** #flashcard
+Calibration (equal accuracy of predicted probabilities)
+
+**Equal false positive rates?** #flashcard
+Equal false positive rates
+
+**Equal false negative rates?** #flashcard
+Equal false negative rates
+
+**Prioritize equal FPR?** #flashcard
+false detention is the primary harm. Reduce false positives equally across groups.
+
+**Prioritize equal FNR?** #flashcard
+public safety harm is the primary concern. Reduce missed re-offenders equally.
+
+**Prioritize calibration?** #flashcard
+if the model says 70% risk, that should be true for both groups so decision-makers get accurate information.
+
+**Resampling?** #flashcard
+oversample underrepresented groups; undersample overrepresented ones. Improves representation but does not fix label bias.
+
+**Reweighting?** #flashcard
+weight training examples by group membership or proxy of fairness violation. Penalizes errors on underrepresented groups more.
+
+**Data augmentation?** #flashcard
+generate synthetic examples for underrepresented groups (for CV: augment dark-skinned faces in facial recognition training data).
+
+**Label cleaning?** #flashcard
+audit and correct labels that reflect annotator bias (e.g., sentiment labels applied differently to text from different cultural contexts).
+
+**Adversarial debiasing?** #flashcard
+add a fairness adversary during training. Predictor minimizes task loss. Adversary tries to predict the protected attribute from the predictor's representation. Predictor is penalized when adversary succeeds. Result: representations that are predictive of the target but not of the protected attribute.
+
+**Fairness-constrained objective?** #flashcard
+Lagrangian relaxation with fairness constraint:
+
+**Equalized odds post-processing via regularization?** #flashcard
+add a gradient-based penalty for TPR or FPR disparities across groups.
+
+**Threshold optimization per group?** #flashcard
+find separate decision thresholds for each group that minimize the chosen fairness criterion. Simple and effective when the model's predicted probabilities are reliable.
+
+**Calibrated equalized odds (Pleiss et al., 2017)?** #flashcard
+adjust output probabilities post-hoc to satisfy equalized odds.
+
+**Reject-option classification?** #flashcard
+for predictions near the decision boundary, defer to a human reviewer or secondary rule. Avoids automated decisions in the high-uncertainty region where proxy bias is most harmful.
+
+**Stereotyped completions?** #flashcard
+"The engineer walked to her..." → model completes differently based on whether name suggests male/female
+
+**Disparate quality?** #flashcard
+responses about underrepresented groups are lower quality, less factually accurate
+
+**Disparate representation?** #flashcard
+some groups are overrepresented as negative examples in associations (race-crime co-occurrence)
+
+**Cultural miscalibration?** #flashcard
+model aligned to Western liberal values may fail users from other cultural contexts
+
+**Diverse annotator pools?** #flashcard
+geographic, cultural, linguistic diversity in RLHF annotation reduces single-culture skew
+
+**Explicit fairness criteria in annotation guidelines?** #flashcard
+annotators are instructed on what constitutes biased output
+
+**Constitutional AI?** #flashcard
+use AI feedback grounded in explicit principles rather than relying on potentially biased human preferences alone
+
+**Red-teaming?** #flashcard
+systematic adversarial testing before deployment to surface differential quality across groups
+
+**Output filtering?** #flashcard
+detect and filter stereotyped or biased outputs post-generation (last resort; does not fix the model)
+
+**Differential privacy during training: by construction limits membership inference?** #flashcard
+the output distribution is bounded to differ by at most e^ε between including and excluding any example
+
+**Regularization?** #flashcard
+reduces overfitting, which reduces the training/test distribution gap
+
+**Output calibration?** #flashcard
+well-calibrated models produce consistent confidence regardless of training membership
+
+**Limiting output precision?** #flashcard
+returning only the top class (not probabilities) reduces the signal available to attackers
+
+**Full names and email addresses of individuals?** #flashcard
+Full names and email addresses of individuals
+
+**Copyrighted passages?** #flashcard
+Copyrighted passages
+
+**Phone numbers?** #flashcard
+Phone numbers
+
+**Performance metrics disaggregated by demographic group (accuracy, FPR, FNR per group)?** #flashcard
+Performance metrics disaggregated by demographic group (accuracy, FPR, FNR per group)
+
+**Fairness metric measurement (demographic parity, equalized odds?** #flashcard
+chosen based on the harm model)
+
+**Membership inference attack audit?** #flashcard
+measure attack AUC on a held-out test set
+
+**Data extraction probing for LLMs?** #flashcard
+attempt extraction of known PII from training data
+
+**Calibration per group?** #flashcard
+confirm predicted probabilities are equally accurate across groups
+
+**Input distribution shift per group (are certain groups' inputs shifting out of training distribution?)?** #flashcard
+Input distribution shift per group (are certain groups' inputs shifting out of training distribution?)
+
+**Outcome disparity tracking (are error rates changing over time for any group?)?** #flashcard
+Outcome disparity tracking (are error rates changing over time for any group?)
+
+**Feedback loop detection (do the model's predictions affect the distribution of future inputs?)?** #flashcard
+Feedback loop detection (do the model's predictions affect the distribution of future inputs?)

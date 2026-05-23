@@ -1,3 +1,10 @@
+---
+module: Production Ml
+topic: System Design
+subtopic: Model Registry Versioning
+status: unread
+tags: [productionml, ml, system-design-model-registry-v]
+---
 # Model Registry & Versioning
 
 ```mermaid
@@ -342,3 +349,38 @@ Hugging Face | ✓  | ✗       | ✓       | ✗         | NLP/LLM models
 ```
 
 **What breaks**: registries that track metrics but not data versions. Two runs with identical code and hyperparameters but different training data will produce different models. Without data versioning (DVC, LakeFS), you cannot reproduce a model or diagnose a regression that was caused by a data pipeline change.
+
+## Flashcards
+
+**setWeight?** #flashcard
+1    # 1% canary traffic
+
+**pause?** #flashcard
+{duration: 10m}
+
+**setWeight?** #flashcard
+5    # 5% canary traffic
+
+**pause?** #flashcard
+{duration: 30m}
+
+**setWeight?** #flashcard
+20
+
+**pause?** #flashcard
+{duration: 1h}
+
+**setWeight?** #flashcard
+50
+
+**pause?** #flashcard
+{duration: 2h}
+
+**setWeight?** #flashcard
+100  # full rollout
+
+**templateName?** #flashcard
+fraud-model-health
+
+**name?** #flashcard
+service-name

@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Deep Learning
+status: unread
+tags: [interviewprep, ml, ml-deep-learning]
+---
 # Deep Learning
 
 ---
@@ -338,3 +345,149 @@ Parameter sharing reduces the number of learnable parameters (regularization) an
 **Common traps**:
 - using BatchNorm in a Transformer — virtually no modern Transformer uses BatchNorm; LayerNorm is the universal choice and is better suited to sequential, variable-length data
 - forgetting that Pre-LN (normalization before attention/FFN) is more stable to train than Post-LN (the original Transformer configuration) — Post-LN requires more careful learning rate warmup to avoid instability; most modern implementations use Pre-LN by default
+
+## Flashcards
+
+**claiming neural networks can learn any function?** #flashcard
+technically true (universal approximation theorem) but practically misleading; the specific inductive biases of the architecture, the optimization landscape, and the amount of data all determine what is actually learned; "universal approximator" is not a guarantee of practical performance
+
+**treating depth as always better than width?** #flashcard
+depth enables hierarchical abstractions; width enables more features at each level; the right balance depends on the structure of the problem
+
+**confusing backpropagation with gradient descent?** #flashcard
+backprop computes the gradients; the optimizer uses them to update parameters; these are separate algorithms
+
+**not knowing that ReLU's backward pass is just masking: $\frac{d}{dx}\text{ReLU}(x) = \mathbb{1}[x > 0]$?** #flashcard
+the gradient is blocked wherever the pre-activation was negative
+
+**thinking gradient clipping fixes vanishing gradients?** #flashcard
+clipping only addresses exploding gradients (by capping magnitude); it cannot increase gradient magnitude for signals that are already near zero; vanishing gradients require architectural solutions
+
+**using sigmoid activations in hidden layers of a deep network?** #flashcard
+$\sigma'(z) \leq 0.25$ everywhere, meaning each sigmoid layer multiplies the gradient by at most 0.25; after 20 layers, the gradient is below $10^{-12}$
+
+**using sigmoid in hidden layers of a deep network?** #flashcard
+sigmoid is appropriate only as the final activation for binary classification output
+
+**not implementing numerically stable softmax?** #flashcard
+subtract the maximum logit before exponentiating: exp(z - max(z)); mathematically equivalent but prevents overflow
+
+**treating GELU as just a smooth ReLU?** #flashcard
+GELU gates the input by the probability that a standard Gaussian exceeds that value: $\text{GELU}(x) = x \cdot \Phi(x)$; this soft gating has consistently outperformed ReLU in attention-based architectures
+
+**using BatchNorm with very small batch sizes (< 8)?** #flashcard
+batch statistics from 2–4 images are too noisy to be useful; switch to LayerNorm (used in Transformers, operates per example independently of batch size) or GroupNorm
+
+**placing BatchNorm before dropout in the same block?** #flashcard
+BatchNorm's normalization changes when dropout is applied first, because the dropped activations alter the batch statistics; typically apply BatchNorm before dropout if both are used
+
+**applying dropout to small networks with high bias?** #flashcard
+reduces capacity further when the model is already underpowered; makes things worse
+
+**forgetting model.eval() at inference time?** #flashcard
+active dropout halves expected neuron activity and gives stochastic, inconsistent predictions; this is a silent production bug
+
+**using high dropout rates (> 0.5) in early layers?** #flashcard
+you risk discarding too much input signal before the network can extract anything useful from it
+
+**applying CNNs to non-spatial data without justification?** #flashcard
+CNNs encode a locality assumption; tabular data has no spatial structure and this inductive bias is wrong; the spatial prior is a feature for images, a liability for arbitrary feature vectors
+
+**forgetting that pooling layers sacrifice translation equivariance for approximate translation invariance?** #flashcard
+max pooling over a 2×2 region makes the network slightly insensitive to small position shifts, but at the cost of spatial precision
+
+**using LSTMs for most sequence tasks in 2025 when Transformers are available?** #flashcard
+for language tasks, attention-based models outperform RNNs, especially on long sequences, and are easily parallelizable; RNNs are inherently sequential
+
+**assuming LSTMs eliminate vanishing gradients entirely?** #flashcard
+they mitigate but do not eliminate the problem; for very long sequences (> 1000 steps), LSTMs still struggle; attention handles arbitrary-length context more reliably
+
+**thinking Transformers are always better than CNNs for images?** #flashcard
+Vision Transformers work well at large scale but require significantly more data than CNNs to match performance; CNNs' locality inductive bias is a real advantage on smaller image datasets
+
+**not recognizing the quadratic cost of attention: $O(n^2)$ in sequence length, because every token attends to every other token?** #flashcard
+this is the bottleneck for long-context modeling and the primary motivation for efficient attention variants (sparse attention, linear attention, sliding window attention)
+
+**treating all generative models as equivalent?** #flashcard
+GANs, VAEs, diffusion models, and autoregressive models make very different tradeoffs in generation quality, diversity, training stability, and computational cost; they are not interchangeable
+
+**not recognizing that large language models are generative models used discriminatively?** #flashcard
+GPT predicts $P(\text{next token}|\text{context})$; using it for classification is a downstream adaptation of a generative objective
+
+**using autoencoders for generation without acknowledging the latent space discontinuity problem?** #flashcard
+standard autoencoders are for compression and denoising, not generation; the latent space is not designed to be smooth
+
+**mishandling the reconstruction vs KL tradeoff in VAEs?** #flashcard
+too much weight on KL and the model ignores the input entirely (posterior collapse); too little and the latent space becomes as discontinuous as a standard autoencoder
+
+**treating GAN training as standard supervised learning?** #flashcard
+GANs require careful monitoring of both generator and discriminator loss; watching only one is misleading
+
+**not measuring generation quality appropriately?** #flashcard
+FID and IS are standard but imperfect proxies; human evaluation is often necessary for final quality assessment
+
+**defaulting to GANs when diffusion models are available and quality matters?** #flashcard
+diffusion models are now generally preferred for image synthesis due to greater training stability and better quality
+
+**using too-large a learning rate when fine-tuning?** #flashcard
+the pretrained weights encode useful representations; a large learning rate destroys them rapidly; use ~10–100× smaller than typical pretraining learning rates
+
+**not using a pretrained model when one is available?** #flashcard
+"I'll train from scratch to understand the problem better" is almost always the wrong choice when pretrained models exist; the data and compute cost is enormous with no benefit
+
+**forgetting that the inference pipeline must match the pretrained model's expected inputs?** #flashcard
+same normalization statistics, same input size, same tokenizer; mismatches cause silent performance degradation
+
+**Dropout?** #flashcard
+active during training (randomly drops neurons), disabled during inference (all neurons active with scaled weights)
+
+**Batch Normalization?** #flashcard
+uses batch statistics during training, uses running statistics accumulated across all training batches during inference
+
+**Gradient computation?** #flashcard
+required during training, unnecessary during inference (disable with torch.no_grad() to save memory)
+
+**using model.train() mode during inference?** #flashcard
+always call model.eval() before any evaluation or serving
+
+**not using torch.no_grad() during inference?** #flashcard
+unnecessary gradient computation wastes memory proportional to the depth of the model; on large models this can cause out-of-memory errors during serving
+
+**ignoring precision differences between training and inference?** #flashcard
+FP32 training with INT8 inference can introduce precision errors; always validate the production inference pipeline against the training evaluation pipeline
+
+**applying gradient clipping to a vanishing gradient problem?** #flashcard
+clipping restricts gradient magnitude; it cannot increase gradient magnitude for signals that are already near zero; you need an architectural fix
+
+**using a fixed max_norm without monitoring whether clipping is actually firing?** #flashcard
+if gradients never reach max_norm, clipping is doing nothing; if they always hit max_norm, your learning rate is likely too high
+
+**thinking residual connections are only for ResNets?** #flashcard
+skip connections appear in U-Net (semantic segmentation), DenseNet, every Transformer block (residual around attention and FFN), and virtually every modern deep architecture
+
+**not matching dimensions when adding $x$ to $F(x)$?** #flashcard
+if $F(x)$ changes the dimensionality, you need a projection (usually a 1×1 convolution or a linear layer) on the skip connection
+
+**applying parameter sharing when the assumption is wrong?** #flashcard
+if features at different positions genuinely have different statistics (e.g., the first token in a sentence behaves very differently from middle tokens), position-specific parameters may be warranted
+
+**confusing weight sharing with weight tying?** #flashcard
+in transformer language models, the input embedding matrix and output projection matrix are often tied (same weights); this is a specific design choice that reduces parameters and improves performance, separate from the general parameter sharing in convolutions
+
+**BatchNorm?** #flashcard
+normalizes across the batch dimension. Requires large batches (≥ 8–16) for stable statistics. Does not work for variable-length sequences or single-example inference.
+
+**LayerNorm?** #flashcard
+normalizes across the feature dimension per example, independent of batch size. Works for any batch size including 1. Standard in Transformers.
+
+**GroupNorm?** #flashcard
+normalizes across groups of channels per example. Works with small batches. Standard in object detection where large images force small batch sizes.
+
+**InstanceNorm?** #flashcard
+normalizes across spatial dimensions per channel per example. Used in style transfer, where you want to normalize away content while preserving style structure.
+
+**using BatchNorm in a Transformer?** #flashcard
+virtually no modern Transformer uses BatchNorm; LayerNorm is the universal choice and is better suited to sequential, variable-length data
+
+**forgetting that Pre-LN (normalization before attention/FFN) is more stable to train than Post-LN (the original Transformer configuration)?** #flashcard
+Post-LN requires more careful learning rate warmup to avoid instability; most modern implementations use Pre-LN by default

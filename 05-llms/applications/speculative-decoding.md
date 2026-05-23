@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Speculative Decoding
+status: unread
+tags: [llms, ml, applications-speculative-decod]
+---
 # Speculative Decoding
 
 ---
@@ -170,3 +177,23 @@ At K=4, β=10: break-even at α ≥ 1/4 + 1/10 = 0.35
 Any reasonable draft model achieves α > 0.5 at small batch sizes. Speculative decoding almost always helps for single-user interactive use; it rarely helps for high-throughput batch inference.
 
 *Related: [Inference Optimization](inference-optimization.md) | [Tuning and Optimization](tuning-optimization.md)*
+
+## Flashcards
+
+**Small batch size (1–4)?** #flashcard
+memory bandwidth is the bottleneck; speculative decoding multiplies tokens per weight-read.
+
+**Long generation sequences (code, long documents)?** #flashcard
+amortizes draft overhead over many accepted tokens.
+
+**High-quality draft model from the same family (LLaMA 7B for LLaMA 70B)?** #flashcard
+high acceptance rates.
+
+**Large batch sizes (32+)?** #flashcard
+the GPU is compute-bound; speculative decoding adds coordination overhead without proportional speedup.
+
+**Very short responses (< 20 tokens)?** #flashcard
+draft overhead is not amortized.
+
+**High-temperature sampling?** #flashcard
+widens the distribution gap between draft and target, lowering acceptance rates.

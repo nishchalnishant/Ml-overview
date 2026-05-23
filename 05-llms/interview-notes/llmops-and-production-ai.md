@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Interview Notes
+subtopic: Llmops And Production Ai
+status: unread
+tags: [llms, ml, interview-notes-llmops-and-pro]
+---
 # LLMOps & Production AI
 
 ## The Operating Reality
@@ -1199,3 +1206,284 @@ LLMOps is the practice of acknowledging that:
 4. **Rollback must be instantaneous.** Feature flags over artifact bundles — not redeployments.
 
 5. **Observe everything, alert on what matters.** Format validity, safety rate, and faithfulness are as important as latency and availability.
+
+## Flashcards
+
+**Prefill (processing input)?** #flashcard
+compute-bound. Slow when prompts are long.
+
+**Decode (generating output)?** #flashcard
+memory-bandwidth-bound. Slow when the model is large or batching is inefficient.
+
+**TTFT (time to first token)?** #flashcard
+measures prefill bottleneck
+
+**TPOT (time per output token)?** #flashcard
+measures decode bottleneck
+
+**GPU utilization?** #flashcard
+measures batching efficiency
+
+**KV cache utilization?** #flashcard
+measures memory pressure
+
+**TTFT P50/P95/P99 (alert on P99 > SLA)?** #flashcard
+TTFT P50/P95/P99 (alert on P99 > SLA)
+
+**TPOT P50/P95?** #flashcard
+TPOT P50/P95
+
+**Format validity rate (alert if drops below 0.99)?** #flashcard
+Format validity rate (alert if drops below 0.99)
+
+**Safety violation rate (alert if rises above threshold)?** #flashcard
+Safety violation rate (alert if rises above threshold)
+
+**Retrieval hit rate (alert if drops?** #flashcard
+index may be stale)
+
+**Parse error rate (alert if rises?** #flashcard
+output schema may have broken)
+
+**Prompt injection detection (pattern + embedding similarity)?** #flashcard
+Prompt injection detection (pattern + embedding similarity)
+
+**Intent classification (harmful request detection)?** #flashcard
+Intent classification (harmful request detection)
+
+**PII detection + redaction?** #flashcard
+PII detection + redaction
+
+**Instruction hierarchy in prompt (emphasize model should not follow user-injected instructions)?** #flashcard
+Instruction hierarchy in prompt (emphasize model should not follow user-injected instructions)
+
+**Instruction position?** #flashcard
+place security-critical instructions at end of system prompt
+
+**Policy violation classifier on generated text?** #flashcard
+Policy violation classifier on generated text
+
+**PII detection on output before delivery to client?** #flashcard
+PII detection on output before delivery to client
+
+**Format validation (structured output must parse before delivery)?** #flashcard
+Format validation (structured output must parse before delivery)
+
+**Validate tool arguments against schemas before execution?** #flashcard
+Validate tool arguments against schemas before execution
+
+**Disallow destructive operations on ambiguous/unconfirmed inputs?** #flashcard
+Disallow destructive operations on ambiguous/unconfirmed inputs
+
+**Log all tool calls with sanitized arguments?** #flashcard
+Log all tool calls with sanitized arguments
+
+**Trim system prompt (remove redundant instructions)?** #flashcard
+Trim system prompt (remove redundant instructions)
+
+**Reduce retrieval top-k, apply reranker to keep only relevant chunks?** #flashcard
+Reduce retrieval top-k, apply reranker to keep only relevant chunks
+
+**Cap max_output_tokens?** #flashcard
+Cap max_output_tokens
+
+**Route simple queries to smaller/cheaper models?** #flashcard
+Route simple queries to smaller/cheaper models
+
+**Exact match cache (SHA256 of prompt → cached response)?** #flashcard
+free for repeated identical queries
+
+**Semantic cache (ANN lookup on embedding)?** #flashcard
+saves LLM call for near-duplicate queries
+
+**Prefix cache (KV cache reuse for shared system prompt)?** #flashcard
+reduces prefill cost
+
+**Paired evaluation where possible (same users see both variants)?** #flashcard
+Paired evaluation where possible (same users see both variants)
+
+**Bootstrap CI or t-test for continuous metrics?** #flashcard
+Bootstrap CI or t-test for continuous metrics
+
+**McNemar's test for binary outcomes (success/failure)?** #flashcard
+McNemar's test for binary outcomes (success/failure)
+
+**Correct for multiple comparisons if testing many metrics simultaneously?** #flashcard
+Correct for multiple comparisons if testing many metrics simultaneously
+
+**Format validity across representative inputs?** #flashcard
+Format validity across representative inputs
+
+**Safety?** #flashcard
+all red-team regression cases must pass
+
+**Faithfulness?** #flashcard
+faithfulness score on golden RAG examples
+
+**Task accuracy?** #flashcard
+exact match / LLM-judge on known-correct examples
+
+**Performance?** #flashcard
+latency proxy (token count should not explode)
+
+**Unique version ID per prompt template (semantic?** #flashcard
+customer-support-v14, or content hash)
+
+**Immutable versions?** #flashcard
+once deployed, a version cannot be modified
+
+**Linked eval results?** #flashcard
+each version has associated regression suite results
+
+**Deployment history?** #flashcard
+which version is live in which environment
+
+**Safety violation rate rises above threshold?** #flashcard
+Safety violation rate rises above threshold
+
+**Format validity drops below threshold?** #flashcard
+Format validity drops below threshold
+
+**P99 latency exceeds SLA?** #flashcard
+P99 latency exceeds SLA
+
+**Task accuracy drops on online proxy metrics?** #flashcard
+Task accuracy drops on online proxy metrics
+
+**Explicit on-call decision?** #flashcard
+Explicit on-call decision
+
+**Per-user token-per-minute limit?** #flashcard
+Per-user token-per-minute limit
+
+**Per-tenant (organization) token-per-minute limit?** #flashcard
+Per-tenant (organization) token-per-minute limit
+
+**Global concurrency cap per model?** #flashcard
+Global concurrency cap per model
+
+**Provider-level token budget (prevents hitting external API limits)?** #flashcard
+Provider-level token budget (prevents hitting external API limits)
+
+**Return structured error with retry-after time?** #flashcard
+Return structured error with retry-after time
+
+**Route to smaller/cached fallback for low-priority requests?** #flashcard
+Route to smaller/cached fallback for low-priority requests
+
+**Priority queuing?** #flashcard
+interactive requests ahead of batch jobs
+
+**Build new index independently without touching the serving path?** #flashcard
+Build new index independently without touching the serving path
+
+**Version the new index with a snapshot ID?** #flashcard
+Version the new index with a snapshot ID
+
+**Deploy new routing to new index for a canary fraction?** #flashcard
+Deploy new routing to new index for a canary fraction
+
+**Validate faithfulness and retrieval quality before widening?** #flashcard
+Validate faithfulness and retrieval quality before widening
+
+**Keep old index for rollback window?** #flashcard
+Keep old index for rollback window
+
+**Deploy new parser version alongside old?** #flashcard
+Deploy new parser version alongside old
+
+**Both parsers accept both old and new schemas during transition?** #flashcard
+Both parsers accept both old and new schemas during transition
+
+**Migrate output consumers to new schema before retiring old parser?** #flashcard
+Migrate output consumers to new schema before retiring old parser
+
+**Stage-level latency breakdown (retrieval / generation / parsing / safety)?** #flashcard
+Stage-level latency breakdown (retrieval / generation / parsing / safety)
+
+**Format validity rate over time?** #flashcard
+Format validity rate over time
+
+**Safety violation rate over time?** #flashcard
+Safety violation rate over time
+
+**Retrieval hit rate (did we find relevant chunks?)?** #flashcard
+Retrieval hit rate (did we find relevant chunks?)
+
+**Error rate by type (timeout / format / safety / tool_failure)?** #flashcard
+Error rate by type (timeout / format / safety / tool_failure)
+
+**Authentication / authorization (which tenant, which role, which permissions)?** #flashcard
+Authentication / authorization (which tenant, which role, which permissions)
+
+**Input safety classification + PII redaction?** #flashcard
+Input safety classification + PII redaction
+
+**Token-aware rate limiting per tenant?** #flashcard
+Token-aware rate limiting per tenant
+
+**Model routing (select model based on task type and risk level)?** #flashcard
+Model routing (select model based on task type and risk level)
+
+**Response caching (exact match and semantic)?** #flashcard
+Response caching (exact match and semantic)
+
+**Logging and tracing?** #flashcard
+Logging and tracing
+
+**Output safety filtering?** #flashcard
+Output safety filtering
+
+**Faithfulness score on weekly production sample?** #flashcard
+>0.90
+
+**Task accuracy on regression suite?** #flashcard
+no regression >2%
+
+**Tier 0?** #flashcard
+primary model (full quality)
+
+**Tier 1?** #flashcard
+cached response for same/similar query (exact or semantic match)
+
+**Tier 2?** #flashcard
+retrieval-only response (return raw retrieved text without generation)
+
+**Tier 3?** #flashcard
+smaller/cheaper fallback model (lower quality but available)
+
+**Tier 4?** #flashcard
+template-based response for common intent patterns
+
+**Tier 5?** #flashcard
+human escalation / deferral with clear ETA
+
+**Output schema is valid (downstream systems don't break)?** #flashcard
+Output schema is valid (downstream systems don't break)
+
+**Safety filters still apply (no unsafe content in fallback tier)?** #flashcard
+Safety filters still apply (no unsafe content in fallback tier)
+
+**Uncertainty is communicated appropriately (don't fake confidence on degraded output)?** #flashcard
+Uncertainty is communicated appropriately (don't fake confidence on degraded output)
+
+**Horizontal scaling of inference workers (stateless API servers)?** #flashcard
+Horizontal scaling of inference workers (stateless API servers)
+
+**Dynamic batching within inference server (vLLM handles this automatically)?** #flashcard
+Dynamic batching within inference server (vLLM handles this automatically)
+
+**Backpressure and admission control?** #flashcard
+reject or queue requests above capacity
+
+**Load shedding?** #flashcard
+prioritize interactive over batch during overload
+
+**Output schema is always valid (downstream never breaks)?** #flashcard
+Output schema is always valid (downstream never breaks)
+
+**Safety filtering is never bypassed (even if classifier is down, fall to rule-based fallback)?** #flashcard
+Safety filtering is never bypassed (even if classifier is down, fall to rule-based fallback)
+
+**Tool actions require validated outputs?** #flashcard
+if parsing failed, no tool execution

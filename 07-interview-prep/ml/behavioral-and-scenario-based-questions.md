@@ -1,3 +1,10 @@
+---
+module: Interview Prep
+topic: Ml
+subtopic: Behavioral And Scenario Based Questions
+status: unread
+tags: [interviewprep, ml, ml-behavioral-and-scenario-bas]
+---
 # Behavioral and Scenario-Based Questions
 
 ## What This File Is For
@@ -219,3 +226,80 @@ If the answer to any of these is no, revise the story until yes.
 **If the interviewer follows up with "what would you do differently?":**
 
 This is an invitation, not a trap. A thoughtful answer about what you would change demonstrates learning. The best answers name something specific that changed in your practice: a process step added, an assumption revised, a blind spot identified. "I'd communicate earlier" is weak. "I'd now explicitly validate serving-side feature computation against training-side before any A/B test, because I learned that train-serve skew is nearly impossible to detect from model metrics alone" is strong.
+
+## Flashcards
+
+**The concrete business or technical context?** #flashcard
+The concrete business or technical context
+
+**Why the situation was challenging?** #flashcard
+what made it non-obvious
+
+**Your role in the organization at the time?** #flashcard
+Your role in the organization at the time
+
+**Over-explaining the domain (one sentence of context is enough)?** #flashcard
+Over-explaining the domain (one sentence of context is enough)
+
+**Starting with the outcome (it removes tension from the story)?** #flashcard
+Starting with the outcome (it removes tension from the story)
+
+**Generic framing ("it was a typical ML project where...")?** #flashcard
+Generic framing ("it was a typical ML project where...")
+
+**What you were specifically responsible for delivering?** #flashcard
+What you were specifically responsible for delivering
+
+**What the constraint was (time, compute, labels, stakeholder expectations)?** #flashcard
+What the constraint was (time, compute, labels, stakeholder expectations)
+
+**What ambiguity existed at the start?** #flashcard
+What ambiguity existed at the start
+
+**Oversimplifying ("my task was to improve the model")?** #flashcard
+Oversimplifying ("my task was to improve the model")
+
+**Implying you had more resources or clarity than you did?** #flashcard
+Implying you had more resources or clarity than you did
+
+**Your diagnostic process?** #flashcard
+how you narrowed down the root cause
+
+**The options you considered and why you rejected alternatives?** #flashcard
+The options you considered and why you rejected alternatives
+
+**A specific technical decision with its reasoning?** #flashcard
+A specific technical decision with its reasoning
+
+**A moment where you had to choose between options with real tradeoffs?** #flashcard
+A moment where you had to choose between options with real tradeoffs
+
+**If applicable?** #flashcard
+how you worked with others to unblock yourself
+
+**Listing steps without explaining why each was chosen?** #flashcard
+Listing steps without explaining why each was chosen
+
+**Jumping from "I noticed a problem" to "I fixed it" without showing the reasoning?** #flashcard
+Jumping from "I noticed a problem" to "I fixed it" without showing the reasoning
+
+**Giving the impression you knew the answer immediately?** #flashcard
+Giving the impression you knew the answer immediately
+
+**A quantitative outcome where possible?** #flashcard
+A quantitative outcome where possible
+
+**The business relevance of the technical metric?** #flashcard
+The business relevance of the technical metric
+
+**Honest acknowledgment if the result was partial or mixed?** #flashcard
+Honest acknowledgment if the result was partial or mixed
+
+**Only technical metrics with no business framing?** #flashcard
+Only technical metrics with no business framing
+
+**Inflating results?** #flashcard
+Inflating results
+
+**Claiming the outcome was a complete success if it was not?** #flashcard
+Claiming the outcome was a complete success if it was not

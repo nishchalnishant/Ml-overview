@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 1 Foundations
+subtopic: Day 3 4 Data Preprocessing Techniques
+status: unread
+tags: [studyplans, ml, week-1-foundations-day-3-4-dat]
+---
 # Day 3-4: Data Preprocessing Techniques
 
 ## Why This Topic Comes Here
@@ -124,3 +131,23 @@ numeric_transformer = Pipeline(steps=[
     ('scaler', StandardScaler())
 ])
 ```
+
+## Flashcards
+
+**Z-Score?** #flashcard
+$z = \frac{x - \mu}{\sigma}$. Typically $|z| > 3$ is an outlier.
+
+**IQR?** #flashcard
+Values outside $[Q1 - 1.5 \cdot IQR, Q3 + 1.5 \cdot IQR]$.
+
+**When to use?** #flashcard
+Algorithms assuming Gaussian distributions (SVM, Linear Reg, PCA).
+
+**When to use?** #flashcard
+Neural Networks, KNN, algorithms that don't make Gaussian assumptions.
+
+**Problem?** #flashcard
+"Dummy Variable Trap" (perfect multicollinearity). Always drop one column ($n-1$) in linear models.
+
+**Warning?** #flashcard
+High risk of Data Leakage. Always use K-fold cross-validation during encoding.

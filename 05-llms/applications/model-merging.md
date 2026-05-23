@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Applications
+subtopic: Model Merging
+status: unread
+tags: [llms, ml, applications-model-merging]
+---
 # Model Merging
 
 ---
@@ -224,3 +231,14 @@ Supported methods: `linear`, `slerp`, `task_arithmetic`, `ties`, `dare_ties`, `d
 | Same training precision | Recommended |
 
 *Related: [Tuning and Optimization](tuning-optimization.md) | [Inference Optimization](inference-optimization.md)*
+
+## Flashcards
+
+**model?** #flashcard
+path/to/math-model
+
+**model?** #flashcard
+path/to/code-model
+
+**model?** #flashcard
+path/to/instruct-model

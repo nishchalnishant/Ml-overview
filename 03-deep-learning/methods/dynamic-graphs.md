@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Methods
+subtopic: Dynamic Graphs
+status: unread
+tags: [deeplearning, ml, methods-dynamic-graphs]
+---
 # Dynamic Graphs, Temporal GNNs, and Graph Generation
 
 > Graphs that change over time and methods to model, predict, and generate graph-structured data.
@@ -457,3 +464,56 @@ The VGAE latent space is regularized by a Gaussian prior; similar nodes have clo
 
 **Validity alone is insufficient for molecule generation**
 A model that generates only methane achieves 100% validity. Validity, uniqueness, and novelty together characterize a useful model. FCD additionally measures whether the distribution of generated molecules matches the training distribution — a model with high V/U/N but wrong chemical diversity will show high FCD. Distinguishing evaluation metrics from training objectives is critical: models optimize ELBO or score matching, not validity directly.
+
+## Flashcards
+
+**Social networks?** #flashcard
+friend/follow links appear and disappear
+
+**Financial transactions?** #flashcard
+detect fraud by modeling interaction bursts
+
+**Traffic?** #flashcard
+road-segment speeds change every minute
+
+**Molecular dynamics?** #flashcard
+atom bonds break and form during simulation
+
+**Knowledge graphs?** #flashcard
+facts have validity intervals
+
+**EvolveGCN-H: uses the node embedding matrix H_{t-1} as input to the GRU?** #flashcard
+better when node features are informative.
+
+**EvolveGCN-O: uses only W_{t-1}?** #flashcard
+handles graphs where the node set changes completely.
+
+**O(n²) decoding: the inner-product decoder evaluates all node pairs?** #flashcard
+infeasible for large graphs.
+
+**No validity guarantee?** #flashcard
+nothing prevents the decoder from producing chemically invalid graphs.
+
+**No global graph structure?** #flashcard
+the latent space has one vector per node; there is no graph-level variable that captures global properties (molecular weight, ring count, connectivity).
+
+**Candidate block B_t = {v_{k+1}, ..., v_{k+b}}?** #flashcard
+Candidate block B_t = {v_{k+1}, ..., v_{k+b}}
+
+**Run GAT over current graph + candidates → score edges?** #flashcard
+Run GAT over current graph + candidates → score edges
+
+**Sample edges between B_t and existing nodes?** #flashcard
+Sample edges between B_t and existing nodes
+
+**Add B_t to graph, repeat?** #flashcard
+Add B_t to graph, repeat
+
+**Each atom satisfies its valency (Carbon?** #flashcard
+degree ≤ 4, Nitrogen ≤ 3, etc.)
+
+**The graph is connected?** #flashcard
+The graph is connected
+
+**No invalid bond types?** #flashcard
+No invalid bond types

@@ -1,3 +1,10 @@
+---
+module: Emerging Topics
+topic: Emerging Trends
+subtopic: Frontier Models
+status: unread
+tags: [emergingtopics, ml, emerging-trends-2025-frontier-]
+---
 # 2025 Frontier Models — Field Guide
 
 ---
@@ -446,3 +453,74 @@ Serving strategy for <2s TTFT p95:
 ```
 
 Key numbers: Qwen3-235B-A22B at INT4 ≈ 117GB → 2×H100 NVL minimum. At batch=16, TTFT dominated by prefill compute at 22B active params ≈ fast enough for <2s at 4K input length. For 32K input, need expert parallelism across 4 GPUs to meet SLA.
+
+## Flashcards
+
+**Backtracking?** #flashcard
+"Wait, let me reconsider..."
+
+**Self-verification?** #flashcard
+checking calculations independently
+
+**Extended reasoning chains?** #flashcard
+model learns longer traces correlate with correctness
+
+**Scout: 17B active / 109B total?** #flashcard
+10M context
+
+**Maverick: 17B active / 400B total?** #flashcard
+1M context
+
+**Behemoth?** #flashcard
+~2T total (unreleased)
+
+**MLA reduces KV cache by ~13.5× vs MHA by caching a shared low-rank latent c_KV instead of full K and V tensors per head.?** #flashcard
+MLA reduces KV cache by ~13.5× vs MHA by caching a shared low-rank latent c_KV instead of full K and V tensors per head.
+
+**GRPO eliminates the value network by using group-relative rewards?** #flashcard
+sample G rollouts per prompt, normalize advantages within the group. This halves memory vs PPO.
+
+**Llama 4 early fusion = image patches and text tokens through the same transformer from layer 1. Requires training from scratch. Enables richer cross-modal representations than LLaVA-style projection.?** #flashcard
+Llama 4 early fusion = image patches and text tokens through the same transformer from layer 1. Requires training from scratch. Enables richer cross-modal representations than LLaVA-style projection.
+
+**iRoPE?** #flashcard
+every 4th layer uses no positional encoding (position-agnostic semantic matching); remaining layers use RoPE. Enables 10M context without aggressive scaling hacks.
+
+**Claude 3.7 budget_tokens?** #flashcard
+user-controlled compute budget for thinking. Higher budget = better on hard reasoning; no benefit for factual queries.
+
+**SWE-Bench Verified?** #flashcard
+real GitHub issues, 500 problems, patch validated by running the repository's existing test suite. Claude 3.7 at 70.3%, o1 at 48.9%.
+
+**o3 on ARC-AGI?** #flashcard
+87.5% vs GPT-4o's ~5%. ARC-AGI tests visual analogy reasoning designed to resist LLM pattern matching.
+
+**MTP (Multi-Token Prediction): trains auxiliary heads to predict t+2, t+3, etc. At inference, these serve as speculative draft tokens?** #flashcard
+multiple tokens accepted per forward pass without a separate draft model.
+
+**Thinking tokens are billed but not returned to the user by default. Monitor usage.cache_read_input_tokens to understand thinking overhead.?** #flashcard
+Thinking tokens are billed but not returned to the user by default. Monitor usage.cache_read_input_tokens to understand thinking overhead.
+
+**For batch workloads, use budget_tokens=0 and post-process with a separate verification pass only on low-confidence outputs.?** #flashcard
+For batch workloads, use budget_tokens=0 and post-process with a separate verification pass only on low-confidence outputs.
+
+**Cache hit rate degrades with extended thinking because the thinking prefix is unique per query. Design prompts to maximize the shared prefix for cache warming.?** #flashcard
+Cache hit rate degrades with extended thinking because the thinking prefix is unique per query. Design prompts to maximize the shared prefix for cache warming.
+
+**SWE-Bench result (70.3% with thinking vs. ~40% without) is the reference calibration?** #flashcard
+thinking roughly doubles code task accuracy at 5–10× cost.
+
+**4×H100 NVL = 376GB. Not enough for fp16. Use INT4 = 235B × 0.5 bytes = 117GB → fits on 2×H100.?** #flashcard
+4×H100 NVL = 376GB. Not enough for fp16. Use INT4 = 235B × 0.5 bytes = 117GB → fits on 2×H100.
+
+**Expert routing via learned router in INT8 for precision.?** #flashcard
+Expert routing via learned router in INT8 for precision.
+
+**Router runs on CPU / small shared GPU.?** #flashcard
+Router runs on CPU / small shared GPU.
+
+**Each GPU holds a subset of experts. Token routing dispatches to the right GPU.?** #flashcard
+Each GPU holds a subset of experts. Token routing dispatches to the right GPU.
+
+**All-to-all communication at each MoE layer. Use NVLink (600 GB/s) not PCIe (16 GB/s).?** #flashcard
+All-to-all communication at each MoE layer. Use NVLink (600 GB/s) not PCIe (16 GB/s).

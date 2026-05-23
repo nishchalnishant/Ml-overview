@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: Data Scientist Interview Prep
+subtopic: ""
+status: unread
+tags: [datascientist, ml, data-scientist-interview-prep]
+---
 # Data Scientist Interview Prep: First-Principles Reasoning Guide
 
 This guide is not a template collection. It is a reasoning guide. For each interview area, it explains *why* the correct reasoning structure looks the way it does — so you can reconstruct the right answer to any variant of a question, not just the question you memorized.
@@ -860,3 +867,158 @@ Is randomization possible?
 | Python/pandas | Data manipulation, groupby, merging, vectorized ops | ML-heavy DS roles |
 | Case study / take-home | End-to-end analysis from raw data | Stripe, DoorDash, others |
 | Behavioral (STAR) | Ambiguous problems, stakeholder conflicts, impact | All |
+
+## Flashcards
+
+**Hypothesis generation?** #flashcard
+can you enumerate the possible causes of something before committing to one?
+
+**Prioritization?** #flashcard
+given many hypotheses, do you check the most likely / cheapest to disprove first?
+
+**Self-awareness about uncertainty?** #flashcard
+do you know what you don't know, and what additional data would change your answer?
+
+**Calibration?** #flashcard
+do you distinguish between "statistically significant" and "practically meaningful"?
+
+**Check data pipeline health?** #flashcard
+are events being logged and processed?
+
+**Check the dashboard query?** #flashcard
+is there a filter applied that shouldn't be, or a date range error?
+
+**Check multiple data sources?** #flashcard
+does the drop appear in the raw event table, not just the dashboard?
+
+**Check if the drop is in raw counts or if the denominator changed (e.g., definition of "active" changed).?** #flashcard
+Check if the drop is in raw counts or if the denominator changed (e.g., definition of "active" changed).
+
+**Platform: iOS / Android / web?** #flashcard
+is the drop isolated to one?
+
+**Geography?** #flashcard
+one country / region, or global?
+
+**User segment?** #flashcard
+new users vs. returning? Specific user cohort? Logged-in vs. anonymous?
+
+**Feature area?** #flashcard
+is it tied to a specific surface (home feed, search, checkout)?
+
+**Time of day?** #flashcard
+did it drop uniformly across all hours, or only during certain hours (could suggest timezone or batch processing issue)?
+
+**Pull the timeline down to the hour if possible.?** #flashcard
+Pull the timeline down to the hour if possible.
+
+**Cross-reference with?** #flashcard
+product releases, infrastructure deploys, data pipeline changes, marketing campaign start/end, external events.
+
+**Unit of randomization should be the unit that receives the treatment and generates the outcome. Usually this is the user. If you randomize at the page level but measure user-level retention, you've introduced contamination (one user can be in both groups).?** #flashcard
+Unit of randomization should be the unit that receives the treatment and generates the outcome. Usually this is the user. If you randomize at the page level but measure user-level retention, you've introduced contamination (one user can be in both groups).
+
+**Randomization must be independent across units. If users in the same household share an account, or if a user can refer another user (network effects), then one user being in treatment affects another user's behavior. This violates independence.?** #flashcard
+Randomization must be independent across units. If users in the same household share an account, or if a user can refer another user (network effects), then one user being in treatment affects another user's behavior. This violates independence.
+
+**Sample size follows from the minimum effect size you care about, the baseline metric rate, and the acceptable error rates. There's no "standard" sample size?** #flashcard
+it depends on your specific context.
+
+**Duration must account for novelty effects, day-of-week variation, and seasonal patterns. A 2-day test that runs over a weekend is not representative of a regular week.?** #flashcard
+Duration must account for novelty effects, day-of-week variation, and seasonal patterns. A 2-day test that runs over a weekend is not representative of a regular week.
+
+**Network effects: does one user's chatbot use affect another's experience? (Probably no, in this case?** #flashcard
+the chatbot is user-specific.)
+
+**Novelty effect?** #flashcard
+users might engage with the chatbot just because it's new. Consider running for long enough that novelty wears off, or track whether effect degrades over time.
+
+**Heterogeneous effects?** #flashcard
+the chatbot might help new users (who have questions) and be irrelevant to returning users (who know what they want). Plan to segment.
+
+**Did the experiment run cleanly? Were there any infrastructure changes or test overlaps during the run?** #flashcard
+Did the experiment run cleanly? Were there any infrastructure changes or test overlaps during the run?
+
+**Check the SRM: intended 50/50 split, actual split 49.8/50.2?** #flashcard
+within noise, no SRM. If you had 48/52, flag this.
+
+**p = 0.03 means?** #flashcard
+under the null, there's a 3% chance of observing a 1.5% or greater lift by chance. This is below α = 0.05, so you reject the null.
+
+**But state the confidence interval: say it's [+0.2%, +2.8%]. The true effect is somewhere in here with 95% confidence. The minimum plausible effect is +0.2%?** #flashcard
+that's the lower bound you should use for the business case.
+
+**Is a 1.5% lift in conversion worth shipping? Depends on?** #flashcard
+what is conversion rate × revenue × volume? If this is on a surface that drives $100M/year, a 1.5% lift is $1.5M. If it's on a surface that drives $1M/year, it's $15K. The threshold for shipping depends on engineering cost and opportunity cost.
+
+**Did session length, support tickets, or other guardrails degrade? If a guardrail moved significantly in the wrong direction, you don't ship even if the primary metric is positive?** #flashcard
+you investigate the trade-off.
+
+**Break by new vs. returning users, platform, region. If the lift is +5% for new users and −1% for returning users, you have a more nuanced decision?** #flashcard
+maybe ship only for new users, or investigate why it hurt returning users.
+
+**Ship, ship with monitoring, roll back, or run follow-up experiment? Be explicit about which and why.?** #flashcard
+Ship, ship with monitoring, roll back, or run follow-up experiment? Be explicit about which and why.
+
+**p-value?** #flashcard
+if the null were true, how often would I see data this extreme? Used to decide whether to reject the null. Does NOT measure the probability the null is true.
+
+**Confidence interval?** #flashcard
+a range that, if you repeated the experiment many times, would contain the true parameter 95% of the time. Used to communicate the uncertainty in your estimate.
+
+**Power?** #flashcard
+probability of correctly detecting an effect of a given size if it exists. Determined by sample size, effect size, and significance threshold. Low power → high false negative rate.
+
+**Central Limit Theorem?** #flashcard
+the sampling distribution of the mean converges to normal as n grows, regardless of the underlying distribution. This is why t-tests and z-tests work on non-normal data when n is large enough.
+
+**Comparing two means (continuous outcome, two groups)?** #flashcard
+two-sample t-test (or Mann-Whitney U if distribution is highly non-normal at small n).
+
+**Comparing proportions (binary outcome, two groups)?** #flashcard
+two-proportion z-test or chi-squared test.
+
+**Comparing more than two groups?** #flashcard
+ANOVA (then post-hoc tests if significant, with multiple comparison correction).
+
+**Paired data (same user before/after): paired t-test, not independent-samples t-test?** #flashcard
+the pairing removes between-subject variance and increases power.
+
+**Count data with small expected counts?** #flashcard
+Fisher's exact test, not chi-squared.
+
+**Find a comparable city that did not get the loyalty program (the "control city").?** #flashcard
+Find a comparable city that did not get the loyalty program (the "control city").
+
+**Measure revenue in both cities before and after the launch.?** #flashcard
+Measure revenue in both cities before and after the launch.
+
+**The DiD estimate?** #flashcard
+(revenue change in treatment city) − (revenue change in control city).
+
+**This removes time-invariant city-specific factors (the "difference" across cities) and common time trends (the "difference" across time periods).?** #flashcard
+This removes time-invariant city-specific factors (the "difference" across cities) and common time trends (the "difference" across time periods).
+
+**Key assumption: parallel trends?** #flashcard
+in the absence of the loyalty program, the two cities would have experienced the same revenue trend. This is untestable but you can provide evidence by showing pre-treatment trends were similar.
+
+**Situation?** #flashcard
+"In Q3 last year I was analyzing whether to sunset a feature that had low engagement but strong retention correlation among a small user segment."
+
+**Task: "I had 3 weeks and access to behavioral logs, but no survey data and no direct causality established?** #flashcard
+I didn't know if low engagement meant users hated the feature or used it passively."
+
+**Action: "I decided to: (1) estimate the upper-bound value of the segment using cohort LTV data?** #flashcard
+if that segment churned at the rate of other low-engagement users, the revenue risk was ~$X; (2) run a 10-user usability session to get qualitative signal quickly; (3) explicitly present the recommendation as 'confident to within the bounds of this uncertainty' and recommended a 6-month staged deprecation with exit survey data collection built in, rather than an immediate sunset."
+
+**Result?** #flashcard
+"The staged deprecation was approved. The exit surveys 3 months in showed that 20% of the segment used the feature as a passive 'save' function they valued but rarely clicked. We redesigned it instead of sunsetting it and saw +4% retention in that segment."
+
+**Survivorship bias?** #flashcard
+analyzing only the companies that survived to ask what made them successful, ignoring all the equally-positioned companies that failed.
+
+**Sampling bias in A/B tests?** #flashcard
+if early users of a new feature are self-selected enthusiasts, their behavior doesn't predict how the full user base will respond when it's rolled out.
+
+**Non-response bias in surveys: users who respond to a satisfaction survey are not representative of all users?** #flashcard
+disengaged or dissatisfied users are less likely to respond.

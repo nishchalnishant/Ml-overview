@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 Algorithms
+subtopic: Day 17 18 Hyperparameter Tuning
+status: unread
+tags: [studyplans, ml, week-2-algorithms-day-17-18-hy]
+---
 # Day 17-18: Hyperparameter Tuning
 
 ## Why This Topic Comes Here
@@ -129,3 +136,29 @@ study = optuna.create_study(direction="maximize")
 study.optimize(objective, n_trials=100)
 print(study.best_params)
 ```
+
+## Flashcards
+
+**Search Space?** #flashcard
+If you tune 3 parameters with 5 values each $\rightarrow 5^3 = 125$ training runs.
+
+**Why it works?** #flashcard
+In high-dimensional spaces, some parameters may not affect the outcome significantly. Random search explores more distinct values of the "important" parameters because it does not fix them to a grid.
+
+**L1 (Lasso)?** #flashcard
+Adds $\lambda \sum |\theta|$ to the loss. Leads to sparse solutions (many weights go to exactly zero). Useful when you believe most features are irrelevant.
+
+**L2 (Ridge)?** #flashcard
+Adds $\lambda \sum \theta^2$. Keeps all weights small but non-zero. Better when you believe all features contribute a little.
+
+**Elastic Net?** #flashcard
+A linear combination of L1 and L2. Has two hyperparameters to tune ($\lambda$ and the L1/L2 mixing ratio).
+
+**Too High?** #flashcard
+Oscillates or diverges.
+
+**Too Low?** #flashcard
+Converges too slowly or gets stuck in local minima.
+
+**Learning Rate Schedule?** #flashcard
+Start high (fast progress), decay over time (fine-grained convergence).

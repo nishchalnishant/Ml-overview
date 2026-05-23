@@ -1,3 +1,10 @@
+---
+module: Llms
+topic: Training Process
+subtopic: ""
+status: unread
+tags: [llms, ml, training-process]
+---
 # LLM Training: From Raw Text to Deployed Model
 
 ---
@@ -288,3 +295,14 @@ dataset = concatenate_datasets([
 | Warmup | 3% of steps | 3% of steps | — |
 | Beta (DPO) | N/A | 0.01–0.5 | Higher = stay closer to reference |
 | Max grad norm | 1.0 | 1.0 | — |
+
+## Flashcards
+
+**Length correlation: DPO can learn to make chosen responses longer instead of better?** #flashcard
+reward model annotators often preferred longer responses, so the dataset implicitly encodes a length bias. Length-normalized DPO variants address this.
+
+**Gradient degradation?** #flashcard
+if the policy drifts far from the reference model, the DPO loss provides weak gradient signal (the log-probability ratio saturates). Monitor KL divergence during training.
+
+**Preference data quality?** #flashcard
+contradictory preferences or ambiguous annotations degrade alignment. DPO is more sensitive to data quality than PPO because it has no explicit regularization mechanism beyond the $\beta$ term.
