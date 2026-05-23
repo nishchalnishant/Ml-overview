@@ -13,12 +13,12 @@
             "state": {
               "type": "markdown",
               "state": {
-                "file": "01-foundations/introduction-to-ai.md",
+                "file": "01-foundations/linear-algebra-and-numerical-methods.md",
                 "mode": "preview",
                 "source": false
               },
               "icon": "lucide-file",
-              "title": "introduction-to-ai"
+              "title": "linear-algebra-and-numerical-methods"
             }
           }
         ]
@@ -197,6 +197,7 @@
   },
   "active": "696e7a5fd1201f40",
   "lastOpenFiles": [
+    "01-foundations/introduction-to-ai.md",
     "01-foundations/AI_ML_REVISION_GUIDE.md",
     "2026-05-24.md",
     "Untitled.canvas",
