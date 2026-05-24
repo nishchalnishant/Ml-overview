@@ -13,7 +13,7 @@ tags: [classicalml, ml, active-learning]
 
 **The problem**: You have 100,000 unlabeled medical images and a radiologist who can label 200 per week. If you randomly pick which 200 to label first, you're wasting labeling budget on easy, redundant examples the model could figure out from nearby samples. You need 5,000 labels before the model becomes useful. With active learning, you might get a useful model at 500 labels — by choosing *which* 500 examples the model actually needs.
 
-**The core insight**: Not all labeled examples are equally informative. A model that is already confident about a region of feature space learns nothing new from another example in that region. The most informative examples are those the model is most uncertain about, or those that are most different from examples it has already seen. If you control which examples get labeled, you should choose the ones that teach the model the most.
+==**The core insight**: Not all labeled examples are equally informative. A model that is already confident about a region of feature space learns nothing new from another example in that region. The most informative examples are those the model is most uncertain about, or those that are most different from examples it has already seen. If you control which examples get labeled, you should choose the ones that teach the model the most.
 
 **The mechanics**: The active learning loop iterates:
 1. Train a model on the current labeled set L.

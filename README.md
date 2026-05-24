@@ -33,6 +33,18 @@ MIND-MAP.md              Full topic mind map + gap analysis
 - **[Math derivations hub](07-interview-prep/ml/math-derivations.md)** — Chain rule to attention, with your pen.
 - **[LLM interview notes](05-llms/interview-notes/README.md)** — RAG, agents, alignment, serving — the GenAI setlist.
 - **[ML interview notes](07-interview-prep/ml/README.md)** — Full classical + DL Q&A bank.
+- **[Pre-interview checklist](07-interview-prep/PRE-INTERVIEW-CHECKLIST.md)** — 48h → 24h → morning-of: what to review, verify, and do before walking in.
+
+**10-Minute Revision Cards** (skim before any topic or interview)
+
+| Section | Revision Card |
+|---------|--------------|
+| Foundations | [REVISION.md](01-foundations/REVISION.md) |
+| Classical ML | [REVISION.md](02-classical-ml/REVISION.md) |
+| Deep Learning | [REVISION.md](03-deep-learning/REVISION.md) |
+| Specialized Domains (RL, RecSys, GNN) | [REVISION.md](04-specialized-domains/REVISION.md) |
+| LLMs | [REVISION.md](05-llms/REVISION.md) |
+| Production ML | [REVISION.md](06-production-ml/REVISION.md) |
 
 **Azure / DevOps bridge:** *Training is your build job; the model artifact is your release candidate; inference is the always-on service; MLOps is CI/CD when the "code" and the "data" both change.*
 

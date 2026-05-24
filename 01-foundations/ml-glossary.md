@@ -278,7 +278,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-**Entropy (Shannon)**
+==**Entropy (Shannon)**
 
 *The problem:* You want a formal measure of uncertainty or disorder in a probability distribution. How "surprising" is a random variable?
 
@@ -405,7 +405,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-**KL Divergence (Kullback-Leibler)**
+==**KL Divergence (Kullback-Leibler)**
 
 *The problem:* You have two probability distributions P and Q. How different are they? Euclidean distance between probability vectors ignores the probabilistic structure.
 
@@ -535,7 +535,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 *The problem:* A language model's knowledge is frozen at training time. It cannot answer questions about recent events, private documents, or proprietary data. And LLMs hallucinate — they generate plausible-sounding but incorrect statements.
 
-*Core insight:* Separate memory from computation. At inference time, retrieve relevant documents from an external knowledge base and inject them into the context. The LLM then grounds its answer in the retrieved evidence.
+*Core insight:* Separate memory from computation. At inference time, ==retrieve relevant documents from an external knowledge base and inject them into the context. The LLM then grounds its answer in the retrieved evidence.
 
 *Components:* Embedding model (converts documents and queries to vectors) + Vector Database (stores and retrieves documents by semantic similarity) + LLM (generates an answer grounded in the retrieved context).
 
@@ -591,7 +591,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-**SHAP (SHapley Additive exPlanations)**
+==**SHAP (SHapley Additive exPlanations)**
 
 *The problem:* A model predicted X. Which features drove that specific prediction, and by how much? LIME and gradient-based methods make approximations; you want a theoretically grounded attribution.
 
@@ -605,7 +605,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-**SVM (Support Vector Machine)**
+==**SVM (Support Vector Machine)**
 
 *The problem:* You want a classifier that is not just correct, but confident — one whose decision boundary is as far as possible from all training examples. A boundary that barely separates the classes will fail on slightly shifted test data.
 
@@ -683,7 +683,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ## Advanced Terms (2024–2025)
 
-**LIME (Local Interpretable Model-agnostic Explanations)**
+==**LIME (Local Interpretable Model-agnostic Explanations)**
 
 *The problem:* Black-box models give no insight into why a specific prediction was made. You need an explanation for a single prediction, not the whole model.
 
