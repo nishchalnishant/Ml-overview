@@ -894,6 +894,8 @@ A model card is a standardized one-to-two page document attached to a deployed m
 
 ## 13. Interpretability in LLMs
 
+> For mechanistic interpretability depth (superposition hypothesis with toy model proofs, full SAE math and implementation, IOI circuit with 26 attention heads, induction heads, path patching, and scalability challenges), see [mechanistic-interpretability.md](mechanistic-interpretability.md). This section covers the practical LLM interpretability toolkit.
+
 Language models present a different interpretability challenge. There are no spatial activations to visualize with Grad-CAM. The input is a sequence of tokens, not an image. And the model is predicting the next token, not a class — so "which input token was important" is a question with 50,277 possible outputs.
 
 ### Probing Classifiers
@@ -1029,49 +1031,11 @@ Run across all layers to produce a "causal importance" map. Layers/heads where p
 
 ### Sparse Autoencoders (SAEs)
 
-**The problem:** Due to superposition, individual neurons are polysemantic — they activate for multiple unrelated concepts. Feature decomposition is impossible at the neuron level.
+**The problem:** Due to superposition, individual neurons are polysemantic — they activate for multiple unrelated concepts.
 
-**The insight (Templeton et al. 2024, Anthropic):** Train a sparse autoencoder on model activations to learn a larger dictionary of monosemantic features. The SAE decomposes each activation into a sparse sum of learned features, each of which activates for semantically coherent concepts.
+**The insight (Templeton et al. 2024, Anthropic):** Train a sparse autoencoder on model activations to learn a larger dictionary of monosemantic features: `z = ReLU(W_enc(x - b_dec) + b_enc)`, `x̂ = W_dec z + b_dec`, loss = `||x - x̂||² + λ||z||₁`. The L1 penalty enforces sparsity; the learned dictionary features activate for semantically coherent concepts (e.g., "Golden Gate Bridge", "DNA replication", specific emotions). Scaled to Claude 3 Sonnet: ~34M features discovered.
 
-```
-SAE: z = ReLU(W_enc(x - b_dec) + b_enc)
-     x̂ = W_dec z + b_dec
-Minimize: ||x - x̂||² + λ||z||₁
-```
-
-L1 penalty enforces sparsity. The features in `W_dec` are the learned dictionary. Templeton et al. (2024) scaled SAEs to Claude Sonnet and found interpretable features for: the Golden Gate Bridge, DNA replication, emotions, countries, specific people. The same model component that encodes "Golden Gate Bridge" also encodes structural/geographical concepts through superposition — the SAE decomposes this into distinct monosemantic features.
-
-```python
-import torch
-import torch.nn as nn
-
-class SparseAutoencoder(nn.Module):
-    def __init__(self, input_dim, hidden_dim, l1_coeff=1e-3):
-        super().__init__()
-        self.encoder = nn.Linear(input_dim, hidden_dim)
-        self.decoder = nn.Linear(hidden_dim, input_dim, bias=False)
-        self.b_dec = nn.Parameter(torch.zeros(input_dim))
-        self.l1_coeff = l1_coeff
-
-    def forward(self, x):
-        # Pre-encoder bias
-        x_centered = x - self.b_dec
-        # Encode with ReLU for sparsity
-        z = torch.relu(self.encoder(x_centered))
-        # Decode
-        x_hat = self.decoder(z) + self.b_dec
-        # Compute losses
-        reconstruction_loss = ((x - x_hat) ** 2).sum(dim=-1).mean()
-        sparsity_loss = self.l1_coeff * z.abs().sum(dim=-1).mean()
-        return x_hat, z, reconstruction_loss + sparsity_loss
-
-    def get_active_features(self, x, top_k=10):
-        with torch.no_grad():
-            x_centered = x - self.b_dec
-            z = torch.relu(self.encoder(x_centered))
-            values, indices = z.topk(top_k)
-        return indices, values
-```
+> Full SAE derivation, PyTorch implementation, IOI circuit analysis, induction heads, path patching, and scalability challenges: [mechanistic-interpretability.md](mechanistic-interpretability.md)
 
 ---
 

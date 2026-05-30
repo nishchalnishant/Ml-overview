@@ -220,99 +220,46 @@ $$\mathcal{L} = \sum_{t}^{t+k} \ell^r(r_\tau, \hat{r}_\tau) + \ell^v(z_\tau, \ha
 
 # 6. Offline RL
 
-**The problem:** Online RL requires environment interaction, which is dangerous (medical devices, autonomous vehicles) or prohibitively expensive. Can we learn a good policy from a fixed dataset of logged transitions — with no further environment access?
+> Full coverage: [`advanced-rl.md` — Offline / Batch RL section](#)
 
-**The core insight:** This is not supervised learning — the dataset was collected by a different (possibly suboptimal) policy. Naive Q-learning on offline data will aggressively overestimate Q-values for out-of-distribution (OOD) actions the dataset never took, causing policy collapse.
+**The core problem:** Online RL cannot be used when environment interaction is dangerous (medical devices, autonomous vehicles) or prohibitively expensive. Offline RL learns from a fixed dataset of pre-collected transitions. The fundamental challenge: the learned policy will query Q(s,a) for actions never seen in the dataset — bootstrapped Q-learning extrapolates these optimistically, causing policy collapse.
 
-**Distribution shift:** The learned policy will query Q(s,a) for actions a that were never in the training data. Bootstrapped Q-learning will extrapolate these values upward (overestimation bias), causing the policy to prefer OOD actions with spuriously high estimated values.
+**The three main algorithms:**
 
-### Conservative Q-Learning (CQL)
+| Algorithm | Conservatism mechanism | Can stitch suboptimal trajectories? |
+| :--- | :--- | :--- |
+| **CQL** | Penalize OOD Q-values (push down); push up in-dataset Q | Yes |
+| **IQL** | Never query OOD actions; learn V(s) via expectile regression | Partially |
+| **Decision Transformer** | Reframe as sequence modeling; condition on Return-to-Go | No — limited to imitating best trajectories in data |
 
-**Core idea:** Penalize Q-values for actions not in the dataset. Add a regularization term that pushes down Q for out-of-distribution (s,a) pairs and pushes up Q for in-distribution pairs.
+**CQL key loss:**
+$$\mathcal{L}_{CQL} = \mathcal{L}_{\text{Bellman}} + \alpha \left[\mathbb{E}_{a \sim \mu}[Q(s,a)] - \mathbb{E}_{(s,a) \sim \mathcal{D}}[Q(s,a)]\right]$$
 
-$$\mathcal{L}_{CQL}(\theta) = \underbrace{\mathbb{E}_{(s,a,r,s') \sim \mathcal{D}}\left[(Q_\theta(s,a) - (r + \gamma \max_{a'}Q_{\bar\theta}(s',a')))^2\right]}_{\text{standard Bellman error}} + \alpha \underbrace{\left[\mathbb{E}_{s \sim \mathcal{D}, a \sim \mu}\left[Q_\theta(s,a)\right] - \mathbb{E}_{(s,a) \sim \mathcal{D}}\left[Q_\theta(s,a)\right]\right]}_{\text{conservatism penalty: push down OOD, push up in-dist}}$$
+**Decision Transformer:** Input `(R_1, s_1, a_1, R_2, s_2, ...)`, condition on high RTG at test time. No Bellman backups; fails to stitch suboptimal trajectories.
 
-Where μ is typically a uniform or learned distribution over actions. The α coefficient controls conservatism strength.
+**IQL:** Expectile regression with τ > 0.5 approximates max over in-distribution actions without OOD queries.
 
-### Decision Transformer
-
-**Core idea:** Reframe offline RL as a sequence modeling problem. Condition on a desired future return (Return-to-Go, RTG) and autoregressively predict actions.
-
-```
-Input sequence: (R_1, s_1, a_1, R_2, s_2, a_2, ..., R_t, s_t)
-Target:         a_t
-```
-
-At test time, condition on a high RTG (e.g., maximum return in dataset). The transformer learns to generate high-return trajectories given high conditioning values.
-
-**What this buys:** No Bellman backup, no bootstrapping, no distributional shift issues. Works surprisingly well when dataset contains high-quality trajectories.
-
-**What breaks:** Does not generalize beyond the dataset's maximum return. Cannot stitch together suboptimal trajectories to synthesize behaviors better than any single trajectory in the data — unlike CQL.
-
-### Implicit Q-Learning (IQL)
-
-**Core idea:** Avoid ever querying Q(s,a) for actions not in the dataset. Learn a value function V(s) and a Q(s,a) function, but train Q only on in-dataset (s,a) pairs. Extract the policy using an advantage-weighted regression objective.
-
-$$\mathcal{L}_V = \mathbb{E}_{(s,a) \sim \mathcal{D}}\left[L_\tau^\text{expectile}(Q(s,a) - V(s))\right]$$
-
-Where the expectile loss with τ > 0.5 effectively computes an upper expectile of Q — approximating the maximum without needing OOD queries.
-
-| Algorithm | Conservatism mechanism | Can stitch trajectories? | Complexity |
-| :--- | :--- | :--- | :--- |
-| CQL | Penalize OOD Q-values | Yes | Medium |
-| Decision Transformer | No Bellman; sequence model | No | Low |
-| IQL | No OOD queries via expectile | Partially | Medium |
-| BCQ | Constrain policy to data support | Partially | Medium |
+**What breaks (all offline RL):** Dataset coverage is the ceiling. If the optimal policy requires actions never taken in the logged data, no offline method can discover them.
 
 ---
 
 # 7. Inverse RL & Reward Learning
 
-**The problem:** Reward functions are hard to specify. For tasks like driving, surgery, or content moderation, we have expert demonstrations but cannot write down the reward numerically. Can we *infer* the reward from behavior?
+> Full coverage: [`advanced-rl.md` — Imitation Learning and Inverse RL sections](#)
 
-**The core insight:** If an expert is approximately optimal, their behavior reveals their implicit reward function. Inverse RL (IRL) recovers a reward R(s,a) under which the expert policy is optimal — then solve forward RL with that reward.
+**The core problem:** Reward functions are hard to specify for complex tasks (driving, surgery, content moderation). IRL recovers a reward function R(s,a) under which the expert's demonstrations are optimal.
 
-### IRL Problem Formulation
-
-Given: Expert demonstrations D_E = {τ_1, τ_2, ...} (trajectories).
-Find: Reward function R_θ(s,a) such that the expert policy is optimal under R_θ.
-
-**Ambiguity:** Many reward functions explain the same policy (e.g., constant reward explains any policy). IRL requires additional constraints or regularization.
-
-### Maximum Entropy IRL
-
-**Core idea:** Among all reward functions consistent with the expert's behavior, choose the one that maximizes the entropy of the resulting policy distribution — i.e., the least-committed explanation.
+**MaxEntropy IRL (Ziebart et al., 2008):** Among all reward functions consistent with expert behavior, choose the one that maximizes entropy of the resulting policy — the least-committed explanation. Feature expectations of the learned policy must match the expert's.
 
 $$\max_{R_\theta} \mathcal{H}(\pi_\theta) \quad \text{s.t.} \quad \mathbb{E}_{\pi_\theta}[\phi(s,a)] = \mathbb{E}_{\pi_E}[\phi(s,a)]$$
 
-Feature expectations of the learned policy must match those of the expert. The maximum entropy principle resolves ambiguity and produces a unique, well-defined reward.
+**GAIL:** Skip explicit reward recovery. Match state-action occupancy measure between expert and policy via a GAN discriminator. Discriminator output becomes the RL reward signal; PPO is the "generator."
 
-### GAIL (Generative Adversarial Imitation Learning)
-
-**Core idea:** Skip reward learning entirely. Match the state-action occupancy measure between expert and policy using a GAN-like objective.
-
-```
-Discriminator D_ω: classify (s,a) as expert vs. policy
-Policy π_θ: maximize log D_ω(s,a) (fool discriminator)
-
-Reward signal: r(s,a) = log D_ω(s,a)  (or -log(1 - D_ω(s,a)))
-Policy update: PPO with the discriminator-derived reward
-```
-
-GAIL bypasses the IRL step — no explicit reward function is recovered, just behavior matching. Strong when expert demonstrations are plentiful but reward design is impossible.
-
-### Connection to RLHF
-
-RLHF (Reinforcement Learning from Human Feedback) is a form of reward learning:
-
-1. **Reward model training:** Collect human preference comparisons (trajectory A vs. B). Train R_θ to predict human preferences (Bradley-Terry model).
-2. **RL fine-tuning:** Run PPO against R_θ, with a KL penalty to prevent the policy from drifting far from the supervised baseline.
-
-The KL penalty is identical in spirit to max-entropy IRL's entropy regularization — both prevent reward hacking by keeping the policy close to a reasonable prior.
+**Connection to RLHF:** RLHF is IRL with human preference comparisons as the reward signal source. The KL penalty vs. reference policy serves the same role as entropy regularization in MaxEntIRL — preventing reward hacking.
 
 | Method | Reward signal source | Requires forward RL? | Key issue |
 | :--- | :--- | :--- | :--- |
-| Max-entropy IRL | Demonstrations | Yes | Expensive inner-loop RL |
+| MaxEntropy IRL | Demonstrations | Yes | Expensive inner-loop RL |
 | GAIL | Demonstrations (adversarial) | Yes (PPO) | Training instability |
 | RLHF | Human preference comparisons | Yes (PPO) | Reward model overfitting |
 
@@ -320,95 +267,50 @@ The KL penalty is identical in spirit to max-entropy IRL's entropy regularizatio
 
 # 8. Hierarchical RL
 
-**The problem:** Standard RL struggles with long-horizon tasks. Sparse rewards over thousands of steps mean the credit assignment problem becomes intractable. A robot making coffee must manage hundreds of low-level motor commands to achieve a goal minutes away.
+> Full coverage: [`advanced-rl.md` — Hierarchical Reinforcement Learning section](#)
 
-**The core insight:** Decompose long-horizon tasks into a hierarchy of subtasks. A high-level policy selects *goals* or *options* (abstract actions). A low-level policy executes them. Credit assignment at the high level operates over shorter effective horizons.
+**The core problem:** Long-horizon sparse reward tasks defeat flat RL. Temporal abstraction — decomposing tasks into a hierarchy of subtasks — makes credit assignment tractable.
 
-### Options Framework
+**Options framework:** An option ω = (I_ω, π_ω, β_ω) is a temporally extended action. I_ω = initiation set; π_ω = option policy; β_ω = termination condition. The high-level policy selects options; the low-level executes them.
 
-An **option** ω = (I_ω, π_ω, β_ω):
-- I_ω: initiation set — states where the option can be started
-- π_ω: option policy — a policy for the duration of the option
-- β_ω: termination condition — probability of ending the option at each state
+**HER (Hindsight Experience Replay):** Relabel failed trajectories with the state actually reached as a hindsight goal. Converts sparse reward environments to dense by generating a positive training signal from every trajectory.
 
-The high-level policy selects options; the low-level executes them until termination.
+**Feudal RL:** Stack multiple hierarchy levels. Each level operates at a dilated timescale and sets subgoals for the level below.
 
-### Skill Discovery
-
-**The problem:** Hand-designing options requires domain knowledge. Can skills be discovered automatically?
-
-**Approaches:**
-
-| Method | Mechanism |
-| :--- | :--- |
-| Diversity Is All You Need (DIAYN) | Maximize mutual information between skill z and states visited |
-| Successor features | Options that cover diverse future state distributions |
-| Empowerment | Options that maximize agent's control over environment |
-
-**DIAYN objective:**
+**Skill discovery — DIAYN:**
 $$\max_\theta \mathcal{I}(s; z) = \mathcal{H}(z) - \mathcal{H}(z | s)$$
+Train skills to produce distinguishable state distributions; discriminator identifies which skill produced which states.
 
-Train skills to produce distinguishable state distributions; train a discriminator to identify which skill was used from the visited states.
+**HIRO:** Manager sets subgoals in state space every k steps; worker receives intrinsic reward for reaching them; off-policy correction relabels historical subgoals for consistency.
 
-### HRL for Long-Horizon Tasks
-
-**HIRO (Hierarchical RL with Off-Policy Correction):**
-- Manager sets a subgoal g every k steps (in state space).
-- Worker receives intrinsic reward for reaching g.
-- Off-policy correction: relabel historical subgoals to make manager data consistent.
-
-**What breaks:** Subgoal representation must align with what the low-level policy can achieve. If the manager sets goals in a space the worker cannot navigate to, the hierarchy fails. This is the *goal representation problem*.
+**What breaks:** The goal representation problem — the manager must set goals in a space the worker can navigate. End-to-end training is unstable; levels have a moving target problem as both are learning simultaneously.
 
 ---
 
 # 9. Multi-Agent RL
 
-**The problem:** Many real scenarios involve multiple interacting agents — self-driving cars, financial markets, multiplayer games. Single-agent RL breaks down because the environment is non-stationary from each agent's perspective (other agents are also learning).
+> Full coverage: [`advanced-rl.md` — Multi-Agent Reinforcement Learning section](#)
 
-### Cooperative vs. Competitive
+**The core problem:** As multiple agents learn simultaneously, the environment is non-stationary from each agent's perspective — standard Q-learning convergence proofs break.
 
-| Setting | Reward structure | Examples |
-| :--- | :--- | :--- |
-| Cooperative | Shared team reward | Multi-robot coordination, SMAC |
-| Competitive (zero-sum) | One agent's gain = others' loss | Go, poker, Starcraft 1v1 |
-| Mixed (general sum) | Partial alignment | Traffic, multi-seller markets |
+**CTDE (Centralized Training, Decentralized Execution):** Train with global state and joint observations; execute with local observations only. Resolves non-stationarity during training while keeping deployment scalable.
 
-### Nash Equilibrium
-
-In a Nash equilibrium (NE), no agent can improve its expected reward by unilaterally changing its policy:
+**Nash Equilibrium:** No agent can improve expected reward by unilaterally changing policy. Guaranteed to exist in finite games; convergence not guaranteed for general-sum games in MARL.
 
 $$\forall i: \pi_i^* \in \arg\max_{\pi_i} \mathbb{E}\left[R_i \mid \pi_i, \pi_{-i}^*\right]$$
 
-Every finite game has at least one NE (Nash, 1950). In zero-sum two-player games, the NE is a minimax solution and is unique in expected payoff. Multi-agent RL often targets convergence to NE, though convergence is not guaranteed for general-sum games.
-
-### CTDE: Centralized Training, Decentralized Execution
-
-**Core idea:** During training, allow agents to share observations and gradients (centralized). At deployment, each agent acts on its local observation only (decentralized). This breaks the non-stationarity problem during training while keeping execution scalable.
-
-### MADDPG
-
-MADDPG extends DDPG to multi-agent settings via CTDE:
-
-- Each agent i has its own actor π_i(o_i) — takes only local observation.
-- Each agent has a *centralized critic* Q_i(o_1,...,o_N, a_1,...,a_N) — sees all agents' observations and actions during training.
-- At execution, only the actor is used.
-
-```
-Critic loss for agent i:
-L = E[(Q_i(o, a) - (r_i + γ Q_i(o', a'_{1..N}|_{a'_j=π_j(o'_j)})))²]
-
-Actor update:
-∇_θ J = E[∇_θ π_i(o_i) · ∇_a Q_i(o, a)|_{a_i=π_i(o_i)}]
-```
-
-**What breaks:** Centralized critic scales poorly as N grows — joint action space is exponential. Approaches like QMIX use a monotonic mixing network to factorize joint Q across agents.
+**Key algorithms:**
 
 | Algorithm | Setting | Key idea |
 | :--- | :--- | :--- |
-| MADDPG | Cooperative/competitive, continuous | CTDE with centralized critics |
-| QMIX | Cooperative, discrete | Factored joint Q via monotonic mixing |
-| MAPPO | Cooperative | PPO with shared centralized value |
-| COMA | Cooperative | Counterfactual baseline for credit assignment |
+| MADDPG | Cooperative/competitive, continuous | CTDE with per-agent centralized critics |
+| QMIX | Cooperative, discrete | Monotonic mixing network for factored joint Q — enables IGM |
+| MAPPO | Cooperative | PPO with shared centralized value function |
+| COMA | Cooperative | Counterfactual baseline: marginalizes out one agent's action to isolate individual credit |
+
+**MADDPG:** Per-agent actor π_i(o_i) uses only local observation; centralized critic Q_i(o_1,...,o_N, a_1,...,a_N) sees everything during training.
+
+**Self-play (competitive):** Train agent against copy of current policy. Drives emergent strategy. Converges toward Nash in two-player zero-sum; can cycle in multi-player settings.
 
 ---
 

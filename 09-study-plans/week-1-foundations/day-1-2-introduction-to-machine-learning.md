@@ -52,6 +52,22 @@ The model learns from a trainer (labeled data). The objective is to minimize a l
 
 **What trips people up:** Treating silhouette score or inertia as an objective truth. These are internal quality measures — they tell you how consistent the clustering is with its own geometry, not whether the clusters are useful for your problem.
 
+### 3. Reinforcement Learning
+
+**Why this is introduced at day 1 but not studied deeply until the LLM week:** Reinforcement learning (RL) is the third paradigm and completes the landscape. It is mentioned here so you understand where it fits, not to study it in depth. RL becomes directly relevant in week 4 when you study RLHF — the training method that turns a pre-trained language model into a helpful assistant.
+
+In RL, an **agent** interacts with an **environment** by taking **actions** and observing **rewards**. There are no labeled training examples — the signal is the scalar reward received after each action.
+
+- **Policy**: The agent's strategy — maps states to actions.
+- **Value function**: Estimates the expected future reward from a state.
+- **Exploration vs. Exploitation**: The fundamental tradeoff — should the agent try new actions (explore) or stick with known good actions (exploit)?
+
+**Key insight:** RL is fundamentally different from supervised learning because feedback is delayed and sparse. In supervised learning, you know immediately after every prediction whether it was right or wrong. In RL, a sequence of 100 actions might result in one reward signal at the end — and the agent must figure out which of the 100 actions were responsible (the credit assignment problem).
+
+**How to verify understanding:** You are training a chess-playing RL agent. The reward is +1 for winning, -1 for losing, 0 otherwise. The game lasts 40 moves. Describe the credit assignment problem: how does the agent learn which of the 40 moves contributed to winning or losing?
+
+**What trips people up:** Thinking RL is only for games. RL (or RL-style methods) appears in: RLHF for LLMs, recommendation systems (contextual bandits), robotics, ad bidding, and network routing. Any sequential decision problem with delayed feedback is a candidate.
+
 ---
 
 ## Mathematical Foundations
@@ -148,3 +164,9 @@ Gradient Descent $\theta_j := \theta_j - \alpha \frac{\partial}{\partial \theta_
 
 **Loss (Binary Cross-Entropy)?** #flashcard
 $L(y, \hat{y}) = -[y \log(\hat{y}) + (1-y) \log(1-\hat{y})]$
+
+**Reinforcement Learning?** #flashcard
+Agent takes actions in an environment and receives scalar rewards. No labeled data — the agent learns from delayed feedback. Key tradeoff: exploration vs. exploitation.
+
+**Credit Assignment Problem?** #flashcard
+In RL, when a sequence of actions leads to a single delayed reward, it is unclear which specific actions were responsible for the outcome. This is why RL is harder than supervised learning.

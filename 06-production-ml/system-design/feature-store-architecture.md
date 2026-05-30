@@ -460,16 +460,174 @@ def point_in_time_join(
 
 ---
 
+## Online/Offline Parity Testing
+
+**The problem**: the offline store (training) and online store (serving) can diverge. A pipeline bug, timezone mismatch, or incremental update error causes the online store to serve different values than training used — silent training-serving skew that doesn't manifest as an error.
+
+**Parity test** (run hourly as a health check):
+
+```python
+from scipy.stats import ks_2samp
+import pandas as pd
+from datetime import datetime
+
+def check_online_offline_parity(store, feature_names, entity_ids, sample_size=1000):
+    """Detect online/offline feature discrepancy."""
+    entity_df = pd.DataFrame({
+        "user_id": entity_ids[:sample_size],
+        "event_timestamp": [datetime.now()] * sample_size
+    })
+    offline_features = store.get_historical_features(
+        entity_df=entity_df, features=feature_names
+    ).to_df()
+
+    online_features = store.get_online_features(
+        features=feature_names,
+        entity_rows=[{"user_id": uid} for uid in entity_ids[:sample_size]]
+    ).to_df()
+
+    discrepancies = {}
+    for feat in feature_names:
+        name = feat.split(":")[1]
+        offline_vals = offline_features[name].dropna()
+        online_vals = online_features[name].dropna()
+
+        if len(offline_vals) > 0 and len(online_vals) > 0:
+            stat, p_value = ks_2samp(offline_vals, online_vals)
+            mean_diff = abs(offline_vals.mean() - online_vals.mean()) / (offline_vals.std() + 1e-10)
+            discrepancies[name] = {
+                "ks_statistic": stat,
+                "p_value": p_value,
+                "normalized_mean_diff": mean_diff,
+                "alert": stat > 0.1 or mean_diff > 0.1
+            }
+
+    return discrepancies
+
+# Parity SLAs:
+# Mean feature value: within 5% between online/offline
+# KS statistic: < 0.1
+# Null rate: within 1 percentage point
+```
+
+**Common parity failure causes**: different null handling between batch and stream, timezone bugs, schema changes in upstream data, incremental update that double-counts events.
+
+---
+
+## Streaming Feature Computation (Flink)
+
+**Lambda pattern for real-time features**:
+
+```
+Kafka events → Flink → Redis (online store)
+                    → S3 / BigQuery (offline store, for training)
+```
+
+**Flink windowed aggregation with `AggregateFunction`**:
+
+```python
+from pyflink.datastream import StreamExecutionEnvironment
+from pyflink.datastream.functions import AggregateFunction
+from pyflink.datastream.window import TumblingEventTimeWindows, Time
+
+class TxnVelocityAgg(AggregateFunction):
+    def create_accumulator(self):
+        return {"count": 0, "total_amount": 0.0}
+
+    def add(self, value, accumulator):
+        accumulator["count"] += 1
+        accumulator["total_amount"] += value["amount"]
+        return accumulator
+
+    def get_result(self, accumulator):
+        return accumulator
+
+    def merge(self, a, b):
+        return {
+            "count": a["count"] + b["count"],
+            "total_amount": a["total_amount"] + b["total_amount"]
+        }
+
+env = StreamExecutionEnvironment.get_execution_environment()
+transactions = env.add_source(kafka_source)
+
+velocity_features = (
+    transactions
+    .key_by(lambda x: x["user_id"])
+    .window(TumblingEventTimeWindows.of(Time.hours(1)))
+    .aggregate(TxnVelocityAgg())
+)
+
+# Write to both stores simultaneously
+velocity_features.add_sink(redis_sink)    # online
+velocity_features.add_sink(s3_sink)       # offline
+```
+
+**Streaming backfill problem**: when deploying a new streaming feature, training needs historical values. Solution: replay raw Kafka events (from topic retention or S3 archive) through the same Flink job in batch mode, writing outputs with original event timestamps. Key requirement: backfill must use the same watermark logic and write `feature_timestamp = window_end_time`, not backfill execution time.
+
+---
+
+## Feature Freshness vs Latency
+
+```
+Feature type              | Computation | Update cadence | Staleness tolerance | Storage
+--------------------------|-------------|----------------|---------------------|-------------------
+Real-time (velocity)      | Flink/Kafka | < 1 min        | Seconds             | Redis
+Near-real-time (daily)    | Spark batch | 1–24 hours     | Minutes             | Redis + S3
+Historical (lifetime val) | SQL warehouse| Daily/weekly   | Hours               | BigQuery + Redis
+Model predictions as feat | Async infer | Event-driven   | Seconds             | Redis
+```
+
+**Decision rule**:
+- Feature changes in < 5 min AND impacts model output → streaming required
+- Feature changes hourly, model runs < 1 day before prediction → batch OK
+- Feature changes daily → offline store with daily refresh is sufficient
+- Test: deliberately delay feature refresh in offline eval and measure PR-AUC drop; if < 0.5%, batch is fine
+
+---
+
+## Feature Monitoring
+
+**Three types of drift to monitor**:
+
+1. **Feature drift (covariate shift)**: distribution of feature values changes
+
+```python
+import numpy as np
+
+def population_stability_index(reference, current, buckets=10):
+    """PSI > 0.25 indicates significant drift; requires retraining."""
+    ref_hist, edges = np.histogram(reference, bins=buckets, density=True)
+    cur_hist, _ = np.histogram(current, bins=edges, density=True)
+    ref_hist = np.clip(ref_hist, 1e-10, None)
+    cur_hist = np.clip(cur_hist, 1e-10, None)
+    return np.sum((cur_hist - ref_hist) * np.log(cur_hist / ref_hist))
+```
+
+2. **Feature freshness**: is the feature being updated on schedule?
+
+```python
+def check_feature_freshness(store, feature_view_name, max_staleness_hours=2):
+    latest = store.get_latest_feature_timestamp(feature_view_name)
+    staleness = (datetime.now() - latest).total_seconds() / 3600
+    if staleness > max_staleness_hours:
+        alert(f"{feature_view_name} is {staleness:.1f}h stale, SLA={max_staleness_hours}h")
+```
+
+3. **Online/offline parity drift**: did parity worsen after a pipeline change? Run the parity test on a daily sample; if KS statistic > 0.1 after a pipeline update, rollback and investigate.
+
+---
+
 ## Open-Source Feature Store Comparison
 
 ```
-Tool         | Offline Store  | Online Store       | Streaming | Cloud-Native
--------------|---------------|--------------------|-----------|--------------
-Feast        | S3/GCS/Parquet | Redis/DynamoDB/Bigtable | Yes   | Any
-Tecton       | S3/Parquet     | DynamoDB/Redis     | Yes       | AWS/GCP/Azure
-Hopsworks    | Hive/Parquet   | RonDB/MySQL Cluster| Yes       | On-prem + Cloud
-Vertex AI FS | BigQuery       | Bigtable           | No        | GCP only
-SageMaker FS | S3             | DynamoDB           | Partial   | AWS only
+Tool         | Offline Store  | Online Store         | Streaming | Deployment  | Best for
+-------------|----------------|----------------------|-----------|-------------|---------------------------
+Feast        | S3/GCS/Parquet | Redis/DynamoDB/Bigtable| Yes     | Self-hosted | Control, cost, flexibility
+Tecton       | S3/Parquet     | DynamoDB/Redis       | Native    | SaaS/on-prem| Enterprise, managed scale
+Hopsworks    | Hive/Parquet   | RonDB/MySQL Cluster  | Yes       | On-prem+Cloud| Full ML platform
+Vertex AI FS | BigQuery       | Bigtable             | No        | GCP only    | GCP-native stacks
+SageMaker FS | S3             | DynamoDB             | Partial   | AWS only    | AWS-native stacks
 ```
 
 **When to build vs buy**: build a custom feature store only if your scale exceeds 100TB offline features + 100M entity lookups/day. Below that scale, Feast with Redis + S3 covers 95% of use cases with minimal operational overhead.
@@ -496,6 +654,18 @@ SageMaker FS | S3             | DynamoDB           | Partial   | AWS only
 - Example: `txn_count_5min` must be <1 minute stale; `purchase_count_30d` may be up to 24 hours stale
 - Freshness SLA drives choice of batch vs streaming ingestion
 - Monitor feature freshness as a production metric; alert when SLA is violated
+
+**Q: What is point-in-time correctness and why does it matter?**
+A: Point-in-time correctness means that when constructing training data, each example uses only features available at the time of the target event — not features computed from data that arrived later. Violating this causes leakage: the model sees future information during training but not at serving time, inflating offline metrics. The most common violation: joining on entity key without a timestamp constraint, so a user's "30-day spend" in the training feature includes transactions after the fraud event you're predicting. Fix: for every feature, store the computation timestamp, and during historical joins, fetch the most recent feature value with `timestamp ≤ event_timestamp`.
+
+**Q: How do you ensure online/offline parity?**
+A: Four controls: (1) Same transformation code — both online and offline pipelines use the same feature computation logic, often from a shared library; (2) Same data source — online pipeline writes derived features back to S3 as it computes, so offline training uses the exact same materialized values; (3) Shadow testing — before launch, compare online store values with offline historical values for the same entity/timestamp pairs; alert if KS > 0.1 or mean diff > 5%; (4) Continuous parity monitoring — run the shadow test on a sample every hour; if parity degrades after a pipeline update, roll back. Root causes: different null handling, timezone bugs, different data freshness, schema changes in upstream data.
+
+**Q: When would you use streaming features vs batch features?**
+A: The decision turns on two axes: how fast the feature changes, and how much it affects model output. Real-time velocity features (transactions in last 1 hour, login attempts in last 10 minutes) change in minutes and directly impact fraud/risk models — they require streaming via Flink/Kafka. User lifetime value or 90-day spending patterns change slowly — daily batch jobs are sufficient. Test by deliberately delaying feature refresh in offline evaluation and measuring PR-AUC drop.
+
+**Q: How do you backfill a streaming feature for historical training data?**
+A: Replay the raw event stream (from Kafka topic retention or S3 archive) through the same Flink/Spark streaming job in batch mode, writing outputs with their original event timestamps to the offline store. Key requirements: (1) watermarking logic must handle late arrivals the same way as production; (2) write results with `feature_timestamp = window_end_time`, not backfill execution time; (3) backfilled features must pass point-in-time parity checks against a held-out period before using for training.
 
 ## Flashcards
 

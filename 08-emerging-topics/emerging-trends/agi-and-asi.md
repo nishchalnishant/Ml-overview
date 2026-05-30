@@ -70,6 +70,9 @@ o3 at high compute exceeded average human performance — the first AI system to
 **Evidence against**: scaling slows — each 10× compute increase produces smaller capability jumps. Certain capabilities (causal reasoning, sample efficiency) seem not to emerge from scale alone. ARC-AGI requires 1000× more compute in o3 than a human, suggesting the underlying mechanism is brute-force search rather than genuine generalization.
 
 ### 3.2 World Models Hypothesis
+
+> DreamerV3's RSSM uses a GRU-based deterministic state combined with a stochastic latent — a form of learned state space model. For the broader family of SSMs (S4, Mamba, RWKV, Jamba) that achieve O(N) recurrent inference and serve as transformer alternatives for long-sequence world modeling, see [state-space-models.md](state-space-models.md).
+
 **Claim**: language modeling alone is insufficient for AGI. A general intelligence must build an internal model of the world — understanding causality, physics, and how actions change states — not just statistical associations between words.
 
 **Proposed path**: train agents in simulated or physical environments where they must predict and interact with the world, building causal representations. Language then becomes a communication layer on top of a rich world model.
@@ -78,14 +81,150 @@ o3 at high compute exceeded average human performance — the first AI system to
 
 **Proponents**: Yann LeCun (Meta), Gary Marcus, many robotics researchers.
 
+#### World Model Architectures
+
+**Dreamer / DreamerV3 (Hafner et al., 2020–2023)**: the most influential model-based RL agent using a learned world model.
+
+Architecture: a **Recurrent State Space Model (RSSM)** with two state components:
+- **Deterministic state** h_t: hidden state of a GRU, captures long-term dependencies
+- **Stochastic state** z_t: sampled from a categorical or Gaussian distribution, captures uncertainty
+
+```
+# RSSM forward pass
+h_t = GRU(h_{t-1}, z_{t-1}, a_{t-1})           # deterministic
+z_t ~ q_φ(z_t | h_t, x_t)                       # posterior (given observation)
+z_t ~ p_φ(z_t | h_t)                            # prior (imagination, no observation)
+x̂_t = p_θ(x_t | h_t, z_t)                      # reconstruction decoder
+r̂_t = p_θ(r_t | h_t, z_t)                      # reward predictor
+```
+
+Training: ELBO on observations + rewards. The encoder compresses image observations to z_t; the world model predicts future z_t sequences for "imagination" rollouts used by the actor-critic.
+
+**DreamerV3 (2023)**: unifies training across domains (Atari, continuous control, Minecraft) with fixed hyperparameters. Key improvements: symlog transformation for reward scaling, free bits for KL, categorical latents for gradient flow. First algorithm to collect diamonds in Minecraft from scratch.
+
+**JEPA (LeCun, 2022–)**: Joint Embedding Predictive Architecture. Learns representations by predicting the representation of masked or future inputs, not reconstructing raw pixels:
+
+```
+s_x = Encoder(x)           # encode context
+s_y = Encoder(y)           # encode target (y is masked/future version of x)
+ŝ_y = Predictor(s_x, z)   # predict target representation with latent z
+Loss: ||ŝ_y - sg(s_y)||²   # sg = stop gradient
+```
+
+Key difference from MAE/reconstruction-based methods: the predictor works in **abstract representation space**, not pixel space. This prevents the model from wasting capacity on unimportant pixel details. I-JEPA (image) and V-JEPA (video) show that models trained with JEPA learn richer semantic representations than masked autoencoders without generative pixel decoding.
+
+**Genie 1 (Google DeepMind, 2024)**: a generative world model trained on unlabeled internet videos of 2D platformer games. Learns a latent action space (no action labels) and can simulate the environment in response to user-provided actions. Architecture: VQ-VAE tokenizer + spatiotemporal transformer + dynamics model. Key result: emergent controllability from video-only pretraining.
+
+**Genie 2 (Google DeepMind, 2024)**: 3D world model trained on diverse video. Generates interactive 3D environments from a single image prompt, maintaining consistent physics, lighting, and object interactions for 10-20 seconds. Uses a foundation video model (similar to Sora) combined with action conditioning.
+
+#### Are Current LLMs Implicit World Models?
+
+**Argument for**: LLMs trained on internet text must encode causal structure to predict language accurately. Sentence "I dropped the glass and it shattered" requires knowing glass is brittle. Chain-of-thought reasoning shows LLMs can simulate multi-step causal chains.
+
+**Argument against**: these are statistical patterns in language, not structural world models. LLMs confabulate physics (rotating objects in 3D), fail on novel causal scenarios with no textual analogue, and lack grounded simulation. Sora-like video models are *closer* to world models but still fail on physical consistency tests (objects appearing/disappearing, unrealistic fluid dynamics).
+
 ### 3.3 Neurosymbolic Integration
+
 **Claim**: pure neural networks lack systematic compositionality — they can't reliably apply learned rules to new combinations. Combine neural networks (pattern recognition, language) with symbolic reasoning (formal logic, program synthesis) for robustness.
 
-**Evidence**: AlphaGeometry (Google DeepMind, 2024) proved 25/30 IMO geometry problems using a hybrid: LLM generates intuition/auxiliary constructions; formal geometry prover verifies and extends. Neither alone solved >10.
+**Evidence**: AlphaGeometry 2 (Google DeepMind, 2024) solved 83% of 2000–2024 IMO geometry problems using a hybrid LLM + formal prover. Neither alone achieved >30%.
 
 **Proponents**: research community at DeepMind, MIT, others.
 
-### 3.4 Recursive Self-Improvement
+#### Neurosymbolic Architectures in Practice
+
+**LLM + Formal Theorem Provers**: the dominant current approach. An LLM generates proof steps (tactics) in a formal language (Lean 4, Isabelle, Coq), and an automated theorem prover (ATP) verifies each step and provides feedback.
+
+```
+Problem statement (natural language)
+    ↓
+LLM: generate formal problem encoding in Lean 4
+    ↓
+LLM: propose next proof tactic (sampled, temperature > 0)
+    ↓
+Lean 4 kernel: verify tactic is valid
+    ↓ (if valid)
+Update proof state
+    ↓ (loop until QED or failure)
+```
+
+The verifier provides a **ground-truth signal** — verification is decidable for formal proofs. This eliminates hallucination in the reasoning chain (the LLM can hallucinate tactics, but the verifier immediately rejects invalid ones).
+
+**AlphaGeometry 2 (DeepMind, 2024)**: fine-tuned Gemini Pro on 300M synthetic geometry proofs. At test time, uses beam search over LLM-proposed auxiliary point constructions, verified by a symbolic deduction engine (DD+AR+AG). Solved 83% of IMO geometry problems (2000–2024), gold medalist equivalent.
+
+**DeepSeek-Prover / Lean-based systems**: multiple groups (DeepSeek, MIT, Google) have trained LLMs on Lean theorem proving datasets (Mathlib). Lean's type system enforces correctness — a "proof" that doesn't typecheck is rejected. Results: SOTA on MiniF2F benchmark at ~65% pass@1 (formally verified).
+
+**Program Synthesis**: LLMs as symbolic programs. Code is by definition symbolic-compositional. DeepMind's AlphaCode 2 achieved competitive programmer level (top 15%) by generating code that passes unit tests — a verifiable symbolic artifact.
+
+**Neural Concept Learners**: systems that learn to construct symbolic programs over a learned concept space. MIT's Neuro-Symbolic Concept Learner (NS-CL) uses a visual perception module to extract symbolic objects/attributes, then a program executor for compositional question answering. Achieves near-perfect accuracy on CLEVR with 10× fewer samples than pure neural approaches.
+
+#### Why Neurosymbolic Matters for AGI
+
+Systematic generalization: if a system learns "the red ball is to the left of the blue cube" it should immediately generalize to "the green pyramid is to the right of the yellow cylinder" — applying the same spatial relation rule. Pure neural models fail this (they interpolate rather than compose). Systems with explicit symbolic structure generalize systematically.
+
+**Proponents**: research community at DeepMind, MIT, others.
+
+### 3.4 Embodied AI and Robotics
+
+**Claim**: cognition requires grounding in physical interaction. An agent that only processes language will never develop the causal models, spatial reasoning, and action understanding that biological intelligence is built on.
+
+#### The Sim-to-Real Problem
+
+Training robots in simulation is cheap and fast; physical data collection is slow and expensive. But policies trained in simulation often fail in the real world (sim-to-real gap) due to:
+- **Dynamics mismatch**: simulated physics don't match reality (friction, contact forces, deformable objects)
+- **Visual domain gap**: simulated rendering ≠ real-world lighting, textures
+- **Morphology mismatch**: simulated robot kinematics may differ subtly from physical robot
+
+**Domain randomization**: during simulation training, randomize physics parameters (mass, friction, damping), visual properties (texture, lighting), and sensor noise. The policy must learn a representation invariant to these variations, which generalizes to the real world. Used successfully for dexterous manipulation (OpenAI DACTYL: learned to solve Rubik's cube with a robot hand) and locomotion.
+
+#### Foundation Models for Robotics
+
+**RT-2 (Google, 2023)**: Vision-Language-Action model. Fine-tune a large VLM (PaLI-X or PaLM-E) to output robot actions directly as tokens, alongside language tokens. Training: web images/text (general VLM pretraining) + robot demonstrations (action prediction). Result: RT-2 can follow novel instructions that require semantic reasoning ("move the object that belongs in the recycling bin") without having seen recycling tasks in robot training data. The VLM knowledge transfers to robot actions.
+
+```
+Input: image of scene + language instruction
+Model: VLM backbone (12B parameters)
+Output: robot action tokens [move, 0.3m, forward; gripper, close]
+```
+
+**π0 (Physical Intelligence, 2024)**: pre-trained generalist robot policy using flow matching on diverse robot data. Architecture: small transformer trained with action chunks (predict next K=10 actions, not just one). Key innovation: **action chunking** reduces the temporal credit assignment problem and handles multi-modal action distributions (multiple valid ways to grasp an object). Demonstrates robot dexterity across folding laundry, making sandwiches, packing boxes.
+
+**RoboCAT (Google DeepMind, 2023)**: self-improving agent that learns new tasks with minimal demonstrations. Architecture: tokenize robot observations (images + state) and actions into a unified token sequence, trained with next-token prediction (autoregressive). Few-shot adaptation: given 10-100 demonstrations of a new task, RoboCAT fine-tunes and achieves competence. Demonstrates positive transfer across robot embodiments (different arm morphologies).
+
+**OpenVLA (2024)**: 7B parameter VLA (vision-language-action) model fine-tuned from Llama-2 on the Open X-Embodiment dataset (~1M robot demonstrations across 22 robot types). Open-weights, demonstrating that the open-source community can build competitive generalist robot policies.
+
+#### Architecture Patterns for VLA Models
+
+Vision-Language-Action (VLA) models unify perception, language understanding, and motor control:
+
+```
+Image(s) + Language instruction
+    ↓
+Vision encoder (ViT) → image tokens
+Language encoder (LLM) → text tokens
+Joint attention (full or cross)
+    ↓
+Action head: continuous action regression OR
+             discrete action tokenization (256 bins per DOF)
+```
+
+**Discrete vs continuous action representations**:
+- Discrete (RT-2): tokenize actions as integers; leverage language model's token prediction
+- Continuous regression (π0, Diffusion Policy): predict continuous action vectors; flow matching or diffusion handles multi-modal action distributions better
+- **Diffusion Policy (Chi et al., 2023)**: condition a diffusion model on current observation; outputs action trajectory. Naturally handles multi-modal distributions (robot can pick up from left OR right). State-of-the-art on many manipulation benchmarks.
+
+#### Evaluation Benchmarks
+
+| Benchmark | What it tests |
+|---|---|
+| LIBERO | Language-conditioned manipulation (4 suites: spatial, object, goal, long-horizon) |
+| RLBench | 100 task variants, language instructions, diverse manipulation |
+| Open X-Embodiment | Cross-embodiment transfer across 22 robot platforms |
+| CALVIN | Long-horizon sequential manipulation (7-step task chains) |
+| ManiSkill2 | GPU-accelerated simulation, physically plausible contact |
+
+### 3.5 Recursive Self-Improvement
+
 **Claim**: once an AI system is capable enough to improve its own training process, each generation is smarter than the last — bootstrapping to AGI/ASI.
 
 **Current state**: AI assists in ML research (writing code, reviewing papers, suggesting hyperparameters) but doesn't autonomously improve its own architecture. This is an area of active investment.

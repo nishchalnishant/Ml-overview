@@ -112,6 +112,8 @@ class GroupedQueryAttention(nn.Module):
 
 **What breaks**: GQA with very few KV groups ($G = 1$, i.e., MQA) degrades quality noticeably on tasks requiring fine-grained retrieval. The quality cliff is real below about $G = 4$.
 
+> For full KV cache mechanics, MLA (Multi-head Latent Attention, DeepSeek), PagedAttention, prefix caching, and KV quantization, see [kv-cache-and-mqa-gqa.md](kv-cache-and-mqa-gqa.md).
+
 ---
 
 ## 4. Positional Encodings: Why the Model Doesn't Know Word Order
@@ -243,38 +245,7 @@ where $f_i$ is the fraction of tokens routed to expert $i$ and $P_i$ is the mean
 
 **What else breaks**: all experts must fit in memory simultaneously — MoE saves compute, not memory. For distributed inference, different experts may live on different devices, requiring all-to-all communication for routing. Communication overhead can negate compute savings at small batch sizes.
 
-```python
-class MoELayer(nn.Module):
-    def __init__(self, d_model: int, n_experts: int, top_k: int, ffn_dim: int):
-        super().__init__()
-        self.n_experts = n_experts
-        self.top_k = top_k
-        self.router = nn.Linear(d_model, n_experts, bias=False)
-        self.experts = nn.ModuleList([
-            nn.Sequential(nn.Linear(d_model, ffn_dim), nn.SiLU(), nn.Linear(ffn_dim, d_model))
-            for _ in range(n_experts)
-        ])
-
-    def forward(self, x: torch.Tensor):
-        B, T, D = x.shape
-        x_flat = x.view(-1, D)
-        probs = F.softmax(self.router(x_flat), dim=-1)
-        top_k_probs, top_k_idx = torch.topk(probs, self.top_k, dim=-1)
-        top_k_probs = top_k_probs / top_k_probs.sum(dim=-1, keepdim=True)
-
-        output = torch.zeros_like(x_flat)
-        for i in range(self.n_experts):
-            mask = (top_k_idx == i).any(dim=-1)
-            if mask.any():
-                expert_out = self.experts[i](x_flat[mask])
-                weight = top_k_probs[mask][top_k_idx[mask] == i]
-                output[mask] += weight.unsqueeze(-1) * expert_out
-
-        f_i = (top_k_idx.view(-1) == torch.arange(self.n_experts).unsqueeze(1)).float().mean(dim=1)
-        P_i = probs.mean(dim=0)
-        balance_loss = self.n_experts * (f_i * P_i).sum()
-        return output.view(B, T, D), balance_loss
-```
+> For advanced MoE topics — token dropping, expert capacity, DeepSeek fine-grained expert segmentation (160 experts, top-6 routing), expert parallelism, load balancing without auxiliary loss (DeepSeek V3), and analysis of Mixtral/Llama 4 routing behavior — see [moe-advanced-and-routing.md](moe-advanced-and-routing.md).
 
 ---
 
@@ -313,6 +284,48 @@ Benefits: no pre-allocation waste, no fragmentation between variable-length sequ
 
 ---
 
+## 10.5 In-Context Learning (ICL)
+
+**What it is**: In-context learning is the ability of LLMs to learn new tasks from examples provided in the prompt, without any gradient updates. You provide $k$ labeled examples as text, then a query, and the model generalizes from the examples to answer the query. No fine-tuning occurs — the model's weights are unchanged.
+
+```
+# Zero-shot: no examples
+Translate to French: "the cat is on the mat"
+→ Le chat est sur le tapis.
+
+# Few-shot: k=3 examples in context
+English: "the dog barked"  French: "le chien a aboyé"
+English: "she opened the door"  French: "elle a ouvert la porte"
+English: "we need more time"  French: "nous avons besoin de plus de temps"
+English: "the cat is on the mat"  → Le chat est sur le tapis.
+```
+
+**Why ICL works — the induction heads hypothesis**: Mechanistic interpretability research identified *induction heads* — pairs of attention heads that together implement a "copy with offset" operation. Head A (the "previous token head") attends to the token immediately before the current token. Head B (the "induction head") attends to the position where Head A's output matches the current token, then copies the following token. This circuit can generalize: if the context shows "A→B" patterns, the model predicts B when it sees A again, even for novel patterns not seen during pretraining. ICL is essentially the induction heads circuit operating at scale over structured demonstrations.
+
+**What determines ICL quality**:
+
+1. **Label format matters, but less than expected**: flipping labels (marking positive sentiment examples as "negative") in few-shot examples degrades performance only ~10–20% on some tasks. The format and distribution of inputs matters more than the labels themselves.
+2. **Example selection**: randomly sampled examples work, but retrieving examples similar to the test query (using a dense retriever over a demonstration pool) consistently outperforms random — ICL with kNN-retrieved demonstrations is one of the strongest prompt engineering techniques.
+3. **Example ordering**: later examples in the prompt have more influence (recency bias). Put the most informative examples last.
+4. **Number of examples**: performance improves with k, but with diminishing returns past ~8–16 examples (bounded by context length and the quadratic attention cost).
+
+**ICL vs fine-tuning — when each wins**:
+
+| Dimension | ICL | Fine-tuning |
+|---|---|---|
+| Setup cost | Zero (just edit prompt) | GPU hours |
+| Knowledge source | Must be in context | Baked into weights |
+| Generalization | Bounded by context window | Unlimited |
+| Speed | Slower (long prompts) | Standard inference |
+| Best for | Few-shot new tasks, rapid prototyping | Consistent behavior on well-defined task |
+| Fails when | Task requires > context window | Task is poorly specified or data is noisy |
+
+**Chain-of-thought ICL**: adding step-by-step reasoning examples in the few-shot demonstrations dramatically improves performance on multi-step reasoning tasks (math, code, logic). The reasoning chain in the example teaches the model *how* to think, not just what the answer should be. Zero-shot chain-of-thought ("Think step by step.") works because the model has seen this reasoning style in pretraining data. See [applications/agentic-workflows.md](applications/agentic-workflows.md) for deeper coverage of CoT variants.
+
+**The meta-learning interpretation**: ICL works because LLM pretraining on diverse text implicitly trains a meta-learner. The model has seen countless (task description, example, solution) patterns across many domains. At inference, the few-shot prompt provides a new task description and examples; the model applies learned meta-learning patterns from pretraining to complete the query. This interpretation explains why larger models exhibit stronger ICL — they've seen more varied pattern types and generalize more robustly.
+
+---
+
 ## 11. Architecture Comparison
 
 | Model | Attention | Position | FFN | Context |
@@ -323,3 +336,120 @@ Benefits: no pre-allocation waste, no fragmentation between variable-length sequ
 | Mistral 7B | GQA + SWA | RoPE | SwiGLU | 32,768 |
 | Mixtral 8×7B | GQA + SWA | RoPE | MoE (8 experts, top-2) | 32,768 |
 | Gemma 2 27B | GQA (16h) | RoPE | GeGLU | 8,192 |
+
+---
+
+## 12. Major Model Families
+
+### GPT Family (OpenAI)
+
+**GPT-3 (2020)**: 175B parameters, 96 layers, 96 heads, 12,288 embedding dim. Trained on ~300B tokens (WebText2 + Books + Wikipedia). Standard MHA with learned absolute positional embeddings. Context: 2,048 tokens. Severely undertrained by Chinchilla standards (1.7 tokens/param vs. Chinchilla's 20). Demonstrated emergent few-shot learning at scale — no task-specific fine-tuning, just examples in the prompt.
+
+**GPT-3.5 / InstructGPT (2022)**: 175B + RLHF alignment. The key result from the InstructGPT paper: a 1.3B model aligned with RLHF was preferred by human raters over a 175B unaligned model 71% of the time. Showed that alignment quality matters more than raw scale for real-world utility.
+
+**GPT-4 (2023)**: Architecture not publicly disclosed. Widely believed to be a Mixture of Experts (~8 experts, ~220B active params, ~1.8T total). First OpenAI model with multimodal input (image + text). Context: initially 8,192 tokens, extended to 128K (GPT-4 Turbo). Evaluated on bar exam (90th percentile), GRE, AMC.
+
+**GPT-4o (2024)**: "o" = omni. Native multimodal — processes text, audio, and images in a single model without separate encoder/decoder per modality. Latency: ~320ms audio response (vs. 2.8s for GPT-4V + speech pipeline). Text token stream approach for audio rather than spectrogram-to-spectrogram. Enables end-to-end latency improvements and richer voice interaction.
+
+**o1 / o3 (2024–2025)**: "thinking" models — extended chain-of-thought reasoning before producing final answer. o1 improved from 13% to 83% on AIME 2024 math competition. Trained via RL on verifiable tasks (math proofs, code tests). o3 reached ~96% on AIME 2025. Key architectural insight: separating "thinking tokens" (not visible to user) from "output tokens" allows the model to reason at greater depth without inflating visible response length.
+
+---
+
+### LLaMA Family (Meta)
+
+**LLaMA 1 (2023)**: Released as open-weights research model. Four sizes: 7B, 13B, 33B, 65B. Trained on ~1T–1.4T tokens (CommonCrawl, C4, GitHub, Books, Wikipedia, StackExchange). Key architectural changes from GPT-3: RoPE positional encodings, SwiGLU FFN activation, RMSNorm instead of LayerNorm. The 13B LLaMA 1 matched GPT-3 on most benchmarks — demonstrating that training efficiency (more tokens per parameter) dominates raw parameter count.
+
+**LLaMA 2 (2023)**: Sizes: 7B, 13B, 34B, 70B. Extended context from 2K → 4K tokens. Introduced GQA in the 70B model (32 KV heads instead of 64 full heads). Trained on 2T tokens. Chat versions fine-tuned with SFT + RLHF. First Meta model with commercial license (not for use by companies with >700M monthly active users).
+
+**LLaMA 3 (2024)**: Sizes: 8B, 70B (initially). Context 8K, extended to 128K via continued pre-training with RoPE scaling (YaRN-style). Trained on 15T tokens (~190 tokens/param for 70B — deliberately overtrained for inference efficiency). Vocabulary expanded to 128K tokens. GQA in all sizes (8 KV heads). MMLU: 82% for 70B — competitive with GPT-3.5.
+
+**LLaMA 3.1 (2024)**: Added 405B parameter model. 128K context natively. 405B used tensor+pipeline parallelism across 16K GPUs during training. Three sizes: 8B, 70B, 405B. Synthetic data generation from LLaMA 3 70B used to improve instruction tuning quality.
+
+**LLaMA 3.2 (2024)**: Multimodal variants (11B and 90B vision models). 1B and 3B edge/mobile models. Cross-attention for vision following Flamingo-style architecture.
+
+**LLaMA 3.3 (2024)**: 70B instruction model with improved reasoning and coding. Comparable to LLaMA 3.1 405B on many benchmarks at 1/6th the inference cost — benefit of continued training improvements.
+
+**LLaMA 4 (2025)**: Scout (17B active / 109B total MoE), Maverick (17B active / 400B total MoE), Behemoth (288B active / ~2T total MoE). Early fusion multimodal — vision and text share the same transformer, no separate cross-attention bridge. 10M token context window (Scout). Mixture of experts with 16 routed experts in Maverick. iRoPE: alternating attention layers without positional encoding (NoPE layers) for extended context.
+
+---
+
+### Mistral / Mixtral Family (Mistral AI)
+
+**Mistral 7B (2023)**: Demonstrated that careful architecture and data choices can produce a 7B model that outperforms LLaMA 2 13B on most benchmarks. Two key architectural choices:
+- **Sliding Window Attention (SWA)**: each token attends to only the nearest $w=4096$ tokens rather than all previous tokens, keeping attention memory O(w) instead of O(T). Effective receptive field still grows with depth (layer $k$ can reach tokens $k \times w$ positions back).
+- **GQA**: 8 KV heads, 32 Q heads. Combined with SWA, enables very efficient long-context inference.
+
+**Mixtral 8×7B (2023)**: First widely-adopted open-source Mixture of Experts LLM. Architecture: 8 experts per layer, top-2 routing. Total parameters: 46.7B, but only 12.9B (2 × 7B / 2 expert FF layers) are active per token — comparable compute cost to a 12.9B dense model with the knowledge capacity of 46.7B. Outperforms LLaMA 2 70B on most benchmarks at 1/5th the inference compute.
+
+**Mixtral 8×22B (2024)**: Scaled-up MoE with 8 experts, 39B active out of 141B total. 64K context. Strong coding and math performance.
+
+**Mistral Large / Nemo (2024)**: 123B dense model (Mistral Large 2). Mistral Nemo: 12B model with 128K context, joint development with NVIDIA.
+
+---
+
+### Gemini Family (Google DeepMind)
+
+**Gemini 1.0 (2023)**: Three sizes: Ultra (largest), Pro (mid), Nano (edge). First Google model to outperform GPT-4 on a subset of benchmarks. Natively multimodal — trained jointly on text, image, audio, and video from scratch. Architecture uses specialized per-modality tokenizers (pixels → patches; audio → log-mel spectrograms; text → SentencePiece subwords) with a shared transformer backbone.
+
+**Gemini 1.5 Pro (2024)**: Extended context to 1M tokens (10M in research preview). Uses Multi-Query Attention variants and sparse attention mechanisms to handle 1M context within memory constraints. "Needle in a haystack" evaluation: >99% recall at 1M context length. Key capability: analyze entire codebases, long videos, and books in a single context window. Architecture: MoE (not publicly disclosed but strongly implied by latency/cost profile).
+
+**Gemini 2.0 (2024–2025)**: Flash (fast, low-cost), Pro (capability frontier), Ultra (research). 2.0 Flash Thinking: extended reasoning similar to o1. Multimodal output — can generate images and audio natively, not just process them. Sub-100ms TTFT at serving scale.
+
+**Gemma (2024)**: Open-weights models from Google. Gemma 2B and 7B. Architecture based on Gemini principles: logit soft-capping (instead of scaling, cap logits with $\tanh$), GeGLU activations, alternating GQA/MHA. Gemma 2 (9B, 27B): added sliding window attention in alternating layers and knowledge distillation from a larger teacher model during training.
+
+---
+
+### Claude Family (Anthropic)
+
+**Claude 1/2 (2022–2023)**: First public Anthropic models. Constitutional AI training — model critiques its own outputs against a set of principles, generates revised responses, and those revisions form the preference dataset for RLHF. Claude 2 extended context to 100K tokens — at the time the longest context of any production LLM. Claude 2.1: reduced hallucination via improved calibration training.
+
+**Claude 3 (2024)**: Three-tier model family:
+- **Haiku**: smallest, fastest. Designed for real-time applications, cost-efficient at scale.
+- **Sonnet**: mid-size, balanced capability and speed. Most widely deployed.
+- **Opus**: largest, highest capability. Scored 86.8% on MMLU, matched GPT-4 on most benchmarks at time of release.
+All Claude 3 models are natively multimodal (text + image). Context: 200K tokens.
+
+**Claude 3.5 Sonnet (2024)**: Outperformed Claude 3 Opus while being faster and cheaper — demonstrating post-training efficiency gains. Strong coding performance: top scores on SWE-Bench (real GitHub issues). Introduced artifacts (rich document creation in the UI).
+
+**Claude 3.5 Haiku (2024)**: Fastest model in the Claude 3.5 generation, comparable to Claude 3 Opus on benchmarks at fraction of cost.
+
+**Claude 3.7 Sonnet (2025)**: First Claude model with extended thinking — can "think" before responding using a chain-of-thought process hidden from the user. Hybrid reasoning: can operate in standard mode or extended thinking mode based on task complexity. Best-in-class on coding benchmarks (SWE-Bench Verified: 70.3%). Context: 200K tokens.
+
+**Anthropic's training philosophy**: Constitutional AI and RLAIF (Reinforcement Learning from AI Feedback) instead of human annotators for preference data at scale. The "constitutional" principles include helpfulness, harmlessness, and honesty. Emphasis on interpretability research alongside capability development.
+
+---
+
+### DeepSeek Family (DeepSeek AI)
+
+**DeepSeek V2 (2024)**: 236B total parameters, 21B active (MoE). Key innovation: Multi-head Latent Attention (MLA) — compresses KV cache by projecting K and V through a low-rank bottleneck, dramatically reducing KV cache memory (5–13× less than standard GQA). 128K context. Fine-grained expert segmentation: 160 experts per layer vs. Mixtral's 8, with top-6 routing — more fine-grained specialization per token.
+
+**DeepSeek V3 (2024)**: 671B total, 37B active. Trained for $2.788M in compute on 14.8T tokens — remarkable cost efficiency. Multi-Token Prediction (MTP): auxiliary training heads predict multiple future tokens simultaneously, improving training signal density. Load balancing without auxiliary loss: sequence-level balance instead of token-level loss, reducing interference with main training objective.
+
+**DeepSeek R1 (2025)**: Reasoning-focused model trained with Group Relative Policy Optimization (GRPO) — a PPO variant that removes the value network, using group statistics as baseline instead. "Aha moment" emergent behavior: model spontaneously learned to use extended reasoning chains (re-evaluation, backtracking) without explicit chain-of-thought supervision. Comparable to o1 on math/reasoning benchmarks, fully open-weights.
+
+---
+
+### Qwen Family (Alibaba)
+
+**Qwen2.5 (2024)**: 0.5B to 72B. Strong multilingual performance, especially Chinese + English. 128K context. Key datasets: 18T tokens with high code and math proportion. Qwen2.5-Coder and Qwen2.5-Math specialized variants.
+
+**Qwen3 (2025)**: Hybrid reasoning model with thinking and non-thinking modes. iRoPE: every 4th attention layer uses NoPE (no positional encoding) while others use RoPE — the NoPE layers learn to perform global cross-position comparisons without positional bias, while RoPE layers handle local context. 0.6B to 235B (MoE variant: 22B active / 235B total). 32K base context, extendable to 128K.
+
+---
+
+### Model Scale Reference
+
+| Model | Release | Params (active) | Params (total) | Training tokens | Context |
+|---|---|---|---|---|---|
+| GPT-3 | 2020 | 175B | 175B | 300B | 4K |
+| LLaMA 2 70B | 2023 | 70B | 70B | 2T | 4K |
+| Mistral 7B | 2023 | 7B | 7B | ~1T | 32K |
+| Mixtral 8×7B | 2023 | 12.9B | 46.7B | ~1T | 32K |
+| LLaMA 3 70B | 2024 | 70B | 70B | 15T | 128K |
+| Gemini 1.5 Pro | 2024 | ~100B est. | MoE (undisclosed) | Undisclosed | 1M |
+| DeepSeek V3 | 2024 | 37B | 671B | 14.8T | 128K |
+| LLaMA 3.1 405B | 2024 | 405B | 405B | 15T | 128K |
+| Claude 3.7 Sonnet | 2025 | Undisclosed | Undisclosed | Undisclosed | 200K |
+| DeepSeek R1 | 2025 | 37B | 671B | Undisclosed | 128K |
+| LLaMA 4 Maverick | 2025 | 17B | 400B | Undisclosed | 1M |
+| Qwen3-235B-A22B | 2025 | 22B | 235B | Undisclosed | 128K |

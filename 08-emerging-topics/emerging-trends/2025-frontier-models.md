@@ -68,6 +68,8 @@ At inference, auxiliary heads serve as speculative draft tokens — multiple tok
 
 ### DeepSeek-R1
 
+> For full GRPO derivation, Best-of-N, ORMs vs PRMs, and test-time compute scaling, see [large-reasoning-models.md](large-reasoning-models.md). This section focuses on R1's specific training pipeline and how it compares to o1/o3.
+
 **The supervised trace problem:** Human-annotated chain-of-thought data for hard math and code costs roughly $1–10 per step. Getting millions of long reasoning traces this way is prohibitive. Distillation from OpenAI requires licensing. R1 is built on the insight that **reasoning can emerge from pure reinforcement learning with verifiable rewards**.
 
 **Training recipe:**

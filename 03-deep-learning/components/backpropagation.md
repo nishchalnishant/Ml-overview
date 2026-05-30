@@ -48,6 +48,34 @@ The gradient for $w_1$ has already been multiplied by two sigmoid derivatives. T
 
 ---
 
+## Matrix Form of Backpropagation
+
+The scalar chain rule generalizes to matrices via Jacobians. For a batch of $N$ examples through a linear layer:
+
+$$z = xW + b, \quad x \in \mathbb{R}^{N \times d_{in}}, \quad W \in \mathbb{R}^{d_{in} \times d_{out}}, \quad z \in \mathbb{R}^{N \times d_{out}}$$
+
+Given $\delta = \partial L / \partial z \in \mathbb{R}^{N \times d_{out}}$ (the upstream gradient), the three gradients are:
+
+$$\frac{\partial L}{\partial W} = x^\top \delta \in \mathbb{R}^{d_{in} \times d_{out}}$$
+
+$$\frac{\partial L}{\partial b} = \mathbf{1}^\top \delta \in \mathbb{R}^{1 \times d_{out}} \quad \text{(sum over batch)}$$
+
+$$\frac{\partial L}{\partial x} = \delta W^\top \in \mathbb{R}^{N \times d_{in}} \quad \text{(passed to layer below)}$$
+
+The shapes work out because of transpositions that match dimensions. A common mnemonic: the gradient with respect to a weight is (input) × (upstream gradient)ᵀ; the gradient passed downstream is (upstream gradient) × (weight)ᵀ.
+
+**Why this matters**: every automatic differentiation framework implements exactly these three operations for every linear layer. The Jacobian-vector product structure is why backprop through a matrix multiplication costs the same as the forward pass — both require one matrix multiply.
+
+**For convolutions**: the backward pass w.r.t. the input is a transposed convolution (deconvolution); the backward pass w.r.t. the filter is a correlation between the input and the upstream gradient. Same structure, different geometry.
+
+**Activation layers**: for an element-wise activation $a = f(z)$, the Jacobian $\partial a / \partial z$ is a diagonal matrix with entries $f'(z_i)$. The vector-Jacobian product simplifies to element-wise multiplication:
+
+$$\delta_\text{prev} = \delta \odot f'(z)$$
+
+This is the "Hadamard product" gradient rule that appears in all activation backprop implementations.
+
+---
+
 ## Gradient Flow Through Activations
 
 The activation's local derivative is the multiplier at each layer:

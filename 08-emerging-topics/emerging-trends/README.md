@@ -18,95 +18,9 @@
 
 ## 1. State Space Models (SSMs)
 
-### The Problem
+SSMs model sequences as linear dynamical systems with a fixed-size hidden state vector, achieving O(N) recurrent inference (no KV cache) and O(n log n) convolutional training via FFT. **S4** uses the HiPPO matrix (High-order Polynomial Projection Operators) for optimal history compression via Legendre polynomial basis functions. **Mamba** adds input-dependent gates (B, C, Δ) enabling selective token filtering with a hardware-aware parallel associative scan in SRAM — ~5× throughput improvement over Transformers at 2K sequence length. The key limitation: fixed-size state cannot store all key-value associations, so Mamba underperforms attention on exact associative recall. **Hybrid architectures** (Jamba: 1 attention per 7 Mamba layers; RWKV linear attention; Zamba shared attention) recover retrieval capability at lower cost.
 
-Transformers have O(n²) attention cost and an O(n) KV cache. At 100K tokens, the KV cache alone consumes tens of gigabytes. At inference time, generating token t+1 requires reading the full cached K,V history — every prior token contributes to every subsequent token. The cost is real and the memory is not free.
-
-This matters most for two use cases: very long sequences (genomics, audio, long documents) and streaming inference on edge hardware where the KV cache cannot fit.
-
----
-
-### The Core Insight: Sequences as Linear Dynamical Systems
-
-Every sequence model must answer: "given everything I've seen, what should I predict next?" Transformers answer by recomputing attention over the full history. An alternative is to compress the full history into a fixed-size state vector and update it incrementally — the same approach used in control theory and signal processing for decades.
-
-A continuous-time linear dynamical system:
-
-```
-h'(t) = A h(t) + B x(t)    # state update
-y(t)  = C h(t) + D x(t)    # output
-```
-
-`h(t)` is the hidden state — a fixed-size summary of history. Inference is O(N) per step regardless of sequence length. Training uses the convolutional representation: unroll the recurrence into a convolution kernel and compute via FFT in O(n log n).
-
-The question is: which matrix A preserves long-range history without vanishing or exploding?
-
----
-
-### S4: Structured State Space Sequence Model
-
-S4 (Gu et al., 2021) answers the matrix A question by using the **HiPPO matrix** (High-order Polynomial Projection Operators). HiPPO-LegS projects incoming signal onto Legendre polynomials, which are designed to memorize history optimally — each basis function tracks a different timescale.
-
-Discretized with step size Δ (zero-order hold):
-
-```
-Ā = exp(ΔA)
-B̄ = (ΔA)^{-1}(exp(ΔA) - I) · ΔB
-
-h_k = Ā h_{k-1} + B̄ x_k
-y_k = C h_k + D x_k
-```
-
-Two computation modes:
-- **Recurrent (inference):** O(N) per step, fixed memory — no KV cache
-- **Convolutional (training):** compute kernel K = (CB̄, CĀB̄, CĀ²B̄, ...) as one FFT convolution, O(n log n)
-
-**What breaks:** A is a fixed global matrix — it does not depend on input content. S4 cannot do content-based retrieval: it cannot "look back at" a specific earlier token because the state is a lossy compression, not a full cache. In the associative recall task (retrieve value for a specific key seen earlier), S4 underperforms attention substantially.
-
----
-
-### Mamba: Selective State Spaces
-
-Mamba (Gu & Dao, 2023) makes B, C, and Δ **input-dependent**:
-
-```
-B_k = s_B(x_k)
-C_k = s_C(x_k)
-Δ_k = softplus(s_Δ(x_k))
-```
-
-Now the model selectively filters: small Δ means the state barely updates (input is ignored); large Δ means the input strongly updates the state. The model can selectively "forget" irrelevant tokens and "focus" on relevant ones — closing the gap with attention on recall tasks.
-
-Since B, C, Δ now vary per token, the training cannot be purely convolutional. Mamba implements a **hardware-aware parallel associative scan** using a custom CUDA kernel that:
-1. Keeps the scan in SRAM (on-chip), not HBM (off-chip)
-2. Uses parallel prefix scan to compute the recurrence across positions
-3. Avoids materializing the full state sequence in HBM
-
-Result: ~5× better throughput than Transformers at sequence length 2K; gap widens with longer sequences.
-
-```
-Mamba SSM block:
-Input x
-→ Linear projection (expand 2×)
-→ Split into z (gate) and x' (content)
-→ x': 1D depthwise conv → SiLU → selective SSM scan
-→ Gate: x' * sigmoid(z)
-→ Linear projection back to d_model
-```
-
-**What breaks:** Mamba's fixed-size state still cannot perfectly store all prior key-value associations. In exact associative recall benchmarks, Mamba underperforms full attention. It is not a universal replacement for attention — it is a different tradeoff: better throughput and recurrent inference, weaker at precise discrete retrieval.
-
----
-
-### Hybrid Architectures: Jamba and Zamba
-
-The field converged on a practical answer: **hybridize**. Most sequence modeling is cheap compression — Mamba handles that. Precise retrieval needs a few attention layers to catch it.
-
-**Jamba** (AI21, 2024): ~1 attention layer per 7 Mamba layers, combined with MoE. 52B total / 12B active, 256K context on a single 80GB A100. Attention layers handle retrieval; Mamba layers handle cheap long-range compression.
-
-**Zamba** (Zyphra, 2024): a single shared attention block reused at multiple points in the network — sparse attention coverage sufficient to recover recall performance at lower parameter cost than dedicated attention layers.
-
-The lesson: attention's O(n²) cost is wasted on most of the sequence modeling problem. Mamba-style recurrence handles the bulk cheaply. The minimum viable amount of attention is enough to preserve retrieval capability.
+> Full coverage — continuous-time SSM derivation, ZOH discretization, HiPPO matrix, S4 DPLR, Mamba selective scan, RWKV, Jamba hybrid: [state-space-models.md](state-space-models.md)
 
 ---
 
@@ -181,173 +95,19 @@ Build a tree of reasoning prefixes. Expand high-UCB nodes with LLM-generated nex
 
 ## 3. Mixture of Experts (MoE)
 
-### The Problem
+MoE replaces dense FFN sublayers with N expert FFNs and a learned top-k router: `y = Σ_{i ∈ Top-k(G(x))} G_i(x) · E_i(x)`. Total parameters scale with N; FLOPs per token scale with k. Mixtral 8x7B: 46.7B total / 12.9B active — Llama 2 70B quality at 13B inference cost. The central challenge is **routing collapse**: naive routing degrades to always using the same few experts. Solutions: auxiliary load-balancing loss `L = α·N·Σ f_i·P_i`, router z-loss (penalizes large logit magnitudes), expert capacity caps, and DeepSeek-V3's bias-based auxiliary-loss-free routing. All experts must reside in GPU memory regardless of how many are active; expert parallelism requires all-to-all communication.
 
-Dense neural networks apply every parameter to every input token. A 70B dense model applies all 70B parameters to every token in every forward pass. This couples model capacity (parameters = knowledge) directly to compute (every parameter runs on every input).
-
-The question: can you add more parameters — more capacity, more knowledge — without paying proportional compute cost?
-
----
-
-### The Core Insight: Conditional Computation
-
-Replace the dense FFN sublayers with a bank of N expert FFNs. A learned router selects k of them per token. Total parameters scale with N; FLOPs per token scale with k.
-
-```
-MoE layer output:
-y = Σ_{i ∈ Top-k(G(x))} G_i(x) · E_i(x)
-
-G(x) = softmax(W_g · x)     # router logits
-E_i(x) = FFN_i(x)           # i-th expert FFN
-Top-k selects k largest gate values
-```
-
-Since FFN layers are ~2/3 of transformer parameters, replacing them with MoE layers gives a parameter multiplier without proportional compute increase. Mixtral 8x7B: 46.7B total parameters, 12.9B active per token. Llama 2 70B quality at Llama 2 13B inference cost.
-
----
-
-### Load Balancing: The Central Challenge
-
-Naive top-k routing leads to **routing collapse**: the router learns to always use the same few experts, which receive all gradients and improve while others stagnate.
-
-**Load balancing loss** (auxiliary, added to task loss):
-
-```
-L_balance = α · N · Σ_i f_i · P_i
-
-f_i = fraction of tokens routed to expert i in the batch
-P_i = mean gate probability for expert i
-α   = balancing coefficient (0.01–0.1)
-```
-
-Encourages uniform expert utilization. Tuning α is critical: too small → collapse; too large → dominates task loss and hurts model quality.
-
-**Router z-loss** (ST-MoE, Zoph et al. 2022):
-
-```
-L_z = β · (1/B) Σ_x (log Σ_i exp(h_i(x)))²
-```
-
-Penalizes large router logit magnitudes. Stabilizes training by preventing the router from becoming too confident early.
-
-**Expert capacity:** set a capacity cap C tokens per expert per batch. Tokens routed to an over-capacity expert are dropped (or fall through a residual connection). Prevents one expert from receiving all tokens in a batch but introduces information loss.
-
-**Monitoring routing entropy:**
-
-```python
-routing_entropy = -sum(p_i * log(p_i) for p_i in expert_utilization)
-# Target: close to log(N) (maximum entropy = uniform)
-```
-
----
-
-### Architecture Variants
-
-**Switch Transformer** (Fedus et al., 2021): top-1 routing (k=1). Simpler than k=2 and works if: router initialized with small weights, router kept in float32 during mixed-precision training, load balancing loss applied. Scaled to 1.6T parameters; matched T5-11B at 7× fewer FLOPs.
-
-**Expert Choice routing** (Zhou et al., 2022): each expert selects its top-k tokens rather than each token selecting experts. Guarantees perfect load balance. Breaks autoregressive inference (experts see future tokens in the batch).
-
-**Hash routing:** deterministic assignment by token hash. Zero routing overhead, perfect balance, no content-awareness. Performs surprisingly well for some tasks.
-
-**What breaks:** All MoE experts must reside in GPU memory simultaneously even if only k are active. "22B active params" does not mean "22B params in memory" — all 235B must be loaded. Expert parallelism (sharding experts across devices) requires all-to-all collective communication, which can become the bottleneck on large clusters. MoE fine-tuning is fragile: expert collapse under small datasets, routing instability with aggressive learning rates.
+> Full coverage — top-k routing derivation, load balancing, Switch/Expert Choice/Soft MoE variants, fine-grained and shared experts, DeepSeek-V3 routing: [mixture-of-experts.md](mixture-of-experts.md)
 
 ---
 
 ## 4. Long Context and Efficient Attention
 
-### The Problem
+Standard attention materializes an N×N matrix in GPU HBM: O(N²) memory. At N=128K tokens, ~16GB per head. **Flash Attention** (FA1/FA2/FA3) tiles Q, K, V into SRAM blocks, never materializing the full matrix — reduces memory to O(N), IO complexity O(N²/M). FA3 on H100 uses WGMMA + TMA pipelining for ~1.5–2× over FA2. **Ring Attention** distributes sequences across D devices, passing K/V in a ring while overlapping with compute — enables million-token sequences. **RoPE scaling**: YaRN applies per-dimension scale factors (high-freq dims should not be scaled; low-freq interpolated); LongRoPE uses evolutionary search for per-dimension factors. Key practical caveat: **lost-in-the-middle** — LLMs retrieve reliably from context boundaries but fail in the middle (attention sinks cause a U-shaped recall curve). Place relevant content at context boundaries in RAG pipelines.
 
-Context window evolution:
+Context window evolution: GPT-2 (2019): 1K → GPT-3 (2020): 2K → Claude 2 (2023): 100K → Gemini 1.5 Pro (2024): 1M → Llama 4 Scout (2025): 10M.
 
-| Year | Model | Context |
-|------|-------|---------|
-| 2019 | GPT-2 | 1,024 |
-| 2020 | GPT-3 | 2,048 |
-| 2023 | Claude 2 | 100,000 |
-| 2024 | Gemini 1.5 Pro | 1,000,000 |
-| 2025 | Llama 4 Scout | 10,000,000 |
-
-Standard attention materializes an N×N matrix in GPU HBM (high-bandwidth memory): O(N²) memory, O(N²) compute. At N=128K tokens, the attention matrix alone is 16GB per head. This is not an engineering bottleneck to optimize around — it is a mathematical constraint that requires a different algorithm.
-
----
-
-### Flash Attention: IO-Aware Tiling
-
-Flash Attention (Dao et al., 2022) does not reduce theoretical FLOP count — it reduces **memory IO** between HBM and SRAM. GPUs are memory-bandwidth limited, not compute limited, for attention.
-
-Algorithm:
-1. Tile Q, K, V into blocks that fit in SRAM (on-chip fast memory)
-2. Compute attention block-by-block, maintaining running softmax statistics (online safe softmax: running max and sum for numerical stability)
-3. Never materialize the full N×N matrix in HBM
-4. Fuse backward pass to avoid re-reading Q, K, V
-
-```
-Memory: O(N) vs O(N²)
-IO: O(N²/M) where M = SRAM size
-```
-
-**Flash Attention 2** (2023): parallelizes across sequence dimension (not just batch/head), better work partitioning across GPU warps. ~2× speedup over FA1, ~70% of theoretical GPU FLOP utilization.
-
-**Flash Attention 3** (2024, H100/Hopper): exploits WGMMA (Warpgroup Matrix Multiply Accumulate) instructions. Overlaps softmax and GEMM via pipelining — while computing attention scores, simultaneously load next K/V tile via TMA (Tensor Memory Accelerator). ~1.5–2× over FA2 on H100.
-
----
-
-### Ring Attention: Sequences Across Devices
-
-When the sequence does not fit on a single GPU at all, Ring Attention (Liu et al., 2023) distributes it across D devices:
-
-1. Each device holds N/D tokens of Q, K, V
-2. Each device computes attention for its Q chunk against its local K/V chunk
-3. Devices pass K/V chunks to the next device in a ring, overlapping communication with computation
-4. After D-1 passes, each device has seen all K/V and can produce its final output
-
-Communication (K/V transfer around ring) overlaps with compute (attention on current K/V chunk). Memory per device: O(N/D). Enables million-token sequences across many GPUs.
-
----
-
-### RoPE Scaling: YaRN and LongRoPE
-
-Most modern LLMs use **RoPE** (Rotary Position Embeddings). Position m is encoded by rotating Q and K vectors:
-
-```
-For dimension pair (2i, 2i+1), position m:
-[q_{2i}cos(mθ_i) - q_{2i+1}sin(mθ_i), ...]
-where θ_i = 10000^{-2i/d}
-```
-
-A model trained with max length L has only seen rotation angles for positions 0...L-1. Position m > L produces out-of-distribution angles; performance degrades sharply.
-
-**Simple interpolation:** map position m to m × (L/L_new) — compress all positions into the seen range. Works but reduces positional resolution. Fine-tuning required.
-
-**YaRN** (Peng et al., 2023): different RoPE frequency dimensions need different scaling. High-frequency dimensions (small θ) should not be scaled — they are dense and scaling hurts. Low-frequency dimensions (large θ) should be interpolated. Mid-frequency: smooth ramp between strategies. Also scales attention temperature by √(log(L_new)/log(L)) to prevent attention entropy collapse at long context.
-
-```python
-def yarn_scale(dim_idx, d_model, base=10000, scale=8):
-    theta = base ** (-2 * dim_idx / d_model)
-    if theta > 4:    # high freq: no scaling
-        return 1.0
-    elif theta < 1:  # low freq: full interpolation
-        return scale
-    else:            # smooth ramp
-        return 1 + (scale - 1) * (theta - 4) / (1 - 4)
-```
-
-**LongRoPE** (2024): searches for per-dimension scaling factors via evolutionary optimization. Claims 2M token context with minimal perplexity degradation.
-
----
-
-### Lost-in-the-Middle: Long Context Does Not Mean Long Retrieval
-
-Liu et al. (2023): LLMs retrieve information reliably from the beginning and end of long contexts but fail in the **middle**. Performance degrades with a U-shaped curve — primacy and recency effects dominate.
-
-Cause: attention sinks (Xiao et al., 2023) — certain tokens ([BOS], punctuation) attract disproportionate attention. Middle tokens receive lower cumulative attention weights.
-
-Practical implications:
-- In RAG pipelines, order retrieved chunks to place most relevant content at context boundaries, not middle
-- A 1M token context window does not mean 1M token retrieval. Test retrieval accuracy by position before relying on it
-- RAG vs long context is not a binary choice: use retrieval to find relevant chunks, then context for holistic reasoning
-
-**What breaks:** Longer context windows increase KV cache memory requirements proportionally. Serving a 1M-token query is 1000× the memory cost of a 1K-token query. Long context is a capability, not a free lunch.
+> Also see: [frontier-ai-developments-2025.md](frontier-ai-developments-2025.md) for deployment-focused long-context and speculative decoding discussion.
 
 ---
 
@@ -446,70 +206,9 @@ Low-probability events (creative, unusual, diverse outputs) are suppressed each 
 
 ## 6. Multimodal Foundation Models
 
-### The Problem
+**CLIP** trains image and text encoders jointly with InfoNCE contrastive loss on 400M pairs, creating a shared embedding space enabling zero-shot classification. **BLIP-2** introduces the Q-Former — N learnable query tokens that bridge a frozen ViT encoder and frozen LLM; only the Q-Former is trained (image-text matching + captioning + VQA). **LLaVA** takes a simpler approach: project CLIP features into the LLM embedding space via a single MLP, with instruction-following data generated synthetically. Production systems (GPT-4V, Gemini, Claude) use modality-specific encoders with late fusion. **VQ-VAE** enables image tokenization via vector quantization to a learned codebook with straight-through gradients. **Early fusion** (Llama 4's iRoPE) passes image patches and text tokens through the same transformer from layer 1 — richer cross-modal interaction but requires training from scratch. Audio: log-mel spectrograms → Whisper (seq2seq, 680K hours); EnCodec/SoundStream → discrete audio tokens. Video: Sora uses a diffusion transformer on spacetime patches.
 
-Language models process tokens. Images, audio, and video are not naturally tokens. The question is how to bridge modalities: do you train separate specialist models and fuse them late, or do you train a single model on all modalities from the start?
-
-Each choice has a different cost and a different capability profile.
-
----
-
-### CLIP: Shared Embedding Space
-
-CLIP (Radford et al., 2021) trains image and text encoders jointly via contrastive loss on 400M image-text pairs:
-
-```
-L = -log(exp(sim(I_i, T_i)/τ) / Σ_j exp(sim(I_i, T_j)/τ))
-```
-
-Maximize cosine similarity of matching (image, text) pairs; minimize for non-matching. Creates a shared embedding space where semantically related images and text are nearby.
-
-Zero-shot classification: compute image embedding similarity against text embeddings of all class descriptions ("a photo of a dog", "a photo of a cat"). No fine-tuning needed.
-
-CLIP's limitation: it produces image representations aligned with text, but it is not a generative model and cannot reason about spatial relationships or fine-grained visual details.
-
----
-
-### BLIP-2 and LLaVA: Connecting Vision to Language Models
-
-**BLIP-2** (Li et al., 2023): introduces the **Q-Former** — a lightweight transformer that bridges a frozen image encoder (ViT) and a frozen LLM. N learnable "query" tokens attend to image features and extract relevant information for language generation. Only the Q-Former is trained. Pre-training on image-text matching, captioning, and VQA; then connected to LLM.
-
-**LLaVA** (Liu et al., 2023): simpler. Project CLIP ViT features into the LLM embedding space via a single linear layer or MLP. Generate instruction-following training data synthetically using GPT-4 (write conversations about images from COCO captions). Fine-tune LLaMA on this data. Surprisingly competitive with BLIP-2 at much lower cost.
-
-**The production approach (GPT-4V, Gemini, Claude):** modality-specific encoders with late fusion into the LLM. No single public architectural disclosure. Key capabilities beyond LLaVA: fine-grained OCR, spatial reasoning, multi-image comparisons, diagram understanding.
-
----
-
-### Image Tokenization: VQVAE and dVAE
-
-To process images as tokens in a transformer, images need discrete token IDs.
-
-**VQVAE** (van den Oord et al., 2017):
-1. Encoder maps image to latent grid z_e(x)
-2. Vector quantization: each spatial position is mapped to nearest code in a learned codebook C of K entries:
-   ```
-   z_q(x) = argmin_{c_k ∈ C} ||z_e(x) - c_k||_2
-   ```
-3. Decoder reconstructs image from quantized latents
-4. Straight-through estimator passes gradients through the discrete argmin
-
-Result: image → sequence of discrete tokens from a vocabulary of size K.
-
-**dVAE** (DALL-E 1): variational formulation using Gumbel-softmax for soft categorical sampling, annealed toward hard discrete. Scales to larger codebooks.
-
-**Why it matters:** once images are tokens, you can train autoregressive or masked models on image + text token sequences jointly. Modern image generation (DALL-E 3, Stable Diffusion) uses diffusion over continuous latents rather than discrete tokens, but the encoder-decoder structure persists.
-
----
-
-### Audio and Video
-
-**Audio:** raw waveforms → log-mel spectrograms → 2D feature maps → processed like images. **Whisper** (Radford et al., 2022): seq2seq on spectrograms, trained on 680K hours with automatic supervision. **EnCodec/SoundStream:** neural audio codecs → discrete audio tokens → LLMs model audio autoregressively.
-
-**Video:** spatial + temporal dimensions. Challenges: 30fps × 1080p = enormous data. Sparse temporal sampling (1fps), or factorized attention (spatial within frames, temporal across frames). **Sora** (OpenAI, 2024): diffusion transformer on continuous spacetime patches, coherent minute-long video generation.
-
-**Unified vs modality-specific:** Unified backbones (Perceiver, Flamingo, Gemini) share representations across modalities but are harder to train. Modality-specific encoders + fusion (LLaVA, BLIP-2, Whisper + LLM) leverage existing checkpoints but limit deep cross-modal interaction. Most production deployments use specialist encoders with late fusion.
-
-**What breaks:** Llama 4's early fusion (image patches + text tokens through the same transformer from layer 1) requires training from scratch — cannot start from a text-only pretrained model. This dramatically increases training cost. The architecture advantage (richer cross-modal interaction) is real but the infrastructure requirement is high.
+> Full coverage — ViT dynamic tiling, CLIP math, BLIP-2/Q-Former, LLaVA, iRoPE, audio/video DiT, world model hypothesis: [multimodal-architectures.md](multimodal-architectures.md)
 
 ---
 
@@ -731,19 +430,19 @@ The problem: as models become more capable, humans can no longer reliably evalua
 
 ## 10. Key Interview Points
 
-**SSMs:**
-- S4: linear dynamical system with HiPPO matrix A for optimal history compression. Two modes: recurrent O(N) inference, convolutional O(n log n) training.
-- Mamba: input-dependent B, C, Δ — model selectively filters which tokens update the state. Hardware-aware parallel associative scan in SRAM.
-- Mamba weakness: fixed-size state cannot store all key-value associations. Underperforms attention on associative recall. Hybrid (Jamba: 1 attention per 7 Mamba layers) recovers recall capability.
+**SSMs** (see [state-space-models.md](state-space-models.md) for full derivations):
+- S4: HiPPO matrix A for optimal Legendre polynomial history compression. Recurrent O(N) inference, convolutional O(n log n) training.
+- Mamba: input-dependent B, C, Δ — selective filtering via hardware-aware parallel associative scan in SRAM. ~5× throughput vs Transformers at 2K.
+- Weakness: fixed-size state cannot store all key-value associations. Underperforms attention on associative recall. Hybrid (Jamba: 1 attention per 7 Mamba) recovers recall.
 
-**Test-time compute:**
+**Test-time compute** (see [large-reasoning-models.md](large-reasoning-models.md) for full coverage):
 - CoT turns fixed-depth computation into adaptive-depth. Harder problems generate more reasoning tokens.
-- RLVR: reward correct final answers without supervising reasoning steps. Aha-moment behaviors (backtracking, self-verification) emerge from RL.
+- RLVR: reward correct final answers without supervising reasoning steps. Aha-moment behaviors emerge from RL.
 - GRPO: group-relative baselines replace critic network. Sample G rollouts per prompt, normalize advantages within group.
 - PRMs score intermediate steps, harder to game than ORMs. PRM + BoN or beam search outperforms BoN alone.
 
-**MoE:**
-- Top-k routing + load balancing loss. Load balancing loss = α · N · Σ f_i · P_i. Too small α → collapse; too large → hurts task loss.
+**MoE** (see [mixture-of-experts.md](mixture-of-experts.md) for full coverage):
+- Top-k routing + load balancing loss: L = α·N·Σ f_i·P_i. Too small α → collapse; too large → hurts task loss.
 - Active params ≠ memory used. All 235B Qwen3 params must be loaded to serve 22B active.
 - Expert collapse: routing entropy monitoring, z-loss, expert dropout.
 

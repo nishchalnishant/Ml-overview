@@ -3,15 +3,332 @@ module: Specialized Domains
 topic: Revision Card
 subtopic: ""
 status: unread
-tags: [rl, recsys, gnn, revision, cheatsheet]
+tags: [rl, recsys, gnn, cv, nlp, speech, timeseries, tabular, revision, cheatsheet]
 ---
 # Specialized Domains — 10-Minute Revision Card
 
-Three domains. One card. RL → RecSys → GNN.
+Eight domains. One card. CV → NLP → Speech → Time Series → RL → RecSys → GNN → Tabular.
 
 ---
 
-## Part 1: Reinforcement Learning
+## Part 1: Computer Vision
+
+### Mental Model
+
+CNNs: translation-equivariant feature extractors via local receptive fields + weight sharing. Stack conv→pool → grow receptive field while reducing spatial size. Residual connections (ResNet) let gradients skip layers, enabling 100+ layer networks. Vision Transformers (ViT) abandon convolutions entirely: split image into patches, project to embeddings, run transformer encoder.
+
+**When CNNs beat ViT:** small datasets, limited compute. **When ViT beats CNNs:** large-scale pretraining, long-range spatial dependencies, CLIP-style multimodal tasks.
+
+---
+
+### Architecture Selector
+
+| Situation | Use |
+|-----------|-----|
+| Image classification, limited data | ResNet-50 / EfficientNet-B4 |
+| Object detection, speed-critical | YOLOv8 |
+| Object detection, accuracy-critical | Faster R-CNN + FPN |
+| Instance segmentation | Mask R-CNN |
+| Image-text matching / zero-shot | CLIP |
+| Self-supervised pretraining | MAE or DINO |
+| Dense prediction (medical imaging) | U-Net |
+
+---
+
+### ResNet Residual Connection
+
+$$y = F(x, \{W_i\}) + x$$
+
+Skip connection adds the identity shortcut. Why it works: gradients flow directly back through the shortcut, avoiding vanishing gradient even in 150-layer networks. The shortcut also initializes the block as identity (F→0), making very deep nets easier to train.
+
+---
+
+### Object Detection Fast Reference
+
+**Two-stage (Faster R-CNN):** Region Proposal Network → RoI Pooling → classification + regression. Accurate, slower (~5 FPS).
+
+**One-stage (YOLO):** Single forward pass predicts all boxes. Faster (≥30 FPS), slightly less accurate on small objects.
+
+**FPN (Feature Pyramid Network):** Multi-scale feature maps — detect large objects at coarse scale, small objects at fine scale. Standard component in all modern detectors.
+
+**IoU** = intersection / union of predicted and ground-truth boxes. Threshold for positive: ≥0.5.
+
+**NMS (Non-Maximum Suppression):** After detection, many overlapping boxes for same object. NMS keeps the highest-confidence box and suppresses overlapping boxes with IoU > threshold.
+
+**Focal Loss** (RetinaNet): addresses foreground/background class imbalance. Downweights easy negatives:
+$$FL(p_t) = -(1-p_t)^\gamma \log(p_t)$$
+γ=2 standard. Easy backgrounds get ≈0 loss; hard foregrounds get full loss.
+
+---
+
+### ViT in 30 Seconds
+
+Split 224×224 image into 16×16 patches → 196 patches. Project each patch: (H×W×C) → d_model. Prepend [CLS] token. Add learnable positional embeddings. Feed to standard transformer encoder. Use [CLS] output for classification.
+
+**DeiT:** ViT training trick — knowledge distillation from CNN teacher. Makes ViT competitive without massive datasets.
+
+**DINO:** Self-supervised ViT with momentum encoder. Learns semantic features without labels.
+
+**MAE (Masked Autoencoder):** Mask 75% of patches, reconstruct. Learns rich visual representations at low compute cost.
+
+---
+
+### CLIP in 30 Seconds
+
+Train image encoder and text encoder jointly: maximize cosine similarity for (image, caption) pairs, minimize for all other pairs in the batch (contrastive loss / InfoNCE).
+
+At inference: embed image, embed text query "a photo of a cat", compute similarity → zero-shot classification without any class-specific training.
+
+$$\mathcal{L} = -\frac{1}{N}\sum_i \log \frac{\exp(s_{ii}/\tau)}{\sum_j \exp(s_{ij}/\tau)}$$
+
+---
+
+### CV Interview Quick-Draws
+
+**"Why does ResNet work so much better than plain deep nets?"**
+→ Skip connections let gradients bypass layers entirely. Initializing F≈0 means the block starts as identity, making depth free to add without degrading training dynamics.
+
+**"YOLO vs Faster R-CNN — when to use each?"**
+→ YOLO: real-time inference, edge deployment, speed matters. Faster R-CNN: accuracy matters, small objects, offline processing.
+
+**"What is focal loss and why does it matter for detection?"**
+→ Class imbalance: 99% of anchor boxes are background. Focal loss downweights the easy negatives so the model focuses gradient on hard foreground/background ambiguities.
+
+**"ViT vs CNN for your task?"**
+→ CNN: small dataset, limited GPU. ViT: large dataset or pretrained, need global context, multimodal. CLIP: zero-shot or image-text matching.
+
+---
+
+## Part 2: NLP
+
+### Mental Model
+
+Progression: words → fixed bag-of-words → dense embeddings (Word2Vec) → contextual embeddings (ELMo, LSTM) → attention (seq2seq) → full self-attention (Transformer) → pretrained large models (BERT, GPT).
+
+The key insight at each step: richer representation of word meaning in context.
+
+---
+
+### Algorithm Selector
+
+| Situation | Use |
+|-----------|-----|
+| Text classification, small dataset | TF-IDF + logistic regression |
+| Semantic similarity, sentence-level | SBERT (Sentence-BERT) |
+| Classification/NER/QA (fine-tuning) | BERT or RoBERTa |
+| Text generation | GPT-2/3/4 |
+| Translation / summarization | T5 or BART |
+| In-context learning | GPT-4 / Claude |
+| Long documents | Longformer or BigBird |
+
+---
+
+### Word Embeddings Fast Reference
+
+**TF-IDF:** Weight words by frequency in document × rarity across corpus. No semantic understanding; but strong baseline for keyword-heavy tasks.
+
+**Word2Vec (skip-gram):** Predict context words from center word. Train with negative sampling (SGNS). Words with similar contexts → nearby vectors. "king − man + woman ≈ queen."
+
+**GloVe:** Factorize word co-occurrence matrix. GloVe = global corpus statistics; Word2Vec = local context windows. Performance similar in practice.
+
+**FastText:** Word2Vec over character n-grams. Handles OOV words and morphological variants.
+
+---
+
+### Transformer Attention in 30 Seconds
+
+$$\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
+
+Q, K, V are linear projections of the input. The √d_k scaling prevents softmax saturation as d_k grows.
+
+**Multi-head:** Run h attention heads in parallel with different projections; concatenate outputs. Different heads learn different relationship types (syntax, coreference, etc.).
+
+**Positional encoding:** Transformer has no recurrence → inject position via sinusoidal encoding (absolute) or RoPE (rotary, relative, used in LLaMA/GPT-4).
+
+---
+
+### BERT vs GPT
+
+| | BERT | GPT |
+|--|------|-----|
+| Objective | MLM (masked language modeling) | CLM (causal/next-token prediction) |
+| Direction | Bidirectional | Left-to-right (causal) |
+| Pretraining task | Predict masked tokens | Predict next token |
+| Fine-tuning | Classification, NER, QA | Generation, few-shot |
+| Architecture | Encoder-only | Decoder-only |
+| Key use case | Understanding tasks | Generation tasks |
+
+**BERT pretraining:** Mask 15% of tokens; predict them. Also Next Sentence Prediction (NSP). Fine-tune by adding a task-specific head (linear layer) and training the full model.
+
+**GPT pretraining:** Left-to-right language modeling. No masking. At inference, generate autoregressively. In-context learning: the prompt itself is the "fine-tuning."
+
+---
+
+### NLP Interview Quick-Draws
+
+**"Why does self-attention capture long-range dependencies better than LSTMs?"**
+→ LSTM: information must pass through every hidden state between two positions — O(n) steps, vanishing gradient. Self-attention: direct path from any token to any other token in one layer — O(1) steps. But O(n²) memory.
+
+**"What is the attention bottleneck?"**
+→ Standard attention is O(n²) in sequence length. Flash Attention computes the same result with O(n) memory via tiling/recomputation. Allows 32K+ context lengths.
+
+**"BERT or GPT for classification?"**
+→ BERT: bidirectional context → better for understanding tasks (classification, NER, QA). GPT: if you also need generation, or if the problem can be framed as few-shot prompting.
+
+**"What is RoPE and why is it better than sinusoidal PE?"**
+→ RoPE encodes relative position by rotating query and key vectors. Benefits: (1) dot products naturally capture relative positions, (2) generalizes better to lengths beyond training, (3) no learned position parameters.
+
+---
+
+## Part 3: Speech and Audio
+
+### Mental Model
+
+Audio = 1D waveform sampled at 16kHz. Raw waveform → STFT → mel spectrogram → log-mel → MFCCs (optional compression). The mel spectrogram is the "image" that deep learning models operate on.
+
+ASR pipeline: audio → features → acoustic model → language model → text. End-to-end models (CTC, attention-based) replaced the classical three-component pipeline.
+
+---
+
+### Audio Feature Ladder
+
+| Feature | Description | Use |
+|---------|-------------|-----|
+| Waveform | Raw samples at 16kHz | Wav2Vec 2.0, WaveNet |
+| STFT | Frequency × time, complex | Intermediate |
+| Mel spectrogram | Log-frequency bins (mel scale) | ASR, classification |
+| Log-mel | Log of mel spectrogram | Standard ASR input |
+| MFCCs | DCT of log-mel, 13-80 coefficients | Classical ASR, speaker ID |
+
+---
+
+### CTC in 30 Seconds
+
+Alignment problem: audio is 100 frames, transcript is 10 characters — no explicit alignment known. CTC marginalizes over all possible alignments.
+
+CTC introduces a blank token `_`. Any path that collapses to the right sequence (by removing blanks and duplicate consecutive chars) is valid. Loss = −log of the sum over all valid paths (computed efficiently with forward-backward algorithm).
+
+At decoding: greedy (take argmax at each frame, then collapse) or beam search with language model.
+
+**Key property:** CTC output is conditionally independent — probability of each output token depends only on the input, not other outputs. Limits modeling of inter-token dependencies.
+
+---
+
+### ASR Architecture Selector
+
+| Situation | Use |
+|-----------|-----|
+| Offline transcription, accuracy | Whisper (large-v3) |
+| Real-time streaming | CTC-based (e.g., wav2vec 2.0 + CTC) |
+| Low-resource language | wav2vec 2.0 fine-tuning |
+| Speaker verification | x-vectors + PLDA or ArcFace |
+| TTS, natural prosody | FastSpeech 2 + HiFi-GAN |
+
+---
+
+### Whisper in 30 Seconds
+
+Encoder-decoder transformer. Input: 80-channel log-mel spectrogram, 30-second chunks. Encoder: CNN stem + transformer encoder. Decoder: autoregressive transformer decoder.
+
+Multitask: transcription, translation, language ID, timestamp prediction — all via special tokens in the decoder prompt. Training: 680k hours of weakly-supervised web data.
+
+Key insight: scale + diverse supervised data beats self-supervised pretraining for ASR. Zero-shot multilingual ASR with no per-language fine-tuning.
+
+---
+
+### Speech Interview Quick-Draws
+
+**"Why mel scale instead of linear frequency?"**
+→ Human hearing is approximately logarithmic in frequency (mel scale). The mel scale compresses high frequencies where humans have less resolution, matching perceptual sensitivity. Models learn features aligned with what matters perceptually.
+
+**"CTC vs attention-based decoder — tradeoffs?"**
+→ CTC: conditionally independent outputs → fast streaming, simple decoding. Attention: models inter-token dependencies → better accuracy, full sequence required. Conformer + hybrid CTC/attention is the modern standard (CTC for fast prefix search, attention for reranking).
+
+**"What is speaker diarization?"**
+→ "Who spoke when" — segment audio by speaker identity without knowing who the speakers are. Pipeline: VAD (detect speech vs silence) → segmentation → speaker embedding per segment → clustering. EEND (End-to-End Neural Diarization) does this jointly.
+
+---
+
+## Part 4: Time Series
+
+### Mental Model
+
+Time series data has three special properties: temporal ordering (cannot shuffle), temporal dependencies (autocorrelation), and non-stationarity (statistics change over time). These require different data handling (no random train/test split — use temporal split), different models, and different evaluation metrics than standard supervised learning.
+
+---
+
+### Algorithm Selector
+
+| Situation | Use |
+|-----------|-----|
+| Single series, linear trends/seasonality | SARIMA or Prophet |
+| Many series, short history | Prophet or LightGBM with lag features |
+| Many series, enough data | PatchTST or N-BEATS |
+| Long-range dependencies | Informer or PatchTST |
+| Few-shot / zero-shot | Chronos (pretrained TS transformer) |
+| Anomaly detection | Isolation Forest (point) or LSTM autoencoder (contextual) |
+
+---
+
+### ARIMA in 30 Seconds
+
+$$\text{ARIMA}(p, d, q): \quad \phi(B)(1-B)^d y_t = c + \theta(B)\epsilon_t$$
+
+- **AR(p):** regress on past p values
+- **I(d):** difference d times to achieve stationarity
+- **MA(q):** regress on past q forecast errors
+
+**Seasonality → SARIMA(p,d,q)(P,D,Q)[s]:** adds seasonal AR, I, MA components.
+
+**Stationarity check:** ADF test (H₀: unit root exists = non-stationary). If p > 0.05, difference the series.
+
+---
+
+### Forecasting Model Fast Reference
+
+| Model | Key Idea | Best When |
+|-------|----------|-----------|
+| ARIMA/SARIMA | Linear AR + MA + differencing | Univariate, linear trends |
+| Prophet | Trend + Fourier seasonality + holidays | Business time series with trend changes |
+| LSTM | Sequence-to-sequence with memory | Complex non-linear, long history |
+| TCN | Dilated causal convolutions | Fast training, parallelizable |
+| N-BEATS | Doubly residual stacks, trend/seasonality blocks | M4/M5 competition winner |
+| PatchTST | Patch-based ViT for time series | Long-range, multivariate |
+| iTransformer | Transposes attention: attends across variates | Multivariate forecasting |
+
+---
+
+### Evaluation Metrics Fast Reference
+
+| Metric | Formula | Note |
+|--------|---------|------|
+| MAE | mean|y - ŷ| | Scale-dependent |
+| MAPE | mean|y - ŷ|/|y| × 100 | Blows up near zero |
+| sMAPE | mean 2|y-ŷ|/(|y|+|ŷ|) | Symmetric, bounded |
+| MASE | MAE / MAE_naive | Scale-free, best for cross-series comparison |
+| CRPS | Probabilistic — proper scoring rule | Use for distributional forecasts |
+
+**Gotcha:** Always use temporal train/val/test split — never random. Walk-forward validation for hyperparameter tuning.
+
+---
+
+### Time Series Interview Quick-Draws
+
+**"ARIMA vs Prophet — when to use which?"**
+→ ARIMA: single series, linear, no missing data, need interpretable AR/MA decomposition. Prophet: business context with trend changepoints, multiple seasonalities, holidays, robust to missing data, handles non-linear trends.
+
+**"Why can't you shuffle time series data for cross-validation?"**
+→ Temporal leakage: shuffling uses future information to predict the past. The model sees future values during training, inflating validation performance. Use walk-forward validation or a strict temporal split.
+
+**"How do you handle non-stationarity?"**
+→ Check with ADF/KPSS tests. If non-stationary: (1) differencing (removes trends), (2) log transform (stabilizes variance), (3) seasonal differencing (removes seasonality). Neural models can sometimes handle non-stationarity with instance normalization.
+
+**"Point anomaly vs contextual anomaly?"**
+→ Point: a single value is far from the global distribution (z-score, Isolation Forest). Contextual: a value is normal globally but anomalous in its local context — e.g., 20°C in December in Oslo (LSTM autoencoder detects this).
+
+---
+
+## Part 5: Reinforcement Learning
 
 ### Mental Model
 
@@ -113,7 +430,7 @@ $$\mathcal{L}_{\text{DPO}} = -\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w|x)
 
 ---
 
-## Part 2: Recommender Systems
+## Part 6: Recommender Systems
 
 ### Mental Model
 
@@ -224,7 +541,7 @@ $$\mathcal{L} = \text{CrossEntropy}\!\left(\frac{\text{logits}}{\tau},\ \text{di
 
 ---
 
-## Part 3: Graph Neural Networks
+## Part 7: Graph Neural Networks
 
 ### Mental Model
 
@@ -350,3 +667,163 @@ After too many layers, all node representations converge to the same vector (ran
 
 **"GAT vs transformer attention?"**
 → Both compute query-key attention weights. GAT restricts attention to the graph adjacency (sparse neighbors only). Transformer attends all-to-all (dense). Same mechanism, different mask.
+
+---
+
+## Part 8: Tabular Data and Deep Learning
+
+### Mental Model
+
+Most production ML uses tabular data. The default answer is almost always **gradient boosting** (XGBoost / LightGBM / CatBoost) — these beat neural networks on tabular tasks in the vast majority of benchmarks. Neural networks win when: (1) the dataset is very large (>1M rows), (2) there are many high-cardinality categorical features where entity embeddings help, (3) the task requires shared representations across multiple objectives, or (4) the model must be part of a larger differentiable pipeline.
+
+---
+
+### Algorithm Selector
+
+| Situation | Use |
+|-----------|-----|
+| Standard classification/regression | LightGBM or XGBoost |
+| Mixed features, many categoricals | CatBoost |
+| Need probability calibration | XGBoost + isotonic regression |
+| Very large dataset, GPU available | LightGBM on GPU |
+| High-cardinality embeddings critical | TabNet or FT-Transformer |
+| Multi-task / differentiable pipeline | FT-Transformer or SAINT |
+| Interpretability required | LightGBM + SHAP |
+
+---
+
+### Gradient Boosting Fast Reference
+
+**XGBoost / LightGBM / CatBoost** all build an ensemble of decision trees where each tree corrects the errors of the previous trees.
+
+**Key hyperparameters:**
+```
+n_estimators:     100–2000 (use early stopping)
+learning_rate:    0.01–0.3 (lower + more trees = better)
+max_depth:        3–8 (LightGBM: use num_leaves instead)
+subsample:        0.7–0.9 (row sampling, reduces overfitting)
+colsample_bytree: 0.7–0.9 (feature sampling per tree)
+reg_alpha/lambda: L1/L2 regularization
+```
+
+**LightGBM advantages:** leaf-wise tree growth (vs level-wise in XGBoost), histogram-based binning, GOSS (Gradient-based One-Side Sampling), DART dropout. Typically 10–100× faster than XGBoost.
+
+**CatBoost advantages:** native ordered target encoding for categorical features — eliminates target leakage from standard mean encoding.
+
+---
+
+### Entity Embeddings for Categoricals
+
+**The problem:** One-hot encoding of a categorical with 10,000 values creates a 10,000-dim sparse vector. Tree models handle this via splits; neural networks need dense representations.
+
+**The core insight:** Learn a dense embedding for each category ID, similar to word embeddings. The embedding captures similarity structure: "Monday" and "Tuesday" end up near each other; "January" near "February."
+
+```python
+import torch.nn as nn
+
+class TabularModel(nn.Module):
+    def __init__(self, cat_dims, embed_dims, n_cont, out_dim):
+        super().__init__()
+        # One embedding table per categorical feature
+        self.embeddings = nn.ModuleList([
+            nn.Embedding(n_cat, n_emb) 
+            for n_cat, n_emb in zip(cat_dims, embed_dims)
+        ])
+        total_emb = sum(embed_dims)
+        self.fc = nn.Sequential(
+            nn.Linear(total_emb + n_cont, 256),
+            nn.ReLU(), nn.BatchNorm1d(256), nn.Dropout(0.3),
+            nn.Linear(256, 128),
+            nn.ReLU(), nn.BatchNorm1d(128),
+            nn.Linear(128, out_dim)
+        )
+    
+    def forward(self, x_cat, x_cont):
+        embs = [e(x_cat[:, i]) for i, e in enumerate(self.embeddings)]
+        x = torch.cat(embs + [x_cont], dim=1)
+        return self.fc(x)
+```
+
+**Embedding dimension rule of thumb:** min(50, (n_categories + 1) // 2)
+
+---
+
+### Feature Engineering Essentials
+
+**Numerical features:**
+- StandardScaler (zero mean, unit variance) — required for neural networks; irrelevant for tree models
+- Log transform for right-skewed distributions (income, counts)
+- Quantile transform (rank-based normalization) — robust to outliers
+
+**Categorical features:**
+- **Ordinal encoding:** for tree models with natural order
+- **One-hot encoding:** for low-cardinality (<20 values), tree models
+- **Target encoding:** mean of target per category — powerful but leaky; use leave-one-out or k-fold encoding
+- **Entity embeddings:** for neural networks with high-cardinality features
+
+**Missing values:**
+- Tree models (LightGBM, XGBoost): handle natively — just pass NaN
+- Neural networks: impute + add binary "was_missing" indicator feature
+
+**Interaction features:** `feature_A × feature_B`, `feature_A / feature_B` — tree models learn these automatically; can help linear models and small NNs.
+
+---
+
+### TabNet in 30 Seconds
+
+TabNet uses sequential attention to select features at each step. At each of N steps:
+1. A learned attention mask selects which features to use (sparse, like feature importance)
+2. A feature transformer processes the selected features
+3. The output contributes to the final prediction
+
+**Key property:** Built-in feature selection + interpretable attention weights per sample. No need for external SHAP/LIME — TabNet shows which features mattered for each prediction.
+
+**When it helps:** Datasets where only a subset of features is relevant per sample (not all features are always informative), and when interpretability is required alongside neural-network-level performance.
+
+---
+
+### FT-Transformer (Feature Tokenizer + Transformer)
+
+**The core insight:** Convert each tabular feature (numerical or categorical) into a token embedding. Run a standard transformer over these tokens. The [CLS] token produces the final prediction.
+
+```
+Numerical feature x_i → linear projection → token embedding
+Categorical feature → learned embedding → token embedding
+[CLS] + all feature tokens → Transformer → [CLS] output → prediction
+```
+
+**Why this works:** Self-attention across features can learn arbitrary feature interactions. A numerical feature "income" attending to categorical "occupation" can learn "high income doctor" as a compound feature.
+
+**FT-Transformer vs TabNet:**
+- FT-Transformer: better accuracy on larger datasets, standard architecture, easy to pretrain
+- TabNet: better interpretability, built-in feature selection, faster inference
+
+---
+
+### When Neural Networks Beat Gradient Boosting
+
+| Condition | Advantage |
+|-----------|-----------|
+| Dataset size > 1M rows | NN scales better with data |
+| High-cardinality categoricals | Entity embeddings generalize better than one-hot |
+| Multi-task learning | Shared backbone across tasks |
+| Integration with other NNs | End-to-end differentiability |
+| Semi-supervised learning | Pretraining on unlabeled tabular data (SCARF) |
+
+**Most of the time:** gradient boosting wins. The 2022 "Why do tree-based models still outperform deep learning on tabular data?" paper (Grinsztajn et al.) found that for datasets with <10K rows and mixed feature types, LightGBM beats all neural approaches on average.
+
+---
+
+### Tabular Interview Quick-Draws
+
+**"XGBoost vs LightGBM — which would you use?"**
+→ LightGBM by default: faster training (histogram binning, leaf-wise growth), lower memory, handles large datasets. XGBoost when exact split finding matters or when you need better GPU support for very wide sparse data.
+
+**"How do you encode high-cardinality categorical features?"**
+→ For tree models: target encoding (mean target per category, with k-fold to avoid leakage). For neural networks: entity embeddings. Avoid one-hot for cardinality >50 — too many dimensions, too sparse.
+
+**"When would you use a neural network instead of LightGBM for tabular data?"**
+→ Very large dataset (>1M rows), many high-cardinality categoricals, need to share representations across multiple objectives, or need to plug into an end-to-end differentiable pipeline. Otherwise, LightGBM is almost always faster to train and competitive or better.
+
+**"How do you handle missing values in production?"**
+→ LightGBM/XGBoost: just pass NaN — they handle it internally via learned "missing goes left/right" splits. Neural networks: mean/median imputation + binary "was_missing" flag as additional feature. Always impute with training-set statistics, stored in the pipeline.

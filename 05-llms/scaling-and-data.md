@@ -118,14 +118,7 @@ With verification, you can generate arbitrarily many correct math and code train
 
 ### Constitutional AI and RLAIF
 
-Rather than human annotators, use the model itself to critique and revise responses:
-
-1. Sample a response from the SFT model
-2. Ask a stronger model (or the same model) to critique it against a list of principles
-3. Ask it to revise based on the critique
-4. Use (original response, revised response) as preference data for DPO/RLHF
-
-This scales alignment without human annotation. The risk: if the critic model has systematic biases, those biases propagate into the training data.
+> Covered in depth in [training-process.md](training-process.md) (Alignment section). In brief: rather than human annotators, use a model to critique and revise its own responses against a list of principles, then use (original, revised) pairs as DPO/RLHF preference data. Risk: systematic critic biases propagate into training data.
 
 ### Multi-modal data
 

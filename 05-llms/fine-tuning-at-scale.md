@@ -208,7 +208,125 @@ This makes quantization levels denser near the mean (where most weight values ar
 
 ---
 
-## 5. Full Fine-tuning with ZeRO
+## 5. Post-Training Quantization: GPTQ, AWQ, GGUF
+
+QLoRA (Section 4) quantizes for *training*. Post-training quantization (PTQ) quantizes an already-trained model for *inference*, making large models deployable on smaller hardware.
+
+### GPTQ
+
+**Core idea:** minimize the per-layer weight quantization error using second-order (Hessian) information. For each layer, instead of rounding every weight independently, GPTQ quantizes one column at a time and compensates the remaining columns for the error introduced.
+
+**Algorithm (one layer):**
+```
+For each column j in W:
+    q_j = round(w_j / scale)          # quantize column j
+    error = w_j - q_j * scale         # compute introduced error
+    W[:, j+1:] -= error * H⁻¹[:, j+1:] * H[j, j+1:]  # propagate correction
+```
+where H = X^T X is the activation Hessian (computed from a calibration set of ~128 sequences).
+
+**Properties:**
+- One-shot: does not require gradient computation after the initial calibration pass
+- Achieves good quality at INT4 (W4A16): for 7B models, ~2-3% perplexity increase vs fp16
+- 4× memory reduction: 70B → 35 GB fp16 → ~8.5 GB INT4
+- No inference speedup on CUDA cores (weights dequantized to fp16 before matmul), but significant VRAM savings enable larger batch sizes
+
+```python
+# Using AutoGPTQ
+from auto_gptq import AutoGPTQForCausalLM, BaseQuantizeConfig
+
+quantize_config = BaseQuantizeConfig(
+    bits=4,
+    group_size=128,    # quantize in groups of 128 weights; finer = better quality
+    damp_percent=0.01, # Hessian damping for numerical stability
+)
+model = AutoGPTQForCausalLM.from_pretrained(model_name, quantize_config)
+model.quantize(calibration_dataset)
+model.save_quantized("./model-gptq-4bit")
+```
+
+**Key hyperparameter:** `group_size`. With `group_size=128`, each group of 128 weights shares one scale and one zero-point. Smaller groups → better quality (less quantization error per group) but more overhead (one scale per 128 weights = 0.4% overhead at INT4).
+
+---
+
+### AWQ (Activation-aware Weight Quantization)
+
+**Problem with GPTQ:** it treats all weight channels equally. But some channels are significantly more important than others — specifically, channels that multiply large activation values, because the output error = weight error × activation value. A 1% error in a channel with activation magnitude 10 causes 10× more output error than the same weight error in a channel with activation magnitude 1.
+
+**Core idea:** identify "salient" weight channels (those paired with large activations via calibration), and scale those channels up before quantization to protect them — effectively using fewer quantization bits for less important channels and more precision for important ones. Applied via a per-channel scaling factor before quantization.
+
+**Algorithm:**
+```
+1. Run calibration data → compute per-channel activation statistics: s_c = mean(|X_c|)
+2. For each weight channel c: scale w_c by s_c^α (α ≈ 0.5 found by grid search)
+3. Quantize the scaled weights (salient channels are now more "spread out" in the quantization range)
+4. Compensate: divide activations by s_c at inference (fuse into LayerNorm)
+```
+
+**Properties vs GPTQ:**
+- No Hessian computation: uses only activation statistics (faster calibration)
+- Typically better quality than GPTQ at INT4, especially for reasoning tasks
+- Hardware-friendly: the channel scaling can be fused into preceding LayerNorm, adding zero inference overhead
+- AWQ is the default in many production serving stacks (vLLM natively supports AWQ)
+
+```python
+from awq import AutoAWQForCausalLM
+
+model = AutoAWQForCausalLM.from_pretrained(model_name)
+model.quantize(tokenizer, quant_config={"zero_point": True, "q_group_size": 128, "w_bit": 4})
+model.save_quantized("./model-awq-4bit")
+```
+
+---
+
+### GGUF (GPT-Generated Unified Format)
+
+**Context:** GGUF is not a quantization algorithm — it is a binary file format designed for portable, efficient CPU/GPU inference via **llama.cpp**. It packages model weights, tokenizer, and model metadata in a single file with memory-mapped access.
+
+**Quantization schemes in GGUF:** uses k-quant formats that quantize blocks of weights together with per-block scales:
+
+| Format | Bits/weight | Size (7B) | Quality vs fp16 | Use case |
+|---|---|---|---|---|
+| Q2_K | ~2.6 | ~2.7 GB | Large degradation | Extreme memory constraint |
+| Q3_K_M | ~3.4 | ~3.5 GB | Moderate degradation | Minimum viable |
+| Q4_K_M | ~4.5 | ~4.8 GB | Small degradation | **Best size/quality balance** |
+| Q5_K_M | ~5.7 | ~5.7 GB | Minimal degradation | High quality, fits 8GB RAM |
+| Q6_K | ~6.6 | ~6.1 GB | Near-lossless | When quality is critical |
+| Q8_0 | ~8.5 | ~7.7 GB | Effectively lossless | Maximum quality, limited RAM |
+
+**K-quant mechanics (Q4_K_M):** weights are organized into super-blocks of 256 weights; each super-block contains 8 sub-blocks of 32 weights with individual scales. The "M" (medium) variant uses 4-bit quantization for most layers but 6-bit for specific sensitive layers (embedding, output, some attention layers), balancing size and quality.
+
+**Memory-mapped access:** GGUF weights are read directly from disk pages into GPU/CPU memory on demand — the OS page cache handles repeated access. This enables loading a 4-bit 70B model (≈35 GB) incrementally on a machine with 24 GB RAM if you're willing to accept slower inference (disk reads on cache miss).
+
+**CPU inference:** llama.cpp can run GGUF models entirely on CPU using BLAS-optimized matrix operations. For 7B Q4_K_M on a modern CPU (Apple M2 Pro), ~10-15 tokens/second is achievable — viable for local development without a GPU.
+
+```bash
+# Create GGUF from HuggingFace model
+python convert_hf_to_gguf.py ./llama-3-8b --outtype f16 --outfile llama3-8b-f16.gguf
+./llama-quantize llama3-8b-f16.gguf llama3-8b-q4_k_m.gguf Q4_K_M
+
+# Serve via llama.cpp
+./llama-server -m llama3-8b-q4_k_m.gguf --ctx-size 8192 --n-gpu-layers 33
+```
+
+---
+
+### Comparison: GPTQ vs AWQ vs GGUF
+
+| Dimension | GPTQ | AWQ | GGUF (Q4_K_M) |
+|---|---|---|---|
+| Algorithm | Hessian-guided column-wise | Activation-aware channel scaling | Block-wise k-quantization |
+| Calibration | Required (128 samples, ~10 min) | Required (128 samples, ~5 min) | None |
+| Hardware target | NVIDIA GPU (CUDA) | NVIDIA GPU (CUDA) | CPU, Apple Silicon, any GPU |
+| Inference framework | AutoGPTQ, vLLM, TGI | vLLM (native), TGI | llama.cpp, Ollama |
+| Quality at INT4 | Good (PPL +2-4%) | Better (PPL +1-3%) | Good (PPL +2-4%) |
+| Production use | Older standard; AWQ preferred | Current GPU production standard | Local inference, CPU serving |
+
+**Rule of thumb:** for GPU serving in production, use AWQ INT4. For local CPU/Mac inference, use GGUF Q4_K_M. For fine-tuning on a quantized base, use NF4 via QLoRA (Section 4).
+
+---
+
+## 6. Full Fine-tuning with ZeRO
 
 When LoRA is insufficient (e.g., catastrophic forgetting on diverse tasks, or need to update all layers), use full fine-tuning with ZeRO Stage 3.
 
@@ -251,7 +369,7 @@ ds_config = {
 
 ---
 
-## 6. Gradient Checkpointing for Fine-tuning
+## 7. Gradient Checkpointing for Fine-tuning
 
 At long sequences (4K+), activation memory dominates. Gradient checkpointing trades compute for memory.
 
@@ -275,7 +393,7 @@ training_args = TrainingArguments(
 
 ---
 
-## 7. Fine-tuning Hyperparameters
+## 8. Fine-tuning Hyperparameters
 
 | Hyperparameter | LoRA | QLoRA | Full FT | Notes |
 |---|---|---|---|---|
@@ -291,7 +409,129 @@ training_args = TrainingArguments(
 
 ---
 
-## 8. LoRA Variants
+## 9. Prefix Tuning
+
+**Core idea**: instead of modifying model weights, prepend a set of *learned soft tokens* to the key and value sequences at every transformer layer. The model's parameters stay frozen; only the prefix embeddings are trained.
+
+**Why "soft" tokens**: the prefix is not actual text — it's a trainable tensor $P_i \in \mathbb{R}^{l \times d_{model}}$ for layer $i$, where $l$ is the prefix length (typically 10–100). These virtual tokens condition the model's attention at every layer, functioning as trainable "task context" that reshapes what each layer attends to.
+
+**How it differs from prompt tuning**: prompt tuning only prepends soft tokens to the input embedding layer. Prefix tuning prepends them to the K and V matrices at *every* layer — more expressive but uses more memory per layer.
+
+**Mathematical form**: for a transformer layer with original KV sequences $K, V \in \mathbb{R}^{T \times d}$, prefix tuning inserts:
+
+$$K' = [P^K_i; K], \quad V' = [P^V_i; V]$$
+
+The attention is now computed over the extended sequence: queries attend to both the prefix tokens and the original context tokens. The prefix tokens consume $l$ positions of context window per layer.
+
+```python
+from peft import PrefixTuningConfig, get_peft_model, TaskType
+
+prefix_config = PrefixTuningConfig(
+    task_type=TaskType.CAUSAL_LM,
+    num_virtual_tokens=20,      # prefix length l
+    prefix_projection=True,     # use an MLP to project prefix embeddings (more stable)
+    encoder_hidden_size=512,    # hidden size of the prefix MLP reparameterization
+)
+
+model = get_peft_model(model, prefix_config)
+model.print_trainable_parameters()
+# trainable params: ~180,000 || all params: 6,738,415,616 || trainable%: ~0.003%
+```
+
+**Reparameterization trick**: directly optimizing raw prefix embeddings is unstable (they lie in a high-dimensional space with no natural structure). In practice, the prefix is generated by a small MLP: $P_i = \text{MLP}_\phi(P_{\text{raw}})$, and only $\phi$ is trained. After training, the MLP is discarded and only the resulting $P_i$ is stored.
+
+**Memory profile**:
+- Trainable parameters: 0.01–0.1% of total (vs LoRA's ~1%)
+- Context window cost: each prefix of length $l$ consumes $l$ KV positions permanently — a 100-token prefix reduces usable context by 100 tokens at every layer
+- No inference overhead if prefix is precomputed and cached in KV format
+
+**When prefix tuning outperforms LoRA**:
+- Very few training examples (< 1K): prefix tuning is more regularized
+- Inference-time task switching: precompute prefix KVs for each task and swap them without touching model weights
+- Multi-tenant serving: store one base model, load per-task prefix KVs on demand
+
+**When LoRA is preferred**:
+- Larger datasets (> 10K examples): LoRA can learn more expressive task-specific transformations
+- Long-context workloads: prefix tokens consume fixed context budget regardless of actual input length
+- Interpretability: LoRA weight deltas can be analyzed via SVD; prefix soft tokens are not interpretable
+
+---
+
+## 10. Adapter Layers
+
+**Core idea**: insert small bottleneck feed-forward modules between the sublayers of each transformer block. The base model is frozen; only the adapter parameters are trained.
+
+**Architecture**: each adapter is a two-layer MLP with a bottleneck:
+
+$$\text{Adapter}(h) = h + W_{\text{up}} \cdot \sigma(W_{\text{down}} \cdot h)$$
+
+where $W_{\text{down}} \in \mathbb{R}^{d \times r}$ projects down to bottleneck dimension $r$, and $W_{\text{up}} \in \mathbb{R}^{r \times d}$ projects back up. The residual connection ensures the adapter starts as an identity (if $W_{\text{up}}$ and $W_{\text{down}}$ are initialized near zero).
+
+Adapters are typically inserted in two positions per block:
+1. After the self-attention sublayer (before the residual add)
+2. After the FFN sublayer (before the residual add)
+
+```python
+import torch
+import torch.nn as nn
+
+class Adapter(nn.Module):
+    def __init__(self, d_model: int, bottleneck: int = 64, dropout: float = 0.1):
+        super().__init__()
+        self.down = nn.Linear(d_model, bottleneck)
+        self.up = nn.Linear(bottleneck, d_model)
+        self.act = nn.GELU()
+        self.dropout = nn.Dropout(dropout)
+        
+        # Near-zero initialization → starts as identity
+        nn.init.normal_(self.down.weight, std=1e-3)
+        nn.init.zeros_(self.down.bias)
+        nn.init.normal_(self.up.weight, std=1e-3)
+        nn.init.zeros_(self.up.bias)
+    
+    def forward(self, x: torch.Tensor) -> torch.Tensor:
+        return x + self.dropout(self.up(self.act(self.down(x))))
+```
+
+**Parameter count**: for each transformer block with $d_{model}=4096$ and bottleneck $r=64$:
+- $W_{\text{down}}$: 4096 × 64 = 262K params
+- $W_{\text{up}}$: 64 × 4096 = 262K params  
+- Two adapters per block × 32 blocks = ~33M additional params for a 7B model (0.5%)
+
+**Adapter vs LoRA — what actually differs**:
+
+| Property | Adapter | LoRA |
+|---|---|---|
+| Parameter efficiency | ~0.5–2% | ~0.5–1% |
+| Inference overhead | Yes — sequential MLP per layer | No — merge into W at inference |
+| Parallelism | Sequential; adds latency | Parallel with base computation |
+| Placement | After sublayers (residual path) | In weight matrices (parallel path) |
+| Expressiveness per param | Higher (nonlinear via activation) | Lower (linear, rank-limited) |
+
+**Why LoRA has largely displaced adapters**: LoRA adapters add zero inference latency (merge $BA$ into $W_0$ before serving), while bottleneck adapters add a sequential MLP computation to every forward pass. For production serving, this matters at scale. Adapters retain an advantage when you need nonlinear task-specific transformations or when merging weights into the base model is undesirable (multi-tenant scenarios with many tasks).
+
+**PEFT library (Houlsby-style adapters)**:
+
+```python
+from peft import AdaptionPromptConfig  # Note: bottleneck adapters use custom configs
+# Most practical: use Hugging Face adapters integration or adapters library
+
+# Alternative: direct integration with adapters library
+# pip install adapters
+import adapters
+from adapters import AdapterConfig
+
+adapter_config = AdapterConfig(
+    mh_adapter=True,       # add adapter after multi-head attention
+    output_adapter=True,   # add adapter after FFN
+    reduction_factor=16,   # d_model / reduction_factor = bottleneck size
+    non_linearity="relu",
+)
+```
+
+---
+
+## 11. LoRA Variants
 
 | Variant | Key idea | Benefit |
 |---|---|---|
@@ -301,6 +541,19 @@ training_args = TrainingArguments(
 | AdaLoRA | Adaptive rank allocation via SVD | Auto-tunes rank per layer |
 | VeRA | Share A and B across layers, learn scale vectors | Extreme param efficiency |
 | LoRAMoE | Multiple LoRA adapters as MoE | Multi-task without interference |
+
+---
+
+## PEFT Method Summary
+
+| Method | Trainable % | Inference overhead | Expressiveness | Best for |
+|---|---|---|---|---|
+| Full fine-tuning | 100% | None | Highest | Large data, compute available |
+| LoRA (r=16) | ~1% | None (merge at inference) | High | General instruction tuning |
+| QLoRA (r=16, NF4) | ~1% | None | High | Consumer GPU, 70B+ models |
+| Prefix tuning | 0.01–0.1% | None (cached KV) | Medium | Few-shot, task switching |
+| Adapter layers | 0.5–2% | Sequential MLP | Medium-high | Multi-task, non-linear tasks |
+| Prompt tuning | 0.001% | None | Low | Very few-shot |
 
 ---
 

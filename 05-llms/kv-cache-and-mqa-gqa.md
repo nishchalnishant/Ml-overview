@@ -9,6 +9,8 @@ tags: [llms, ml, kv-cache-and-mqa-gqa]
 
 How Transformer inference memory scales and the architectures used to reduce it.
 
+> For GQA architecture basics and a PyTorch implementation in the context of the full transformer block, see [architecture-deep-dive.md § 3](architecture-deep-dive.md). This file covers the memory analysis, MLA (DeepSeek), prefix caching, and KV quantization in depth.
+
 ---
 
 ## 1. Standard Multi-Head Attention (MHA)

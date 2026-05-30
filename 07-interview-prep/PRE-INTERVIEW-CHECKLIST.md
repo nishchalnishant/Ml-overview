@@ -174,3 +174,62 @@ Within 1 hour of finishing:
 - [ ] For weak spots: add them to your study list, don't just move on
 
 This feedback loop compounds. The second interview is always easier than the first for the same reason the second time reading a paper is faster.
+
+---
+
+## Post-Offer — Salary Negotiation for ML Roles
+
+### Market Data First
+
+Never negotiate without data. Sources for ML compensation:
+
+- **levels.fyi** — the most accurate for total comp (TC) at large tech companies. Filter by level (L4/L5/L6), location, and YOE. TC = base + stock/4 + bonus.
+- **Glassdoor / Blind** — useful for directional data but noisier than levels.fyi. Use for companies not on levels.fyi.
+- **Competing offers** — the single most powerful negotiating tool. If you have one, use it. "I have a competing offer at $X TC" is worth more than any data source.
+
+### ML-Specific Compensation Structure
+
+ML roles at large companies are almost always equity-heavy:
+
+| Level | Typical TC range (Bay Area 2024–2025) | Stock/year (est.) |
+|-------|--------------------------------------|-------------------|
+| L4 (new grad, 2–3 YOE) | $200K–$280K | $60K–$120K |
+| L5 (senior, 4–7 YOE) | $280K–$420K | $120K–$200K |
+| L6 (staff/principal) | $400K–$600K+ | $200K–$400K |
+
+**Negotiate on stock, not just base.** Base salary has relatively little room (companies have salary bands). Equity grant, signing bonus, and accelerated vesting are where real movement happens.
+
+### The Negotiation Sequence
+
+**Step 1: Never accept on the spot.** "Thank you — I'd like to take some time to review the full offer. Can you give me until [date, 5–7 business days out]?" This is expected and costs you nothing.
+
+**Step 2: Get the full offer in writing.** Confirm: base salary, equity grant (shares or dollar value), vesting schedule (standard is 4-year with 1-year cliff), signing bonus, annual bonus target (%), benefits, start date.
+
+**Step 3: Research the number.** Use levels.fyi to find median TC for your level, location, and company. Know your target before you counter.
+
+**Step 4: Counter.** The standard counter is 10–20% above the offer on total comp. Anchoring: "Based on my research and a competing offer at $X, I was hoping we could get closer to $Y." You need a reason — data or a competing offer. "I just want more" is weak.
+
+**Step 5: If they can't move on base, move the conversation to equity and signing.** "I understand base is fixed at band. Could we look at an additional equity grant or a larger signing bonus to close the gap?"
+
+**Step 6: Get a revised offer in writing before ending the call.**
+
+### Negotiation Psychology
+
+- **Silence is your friend.** After making a counter, stop talking. The discomfort of silence causes people to fill it — often with concessions.
+- **Be specific.** "Can we do $350K TC?" is stronger than "I was hoping for more." A specific number anchors the conversation.
+- **Don't reveal your floor.** "What's the minimum you'd accept?" is a trap. Redirect: "I'm focused on getting to market rate for this level — levels.fyi shows $X is the median."
+- **Competing offers are not bluffs.** If you don't have a competing offer, don't pretend you do. If you do, reference it clearly.
+- **Don't over-negotiate.** Counter once, maybe twice. Repeatedly going back erodes goodwill and can retract the offer at small companies.
+
+### ML-Specific Leverage Points
+
+- **Specialized skills** — if you have production LLM experience, RL expertise, or large-scale ML systems experience, make this explicit. Specialized skills justify top-of-band.
+- **Competing offers from direct competitors** — a Meta offer at an Alphabet negotiation carries more weight than a random startup offer.
+- **Time constraints** — if you have another offer expiring, state the deadline professionally. It creates urgency without pressure tactics.
+- **Relocation** — if relocating, you can ask for a relocation package in addition to signing bonus.
+
+### What Not to Do
+
+- Don't disclose your current salary unless legally required. In many US states (CA, NY, WA, IL), employers cannot ask about past compensation.
+- Don't accept verbally and then negotiate further — that burns trust.
+- Don't negotiate if you plan to decline. Only negotiate if you would accept the revised offer.

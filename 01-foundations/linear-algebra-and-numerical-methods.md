@@ -418,6 +418,92 @@ In full fine-tuning, $W \in \mathbb{R}^{m \times n}$ changes by $\Delta W$ of ra
 
 The inverse $A^{-1}$ exists only for square, full-rank matrices and satisfies $AA^{-1} = I$. The pseudoinverse $A^+$ exists for any matrix: it is defined via SVD as $V\Sigma^+ U^\top$ where $\Sigma^+$ inverts non-zero singular values and zeroes out zero singular values. When $Ax = b$ has no solution ($b \notin \text{col}(A)$), $A^+ b$ gives the minimum-norm least-squares solution. You need it whenever you solve overdetermined systems (more equations than unknowns) — the exact scenario in fitting a linear model with MSE loss. Numerically, you should use `np.linalg.lstsq` rather than explicitly forming $A^+$, as it is more stable.
 
+---
+
+**Q8: Derive the normal equations for linear regression from a linear algebra perspective.**
+
+Minimize $\mathcal{L}(w) = \|Xw - y\|_2^2$ where $X \in \mathbb{R}^{n \times d}$, $y \in \mathbb{R}^n$, $w \in \mathbb{R}^d$.
+
+Expand: $\mathcal{L}(w) = (Xw - y)^\top(Xw - y) = w^\top X^\top X w - 2y^\top X w + y^\top y$.
+
+Take gradient and set to zero:
+$$\nabla_w \mathcal{L} = 2X^\top X w - 2X^\top y = 0$$
+$$\Rightarrow \quad X^\top X w = X^\top y \quad \text{(Normal Equations)}$$
+
+If $X^\top X$ is invertible (columns of $X$ are linearly independent): $w^* = (X^\top X)^{-1} X^\top y = X^+ y$.
+
+$X^\top X$ is invertible iff $X$ has full column rank ($n \geq d$ and no redundant features). If $X^\top X$ is singular: use the pseudoinverse for the minimum-norm solution, or add regularization: Ridge gives $(X^\top X + \lambda I)w = X^\top y$, and $X^\top X + \lambda I$ is always invertible for $\lambda > 0$.
+
+The condition number of $X^\top X$ is $\kappa(X^\top X) = \kappa(X)^2$ — squaring worsens it. This is why forming the normal equations explicitly is numerically inferior to solving via QR decomposition or SVD of $X$ directly.
+
+---
+
+**Q9: How does the Fisher information matrix relate to second-order optimization?**
+
+The **Fisher information matrix** for model parameters $\theta$ is:
+$$F(\theta) = \mathbb{E}_{p(x|\theta)}\left[\nabla_\theta \log p(x|\theta) \cdot \nabla_\theta \log p(x|\theta)^\top\right]$$
+
+Under mild regularity conditions, $F(\theta) = -\mathbb{E}[\nabla^2_\theta \log p(x|\theta)]$ — the Fisher information equals the negative expected Hessian of the log-likelihood. This means $F$ encodes the curvature of the loss landscape from a statistical perspective.
+
+**Natural gradient descent** preconditions the gradient by $F^{-1}$:
+$$\theta \leftarrow \theta - \alpha F(\theta)^{-1} \nabla_\theta \mathcal{L}$$
+
+This defines a steepest descent direction in the space of probability distributions (using KL divergence as the metric) rather than in parameter space. The natural gradient is invariant to reparameterization — if you change how you parameterize the model, the update direction in distribution space stays the same. Standard gradient descent is not invariant: a rescaled parameter gets a proportionally different update.
+
+**In practice:** $F$ is $d \times d$ and inverting it is $O(d^3)$ — infeasible for large networks. Approximations (K-FAC, diagonal Fisher, Gauss-Newton) make it tractable.
+
+**Connection to Newton's method:** Newton's method uses the true Hessian $H = \nabla^2 \mathcal{L}$. The Gauss-Newton method approximates $H \approx J^\top J$ (where $J$ is the Jacobian of the model output) — this approximation is always PSD, avoiding the issue of indefinite Hessians at saddle points. For models with a cross-entropy loss and softmax output, the Gauss-Newton matrix equals the Fisher information matrix.
+
+---
+
+**Q10: What is the relationship between SVD, PCA, and the covariance matrix eigendecomposition?**
+
+Given data matrix $X \in \mathbb{R}^{n \times d}$ (zero-mean, rows are samples):
+
+**Covariance matrix:** $C = \frac{1}{n}X^\top X \in \mathbb{R}^{d \times d}$. It is symmetric PSD with eigendecomposition $C = V\Lambda V^\top$.
+
+**SVD of $X$:** $X = U\Sigma V^\top$. Then:
+$$X^\top X = V\Sigma^\top U^\top U \Sigma V^\top = V \Sigma^\top \Sigma V^\top = V \text{diag}(\sigma_1^2,\ldots,\sigma_r^2) V^\top$$
+
+So the **right singular vectors $V$ of $X$ are exactly the eigenvectors of $X^\top X$** (and of $C$), and the eigenvalues are $\lambda_i = \sigma_i^2/n$.
+
+**PCA** projects data onto the top $k$ eigenvectors of $C$: $Z = XV_k$ where $V_k$ contains the $k$ leading columns of $V$. This is identical to keeping the top $k$ right singular vectors in the SVD of $X$.
+
+**Computational advice:** Never form $C = X^\top X$ explicitly before computing eigenvectors — this squares the condition number. Instead, run SVD directly on $X$ (or the centered $X$). `sklearn.decomposition.PCA` uses `scipy.linalg.svd` internally for this reason.
+
+**Proportion of variance explained by component $i$:** $\sigma_i^2 / \sum_j \sigma_j^2$. Plot the cumulative explained variance curve ("scree plot") to choose $k$.
+
+---
+
+## Computational Linear Algebra
+
+### Decompositions and When to Use Them
+
+| Decomposition | Form | Use | When matrix is |
+|--------------|------|-----|----------------|
+| LU | $A = LU$ | Solve $Ax=b$ | Square, general |
+| Cholesky | $A = LL^\top$ | Solve $Ax=b$ faster | Symmetric PSD |
+| QR | $A = QR$ | Least squares, eigenvalues | Any |
+| Eigendecomposition | $A = V\Lambda V^{-1}$ | PCA, power iteration | Square (symmetric: $V\Lambda V^\top$) |
+| SVD | $A = U\Sigma V^\top$ | Low-rank approx, pseudo-inverse, PCA | Any |
+
+**Cholesky** is 2× faster than LU for PSD matrices. If Cholesky fails (matrix not PD due to numerical error), add a small $\epsilon I$ jitter: $(A + \epsilon I)$ is guaranteed PD.
+
+**QR decomposition** for solving least squares $\min_x \|Ax - b\|_2$: decompose $A = QR$ (where $Q$ is orthogonal, $R$ is upper triangular), then solve $Rx = Q^\top b$ by back-substitution. Numerically preferred over normal equations because it does not square the condition number.
+
+### Computational Complexity Reference
+
+| Operation | Cost | Notes |
+|----------|------|-------|
+| Matrix-vector multiply | $O(mn)$ | $A \in \mathbb{R}^{m \times n}$; bandwidth-bound for small $n$ |
+| Matrix-matrix multiply | $O(mnk)$ | $A \in \mathbb{R}^{m \times k}$, $B \in \mathbb{R}^{k \times n}$ |
+| LU / Cholesky | $O(n^3)$ | For $n \times n$ matrix |
+| SVD (full) | $O(\min(m,n) \cdot mn)$ | Expensive; use truncated SVD for large matrices |
+| Truncated SVD (top $k$) | $O(kmn)$ | Lanczos/power iteration |
+| Eigendecomposition | $O(n^3)$ | Symmetric: faster via LAPACK's `dsyev` |
+
+**Dominant cost in transformers:** attention is $O(n^2 d)$ for sequence length $n$, hidden dim $d$. Each linear layer (QKV projection, FFN) is $O(nd^2)$. For long sequences ($n \gg d$), attention dominates. Flash Attention reduces attention memory to $O(n)$ via block-wise computation.
+
 ## Flashcards
 
 **Real eigenvalues (always)?** #flashcard

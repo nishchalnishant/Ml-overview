@@ -88,168 +88,29 @@ The same topic produces very different questions at different levels. Recognize 
 
 ## 4. ML Coding — What Must Be Automatic
 
-These must be writeable with zero hesitation. Each one has a numerical stability failure mode.
+These must be writeable with zero hesitation. Each one has a numerical stability failure mode. Full implementations with reasoning: [ml-coding-patterns.md](ml-coding-patterns.md).
 
-**Sigmoid + BCE loss — with the stability fix:**
-```python
-import numpy as np
+**The six patterns you must write from scratch:**
 
-def sigmoid(z):
-    # Clip prevents exp(-z) overflow for large negative z
-    return 1 / (1 + np.exp(-np.clip(z, -500, 500)))
+1. **Sigmoid + BCE loss** — numerically stable form: clip z before `exp` or branch on sign. BCE needs `eps` to prevent `log(0)`. See [ml-coding-patterns.md §3](ml-coding-patterns.md).
 
-def bce_loss(y_true, y_pred, eps=1e-7):
-    # eps prevents log(0) = -inf when y_pred ∈ {0, 1}
-    return -np.mean(
-        y_true * np.log(y_pred + eps) + (1 - y_true) * np.log(1 - y_pred + eps)
-    )
-```
+2. **Numerically stable softmax** — shift by `max(x)` before exponentiation. Invariance proof: `exp(x_i - c) / Σ exp(x_j - c) = exp(x_i) / Σ exp(x_j)`. See [ml-coding-patterns.md §1](ml-coding-patterns.md).
 
-**Numerically stable softmax — the invariance argument:**
-```python
-def softmax(x):
-    # Softmax is shift-invariant: softmax(x) = softmax(x - c)
-    # Proof: exp(x_i - c) / sum(exp(x_j - c)) = exp(x_i)/sum(exp(x_j))
-    # Set c = max(x): largest exponent is e^0 = 1, never overflows
-    x = x - x.max(axis=-1, keepdims=True)
-    e = np.exp(x)
-    return e / e.sum(axis=-1, keepdims=True)
-```
+3. **Precision / Recall / F1** — TP, FP, FN from scratch. Denominator guards for zero division. F1 = harmonic mean punishes P/R imbalance harder than arithmetic mean. See [ml-coding-patterns.md §5](ml-coding-patterns.md).
 
-**Precision, Recall, F1 — with correct denominators explained:**
-```python
-def prf1(y_true, y_pred, eps=1e-8):
-    tp = ((y_pred == 1) & (y_true == 1)).sum()
-    fp = ((y_pred == 1) & (y_true == 0)).sum()   # we said positive; it was negative
-    fn = ((y_pred == 0) & (y_true == 1)).sum()   # we said negative; it was positive
-    # Precision: of all our positive predictions, what fraction was correct?
-    p = tp / (tp + fp + eps)
-    # Recall: of all actual positives, what fraction did we catch?
-    r = tp / (tp + fn + eps)
-    # F1: harmonic mean — punishes extreme imbalance between P and R
-    f1 = 2 * p * r / (p + r + eps)
-    return p, r, f1
-```
+4. **Scaled dot-product attention** — `scores = Q @ K.T / sqrt(d_k)`, apply causal mask before softmax (`-1e9` for masked positions), then `weights @ V`. See [ml-coding-patterns.md §8](ml-coding-patterns.md).
 
-**Scaled dot-product attention:**
-```python
-def attention(Q, K, V, mask=None):
-    d_k = Q.shape[-1]
-    scores = Q @ K.transpose(0, 2, 1) / np.sqrt(d_k)   # (batch, seq_q, seq_k)
-    if mask is not None:
-        # Where mask is False, set to -1e9 → softmax assigns ~0 weight
-        scores = np.where(mask, scores, -1e9)
-    weights = softmax(scores)
-    return weights @ V
-```
+5. **K-Means E+M step** — E: `argmin` over centroid distances. M: mean of assigned points, keep old centroid if empty cluster. See [ml-coding-patterns.md §4](ml-coding-patterns.md).
 
-**K-Means — one full E-step + M-step:**
-```python
-def kmeans_step(X, centroids):
-    # Broadcasting: (n, 1, d) - (1, k, d) → (n, k, d) → norm → (n, k)
-    dists = np.linalg.norm(X[:, None] - centroids[None], axis=2)
-    labels = dists.argmin(axis=1)
-    new_centroids = np.array([
-        X[labels == j].mean(axis=0) if (labels == j).any() else centroids[j]
-        for j in range(len(centroids))
-    ])
-    return labels, new_centroids
-```
-
-**Gradient descent step with L2 regularization:**
-```python
-def gd_step(X, y, w, b, lr=0.01, lambda_=0.0):
-    n = len(y)
-    y_hat = sigmoid(X @ w + b)
-    # L2 gradient: adds lambda * w to ∂L/∂w
-    dw = (X.T @ (y_hat - y)) / n + lambda_ * w
-    db = (y_hat - y).mean()
-    return w - lr * dw, b - lr * db
-```
-
-**PyTorch training loop — the four common bugs and why they are bugs:**
-```python
-# Bug 1: Not zeroing gradients — PyTorch accumulates gradients by default.
-# Each backward() adds to the existing gradient. Without zero_grad(), you train
-# on the sum of all past batch gradients, not the current batch.
-optimizer.zero_grad()
-
-loss.backward()
-
-# Bug 2: Not clipping gradients before the step.
-# Gradient clipping must precede optimizer.step() to be effective.
-# Clipping after the step modifies weights that were already updated with bad gradients.
-nn.utils.clip_grad_norm_(model.parameters(), 1.0)
-
-optimizer.step()
-scheduler.step()
-
-# Inference: both lines are required for different reasons
-model.eval()           # mode: disables dropout, switches BN to use running statistics
-with torch.no_grad():  # memory: stops building the autograd computation graph
-    out = model(x)
-
-# Checkpoint: optimizer state is not optional
-torch.save({
-    "epoch": epoch,
-    "model": model.state_dict(),
-    "optimizer": optimizer.state_dict(),  # Adam's m and v buffers — lose these, lose momentum
-    "scheduler": scheduler.state_dict() if scheduler else None,
-    "val_loss": val_loss,
-}, "checkpoint.pt")
-```
+6. **PyTorch training loop bugs** — four bugs to know: (1) missing `zero_grad()` accumulates gradients; (2) gradient clipping must precede `optimizer.step()`; (3) inference requires both `model.eval()` (disables dropout/BN train mode) and `torch.no_grad()` (stops autograd graph); (4) checkpoint must include optimizer state — losing Adam's m/v buffers loses momentum. See [ml-coding-patterns.md §7](ml-coding-patterns.md).
 
 ---
 
 ## 5. ML System Design — Universal Structure
 
-Never start with a model. The model is the *last* thing you choose. These steps are not optional — skipping any one signals a specific blind spot.
+Never start with a model. The model is the *last* thing you choose. Full 10-step framework with worked examples: [ml-system-design.md](ml-system-design.md).
 
-```
-Step 1: Clarify the product goal
-    "What user action are we optimizing? Click, purchase, dwell time, safety flag?"
-    "Is this ranking, classification, generation, or anomaly detection?"
-    "What is the cost of FP vs FN in business terms?"
-
-Step 2: Define metrics — both layers
-    Online (business):  CTR, revenue/query, D7 retention, P99 latency
-    Offline (model):    AUC-ROC, NDCG@10, precision@K, perplexity
-    "What does success look like in a dashboard 30 days post-launch?"
-
-Step 3: State constraints explicitly
-    Latency SLA, QPS, memory budget, regulatory, team size, retraining cadence
-
-Step 4: Data and labels
-    Volume, freshness required, label quality, class balance
-    Where does ground truth come from? How delayed is it?
-    Training-serving skew risks?
-
-Step 5: Baseline first
-    Simplest thing that could work: popularity ranking, logistic regression, BM25
-    This is your control arm in the A/B test
-
-Step 6: Architecture — justified by constraints, not trends
-    Two-stage if item corpus > 1M: fast retrieval → slow ranking
-    Justify every architectural choice against a constraint
-
-Step 7: Feature pipeline
-    Real-time (Redis velocity features) vs batch (offline embeddings)
-    Where are transforms fit? Train data only — never on val/test
-
-Step 8: Serving
-    Batch (pre-compute offline) vs real-time (sub-200ms)
-    Caching strategy for repeated expensive lookups
-
-Step 9: Evaluation
-    A/B test design: primary metric, sample size calculation, duration, novelty effect
-    Temporal backtesting for ranking and time-sensitive systems
-
-Step 10: Monitoring + rollback
-    PSI on input features (> 0.25 = retrain trigger)
-    Prediction score distribution drift (> 2σ from 7-day baseline = alert)
-    Business KPI drop threshold → auto-rollback
-    Rollback plan defined before launch, tested quarterly
-```
+**Step summary:** Clarify goal → Metrics (offline + online) → Constraints (latency/QPS/budget) → Data + labels (freshness, delay, skew) → Baseline → Architecture (justify vs constraints) → Feature pipeline (real-time vs batch, fit on train only) → Serving (batch vs real-time, caching) → Evaluation (A/B design, backtesting) → Monitoring + rollback (PSI >0.25 = retrain, rollback defined before launch).
 
 **Signals that distinguish senior responses:**
 
@@ -356,6 +217,150 @@ The right answer to any tradeoff question is: "it depends on these factors, and 
 - [ ] Fraud detection pipeline (Redis velocity → rule engine → ML model → cost-aware threshold)
 - [ ] LLM serving stack (load balancer → vLLM → KV cache → streaming)
 - [ ] Temporal train/val/test split — why random splits fail for time-series
+
+---
+
+## 11. Company-Specific ML Interview Prep (FAANG)
+
+Each company has structural differences in how they evaluate ML candidates. Knowing the format in advance removes one source of uncertainty.
+
+### Meta (Facebook)
+
+**Format:** 2 coding rounds + 1 ML design + 1 behavioral (for L4+: 2 ML design rounds).
+
+**Coding:** LeetCode medium-hard on graphs, dynamic programming, and string manipulation. ML coding (from scratch): gradient descent, softmax, precision/recall. Meta tests implementation speed — you have ~35 minutes per problem.
+
+**ML Design:** The signature question is product-oriented: "Design the feed ranking system," "Design Ads CTR prediction," "Design a content moderation classifier." Meta expects you to start from business metrics (ranking by engagement, click-through rate, policy violations per mille), propose two-stage retrieval + ranking, and discuss feedback loop risks explicitly. Cold start, filter bubbles, and A/B testing design are all expected.
+
+**Known focus areas:**
+- Two-tower models for retrieval; GBDT (LightGBM) or wide-and-deep for ranking
+- Integrity ML: anomaly detection, graph-based abuse detection, content classifiers
+- Ads ML: calibration (prediction of P(click) must be calibrated, not just rank-ordered)
+- Real-time feature freshness: how stale can embeddings be? How do you handle recency?
+
+**Behavioral:** Meta's values are "Move Fast," "Focus on Long-Term Impact," "Be Direct," and "Build Social Value." Stories should show impact at scale. Avoid passive framing — "the team decided" is a red flag.
+
+---
+
+### Google / DeepMind
+
+**Format:** 4–5 rounds: 1–2 ML theory, 1–2 coding (algorithms + ML coding), 1 system design (ML or general), 1 behavioral/Googleyness.
+
+**Theory depth:** Google ML interviews go deeper on math than Meta or Amazon. Expect derivation-level questions: "Derive the gradient of cross-entropy with respect to logits," "Explain why Adam's bias correction is necessary in early steps," "What does the Fisher information matrix have to do with natural gradient descent?"
+
+**ML Design:** Google expects architectural justification against constraints more than any other company. "Why two-stage instead of single-stage? What QPS does the ranker need to handle? How does your monitoring trigger a rollback?" Google has a strong preference for candidates who acknowledge uncertainty and propose measurable validation checkpoints.
+
+**Known focus areas:**
+- Search ranking: LTR (Learning to Rank), NDCG, position bias correction, counterfactual evaluation
+- YouTube RecSys: watch-time optimization, serendipity vs relevance tradeoff, diversity
+- LLM safety and alignment (for research-adjacent roles)
+- Infrastructure: TensorFlow/JAX proficiency, TPU serving patterns
+
+**Coding:** Google uses custom OA and live interviews. Medium–hard algorithms. ML coding: attention from scratch, backprop through a custom layer, implementing a sampling strategy.
+
+---
+
+### Amazon / AWS
+
+**Format:** "Loop" interview: 5–7 rounds on the same day, each led by a different interviewer. Each interviewer owns a Leadership Principle (LP). One round is typically ML design, one is coding, the rest are behavioral anchored to LPs.
+
+**Leadership Principles:** Amazon cares about LPs as much as technical skill. For ML roles, the most tested: Customer Obsession (how did ML decisions affect user experience?), Dive Deep (show you understand your system's internals), Invent and Simplify (how did you reduce ML pipeline complexity?), Bias for Action (shipped something under uncertainty with a clear rollback plan).
+
+**ML Design:** More operations-oriented than Meta/Google. "Design a product recommendation system for Amazon," "Design a fraud detection system for Amazon Payments." Cost-benefit analysis of model complexity is expected: "Would a simpler model save $X in compute and lose $Y in revenue? What's the tradeoff?"
+
+**Known focus areas:**
+- Demand forecasting (DeepAR, LSTMs for time series)
+- Search ranking + personalization at Amazon scale
+- Fraud and abuse detection (cost-aware thresholds, online learning)
+- MLOps and SageMaker patterns for applied roles
+
+---
+
+### Apple
+
+**Format:** Multiple rounds, typically on-site over one or two days. Mix of ML theory, coding, and system design. Apple is more secretive about format than other companies — expect variability.
+
+**Character of questions:** Apple ML interviews tend toward applied rather than pure research. Expect questions like "How would you improve Siri's NLU?" or "How would you reduce latency in our on-device model?" Privacy is a genuine first-class concern — on-device ML, federated learning, and differential privacy appear more at Apple than elsewhere.
+
+**Known focus areas:**
+- On-device inference optimization: quantization, distillation, CoreML
+- Federated learning and privacy-preserving ML (differential privacy, secure aggregation)
+- Siri and NLP: intent classification, dialogue management, ASR pipelines
+- Computer vision: Face ID, photo organization, object detection on mobile
+
+**Coding:** Expect both algorithms and ML coding. Proficiency with Swift/CoreML is a plus for applied roles.
+
+---
+
+### Microsoft / Azure ML
+
+**Format:** 4–5 rounds: coding, ML design, behavioral. For research roles, may include a presentation or paper discussion.
+
+**Character:** Microsoft ML roles span a wide range — Azure ML platform, Bing search, Copilot/LLM integration, and gaming (Xbox). Interview flavor depends heavily on the team. Platform and infrastructure roles weight MLOps and system reliability heavily. Product-facing roles weight user impact and A/B testing.
+
+**Known focus areas:**
+- Azure ML + MLflow: model registry, pipeline design, experiment tracking
+- Responsible AI: fairness metrics, bias detection, model cards
+- OpenAI partnership roles: LLM fine-tuning, RLHF, RAG architecture
+- Bing ranking: query understanding, LTR, relevance evaluation
+
+**Behavioral:** Microsoft uses "Situation, Task, Action, Result" with emphasis on collaboration and "growth mindset" (not just what you did, but what you learned).
+
+---
+
+### General Cross-Company Patterns
+
+| Dimension | Meta | Google | Amazon | Apple | Microsoft |
+|-----------|------|--------|--------|-------|-----------|
+| LP/Values emphasis | High | Medium | Very high | Low | Medium |
+| Theory depth | Medium | High | Low | Medium | Medium |
+| System design weight | High | High | High | Medium | High |
+| Coding difficulty | Medium-Hard | Hard | Medium | Medium | Medium |
+| Production/ops focus | High | Medium | High | Very high (on-device) | High |
+| Privacy/ethics topics | Medium | Medium | Low | Very high | High |
+
+**Tips that apply to all:**
+- Never say "we used X model" without a justification grounded in constraints. Always: "we chose X over Y because of constraint Z."
+- At L5+, the bar is whether you can define the problem more sharply than the interviewer stated it. Reframe is a senior signal.
+- Interviewers take notes on what you say without prompting (cold start, rollback, feedback loops) vs what you say only when asked. The former is the senior bar.
+
+---
+
+## 12. Take-Home Case Study Tips
+
+Take-home assignments are common at L4+ and for applied scientist roles. They are treated differently from live interviews — the bar is higher because you have time, but the evaluation is also more revealing.
+
+### What Evaluators Actually Look For
+
+Take-homes are not about perfection. They test:
+1. **Problem framing** — did you identify the actual business problem, not just run models on the data?
+2. **Evaluation rigor** — did you choose metrics appropriate to the problem, or did you optimize accuracy on a balanced holdout?
+3. **Tradeoff awareness** — did you acknowledge what your approach can't do?
+4. **Reproducibility** — can the evaluator reproduce your results in under 5 minutes?
+5. **Communication** — can you explain technical choices to a non-ML reader in a 3-line summary?
+
+### Structured Approach
+
+**Step 1: Understand the evaluation criteria before writing code.** Read the instructions twice. Identify: what success metric do they care about? Is there a class imbalance trap? Is there a temporal aspect that would invalidate random splits?
+
+**Step 2: Establish a strong baseline first.** A logistic regression or random forest baseline that works correctly is worth more than a neural net that barely beats it. Evaluators are checking whether you understand why the baseline fails before you improve on it.
+
+**Step 3: Make your EDA communicate.** Limit EDA to 3–5 plots that directly inform modeling decisions. "Class distribution → chose PR-AUC over accuracy." "Feature X has 40% missing rate → imputation strategy." Plot only what changed your decisions.
+
+**Step 4: Explicitly justify every modeling choice.** Don't just try things. State: "I chose LightGBM over logistic regression because the relationship between `user_age` and `churn` is non-monotonic (shown in EDA §2), and LightGBM handles this without manual feature engineering."
+
+**Step 5: Discuss what you'd do next, with priorities.** "With more time, I'd: (1) add temporal cross-validation because train/test split may have leakage on daily aggregated features, (2) tune the threshold using cost matrix C_FP=1, C_FN=5 rather than default 0.5, (3) add a SHAP analysis to validate that model decisions are driven by business-meaningful features."
+
+### Common Take-Home Mistakes
+
+- **Data leakage from the future** — joining on a timestamp without respecting point-in-time correctness. Features computed from events that happen after the label timestamp inflate model performance and fail in production.
+- **Optimizing AUC when the task is threshold-sensitive** — if the deliverable is a classifier, report precision and recall at your chosen threshold, not just AUC.
+- **Over-engineering** — a neural network where logistic regression would work equally well signals poor judgment, not skill.
+- **No uncertainty quantification** — state confidence intervals or standard deviations on your metrics. A model that achieves 0.82 AUC with std 0.08 across folds is not better than 0.80 with std 0.01.
+- **Not checking for class imbalance** — always report class counts in your EDA. Missing this is a top-5 automatic disqualifier.
+- **Notebooks that require manual cell ordering** — use `Run All` on a clean kernel as your final check. If it fails, it fails the evaluator too.
+
+---
 
 ## Flashcards
 

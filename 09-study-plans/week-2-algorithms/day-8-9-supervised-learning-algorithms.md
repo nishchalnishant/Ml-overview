@@ -18,6 +18,7 @@ Week 1 established the vocabulary: what learning is, how data should look before
 | Algorithm | Logic | Strength | Weakness |
 |-----------|-------|----------|----------|
 | **k-NN** | Proximity ($k$ neighbors) | Lazy learner, simple | High memory, slow inference |
+| **Decision Tree** | Greedy split on impurity | Interpretable, handles mixed types | High variance, prone to overfitting |
 | **SVM** | Wide-margin separation | Kernel trick, non-linear | Hard to tune, slow training |
 | **Random Forest** | Bagging (Parallel Trees) | Low variance, robust | High memory, black box |
 | **XGBoost/GBM** | Boosting (Sequential) | State-of-the-art accuracy | Prone to overfitting |
@@ -36,7 +37,30 @@ Week 1 established the vocabulary: what learning is, how data should look before
 
 ---
 
-## 2. Support Vector Machines (SVM)
+## 2. Decision Trees
+
+**Why decision trees come before SVMs and ensembles:** Decision trees are the base learner for the most practically important ensemble methods (Random Forest and XGBoost). You cannot understand why random feature selection decorrelates trees, or why boosting focuses on residuals, without first understanding how a single tree splits.
+
+A decision tree partitions the feature space by greedily finding the split at each node that most reduces an impurity measure.
+
+**Impurity Measures:**
+
+- **Gini Impurity**: $G = 1 - \sum_k p_k^2$ — measures the probability of misclassifying a randomly chosen element if it were labeled randomly according to the class distribution. Range: [0, 0.5] for binary classification.
+- **Entropy**: $H = -\sum_k p_k \log_2 p_k$ — information-theoretic measure of disorder. Range: [0, 1] for binary classification.
+
+**Key insight:** Gini and entropy almost always produce the same tree in practice. They differ slightly in how they weight extreme distributions: entropy penalizes impure nodes more at the extremes. The practical difference in final accuracy is negligible — the more important question is how you control tree depth through `max_depth`, `min_samples_leaf`, and `min_impurity_decrease`.
+
+**How to verify understanding:** A node has 80 positive and 20 negative examples. Compute its Gini impurity and entropy. A candidate split produces two children: [70+, 5-] and [10+, 15-]. Does this split improve Gini? Walk through the weighted calculation.
+
+**What trips people up:** Thinking that decision trees are "bad" because they overfit. An unpruned deep tree has near-zero training error — but this property is exactly why they are useful as high-variance base learners for ensemble methods. The goal of a single tree and the goal of a tree in a Random Forest are different. For a single tree, control depth. For a Forest, let trees be deep and control ensemble diversity.
+
+**Pruning:**
+- **Pre-pruning (early stopping)**: Set `max_depth`, `min_samples_split`, `min_samples_leaf` to stop splitting early. Adds bias to reduce variance.
+- **Post-pruning (cost-complexity pruning)**: Grow the full tree, then remove subtrees that don't improve generalization on a validation set. Sklearn's `ccp_alpha` implements this.
+
+---
+
+## 3. Support Vector Machines (SVM)
 
 **Why SVM illustrates a fundamental insight other algorithms don't:** Linear models find *any* separating hyperplane. SVM finds the *maximum-margin* hyperplane. This is a different inductive bias — SVM argues that the hyperplane furthest from both classes is the one most likely to generalize. This geometric intuition is worth internalizing regardless of whether you use SVMs in practice.
 
@@ -54,7 +78,7 @@ The goal is to find a hyperplane that maximizes the **margin** between classes.
 
 ---
 
-## 3. Ensemble Methods: The "Wisdom of the Crowd"
+## 4. Ensemble Methods: The "Wisdom of the Crowd"
 
 **Why ensembles are the dominant approach in production:** Single models overfit or underfit. Combining many models reduces one or both types of error. The key is that two sources of error — variance and bias — respond to different ensemble strategies. Knowing which your model suffers from determines which ensemble approach to use.
 
@@ -111,6 +135,15 @@ xgb = XGBClassifier(learning_rate=0.1, n_estimators=1000, early_stopping_rounds=
 ```
 
 ## Flashcards
+
+**Gini Impurity?** #flashcard
+$G = 1 - \sum_k p_k^2$. Probability of misclassifying a randomly chosen element. Range [0, 0.5] for binary classification.
+
+**Entropy (decision tree)?** #flashcard
+$H = -\sum_k p_k \log_2 p_k$. Information-theoretic impurity measure. Range [0, 1] for binary classification.
+
+**Pre-pruning vs. Post-pruning?** #flashcard
+Pre-pruning: stop splitting early via max_depth/min_samples_leaf. Post-pruning: grow full tree then remove subtrees that don't improve validation performance.
 
 **Hard Margin?** #flashcard
 Assumes linear separability.

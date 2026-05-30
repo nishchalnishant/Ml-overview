@@ -520,6 +520,40 @@ Simply adjusting for observed user characteristics (regression) controls for mea
 
 ---
 
+## Python Data Science Stack
+
+Understanding which library to reach for — and why — separates fluent practitioners from people who know the API.
+
+### Library Map
+
+| Library | Role | When to use |
+| :--- | :--- | :--- |
+| **numpy** | N-dimensional arrays; vectorized math | Any numerical computation on arrays; foundation of everything else |
+| **pandas** | Labeled tabular data | Data loading, cleaning, aggregation, joins on heterogeneous datasets |
+| **scipy** | Statistical tests, optimization, signal processing | Hypothesis tests, fitting distributions, numerical integration |
+| **statsmodels** | Statistical models with inference output | OLS/GLM with p-values and CIs, time series (ARIMA), survival models |
+| **scikit-learn** | ML models, preprocessing, pipelines | Classification, regression, clustering, cross-validation |
+| **matplotlib** | Low-level plotting | Full control over chart appearance; base layer for other libraries |
+| **seaborn** | Statistical plotting built on matplotlib | Distribution plots, categorical comparisons, heatmaps with less code |
+| **plotly** | Interactive charts | Dashboards, presentations where the audience needs to hover/zoom |
+
+### Decision Rules
+
+- **For statistical tests with p-values**: `scipy.stats` for two-sample tests; `statsmodels` for regression inference (you need the `.summary()` table).
+- **For model building**: `scikit-learn` for predictive models; `statsmodels` when you need coefficient standard errors and hypothesis tests on model parameters.
+- **For plots**: use `seaborn` for fast, high-quality statistical charts; drop to `matplotlib` to fine-tune axes, fonts, annotations, or subplots.
+- **numpy vs. pandas**: use numpy directly when you have homogeneous numeric arrays and don't need column names (e.g., matrix operations). Use pandas when you have mixed types, need labeling, or are doing groupby/merge operations.
+
+### Knowing When to Stop Using Pandas
+
+Pandas loads data into RAM as a single in-memory object. It breaks when:
+- Dataset exceeds ~70% of available RAM.
+- You need lazy evaluation (computations before materializing the result).
+
+Alternatives: **Polars** (10-100x faster than pandas on modern hardware via columnar storage and Rust implementation; use for datasets that fit in RAM but are slow in pandas), **DuckDB** (in-process SQL engine; runs SQL directly on parquet/CSV without a server; best for analytical queries on files), **PySpark** (distributed; use only when the dataset genuinely doesn't fit on one machine).
+
+---
+
 ## Python and Pandas Patterns
 
 ### What the interviewer is actually testing

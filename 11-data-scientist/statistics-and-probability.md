@@ -514,6 +514,330 @@ Each assumption is listed alongside what *breaks* when it is violated:
 
 ---
 
+## 10. Effect Size Measures
+
+**The problem**: statistical significance tells you whether an effect exists given your sample size. It does not tell you whether the effect is meaningful. A test with 10 million users will produce p < 0.05 for a 0.001% difference that nobody cares about. You need a separate measure of *magnitude*, independent of sample size.
+
+---
+
+### Cohen's d (continuous outcomes)
+
+- **Why it exists**: standardizes the difference between two group means in units of standard deviations, making effects comparable across different scales and studies.
+- **The formula**: $d = \frac{\bar{x}_1 - \bar{x}_2}{s_p}$ where $s_p = \sqrt{\frac{(n_1-1)s_1^2 + (n_2-1)s_2^2}{n_1+n_2-2}}$ is the pooled standard deviation.
+- **Interpretation benchmarks** (Cohen's conventions): small = 0.2, medium = 0.5, large = 0.8. These are rough; domain knowledge trumps conventions.
+- **Glass's delta**: alternative when group variances differ substantially — use only the control group's SD in the denominator: $\Delta = (\bar{x}_1 - \bar{x}_2) / s_{\text{control}}$. Preferred in intervention studies where treatment may change variance.
+- **Hedges' g**: small-sample correction to Cohen's d: multiply by $1 - 3/(4(n_1+n_2)-9)$. Preferred when $n < 20$ per group.
+- **What breaks**: Cohen's d assumes approximately normal distributions. For heavily skewed data, rank-based alternatives (Cliff's delta, common language effect size) are more appropriate.
+
+---
+
+### Cramér's V (categorical outcomes)
+
+- **Why it exists**: chi-squared statistic depends on sample size — a massive table with a trivial association produces significant chi-squared. You need a normalized version.
+- **The formula**: $V = \sqrt{\frac{\chi^2}{n \cdot \min(r-1, c-1)}}$ where $r$ = rows, $c$ = columns, $n$ = total observations. Ranges $[0, 1]$ where 0 = no association and 1 = perfect association.
+- **Interpretation benchmarks** (df = min(r,c)-1 = 1): small ≈ 0.10, medium ≈ 0.30, large ≈ 0.50.
+- **What breaks**: Cramér's V is biased upward for small samples. The bias-corrected version should be used when cell counts are small.
+
+---
+
+### Odds Ratio and Relative Risk (binary outcomes)
+
+- **Why both exist**: for binary outcomes (conversion, click, purchase) you have two choices — relative risk is more intuitive, odds ratio is the output of logistic regression.
+- **Relative Risk** (Risk Ratio): $RR = p_1 / p_2$ — how many times more likely the outcome is in group 1 vs. group 2. RR = 1.5 means 50% more likely. Directly interpretable.
+- **Odds Ratio**: $OR = \frac{p_1/(1-p_1)}{p_2/(1-p_2)}$ — ratio of odds (not probabilities). When baseline rates are low ($p < 0.10$), OR ≈ RR. When baseline rates are high, OR overstates the relative risk.
+- **When OR diverges from RR**: if control has 50% conversion and treatment has 70%, $RR = 1.4$ but $OR = (0.70/0.30)/(0.50/0.50) = 2.33$. The OR makes the effect sound much larger.
+- **Number Needed to Treat (NNT)**: $NNT = 1/|p_1 - p_2|$ — how many people must be treated for one additional success. Clinically interpretable.
+
+---
+
+### Practical vs. Statistical Significance
+
+- **The distinction**: statistical significance tests whether the effect is distinguishable from zero given the data. Practical significance asks whether the effect is large enough to care about.
+- **Rule of thumb**: always report both the p-value (did we detect an effect?) and the effect size (is it worth acting on?). In A/B testing, define the Minimum Detectable Effect (MDE) *before* running the experiment — if your pre-specified MDE is 5% and you observe 0.3%, declare no practically significant effect even if $p < 0.05$.
+- **Confidence intervals over p-values**: a 95% CI on the effect size tells you both the direction, magnitude, and uncertainty simultaneously — more informative than a binary p < 0.05 declaration.
+
+---
+
+## 11. Implementation Patterns: numpy, scipy, and statsmodels
+
+**Purpose**: reference implementations for the statistical procedures described above. All patterns assume `import numpy as np`, `from scipy import stats`, and `import statsmodels.api as sm`.
+
+---
+
+### Descriptive Statistics
+
+```python
+import numpy as np
+from scipy import stats
+
+x = np.array([...])  # your data
+
+# Central tendency
+np.mean(x)
+np.median(x)
+stats.mode(x).mode[0]          # most frequent value
+
+# Spread
+np.std(x, ddof=1)              # sample std (ddof=1 for Bessel's correction)
+np.var(x, ddof=1)              # sample variance
+np.percentile(x, [25, 50, 75]) # quartiles
+stats.iqr(x)                   # interquartile range
+
+# Shape
+stats.skew(x)                  # skewness; >0 right-skewed, <0 left-skewed
+stats.kurtosis(x)              # excess kurtosis; >0 heavier tails than Normal
+
+# Robust statistics
+stats.median_abs_deviation(x)  # MAD; robust measure of spread
+
+# Correlation
+np.corrcoef(x, y)              # Pearson; returns 2x2 matrix
+stats.pearsonr(x, y)           # returns (r, p-value)
+stats.spearmanr(x, y)          # returns (rho, p-value); rank-based
+stats.kendalltau(x, y)         # returns (tau, p-value); concordant pairs
+```
+
+---
+
+### Normality Tests
+
+```python
+# Shapiro-Wilk: best for n < 50
+stat, p = stats.shapiro(x)
+# p < 0.05 → reject normality
+
+# D'Agostino-Pearson: combines skewness and kurtosis tests; good for n > 50
+stat, p = stats.normaltest(x)
+
+# Kolmogorov-Smirnov: compare against theoretical normal
+stat, p = stats.kstest(x, 'norm', args=(np.mean(x), np.std(x)))
+# Note: KS is conservative; use Lilliefors correction for estimated parameters
+
+# Q-Q plot (visual check)
+import matplotlib.pyplot as plt
+fig = stats.probplot(x, dist="norm", plot=plt)
+plt.show()
+```
+
+---
+
+### Two-Sample Tests (A/B Testing)
+
+```python
+# Welch's t-test (unequal variances — preferred over Student's)
+t_stat, p_value = stats.ttest_ind(group_a, group_b, equal_var=False)
+
+# Paired t-test (before/after, same users)
+t_stat, p_value = stats.ttest_rel(before, after)
+
+# One-sample t-test (compare to a benchmark)
+t_stat, p_value = stats.ttest_1samp(x, popmean=0.05)
+
+# Mann-Whitney U (non-parametric alternative to Welch's t)
+# Use when: non-normal distributions, ordinal outcomes, small n
+u_stat, p_value = stats.mannwhitneyu(group_a, group_b, alternative='two-sided')
+
+# Wilcoxon signed-rank (non-parametric paired test)
+stat, p_value = stats.wilcoxon(before, after)
+
+# Two-sample KS test: tests whether two samples come from the same distribution
+# Use when: you care about the full distribution, not just means
+ks_stat, p_value = stats.ks_2samp(group_a, group_b)
+```
+
+---
+
+### Proportions and Chi-Squared Tests
+
+```python
+# Chi-squared test of independence (categorical variables)
+from scipy.stats import chi2_contingency
+chi2, p, dof, expected = chi2_contingency(contingency_table)
+
+# Cramér's V (effect size for chi-squared)
+def cramers_v(chi2, n, r, c):
+    return np.sqrt(chi2 / (n * min(r - 1, c - 1)))
+
+n = contingency_table.sum()
+r, c = contingency_table.shape
+v = cramers_v(chi2, n, r, c)
+
+# Two-proportion z-test (A/B test for conversion rates)
+from statsmodels.stats.proportion import proportions_ztest, proportion_confint
+
+count = np.array([conversions_a, conversions_b])
+nobs = np.array([n_a, n_b])
+z_stat, p_value = proportions_ztest(count, nobs)
+
+# Fisher's exact test (small samples, 2x2 table only)
+odds_ratio, p_value = stats.fisher_exact([[a, b], [c, d]])
+```
+
+---
+
+### Effect Size Calculations
+
+```python
+# Cohen's d
+def cohens_d(x1, x2):
+    n1, n2 = len(x1), len(x2)
+    pooled_std = np.sqrt(
+        ((n1-1)*np.var(x1, ddof=1) + (n2-1)*np.var(x2, ddof=1)) / (n1+n2-2)
+    )
+    return (np.mean(x1) - np.mean(x2)) / pooled_std
+
+d = cohens_d(group_a, group_b)
+# Interpretation: 0.2 small, 0.5 medium, 0.8 large
+
+# Glass's delta (use control SD only)
+def glass_delta(treatment, control):
+    return (np.mean(treatment) - np.mean(control)) / np.std(control, ddof=1)
+
+# Relative risk and odds ratio (binary outcomes)
+def effect_sizes_binary(p1, p2):
+    rr = p1 / p2
+    or_ = (p1 / (1 - p1)) / (p2 / (1 - p2))
+    nnt = 1 / abs(p1 - p2)
+    return {'relative_risk': rr, 'odds_ratio': or_, 'nnt': nnt}
+```
+
+---
+
+### ANOVA and Multiple Groups
+
+```python
+# One-way ANOVA: test whether any group means differ
+f_stat, p_value = stats.f_oneway(group1, group2, group3)
+# p < 0.05 → at least one group differs; run post-hoc to find which
+
+# Kruskal-Wallis (non-parametric ANOVA)
+h_stat, p_value = stats.kruskal(group1, group2, group3)
+
+# Post-hoc: Tukey HSD (pairwise comparisons after ANOVA)
+from statsmodels.stats.multicomp import pairwise_tukeyhsd
+import pandas as pd
+
+data = np.concatenate([group1, group2, group3])
+labels = ['g1']*len(group1) + ['g2']*len(group2) + ['g3']*len(group3)
+result = pairwise_tukeyhsd(data, labels, alpha=0.05)
+print(result.summary())
+```
+
+---
+
+### Multiple Testing Corrections
+
+```python
+from statsmodels.stats.multitest import multipletests
+
+p_values = [0.01, 0.04, 0.20, 0.03, 0.15]  # raw p-values from multiple tests
+
+# Bonferroni: divide alpha by number of tests (conservative)
+reject, p_corrected, _, _ = multipletests(p_values, alpha=0.05, method='bonferroni')
+
+# Benjamini-Hochberg FDR (less conservative; controls false discovery rate)
+reject, p_corrected, _, _ = multipletests(p_values, alpha=0.05, method='fdr_bh')
+
+# Holm-Bonferroni (step-down; uniformly more powerful than Bonferroni)
+reject, p_corrected, _, _ = multipletests(p_values, alpha=0.05, method='holm')
+
+# reject[i] = True if test i remains significant after correction
+```
+
+---
+
+### Confidence Intervals
+
+```python
+# CI for a mean (t-interval; works for any n)
+n = len(x)
+mean = np.mean(x)
+se = stats.sem(x)  # standard error = std / sqrt(n)
+ci_low, ci_high = stats.t.interval(0.95, df=n-1, loc=mean, scale=se)
+
+# CI for a proportion (Wilson score interval — more accurate than normal approx)
+from statsmodels.stats.proportion import proportion_confint
+ci_low, ci_high = proportion_confint(conversions, n_obs, alpha=0.05, method='wilson')
+
+# Bootstrap CI (distribution-free; use for any statistic)
+def bootstrap_ci(data, statistic=np.mean, n_boot=10000, ci=0.95):
+    boot_stats = [
+        statistic(np.random.choice(data, size=len(data), replace=True))
+        for _ in range(n_boot)
+    ]
+    alpha = 1 - ci
+    return np.percentile(boot_stats, [100*alpha/2, 100*(1-alpha/2)])
+
+ci = bootstrap_ci(x, statistic=np.median)  # CI for median
+```
+
+---
+
+### Power Analysis
+
+```python
+from statsmodels.stats.power import TTestIndPower, NormalIndPower
+from statsmodels.stats.proportion import proportion_effectsize
+
+# t-test power analysis
+analysis = TTestIndPower()
+
+# Solve for sample size given effect size, power, alpha
+n = analysis.solve_power(effect_size=0.5,    # Cohen's d
+                          power=0.80,
+                          alpha=0.05,
+                          alternative='two-sided')
+print(f"Required n per group: {int(np.ceil(n))}")
+
+# Solve for power given sample size
+power = analysis.solve_power(effect_size=0.3, nobs1=200, alpha=0.05)
+
+# For proportions (A/B test conversion rate)
+p1, p2 = 0.05, 0.06  # baseline and expected lift
+es = proportion_effectsize(p1, p2)  # Cohen's h effect size
+n = NormalIndPower().solve_power(effect_size=es, power=0.80, alpha=0.05)
+print(f"Required n per variant: {int(np.ceil(n))}")
+```
+
+---
+
+### Regression with statsmodels (inference-focused)
+
+```python
+import statsmodels.api as sm
+
+# OLS with full inference output
+X = sm.add_constant(df[['x1', 'x2', 'x3']])  # add intercept column
+y = df['outcome']
+model = sm.OLS(y, X).fit()
+print(model.summary())
+# Output: coefficients, SEs, t-stats, p-values, CIs, R², F-stat
+
+# Heteroscedasticity-robust standard errors (HC3)
+model_robust = sm.OLS(y, X).fit(cov_type='HC3')
+
+# Clustered standard errors (e.g., users within markets)
+model_clustered = sm.OLS(y, X).fit(
+    cov_type='cluster', cov_kwds={'groups': df['market_id']}
+)
+
+# Breusch-Pagan test for heteroscedasticity
+from statsmodels.stats.diagnostic import het_breuschpagan
+lm_stat, lm_p, f_stat, f_p = het_breuschpagan(model.resid, X)
+# p < 0.05 → heteroscedasticity present; use robust SEs
+
+# VIF for multicollinearity
+from statsmodels.stats.outliers_influence import variance_inflation_factor
+import pandas as pd
+vif_data = pd.DataFrame({
+    'feature': X.columns,
+    'VIF': [variance_inflation_factor(X.values, i) for i in range(X.shape[1])]
+})
+# VIF > 10: severe multicollinearity; VIF > 5: moderate
+```
+
+---
+
 ## Canonical Interview Q&As
 
 **Q: Explain the central limit theorem and why it's the foundation of most A/B test analysis.**

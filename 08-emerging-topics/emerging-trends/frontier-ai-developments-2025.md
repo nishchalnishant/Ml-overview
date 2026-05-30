@@ -13,6 +13,8 @@ Key technical developments across multimodal AI, long-context architectures, mod
 
 ## 1. Multimodal Foundation Models
 
+> For full CLIP math, BLIP-2/Q-Former architecture, LLaVA, VQ-VAE, and audio/video tokenization, see [multimodal-architectures.md](multimodal-architectures.md). This section focuses on native vs bolt-on fusion and 2025-specific frontier capabilities.
+
 ### Native vs Bolt-On Multimodality
 
 **Bolt-on (old approach)**: take a pretrained language model, add a vision encoder (ViT), project image embeddings into the language model's embedding space via a linear layer. The language model was never trained with images — it sees image tokens as weird text tokens.
@@ -51,6 +53,8 @@ Current limits: still weak at precise counting (>7 objects), fine-grained text i
 
 ## 2. Long-Context Architectures
 
+> For full Flash Attention tiling algorithm, Ring Attention, and YaRN/LongRoPE derivations, see [README.md Section 4](README.md#4-long-context-and-efficient-attention). This section focuses on architectural choices for 1M+ context windows.
+
 ### The Problem at 1M+ Tokens
 
 Standard attention is O(n²) in sequence length. At 1M tokens:
@@ -81,17 +85,9 @@ Llama 4 Scout: 10M token context window using this approach. Most practical long
 
 ### State Space Models (Mamba)
 
-Alternative to transformers — replaces attention with a selective state space that compresses the entire history into a fixed-size hidden state. True O(n) inference instead of O(n²).
+Alternative to transformers — replaces attention with a selective state space that compresses the entire history into a fixed-size hidden state. True O(n) inference instead of O(n²). A, B, C change per-token (selective SSM can choose what to remember). **Hybrid models (Jamba, Zamba)** alternate Mamba layers with transformer attention layers — ~90% of transformer quality at 3-4× throughput on long sequences.
 
-```
-Mamba: h_t = A·h_{t-1} + B·x_t     (hidden state update — linear recurrence)
-       y_t = C·h_t                   (output)
-       A, B, C are input-dependent (selective) — not fixed like an RNN
-```
-
-The key innovation: A, B, C change per-token (the "selective" SSM can choose what to remember). Standard RNNs have fixed A — can't selectively compress information.
-
-**Hybrid models (Jamba, Zamba)**: alternate Mamba layers with transformer attention layers. Get Mamba's efficiency for long sequences with transformer's in-context learning for short-range reasoning. Achieves ~90% of transformer quality at 3-4× throughput on long sequences.
+> Full SSM derivation (HiPPO matrix, ZOH discretization, S4 DPLR, Mamba hardware scan, RWKV, Jamba): [state-space-models.md](state-space-models.md)
 
 ---
 
@@ -216,21 +212,68 @@ INT4 quantization (4-bit weights) reduces memory 8× with ~1-3% quality loss. En
 
 ## 7. AI in Scientific Discovery
 
-### AlphaFold 3 (2024)
-Predicts 3D structure of any biomolecule (not just proteins): proteins, DNA, RNA, small molecules, and their complexes. Structure determines function — knowing how a drug molecule binds to a protein target enables faster drug discovery.
+### AlphaFold 3 (2024) — Biomolecular Structure
 
-AlphaFold 3 is a diffusion model that generates 3D atomic coordinates. Its diffusion process works in 3D coordinate space rather than image pixel space.
+AlphaFold 2 (2021) solved protein structure prediction. AlphaFold 3 extends to any biomolecular complex: proteins, DNA, RNA, small molecules, ions — and crucially, their interactions. Structure determines function — knowing how a drug molecule docks into an active site enables rational drug design.
+
+**Architecture shift:** AlphaFold 2 used an Evoformer (specialized transformer on multiple sequence alignments). AlphaFold 3 replaces the final structure prediction head with a **diffusion module** that generates 3D atomic coordinates directly. The diffusion process denoises random 3D coordinate clouds conditioned on the learned representation.
+
+```
+Input: protein sequence + ligand SMILES + cofactors
+→ Pairformer (replaces Evoformer): learns pairwise residue/atom representations
+→ Diffusion module: x_T ~ N(0,I) in R^{3N}
+   for t = T → 0:
+     x_{t-1} = denoise(x_t, t, representation)
+→ Output: 3D coordinates of all atoms + confidence (pLDDT per atom)
+```
+
+Performance: beats AlphaFold 2 on proteins, achieves 76% accuracy on protein-ligand docking (vs 52% for prior methods). Available via the AlphaFold Server for non-commercial use.
+
+### Protein Language Models (ESM-2, ESMFold, ProteinMPNN, ProGen)
+
+**ESM-2 / ESMFold (Meta, 2022–2023):** A transformer trained on 250M protein sequences. ESMFold achieves near-AlphaFold 2 accuracy without multiple sequence alignment, running 60× faster (seconds vs minutes per structure). 650M–15B parameter transformer, predicts structure from a single sequence.
+
+**ProteinMPNN (2022):** Inverse folding — given a 3D backbone structure, generate amino acid sequences that would fold to that shape. Enables protein design: specify desired geometry, generate candidate sequences. Achieves 52% native sequence recovery (vs ~5% random baseline).
+
+**ProGen (Salesforce, 2023):** Generative protein LM trained on 280M sequences. Generates novel functional proteins by conditioning on a functional tag (e.g., `[lysozyme]MKVL...`). Generated enzymes experimentally validated to be catalytically active.
+
+### RFDiffusion — De Novo Protein Design
+
+RFDiffusion (Baker Lab, 2022) generates novel protein backbone structures via diffusion — designing proteins with a target function rather than predicting known ones.
+
+```
+Forward: add noise to backbone torsion angles (φ, ψ, ω)
+Reverse: denoise conditioned on binding target geometry / symmetry constraints
+```
+
+Successfully designed: binders to influenza hemagglutinin, symmetric protein cages (120-mers). Wet-lab validation rate ~20–40%, far exceeding traditional computational design.
+
+### GNoME — Materials Science (Google DeepMind, 2023)
+
+GNoME (Graph Networks for Materials Exploration) is the materials science analog of AlphaFold: predicts stability of novel inorganic crystal structures before synthesis.
+
+**Results:** 2.2 million new stable crystals predicted (vs ~48,000 previously known). 736 highest-confidence predictions independently synthesized and confirmed.
+
+**Architecture:** GNN over crystal graph (atoms = nodes, bonds = edges with periodic boundary conditions). Trained on DFT-calculated formation energies from the Materials Project (~150K compounds). Applications: next-generation battery cathodes, semiconductor materials, superconductors.
+
+### Genomics Foundation Models
+
+**Nucleotide Transformer (InstaDeep/EMBL, 2023):** 2.5B parameter transformer trained on 850 human and multi-species genomes. Predicts regulatory element activity (splice sites, TF binding) from raw DNA. Zero-shot transfer outperforms task-specific models on 18/18 genomics benchmarks.
+
+**AlphaMissense (Google DeepMind, 2023):** Classifies all 71M possible single amino acid variants in the human proteome as benign or pathogenic. 90%+ accuracy on ClinVar clinical annotations. Entire human proteome classified in weeks vs decades of experimental work.
+
+**Evo (Arc Institute, 2024):** 7B parameter sequence model trained on prokaryotic genomes. Models evolution at DNA → RNA → protein level simultaneously. Can generate synthetic genomes (50K–650K nucleotides) and predict fitness effects of mutations.
 
 ### AlphaGeometry 2 (2025)
-Solved 42/50 IMO geometry problems (previous best: 25/30). Architecture: LLM generates auxiliary constructions (add a line here to create a parallelogram), Lean4 formal prover verifies the proof step by step. Neither alone is sufficient; the combination exceeds gold-medal human level.
+Solved 42/50 IMO geometry problems (previous best: 25/30). Architecture: Gemini Pro generates auxiliary constructions, Lean4 formal prover verifies each step. Neither component alone is sufficient; the combination exceeds gold-medal human level on IMO 2000–2024. DeepSeek-Prover (2024) achieves ~65% on MiniF2F using a similar LLM + formal verifier loop.
 
 ### AI as Accelerator for Science
 Current role: accelerate, not replace, researchers. AI handles:
 - Literature search and synthesis (thousands of papers in minutes)
 - Hypothesis generation (given experimental results, propose next experiments)
-- Computation (structure prediction, simulation)
+- Structure prediction / materials stability / genomic variant interpretation
 
-Research direction (2025+): autonomous AI scientists that can design experiments, interpret results, and iterate without human direction. Closed-loop biology experiments: AI proposes hypothesis → robotic lab executes experiment → AI interprets results → repeat.
+Research direction (2025+): autonomous AI scientists that design experiments, interpret results, and iterate without human direction. Closed-loop biology: AI proposes hypothesis → robotic lab executes → AI interprets results → repeat. AlphaFold 3 + RFDiffusion are partially closing this loop for protein engineering.
 
 ---
 

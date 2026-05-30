@@ -149,6 +149,8 @@ Given query q:
 
 ### 2.5 Agentic RAG
 
+> For the full agent architecture that drives Agentic RAG — including the ReAct loop, memory type taxonomy (in-context, external, procedural, episodic), tool design principles, multi-agent orchestration patterns, and failure modes — see [agentic-ai-systems.md](agentic-ai-systems.md). This section covers the retrieval-specific mechanics; that file covers the agent loop internals.
+
 Agentic RAG gives an LLM agent control over the retrieval strategy — deciding what to query, how many times, and how to combine results.
 
 **ReAct-style Agentic RAG:**
@@ -261,6 +263,101 @@ Practical: 1M token prefill on 8×H100 = ~120 seconds — unusable for interacti
 | 10-50K token context | Either, depends on quality | ✓ if docs are stable |
 
 **Hybrid architecture (production recommendation):** RAG for retrieval to narrow to 5-10 relevant chunks (3-5K tokens total), then feed into a 32K-context LLM for synthesis. Get the precision of RAG and the coherence of long-context reasoning within an affordable context window.
+
+### 2.8 Memory-Augmented LLMs
+
+Standard LLMs are stateless: every new conversation starts from scratch. Memory-augmented architectures give models explicit mechanisms to persist and retrieve information across sessions and across context window boundaries.
+
+#### MemGPT — Virtual Context Management
+
+MemGPT (Packer et al., 2023) treats the LLM context window as CPU registers and external storage as RAM/disk — a virtual memory abstraction for LLMs.
+
+```
+┌────────────────────────────────────────┐
+│  In-Context Storage (registers ~4K tokens) │
+│  - System instructions                 │
+│  - Working memory (current task state) │
+│  - FIFO message queue (recent chat)    │
+└────────────┬───────────────────────────┘
+             │ read/write via function calls
+┌────────────▼───────────────────────────┐
+│  External Storage (unlimited)          │
+│  - Archival memory (vector DB, semantic search) │
+│  - Recall memory (full conversation log, BM25)  │
+└────────────────────────────────────────┘
+```
+
+The LLM controls its own memory through function calls: `archival_memory_insert(content)`, `archival_memory_search(query)`, `core_memory_replace(old, new)`. When context fills up, MemGPT evicts oldest messages to recall storage, summarizes them, and updates core memory. The LLM decides what to remember and when to retrieve it — memory management is in-context.
+
+**Key insight:** Rather than extending the context window (expensive), MemGPT makes the LLM a participant in its own memory management. Enables unbounded long-term conversations within a fixed-size context window.
+
+#### Mem0 — Personalized Memory Layer
+
+Mem0 (2024) is a managed memory layer designed as a drop-in enhancement for any LLM application. It extracts facts, preferences, and events from conversations and persists them across sessions.
+
+```python
+from mem0 import Memory
+m = Memory()
+
+# After conversation turn
+m.add("User prefers Python over Java", user_id="alice")
+m.add("User is building a trading bot", user_id="alice")
+
+# At next session
+memories = m.search("what are alice's preferences?", user_id="alice")
+# Returns: ["prefers Python over Java", "building a trading bot"]
+# Inject into system prompt for personalized context
+```
+
+**Architecture:** Extracts entities and facts from conversation → stores in a hybrid vector + graph store → deduplicates and consolidates on write → semantic search on read. Uses LLM-based entity extraction to structure unstructured conversation history into queryable facts. The graph store captures entity relationships (Alice works at Company X → Company X has CEO Y).
+
+#### RETRO — Retrieval-Enhanced Pretraining
+
+RETRO (Borgeaud et al., DeepMind, 2022) integrates retrieval at pretraining time, not only at inference. A chunked cross-attention mechanism allows the model to attend to retrieved document chunks at every transformer layer.
+
+**Architecture:**
+
+```
+Input sequence: split into chunks of 64 tokens
+For each chunk c_i:
+  1. Retrieve top-k nearest neighbors from 2-trillion token database
+  2. Encode neighbors with frozen BERT encoder
+  3. Chunked cross-attention: chunk c_i attends to neighbors(c_i)
+     using cross-attention layers interleaved every 3 encoder layers
+
+Retrieve(c_i) → E_1,...,E_k (encoded neighbor chunks)
+CCA: c_i → Query, E_j → Key/Value pairs
+output = softmax(Q_i K_j^T / sqrt(d)) V_j
+```
+
+**Key result:** RETRO-7B achieves perplexity competitive with GPT-3-175B on language modeling benchmarks — a 25× parameter reduction by delegating knowledge to the retrieval database. The model learns to use retrieval rather than memorizing facts in weights.
+
+**RETRO++ (2023):** Instruction-tuned variant. Retrieval-enhanced models generalize better on knowledge-intensive tasks with less hallucination because facts come from retrieved text rather than compressed weight patterns.
+
+#### Neural Turing Machines / Differentiable Memory (Background)
+
+Earlier theoretical work (Graves et al., 2014–2016) established differentiable external memory:
+
+```
+NTM read:  r_t = Σ_i w_t(i) · M_t(i)      # soft attention over memory matrix M
+NTM write: M_t(i) = M_{t-1}(i) · (1 - w_t(i)·e_t) + w_t(i)·a_t
+           # erase vector e_t, add vector a_t
+```
+
+The DNC (Differentiable Neural Computer, 2016) extended NTMs with dynamic memory allocation (keeps a usage vector) and temporal linking (remembers write order). These architectures were limited to short sequences but established the read/write abstraction that MemGPT operationalizes with LLMs.
+
+#### Memory System Comparison
+
+| System | Memory type | Scope | Update mechanism | Retrieval |
+|---|---|---|---|---|
+| Standard LLM | Context window only | Single session | N/A | N/A |
+| KV cache persistence | Compressed context | Session → session | Append | Positional |
+| RAG | Vector DB facts | Cross-session | Manual indexing | Semantic ANN |
+| MemGPT | Virtual context + archival | Unbounded | LLM-controlled writes | Semantic + BM25 |
+| Mem0 | Entity/fact graph | Cross-user, cross-session | Auto-extracted | Semantic + graph |
+| RETRO | Pretrained retrieval | Global knowledge base | Static (retrain to update) | Chunked cross-attention |
+
+**Production guidance:** For personalization use cases (chatbots, coding assistants that remember user preferences), Mem0-style memory with user-scoped vector stores is the practical choice. For knowledge-intensive tasks where hallucination is high-risk, RETRO-style retrieval at generation time (or RAG) is more reliable. MemGPT's virtual context pattern is useful for long-running agent tasks (e.g., a coding agent working on a codebase over days).
 
 ---
 

@@ -138,117 +138,111 @@ probs = gmm.predict_proba(X)   # soft assignments
 
 ---
 
+## Hierarchical Clustering (Agglomerative)
+
+**The problem**: K-Means requires knowing $K$ upfront, and returns a single flat partition. You may not know the right $K$, or you may want to explore the structure at multiple granularities — are there 3 natural segments, or 10 sub-segments within those 3?
+
+**The core insight**: build a hierarchy of merges. Start with every point as its own cluster. At each step, merge the two most similar clusters. Stop when you have one cluster. The result is a tree (dendrogram) that encodes every possible partition simultaneously — you can cut it at any level to get any number of clusters.
+
+**The mechanics** (bottom-up agglomerative):
+1. Assign each point to its own cluster ($n$ clusters)
+2. Compute pairwise distances between all clusters
+3. Merge the two closest clusters
+4. Repeat until one cluster remains (or stopping criterion)
+5. Cut the dendrogram at the desired height to extract $K$ clusters
+
+**Linkage criteria** — how to measure the distance between two clusters:
+
+| Linkage | Distance definition | Shape bias | When to use |
+|---------|-------------------|-----------|------------|
+| **Single** | Minimum distance between any pair | Elongated, chain-like | Non-convex shapes; sensitive to outliers (chaining effect) |
+| **Complete** | Maximum distance between any pair | Compact, spherical | When you want tightly bounded clusters |
+| **Average (UPGMA)** | Mean distance between all pairs | Moderate | General-purpose, less sensitive than single/complete |
+| **Ward's** | Merge that minimizes increase in total within-cluster variance | Spherical, compact | Best default; analogous to K-Means objective |
+
+Ward's linkage is the most commonly used. At each merge, it chooses the pair whose merge minimizes:
+$$\Delta = \frac{n_A \cdot n_B}{n_A + n_B} \|\mu_A - \mu_B\|^2$$
+
+```python
+from scipy.cluster.hierarchy import dendrogram, linkage, fcluster
+import matplotlib.pyplot as plt
+
+# Compute linkage matrix
+Z = linkage(X, method='ward')
+
+# Plot dendrogram
+plt.figure(figsize=(12, 5))
+dendrogram(Z, truncate_mode='lastp', p=20)   # show last 20 merges
+plt.title('Ward Hierarchical Clustering Dendrogram')
+plt.xlabel('Cluster size (in parentheses)')
+plt.ylabel('Distance')
+plt.show()
+
+# Cut at a specific number of clusters
+labels = fcluster(Z, t=4, criterion='maxclust')   # extract 4 clusters
+
+# Or cut at a specific distance threshold
+labels = fcluster(Z, t=5.0, criterion='distance')
+```
+
+**Reading the dendrogram**: long vertical lines indicate a large distance jump when two clusters merged — this is where you should cut. A cut just below a long line gives natural clusters. A cut near the top gives few large clusters; near the bottom gives many small clusters.
+
+**Complexity**: $O(N^3)$ time and $O(N^2)$ space for naive implementation. Limits use to $N < 10,000$ unless approximate methods are used (`fastcluster` library implements $O(N^2)$ Ward's).
+
+**What breaks**: hierarchical clustering is sensitive to outliers (especially with single linkage), cannot be incrementally updated (must rerun from scratch if data changes), and is too slow for large datasets. Does not naturally handle high-dimensional data — use dimensionality reduction first.
+
+**When to use over K-Means**: when the number of clusters is unknown; when you need to explore cluster structure at multiple resolutions; when clusters are nested or hierarchical by nature (e.g., biological taxonomy, organizational hierarchies).
+
+---
+
 ## Dimensionality Reduction
 
-### PCA (Principal Component Analysis)
+> Full treatment of PCA, t-SNE, UMAP, Kernel PCA, ICA, LDA, NMF, and Autoencoders is in **[dimensionality-reduction.md](dimensionality-reduction.md)**. This section provides a quick reference for the clustering context.
 
-**The problem**: high-dimensional data is expensive to store, slow to compute on, and hard to visualize. Many features are correlated — stock prices for companies in the same sector move together, pixel intensities in adjacent image patches are similar. The data lives on a lower-dimensional structure even though it has thousands of columns.
-
-**The core insight**: find the directions in which the data varies most. Project onto those directions. The first direction (principal component) captures the most variance; the second captures the most remaining variance orthogonal to the first; and so on. You can drop the trailing directions without losing much information.
-
-**The mechanics**:
-1. Center data: $X \leftarrow X - \bar{X}$
-2. Compute covariance matrix: $\Sigma = \frac{1}{m} X^T X$
-3. Eigen-decompose: $\Sigma v = \lambda v$
-4. Project onto top-$k$ eigenvectors
-
-Explained variance ratio: $\frac{\lambda_i}{\sum_j \lambda_j}$ — choose $k$ where cumulative ratio exceeds threshold (e.g., 95%).
+**PCA**: finds linear directions of maximum variance. Use before clustering to remove noise dimensions and reduce the curse of dimensionality. Always standardize features first. Choose $k$ by the explained variance ratio — 95% cumulative variance is a common threshold.
 
 ```python
 from sklearn.decomposition import PCA
-
-pca = PCA(n_components=0.95, svd_solver='full')  # keep 95% variance
-X_reduced = pca.fit_transform(X_train)
-print(f"Reduced from {X_train.shape[1]} to {X_reduced.shape[1]} features")
-print(f"Explained variance: {pca.explained_variance_ratio_.cumsum()[-1]:.3f}")
+pca = PCA(n_components=0.95, svd_solver='full')
+X_reduced = pca.fit_transform(X_scaled)
 ```
 
-**What breaks**: PCA finds linear structure only. If the true low-dimensional structure is a curved manifold (e.g., a Swiss roll), PCA will project it onto a flat plane that folds the manifold on top of itself, destroying the structure. It is also sensitive to feature scales — always standardize before applying PCA. And PCA components are linear combinations of all original features, so interpretability is lost.
+**t-SNE**: minimizes KL divergence between pairwise similarity distributions in high-d and low-d. Preserves local neighborhoods only. $O(N^2)$ — use Barnes-Hut approximation for $N > 10$k. Output is only for visualization; do not use as features for downstream modeling.
 
----
+**UMAP**: topological manifold learning. $O(N \log N)$. Preserves both local and global structure better than t-SNE. Deterministic with fixed seed. Can be used as a preprocessing step for clustering or classification.
 
-### t-SNE
-
-**The problem**: PCA is linear, so it cannot unroll curved manifolds or reveal clusters that are only apparent in non-linear structure. When you reduce MNIST digit embeddings with PCA, different digits overlap. You need a method that keeps nearby points nearby even if that requires distorting global geometry.
-
-**The core insight**: represent pairwise similarities as probability distributions — high probability if two points are close. Do this in both the high-dimensional and low-dimensional spaces. Minimize the KL divergence between them, forcing the 2D layout to match the high-dimensional neighborhood structure. The t-distribution in low-d (heavier tails than Gaussian) allows distant points to spread out freely while keeping nearby clusters tight.
-
-**What breaks**:
-- $O(N^2)$ complexity — slow for $N > 10$k without approximations (Barnes-Hut)
-- Stochastic — different runs give different layouts
-- Distances between clusters are not meaningful — only local neighborhood structure is preserved
-- Cannot be used as features for downstream tasks; only for 2D/3D visualization
-
----
-
-### UMAP
-
-**The problem**: t-SNE sacrifices global structure for local fidelity, and is too slow for large datasets. You want a method that preserves both local and global structure, is fast enough for production, and produces embeddings that can be used as features.
-
-**The core insight**: model the data as a topological manifold using fuzzy simplicial sets. Construct a graph where edge weights represent the probability that two points are connected under the manifold's metric. Find a low-dimensional representation whose graph structure matches, preserving both local (neighbor) and global (between-cluster) relationships. The manifold-theoretic foundation makes it faster and more structure-preserving than t-SNE.
-
-**Advantages over t-SNE**:
-- Much faster: $O(N \log N)$
-- Preserves more global structure
-- Deterministic (with fixed `random_state`)
-- Can be used as general-purpose dimensionality reduction (not just visualization)
-
-```python
-import umap
-
-reducer = umap.UMAP(n_components=2, n_neighbors=15, min_dist=0.1, random_state=42)
-X_2d = reducer.fit_transform(X)
-```
-
-**What breaks**: UMAP's global structure preservation is relative — it is better than t-SNE but still not as faithful as PCA for global variance. Cluster sizes and distances in UMAP plots can be misleading. The `n_neighbors` hyperparameter controls the local/global tradeoff: too small → fragmented local structure, too large → global structure dominates and local clusters blur.
-
-### PCA vs t-SNE vs UMAP Summary
-
-| Property | PCA | t-SNE | UMAP |
-| :--- | :--- | :--- | :--- |
-| **Structure preserved** | Global variance | Local neighborhoods | Local + global |
-| **Speed** | Fast | Slow ($O(N^2)$) | Fast ($O(N \log N)$) |
-| **Deterministic** | Yes | No | Yes (with seed) |
-| **Use as features** | Yes | No | Yes |
-| **Interpretable axes** | Yes (PCs) | No | No |
+| | PCA | t-SNE | UMAP |
+|---|---|---|---|
+| Structure | Global variance | Local only | Local + global |
+| Speed | Fast | Slow | Fast |
+| Use as features | Yes | No | Yes |
+| Best for | Preprocessing, noise removal | Visualization | Visualization + features |
 
 ---
 
 ## Anomaly Detection
 
-### Isolation Forest
+> Full treatment of Isolation Forest, One-Class SVM, LOF, Elliptic Envelope, Autoencoder-based detection, and HDBSCAN is in **[anomaly-detection.md](anomaly-detection.md)**. This section provides a quick reference for the unsupervised learning context.
 
-**The problem**: density-based anomaly detectors (like One-Class SVM) struggle in high dimensions because estimating density is hard — the curse of dimensionality makes all points look equally distant from each other.
+**Quick method selector:**
 
-**The core insight**: anomalies are rare and different. If you randomly partition the feature space, anomalies end up isolated quickly — they sit in sparse regions where a few random cuts are enough to separate them from all other points. Normal points sit in dense regions and require many cuts. You don't need to model density at all — just measure how many cuts it takes to isolate a point.
+| Method | Approach | Best for |
+|--------|----------|---------|
+| **Isolation Forest** | Anomalies isolate in fewer random splits | High-dimensional tabular data; fast default |
+| **One-Class SVM** | Hypersphere around normal data | Low-dimensional data with a clear boundary |
+| **LOF** | Compare local density to neighbors | Non-uniform density; anomalies in varying-density regions |
+| **Elliptic Envelope** | Fit a robust Gaussian; flag low-probability points | Gaussian-distributed data |
+| **Autoencoder** | High reconstruction error = anomaly | Complex patterns, images, sequences |
 
-**The mechanics**: randomly partition features recursively until a point is isolated. Anomalies require fewer splits (shorter path length).
-
-Anomaly score: $s(x) = 2^{-E[h(x)] / c(n)}$ where $E[h(x)]$ is average path length.
-
-Score close to 1 → anomaly. Score near 0.5 → normal.
+**Default choice:** Isolation Forest for tabular data. Use `contamination` to set the expected fraction of anomalies (e.g., 0.05 for 5%).
 
 ```python
 from sklearn.ensemble import IsolationForest
 
 iso = IsolationForest(n_estimators=100, contamination=0.05, random_state=42)
 iso.fit(X_train)
-scores = iso.decision_function(X_test)  # higher = more normal
-preds = iso.predict(X_test)             # 1 = normal, -1 = anomaly
+preds = iso.predict(X_test)   # 1 = normal, -1 = anomaly
 ```
-
-**What breaks**: Isolation Forest struggles when anomalies are clustered together — a group of anomalies forms a dense region, making them look normal. It also performs poorly when normal data has multi-modal structure and anomalies sit between the modes, or when anomalies are only detectable through specific feature interactions.
-
-### Other Anomaly Detection Methods
-
-| Method | Approach | Best For |
-| :--- | :--- | :--- |
-| **One-Class SVM** | Learn hypersphere around normal data | Low-dim, clear boundary |
-| **Autoencoder** | High reconstruction error = anomaly | Complex patterns, images |
-| **Local Outlier Factor** | Compare local density to neighbors | Non-uniform density |
-| **Z-score / IQR** | Statistical threshold | Simple univariate |
-
-**Local Outlier Factor** solves Isolation Forest's weakness with locally varying density: instead of a global isolation measure, it compares each point's density to its neighbors' densities. A point is anomalous if it is in a sparse region surrounded by denser neighborhoods.
 
 ---
 

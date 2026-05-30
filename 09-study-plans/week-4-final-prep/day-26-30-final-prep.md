@@ -92,6 +92,56 @@ The goal of the final five days is consolidation, not new learning. You have cov
 
 ---
 
+## 2b. LLM-Specific Cheat Sheet (Days 26-27)
+
+These concepts appear in nearly every modern ML interview. Know the mechanism, not just the name.
+
+### Training Pipeline
+
+- **Pretraining**: Next-token prediction on massive text corpora. The model learns a compressed world model and language statistics. No human labels involved.
+- **Supervised Fine-Tuning (SFT)**: Train on curated (prompt, ideal response) pairs to teach the desired output format and behavior. Cheap but bounded by annotation quality.
+- **RLHF (Reinforcement Learning from Human Feedback)**: Train a reward model on human preference comparisons, then use PPO to fine-tune the LLM to maximize reward. More expensive but can exceed SFT ceiling.
+- **DPO (Direct Preference Optimization)**: Bypasses the reward model; directly optimizes the LLM on preference data using a closed-form objective. Simpler than PPO, increasingly preferred.
+
+**Key insight for RLHF vs. DPO:** RLHF requires a separate reward model and is susceptible to reward hacking (the LLM learns to game the reward model rather than genuinely improve). DPO is more stable but loses the ability to separate the reward model from the policy — you cannot adjust the reward function without retraining from the SFT checkpoint.
+
+### Inference Efficiency
+
+- **KV Cache**: During autoregressive generation, the Key and Value matrices for all previous tokens are cached to avoid recomputing them. Reduces inference compute from $O(n^2)$ to $O(n)$ per step for the attended portion.
+- **Paged Attention (vLLM)**: KV cache in standard implementations wastes GPU memory due to fragmentation (variable-length sequences). Paged attention uses memory pages (like OS virtual memory) to serve multiple requests efficiently from the same GPU.
+- **Speculative Decoding**: A small draft model proposes K tokens in parallel; the large model verifies them in one forward pass. Tokens accepted by the large model are kept; the first rejected token is resampled. Achieves 2-4x speedup with no change in output distribution.
+- **Quantization**: Reduce model weights from float32 → float16 → int8 → int4. Each step halves memory; accuracy degrades gracefully but must be validated on your specific task.
+
+### RAG Architecture
+
+```
+Query → Query Rewriting (optional) → Embedding
+→ Vector DB (approximate nearest neighbor search, e.g., FAISS, Pinecone)
+→ Top-k retrieved chunks
+→ Optional: Cross-encoder reranker (top-k → top-3)
+→ LLM generates answer with retrieved context
+→ Citations extracted from context
+```
+
+**Failure modes at each stage:**
+- Embedding: poor chunking (chunks too long/short), wrong embedding model for domain
+- Retrieval: low recall (relevant chunk not retrieved), high latency (no approximate index)
+- Reranking: bottleneck for low-latency requirements; skip for p50 latency, enable for p99
+- Generation: hallucination when retrieved context is insufficient; model ignores context
+
+**RAG vs. Fine-tuning decision:**
+- Use RAG when: knowledge is dynamic, sources need citations, you cannot afford GPU compute for fine-tuning
+- Use fine-tuning when: task requires format/style adaptation, knowledge is stable, low-latency inference is required (no retrieval hop), RAG retrieval quality is consistently poor
+
+### Prompt Engineering Patterns
+
+- **Zero-shot**: No examples in the prompt. Relies entirely on pretraining knowledge.
+- **Few-shot**: Include 3-8 input/output examples in the prompt. Significantly improves structured output tasks.
+- **Chain-of-Thought (CoT)**: Prompt the model to reason step-by-step before giving the final answer. Improves multi-step reasoning. Add "Let's think step by step" or show CoT examples.
+- **System prompt**: Sets the model's persona, constraints, and response format. Processed differently from user messages in instruction-tuned models.
+
+---
+
 ## 3. Rapid-Fire Answer Templates
 
 **Why templates help:** In an interview, an open-ended question like "walk me through your approach to an ML problem" can be answered in many ways. Having a mental template ensures you don't miss structural elements under pressure.
@@ -217,3 +267,21 @@ The interviewer is a collaborator, not an examiner. Asking "Does that constraint
 
 **[ ] Have I reviewed the [AI & ML Revision Guide](../../01-foundations/AI_ML_REVISION_GUIDE.md)?** #flashcard
 [ ] Have I reviewed the [AI & ML Revision Guide](../../01-foundations/AI_ML_REVISION_GUIDE.md)?
+
+**RLHF training stages?** #flashcard
+Pretraining → SFT → Train reward model on human preferences → PPO to maximize reward. DPO skips the reward model and optimizes preferences directly.
+
+**KV Cache?** #flashcard
+Caches Key and Value matrices for all previous tokens during autoregressive generation. Avoids recomputing O(n) attention for each new token. Essential for inference speed.
+
+**Speculative Decoding?** #flashcard
+Small draft model proposes K tokens; large model verifies in one forward pass. Accepts matching tokens, resamples first rejection. ~2-4x speedup, no change in output distribution.
+
+**RAG vs. Fine-tuning — when to use RAG?** #flashcard
+When knowledge is dynamic (needs update without retraining), sources need citations, or GPU compute for fine-tuning is unavailable.
+
+**Chain-of-Thought prompting?** #flashcard
+Prompt the model to reason step-by-step before the final answer. Improves multi-step and arithmetic reasoning. Triggered by "Let's think step by step" or few-shot CoT examples.
+
+**DPO vs. RLHF?** #flashcard
+DPO directly optimizes LLM on preference data using a closed-form objective — no separate reward model. Simpler and more stable than PPO-based RLHF but cannot adjust the reward function independently.

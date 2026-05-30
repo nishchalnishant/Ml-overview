@@ -13,12 +13,12 @@ tags: [productionml, ml, mlops]
 
 1. [MLOps Overview](#mlops-overview)
 2. [ML Lifecycle](#ml-lifecycle)
-3. [Data Management](#data-management)
-4. [Model Development](#model-development)
-5. [Deployment Strategies](#deployment-strategies)
-6. [Monitoring and Observability](#monitoring-and-observability)
-7. [CI/CD for ML](#cicd-for-ml)
-8. [Infrastructure and Tools](#infrastructure-and-tools)
+3. [Data Management](#data-management) — DVC, data versioning, schema validation
+4. [Model Development](#model-development) — MLflow, W&B, experiment tracking, hyperparameter sweeps, model registry
+5. [Deployment Strategies](#deployment-strategies) — REST serving, gRPC serving, canary, blue-green, shadow, A/B testing
+6. [Monitoring and Observability](#monitoring-and-observability) — drift detection, PSI, KS test, concept drift
+7. [CI/CD for ML](#cicd-for-ml) — GitHub Actions, Airflow ML pipelines, Kubeflow Pipelines
+8. [Infrastructure and Tools](#infrastructure-and-tools) — SageMaker, Vertex AI, Kubernetes, Triton, TorchServe
 9. [Best Practices](#best-practices)
 
 ---
@@ -230,6 +230,105 @@ with mlflow.start_run():
 
 ---
 
+**Weights & Biases (W&B) experiment tracking**
+
+W&B is the standard choice for deep learning teams. Advantages over MLflow: richer visualizations (gradient histograms, confusion matrices inline), built-in sweep (hyperparameter search), better collaboration (shareable dashboards), and native integration with PyTorch/HuggingFace.
+
+```python
+import wandb
+import torch
+from torch import nn
+
+# Initialize run: all config, code, and artifacts tracked automatically
+run = wandb.init(
+    project="fraud-detection",
+    name="transformer-v3",
+    config={
+        "learning_rate": 3e-4,
+        "batch_size": 256,
+        "n_epochs": 50,
+        "model_arch": "transformer",
+        "data_version": "v4.1.2",
+    },
+    tags=["fraud", "transformer", "production-candidate"]
+)
+config = wandb.config  # access config as config.learning_rate
+
+for epoch in range(config.n_epochs):
+    train_loss, val_auc = train_epoch(model, optimizer)
+
+    # Log metrics — appear live in W&B dashboard
+    wandb.log({
+        "epoch": epoch,
+        "train/loss": train_loss,
+        "val/auc": val_auc,
+        "val/pr_auc": compute_pr_auc(model, val_loader),
+    })
+
+    # Log a confusion matrix as a W&B table
+    wandb.log({"confusion_matrix": wandb.plot.confusion_matrix(
+        probs=None, y_true=y_true, preds=y_pred, class_names=["legit", "fraud"]
+    )})
+
+# Save model artifact with metadata and lineage
+artifact = wandb.Artifact(
+    name="fraud-transformer-v3",
+    type="model",
+    description="Transformer fraud detector, Q1 2024 data",
+    metadata={"val_auc": 0.94, "data_version": "v4.1.2"}
+)
+artifact.add_file("model.pt")
+run.log_artifact(artifact)
+
+# Link to W&B Model Registry for promotion tracking
+run.link_artifact(artifact, target_path="fraud-detection/fraud-model")
+run.finish()
+```
+
+**W&B Sweeps** (hyperparameter search):
+
+```python
+# Define search space
+sweep_config = {
+    "method": "bayes",  # Bayesian optimization (vs grid, random)
+    "metric": {"name": "val/auc", "goal": "maximize"},
+    "parameters": {
+        "learning_rate": {"distribution": "log_uniform_values", "min": 1e-5, "max": 1e-2},
+        "batch_size": {"values": [64, 128, 256, 512]},
+        "n_layers": {"values": [2, 4, 6, 8]},
+        "dropout": {"distribution": "uniform", "min": 0.0, "max": 0.5},
+    }
+}
+
+sweep_id = wandb.sweep(sweep_config, project="fraud-detection")
+
+def train_sweep():
+    with wandb.init() as run:
+        config = run.config
+        model = build_model(config)
+        val_auc = train_and_evaluate(model, config)
+        wandb.log({"val/auc": val_auc})
+
+wandb.agent(sweep_id, function=train_sweep, count=50)  # run 50 trials
+```
+
+**MLflow vs W&B — when to choose**:
+
+```
+Criterion                | MLflow                  | W&B
+-------------------------|-------------------------|---------------------------
+Primary language         | Python (any framework)  | Python (deep learning focus)
+Self-hosted option       | Yes (free)              | Yes (W&B Server, paid)
+Hyperparameter sweeps    | MLflow + Optuna manual  | Built-in Sweeps with Bayes
+Visualization depth      | Basic charts            | Rich: gradients, media, 3D
+Model registry           | Yes (MLflow Registry)   | Yes (W&B Artifacts + Registry)
+HuggingFace integration  | Manual                  | Native (transformers/diffusers)
+Best for                 | Any ML, enterprise,     | Deep learning, research,
+                         | open-source preference  | collaborative teams
+```
+
+---
+
 **Model registry lifecycle**
 
 ```python
@@ -285,22 +384,140 @@ Batch Data -> Prediction Job (Spark/Airflow) -> Results Storage -> Serving Layer
 Pros: high throughput, can use complex/slow models, cost-effective
 Cons: predictions become stale between batch runs
 
-**Real-time inference**
+**Real-time inference — REST**
 
-When: low latency required (< 100ms), user-facing request-response
+When: low latency required (< 100ms), user-facing request-response, simple JSON interface
 
 ```python
-from flask import Flask, request, jsonify
-import joblib
+from fastapi import FastAPI
+from pydantic import BaseModel
+import joblib, numpy as np
 
-app = Flask(__name__)
+app = FastAPI()
 pipeline = joblib.load("model_with_preprocessing.pkl")
 
-@app.route("/predict", methods=["POST"])
-def predict():
-    data = request.json
-    prediction = pipeline.predict([data["features"]])
-    return jsonify({"prediction": int(prediction[0])})
+class PredictRequest(BaseModel):
+    features: list[float]
+
+class PredictResponse(BaseModel):
+    prediction: int
+    probability: float
+
+@app.post("/predict", response_model=PredictResponse)
+async def predict(req: PredictRequest):
+    X = np.array(req.features).reshape(1, -1)
+    prob = pipeline.predict_proba(X)[0, 1]
+    return PredictResponse(prediction=int(prob > 0.5), probability=float(prob))
+```
+
+**Real-time inference — gRPC**
+
+When: internal microservices, strict latency SLAs (< 20ms), high throughput, or binary payloads (embeddings, images). gRPC is ~7× faster than REST for equivalent payloads due to Protobuf binary encoding and HTTP/2 multiplexing.
+
+Step 1 — define the service contract in Protobuf:
+
+```protobuf
+// fraud_service.proto
+syntax = "proto3";
+package fraud;
+
+service FraudService {
+    rpc Predict (PredictRequest) returns (PredictResponse);
+    rpc PredictBatch (PredictBatchRequest) returns (PredictBatchResponse);
+}
+
+message PredictRequest {
+    string entity_id    = 1;
+    repeated float features = 2;   // flat feature vector
+}
+
+message PredictResponse {
+    float fraud_probability = 1;
+    int32 decision          = 2;   // 0=legit, 1=fraud
+    string model_version    = 3;
+}
+
+message PredictBatchRequest {
+    repeated PredictRequest requests = 1;
+}
+
+message PredictBatchResponse {
+    repeated PredictResponse responses = 1;
+}
+```
+
+Step 2 — generate Python stubs and implement the server:
+
+```python
+# compile: python -m grpc_tools.protoc -I. --python_out=. --grpc_python_out=. fraud_service.proto
+
+import grpc
+from concurrent import futures
+import fraud_service_pb2 as pb2
+import fraud_service_pb2_grpc as pb2_grpc
+import joblib, numpy as np
+
+class FraudServicer(pb2_grpc.FraudServiceServicer):
+    def __init__(self):
+        self.model = joblib.load("model.pkl")
+        self.model_version = "v2.4.1"
+
+    def Predict(self, request, context):
+        X = np.array(request.features).reshape(1, -1)
+        prob = float(self.model.predict_proba(X)[0, 1])
+        return pb2.PredictResponse(
+            fraud_probability=prob,
+            decision=int(prob > 0.5),
+            model_version=self.model_version,
+        )
+
+    def PredictBatch(self, request, context):
+        responses = []
+        X = np.array([r.features for r in request.requests])
+        probs = self.model.predict_proba(X)[:, 1]
+        for i, req in enumerate(request.requests):
+            responses.append(pb2.PredictResponse(
+                fraud_probability=float(probs[i]),
+                decision=int(probs[i] > 0.5),
+                model_version=self.model_version,
+            ))
+        return pb2.PredictBatchResponse(responses=responses)
+
+def serve():
+    server = grpc.server(
+        futures.ThreadPoolExecutor(max_workers=10),
+        options=[
+            ("grpc.max_send_message_length", 50 * 1024 * 1024),
+            ("grpc.max_receive_message_length", 50 * 1024 * 1024),
+        ]
+    )
+    pb2_grpc.add_FraudServiceServicer_to_server(FraudServicer(), server)
+    server.add_insecure_port("[::]:50051")
+    server.start()
+    server.wait_for_termination()
+```
+
+Step 3 — client call:
+
+```python
+channel = grpc.insecure_channel("fraud-service:50051")
+stub = pb2_grpc.FraudServiceStub(channel)
+response = stub.Predict(pb2.PredictRequest(entity_id="u123", features=[0.5, 1.2, -0.3]))
+print(response.fraud_probability)   # 0.87
+```
+
+**REST vs gRPC comparison**:
+
+```
+Criterion           | REST + JSON           | gRPC + Protobuf
+--------------------|----------------------|---------------------------
+Payload size        | ~3-10× larger        | Binary, compact
+Latency             | Higher (serialization)| ~3-7× faster at scale
+Client generation   | Manual / OpenAPI     | Auto-generated from .proto
+Streaming support   | No (without WS)      | Bidirectional streaming
+Browser support     | Native               | Needs grpc-web proxy
+Human readable      | Yes                  | No (use grpcurl for debug)
+Best for            | External APIs, simple| Internal services, high TPS
 ```
 
 **Deployment patterns**
@@ -449,6 +666,194 @@ jobs:
 
 ---
 
+**Apache Airflow for ML pipelines**
+
+Airflow is a battle-tested DAG scheduler for ML pipelines. Use it when you need complex dependency management, retries with backoff, SLA alerting, and integration with many data systems.
+
+```python
+from airflow import DAG
+from airflow.operators.python import PythonOperator, BranchPythonOperator
+from airflow.operators.bash import BashOperator
+from airflow.utils.dates import days_ago
+from datetime import datetime, timedelta
+
+default_args = {
+    "owner": "ml-platform",
+    "depends_on_past": False,
+    "retries": 2,
+    "retry_delay": timedelta(minutes=5),
+    "email_on_failure": True,
+    "email": ["ml-alerts@company.com"],
+}
+
+with DAG(
+    dag_id="fraud_model_retraining",
+    default_args=default_args,
+    schedule_interval="0 2 * * *",   # nightly at 2am UTC
+    start_date=days_ago(1),
+    catchup=False,
+    tags=["ml", "fraud", "production"],
+) as dag:
+
+    # 1. Validate data freshness before training
+    def validate_data(**context):
+        run_date = context["ds"]  # execution date as YYYY-MM-DD
+        count = check_data_freshness(run_date)
+        if count < 100_000:
+            raise ValueError(f"Insufficient training data: {count} rows for {run_date}")
+
+    validate_task = PythonOperator(
+        task_id="validate_data",
+        python_callable=validate_data,
+        provide_context=True,
+    )
+
+    # 2. Train model
+    train_task = BashOperator(
+        task_id="train_model",
+        bash_command="""
+            python /opt/ml/train.py \
+                --run-date {{ ds }} \
+                --mlflow-uri {{ var.value.mlflow_uri }}
+        """,
+        env={"MLFLOW_TRACKING_URI": "{{ var.value.mlflow_uri }}"},
+    )
+
+    # 3. Evaluate: branch on whether new model beats threshold
+    def evaluate_and_branch(**context):
+        new_auc = get_latest_run_metric("val_auc")
+        prod_auc = get_production_model_metric("val_auc")
+        if new_auc >= 0.85 and new_auc >= prod_auc * 0.99:  # no regression
+            return "register_model"
+        return "notify_evaluation_failure"
+
+    evaluate_task = BranchPythonOperator(
+        task_id="evaluate_model",
+        python_callable=evaluate_and_branch,
+        provide_context=True,
+    )
+
+    register_task = PythonOperator(
+        task_id="register_model",
+        python_callable=register_to_staging,
+    )
+
+    notify_failure_task = PythonOperator(
+        task_id="notify_evaluation_failure",
+        python_callable=send_slack_alert,
+    )
+
+    # DAG dependency graph
+    validate_task >> train_task >> evaluate_task >> [register_task, notify_failure_task]
+```
+
+**Airflow best practices for ML**:
+- Use `XComs` sparingly — pass large artifacts via S3 paths, not through XCom
+- Set `max_active_runs=1` for retraining DAGs to avoid parallel training on the same dataset
+- Use `SLAMiss` callbacks to alert if training doesn't complete within a time budget
+- External task sensors (`ExternalTaskSensor`) to wait for upstream data pipelines before training
+
+---
+
+**Kubeflow Pipelines for ML orchestration**
+
+Kubeflow Pipelines is designed for ML workloads running on Kubernetes. Advantages: native GPU scheduling, component caching (skip re-running unchanged steps), artifact lineage, and portability across GCP/AWS/on-prem.
+
+```python
+import kfp
+from kfp import dsl
+from kfp.components import func_to_container_op
+from typing import NamedTuple
+
+# Define pipeline components as Python functions
+# Each function runs in its own container
+
+@func_to_container_op
+def validate_data_op(data_path: str) -> str:
+    """Validate data quality; return path to validated data."""
+    import great_expectations as gx
+    context = gx.get_context()
+    results = context.run_checkpoint(checkpoint_name="training_data_check")
+    if not results.success:
+        raise ValueError(f"Data validation failed: {results.statistics}")
+    return data_path
+
+@func_to_container_op
+def train_model_op(data_path: str, learning_rate: float, n_estimators: int) -> NamedTuple(
+    "TrainOutput", [("model_uri", str), ("val_auc", float)]
+):
+    """Train model; return model URI and validation AUC."""
+    import mlflow
+    with mlflow.start_run() as run:
+        model = train(data_path, learning_rate=learning_rate, n_estimators=n_estimators)
+        val_auc = evaluate(model)
+        mlflow.log_metric("val_auc", val_auc)
+        model_uri = mlflow.sklearn.log_model(model, "model").model_uri
+    return model_uri, val_auc
+
+@func_to_container_op
+def register_model_op(model_uri: str, val_auc: float, threshold: float = 0.85) -> str:
+    """Register model if it passes threshold."""
+    if val_auc < threshold:
+        raise ValueError(f"Model val_auc {val_auc} below threshold {threshold}")
+    import mlflow
+    return mlflow.register_model(model_uri, "fraud-detector").version
+
+# Define the pipeline
+@dsl.pipeline(
+    name="Fraud Detection Retraining",
+    description="Nightly fraud model retraining pipeline"
+)
+def fraud_retraining_pipeline(
+    data_path: str = "s3://ml-data/training/latest/",
+    learning_rate: float = 0.001,
+    n_estimators: int = 500,
+):
+    # Component 1: Validate data
+    validate_step = validate_data_op(data_path)
+
+    # Component 2: Train (depends on validate)
+    train_step = train_model_op(
+        data_path=validate_step.output,
+        learning_rate=learning_rate,
+        n_estimators=n_estimators,
+    )
+    train_step.set_gpu_limit(1)           # request 1 GPU
+    train_step.set_memory_limit("32G")    # request 32GB RAM
+    train_step.set_cpu_limit("8")         # request 8 CPUs
+
+    # Component 3: Register (depends on train)
+    register_step = register_model_op(
+        model_uri=train_step.outputs["model_uri"],
+        val_auc=train_step.outputs["val_auc"],
+    )
+
+# Compile and submit
+kfp.compiler.Compiler().compile(fraud_retraining_pipeline, "pipeline.yaml")
+
+client = kfp.Client(host="http://kubeflow-pipelines:8888")
+run = client.create_run_from_pipeline_func(
+    fraud_retraining_pipeline,
+    arguments={"learning_rate": 0.001, "n_estimators": 500},
+)
+```
+
+**Airflow vs Kubeflow Pipelines**:
+
+```
+Criterion              | Airflow                    | Kubeflow Pipelines
+-----------------------|----------------------------|---------------------------------
+Native GPU support     | Via KubernetesPodOperator  | Native (set_gpu_limit)
+Component caching      | No                         | Yes (content-addressed cache)
+UI                     | DAG + task status          | Visual pipeline + artifact viewer
+Scaling                | Celery/K8s executors       | Kubernetes-native
+Best for               | Complex DAGs, data eng,    | ML workflows, GPU training,
+                       | many integrations          | artifact lineage, Kubernetes shops
+Trigger model          | Time-based, sensor-based   | API, recurring run, event trigger
+```
+
+---
+
 **Safety checks before promotion to production**
 
 - Minimum accuracy threshold vs baseline
@@ -477,6 +882,253 @@ The ML infrastructure stack mirrors the software infrastructure stack, with spec
 | AWS | SageMaker, EC2, Lambda | Mature ecosystem, broad integrations |
 | GCP | Vertex AI, AI Platform | TensorFlow integration, AutoML |
 | Azure | Azure ML, Databricks | Enterprise Azure integration, MLflow native support |
+
+---
+
+**AWS SageMaker — end-to-end ML pipeline**
+
+SageMaker provides managed training, hosting, and pipeline orchestration. Use `sagemaker.workflow.pipeline.Pipeline` to chain steps; each runs in its own managed container.
+
+```python
+import boto3
+import sagemaker
+from sagemaker.workflow.steps import TrainingStep, ProcessingStep
+from sagemaker.workflow.pipeline import Pipeline
+from sagemaker.workflow.parameters import ParameterFloat, ParameterString
+from sagemaker.sklearn import SKLearn
+from sagemaker.processing import SKLearnProcessor
+
+session = sagemaker.Session()
+role = sagemaker.get_execution_role()
+
+# Pipeline parameters (overridable at runtime)
+auc_threshold = ParameterFloat(name="AucThreshold", default_value=0.85)
+data_uri      = ParameterString(name="DataUri", default_value="s3://my-bucket/data/")
+
+# 1. Data processing step
+sklearn_proc = SKLearnProcessor(
+    framework_version="1.2-1",
+    instance_type="ml.m5.xlarge",
+    instance_count=1,
+    role=role,
+)
+processing_step = ProcessingStep(
+    name="PreprocessData",
+    processor=sklearn_proc,
+    inputs=[sagemaker.processing.ProcessingInput(source=data_uri, destination="/opt/ml/processing/input")],
+    outputs=[sagemaker.processing.ProcessingOutput(source="/opt/ml/processing/output", destination="s3://my-bucket/processed/")],
+    code="preprocess.py",
+)
+
+# 2. Training step
+estimator = SKLearn(
+    entry_point="train.py",
+    framework_version="1.2-1",
+    instance_type="ml.m5.2xlarge",
+    instance_count=1,
+    role=role,
+    hyperparameters={"n-estimators": 500, "max-depth": 8},
+    metric_definitions=[{"Name": "val:auc", "Regex": "val_auc: ([0-9\\.]+)"}],
+)
+training_step = TrainingStep(
+    name="TrainFraudModel",
+    estimator=estimator,
+    inputs={"train": sagemaker.inputs.TrainingInput(s3_data=processing_step.properties.ProcessingOutputConfig.Outputs["train"].S3Output.S3Uri)},
+    depends_on=[processing_step],
+)
+
+# 3. Conditional registration (only if AUC passes threshold)
+from sagemaker.workflow.conditions import ConditionGreaterThanOrEqualTo
+from sagemaker.workflow.condition_step import ConditionStep
+from sagemaker.workflow.steps import RegisterModel
+
+register_step = RegisterModel(
+    name="RegisterFraudModel",
+    estimator=estimator,
+    model_data=training_step.properties.ModelArtifacts.S3ModelArtifacts,
+    content_types=["application/json"],
+    response_types=["application/json"],
+    model_package_group_name="FraudDetectionModels",
+    approval_status="PendingManualApproval",
+)
+
+condition_step = ConditionStep(
+    name="CheckAUC",
+    conditions=[ConditionGreaterThanOrEqualTo(
+        left=training_step.properties.FinalMetricDataList["val:auc"].Value,
+        right=auc_threshold,
+    )],
+    if_steps=[register_step],
+    else_steps=[],
+)
+
+# 4. Assemble and run pipeline
+pipeline = Pipeline(
+    name="FraudDetectionPipeline",
+    parameters=[auc_threshold, data_uri],
+    steps=[processing_step, training_step, condition_step],
+)
+pipeline.upsert(role_arn=role)
+execution = pipeline.start(parameters={"AucThreshold": 0.87})
+```
+
+**SageMaker Endpoints** — deploy the registered model:
+
+```python
+from sagemaker.sklearn.model import SKLearnModel
+
+sm_client = boto3.client("sagemaker")
+
+# Approve the model package first, then deploy
+sm_client.update_model_package(
+    ModelPackageArn="arn:aws:sagemaker:us-east-1:123456789:model-package/...",
+    ModelApprovalStatus="Approved",
+)
+
+model = SKLearnModel(
+    model_data="s3://my-bucket/model.tar.gz",
+    role=role,
+    framework_version="1.2-1",
+    entry_point="inference.py",
+)
+predictor = model.deploy(
+    initial_instance_count=2,
+    instance_type="ml.c5.xlarge",
+    endpoint_name="fraud-detector-prod",
+    data_capture_config=sagemaker.model_monitor.DataCaptureConfig(
+        enable_capture=True,
+        sampling_percentage=20,          # capture 20% of requests for monitoring
+        destination_s3_uri="s3://my-bucket/data-capture/",
+    ),
+)
+```
+
+---
+
+**Google Vertex AI — end-to-end ML pipeline**
+
+Vertex AI Pipelines uses the same Kubeflow Pipelines SDK but runs fully managed on GCP. Native integration with BigQuery for training data and Cloud Storage for artifacts.
+
+```python
+from kfp import dsl
+from kfp.v2 import compiler
+from google.cloud import aiplatform
+from google.cloud.aiplatform import hyperparameter_tuning as hpt
+
+PROJECT_ID = "my-gcp-project"
+REGION     = "us-central1"
+PIPELINE_ROOT = f"gs://my-bucket/pipeline-root"
+
+# Define components using pre-built Google Cloud Pipeline Components
+from google_cloud_pipeline_components.v1.bigquery import BigqueryQueryJobOp
+from google_cloud_pipeline_components.v1.custom_job import CustomTrainingJobOp
+from google_cloud_pipeline_components.v1.model import ModelUploadOp
+from google_cloud_pipeline_components.v1.endpoint import EndpointCreateOp, ModelDeployOp
+
+@dsl.pipeline(name="fraud-vertex-pipeline", pipeline_root=PIPELINE_ROOT)
+def fraud_vertex_pipeline(
+    bq_source: str = "bq://project.dataset.fraud_training",
+    threshold: float = 0.85,
+):
+    # 1. Export training data from BigQuery to GCS
+    export_data = BigqueryQueryJobOp(
+        project=PROJECT_ID,
+        location="US",
+        query=f"SELECT * FROM `{bq_source}` WHERE DATE(_PARTITIONTIME) >= DATE_SUB(CURRENT_DATE(), INTERVAL 90 DAY)",
+    )
+
+    # 2. Custom training job (runs in a container you provide)
+    train_job = CustomTrainingJobOp(
+        project=PROJECT_ID,
+        display_name="fraud-training",
+        worker_pool_specs=[{
+            "machine_spec": {"machine_type": "n1-standard-8", "accelerator_type": "NVIDIA_TESLA_T4", "accelerator_count": 1},
+            "replica_count": 1,
+            "container_spec": {
+                "image_uri": f"gcr.io/{PROJECT_ID}/fraud-trainer:latest",
+                "args": ["--gcs-input", export_data.outputs["destination_table"],
+                         "--gcs-output", f"{PIPELINE_ROOT}/model/"],
+            },
+        }],
+    ).after(export_data)
+
+    # 3. Upload model to Vertex AI Model Registry
+    model_upload = ModelUploadOp(
+        project=PROJECT_ID,
+        display_name="fraud-detector",
+        artifact_uri=train_job.outputs["gcs_output_directory"],
+        serving_container_image_uri="us-docker.pkg.dev/vertex-ai/prediction/sklearn-cpu.1-2:latest",
+    ).after(train_job)
+
+    # 4. Deploy to endpoint
+    endpoint = EndpointCreateOp(project=PROJECT_ID, display_name="fraud-endpoint")
+    ModelDeployOp(
+        model=model_upload.outputs["model"],
+        endpoint=endpoint.outputs["endpoint"],
+        dedicated_resources_machine_type="n1-standard-4",
+        dedicated_resources_min_replica_count=2,
+        dedicated_resources_max_replica_count=10,  # autoscale up to 10
+        traffic_percentage=100,
+    )
+
+# Compile and submit
+compiler.Compiler().compile(fraud_vertex_pipeline, package_path="pipeline.json")
+
+aiplatform.init(project=PROJECT_ID, location=REGION)
+job = aiplatform.PipelineJob(display_name="fraud-run", template_path="pipeline.json")
+job.run(sync=True)
+```
+
+**Vertex AI Model Monitoring** — detect drift on deployed endpoints automatically:
+
+```python
+from google.cloud.aiplatform_v1beta1 import ModelDeploymentMonitoringJobServiceClient
+from google.cloud.aiplatform_v1beta1.types import (
+    ModelDeploymentMonitoringJob,
+    ModelDeploymentMonitoringObjectiveConfig,
+    ThresholdConfig,
+)
+
+monitoring_job = ModelDeploymentMonitoringJob(
+    display_name="fraud-drift-monitor",
+    endpoint=endpoint.resource_name,
+    model_deployment_monitoring_objective_configs=[
+        ModelDeploymentMonitoringObjectiveConfig(
+            deployed_model_id=deployed_model_id,
+            objective_config=ModelDeploymentMonitoringObjectiveConfig.ObjectiveConfig(
+                training_dataset=ModelDeploymentMonitoringObjectiveConfig.TrainingDataset(
+                    bigquery_source={"input_uri": f"bq://{bq_source}"},
+                    target_field="label",
+                ),
+                training_prediction_skew_detection_config={
+                    "skew_thresholds": {"feature_1": ThresholdConfig(value=0.3)},
+                },
+                prediction_drift_detection_config={
+                    "drift_thresholds": {"feature_1": ThresholdConfig(value=0.3)},
+                },
+            ),
+        )
+    ],
+    logging_sampling_strategy={"random_sample_config": {"sample_rate": 0.2}},
+    model_deployment_monitoring_schedule_config={"monitor_interval": {"seconds": 3600}},
+    alert_config={"email_alert_config": {"user_emails": ["ml-alerts@company.com"]}},
+)
+```
+
+**SageMaker vs Vertex AI comparison**:
+
+```
+Criterion                | SageMaker (AWS)              | Vertex AI (GCP)
+-------------------------|------------------------------|----------------------------------
+Pipeline SDK             | SageMaker Pipelines (custom) | Kubeflow Pipelines SDK (open)
+Training data source     | S3                           | BigQuery + GCS
+Model registry           | Model Package Groups         | Vertex Model Registry
+Auto-scaling endpoints   | Yes (target-tracking)        | Yes (min/max replicas)
+Managed spot training    | Managed Spot Instances       | Preemptible VMs
+Hyperparameter tuning    | SageMaker HPO (HyperOpt)    | Vertex Vizier (Bayesian)
+Built-in monitoring      | Model Monitor (drift + bias) | Vertex Model Monitoring
+Best for                 | AWS-native teams, broad DS   | GCP/BigQuery shops, GKE teams
+```
 
 **Containerization for ML**
 

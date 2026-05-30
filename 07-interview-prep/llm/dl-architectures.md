@@ -147,11 +147,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
 
 Query $Q$: what this token is looking for. Key $K$: what each token advertises. Value $V$: what each token actually contributes. Compatibility is the dot product; softmax converts scores to weights; the output is a weighted sum of values.
 
-**Why $\sqrt{d_k}$ — derived from variance:**
-If $q, k \in \mathbb{R}^{d_k}$ with i.i.d. components $\sim \mathcal{N}(0,1)$:
-$$\text{Var}(q \cdot k) = \sum_{i=1}^{d_k} \text{Var}(q_i k_i) = d_k \implies \text{std}(q \cdot k) = \sqrt{d_k}$$
-
-At $d_k = 64$, dot products have std 8. A score of 30 entering softmax: $e^{30}/(e^{30} + \text{other terms}) \approx 1$. Softmax collapses to a one-hot vector; its Jacobian vanishes; gradients stop flowing through the attention layer. Dividing by $\sqrt{d_k}$ restores variance to 1 and keeps softmax in its informative regime. This is not a tuning parameter — it follows directly from the variance calculation.
+**Why $\sqrt{d_k}$:** Without scaling, dot products have variance $d_k$, so at $d_k=64$ scores have std 8. A score of 30 causes softmax to collapse to a one-hot vector, zeroing gradients. Dividing by $\sqrt{d_k}$ restores variance to 1. Full derivation: [math-derivations.md §5](math-derivations.md#5-why-sqrt-d_k-in-attention-scaling).
 
 **Multi-head attention** lets the model attend to different aspects simultaneously:
 $$\text{MHA}(Q,K,V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h) W^O$$

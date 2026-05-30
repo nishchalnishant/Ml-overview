@@ -18,7 +18,7 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 07-interview-prep/       ML + LLM interview Q&As, scenarios, coding
 08-emerging-topics/      Emerging trends, XAI, causal inference, privacy-preserving ML, continual learning
 09-study-plans/          30-day week-by-week study plan
-10-references/           Book notes, research papers
+10-references/           Book notes, research papers, datasets, tools, benchmarks, notation
 MIND-MAP.md              Full topic mind map + gap analysis
 ```
 

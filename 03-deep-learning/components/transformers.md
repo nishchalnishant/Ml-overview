@@ -47,39 +47,19 @@ The residual connections ensure that gradients flow directly from the output hea
 
 ---
 
-## Self-Attention
+## Self-Attention and Multi-Head Attention
 
-**The problem**: you want each token to update its representation based on context from other tokens. But which other tokens are relevant depends on the content — it varies by position, by sentence, by task. You cannot hardcode which positions to attend to.
+> Full mechanics of scaled dot-product attention, multi-head attention, causal masking, Q/K/V projections, MQA, and GQA are covered in [attention.md](./attention.md). This section summarizes what matters for understanding the Transformer block structure.
 
-**The core insight**: let the model learn a query-key matching system. Each token projects itself into a query (what it's looking for) and a key (what it offers). Compute the match between all query-key pairs, normalize to a distribution, and use the distribution to aggregate values.
-
-**The mechanics**:
+Self-attention lets every token directly look at every other token in a single step:
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
 
-$Q$, $K$, $V$ are linear projections of the same input sequence (self-attention). The $1/\sqrt{d_k}$ scaling prevents dot products from growing so large they push softmax into near-zero gradient regions.
-
-Computational cost: $O(n^2 d)$ in time, $O(n^2)$ in memory. The $n^2$ term is the dominant bottleneck for long sequences.
-
-**What breaks**: for an autoregressive decoder, each token can only attend to past tokens. Without a causal mask, token $t$ would see token $t+5$ — the future. The mask sets future positions' attention scores to $-\infty$ before softmax, giving them weight $\approx 0$.
-
----
-
-## Multi-Head Attention
-
-**The problem**: a single attention pattern can only track one type of relationship at a time. The word "bank" might need to attend to "river" for one use and to "money" for another — and simultaneously the model might need to track subject-verb agreement in the same sentence. One head cannot do all of this.
-
-**The core insight**: run $h$ attention computations in parallel, each with its own learned projections. Each head specializes in a different relationship type. Concatenate the heads' outputs.
-
-**The mechanics**:
+Multi-head attention runs $h$ attention computations in parallel with independent projections, then concatenates:
 
 $$\text{MultiHead}(Q,K,V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h) W^O$$
 
-$$\text{head}_i = \text{Attention}(QW_i^Q, KW_i^K, VW_i^V)$$
-
-Each head projects to $d_k = d_v = d_\text{model}/h$. Total parameter count is the same as a single large attention.
-
-**What breaks**: some heads in trained Transformers appear nearly inert — their attention weights are near-uniform, contributing little. Attention head pruning (see model compression) removes these with minimal quality loss.
+For autoregressive decoders, a causal mask zeros out future positions. Computational cost is $O(n^2 d)$ — the bottleneck for long sequences.
 
 ---
 
@@ -105,35 +85,13 @@ Three projections instead of two; hidden dimension $\frac{8}{3}d_\text{model}$ t
 
 ## Positional Encodings
 
-**The problem**: attention is permutation-invariant. The self-attention computation treats the input as an unordered set. "The dog bit the man" and "The man bit the dog" produce the same set of attention weights (just for different positions). Without position information, the model cannot distinguish these.
+> Full treatment of sinusoidal, RoPE, ALiBi, and learned encodings is in [attention.md](./attention.md). Summary below.
 
-**The core insight**: add a position-dependent signal to each token's representation before attention. The model then has position information embedded in the queries and keys, allowing it to prefer attending to nearby vs. far positions and to distinguish ordering.
+Attention is permutation-invariant — positional encodings inject order information. Three main families:
 
-### Sinusoidal (original Transformer)
-
-$$PE_{(pos, 2i)} = \sin\left(\frac{pos}{10000^{2i/d}}\right), \quad PE_{(pos, 2i+1)} = \cos\left(\frac{pos}{10000^{2i/d}}\right)$$
-
-Fixed, not learned. Different dimensions use different frequencies, encoding position at multiple scales. Generalizes to longer sequences than seen in training in principle.
-
-**What breaks**: encodes absolute positions independently. The model must learn to infer relative distances from pairs of absolute positions, which is indirect and does not generalize well to very long sequences.
-
-### RoPE (Rotary Position Embedding)
-
-**The problem**: absolute position encodings are added to token representations, mixing position information into the content. This makes it hard to learn relative distance patterns — the model cannot easily extract "how far apart" two tokens are from their absolute positions.
-
-**The core insight**: encode position by rotating query and key vectors. The dot product between two rotated vectors depends only on their relative position, not their absolute positions.
-
-$$q'_m = q_m e^{im\theta}, \quad k'_n = k_n e^{in\theta}$$
-
-$$q'_m \cdot k'_n = \text{Re}[q_m k_n^* e^{i(m-n)\theta}]$$
-
-Relative offset $(m-n)$ appears directly in the attention score. Length generalization is better. Extended via YaRN and LongRoPE to $>100\text{k}$ token contexts.
-
-Used in LLaMA, Mistral, GPT-NeoX, most modern open-weight LLMs.
-
-### ALiBi
-
-Add a linear bias directly to attention scores proportional to distance: $-m \cdot |i - j|$ where $m$ is a per-head slope. Naturally discourages very long-range attention. No extra parameters. Strong length extrapolation. Used in MPT, BLOOM.
+- **Sinusoidal** (original Transformer): fixed frequencies, no parameters, limited length generalization
+- **RoPE** (LLaMA, Mistral, most modern LLMs): rotates Q/K vectors so relative distance appears directly in attention dot products. Better length generalization, extendable via YaRN/LongRoPE
+- **ALiBi** (MPT, BLOOM): subtracts a linear bias proportional to distance from attention scores. No parameters, strong extrapolation
 
 ---
 
@@ -183,18 +141,14 @@ Examples: T5, BART, Whisper, original Transformer.
 
 ## KV Cache
 
-**The problem**: autoregressive generation requires computing attention at each step over all past tokens. Without caching, this is $O(n^2)$ total compute for a sequence of length $n$ — recomputing all past keys and values from scratch at every step.
+> Full mechanics of KV caching, MQA, and GQA are in [attention.md](./attention.md).
 
-**The core insight**: keys and values for past tokens do not change between steps (given causal masking). Compute and store them once.
+During autoregressive generation, keys and values for past tokens do not change — cache them after the first computation. Cache size grows linearly:
 
-**What breaks**: the KV cache grows linearly with sequence length:
+$$\text{cache size} = 2 \times n_\text{layers} \times n_\text{heads} \times d_k \times n_\text{ctx}$$
 
-$$\text{cache size} = 2 \times n_\text{layers} \times n_\text{heads} \times d_k \times n_\text{ctx} \text{ values}$$
-
-At 100k token context, this dominates GPU memory. Solutions:
-
-- **MQA (Multi-Query Attention)**: all heads share one $K$, $V$ projection. Cache divided by $n_\text{heads}$.
-- **GQA (Grouped-Query Attention)**: $g$ heads share one $K$, $V$ pair. Cache reduced by $n_\text{heads}/g$. Quality-memory tradeoff between MQA and full MHA. Used in LLaMA 3.
+**MQA**: all query heads share one K/V projection — cache divided by $n_\text{heads}$.
+**GQA**: groups of heads share K/V — used in LLaMA 3. Intermediate quality/memory tradeoff between MHA and MQA.
 
 ---
 

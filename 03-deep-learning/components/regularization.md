@@ -181,13 +181,70 @@ Used in: ViT, EfficientNet, Swin Transformer.
 
 ## Spectral Normalization
 
-**The problem**: in GANs, the discriminator has no inherent constraint on how rapidly its output can change with its input. An unconstrained discriminator can grow arbitrarily Lipschitz — its gradients can explode, destabilizing generator training.
+> Full coverage in [normalization.md](./normalization.md#spectral-normalization). Summary: constrain the spectral norm (largest singular value) of each weight matrix to 1 by dividing $W$ by $\sigma(W)$ estimated via power iteration. Enforces 1-Lipschitz constraint on the discriminator in GANs. Applied as a runtime normalization, not a weight update.
 
-**The core insight**: constrain the spectral norm (largest singular value) of each weight matrix to 1. A 1-Lipschitz network has bounded gradients by definition.
+---
 
-**The mechanics**: estimate the spectral norm $\sigma(W)$ via power iteration at each forward pass. Divide the weight matrix by $\sigma(W)$ during the forward computation. No change to the weight matrix itself — the normalization is applied at compute time.
+## DropBlock
 
-**What breaks**: spectral normalization limits how expressive the discriminator can be. If the constraint is too tight (relative to how complex the true data distribution is), the discriminator cannot distinguish real from fake well enough to give useful gradient signal to the generator. The constraint is a regularizer — calibrate it with the problem complexity.
+**The problem**: standard dropout removes individual activations at random from convolutional feature maps. Adjacent spatial positions in a feature map are highly correlated — a feature detected at pixel $(i,j)$ is likely also detectable at $(i+1, j)$. Dropping individual pixels does not prevent the network from copying the feature from a neighboring position. The regularization effect is weakened.
+
+**The core insight**: instead of dropping individual activations, drop contiguous rectangular blocks. A block dropout removes all activations in a region at once, forcing the network to use information from other spatial locations entirely rather than nearby copies.
+
+**The mechanics**: for each feature map, randomly select center positions and zero out $B \times B$ blocks centered there. The keep probability is adjusted to maintain the same expected fraction of active units as a dropout rate $p$:
+
+$$\gamma = \frac{1 - \text{keep\_prob}}{B^2} \cdot \frac{W \times H}{(W - B + 1)(H - B + 1)}$$
+
+The block size $B$ controls the granularity of dropout. Larger blocks force the model to use distant context; smaller blocks approach standard dropout.
+
+```python
+# PyTorch: no built-in DropBlock, but can implement:
+class DropBlock2D(nn.Module):
+    def __init__(self, block_size=7, p=0.1):
+        super().__init__()
+        self.block_size = block_size
+        self.p = p
+
+    def forward(self, x):
+        if not self.training:
+            return x
+        B, C, H, W = x.shape
+        mask = torch.ones_like(x)
+        gamma = self.p / self.block_size**2
+        seed = (torch.rand(B, C, H, W, device=x.device) < gamma).float()
+        seed = F.max_pool2d(seed, self.block_size, stride=1,
+                            padding=self.block_size // 2)
+        mask = 1 - seed
+        # Scale up surviving activations
+        mask = mask / (mask.mean() + 1e-8)
+        return x * mask
+```
+
+**What breaks**: DropBlock drops large regions, which can remove semantically important features if the block size is too large relative to the feature map resolution. Typical block size: 5–9 pixels on 56×56 or 28×28 feature maps. Applying DropBlock at the first few layers can prevent useful low-level feature learning early in training.
+
+Used in EfficientNet, AmoebaNet, and ResNet variants for stronger regularization on large vision datasets.
+
+---
+
+## Label Smoothing
+
+**The problem**: a model trained on hard one-hot labels is incentivized to push the logit of the correct class as large as possible relative to all others, with no limit. This leads to overconfident models that generalize poorly and are poorly calibrated — they assign near-100% probability even when they are wrong.
+
+**The core insight**: replace the one-hot target with a soft distribution that assigns a small probability mass $\epsilon/(K-1)$ to each incorrect class. The model can never fully satisfy the target, preventing logits from growing without bound.
+
+**The mechanics**:
+
+$$y_\text{smooth}^{(k)} = \begin{cases} 1 - \epsilon & k = y_\text{true} \\ \epsilon / (K-1) & k \neq y_\text{true} \end{cases}$$
+
+Typical $\epsilon = 0.1$. This is equivalent to adding a KL divergence penalty from the model's distribution to the uniform distribution.
+
+```python
+criterion = nn.CrossEntropyLoss(label_smoothing=0.1)
+```
+
+**Effect on training**: reduces the maximum attainable confidence, acts as a calibration regularizer. Particularly effective for classification tasks with ambiguous labels (ImageNet top-1 improved by ~0.1–0.2% with label smoothing). Can slightly hurt accuracy on tasks with very clean, unambiguous labels.
+
+**What breaks**: label smoothing makes it harder to use the model's confidence as a threshold for hard decisions. With smoothing, the maximum softmax output is bounded below 1, so confidence thresholds must be recalibrated. Also: knowledge distillation already provides a soft target distribution from the teacher — combining label smoothing with distillation can over-regularize the student.
 
 ---
 

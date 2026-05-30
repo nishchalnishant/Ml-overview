@@ -88,7 +88,7 @@ Add:
   Tokenization, embeddings, attention, BERT, GPT
 
 - `machine-learning-interviews.md`
-  The meta-strategy: how to frame answers, guide system-design rounds, and sound senior
+  The meta-strategy: how to frame answers, guide system-design rounds, and sound senior. Includes company-specific FAANG prep notes (§11) and take-home case study tips (§12).
 
 ---
 

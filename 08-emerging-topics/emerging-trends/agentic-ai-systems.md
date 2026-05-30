@@ -103,6 +103,8 @@ The actual state of external systems the agent interacts with: files written, AP
 ### Episodic Memory (Experience)
 Records of past tasks: what worked, what failed, how long tasks took. Allows agents to avoid repeating mistakes across sessions.
 
+> For advanced retrieval patterns within agentic pipelines — including Self-RAG (the agent decides when to retrieve and critiques its own retrieved passages), Agentic RAG (multi-step retrieval loops), RAPTOR (hierarchical document summarization), MemGPT (virtual context management), and Mem0 (user-level persistent memory) — see [advanced-rag-and-memory.md](advanced-rag-and-memory.md). This section covers the memory architecture abstractions; that file covers the retrieval system internals.
+
 ---
 
 ## 4. Tool Design Principles

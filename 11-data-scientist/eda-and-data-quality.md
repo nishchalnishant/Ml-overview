@@ -587,6 +587,334 @@ Expectations are saved and re-run on every new data batch. Failures generate a s
 
 **What breaks**: expectations encode your understanding of the data at a point in time. If the valid range of a feature legitimately changes (a new product category is introduced), the expectation becomes wrong and will generate spurious failures. Expectations need maintenance as the system evolves.
 
+## Visualization Code Patterns
+
+**Purpose**: runnable matplotlib/seaborn code for the most common EDA plots. Each snippet is self-contained given a pandas DataFrame `df`.
+
+---
+
+### Setup
+
+```python
+import pandas as pd
+import numpy as np
+import matplotlib.pyplot as plt
+import seaborn as sns
+from scipy import stats
+
+# Consistent aesthetics
+sns.set_theme(style='whitegrid', palette='muted', font_scale=1.1)
+plt.rcParams['figure.dpi'] = 120
+```
+
+---
+
+### Univariate: Continuous Features
+
+```python
+# Histogram + KDE overlay for a single feature
+def plot_distribution(df, col, bins=50):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+
+    # Histogram with KDE
+    axes[0].hist(df[col].dropna(), bins=bins, edgecolor='white', alpha=0.7)
+    axes[0].set_title(f'{col} — histogram')
+    axes[0].set_xlabel(col)
+
+    # Box plot (identifies outliers)
+    axes[1].boxplot(df[col].dropna(), vert=True, patch_artist=True)
+    axes[1].set_title(f'{col} — box plot')
+
+    plt.tight_layout()
+    plt.show()
+
+# KDE with seaborn (continuous density; better than histogram for shape)
+sns.kdeplot(df[col], fill=True)
+plt.title(f'Density: {col}')
+plt.show()
+
+# Q-Q plot to test normality
+fig, ax = plt.subplots(figsize=(5, 5))
+stats.probplot(df[col].dropna(), dist="norm", plot=ax)
+ax.set_title(f'Q-Q plot: {col}')
+plt.show()
+```
+
+---
+
+### Univariate: Categorical Features
+
+```python
+# Bar chart of value counts (sorted by frequency)
+def plot_categorical(df, col, top_n=20):
+    counts = df[col].value_counts().head(top_n)
+    fig, ax = plt.subplots(figsize=(10, 4))
+    counts.plot(kind='bar', ax=ax, edgecolor='white')
+    ax.set_title(f'{col} — top {top_n} values')
+    ax.set_xlabel('')
+    ax.tick_params(axis='x', rotation=45)
+    # Add percentage labels
+    total = len(df[col].dropna())
+    for p in ax.patches:
+        ax.annotate(f'{p.get_height()/total:.1%}',
+                    (p.get_x() + p.get_width()/2, p.get_height()),
+                    ha='center', va='bottom', fontsize=8)
+    plt.tight_layout()
+    plt.show()
+```
+
+---
+
+### Bivariate: Continuous vs. Continuous
+
+```python
+# Scatter plot with regression line and correlation annotation
+def plot_scatter(df, x_col, y_col, sample_n=5000):
+    sample = df[[x_col, y_col]].dropna().sample(min(sample_n, len(df)))
+    r, p = stats.pearsonr(sample[x_col], sample[y_col])
+
+    fig, ax = plt.subplots(figsize=(7, 5))
+    ax.scatter(sample[x_col], sample[y_col], alpha=0.3, s=10)
+    # Add regression line
+    m, b = np.polyfit(sample[x_col], sample[y_col], 1)
+    x_range = np.linspace(sample[x_col].min(), sample[x_col].max(), 100)
+    ax.plot(x_range, m * x_range + b, 'r-', linewidth=2)
+    ax.set_title(f'{x_col} vs {y_col}  |  r = {r:.3f}, p = {p:.3e}')
+    ax.set_xlabel(x_col)
+    ax.set_ylabel(y_col)
+    plt.tight_layout()
+    plt.show()
+
+# Hex bin (for large datasets where scatter is overplotted)
+df.plot.hexbin(x=x_col, y=y_col, gridsize=30, cmap='Blues', figsize=(7, 5))
+plt.title(f'{x_col} vs {y_col} — density')
+plt.show()
+```
+
+---
+
+### Bivariate: Continuous vs. Categorical (A/B comparison)
+
+```python
+# Overlapping KDEs per group
+def plot_group_distributions(df, value_col, group_col):
+    fig, axes = plt.subplots(1, 2, figsize=(14, 4))
+
+    # KDE per group
+    for group, subset in df.groupby(group_col):
+        sns.kdeplot(subset[value_col].dropna(), label=str(group),
+                    fill=True, alpha=0.3, ax=axes[0])
+    axes[0].set_title(f'{value_col} by {group_col} — KDE')
+    axes[0].legend()
+
+    # Box plot per group
+    df.boxplot(column=value_col, by=group_col, ax=axes[1])
+    axes[1].set_title(f'{value_col} by {group_col} — box plot')
+    plt.suptitle('')  # suppress default title from boxplot
+    plt.tight_layout()
+    plt.show()
+```
+
+---
+
+### Correlation Heatmap
+
+```python
+def plot_correlation_heatmap(df, method='pearson', figsize=(12, 10)):
+    numeric_df = df.select_dtypes(include=np.number)
+    corr = numeric_df.corr(method=method)
+
+    # Mask upper triangle
+    mask = np.triu(np.ones_like(corr, dtype=bool))
+
+    fig, ax = plt.subplots(figsize=figsize)
+    sns.heatmap(
+        corr, mask=mask, annot=True, fmt='.2f',
+        cmap='coolwarm', center=0, vmin=-1, vmax=1,
+        square=True, linewidths=0.5, ax=ax
+    )
+    ax.set_title(f'Correlation matrix ({method})')
+    plt.tight_layout()
+    plt.show()
+
+    # Flag suspiciously high correlations (possible leakage or redundancy)
+    high_corr = (corr.abs() > 0.9) & (corr.abs() < 1.0)
+    pairs = [(corr.index[i], corr.columns[j])
+             for i, j in zip(*np.where(high_corr & ~mask))]
+    if pairs:
+        print("High correlation pairs (|r| > 0.9):", pairs)
+```
+
+---
+
+### Missing Data Visualization
+
+```python
+# Missingness heatmap (rows × columns, missing = white)
+def plot_missing(df, figsize=(14, 6)):
+    missing_pct = df.isnull().mean().sort_values(ascending=False)
+    cols_with_missing = missing_pct[missing_pct > 0].index
+
+    if len(cols_with_missing) == 0:
+        print("No missing values.")
+        return
+
+    fig, axes = plt.subplots(1, 2, figsize=figsize)
+
+    # Bar chart of missingness %
+    missing_pct[cols_with_missing].plot(kind='bar', ax=axes[0], color='steelblue')
+    axes[0].set_title('Missingness by column')
+    axes[0].set_ylabel('Fraction missing')
+    axes[0].tick_params(axis='x', rotation=45)
+
+    # Heatmap of missing patterns (sample 500 rows for readability)
+    sample = df[cols_with_missing].sample(min(500, len(df)))
+    sns.heatmap(sample.isnull(), cbar=False, yticklabels=False,
+                cmap=['#34495e', '#e74c3c'], ax=axes[1])
+    axes[1].set_title('Missing pattern (red = missing)')
+
+    plt.tight_layout()
+    plt.show()
+```
+
+---
+
+### Time Series EDA
+
+```python
+def plot_time_series(df, date_col, value_col, freq='D'):
+    ts = df.set_index(date_col)[value_col].resample(freq).mean()
+
+    fig, axes = plt.subplots(3, 1, figsize=(14, 10), sharex=False)
+
+    # Raw series
+    axes[0].plot(ts.index, ts.values)
+    axes[0].set_title(f'{value_col} over time ({freq} aggregation)')
+
+    # Rolling statistics (7-period)
+    window = 7
+    axes[1].plot(ts.index, ts.values, alpha=0.3, label='raw')
+    axes[1].plot(ts.index, ts.rolling(window).mean(), label=f'{window}-period MA')
+    axes[1].fill_between(ts.index,
+                          ts.rolling(window).mean() - ts.rolling(window).std(),
+                          ts.rolling(window).mean() + ts.rolling(window).std(),
+                          alpha=0.2, label='±1 std')
+    axes[1].legend()
+    axes[1].set_title('Rolling mean ± std')
+
+    # Distribution of values (to check for seasonality-induced bimodality)
+    axes[2].hist(ts.dropna().values, bins=50, edgecolor='white', alpha=0.7)
+    axes[2].set_title('Distribution of values')
+
+    plt.tight_layout()
+    plt.show()
+```
+
+---
+
+### Pairplot (multivariate overview)
+
+```python
+# seaborn pairplot: scatterplot matrix + histograms on diagonal
+# Best for datasets with 3-8 numeric features
+sns.pairplot(
+    df[numeric_cols + [target_col]],
+    hue=target_col,           # color points by target (classification)
+    diag_kind='kde',
+    plot_kws={'alpha': 0.4, 's': 20},
+    corner=True               # show only lower triangle
+)
+plt.suptitle('Pairplot', y=1.02)
+plt.show()
+```
+
+---
+
+## Storytelling with Data: Communicating EDA Findings
+
+Good analysis that is poorly communicated does not move decisions. The structure below applies to presenting EDA results to stakeholders (product managers, executives, cross-functional partners).
+
+---
+
+### The SCQA Framework
+
+Structure every analytical narrative using four elements:
+
+1. **Situation**: what context does the audience already know? Establish shared ground without re-explaining things they know.
+   - "We launched the new checkout flow in Q3 across all platforms."
+
+2. **Complication**: what changed or what problem arose? This is the tension that makes the analysis necessary.
+   - "Revenue per session declined 8% in the two weeks following launch."
+
+3. **Question**: what specific question does your analysis answer?
+   - "Is the decline caused by the new checkout flow, or by external factors?"
+
+4. **Answer**: state your conclusion upfront. Do not bury it at the end.
+   - "The decline is real and caused by the flow change: a 3-step friction increase in mobile checkout accounts for 90% of the drop."
+
+The rest of the presentation is evidence supporting the Answer, not a chronological retelling of how you did the analysis.
+
+---
+
+### Slide / Report Structure
+
+Each analytical communication needs exactly these sections (adapt length to audience):
+
+| Section | Purpose | Common mistake |
+| :--- | :--- | :--- |
+| **Executive summary** (1 slide) | Answer + 2-3 supporting bullets | Omitting it; burying the answer on slide 12 |
+| **Context** (1-2 slides) | Data source, date range, metric definitions | Drowning in methodology before showing results |
+| **Finding** (2-4 slides) | Main result with supporting evidence | Showing 20 charts; audience cannot identify the finding |
+| **So what** (1 slide) | Concrete recommendation or next step | Ending with "more analysis needed" (non-answer) |
+| **Appendix** | Details for people who want to go deeper | Putting appendix-level detail in the main flow |
+
+---
+
+### Chart Selection Rules
+
+Match chart type to the question being answered:
+
+| Question | Chart type |
+| :--- | :--- |
+| How is X distributed? | Histogram, KDE, box plot |
+| How does X change over time? | Line chart (not bar chart) |
+| How do X and Y relate? | Scatter plot, hex bin |
+| How do groups compare on X? | Box plots side-by-side, strip plot |
+| What is the composition of X? | Stacked bar (avoid pie charts) |
+| Which categories are largest? | Horizontal bar, sorted descending |
+| How correlated are many variables? | Heatmap |
+
+**Rules**:
+- One chart, one message. Title = the conclusion, not the variable name. "Revenue declined after launch" > "Revenue by week".
+- Annotate directly on the chart (arrows, callout boxes) rather than expecting the reader to match a legend to a line.
+- Always label axes with units. "Sessions (millions)" not "Sessions".
+- Remove chartjunk: gridlines, 3D effects, dual y-axes (almost always misleading).
+- Color is for encoding information, not decoration. Use one highlight color to draw attention to what matters.
+
+---
+
+### Numbers-First Communication
+
+When speaking to a technical audience or writing a data doc:
+
+- Lead with the number and its uncertainty: "Conversion rate declined from 4.2% to 3.8% (95% CI: [-0.6%, -0.2%], n = 2.1M sessions)."
+- State the statistical test used and why: "We used Welch's t-test (not Student's) because group sizes and variances differed."
+- Call out what could be wrong: "One confound we cannot rule out: the launch coincided with a competitor's sale event."
+- Separate what you know from what you inferred: "The data shows X directly. We infer Y from X, which requires assuming Z."
+
+---
+
+### Handling Uncertainty
+
+Stakeholders often want a definitive answer when the data is ambiguous. Productive framing:
+
+- Present a range of scenarios: "If the decline is entirely attributable to the checkout flow, the expected revenue impact is -$2M/month. If it's 50% attributable, the impact is -$1M/month."
+- Distinguish signal from noise quantitatively: report effect sizes and confidence intervals, not just p-values.
+- Make the decision criteria explicit: "We should roll back if the decline persists for another week with p < 0.05 on the primary metric."
+- Name the assumption that drives your recommendation: "This recommendation holds if we believe the parallel trends assumption is valid. Here is the evidence for that assumption."
+
+---
+
 ## Flashcards
 
 **40% of rows had a target-adjacent column accidentally left in the feature set.?** #flashcard

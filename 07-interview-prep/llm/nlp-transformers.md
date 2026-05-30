@@ -106,12 +106,7 @@ Self-attention collapses this to $O(1)$: every position can directly attend to e
 
 For each token $i$, compute compatibility with all tokens $j$: $e_{ij} = q_i \cdot k_j$. Softmax over $j$ gives attention weights $\alpha_{ij}$. Output is a weighted sum of values: $\text{out}_i = \sum_j \alpha_{ij} v_j$.
 
-**Why $\sqrt{d_k}$ scaling — derived:**
-
-If $q, k \in \mathbb{R}^{d_k}$ with i.i.d. components $\sim \mathcal{N}(0,1)$:
-$$\text{Var}(q \cdot k) = d_k \implies \text{std}(q \cdot k) = \sqrt{d_k}$$
-
-At $d_k = 64$: scores have std 8. The max score might be 30, feeding into softmax: $e^{30} / (e^{30} + \ldots) \approx 1$. Output approaches one-hot. The Jacobian of softmax at one-hot is nearly zero — gradients vanish. Dividing by $\sqrt{d_k}$ normalizes variance to 1.
+**Why $\sqrt{d_k}$ scaling:** Without it, dot products have variance $d_k$; at $d_k=64$ scores have std 8, causing softmax to collapse to a one-hot vector and zeroing gradients. Dividing by $\sqrt{d_k}$ restores variance to 1. Full derivation: [math-derivations.md §5](math-derivations.md#5-why-sqrt-d_k-in-attention-scaling).
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V$$
 

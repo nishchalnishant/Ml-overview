@@ -280,6 +280,73 @@ def needle_in_haystack_eval(model, tokenizer, context_len, needle_position):
 
 ---
 
+## Sparse Attention Patterns
+
+Full attention is O(n²). For n=128K, the attention matrix is 16B entries — too large to materialize. Sparse attention patterns approximate full attention by attending to a structured subset of token pairs.
+
+### Longformer
+
+Replace full O(n²) attention with two complementary patterns:
+1. **Local window**: each token attends to its ±w/2 nearest neighbors — captures local syntax and nearby coreference.
+2. **Global tokens**: a small set of designated tokens (CLS token, task-specific markers) attend to and from *all* tokens — propagate long-range information.
+
+Cost: O(n·w) instead of O(n²). Information from distant parts of the document can only reach other parts via the global tokens, so global token placement matters.
+
+**Limitation**: Longformer is a pretrained architecture, not a plug-in modification. You can't simply apply it to an existing model.
+
+### BigBird
+
+Extends Longformer by adding **random attention**: each token also attends to a random subset of all tokens. This creates a small-world graph structure:
+- Local edges from the sliding window
+- Global edges from global tokens
+- Random long-range edges
+
+BigBird proves this combination is theoretically equivalent to full attention (Turing-complete). In practice, random edges help with tasks requiring unpredictable long-range dependencies.
+
+**Limitation**: random attention is non-deterministic — different runs may sample different edges. For precise long-range recall tasks, the random edges may miss the critical token.
+
+---
+
+## Context Compression
+
+When most of a long context is irrelevant to the current query, compress before generation.
+
+### LLMLingua
+
+A small proxy LM computes per-token perplexity given surrounding context. Predictable (low-perplexity) tokens are redundant — the reader can reconstruct them. Remove the redundant tokens before passing to the expensive target LM.
+
+Pipeline:
+1. Use a small LM to compute perplexity of each token in the prompt
+2. Rank tokens: low perplexity = remove, high perplexity = keep
+3. Budget-aware allocation: instructions and the question get higher token budgets than background context
+4. **LongLLMLingua** also weights tokens by relevance to the specific query (not just global perplexity)
+
+**Limitation**: the proxy model may disagree with the target model about which tokens matter. Compression can remove causally necessary tokens.
+
+### Gist Tokens
+
+For workloads where many queries share the same long system prompt, fine-tune the model to compress the prompt into a small set of learned "gist" token embeddings. Cache the gist KV representations and reuse across all queries.
+
+During fine-tuning: mask out the original prompt tokens; train the model to answer questions using only the gist tokens. At inference: compute gist once, cache, reuse.
+
+**Limitation**: gist tokens are not human-readable. If the system prompt changes, gist tokens must be recomputed. Compression is lossy.
+
+---
+
+## State-Space Model Alternative: Mamba
+
+For sequences of millions of tokens, even O(n²/M) FlashAttention is prohibitive. SSMs offer O(n) training and O(1) inference.
+
+**Core mechanic**: discrete state-space recurrence — $h_t = \bar{A} h_{t-1} + \bar{B} x_t$, $y_t = C h_t$ — can be parallelized during training via parallel scan (not sequential recurrence). Inference: pure O(1) state update per token, constant KV memory regardless of sequence length.
+
+**Mamba's key innovation**: make $B$, $C$, and discretization step $\Delta$ input-dependent (selective SSM). The model learns *what to store* in state based on content, addressing the fixed-filter limitation of earlier SSMs (S4).
+
+**The tradeoff**: the fixed-size hidden state is a bottleneck. Transformers can do exact in-context lookup by attending to any token in history. Mamba must compress all history into a bounded state vector — facts processed thousands of tokens ago may not survive later state updates.
+
+**Practical status**: pure Mamba models slightly underperform transformers on in-context learning tasks that require exact retrieval. **Hybrid models** (alternating Mamba + attention layers, e.g., Jamba, Zamba) are the current practical compromise: Mamba layers handle the bulk of the sequence at O(n) cost; sparse attention layers provide precise retrieval when needed.
+
+---
+
 ## Comparison Table
 
 | Method | Fine-tuning needed | Quality | Memory | Notes |

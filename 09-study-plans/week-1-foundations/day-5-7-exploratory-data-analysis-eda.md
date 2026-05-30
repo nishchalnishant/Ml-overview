@@ -98,6 +98,53 @@ Many real-world distributions (wealth, city sizes, NLP token frequency) follow a
 
 ---
 
+## 4. Probability & Statistical Testing (Days 6-7 Extension)
+
+**Why statistical testing belongs in the same block as EDA:** EDA identifies patterns. Statistical testing asks whether those patterns are real or could have arisen by chance. These two activities are deeply intertwined — EDA without hypothesis testing generates observations; hypothesis testing without EDA generates blind tests on the wrong variables.
+
+### Probability Foundations
+
+- **Conditional Probability**: $P(A|B) = \frac{P(A \cap B)}{P(B)}$. The probability of A given that B has occurred.
+- **Bayes' Theorem**: $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates belief in A after observing evidence B.
+- **Law of Total Expectation**: $E[X] = E[E[X|Y]]$. If you condition on a grouping variable, the weighted average of group means equals the overall mean.
+- **Central Limit Theorem (CLT)**: As sample size grows, the distribution of the sample mean approaches Normal regardless of the population distribution. This underpins most frequentist inference.
+
+**Key insight for Bayes' Theorem:** The base rate (prior) matters enormously. A medical test with 99% sensitivity and 99% specificity applied to a disease with 0.1% prevalence has a positive predictive value of only ~9% — the test is almost certainly a false positive. The base rate is not the test's fault; it is a mathematical consequence of applying a good test to a rare disease. This is one of the most important practical consequences of probability and it comes up in every ML application where the positive class is rare.
+
+**How to verify understanding:** A spam filter has 98% precision and 95% recall. In a population where 0.5% of emails are spam, what fraction of emails flagged as spam are actually spam? Walk through the calculation using Bayes' theorem.
+
+### Hypothesis Testing
+
+**Why this is an ML topic, not just a statistics topic:** Every A/B test you run on a deployed model, every comparison between two classifiers on the same dataset, and every claim that "adding feature X improved performance" involves an implicit statistical test. Failing to account for multiple comparisons, sample size, or the correct test type leads to invalid conclusions about model performance.
+
+- **Null Hypothesis ($H_0$)**: Assumes no effect or no difference.
+- **Alternative Hypothesis ($H_1$)**: The claim you are testing (there is an effect or difference).
+- **p-value**: The probability of observing data at least as extreme as the data, *assuming $H_0$ is true*. It is **not** the probability that $H_0$ is true.
+- **Type I Error ($\alpha$)**: Rejecting a true $H_0$ (false positive). Controlled by your significance threshold (typically 0.05).
+- **Type II Error ($\beta$)**: Failing to reject a false $H_0$ (false negative). Related to statistical power.
+- **Statistical Power**: $1 - \beta$. The probability of correctly rejecting a false $H_0$. Increases with sample size and effect size.
+
+**Key insight for p-values:** The most common misinterpretation is "the p-value is the probability that the null hypothesis is true." It is not. p = 0.03 means that *if* the null were true, you'd see data this extreme 3% of the time. It says nothing about the probability that the null is true. Bayesian credible intervals say something closer to what practitioners usually want: "given the data, what is the plausible range for the effect?"
+
+**How to verify understanding:** You run 20 different A/B tests simultaneously, each at significance level 0.05. Even if no test has a true effect, how many will you expect to report as "significant" by chance? What is this problem called and how do you correct for it?
+
+**What trips people up:** Using a t-test when the assumption of normality is violated and the sample is small (n < 30). In those cases, a Mann-Whitney U test (non-parametric equivalent) is more appropriate. But for large samples (n > 100), the CLT makes the t-test robust to non-normality.
+
+### Choosing the Right Statistical Test
+
+| Scenario | Test |
+|----------|------|
+| Compare means of 2 independent groups | t-test (or Mann-Whitney U if non-normal/small n) |
+| Compare means of 2 paired groups | Paired t-test |
+| Compare means of 3+ groups | ANOVA (or Kruskal-Wallis if non-normal) |
+| Compare categorical proportions | Chi-squared test |
+| Test whether a sample comes from a distribution | Kolmogorov-Smirnov test |
+| Compare model performance across multiple datasets | Wilcoxon signed-rank test |
+
+**Key insight for model comparison:** The paired t-test is more powerful than the independent t-test when comparing two models on the same folds of a cross-validation experiment. The pairing removes fold-to-fold variance from the error, leaving only the variance attributable to the model difference. McNemar's test is the right choice when comparing two classifiers' predictions on the same test set.
+
+---
+
 ## Interview Questions
 
 **1. "You have a distribution with Mean > Median. What does this tell you?"**
@@ -108,6 +155,12 @@ Many real-world distributions (wealth, city sizes, NLP token frequency) follow a
 
 **3. "Which plot would you use to show the distribution of a categorical variable vs. a continuous target?"**
 > A **Box Plot** or **Violin Plot** is ideal for comparing distributions across different categories.
+
+**4. "Explain what a p-value is without using the words 'probability of the null hypothesis.'"**
+> A p-value is the probability of seeing data this extreme or more extreme *if* the null hypothesis were true. It quantifies how surprised you should be by the data under the null model. A small p-value means the data would be very unusual under $H_0$ — but it does not tell you $H_0$ is false or how large the effect is.
+
+**5. "A medical test is 99% accurate. The disease affects 0.1% of the population. You test positive. What is the probability you actually have the disease?"**
+> Using Bayes' theorem: $P(\text{disease}|\text{positive}) = \frac{0.99 \times 0.001}{0.99 \times 0.001 + 0.01 \times 0.999} \approx 9\%$. Despite 99% accuracy, 91% of positive results are false positives due to the low base rate. This is the base rate neglect problem.
 
 ---
 
@@ -168,3 +221,24 @@ Missingness depends on other observed variables. Can be modeled.
 
 **MNAR (Missing Not at Random): Missingness depends on the missing value itself. Dangerous?** #flashcard
 imputation will introduce systematic bias.
+
+**Bayes' Theorem?** #flashcard
+$P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates belief in A after observing evidence B.
+
+**Central Limit Theorem?** #flashcard
+As sample size grows, the distribution of the sample mean approaches Normal regardless of the population distribution.
+
+**p-value?** #flashcard
+Probability of observing data this extreme or more extreme *if* $H_0$ were true. Not the probability $H_0$ is true.
+
+**Type I Error?** #flashcard
+Rejecting a true $H_0$ (false positive). Controlled by significance threshold $\alpha$.
+
+**Type II Error?** #flashcard
+Failing to reject a false $H_0$ (false negative). Related to $\beta = 1 - \text{power}$.
+
+**When to use chi-squared test?** #flashcard
+When comparing categorical proportions — e.g., does click rate differ between two groups?
+
+**When to use Mann-Whitney U instead of t-test?** #flashcard
+When the normality assumption is violated and sample is small (n < 30). Non-parametric alternative to independent t-test.

@@ -7,6 +7,8 @@ tags: [llms, ml, applications-context-window-ex]
 ---
 # Context Window Extension
 
+> **Note**: The canonical version of this content is at [../context-window-extension.md](../context-window-extension.md). That file covers: RoPE extension methods (linear interpolation, NTK-aware, YaRN, LongRoPE, ALiBi), StreamingLLM, sparse attention (Longformer, BigBird), context compression (LLMLingua, Gist Tokens), Mamba/SSM alternative, lost-in-the-middle analysis, Needle in a Haystack evaluation, Qwen3 iRoPE, practical extension recipe, and canonical interview Q&As. The sections below are preserved for reference only.
+
 ---
 
 ## The Core Problem

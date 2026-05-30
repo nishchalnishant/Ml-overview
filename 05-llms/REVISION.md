@@ -56,7 +56,8 @@ $$\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)
 | Pretraining | Next-token prediction | Trillions of tokens | Language, facts, reasoning |
 | SFT | Supervised fine-tune on demos | Curated instruction pairs | Instruction following |
 | RLHF | RM + PPO | Human preference pairs | Human preference alignment |
-| DPO | Direct preference opt. | Preference pairs | Alignment (no RL needed) |
+| DPO | Direct preference opt. | Preference pairs | Alignment (no RL, 2 models) |
+| ORPO | SFT + odds ratio in one loss | Preference pairs | Alignment (no ref model, 1 model) |
 
 **LM Loss:** $\mathcal{L} = -\frac{1}{T}\sum_{t=1}^{T} \log P_\theta(x_t \mid x_1,\ldots,x_{t-1})$
 
@@ -74,7 +75,7 @@ $$\text{Attention}(Q,K,V) = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)
 **DPO:** skip the RM entirely — directly optimize log ratio of preferred over rejected:
 $$\mathcal{L}_{\text{DPO}} = -\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w|x)}{\pi_{\text{ref}}(y_w|x)} - \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{\text{ref}}(y_l|x)}\right)$$
 
-**When DPO wins:** simpler pipeline, no reward hacking risk, stable training. **When RLHF wins:** complex reward signals, online learning from real feedback.
+**When DPO wins:** simpler pipeline, no reward hacking risk, stable training. **When RLHF wins:** complex reward signals, online learning from real feedback. **When ORPO wins:** memory-constrained (no reference model), high-quality data, want SFT + alignment in one pass.
 
 ---
 
@@ -110,7 +111,8 @@ $$\mathcal{L}_{\text{DPO}} = -\log\sigma\!\left(\beta\log\frac{\pi_\theta(y_w|x)
 | Full fine-tune | All params | High | Enough data + compute |
 | LoRA | Low-rank adapters only | Low | Limited compute / many tasks |
 | QLoRA | LoRA on quantized base | Very low | Consumer GPU |
-| Prefix tuning | Soft prompts prepended | Very low | Inference-time switching |
+| Prefix tuning | Soft prompts (KV at each layer) | Very low | Inference-time task switching |
+| Adapters | Bottleneck MLP per layer | Low | Multi-task, nonlinear adaptation |
 
 **LoRA:** $W = W_0 + AB$ where $A \in \mathbb{R}^{d \times r}$, $B \in \mathbb{R}^{r \times k}$, rank $r \ll \min(d,k)$.
 Typical $r=8$ or $r=16$; trains <1% of parameters.
@@ -195,3 +197,6 @@ Typical $r=8$ or $r=16$; trains <1% of parameters.
 
 **"How does LoRA work?"**
 → Freeze pretrained weights $W_0$. Learn low-rank update $\Delta W = AB$ where $r \ll d$. Merge at inference: $W = W_0 + AB$. Reduces trainable params from $d^2$ to $2dr$ — typically 100-1000× fewer.
+
+**"What's ORPO and when do you use it over DPO?"**
+→ ORPO (Odds Ratio Preference Optimization) combines SFT and preference alignment in one loss: $\mathcal{L}_{ORPO} = \mathcal{L}_{SFT} + \lambda \cdot \mathcal{L}_{OR}$. No reference model needed (DPO needs 2 models loaded; ORPO needs 1). Use ORPO when memory-constrained or preference data is clean and high-quality. Use DPO when data is noisier (KL anchor helps) or you have a separate high-quality SFT model already.

@@ -201,6 +201,186 @@ torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
 
 ---
 
+## Additional Learning Rate Schedules
+
+### Step Decay
+
+Reduce learning rate by a fixed factor every $k$ epochs:
+
+$$\eta_t = \eta_0 \cdot \gamma^{\lfloor t / k \rfloor}$$
+
+Typical: $\gamma = 0.1$ every 30 epochs (ResNet-style). Simple and interpretable but has discontinuous drops — the loss often temporarily increases at each step boundary.
+
+```python
+scheduler = torch.optim.lr_scheduler.StepLR(optimizer, step_size=30, gamma=0.1)
+```
+
+### Polynomial Decay
+
+Decay from $\eta_\text{max}$ to $\eta_\text{min}$ following a polynomial curve over $T$ steps:
+
+$$\eta_t = (\eta_\text{max} - \eta_\text{min}) \cdot \left(1 - \frac{t}{T}\right)^p + \eta_\text{min}$$
+
+With $p=1$ this is linear decay; $p=2$ gives a slower initial decay and steeper final decay. Used in BERT, some ViT trainings.
+
+```python
+scheduler = torch.optim.lr_scheduler.PolynomialLR(optimizer, total_iters=T, power=p)
+```
+
+### One-Cycle LR
+
+Popularized by fastai. Ramps from a low initial LR up to a maximum, then decays steeply — completing one full cycle over the entire training run:
+
+1. Phase 1 (45% of steps): LR increases from `max_lr/div_factor` to `max_lr`
+2. Phase 2 (45% of steps): LR decreases from `max_lr` to `max_lr/div_factor`
+3. Phase 3 (10% of steps): LR anneals from `max_lr/div_factor` to `max_lr/(div_factor * final_div_factor)`
+
+Simultaneously cycles momentum in the opposite direction (high → low → high).
+
+**What it does well**: converges fast — often achieves competitive accuracy in $5\times$ fewer epochs than fixed-LR training. The high LR phase acts as regularization (large steps prevent memorizing individual batches). Works particularly well for CNNs on vision tasks.
+
+```python
+scheduler = torch.optim.lr_scheduler.OneCycleLR(
+    optimizer,
+    max_lr=1e-3,
+    steps_per_epoch=len(train_loader),
+    epochs=10,
+    pct_start=0.3,          # fraction of cycle spent increasing LR
+    div_factor=25.0,        # initial LR = max_lr / div_factor
+    final_div_factor=1e4    # final LR = max_lr / (div_factor * final_div_factor)
+)
+```
+
+### ReduceLROnPlateau
+
+Monitors a validation metric; reduces LR when the metric stops improving for `patience` epochs:
+
+```python
+scheduler = torch.optim.lr_scheduler.ReduceLROnPlateau(
+    optimizer,
+    mode='min',         # 'min' for loss, 'max' for accuracy
+    factor=0.1,         # new_lr = old_lr * factor
+    patience=10,        # epochs without improvement before reduction
+    threshold=1e-4,     # minimum change to count as improvement
+    min_lr=1e-7
+)
+
+# Must be stepped with validation metric
+val_loss = validate(model, val_loader)
+scheduler.step(val_loss)
+```
+
+**What it does well**: model-agnostic and adaptive — no need to specify a schedule in advance. Appropriate when training duration is uncertain or validation behavior is unpredictable.
+
+**What breaks**: requires frequent validation. With large datasets or expensive validation, the patience+evaluation cost can dominate training time. Also: ReduceLROnPlateau reacts to validation noise — a single bad validation step can trigger premature LR reduction. The `threshold` parameter mitigates this.
+
+---
+
+## Gradient Accumulation
+
+**The problem**: training large models with large effective batch sizes requires large GPU memory. An LLM training run might need a global batch size of 2048 or more for stable optimization, but fitting 2048 sequences at once in GPU memory is impossible.
+
+**The core insight**: accumulate gradients over multiple small forward-backward passes before calling `optimizer.step()`. The optimizer sees gradients from $k$ micro-batches summed together, which is mathematically equivalent to a single pass over all $k$ micro-batches at once.
+
+**The mechanics**: run $k$ forward-backward passes without resetting gradients or stepping the optimizer. Gradients accumulate in `.grad` attributes by default (they sum, not replace). After $k$ steps, divide the accumulated gradients by $k$ (to keep the scale correct) and take one optimizer step.
+
+$$\text{effective batch size} = \text{micro\_batch\_size} \times k$$
+
+```python
+optimizer.zero_grad()
+accumulation_steps = 8   # effective batch size = micro_batch * 8
+
+for step, (inputs, labels) in enumerate(dataloader):
+    # Forward + backward — gradients accumulate
+    outputs = model(inputs)
+    loss = criterion(outputs, labels)
+    loss = loss / accumulation_steps   # normalize loss to match single-batch scale
+    loss.backward()
+
+    if (step + 1) % accumulation_steps == 0:
+        # Now gradients represent the average over accumulation_steps batches
+        torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+        optimizer.step()
+        scheduler.step()
+        optimizer.zero_grad()
+```
+
+**Why divide the loss**: PyTorch accumulates gradients by summation. If you backward over $k$ batches without dividing, the gradient magnitude is $k\times$ larger than expected — equivalent to multiplying the learning rate by $k$. Dividing `loss / k` before backward keeps gradient magnitudes consistent.
+
+**What breaks**:
+- BatchNorm statistics are computed per micro-batch, not across the full accumulated batch. If BatchNorm is present, large $k$ makes per-micro-batch statistics noisy. LayerNorm does not have this problem.
+- Gradient checkpointing interacts with accumulation: you need to be careful not to clear activation checkpoints between accumulation steps.
+- Mixed precision (AMP) with gradient accumulation requires the GradScaler to be called only on the optimizer step, not on every backward.
+
+---
+
+## Mixed Precision Training (AMP)
+
+**The problem**: full float32 training is memory-inefficient and slow. A 7B model at fp32 requires 28GB just for weights, plus 84GB for Adam optimizer states — 112GB total before accounting for activations or gradients. Modern GPU hardware (Ampere, Hopper) has specialized tensor cores that run fp16/bf16 matrix multiplications 2–4× faster than fp32.
+
+**The core insight**: most forward-pass computation is numerically stable at half precision. Only certain operations (loss accumulation, weight updates, normalizations) require full precision to avoid gradient underflow or weight update instability. Use fp16/bf16 for forward passes and activations; maintain fp32 master weights for the optimizer update.
+
+**PyTorch AMP mechanics**:
+
+1. **Autocast context**: automatically casts operations to fp16 or bf16. Matrix multiplications, convolutions, attention — all run at half precision. Layer norm, softmax, loss — kept at fp32 automatically.
+2. **GradScaler** (fp16 only): fp16 has a limited dynamic range ($\approx 10^{-4}$ to $65504$). Gradients can underflow to zero. The scaler multiplies the loss by a large factor before backward, inflating gradients to avoid underflow, then divides them back before the optimizer step. The scale is automatically adjusted: if inf/nan appears (overflow), scale is halved; if no overflow for $N$ steps, scale is doubled.
+
+```python
+from torch.cuda.amp import autocast, GradScaler
+
+scaler = GradScaler()   # only needed for fp16, not bf16
+
+model = model.cuda()
+optimizer = torch.optim.AdamW(model.parameters(), lr=3e-4, weight_decay=0.1)
+
+for inputs, labels in dataloader:
+    inputs, labels = inputs.cuda(), labels.cuda()
+
+    # Forward pass at fp16/bf16 precision
+    with autocast(dtype=torch.bfloat16):    # or torch.float16
+        outputs = model(inputs)
+        loss = criterion(outputs, labels)
+
+    # Backward pass: GradScaler handles fp16 gradient scaling
+    scaler.scale(loss).backward()
+
+    # Unscale gradients before clipping (clipping operates on unscaled gradients)
+    scaler.unscale_(optimizer)
+    torch.nn.utils.clip_grad_norm_(model.parameters(), max_norm=1.0)
+
+    # Optimizer step — GradScaler checks for inf/nan; skips update if found
+    scaler.step(optimizer)
+    scaler.update()
+    optimizer.zero_grad()
+```
+
+**fp16 vs bf16**:
+
+| | fp16 | bf16 |
+| :--- | :--- | :--- |
+| Mantissa bits | 10 | 7 |
+| Exponent bits | 5 | 8 |
+| Max value | 65504 | ~3.4 × 10³⁸ |
+| Precision | Higher | Lower |
+| Range | Narrow (overflow risk) | Same as fp32 (no overflow) |
+| GradScaler needed | Yes | No |
+| Recommendation | Pre-Ampere GPUs | Ampere+ (A100, H100) |
+
+bf16 has the same exponent range as fp32, so gradient overflow is not a concern — no GradScaler required. This makes bf16 training simpler and equally fast. **For Ampere+ hardware, bf16 is preferred over fp16.**
+
+**Memory savings**:
+- Weights: fp32 (4 bytes) → fp16/bf16 (2 bytes) — 2× weight memory reduction
+- Activations: same — 2× activation memory reduction
+- Optimizer states: kept in fp32 for stability — no reduction
+- Net: roughly 1.5× overall memory reduction
+
+**What breaks**:
+- Certain operations must remain in fp32: loss accumulation over very long sequences can underflow in fp16; normalizations that depend on squared magnitudes (LayerNorm, BatchNorm) need fp32 precision.
+- AMP's autocast context handles most of this automatically, but custom operations may need explicit `dtype` specification.
+- With gradient accumulation, the `scaler.step()` and `scaler.update()` calls should only happen at the actual optimizer step, not at every micro-batch backward pass.
+
+---
+
 ## Optimiser Comparison
 
 | Optimiser | Adaptive LR | Momentum | Memory | Best for |

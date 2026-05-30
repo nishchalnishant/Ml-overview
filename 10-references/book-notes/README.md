@@ -17,6 +17,14 @@ Notes in [deep-learning/](deep-learning/)
 | [Dive into Deep Learning](deep-learning/dive-into-deep-learning.md) | Rigorous mathematical treatment alongside runnable code across CNNs, RNNs, and Transformers |
 | [Grokking Deep Learning](deep-learning/grokking-deep-learning.md) | To understand how neural networks actually work by building everything from scratch with numpy |
 
+**Other DL books worth knowing (not yet summarized):**
+
+| Book | Why it matters |
+|------|----------------|
+| Deep Learning (Goodfellow, Bengio, Courville) | The canonical DL textbook — theory-heavy, free online |
+| Understanding Deep Learning (Simon J.D. Prince) | Modern DL textbook with recent content (diffusion, LLMs, flow models) — free PDF |
+| The Little Book of Deep Learning (François Fleuret) | Concise but rigorous; fits in a pocket; great for review |
+
 ---
 
 ## Machine Learning
@@ -26,6 +34,15 @@ Notes in [machine-learning/](machine-learning/)
 | Book | Read if you want... |
 |------|---------------------|
 | [Machine Learning Pocket Reference](machine-learning/machine-learning-pocket-reference.md) | A fast, dense reference for classical ML workflows, preprocessing, and model selection |
+
+**Other ML books worth knowing (not yet summarized):**
+
+| Book | Why it matters |
+|------|----------------|
+| The Elements of Statistical Learning (Hastie, Tibshirani, Friedman) | The rigorous theoretical foundation for classical ML — free PDF at ESL website |
+| An Introduction to Statistical Learning (James et al.) | Accessible version of ESL with R/Python labs — ISLP edition has Python code |
+| Hands-On Machine Learning (Aurélien Géron) | Best practical scikit-learn + Keras + TF reference for working ML engineers |
+| Pattern Recognition and Machine Learning (Bishop) | Bayesian perspective on ML; Gaussian processes, graphical models, EM algorithm |
 
 ---
 

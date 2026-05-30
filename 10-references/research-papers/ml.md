@@ -67,8 +67,6 @@ A curated list of foundational and interview-relevant papers in classical machin
 |---|---|---|
 | [Regression Shrinkage and Selection via the Lasso (Tibshirani)](https://www.jstor.org/stable/2346178) | 1996 | L1 regularization → sparse models |
 | [Elastic Net Regularization (Zou & Hastie)](https://www.jstor.org/stable/3647580) | 2005 | L1 + L2 for correlated features |
-| [Regularization and Variable Selection via the Elastic Net](https://www.jstor.org/stable/3647580) | 2005 | Combined L1/L2 for grouping effect |
-
 ---
 
 ## Imbalanced Learning
@@ -76,6 +74,24 @@ A curated list of foundational and interview-relevant papers in classical machin
 | Paper | Year | Why It Matters |
 |---|---|---|
 | [SMOTE: Synthetic Minority Over-sampling Technique (Chawla et al.)](https://arxiv.org/abs/1106.1813) | 2002 | Standard oversampling for class imbalance |
+
+---
+
+## Model Interpretability & Explainability
+
+| Paper | Year | Why It Matters |
+|---|---|---|
+| [Why Should I Trust You? — LIME (Ribeiro et al.)](https://arxiv.org/abs/1602.04938) | 2016 | Local surrogate models for explaining individual predictions |
+| [A Unified Approach to Interpreting Model Predictions — SHAP (Lundberg & Lee)](https://arxiv.org/abs/1705.07874) | 2017 | Shapley-value-based feature attribution — now standard for tabular ML explanation |
+
+---
+
+## Decision Trees & Tree Ensembles
+
+| Paper | Year | Why It Matters |
+|---|---|---|
+| [LightGBM (Ke et al.)](https://proceedings.neurips.cc/paper/2017/hash/6449f44a102fde848669bdd9eb6b76fa-Abstract.html) | 2017 | Histogram-based gradient boosting — faster than XGBoost for large datasets via leaf-wise growth |
+| [CatBoost (Prokhorenkova et al.)](https://arxiv.org/abs/1706.09516) | 2018 | Ordered boosting prevents target leakage; native categorical feature handling |
 
 ---
 

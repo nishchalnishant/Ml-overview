@@ -87,6 +87,29 @@ Q (Query) represents what the current position is looking for. K (Key) represent
 
 ## B
 
+**Bayesian Inference**
+
+*The problem:* You want to estimate model parameters, but a single point estimate (MLE or MAP) doesn't capture your uncertainty about those parameters. How do you reason about the full distribution of plausible parameters?
+
+*Core insight:* Bayes' theorem lets you update a prior distribution $P(\theta)$ with observed data to get a posterior distribution $P(\theta|\mathcal{D})$. This posterior encodes all uncertainty about the parameters in a probabilistic form.
+
+*Mechanics:* $P(\theta|\mathcal{D}) = \frac{P(\mathcal{D}|\theta)P(\theta)}{P(\mathcal{D})}$ where $P(\mathcal{D}) = \int P(\mathcal{D}|\theta)P(\theta)d\theta$ is the evidence (marginal likelihood).
+
+*Prediction:* Rather than committing to a single $\hat{\theta}$, integrate over all parameters:
+$P(y^*|x^*,\mathcal{D}) = \int P(y^*|x^*,\theta)P(\theta|\mathcal{D})d\theta$ — this is the posterior predictive distribution.
+
+*What breaks:* Computing $P(\mathcal{D})$ exactly requires integrating over all parameter values — intractable for any non-trivial model. Approximate inference methods:
+- **MCMC (Markov Chain Monte Carlo):** Sample from posterior using random walks. Asymptotically exact but slow.
+- **Variational inference:** Approximate posterior with a tractable family $q(\theta)$; minimize $D_{KL}(q\|P(\theta|\mathcal{D}))$. Faster but introduces bias.
+- **Laplace approximation:** Fit a Gaussian to the posterior centered at the MAP estimate. Fast but inaccurate away from the mode.
+
+*Conjugate priors:* If the posterior has the same parametric form as the prior, the prior is called conjugate to the likelihood. Conjugate pairs allow exact Bayesian updates without numerical integration:
+- Gaussian prior + Gaussian likelihood → Gaussian posterior (linear regression)
+- Beta prior + Bernoulli likelihood → Beta posterior (click rate estimation)
+- Dirichlet prior + Categorical likelihood → Dirichlet posterior (topic models, language models)
+
+---
+
 **Backpropagation**
 
 *The problem:* You have a loss that depends on millions of parameters through a chain of operations. You need the gradient of the loss with respect to every parameter. Computing each gradient independently would require millions of forward passes.
@@ -240,6 +263,23 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
+**Double Descent**
+
+*The problem:* Classical statistics predicts that test error follows a U-shaped curve with model complexity (bias-variance tradeoff). But modern deep learning shows that larger models often perform better, even past the point where training error reaches zero.
+
+*Core insight:* There is an "interpolation threshold" where the model exactly fits the training data. Classical theory says this is the worst possible regime. But in practice, going beyond this threshold — into the overparameterized regime — allows the model to generalize well again.
+
+*Mechanics:* Below the threshold: underfitting regime, test error decreases with complexity. At the threshold (peak risk): the model barely interpolates, typically finding a highly irregular solution. Above the threshold: overparameterized models have many interpolating solutions; gradient descent naturally finds the minimum-norm interpolator, which tends to be smooth and generalize well.
+
+*Implications:*
+- "Bigger is better" for neural networks and other models (random forests, kernel methods, linear regression with random features) in the overparameterized regime
+- Classical bias-variance reasoning applies in the underparameterized regime but breaks down above the interpolation threshold
+- More epochs can also cause double descent (epoch-wise double descent)
+
+*Why it works (intuitively):* In overparameterized models, there are infinitely many interpolating solutions. Gradient descent (especially with early stopping and weight decay) selects among them implicitly, preferring solutions with small norms. These minimum-norm solutions happen to generalize better than the worst-case solutions near the interpolation threshold.
+
+---
+
 **Dropout**
 
 *The problem:* Deep networks develop co-adaptations — neurons that only work in concert with specific other neurons. If those partners change, the neuron fails. This makes the network brittle and prone to overfitting.
@@ -278,7 +318,21 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-==**Entropy (Shannon)**
+**Empirical Risk Minimization (ERM)**
+
+*The problem:* You cannot compute the true risk (expected loss over the full data distribution) because you only observe a finite training set. How do you define a principled learning objective?
+
+*Core insight:* Replace the expected loss with the average loss on training data. This is what every supervised learning algorithm does, even if not stated explicitly.
+
+*Mechanics:* True risk: $R(h) = \mathbb{E}_{(x,y)\sim\mathcal{D}}[\ell(h(x),y)]$. Empirical risk: $\hat{R}(h) = \frac{1}{n}\sum_{i=1}^n \ell(h(x_i),y_i)$. ERM: $h^* = \arg\min_{h \in \mathcal{H}} \hat{R}(h)$.
+
+*The fundamental tension:* A more expressive $\mathcal{H}$ achieves lower $\hat{R}(h^*)$ but the gap $R(h^*) - \hat{R}(h^*)$ grows with expressivity (VC dimension). Structural Risk Minimization (SRM) addresses this by explicitly penalizing $|\mathcal{H}|$ complexity — a theoretical foundation for regularization.
+
+*Conditions for ERM to generalize:* By the law of large numbers, $\hat{R}(h) \to R(h)$ for any fixed $h$ as $n \to \infty$. But we choose $h$ *after* seeing the data — the minimizer $h^*$ can exploit the specific sample. Uniform convergence (over all $h \in \mathcal{H}$ simultaneously) is required, and VC theory provides bounds on when this holds.
+
+---
+
+**Entropy (Shannon)**
 
 *The problem:* You want a formal measure of uncertainty or disorder in a probability distribution. How "surprising" is a random variable?
 
@@ -303,6 +357,23 @@ All other classification metrics are derived from these four numbers. Always sta
 *F-beta:* `F_β = (1+β²)·P·R / (β²·P + R)`. β > 1 weights Recall more heavily (missing positives is worse). β < 1 weights Precision more (false alarms are worse).
 
 *Practical use:* The standard metric for imbalanced classification. Report macro-F1 (unweighted average across classes) or weighted-F1 (weighted by class support) for multi-class problems.
+
+---
+
+**Fisher Information**
+
+*The problem:* How much information does a single observation carry about an unknown parameter $\theta$? You need a measure of the informativeness of a statistical model.
+
+*Core insight:* Fisher information measures how sharply the log-likelihood peaks at the true parameter value. A sharp peak means the data is highly informative; a flat peak means estimates are unreliable.
+
+*Mechanics:* $I(\theta) = \mathbb{E}\left[\left(\frac{\partial}{\partial\theta}\log P(x|\theta)\right)^2\right] = -\mathbb{E}\left[\frac{\partial^2}{\partial\theta^2}\log P(x|\theta)\right]$
+
+*The Fisher information matrix* (for vector $\theta$): $F_{ij} = \mathbb{E}\left[\frac{\partial \log P}{\partial \theta_i}\frac{\partial \log P}{\partial \theta_j}\right]$
+
+*ML uses:*
+- **Cramér-Rao bound:** $\text{Var}(\hat{\theta}) \geq 1/I(\theta)$ — no unbiased estimator can achieve lower variance; MLE achieves this bound asymptotically
+- **Natural gradient descent:** preconditions the gradient by $F^{-1}$, defining steepest descent in distribution space rather than parameter space; invariant to reparameterization
+- **Gauss-Newton matrix:** approximates the Hessian of the loss; equals the Fisher matrix for models with cross-entropy + softmax output
 
 ---
 
@@ -405,7 +476,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-==**KL Divergence (Kullback-Leibler)**
+**KL Divergence (Kullback-Leibler)**
 
 *The problem:* You have two probability distributions P and Q. How different are they? Euclidean distance between probability vectors ignores the probabilistic structure.
 
@@ -448,6 +519,57 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ## M
 
+**MAP Estimation (Maximum A Posteriori)**
+
+*The problem:* MLE overfits with small data because it exclusively optimizes fit to observed data, ignoring prior knowledge about reasonable parameter values.
+
+*Core insight:* Incorporate a prior distribution $P(\theta)$ over parameters. MAP chooses the parameter value that maximizes the posterior $P(\theta|\mathcal{D}) \propto P(\mathcal{D}|\theta)P(\theta)$, balancing fit to data against the prior.
+
+*Mechanics:* $\hat{\theta}_{\text{MAP}} = \arg\max_\theta [\log P(\mathcal{D}|\theta) + \log P(\theta)]$. The log prior acts as a regularization term.
+
+*MAP = regularization (exactly):*
+- Gaussian prior $P(\theta) = \mathcal{N}(0, \tau^2 I)$ → log prior $\propto -\|\theta\|_2^2$ → **L2 regularization (Ridge)**
+- Laplace prior $P(\theta) \propto \exp(-|\theta|/b)$ → log prior $\propto -\|\theta\|_1$ → **L1 regularization (Lasso)**
+
+*What breaks:* MAP gives a point estimate, not a distribution — it does not capture posterior uncertainty. Full Bayesian inference requires the entire posterior but is usually intractable for complex models.
+
+---
+
+**Maximum Likelihood Estimation (MLE)**
+
+*The problem:* Given a dataset assumed to be drawn from a parametric distribution $P(x|\theta)$, you need to estimate the parameters $\theta$.
+
+*Core insight:* Choose $\theta$ to make the observed data as probable as possible. Equivalently, minimize the negative log-likelihood over the training set.
+
+*Mechanics:* $\hat{\theta}_{\text{MLE}} = \arg\max_\theta \sum_{i=1}^n \log P(x_i|\theta)$
+
+*Connection to loss functions:*
+- Gaussian noise assumption ($y = f(x;\theta) + \epsilon$, $\epsilon \sim \mathcal{N}(0,\sigma^2)$) → MLE = minimize MSE
+- Bernoulli output (binary classification with sigmoid) → MLE = minimize binary cross-entropy
+- Categorical output (multi-class with softmax) → MLE = minimize categorical cross-entropy
+
+*Properties:* Consistent (converges to true parameters as $n \to \infty$); asymptotically efficient (achieves minimum variance); invariant to reparameterization.
+
+*What breaks:* Overfits with small datasets — finds parameters that explain observed data perfectly, including noise. Use MAP/regularization to address this.
+
+---
+
+**Mutual Information**
+
+*The problem:* Correlation only captures linear dependence between variables. You need a measure that captures any statistical dependence — including non-linear relationships.
+
+*Core insight:* Mutual information measures the reduction in uncertainty about $X$ when you learn the value of $Y$ (and vice versa). It is zero if and only if $X$ and $Y$ are independent.
+
+*Mechanics:* $I(X;Y) = \sum_{x,y} P(x,y)\log\frac{P(x,y)}{P(x)P(y)} = H(X) - H(X|Y) = H(Y) - H(Y|X)$
+
+*Equivalent expressions:* $I(X;Y) = D_{KL}(P(X,Y)\|P(X)P(Y))$ — the KL divergence between the joint distribution and the product of marginals. Zero iff the joint factorizes (= independence).
+
+*Data processing inequality:* For any function $f$, $I(X; f(Y)) \leq I(X; Y)$. Transforming $Y$ cannot create new information about $X$. Deterministic transformations cannot increase mutual information.
+
+*ML uses:* Feature selection (select features with highest $I(\text{feature}; \text{label})$); information bottleneck (learn representations that preserve $I(Z; Y)$ while compressing $I(Z; X)$); contrastive self-supervised learning objectives.
+
+---
+
 **MSE / MAE / RMSE**
 
 *The problem:* You need a scalar loss function for regression that reflects how wrong your predictions are — but the right choice depends on how you want to weight different kinds of errors.
@@ -471,6 +593,20 @@ All other classification metrics are derived from these four numbers. Always sta
 ---
 
 ## N
+
+**No Free Lunch Theorem**
+
+*The problem:* Practitioners debate which learning algorithm is "best." The debate seems empirically unresolvable — XGBoost wins on tabular data, transformers win on text, CNNs win on images. Is there a formal explanation?
+
+*Core insight:* Averaged over all possible data-generating distributions, every learning algorithm performs identically. No algorithm is universally superior to any other. All gains are relative to assumptions about the problem structure.
+
+*Formal statement:* For any two algorithms $A$ and $B$, summing their generalization errors over all possible target functions gives the same total. Wherever $A$ outperforms $B$, there exists a complementary distribution where $B$ outperforms $A$ by the same amount.
+
+*Practical implication:* Performance claims for ML algorithms are always conditional on the problem structure. "XGBoost dominates on tabular data" is shorthand for "XGBoost's inductive biases (axis-aligned splits, boosted shallow trees) match the structure of most tabular datasets." Those biases fail on other structures.
+
+*What it does not mean:* You should not use random algorithms. Within the universe of realistic ML problems, there are strong regularities — and specific algorithms are well-matched to specific regularities. The NFL theorem operates over all conceivable distributions, not just the distributions that arise from real-world data.
+
+---
 
 **Normalization vs. Standardization**
 
@@ -535,9 +671,10 @@ All other classification metrics are derived from these four numbers. Always sta
 
 *The problem:* A language model's knowledge is frozen at training time. It cannot answer questions about recent events, private documents, or proprietary data. And LLMs hallucinate — they generate plausible-sounding but incorrect statements.
 
-*Core insight:* Separate memory from computation. At inference time, ==retrieve relevant documents from an external knowledge base and inject them into the context. The LLM then grounds its answer in the retrieved evidence.
+*Core insight:* Separate memory from computation. At inference time, retrieve relevant documents from an external knowledge base and inject them into the context. The LLM then grounds its answer in the retrieved evidence.
 
 *Components:* Embedding model (converts documents and queries to vectors) + Vector Database (stores and retrieves documents by semantic similarity) + LLM (generates an answer grounded in the retrieved context).
+
 
 *What breaks:* Retrieval quality bottlenecks everything — the LLM cannot improve on bad context. Long retrieved documents may exceed the context window or cause "lost in the middle" effects where the model ignores content in the middle of long contexts. RAG doesn't fix factual errors baked into the LLM itself.
 
@@ -591,7 +728,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-==**SHAP (SHapley Additive exPlanations)**
+**SHAP (SHapley Additive exPlanations)**
 
 *The problem:* A model predicted X. Which features drove that specific prediction, and by how much? LIME and gradient-based methods make approximations; you want a theoretically grounded attribution.
 
@@ -605,7 +742,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-==**SVM (Support Vector Machine)**
+**SVM (Support Vector Machine)**
 
 *The problem:* You want a classifier that is not just correct, but confident — one whose decision boundary is as far as possible from all training examples. A boundary that barely separates the classes will fail on slightly shifted test data.
 
@@ -642,6 +779,42 @@ All other classification metrics are derived from these four numbers. Always sta
 ---
 
 ## V
+
+**VC Dimension (Vapnik-Chervonenkis Dimension)**
+
+*The problem:* How expressive is a hypothesis class? If a model can represent arbitrarily complex functions, will it ever generalize?
+
+*Core insight:* VC dimension quantifies the maximum complexity a hypothesis class can represent, by measuring the largest set of points it can classify in every possible way ("shatter").
+
+*Mechanics:* A hypothesis class $\mathcal{H}$ *shatters* a set of points $\{x_1,\ldots,x_m\}$ if for every possible binary labeling of those points, there exists some $h \in \mathcal{H}$ that produces that labeling exactly. $\text{VC-dim}(\mathcal{H})$ is the size of the largest such set.
+
+*Key examples:*
+- Linear classifiers in $\mathbb{R}^d$: VC dim = $d+1$
+- Polynomial classifiers of degree $k$: VC dim = $O(d^k)$
+- Neural networks with $n$ parameters: VC dim $\approx O(n)$ (but can be higher due to non-linearity)
+
+*Generalization bound:* With probability $\geq 1-\delta$ over the training sample of size $n$:
+$$R(h) \leq \hat{R}(h) + O\!\left(\sqrt{\frac{\text{VC-dim} \cdot \ln(n) + \ln(1/\delta)}{n}}\right)$$
+
+*What breaks:* VC bounds are often very loose for neural networks — they predict poor generalization for overparameterized models, but in practice deep networks generalize well. The theory is important for intuition and for classical ML, but does not fully explain modern deep learning.
+
+---
+
+**PAC Learning (Probably Approximately Correct)**
+
+*The problem:* When is a concept learnable from finite data, and how many examples are needed?
+
+*Core insight:* A learning problem is PAC-learnable if there is an efficient algorithm that, for any accuracy requirement $\epsilon$ and confidence $\delta$, returns a good hypothesis from sufficiently many examples. "Probably" means with high probability ($1-\delta$); "approximately correct" means within $\epsilon$ error.
+
+*Mechanics:* An algorithm PAC-learns a concept class $\mathcal{C}$ if, for any distribution over examples and any $\epsilon, \delta > 0$, the algorithm returns $h$ with true error $\leq \epsilon$ (with probability $\geq 1-\delta$) using at most $n(\epsilon, \delta)$ examples and polynomial time.
+
+*Sample complexity for finite $|\mathcal{H}|$:* $n \geq \frac{1}{\epsilon}\left(\ln|\mathcal{H}| + \ln\frac{1}{\delta}\right)$
+
+*Agnostic PAC learning:* Allows the concept to be outside $\mathcal{H}$; the goal is to compete with the best $h \in \mathcal{H}$. Sample complexity scales as $O\!\left(\frac{d + \ln(1/\delta)}{\epsilon^2}\right)$ where $d$ is VC dimension.
+
+*Practical intuition:* More complex hypothesis classes (higher VC dim) need more data to generalize. This formalizes why "you need more data for complex models" and why regularization is important when data is scarce.
+
+---
 
 **Vanishing Gradient**
 
@@ -683,7 +856,7 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ## Advanced Terms (2024–2025)
 
-==**LIME (Local Interpretable Model-agnostic Explanations)**
+**LIME (Local Interpretable Model-agnostic Explanations)**
 
 *The problem:* Black-box models give no insight into why a specific prediction was made. You need an explanation for a single prediction, not the whole model.
 
