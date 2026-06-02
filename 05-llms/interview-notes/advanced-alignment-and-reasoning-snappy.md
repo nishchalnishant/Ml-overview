@@ -47,34 +47,64 @@ This is where you stop saying “prompting” and start saying **policy, prefere
 
 **MI analogy:** Great captains don’t bowl one plan for 20 overs—they adapt each over, but with guardrails.
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-Align a base model to be helpful/safe using preference feedback (often SFT → reward signal → optimization like PPO historically).
+### Direct answer
+- Direct Answer: Align a base model to be helpful/safe using preference feedback (often SFT → reward signal → optimization like PPO historically).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Align a base model to be helpful/safe using preference feedback (often SFT → reward signal → optimization like PPO historically).
 
-**DevOps bridge?** #flashcard
-It’s like writing a policy + running continuous coaching so the system behaves under stress, not just in a unit test.
+### DevOps bridge
+- Direct Answer: It’s like writing a policy + running continuous coaching so the system behaves under stress, not just in a unit test.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: It’s like writing a policy + running continuous coaching so the system behaves under stress, not just in a unit test.
 
-**RLHF (PPO)?** #flashcard
-powerful but operationally finicky.
+### RLHF (PPO)
+- Direct Answer: powerful but operationally finicky.
+- Why: This matters because it tells you how to reason about rlhf (ppo).
+- Pitfall: Don't answer "RLHF (PPO)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: powerful but operationally finicky.
 
-**DPO?** #flashcard
-trains directly on (chosen, rejected) pairs with a stable supervised-style objective.
+### DPO
+- Direct Answer: trains directly on (chosen, rejected) pairs with a stable supervised-style objective.
+- Why: This matters because it tells you how to reason about dpo.
+- Pitfall: Don't answer "DPO" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: trains directly on (chosen, rejected) pairs with a stable supervised-style objective.
 
-**Direct answer?** #flashcard
-Encourage intermediate reasoning steps to improve performance on multi-step tasks.
+### Direct answer
+- Direct Answer: Encourage intermediate reasoning steps to improve performance on multi-step tasks.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Encourage intermediate reasoning steps to improve performance on multi-step tasks.
 
-**Production note?** #flashcard
-Prefer hidden scratchpads + verifiers/tools over dumping long reasoning into user-visible output.
+### Production note
+- Direct Answer: Prefer hidden scratchpads + verifiers/tools over dumping long reasoning into user-visible output.
+- Why: This matters because it tells you how to reason about production note.
+- Pitfall: Don't answer "Production note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Prefer hidden scratchpads + verifiers/tools over dumping long reasoning into user-visible output.
 
-**Direct answer?** #flashcard
-Combine reasoning with tool use: think → act (tool) → observe → repeat.
+### Direct answer
+- Direct Answer: Combine reasoning with tool use: think → act (tool) → observe → repeat.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Combine reasoning with tool use: think → act (tool) → observe → repeat.
 
-**Why it matters?** #flashcard
-tools turn “guessing” into “checking.”
+### Why it matters
+- Direct Answer: tools turn “guessing” into “checking.”
+- Why: This matters because it tells you how to reason about why it matters.
+- Pitfall: Don't answer "Why it matters" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: tools turn “guessing” into “checking.”
 
-**Direct answer?** #flashcard
-Systems that plan, call tools, track state, and stop when goals are met (or budgets hit).
+### Direct answer
+- Direct Answer: Systems that plan, call tools, track state, and stop when goals are met (or budgets hit).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Systems that plan, call tools, track state, and stop when goals are met (or budgets hit).
 
-**Guardrails?** #flashcard
-max steps, budgets, allow-listed tools, HITL for irreversible actions.
+### Guardrails
+- Direct Answer: max steps, budgets, allow-listed tools, HITL for irreversible actions.
+- Why: This matters because it tells you how to reason about guardrails.
+- Pitfall: Don't answer "Guardrails" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: max steps, budgets, allow-listed tools, HITL for irreversible actions.

@@ -344,40 +344,76 @@ Perplexity $k$ means the model is, on average, as uncertain as if choosing unifo
 **Why ROUGE-L for summarization:**
 LCS (Longest Common Subsequence) between generated and reference summary. Captures key phrases in order without requiring exact contiguous n-grams. More robust than ROUGE-1/2 for paraphrased summaries.
 
-## Flashcards
+## Rapid Recall
 
-**Query ($Q$)?** #flashcard
-what am I looking for?
+### Query ($Q$)
+- Direct Answer: what am I looking for?
+- Why: This matters because it tells you how to reason about query ($q$).
+- Pitfall: Don't answer "Query ($Q$)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what am I looking for?
 
-**Key ($K$)?** #flashcard
-what do I advertise?
+### Key ($K$)
+- Direct Answer: what do I advertise?
+- Why: This matters because it tells you how to reason about key ($k$).
+- Pitfall: Don't answer "Key ($K$)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what do I advertise?
 
-**Value ($V$)?** #flashcard
-what is my actual content?
+### Value ($V$)
+- Direct Answer: what is my actual content?
+- Why: This matters because it tells you how to reason about value ($v$).
+- Pitfall: Don't answer "Value ($V$)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what is my actual content?
 
-**Classification?** #flashcard
-"classify sentiment: This movie was great. → positive"
+### Classification
+- Direct Answer: "classify sentiment: This movie was great. → positive"
+- Why: This matters because it tells you how to reason about classification.
+- Pitfall: Don't answer "Classification" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "classify sentiment: This movie was great. → positive"
 
-**Translation?** #flashcard
-"translate English to French: Hello world. → Bonjour monde."
+### Translation
+- Direct Answer: "translate English to French: Hello world. → Bonjour monde."
+- Why: This matters because it tells you how to reason about translation.
+- Pitfall: Don't answer "Translation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "translate English to French: Hello world. → Bonjour monde."
 
-**QA?** #flashcard
-"question: What is the capital? context: France is in Europe. → Paris"
+### QA
+- Direct Answer: "question: What is the capital? context: France is in Europe. → Paris"
+- Why: This matters because it tells you how to reason about qa.
+- Pitfall: Don't answer "QA" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "question: What is the capital? context: France is in Europe. → Paris"
 
-**Full matrix?** #flashcard
-$4096^2 = 16.8M$ parameters
+### Full matrix
+- Direct Answer: $4096^2 = 16.8M$ parameters
+- Why: This matters because it tells you how to reason about full matrix.
+- Pitfall: Don't answer "Full matrix" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $4096^2 = 16.8M$ parameters
 
-**LoRA: $16 \times (4096 + 4096) = 131K$ parameters?** #flashcard
-128× reduction
+### LoRA: $16 \times (4096 + 4096) = 131K$ parameters
+- Direct Answer: 128× reduction
+- Why: This matters because it tells you how to reason about lora: $16 \times (4096 + 4096) = 131k$ parameters.
+- Pitfall: Don't answer "LoRA: $16 \times (4096 + 4096) = 131K$ parameters" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 128× reduction
 
-**Penalizes paraphrases that use different but equivalent words?** #flashcard
-Penalizes paraphrases that use different but equivalent words
+### Penalizes paraphrases that use different but equivalent words
+- Direct Answer: Penalizes paraphrases that use different but equivalent words
+- Why: This matters because it tells you how to reason about penalizes paraphrases that use different but equivalent words.
+- Pitfall: Don't answer "Penalizes paraphrases that use different but equivalent words" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Penalizes paraphrases that use different but equivalent words
 
-**Sentence-level BLEU is unreliable; use corpus-level?** #flashcard
-Sentence-level BLEU is unreliable; use corpus-level
+### Sentence-level BLEU is unreliable; use corpus-level
+- Direct Answer: Sentence-level BLEU is unreliable; use corpus-level
+- Why: This matters because it tells you how to reason about sentence-level bleu is unreliable; use corpus-level.
+- Pitfall: Don't answer "Sentence-level BLEU is unreliable; use corpus-level" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Sentence-level BLEU is unreliable; use corpus-level
 
-**High BLEU doesn't imply fluency or factual accuracy?** #flashcard
-High BLEU doesn't imply fluency or factual accuracy
+### High BLEU doesn't imply fluency or factual accuracy
+- Direct Answer: High BLEU doesn't imply fluency or factual accuracy
+- Why: This matters because it tells you how to reason about high bleu doesn't imply fluency or factual accuracy.
+- Pitfall: Don't answer "High BLEU doesn't imply fluency or factual accuracy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: High BLEU doesn't imply fluency or factual accuracy
 
-**Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines?** #flashcard
-Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines
+### Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines
+- Direct Answer: Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines
+- Why: This matters because it tells you how to reason about now largely replaced by neural metrics (bertscore) for research, but still ubiquitous in industry baselines.
+- Pitfall: Don't answer "Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Now largely replaced by neural metrics (BERTScore) for research, but still ubiquitous in industry baselines

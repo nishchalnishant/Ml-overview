@@ -753,55 +753,106 @@ Add one of: (1) input validation for edge cases, (2) a comment about the product
 
 Write a small test case with a known answer. For MSE: `mse([3, 4], [2, 4])` should return `0.5`. For K-Means: use 4 clearly separated clusters and verify that centroids converge to their centers. Testing with a known correct answer signals systematic quality thinking.
 
-## Flashcards
+## Rapid Recall
 
-**∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i?** #flashcard
-∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i
+### ∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i
+- Direct Answer: ∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i
+- Why: This matters because it tells you how to reason about ∂l/∂w = (2/n) σ (ŷ_i - y_i) · x_i.
+- Pitfall: Don't answer "∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ∂L/∂w = (2/n) Σ (ŷ_i - y_i) · x_i
 
-**∂L/∂b = (2/n) Σ (ŷ_i - y_i)?** #flashcard
-∂L/∂b = (2/n) Σ (ŷ_i - y_i)
+### ∂L/∂b = (2/n) Σ (ŷ_i - y_i)
+- Direct Answer: ∂L/∂b = (2/n) Σ (ŷ_i - y_i)
+- Why: This matters because it tells you how to reason about ∂l/∂b = (2/n) σ (ŷ_i - y_i).
+- Pitfall: Don't answer "∂L/∂b = (2/n) Σ (ŷ_i - y_i)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ∂L/∂b = (2/n) Σ (ŷ_i - y_i)
 
-**Learning rate too high → overshoots the minimum, diverges?** #flashcard
-Learning rate too high → overshoots the minimum, diverges
+### Learning rate too high → overshoots the minimum, diverges
+- Direct Answer: Learning rate too high → overshoots the minimum, diverges
+- Why: This matters because it tells you how to reason about learning rate too high → overshoots the minimum, diverges.
+- Pitfall: Don't answer "Learning rate too high → overshoots the minimum, diverges" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Learning rate too high → overshoots the minimum, diverges
 
-**Learning rate too low → converges correctly but slowly?** #flashcard
-Learning rate too low → converges correctly but slowly
+### Learning rate too low → converges correctly but slowly
+- Direct Answer: Learning rate too low → converges correctly but slowly
+- Why: This matters because it tells you how to reason about learning rate too low → converges correctly but slowly.
+- Pitfall: Don't answer "Learning rate too low → converges correctly but slowly" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Learning rate too low → converges correctly but slowly
 
-**Number of epochs → stopping criterion; in practice, use early stopping on a validation loss?** #flashcard
-Number of epochs → stopping criterion; in practice, use early stopping on a validation loss
+### Number of epochs → stopping criterion; in practice, use early stopping on a validation loss
+- Direct Answer: Number of epochs → stopping criterion; in practice, use early stopping on a validation loss
+- Why: This matters because it tells you how to reason about number of epochs → stopping criterion; in practice, use early stopping on a validation loss.
+- Pitfall: Don't answer "Number of epochs → stopping criterion; in practice, use early stopping on a validation loss" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Number of epochs → stopping criterion; in practice, use early stopping on a validation loss
 
-**E-step?** #flashcard
-assign each point to the nearest centroid
+### E-step
+- Direct Answer: assign each point to the nearest centroid
+- Why: This matters because it tells you how to reason about e-step.
+- Pitfall: Don't answer "E-step" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: assign each point to the nearest centroid
 
-**M-step?** #flashcard
-update each centroid to the mean of its assigned points
+### M-step
+- Direct Answer: update each centroid to the mean of its assigned points
+- Why: This matters because it tells you how to reason about m-step.
+- Pitfall: Don't answer "M-step" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: update each centroid to the mean of its assigned points
 
-**Made explicitly (not by default)?** #flashcard
-Made explicitly (not by default)
+### Made explicitly (not by default)
+- Direct Answer: Made explicitly (not by default)
+- Why: This matters because it tells you how to reason about made explicitly (not by default).
+- Pitfall: Don't answer "Made explicitly (not by default)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Made explicitly (not by default)
 
-**Fit on training data only (not on the full dataset)?** #flashcard
-Fit on training data only (not on the full dataset)
+### Fit on training data only (not on the full dataset)
+- Direct Answer: Fit on training data only (not on the full dataset)
+- Why: This matters because it tells you how to reason about fit on training data only (not on the full dataset).
+- Pitfall: Don't answer "Fit on training data only (not on the full dataset)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Fit on training data only (not on the full dataset)
 
-**Reproducible (same transformations at training and serving time)?** #flashcard
-Reproducible (same transformations at training and serving time)
+### Reproducible (same transformations at training and serving time)
+- Direct Answer: Reproducible (same transformations at training and serving time)
+- Why: This matters because it tells you how to reason about reproducible (same transformations at training and serving time).
+- Pitfall: Don't answer "Reproducible (same transformations at training and serving time)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reproducible (same transformations at training and serving time)
 
-**"I am choosing clarity over micro-optimization here."?** #flashcard
-"I am choosing clarity over micro-optimization here."
+### "I am choosing clarity over micro-optimization here."
+- Direct Answer: "I am choosing clarity over micro-optimization here."
+- Why: This matters because it tells you how to reason about "i am choosing clarity over micro-optimization here.".
+- Pitfall: Don't answer ""I am choosing clarity over micro-optimization here."" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "I am choosing clarity over micro-optimization here."
 
-**"I would extract this into a separate function in a real codebase."?** #flashcard
-"I would extract this into a separate function in a real codebase."
+### "I would extract this into a separate function in a real codebase."
+- Direct Answer: "I would extract this into a separate function in a real codebase."
+- Why: This matters because it tells you how to reason about "i would extract this into a separate function in a real codebase.".
+- Pitfall: Don't answer ""I would extract this into a separate function in a real codebase."" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "I would extract this into a separate function in a real codebase."
 
-**"This is O(n²)?** #flashcard
-for production I would use [faster approach] instead."
+### "This is O(n²)
+- Direct Answer: for production I would use [faster approach] instead."
+- Why: This matters because it tells you how to reason about "this is o(n²).
+- Pitfall: Don't answer ""This is O(n²)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: for production I would use [faster approach] instead."
 
-**"I am adding this edge case because [specific input] would otherwise fail."?** #flashcard
-"I am adding this edge case because [specific input] would otherwise fail."
+### "I am adding this edge case because [specific input] would otherwise fail."
+- Direct Answer: "I am adding this edge case because [specific input] would otherwise fail."
+- Why: This matters because it tells you how to reason about "i am adding this edge case because [specific input] would otherwise fail.".
+- Pitfall: Don't answer ""I am adding this edge case because [specific input] would otherwise fail."" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "I am adding this edge case because [specific input] would otherwise fail."
 
-**Nothing (silence makes the interviewer uncertain about your reasoning)?** #flashcard
-Nothing (silence makes the interviewer uncertain about your reasoning)
+### Nothing (silence makes the interviewer uncertain about your reasoning)
+- Direct Answer: Nothing (silence makes the interviewer uncertain about your reasoning)
+- Why: This matters because it tells you how to reason about nothing (silence makes the interviewer uncertain about your reasoning).
+- Pitfall: Don't answer "Nothing (silence makes the interviewer uncertain about your reasoning)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Nothing (silence makes the interviewer uncertain about your reasoning)
 
-**"I think this is right" without explaining why?** #flashcard
-"I think this is right" without explaining why
+### "I think this is right" without explaining why
+- Direct Answer: "I think this is right" without explaining why
+- Why: This matters because it tells you how to reason about "i think this is right" without explaining why.
+- Pitfall: Don't answer ""I think this is right" without explaining why" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "I think this is right" without explaining why
 
-**Overly long explanations before writing a line?** #flashcard
-Overly long explanations before writing a line
+### Overly long explanations before writing a line
+- Direct Answer: Overly long explanations before writing a line
+- Why: This matters because it tells you how to reason about overly long explanations before writing a line.
+- Pitfall: Don't answer "Overly long explanations before writing a line" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Overly long explanations before writing a line

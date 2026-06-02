@@ -463,76 +463,148 @@ Choose $\tau^* = \arg\min_\tau \text{Expected cost}(\tau)$. Typical values: $C_{
 - Rule engine block rate (sudden spike = possible data quality issue)
 - Feature null rates (velocity features returning null = Redis failure)
 
-## Flashcards
+## Rapid Recall
 
-**Noisy labels: if 20% of labels are wrong, no model can achieve < 20% error?** #flashcard
-it looks like underfitting but more capacity makes it worse
+### Noisy labels: if 20% of labels are wrong, no model can achieve < 20% error
+- Direct Answer: it looks like underfitting but more capacity makes it worse
+- Why: This matters because it tells you how to reason about noisy labels: if 20% of labels are wrong, no model can achieve < 20% error.
+- Pitfall: Don't answer "Noisy labels: if 20% of labels are wrong, no model can achieve < 20% error" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it looks like underfitting but more capacity makes it worse
 
-**Wrong loss function?** #flashcard
-MSE on a classification problem produces slow convergence and instability
+### Wrong loss function
+- Direct Answer: MSE on a classification problem produces slow convergence and instability
+- Why: This matters because it tells you how to reason about wrong loss function.
+- Pitfall: Don't answer "Wrong loss function" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: MSE on a classification problem produces slow convergence and instability
 
-**Bad feature engineering?** #flashcard
-the features don't contain the information needed to predict the target
+### Bad feature engineering
+- Direct Answer: the features don't contain the information needed to predict the target
+- Why: This matters because it tells you how to reason about bad feature engineering.
+- Pitfall: Don't answer "Bad feature engineering" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the features don't contain the information needed to predict the target
 
-**Learning rate too high or too low?** #flashcard
-learning rate too high → loss oscillates; too low → essentially doesn't move
+### Learning rate too high or too low
+- Direct Answer: learning rate too high → loss oscillates; too low → essentially doesn't move
+- Why: This matters because it tells you how to reason about learning rate too high or too low.
+- Pitfall: Don't answer "Learning rate too high or too low" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: learning rate too high → loss oscillates; too low → essentially doesn't move
 
-**Increase model capacity (more layers, more hidden units)?** #flashcard
-Increase model capacity (more layers, more hidden units)
+### Increase model capacity (more layers, more hidden units)
+- Direct Answer: Increase model capacity (more layers, more hidden units)
+- Why: This matters because it tells you how to reason about increase model capacity (more layers, more hidden units).
+- Pitfall: Don't answer "Increase model capacity (more layers, more hidden units)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Increase model capacity (more layers, more hidden units)
 
-**Reduce regularization strength?** #flashcard
-Reduce regularization strength
+### Reduce regularization strength
+- Direct Answer: Reduce regularization strength
+- Why: This matters because it tells you how to reason about reduce regularization strength.
+- Pitfall: Don't answer "Reduce regularization strength" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reduce regularization strength
 
-**Engineer domain-specific features that the model doesn't have to discover from scratch?** #flashcard
-Engineer domain-specific features that the model doesn't have to discover from scratch
+### Engineer domain-specific features that the model doesn't have to discover from scratch
+- Direct Answer: Engineer domain-specific features that the model doesn't have to discover from scratch
+- Why: This matters because it tells you how to reason about engineer domain-specific features that the model doesn't have to discover from scratch.
+- Pitfall: Don't answer "Engineer domain-specific features that the model doesn't have to discover from scratch" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Engineer domain-specific features that the model doesn't have to discover from scratch
 
-**Regulatory compliance?** #flashcard
-SHAP values per feature on individual predictions (local)
+### Regulatory compliance
+- Direct Answer: SHAP values per feature on individual predictions (local)
+- Why: This matters because it tells you how to reason about regulatory compliance.
+- Pitfall: Don't answer "Regulatory compliance" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: SHAP values per feature on individual predictions (local)
 
-**Model debugging?** #flashcard
-global feature importance, partial dependence plots
+### Model debugging
+- Direct Answer: global feature importance, partial dependence plots
+- Why: This matters because it tells you how to reason about model debugging.
+- Pitfall: Don't answer "Model debugging" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: global feature importance, partial dependence plots
 
-**User-facing explanation?** #flashcard
-simplified rule (LIME) or top-3 features
+### User-facing explanation
+- Direct Answer: simplified rule (LIME) or top-3 features
+- Why: This matters because it tells you how to reason about user-facing explanation.
+- Pitfall: Don't answer "User-facing explanation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: simplified rule (LIME) or top-3 features
 
-**Historical bias in labels?** #flashcard
-training labels encode historical discrimination (e.g., loan default rates reflect historical lending discrimination, not just creditworthiness)
+### Historical bias in labels
+- Direct Answer: training labels encode historical discrimination (e.g., loan default rates reflect historical lending discrimination, not just creditworthiness)
+- Why: This matters because it tells you how to reason about historical bias in labels.
+- Pitfall: Don't answer "Historical bias in labels" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: training labels encode historical discrimination (e.g., loan default rates reflect historical lending discrimination, not just creditworthiness)
 
-**Underrepresentation: minority group is 2% of training data?** #flashcard
-model doesn't generalize to them
+### Underrepresentation: minority group is 2% of training data
+- Direct Answer: model doesn't generalize to them
+- Why: This matters because it tells you how to reason about underrepresentation: minority group is 2% of training data.
+- Pitfall: Don't answer "Underrepresentation: minority group is 2% of training data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model doesn't generalize to them
 
-**Proxy features?** #flashcard
-ZIP code → neighborhood → race. The feature encodes a protected attribute indirectly
+### Proxy features
+- Direct Answer: ZIP code → neighborhood → race. The feature encodes a protected attribute indirectly
+- Why: This matters because it tells you how to reason about proxy features.
+- Pitfall: Don't answer "Proxy features" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ZIP code → neighborhood → race. The feature encodes a protected attribute indirectly
 
-**Feedback loops?** #flashcard
-model deprioritizes a group → less interaction data from them → worse model for them → further deprioritization
+### Feedback loops
+- Direct Answer: model deprioritizes a group → less interaction data from them → worse model for them → further deprioritization
+- Why: This matters because it tells you how to reason about feedback loops.
+- Pitfall: Don't answer "Feedback loops" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model deprioritizes a group → less interaction data from them → worse model for them → further deprioritization
 
-**Pre-processing?** #flashcard
-reweight training samples, oversample underrepresented group
+### Pre-processing
+- Direct Answer: reweight training samples, oversample underrepresented group
+- Why: This matters because it tells you how to reason about pre-processing.
+- Pitfall: Don't answer "Pre-processing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reweight training samples, oversample underrepresented group
 
-**In-processing: adversarial debiasing?** #flashcard
-add an adversary that tries to predict the protected attribute from the model's representations; penalize if it succeeds
+### In-processing: adversarial debiasing
+- Direct Answer: add an adversary that tries to predict the protected attribute from the model's representations; penalize if it succeeds
+- Why: This matters because it tells you how to reason about in-processing: adversarial debiasing.
+- Pitfall: Don't answer "In-processing: adversarial debiasing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: add an adversary that tries to predict the protected attribute from the model's representations; penalize if it succeeds
 
-**Post-processing: calibrate different thresholds per group to equalize FPR (requires knowing the group at serving time?** #flashcard
-may be legally constrained)
+### Post-processing: calibrate different thresholds per group to equalize FPR (requires knowing the group at serving time
+- Direct Answer: may be legally constrained)
+- Why: This matters because it tells you how to reason about post-processing: calibrate different thresholds per group to equalize fpr (requires knowing the group at serving time.
+- Pitfall: Don't answer "Post-processing: calibrate different thresholds per group to equalize FPR (requires knowing the group at serving time" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: may be legally constrained)
 
-**PSI 0.1–0.25?** #flashcard
-increase monitoring frequency, alert on-call
+### PSI 0.1–0.25
+- Direct Answer: increase monitoring frequency, alert on-call
+- Why: This matters because it tells you how to reason about psi 0.1–0.25.
+- Pitfall: Don't answer "PSI 0.1–0.25" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: increase monitoring frequency, alert on-call
 
-**PSI > 0.25?** #flashcard
-trigger retraining, evaluate whether to switch to fallback model
+### PSI > 0.25
+- Direct Answer: trigger retraining, evaluate whether to switch to fallback model
+- Why: This matters because it tells you how to reason about psi > 0.25.
+- Pitfall: Don't answer "PSI > 0.25" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: trigger retraining, evaluate whether to switch to fallback model
 
-**Concept drift (accuracy on labeled slice drops)?** #flashcard
-retrain immediately with fresh data
+### Concept drift (accuracy on labeled slice drops)
+- Direct Answer: retrain immediately with fresh data
+- Why: This matters because it tells you how to reason about concept drift (accuracy on labeled slice drops).
+- Pitfall: Don't answer "Concept drift (accuracy on labeled slice drops)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: retrain immediately with fresh data
 
-**Model score distribution (daily PSI)?** #flashcard
-Model score distribution (daily PSI)
+### Model score distribution (daily PSI)
+- Direct Answer: Model score distribution (daily PSI)
+- Why: This matters because it tells you how to reason about model score distribution (daily psi).
+- Pitfall: Don't answer "Model score distribution (daily PSI)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Model score distribution (daily PSI)
 
-**FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)?** #flashcard
-FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)
+### FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)
+- Direct Answer: FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)
+- Why: This matters because it tells you how to reason about fp and fn rates on labeled slice (as chargebacks arrive 30–60 days later).
+- Pitfall: Don't answer "FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: FP and FN rates on labeled slice (as chargebacks arrive 30–60 days later)
 
-**Rule engine block rate (sudden spike = possible data quality issue)?** #flashcard
-Rule engine block rate (sudden spike = possible data quality issue)
+### Rule engine block rate (sudden spike = possible data quality issue)
+- Direct Answer: Rule engine block rate (sudden spike = possible data quality issue)
+- Why: This matters because it tells you how to reason about rule engine block rate (sudden spike = possible data quality issue).
+- Pitfall: Don't answer "Rule engine block rate (sudden spike = possible data quality issue)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Rule engine block rate (sudden spike = possible data quality issue)
 
-**Feature null rates (velocity features returning null = Redis failure)?** #flashcard
-Feature null rates (velocity features returning null = Redis failure)
+### Feature null rates (velocity features returning null = Redis failure)
+- Direct Answer: Feature null rates (velocity features returning null = Redis failure)
+- Why: This matters because it tells you how to reason about feature null rates (velocity features returning null = redis failure).
+- Pitfall: Don't answer "Feature null rates (velocity features returning null = Redis failure)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Feature null rates (velocity features returning null = Redis failure)

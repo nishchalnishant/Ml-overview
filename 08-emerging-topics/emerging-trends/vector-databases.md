@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-vector-databas]
 ---
 # Vector Databases
 
+> **Interview-depth companion:** [Vector Databases & Embeddings (LLM interview notes)](../../05-llms/interview-notes/vector-databases-and-embeddings.md) — embeddings, HNSW, hybrid search, and RAG retrieval tradeoffs in Q&A form.
+
 How semantic search works under the hood — from embedding storage to approximate nearest neighbor indexes, distance metrics, and production deployment patterns. Critical for RAG systems, recommendation engines, and any system that needs to find "similar" things at scale.
 
 ---

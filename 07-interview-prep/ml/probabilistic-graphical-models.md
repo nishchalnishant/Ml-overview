@@ -502,85 +502,166 @@ VI is faster and scales better; MCMC is asymptotically unbiased. VI uses reverse
 **If asked about HMM vs CRF:**
 HMM is generative — models $P(X, Y)$, requires emission distribution, features must be conditionally independent given state. CRF is discriminative — models $P(Y \mid X)$, no emission assumption, features can be arbitrary functions of the entire observation sequence. Use CRF when rich feature engineering is possible and the generative model's assumptions are violated.
 
-## Flashcards
+## Rapid Recall
 
-**Saying MRFs require specifying causal direction. They do not?** #flashcard
-the absence of direction is the point.
+### Saying MRFs require specifying causal direction. They do not
+- Direct Answer: the absence of direction is the point.
+- Why: This matters because it tells you how to reason about saying mrfs require specifying causal direction. they do not.
+- Pitfall: Don't answer "Saying MRFs require specifying causal direction. They do not" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the absence of direction is the point.
 
-**Forgetting that the partition function $Z$ is the fundamental obstacle. Computing $Z$ requires summing over all variable configurations?** #flashcard
-exponential in the number of variables. This is why approximate inference exists.
+### Forgetting that the partition function $Z$ is the fundamental obstacle. Computing $Z$ requires summing over all variable configurations
+- Direct Answer: exponential in the number of variables. This is why approximate inference exists.
+- Why: This matters because it tells you how to reason about forgetting that the partition function $z$ is the fundamental obstacle. computing $z$ requires summing over all variable configurations.
+- Pitfall: Don't answer "Forgetting that the partition function $Z$ is the fundamental obstacle. Computing $Z$ requires summing over all variable configurations" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: exponential in the number of variables. This is why approximate inference exists.
 
-**Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.?** #flashcard
-Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.
+### Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.
+- Direct Answer: Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.
+- Why: This matters because it tells you how to reason about assuming good elimination orderings are easy to find. finding the optimal elimination ordering (minimizing treewidth) is np-hard. heuristics like min-fill are used in practice..
+- Pitfall: Don't answer "Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming good elimination orderings are easy to find. Finding the optimal elimination ordering (minimizing treewidth) is NP-hard. Heuristics like min-fill are used in practice.
 
-**Confusing the Markov blanket with the neighborhood. The Markov blanket includes co-parents (other parents of the node's children)?** #flashcard
-without them, the node is not screened off from its children's co-causes.
+### Confusing the Markov blanket with the neighborhood. The Markov blanket includes co-parents (other parents of the node's children)
+- Direct Answer: without them, the node is not screened off from its children's co-causes.
+- Why: This matters because it tells you how to reason about confusing the markov blanket with the neighborhood. the markov blanket includes co-parents (other parents of the node's children).
+- Pitfall: Don't answer "Confusing the Markov blanket with the neighborhood. The Markov blanket includes co-parents (other parents of the node's children)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: without them, the node is not screened off from its children's co-causes.
 
-**States?** #flashcard
-$S = \{s_1, \ldots, s_N\}$ (hidden)
+### States
+- Direct Answer: $S = \{s_1, \ldots, s_N\}$ (hidden)
+- Why: This matters because it tells you how to reason about states.
+- Pitfall: Don't answer "States" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $S = \{s_1, \ldots, s_N\}$ (hidden)
 
-**Observations?** #flashcard
-$O = \{o_1, \ldots, o_K\}$ (visible)
+### Observations
+- Direct Answer: $O = \{o_1, \ldots, o_K\}$ (visible)
+- Why: This matters because it tells you how to reason about observations.
+- Pitfall: Don't answer "Observations" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $O = \{o_1, \ldots, o_K\}$ (visible)
 
-**Initial distribution?** #flashcard
-$\pi_i = P(q_1 = s_i)$
+### Initial distribution
+- Direct Answer: $\pi_i = P(q_1 = s_i)$
+- Why: This matters because it tells you how to reason about initial distribution.
+- Pitfall: Don't answer "Initial distribution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $\pi_i = P(q_1 = s_i)$
 
-**Transition matrix?** #flashcard
-$A[i,j] = P(q_{t+1} = s_j \mid q_t = s_i)$
+### Transition matrix
+- Direct Answer: $A[i,j] = P(q_{t+1} = s_j \mid q_t = s_i)$
+- Why: This matters because it tells you how to reason about transition matrix.
+- Pitfall: Don't answer "Transition matrix" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $A[i,j] = P(q_{t+1} = s_j \mid q_t = s_i)$
 
-**Emission matrix?** #flashcard
-$B[i,k] = P(o_t = o_k \mid q_t = s_i)$
+### Emission matrix
+- Direct Answer: $B[i,k] = P(o_t = o_k \mid q_t = s_i)$
+- Why: This matters because it tells you how to reason about emission matrix.
+- Pitfall: Don't answer "Emission matrix" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $B[i,k] = P(o_t = o_k \mid q_t = s_i)$
 
-**Forgetting to implement in log space. Forward/Viterbi probabilities underflow to zero for long sequences?** #flashcard
-always use log probabilities with log-sum-exp.
+### Forgetting to implement in log space. Forward/Viterbi probabilities underflow to zero for long sequences
+- Direct Answer: always use log probabilities with log-sum-exp.
+- Why: This matters because it tells you how to reason about forgetting to implement in log space. forward/viterbi probabilities underflow to zero for long sequences.
+- Pitfall: Don't answer "Forgetting to implement in log space. Forward/Viterbi probabilities underflow to zero for long sequences" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: always use log probabilities with log-sum-exp.
 
-**Confusing the three algorithms. Forward?** #flashcard
-sum-product, returns a scalar probability. Viterbi: max-product with backpointers, returns a sequence. Baum-Welch: EM with forward-backward in the E-step.
+### Confusing the three algorithms. Forward
+- Direct Answer: sum-product, returns a scalar probability. Viterbi: max-product with backpointers, returns a sequence. Baum-Welch: EM with forward-backward in the E-step.
+- Why: This matters because it tells you how to reason about confusing the three algorithms. forward.
+- Pitfall: Don't answer "Confusing the three algorithms. Forward" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sum-product, returns a scalar probability. Viterbi: max-product with backpointers, returns a sequence. Baum-Welch: EM with forward-backward in the E-step.
 
-**phi_data?** #flashcard
-pixel intensity matches label distribution
+### phi_data
+- Direct Answer: pixel intensity matches label distribution
+- Why: This matters because it tells you how to reason about phi_data.
+- Pitfall: Don't answer "phi_data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: pixel intensity matches label distribution
 
-**phi_smooth = exp(-lambda * 1[Yi != Yj])?** #flashcard
-penalty for neighboring pixels with different labels
+### phi_smooth = exp(-lambda * 1[Yi != Yj])
+- Direct Answer: penalty for neighboring pixels with different labels
+- Why: This matters because it tells you how to reason about phi_smooth = exp(-lambda * 1[yi != yj]).
+- Pitfall: Don't answer "phi_smooth = exp(-lambda * 1[Yi != Yj])" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: penalty for neighboring pixels with different labels
 
-**Assuming the partition function is computable. For most real-world MRFs it is not?** #flashcard
-this is why all training and inference algorithms for MRFs involve approximations.
+### Assuming the partition function is computable. For most real-world MRFs it is not
+- Direct Answer: this is why all training and inference algorithms for MRFs involve approximations.
+- Why: This matters because it tells you how to reason about assuming the partition function is computable. for most real-world mrfs it is not.
+- Pitfall: Don't answer "Assuming the partition function is computable. For most real-world MRFs it is not" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: this is why all training and inference algorithms for MRFs involve approximations.
 
-**Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.?** #flashcard
-Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.
+### Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.
+- Direct Answer: Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals.
+- Why: This matters because it tells you how to reason about confusing rbms with general boltzmann machines. rbms have the restricted bipartite structure that makes conditionals tractable. general boltzmann machines require mcmc even for conditionals..
+- Pitfall: Don't answer "Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for conditionals." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing RBMs with general Boltzmann machines. RBMs have the restricted bipartite structure that makes conditionals tractable. General Boltzmann machines require MCMC even for co…
 
-**Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.?** #flashcard
-Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.
+### Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.
+- Direct Answer: Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.
+- Why: This matters because it tells you how to reason about applying bp to dense graphs and expecting convergence. bp converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs..
+- Pitfall: Don't answer "Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Applying BP to dense graphs and expecting convergence. BP converges reliably on sparse graphs with long cycles; it frequently fails on dense graphs.
 
-**Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.?** #flashcard
-Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.
+### Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.
+- Direct Answer: Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.
+- Why: This matters because it tells you how to reason about confusing sum-product (computes marginals) with max-product (computes map). they use the same message structure but different aggregation operations..
+- Pitfall: Don't answer "Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing sum-product (computes marginals) with max-product (computes MAP). They use the same message structure but different aggregation operations.
 
-**Saying VI is "just minimizing KL divergence." Minimizing $D_{KL}(q \| P)$ is the right framing, but the direction matters?** #flashcard
-reverse KL produces mode-seeking behavior; forward KL would produce mean-seeking behavior. Most VI uses reverse KL.
+### Saying VI is "just minimizing KL divergence." Minimizing $D_{KL}(q \| P)$ is the right framing, but the direction matters
+- Direct Answer: reverse KL produces mode-seeking behavior; forward KL would produce mean-seeking behavior. Most VI uses reverse KL.
+- Why: This matters because it tells you how to reason about saying vi is "just minimizing kl divergence." minimizing $d_{kl}(q \| p)$ is the right framing, but the direction matters.
+- Pitfall: Don't answer "Saying VI is "just minimizing KL divergence." Minimizing $D_{KL}(q \| P)$ is the right framing, but the direction matters" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reverse KL produces mode-seeking behavior; forward KL would produce mean-seeking behavior. Most VI uses reverse KL.
 
-**Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.?** #flashcard
-Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.
+### Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.
+- Direct Answer: Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior.
+- Why: This matters because it tells you how to reason about confusing elbo maximization with evidence maximization. maximizing elbo maximizes a lower bound on $\log p(x)$, not $\log p(x)$ itself. the gap is the kl from $q$ to the true posterior..
+- Pitfall: Don't answer "Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true posterior." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing ELBO maximization with evidence maximization. Maximizing ELBO maximizes a lower bound on $\log P(X)$, not $\log P(X)$ itself. The gap is the KL from $q$ to the true post…
 
-**R-hat < 1.01 is necessary but not sufficient for convergence?** #flashcard
-also check ESS and trace plots.
+### R-hat < 1.01 is necessary but not sufficient for convergence
+- Direct Answer: also check ESS and trace plots.
+- Why: This matters because it tells you how to reason about r-hat < 1.01 is necessary but not sufficient for convergence.
+- Pitfall: Don't answer "R-hat < 1.01 is necessary but not sufficient for convergence" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: also check ESS and trace plots.
 
-**Discarding too few warmup samples. The chain must reach stationarity before samples are useful.?** #flashcard
-Discarding too few warmup samples. The chain must reach stationarity before samples are useful.
+### Discarding too few warmup samples. The chain must reach stationarity before samples are useful.
+- Direct Answer: Discarding too few warmup samples. The chain must reach stationarity before samples are useful.
+- Why: This matters because it tells you how to reason about discarding too few warmup samples. the chain must reach stationarity before samples are useful..
+- Pitfall: Don't answer "Discarding too few warmup samples. The chain must reach stationarity before samples are useful." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Discarding too few warmup samples. The chain must reach stationarity before samples are useful.
 
-**Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.?** #flashcard
-Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.
+### Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.
+- Direct Answer: Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.
+- Why: This matters because it tells you how to reason about using mcmc without gradient when hmc is available. for continuous targets, hmc dramatically outperforms random-walk methods..
+- Pitfall: Don't answer "Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using MCMC without gradient when HMC is available. For continuous targets, HMC dramatically outperforms random-walk methods.
 
-**Topic indices are not identifiable?** #flashcard
-topics may be permuted across different runs. Never compare topic $k=3$ from two independent runs.
+### Topic indices are not identifiable
+- Direct Answer: topics may be permuted across different runs. Never compare topic $k=3$ from two independent runs.
+- Why: This matters because it tells you how to reason about topic indices are not identifiable.
+- Pitfall: Don't answer "Topic indices are not identifiable" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: topics may be permuted across different runs. Never compare topic $k=3$ from two independent runs.
 
-**sklearn's LDA uses online variational EM, not collapsed Gibbs?** #flashcard
-it is fast but produces biased estimates. For research-quality topic models, use collapsed Gibbs (gensim).
+### sklearn's LDA uses online variational EM, not collapsed Gibbs
+- Direct Answer: it is fast but produces biased estimates. For research-quality topic models, use collapsed Gibbs (gensim).
+- Why: This matters because it tells you how to reason about sklearn's lda uses online variational em, not collapsed gibbs.
+- Pitfall: Don't answer "sklearn's LDA uses online variational EM, not collapsed Gibbs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it is fast but produces biased estimates. For research-quality topic models, use collapsed Gibbs (gensim).
 
-**Forgetting that LDA assumes a bag-of-words representation?** #flashcard
-word order is discarded.
+### Forgetting that LDA assumes a bag-of-words representation
+- Direct Answer: word order is discarded.
+- Why: This matters because it tells you how to reason about forgetting that lda assumes a bag-of-words representation.
+- Pitfall: Don't answer "Forgetting that LDA assumes a bag-of-words representation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: word order is discarded.
 
-**Treating CRF and HMM as equivalent with different parameter estimation. The key distinction is the feature expressiveness?** #flashcard
-CRFs can use overlapping, non-independent features; HMMs fundamentally cannot.
+### Treating CRF and HMM as equivalent with different parameter estimation. The key distinction is the feature expressiveness
+- Direct Answer: CRFs can use overlapping, non-independent features; HMMs fundamentally cannot.
+- Why: This matters because it tells you how to reason about treating crf and hmm as equivalent with different parameter estimation. the key distinction is the feature expressiveness.
+- Pitfall: Don't answer "Treating CRF and HMM as equivalent with different parameter estimation. The key distinction is the feature expressiveness" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: CRFs can use overlapping, non-independent features; HMMs fundamentally cannot.
 
-**Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.?** #flashcard
-Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.
+### Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.
+- Direct Answer: Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.
+- Why: This matters because it tells you how to reason about forgetting that $z(x)$ must be recomputed for each sequence in a crf. this is more expensive than a global $z$ but is what enables the discriminative conditioning..
+- Pitfall: Don't answer "Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Forgetting that $Z(X)$ must be recomputed for each sequence in a CRF. This is more expensive than a global $Z$ but is what enables the discriminative conditioning.

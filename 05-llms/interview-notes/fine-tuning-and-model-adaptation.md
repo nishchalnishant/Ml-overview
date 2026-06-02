@@ -337,19 +337,34 @@ Alternatives when merging fails: run adapters sequentially (apply one then the o
 
 **Common traps**: saying prompt tuning and prompt engineering are the same (prompt engineering modifies input text; prompt tuning learns continuous embedding vectors); not knowing that prefix tuning adds per-layer computation while LoRA adds none after merging; confusing "soft prompts" (learned vectors) with "hard prompts" (text).
 
-## Flashcards
+## Rapid Recall
 
-**LoRA (see below)?** #flashcard
-adds low-rank matrices to weight projections
+### LoRA (see below)
+- Direct Answer: adds low-rank matrices to weight projections
+- Why: This matters because it tells you how to reason about lora (see below).
+- Pitfall: Don't answer "LoRA (see below)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: adds low-rank matrices to weight projections
 
-**QLoRA?** #flashcard
-LoRA on a quantized base model
+### QLoRA
+- Direct Answer: LoRA on a quantized base model
+- Why: This matters because it tells you how to reason about qlora.
+- Pitfall: Don't answer "QLoRA" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: LoRA on a quantized base model
 
-**Prefix tuning / prompt tuning?** #flashcard
-learn soft tokens that condition the model
+### Prefix tuning / prompt tuning
+- Direct Answer: learn soft tokens that condition the model
+- Why: This matters because it tells you how to reason about prefix tuning / prompt tuning.
+- Pitfall: Don't answer "Prefix tuning / prompt tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: learn soft tokens that condition the model
 
-**Prompt tuning?** #flashcard
-add a small set of learned embedding vectors (the "soft prompt") to the input token embeddings before the first transformer layer. Only these vectors are trained. Effective for very large models (>10B) where the model has enough capacity to interpret arbitrary conditioning; works poorly for smaller models that lack this flexibility.
+### Prompt tuning
+- Direct Answer: add a small set of learned embedding vectors (the "soft prompt") to the input token embeddings before the first transformer layer. Only these vectors are trained. Effective for very large models (>10B) where the model has enough capacity to interpret arbitrary conditioning; works poorly for smaller models that lack this flexibility.
+- Why: This matters because it tells you how to reason about prompt tuning.
+- Pitfall: Don't answer "Prompt tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: add a small set of learned embedding vectors (the "soft prompt") to the input token embeddings before the first transformer layer. Only these vectors are trained. Effective for ve…
 
-**Prefix tuning: inject learned key-value pairs at every transformer layer's attention computation (prepended to K and V matrices). More expressive than prompt tuning?** #flashcard
-the conditioning is applied throughout the network, not just at the input. More parameters, better performance.
+### Prefix tuning: inject learned key-value pairs at every transformer layer's attention computation (prepended to K and V matrices). More expressive than prompt tuning
+- Direct Answer: the conditioning is applied throughout the network, not just at the input. More parameters, better performance.
+- Why: This matters because it tells you how to reason about prefix tuning: inject learned key-value pairs at every transformer layer's attention computation (prepended to k and v matrices). more expressive than prompt tuning.
+- Pitfall: Don't answer "Prefix tuning: inject learned key-value pairs at every transformer layer's attention computation (prepended to K and V matrices). More expressive than prompt tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the conditioning is applied throughout the network, not just at the input. More parameters, better performance.

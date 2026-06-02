@@ -481,16 +481,16 @@ They want: the QKV formulation; the scaling; why it replaces RNNs.
 
 ## 9. Deep-Dive Links
 
-- [LLM Fundamentals](../llm-interview-notes/llm-fundamentals.md)
-- [AI System Design](../llm-interview-notes/ai-system-design.md)
-- [Math Derivations](../ml-interview-notes/math-derivations.md)
-- [MLOps](../mlops.md)
-- [Reinforcement Learning](../reinforcement-learning/README.md)
-- [Recommender Systems](../recommender-systems/README.md)
-- [Interpretability & XAI](../interpretability-and-xai/README.md)
-- [Causal Inference & A/B Testing](../experimentation-and-causal-inference/README.md)
-- [Emerging Trends](../emerging-trends/README.md)
-- [Graph Neural Networks](../graph-neural-networks/README.md)
+- [LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md)
+- [AI System Design](../05-llms/interview-notes/ai-system-design.md)
+- [Math Derivations](../07-interview-prep/ml/math-derivations.md)
+- [MLOps](../06-production-ml/mlops.md)
+- [Reinforcement Learning](../04-specialized-domains/reinforcement-learning/README.md)
+- [Recommender Systems](../04-specialized-domains/recommender-systems/README.md)
+- [Interpretability & XAI](../08-emerging-topics/interpretability-and-xai/README.md)
+- [Causal Inference & A/B Testing](../08-emerging-topics/experimentation-and-causal-inference/README.md)
+- [Emerging Trends](../08-emerging-topics/emerging-trends/README.md)
+- [Graph Neural Networks](../04-specialized-domains/graph-neural-networks/README.md)
 
 ## Flashcards
 
@@ -551,32 +551,32 @@ Inference latency and throughput
 **Error rates?** #flashcard
 Error rates
 
-**[LLM Fundamentals](../llm-interview-notes/llm-fundamentals.md)?** #flashcard
-[LLM Fundamentals](../llm-interview-notes/llm-fundamentals.md)
+**[LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md)?** #flashcard
+[LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md)
 
-**[AI System Design](../llm-interview-notes/ai-system-design.md)?** #flashcard
-[AI System Design](../llm-interview-notes/ai-system-design.md)
+**[AI System Design](../05-llms/interview-notes/ai-system-design.md)?** #flashcard
+[AI System Design](../05-llms/interview-notes/ai-system-design.md)
 
-**[Math Derivations](../ml-interview-notes/math-derivations.md)?** #flashcard
-[Math Derivations](../ml-interview-notes/math-derivations.md)
+**[Math Derivations](../07-interview-prep/ml/math-derivations.md)?** #flashcard
+[Math Derivations](../07-interview-prep/ml/math-derivations.md)
 
-**[MLOps](../mlops.md)?** #flashcard
-[MLOps](../mlops.md)
+**[MLOps](../06-production-ml/mlops.md)?** #flashcard
+[MLOps](../06-production-ml/mlops.md)
 
-**[Reinforcement Learning](../reinforcement-learning/README.md)?** #flashcard
-[Reinforcement Learning](../reinforcement-learning/README.md)
+**[Reinforcement Learning](../04-specialized-domains/reinforcement-learning/README.md)?** #flashcard
+[Reinforcement Learning](../04-specialized-domains/reinforcement-learning/README.md)
 
-**[Recommender Systems](../recommender-systems/README.md)?** #flashcard
-[Recommender Systems](../recommender-systems/README.md)
+**[Recommender Systems](../04-specialized-domains/recommender-systems/README.md)?** #flashcard
+[Recommender Systems](../04-specialized-domains/recommender-systems/README.md)
 
-**[Interpretability & XAI](../interpretability-and-xai/README.md)?** #flashcard
-[Interpretability & XAI](../interpretability-and-xai/README.md)
+**[Interpretability & XAI](../08-emerging-topics/interpretability-and-xai/README.md)?** #flashcard
+[Interpretability & XAI](../08-emerging-topics/interpretability-and-xai/README.md)
 
-**[Causal Inference & A/B Testing](../experimentation-and-causal-inference/README.md)?** #flashcard
-[Causal Inference & A/B Testing](../experimentation-and-causal-inference/README.md)
+**[Causal Inference & A/B Testing](../08-emerging-topics/experimentation-and-causal-inference/README.md)?** #flashcard
+[Causal Inference & A/B Testing](../08-emerging-topics/experimentation-and-causal-inference/README.md)
 
-**[Emerging Trends](../emerging-trends/README.md)?** #flashcard
-[Emerging Trends](../emerging-trends/README.md)
+**[Emerging Trends](../08-emerging-topics/emerging-trends/README.md)?** #flashcard
+[Emerging Trends](../08-emerging-topics/emerging-trends/README.md)
 
-**[Graph Neural Networks](../graph-neural-networks/README.md)?** #flashcard
-[Graph Neural Networks](../graph-neural-networks/README.md)
+**[Graph Neural Networks](../04-specialized-domains/graph-neural-networks/README.md)?** #flashcard
+[Graph Neural Networks](../04-specialized-domains/graph-neural-networks/README.md)

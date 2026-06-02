@@ -151,106 +151,208 @@ Multi-modal systems are just the same engineering story with more inputs: **bigg
 
 ---
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-Use encoders per modality and a fusion mechanism to reason/generate.
+### Direct answer
+- Direct Answer: Use encoders per modality and a fusion mechanism to reason/generate.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Use encoders per modality and a fusion mechanism to reason/generate.
 
-**Direct answer?** #flashcard
-Vision encoder → tokens/patch embeddings → cross-attend with text.
+### Direct answer
+- Direct Answer: Vision encoder → tokens/patch embeddings → cross-attend with text.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Vision encoder → tokens/patch embeddings → cross-attend with text.
 
-**Direct answer?** #flashcard
-Contrastive training aligns image/text embeddings for cross-modal search.
+### Direct answer
+- Direct Answer: Contrastive training aligns image/text embeddings for cross-modal search.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Contrastive training aligns image/text embeddings for cross-modal search.
 
-**Azure/DevOps bridge?** #flashcard
-treat inputs as artifacts; validate, version, and monitor costs per request.
+### Azure/DevOps bridge
+- Direct Answer: treat inputs as artifacts; validate, version, and monitor costs per request.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat inputs as artifacts; validate, version, and monitor costs per request.
 
-**Direct answer?** #flashcard
-Encoder-decoder, cross-attention, unified token models, mixture-of-experts.
+### Direct answer
+- Direct Answer: Encoder-decoder, cross-attention, unified token models, mixture-of-experts.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Encoder-decoder, cross-attention, unified token models, mixture-of-experts.
 
-**Direct answer?** #flashcard
-Denoise from noise with a learned score model; classifier-free guidance for control.
+### Direct answer
+- Direct Answer: Denoise from noise with a learned score model; classifier-free guidance for control.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Denoise from noise with a learned score model; classifier-free guidance for control.
 
-**Mini prompt?** #flashcard
-what’s the first knob to turn for speed? → reduce steps / batch / cache.
+### Mini prompt
+- Direct Answer: what’s the first knob to turn for speed? → reduce steps / batch / cache.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what’s the first knob to turn for speed? → reduce steps / batch / cache.
 
-**Direct answer?** #flashcard
-Text → acoustic tokens/waveform via neural vocoders.
+### Direct answer
+- Direct Answer: Text → acoustic tokens/waveform via neural vocoders.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Text → acoustic tokens/waveform via neural vocoders.
 
-**Direct answer?** #flashcard
-Audio → encoder → decoder predicts text tokens.
+### Direct answer
+- Direct Answer: Audio → encoder → decoder predicts text tokens.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Audio → encoder → decoder predicts text tokens.
 
-**Direct answer?** #flashcard
-Retrieve text + images (and maybe OCR/layout) as evidence, not just text.
+### Direct answer
+- Direct Answer: Retrieve text + images (and maybe OCR/layout) as evidence, not just text.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Retrieve text + images (and maybe OCR/layout) as evidence, not just text.
 
-**Azure/DevOps bridge?** #flashcard
-treat inputs as artifacts; validate, version, and monitor costs per request.
+### Azure/DevOps bridge
+- Direct Answer: treat inputs as artifacts; validate, version, and monitor costs per request.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat inputs as artifacts; validate, version, and monitor costs per request.
 
-**Direct answer?** #flashcard
-Ingest → OCR/layout → embed → retrieve → VLM → validate output.
+### Direct answer
+- Direct Answer: Ingest → OCR/layout → embed → retrieve → VLM → validate output.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ingest → OCR/layout → embed → retrieve → VLM → validate output.
 
-**Azure/DevOps bridge?** #flashcard
-treat inputs as artifacts; validate, version, and monitor costs per request.
+### Azure/DevOps bridge
+- Direct Answer: treat inputs as artifacts; validate, version, and monitor costs per request.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat inputs as artifacts; validate, version, and monitor costs per request.
 
-**Direct answer?** #flashcard
-Shared embedding space enables ‘text query → image results’ and vice versa.
+### Direct answer
+- Direct Answer: Shared embedding space enables ‘text query → image results’ and vice versa.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Shared embedding space enables ‘text query → image results’ and vice versa.
 
-**Direct answer?** #flashcard
-Task metrics + human review; check hallucinations and grounding.
+### Direct answer
+- Direct Answer: Task metrics + human review; check hallucinations and grounding.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Task metrics + human review; check hallucinations and grounding.
 
-**Direct answer?** #flashcard
-Compute, bandwidth, batching, latency; async pipelines help.
+### Direct answer
+- Direct Answer: Compute, bandwidth, batching, latency; async pipelines help.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Compute, bandwidth, batching, latency; async pipelines help.
 
-**Direct answer?** #flashcard
-Sample frames + temporal modeling; retrieval of key segments.
+### Direct answer
+- Direct Answer: Sample frames + temporal modeling; retrieval of key segments.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Sample frames + temporal modeling; retrieval of key segments.
 
-**Direct answer?** #flashcard
-Answer questions about images using visual + textual context.
+### Direct answer
+- Direct Answer: Answer questions about images using visual + textual context.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Answer questions about images using visual + textual context.
 
-**Direct answer?** #flashcard
-OCR + layout tokens; treat page structure as features.
+### Direct answer
+- Direct Answer: OCR + layout tokens; treat page structure as features.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: OCR + layout tokens; treat page structure as features.
 
-**Direct answer?** #flashcard
-PEFT/LoRA on cross-attention and adapters; curate high-quality pairs.
+### Direct answer
+- Direct Answer: PEFT/LoRA on cross-attention and adapters; curate high-quality pairs.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PEFT/LoRA on cross-attention and adapters; curate high-quality pairs.
 
-**Direct answer?** #flashcard
-Images/video are expensive; compress inputs, cache, route by complexity.
+### Direct answer
+- Direct Answer: Images/video are expensive; compress inputs, cache, route by complexity.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Images/video are expensive; compress inputs, cache, route by complexity.
 
-**Azure/DevOps bridge?** #flashcard
-treat inputs as artifacts; validate, version, and monitor costs per request.
+### Azure/DevOps bridge
+- Direct Answer: treat inputs as artifacts; validate, version, and monitor costs per request.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat inputs as artifacts; validate, version, and monitor costs per request.
 
-**Direct answer?** #flashcard
-Detect unsafe content in images/video/audio + text; multi-stage filters.
+### Direct answer
+- Direct Answer: Detect unsafe content in images/video/audio + text; multi-stage filters.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Detect unsafe content in images/video/audio + text; multi-stage filters.
 
-**Azure/DevOps bridge?** #flashcard
-treat inputs as artifacts; validate, version, and monitor costs per request.
+### Azure/DevOps bridge
+- Direct Answer: treat inputs as artifacts; validate, version, and monitor costs per request.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat inputs as artifacts; validate, version, and monitor costs per request.
 
-**Direct answer?** #flashcard
-Diffusion/transformer hybrids; expensive and currently noisy in control.
+### Direct answer
+- Direct Answer: Diffusion/transformer hybrids; expensive and currently noisy in control.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Diffusion/transformer hybrids; expensive and currently noisy in control.
 
-**Direct answer?** #flashcard
-Early: fuse features early; Late: separate models combine decisions.
+### Direct answer
+- Direct Answer: Early: fuse features early; Late: separate models combine decisions.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Early: fuse features early; Late: separate models combine decisions.
 
-**Direct answer?** #flashcard
-Force grounding (regions/OCR), lower temperature, add verification/citations.
+### Direct answer
+- Direct Answer: Force grounding (regions/OCR), lower temperature, add verification/citations.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Force grounding (regions/OCR), lower temperature, add verification/citations.
 
-**Direct answer?** #flashcard
-Page-wise processing + layout-aware retrieval + hierarchical summarization.
+### Direct answer
+- Direct Answer: Page-wise processing + layout-aware retrieval + hierarchical summarization.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Page-wise processing + layout-aware retrieval + hierarchical summarization.
 
-**Direct answer?** #flashcard
-Ensure image tokens present; better prompts; model choice; test with counterfactuals.
+### Direct answer
+- Direct Answer: Ensure image tokens present; better prompts; model choice; test with counterfactuals.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ensure image tokens present; better prompts; model choice; test with counterfactuals.
 
-**Direct answer?** #flashcard
-ControlNet, adapters, reference images, better conditioning, negative prompts.
+### Direct answer
+- Direct Answer: ControlNet, adapters, reference images, better conditioning, negative prompts.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ControlNet, adapters, reference images, better conditioning, negative prompts.
 
-**Mini prompt?** #flashcard
-what’s the first knob to turn for speed? → reduce steps / batch / cache.
+### Mini prompt
+- Direct Answer: what’s the first knob to turn for speed? → reduce steps / batch / cache.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what’s the first knob to turn for speed? → reduce steps / batch / cache.
 
-**Direct answer?** #flashcard
-Tune guidance/temperature, diversity controls, better sampling schedules.
+### Direct answer
+- Direct Answer: Tune guidance/temperature, diversity controls, better sampling schedules.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tune guidance/temperature, diversity controls, better sampling schedules.
 
-**Direct answer?** #flashcard
-Fewer steps, distillation, better schedulers, faster kernels, smaller model.
+### Direct answer
+- Direct Answer: Fewer steps, distillation, better schedulers, faster kernels, smaller model.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Fewer steps, distillation, better schedulers, faster kernels, smaller model.
 
-**Mini prompt?** #flashcard
-what’s the first knob to turn for speed? → reduce steps / batch / cache.
+### Mini prompt
+- Direct Answer: what’s the first knob to turn for speed? → reduce steps / batch / cache.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what’s the first knob to turn for speed? → reduce steps / batch / cache.

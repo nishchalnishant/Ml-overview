@@ -137,28 +137,52 @@ study.optimize(objective, n_trials=100)
 print(study.best_params)
 ```
 
-## Flashcards
+## Rapid Recall
 
-**Search Space?** #flashcard
-If you tune 3 parameters with 5 values each $\rightarrow 5^3 = 125$ training runs.
+### Search Space
+- Direct Answer: If you tune 3 parameters with 5 values each $\rightarrow 5^3 = 125$ training runs.
+- Why: This matters because it tells you how to reason about search space.
+- Pitfall: Don't answer "Search Space" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If you tune 3 parameters with 5 values each $\rightarrow 5^3 = 125$ training runs.
 
-**Why it works?** #flashcard
-In high-dimensional spaces, some parameters may not affect the outcome significantly. Random search explores more distinct values of the "important" parameters because it does not fix them to a grid.
+### Why it works
+- Direct Answer: In high-dimensional spaces, some parameters may not affect the outcome significantly. Random search explores more distinct values of the "important" parameters because it does not fix them to a grid.
+- Why: This matters because it tells you how to reason about why it works.
+- Pitfall: Don't answer "Why it works" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: In high-dimensional spaces, some parameters may not affect the outcome significantly. Random search explores more distinct values of the "important" parameters because it does not…
 
-**L1 (Lasso)?** #flashcard
-Adds $\lambda \sum |\theta|$ to the loss. Leads to sparse solutions (many weights go to exactly zero). Useful when you believe most features are irrelevant.
+### L1 (Lasso)
+- Direct Answer: Adds $\lambda \sum |\theta|$ to the loss. Leads to sparse solutions (many weights go to exactly zero). Useful when you believe most features are irrelevant.
+- Why: This matters because it tells you how to reason about l1 (lasso).
+- Pitfall: Don't answer "L1 (Lasso)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Adds $\lambda \sum |\theta|$ to the loss. Leads to sparse solutions (many weights go to exactly zero). Useful when you believe most features are irrelevant.
 
-**L2 (Ridge)?** #flashcard
-Adds $\lambda \sum \theta^2$. Keeps all weights small but non-zero. Better when you believe all features contribute a little.
+### L2 (Ridge)
+- Direct Answer: Adds $\lambda \sum \theta^2$. Keeps all weights small but non-zero. Better when you believe all features contribute a little.
+- Why: This matters because it tells you how to reason about l2 (ridge).
+- Pitfall: Don't answer "L2 (Ridge)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Adds $\lambda \sum \theta^2$. Keeps all weights small but non-zero. Better when you believe all features contribute a little.
 
-**Elastic Net?** #flashcard
-A linear combination of L1 and L2. Has two hyperparameters to tune ($\lambda$ and the L1/L2 mixing ratio).
+### Elastic Net
+- Direct Answer: A linear combination of L1 and L2. Has two hyperparameters to tune ($\lambda$ and the L1/L2 mixing ratio).
+- Why: This matters because it tells you how to reason about elastic net.
+- Pitfall: Don't answer "Elastic Net" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: A linear combination of L1 and L2. Has two hyperparameters to tune ($\lambda$ and the L1/L2 mixing ratio).
 
-**Too High?** #flashcard
-Oscillates or diverges.
+### Too High
+- Direct Answer: Oscillates or diverges.
+- Why: This matters because it tells you how to reason about too high.
+- Pitfall: Don't answer "Too High" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Oscillates or diverges.
 
-**Too Low?** #flashcard
-Converges too slowly or gets stuck in local minima.
+### Too Low
+- Direct Answer: Converges too slowly or gets stuck in local minima.
+- Why: This matters because it tells you how to reason about too low.
+- Pitfall: Don't answer "Too Low" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Converges too slowly or gets stuck in local minima.
 
-**Learning Rate Schedule?** #flashcard
-Start high (fast progress), decay over time (fine-grained convergence).
+### Learning Rate Schedule
+- Direct Answer: Start high (fast progress), decay over time (fine-grained convergence).
+- Why: This matters because it tells you how to reason about learning rate schedule.
+- Pitfall: Don't answer "Learning Rate Schedule" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Start high (fast progress), decay over time (fine-grained convergence).

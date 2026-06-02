@@ -1,4 +1,4 @@
-# Interview Portal (General Q&A)
+# General ML Interview Portal
 
 > **Quick routing:**
 > - **30 min** → `ml-revision.md` + your STAR stories
@@ -6,11 +6,11 @@
 > - **Full day** → work through the level-based path below
 >
 > **Deep-dive hubs** (richer content):
-> [LLM Interview Notes](../../05-llms/interview-notes/) | [ML Interview Notes](../ml/) | [Production ML](../../06-production-ml/)
+> [Interview Hub](../README.md) | [ML Interview Notes](../ml/) | [LLM Interview Notes](../../05-llms/interview-notes/) | [Production ML](../../06-production-ml/)
 
 ---
 
-This folder is your interview war room.
+This folder is your general interview war room.
 
 Not the sleepy textbook version.
 The useful one.
@@ -89,6 +89,10 @@ Add:
 
 - `machine-learning-interviews.md`
   The meta-strategy: how to frame answers, guide system-design rounds, and sound senior. Includes company-specific FAANG prep notes (§11) and take-home case study tips (§12).
+
+## LLM-Specific Route
+
+If the question is specifically about RAG, agents, prompt engineering, alignment, or LLMOps, switch to the dedicated LLM notes in [`../../05-llms/interview-notes/`](../../05-llms/interview-notes/).
 
 ---
 

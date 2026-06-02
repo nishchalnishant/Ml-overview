@@ -132,37 +132,70 @@ print(classification_report(y_true, y_pred))
 cm = confusion_matrix(y_true, y_pred)
 ```
 
-## Flashcards
+## Rapid Recall
 
-**Precision: $\frac{TP}{TP + FP}$?** #flashcard
-of all predictions of "positive," how many were correct?
+### Precision: $\frac{TP}{TP + FP}$
+- Direct Answer: of all predictions of "positive," how many were correct?
+- Why: This matters because it tells you how to reason about precision: $\frac{tp}{tp + fp}$.
+- Pitfall: Don't answer "Precision: $\frac{TP}{TP + FP}$" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: of all predictions of "positive," how many were correct?
 
-**Recall: $\frac{TP}{TP + FN}$?** #flashcard
-of all actual positives, how many did the model find?
+### Recall: $\frac{TP}{TP + FN}$
+- Direct Answer: of all actual positives, how many did the model find?
+- Why: This matters because it tells you how to reason about recall: $\frac{tp}{tp + fn}$.
+- Pitfall: Don't answer "Recall: $\frac{TP}{TP + FN}$" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: of all actual positives, how many did the model find?
 
-**ROC Curve?** #flashcard
-Plots $TPR$ vs $FPR$. Ideal for balanced datasets. AUC = 0.5 is random; AUC = 1.0 is perfect.
+### ROC Curve
+- Direct Answer: Plots $TPR$ vs $FPR$. Ideal for balanced datasets. AUC = 0.5 is random; AUC = 1.0 is perfect.
+- Why: This matters because it tells you how to reason about roc curve.
+- Pitfall: Don't answer "ROC Curve" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Plots $TPR$ vs $FPR$. Ideal for balanced datasets. AUC = 0.5 is random; AUC = 1.0 is perfect.
 
-**PR Curve?** #flashcard
-Plots $Precision$ vs $Recall$. Essential for heavily imbalanced datasets (e.g., 99% negative).
+### PR Curve
+- Direct Answer: Plots $Precision$ vs $Recall$. Essential for heavily imbalanced datasets (e.g., 99% negative).
+- Why: This matters because it tells you how to reason about pr curve.
+- Pitfall: Don't answer "PR Curve" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Plots $Precision$ vs $Recall$. Essential for heavily imbalanced datasets (e.g., 99% negative).
 
-**MAE (Mean Absolute Error)?** #flashcard
-Average absolute residual. Robust to outliers.
+### MAE (Mean Absolute Error)
+- Direct Answer: Average absolute residual. Robust to outliers.
+- Why: This matters because it tells you how to reason about mae (mean absolute error).
+- Pitfall: Don't answer "MAE (Mean Absolute Error)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Average absolute residual. Robust to outliers.
 
-**MSE (Mean Squared Error)?** #flashcard
-Average squared residual. Penalizes large errors heavily.
+### MSE (Mean Squared Error)
+- Direct Answer: Average squared residual. Penalizes large errors heavily.
+- Why: This matters because it tells you how to reason about mse (mean squared error).
+- Pitfall: Don't answer "MSE (Mean Squared Error)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Average squared residual. Penalizes large errors heavily.
 
-**RMSE (Root MSE)?** #flashcard
-Same scale as the target variable. Easier to interpret.
+### RMSE (Root MSE)
+- Direct Answer: Same scale as the target variable. Easier to interpret.
+- Why: This matters because it tells you how to reason about rmse (root mse).
+- Pitfall: Don't answer "RMSE (Root MSE)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Same scale as the target variable. Easier to interpret.
 
-**R² (Coefficient of Determination)?** #flashcard
-Fraction of variance explained. Unitless.
+### R² (Coefficient of Determination)
+- Direct Answer: Fraction of variance explained. Unitless.
+- Why: This matters because it tells you how to reason about r² (coefficient of determination).
+- Pitfall: Don't answer "R² (Coefficient of Determination)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Fraction of variance explained. Unitless.
 
-**Stratified K-Fold: Ensures each fold has the same class distribution as the original data?** #flashcard
-critical for imbalanced classification.
+### Stratified K-Fold: Ensures each fold has the same class distribution as the original data
+- Direct Answer: critical for imbalanced classification.
+- Why: This matters because it tells you how to reason about stratified k-fold: ensures each fold has the same class distribution as the original data.
+- Pitfall: Don't answer "Stratified K-Fold: Ensures each fold has the same class distribution as the original data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: critical for imbalanced classification.
 
-**Inner loop?** #flashcard
-Hyperparameter tuning.
+### Inner loop
+- Direct Answer: Hyperparameter tuning.
+- Why: This matters because it tells you how to reason about inner loop.
+- Pitfall: Don't answer "Inner loop" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Hyperparameter tuning.
 
-**Outer loop?** #flashcard
-Error estimation.
+### Outer loop
+- Direct Answer: Error estimation.
+- Why: This matters because it tells you how to reason about outer loop.
+- Pitfall: Don't answer "Outer loop" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Error estimation.

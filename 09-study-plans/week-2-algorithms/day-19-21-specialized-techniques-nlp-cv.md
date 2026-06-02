@@ -125,22 +125,40 @@ outputs = model(**inputs)
 cls_embedding = outputs.last_hidden_state[:, 0, :]  # [CLS] token
 ```
 
-## Flashcards
+## Rapid Recall
 
-**Self-Attention?** #flashcard
-Allows each token to weigh every other token when computing its representation.
+### Self-Attention
+- Direct Answer: Allows each token to weigh every other token when computing its representation.
+- Why: This matters because it tells you how to reason about self-attention.
+- Pitfall: Don't answer "Self-Attention" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Allows each token to weigh every other token when computing its representation.
 
-**BERT?** #flashcard
-Encoder-only. Pre-trained on masked language modeling. Best for understanding tasks (classification, NER, question answering).
+### BERT
+- Direct Answer: Encoder-only. Pre-trained on masked language modeling. Best for understanding tasks (classification, NER, question answering).
+- Why: This matters because it tells you how to reason about bert.
+- Pitfall: Don't answer "BERT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Encoder-only. Pre-trained on masked language modeling. Best for understanding tasks (classification, NER, question answering).
 
-**GPT?** #flashcard
-Decoder-only. Pre-trained on next-token prediction (causal). Best for generation tasks.
+### GPT
+- Direct Answer: Decoder-only. Pre-trained on next-token prediction (causal). Best for generation tasks.
+- Why: This matters because it tells you how to reason about gpt.
+- Pitfall: Don't answer "GPT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Decoder-only. Pre-trained on next-token prediction (causal). Best for generation tasks.
 
-**Filters/Kernels?** #flashcard
-Shared weights that slide across the input and detect local patterns (edges, textures, shapes). Early layers detect low-level features; later layers combine them into high-level ones.
+### Filters/Kernels
+- Direct Answer: Shared weights that slide across the input and detect local patterns (edges, textures, shapes). Early layers detect low-level features; later layers combine them into high-level ones.
+- Why: This matters because it tells you how to reason about filters/kernels.
+- Pitfall: Don't answer "Filters/Kernels" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Shared weights that slide across the input and detect local patterns (edges, textures, shapes). Early layers detect low-level features; later layers combine them into high-level o…
 
-**Pooling?** #flashcard
-Reduces spatial dimensions. Max pooling keeps the strongest activation in each region, providing approximate translation invariance.
+### Pooling
+- Direct Answer: Reduces spatial dimensions. Max pooling keeps the strongest activation in each region, providing approximate translation invariance.
+- Why: This matters because it tells you how to reason about pooling.
+- Pitfall: Don't answer "Pooling" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reduces spatial dimensions. Max pooling keeps the strongest activation in each region, providing approximate translation invariance.
 
-**Invariance?** #flashcard
-The same filter detects a feature regardless of its position in the image.
+### Invariance
+- Direct Answer: The same filter detects a feature regardless of its position in the image.
+- Why: This matters because it tells you how to reason about invariance.
+- Pitfall: Don't answer "Invariance" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The same filter detects a feature regardless of its position in the image.

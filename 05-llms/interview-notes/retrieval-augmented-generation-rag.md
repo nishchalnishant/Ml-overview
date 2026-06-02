@@ -308,43 +308,82 @@ A medical assistant might be fine-tuned on clinical note format but use RAG to r
 
 **Common traps**: adjusting the prompt when the retrieval recall is low (the model cannot answer a question whose answer is not in the context, regardless of prompt quality); increasing top-K when the problem is lost-in-the-middle (this makes the problem worse); treating all RAG failures as "LLM hallucination" without evaluating the retriever.
 
-## Flashcards
+## Rapid Recall
 
-**Fixed-size?** #flashcard
-split at fixed token count (e.g., 512 tokens) with N% overlap (~10–20%). Overlap prevents severing a fact that straddles a boundary. Fast, simple, ignores document structure. Breaks sentences arbitrarily.
+### Fixed-size
+- Direct Answer: split at fixed token count (e.g., 512 tokens) with N% overlap (~10–20%). Overlap prevents severing a fact that straddles a boundary. Fast, simple, ignores document structure. Breaks sentences arbitrarily.
+- Why: This matters because it tells you how to reason about fixed-size.
+- Pitfall: Don't answer "Fixed-size" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: split at fixed token count (e.g., 512 tokens) with N% overlap (~10–20%). Overlap prevents severing a fact that straddles a boundary. Fast, simple, ignores document structure. Brea…
 
-**Recursive?** #flashcard
-split on hierarchical delimiters: paragraph break → sentence boundary → word boundary. Preserves semantic units. Default for ~95% of production RAG systems.
+### Recursive
+- Direct Answer: split on hierarchical delimiters: paragraph break → sentence boundary → word boundary. Preserves semantic units. Default for ~95% of production RAG systems.
+- Why: This matters because it tells you how to reason about recursive.
+- Pitfall: Don't answer "Recursive" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: split on hierarchical delimiters: paragraph break → sentence boundary → word boundary. Preserves semantic units. Default for ~95% of production RAG systems.
 
-**Semantic?** #flashcard
-embed each sentence, split where cosine similarity between adjacent sentences drops below a threshold. Produces semantically coherent chunks. High quality, high compute cost. Use when document structure is irregular.
+### Semantic
+- Direct Answer: embed each sentence, split where cosine similarity between adjacent sentences drops below a threshold. Produces semantically coherent chunks. High quality, high compute cost. Use when document structure is irregular.
+- Why: This matters because it tells you how to reason about semantic.
+- Pitfall: Don't answer "Semantic" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: embed each sentence, split where cosine similarity between adjacent sentences drops below a threshold. Produces semantically coherent chunks. High quality, high compute cost. Use…
 
-**Routing?** #flashcard
-the model selects which knowledge source (finance DB, HR docs, web search) to query, rather than searching a single index.
+### Routing
+- Direct Answer: the model selects which knowledge source (finance DB, HR docs, web search) to query, rather than searching a single index.
+- Why: This matters because it tells you how to reason about routing.
+- Pitfall: Don't answer "Routing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model selects which knowledge source (finance DB, HR docs, web search) to query, rather than searching a single index.
 
-**Query decomposition?** #flashcard
-"Compare 2022 and 2023 revenue" becomes two sub-queries executed in sequence.
+### Query decomposition
+- Direct Answer: "Compare 2022 and 2023 revenue" becomes two sub-queries executed in sequence.
+- Why: This matters because it tells you how to reason about query decomposition.
+- Pitfall: Don't answer "Query decomposition" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Compare 2022 and 2023 revenue" becomes two sub-queries executed in sequence.
 
-**Multi-hop retrieval?** #flashcard
-result from sub-query A contains an entity; sub-query B is generated using that entity.
+### Multi-hop retrieval
+- Direct Answer: result from sub-query A contains an entity; sub-query B is generated using that entity.
+- Why: This matters because it tells you how to reason about multi-hop retrieval.
+- Pitfall: Don't answer "Multi-hop retrieval" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: result from sub-query A contains an entity; sub-query B is generated using that entity.
 
-**Self-correction?** #flashcard
-if retrieved chunks score low on relevance (checked by the model), retry with a rephrased query.
+### Self-correction
+- Direct Answer: if retrieved chunks score low on relevance (checked by the model), retry with a rephrased query.
+- Why: This matters because it tells you how to reason about self-correction.
+- Pitfall: Don't answer "Self-correction" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if retrieved chunks score low on relevance (checked by the model), retry with a rephrased query.
 
-**[Retrieve]?** #flashcard
-"I need external information before I can continue."
+### [Retrieve]
+- Direct Answer: "I need external information before I can continue."
+- Why: This matters because it tells you how to reason about [retrieve].
+- Pitfall: Don't answer "[Retrieve]" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "I need external information before I can continue."
 
-**[IsRel]?** #flashcard
-"Is this retrieved chunk relevant to my query?" (yes/no)
+### [IsRel]
+- Direct Answer: "Is this retrieved chunk relevant to my query?" (yes/no)
+- Why: This matters because it tells you how to reason about [isrel].
+- Pitfall: Don't answer "[IsRel]" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Is this retrieved chunk relevant to my query?" (yes/no)
 
-**[IsSup]?** #flashcard
-"Does this chunk support the claim I'm about to make?" (yes/no/partial)
+### [IsSup]
+- Direct Answer: "Does this chunk support the claim I'm about to make?" (yes/no/partial)
+- Why: This matters because it tells you how to reason about [issup].
+- Pitfall: Don't answer "[IsSup]" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Does this chunk support the claim I'm about to make?" (yes/no/partial)
 
-**[IsUse]?** #flashcard
-"Is my generated answer actually useful?" (score 1–5)
+### [IsUse]
+- Direct Answer: "Is my generated answer actually useful?" (score 1–5)
+- Why: This matters because it tells you how to reason about [isuse].
+- Pitfall: Don't answer "[IsUse]" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Is my generated answer actually useful?" (score 1–5)
 
-**Local search?** #flashcard
-embed the query, find the nearest entities via vector search on graph nodes, then traverse outward via edges.
+### Local search
+- Direct Answer: embed the query, find the nearest entities via vector search on graph nodes, then traverse outward via edges.
+- Why: This matters because it tells you how to reason about local search.
+- Pitfall: Don't answer "Local search" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: embed the query, find the nearest entities via vector search on graph nodes, then traverse outward via edges.
 
-**Global search?** #flashcard
-use precomputed community summaries rather than traversing the full graph; answers corpus-wide themes without exhaustive traversal.
+### Global search
+- Direct Answer: use precomputed community summaries rather than traversing the full graph; answers corpus-wide themes without exhaustive traversal.
+- Why: This matters because it tells you how to reason about global search.
+- Pitfall: Don't answer "Global search" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: use precomputed community summaries rather than traversing the full graph; answers corpus-wide themes without exhaustive traversal.

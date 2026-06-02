@@ -352,160 +352,316 @@ Identify the bottleneck first. Prefill-bound (long prompts)? Optimize prompt com
 **If asked about LLM reliability in production:**
 Raise: hallucination rates, output format consistency, latency distribution, cost per query, context length limits, behavior on adversarial or out-of-distribution prompts, and monitoring strategy. A reliable LLM system is a system built around an LLM — with retrieval, verification, fallbacks, and monitoring — not just an LLM with a good system prompt.
 
-## Flashcards
+## Rapid Recall
 
-**Treating scale as the only variable. Architecture choices, data quality, and training curriculum all interact with scale. A larger model trained on noisier data can underperform a smaller model trained on curated data?** #flashcard
-data quality matters as much as parameter count.
+### Treating scale as the only variable. Architecture choices, data quality, and training curriculum all interact with scale. A larger model trained on noisier data can underperform a smaller model trained on curated data
+- Direct Answer: data quality matters as much as parameter count.
+- Why: This matters because it tells you how to reason about treating scale as the only variable. architecture choices, data quality, and training curriculum all interact with scale. a larger model trained on noisier data can underperform a smaller model trained on curated data.
+- Pitfall: Don't answer "Treating scale as the only variable. Architecture choices, data quality, and training curriculum all interact with scale. A larger model trained on noisier data can underperform a smaller model trained on curated data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: data quality matters as much as parameter count.
 
-**Treating emergent capabilities as magical. They are well-defined empirically?** #flashcard
-performance on a task is near-random at small scale and jumps discontinuously at large scale. The explanation is likely that some tasks require many capabilities simultaneously; the model acquires each capability gradually, but only crosses the threshold for all of them at once at large scale.
+### Treating emergent capabilities as magical. They are well-defined empirically
+- Direct Answer: performance on a task is near-random at small scale and jumps discontinuously at large scale. The explanation is likely that some tasks require many capabilities simultaneously; the model acquires each capability gradually, but only crosses the threshold for all of them at once at large scale.
+- Why: This matters because it tells you how to reason about treating emergent capabilities as magical. they are well-defined empirically.
+- Pitfall: Don't answer "Treating emergent capabilities as magical. They are well-defined empirically" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: performance on a task is near-random at small scale and jumps discontinuously at large scale. The explanation is likely that some tasks require many capabilities simultaneously; t…
 
-**Token count drives API cost for commercial models?** #flashcard
-Token count drives API cost for commercial models
+### Token count drives API cost for commercial models
+- Direct Answer: Token count drives API cost for commercial models
+- Why: This matters because it tells you how to reason about token count drives api cost for commercial models.
+- Pitfall: Don't answer "Token count drives API cost for commercial models" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Token count drives API cost for commercial models
 
-**Token count determines how much content fits in the context window?** #flashcard
-Token count determines how much content fits in the context window
+### Token count determines how much content fits in the context window
+- Direct Answer: Token count determines how much content fits in the context window
+- Why: This matters because it tells you how to reason about token count determines how much content fits in the context window.
+- Pitfall: Don't answer "Token count determines how much content fits in the context window" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Token count determines how much content fits in the context window
 
-**Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units?** #flashcard
-Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units
+### Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units
+- Direct Answer: Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units
+- Why: This matters because it tells you how to reason about domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units.
+- Pitfall: Don't answer "Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Domain-specific text (code, medical, legal) may tokenize inefficiently under a general-purpose vocabulary, inflating sequence length and fragmenting semantic units
 
-**Languages differ in tokenization efficiency?** #flashcard
-English-centric tokenizers produce long sequences for morphologically rich languages
+### Languages differ in tokenization efficiency
+- Direct Answer: English-centric tokenizers produce long sequences for morphologically rich languages
+- Why: This matters because it tells you how to reason about languages differ in tokenization efficiency.
+- Pitfall: Don't answer "Languages differ in tokenization efficiency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: English-centric tokenizers produce long sequences for morphologically rich languages
 
-**Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects.?** #flashcard
-Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects.
+### Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects.
+- Direct Answer: Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects.
+- Why: This matters because it tells you how to reason about treating tokenization as fixed infrastructure. vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects..
+- Pitfall: Don't answer "Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream effects." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating tokenization as fixed infrastructure. Vocabulary extension, fine-tuned tokenizers, and domain-specific vocabularies are real design choices with meaningful downstream eff…
 
-**Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications.?** #flashcard
-Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications.
+### Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications.
+- Direct Answer: Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications.
+- Why: This matters because it tells you how to reason about assuming all languages tokenize equally efficiently. thai, arabic, and cjk languages can require 3–5× more tokens per sentence than english under english-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications..
+- Pitfall: Don't answer "Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, disproportionately consuming context window and increasing cost for multilingual applications." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming all languages tokenize equally efficiently. Thai, Arabic, and CJK languages can require 3–5× more tokens per sentence than English under English-optimized tokenizers, dis…
 
-**Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of.?** #flashcard
-Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of.
+### Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of.
+- Direct Answer: Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of.
+- Why: This matters because it tells you how to reason about treating the transformer architecture as monolithic. decoder-only (gpt, llama), encoder-only (bert), and encoder-decoder (t5, bart) are all transformers with different attention masking schemes optimized for different tasks. the masking pattern determines what each position can attend to, which determines what the model is capable of..
+- Pitfall: Don't answer "Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention masking schemes optimized for different tasks. The masking pattern determines what each position can attend to, which determines what the model is capable of." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating the Transformer architecture as monolithic. Decoder-only (GPT, LLaMA), encoder-only (BERT), and encoder-decoder (T5, Bart) are all Transformers with different attention m…
 
-**Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent.?** #flashcard
-Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent.
+### Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent.
+- Direct Answer: Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent.
+- Why: This matters because it tells you how to reason about conflating the architecture with the training objective. a transformer is an architecture; next-token prediction is an objective; bert's masked language modeling is a different objective on the same architecture. both choices are independent..
+- Pitfall: Don't answer "Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different objective on the same architecture. Both choices are independent." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Conflating the architecture with the training objective. A Transformer is an architecture; next-token prediction is an objective; BERT's masked language modeling is a different ob…
 
-**Query?** #flashcard
-what this position is looking for
+### Query
+- Direct Answer: what this position is looking for
+- Why: This matters because it tells you how to reason about query.
+- Pitfall: Don't answer "Query" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what this position is looking for
 
-**Key?** #flashcard
-what each position offers for matching
+### Key
+- Direct Answer: what each position offers for matching
+- Why: This matters because it tells you how to reason about key.
+- Pitfall: Don't answer "Key" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what each position offers for matching
 
-**Value?** #flashcard
-the information carried if the match is strong
+### Value
+- Direct Answer: the information carried if the match is strong
+- Why: This matters because it tells you how to reason about value.
+- Pitfall: Don't answer "Value" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the information carried if the match is strong
 
-**Saying attention tells the model "which words are important" without specifying: important for what? Attention patterns are query-dependent?** #flashcard
-the same word is important for different queries in different ways. Describing attention as a static importance score misses this.
+### Saying attention tells the model "which words are important" without specifying: important for what? Attention patterns are query-dependent
+- Direct Answer: the same word is important for different queries in different ways. Describing attention as a static importance score misses this.
+- Why: This matters because it tells you how to reason about saying attention tells the model "which words are important" without specifying: important for what? attention patterns are query-dependent.
+- Pitfall: Don't answer "Saying attention tells the model "which words are important" without specifying: important for what? Attention patterns are query-dependent" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the same word is important for different queries in different ways. Describing attention as a static importance score misses this.
 
-**Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small.?** #flashcard
-Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small.
+### Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small.
+- Direct Answer: Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small.
+- Why: This matters because it tells you how to reason about treating attention weights as explanations of model reasoning. attention weights are intermediate computations, not causal explanations. a position can have high attention weight but contribute little to the final output if its values are small..
+- Pitfall: Don't answer "Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight but contribute little to the final output if its values are small." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating attention weights as explanations of model reasoning. Attention weights are intermediate computations, not causal explanations. A position can have high attention weight…
 
-**Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens.?** #flashcard
-Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens.
+### Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens.
+- Direct Answer: Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens.
+- Why: This matters because it tells you how to reason about treating positional encoding as a solved problem. the choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1m tokens..
+- Pitfall: Don't answer "Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M tokens." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating positional encoding as a solved problem. The choice meaningfully affects long-context generalization, which matters increasingly as context windows extend to 128k–1M toke…
 
-**Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.?** #flashcard
-Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.
+### Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.
+- Direct Answer: Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.
+- Why: This matters because it tells you how to reason about confusing what is encoded. positional encoding tells the model where each token is, not what it means. it enables order sensitivity; it does not encode semantic relationships..
+- Pitfall: Don't answer "Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing what is encoded. Positional encoding tells the model where each token is, not what it means. It enables order sensitivity; it does not encode semantic relationships.
 
-**Is the problem that the model does not know something, or that knowledge changes? → RAG?** #flashcard
-Is the problem that the model does not know something, or that knowledge changes? → RAG
+### Is the problem that the model does not know something, or that knowledge changes? → RAG
+- Direct Answer: Is the problem that the model does not know something, or that knowledge changes? → RAG
+- Why: This matters because it tells you how to reason about is the problem that the model does not know something, or that knowledge changes? → rag.
+- Pitfall: Don't answer "Is the problem that the model does not know something, or that knowledge changes? → RAG" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Is the problem that the model does not know something, or that knowledge changes? → RAG
 
-**Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning?** #flashcard
-Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning
+### Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning
+- Direct Answer: Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning
+- Why: This matters because it tells you how to reason about is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning.
+- Pitfall: Don't answer "Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Is the problem that the model's behavior style, format, or domain fluency is wrong? → fine-tuning
 
-**Is the problem solvable by better instructions or examples? → prompting?** #flashcard
-Is the problem solvable by better instructions or examples? → prompting
+### Is the problem solvable by better instructions or examples? → prompting
+- Direct Answer: Is the problem solvable by better instructions or examples? → prompting
+- Why: This matters because it tells you how to reason about is the problem solvable by better instructions or examples? → prompting.
+- Pitfall: Don't answer "Is the problem solvable by better instructions or examples? → prompting" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Is the problem solvable by better instructions or examples? → prompting
 
-**Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining?** #flashcard
-Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining
+### Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining
+- Direct Answer: Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining
+- Why: This matters because it tells you how to reason about does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining.
+- Pitfall: Don't answer "Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Does the problem require the model to internalize something deeply into its parametric memory? → fine-tuning or pretraining
 
-**Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively.?** #flashcard
-Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively.
+### Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively.
+- Direct Answer: Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively.
+- Why: This matters because it tells you how to reason about defaulting to fine-tuning for knowledge freshness. fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. rag solves freshness natively..
+- Pitfall: Don't answer "Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness natively." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Defaulting to fine-tuning for knowledge freshness. Fine-tuning bakes knowledge into weights at a fixed point in time; it does not update when facts change. RAG solves freshness na…
 
-**Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements.?** #flashcard
-Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements.
+### Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements.
+- Direct Answer: Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements.
+- Why: This matters because it tells you how to reason about believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements..
+- Pitfall: Don't answer "Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the reliability of weight-level behavior changes for consistent stylistic or format requirements." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Believing prompting can substitute for fine-tuning when the behavior change required is subtle and consistent. Long system prompts are expensive, brittle, and cannot match the rel…
 
-**Attention computation cost?** #flashcard
-standard self-attention scales as $O(n^2)$ in sequence length
+### Attention computation cost
+- Direct Answer: standard self-attention scales as $O(n^2)$ in sequence length
+- Why: This matters because it tells you how to reason about attention computation cost.
+- Pitfall: Don't answer "Attention computation cost" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: standard self-attention scales as $O(n^2)$ in sequence length
 
-**Latency?** #flashcard
-longer sequences take longer to process
+### Latency
+- Direct Answer: longer sequences take longer to process
+- Why: This matters because it tells you how to reason about latency.
+- Pitfall: Don't answer "Latency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: longer sequences take longer to process
 
-**Cost?** #flashcard
-API pricing typically scales with total tokens processed
+### Cost
+- Direct Answer: API pricing typically scales with total tokens processed
+- Why: This matters because it tells you how to reason about cost.
+- Pitfall: Don't answer "Cost" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API pricing typically scales with total tokens processed
 
-**Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it.?** #flashcard
-Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it.
+### Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it.
+- Direct Answer: Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it.
+- Why: This matters because it tells you how to reason about treating context window size as the primary evaluation criterion for model selection. the model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. a model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it..
+- Pitfall: Don't answer "Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than the raw capacity. A model with 128k context but poor mid-context retrieval is less useful than a model with 32k context that reliably uses all of it." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating context window size as the primary evaluation criterion for model selection. The model's ability to reason over long contexts (tested empirically) often matters more than…
 
-**Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it.?** #flashcard
-Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it.
+### Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it.
+- Direct Answer: Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it.
+- Why: This matters because it tells you how to reason about ignoring the quadratic compute cost of extending context. doubling the context window quadruples attention computation. efficient attention variants (flash attention, linear attention approximations) mitigate this but do not eliminate it..
+- Pitfall: Don't answer "Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear attention approximations) mitigate this but do not eliminate it." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring the quadratic compute cost of extending context. Doubling the context window quadruples attention computation. Efficient attention variants (Flash Attention, linear atten…
 
-**Top-k sampling?** #flashcard
-sample only from the $k$ most probable tokens, zeroing the rest. Fixed cutoff regardless of distribution shape.
+### Top-k sampling
+- Direct Answer: sample only from the $k$ most probable tokens, zeroing the rest. Fixed cutoff regardless of distribution shape.
+- Why: This matters because it tells you how to reason about top-k sampling.
+- Pitfall: Don't answer "Top-k sampling" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sample only from the $k$ most probable tokens, zeroing the rest. Fixed cutoff regardless of distribution shape.
 
-**Top-p (nucleus) sampling: sample from the smallest set of tokens whose cumulative probability exceeds $p$?** #flashcard
-the set shrinks when the model is confident and grows when it is uncertain. Adapts to distribution shape at each step.
+### Top-p (nucleus) sampling: sample from the smallest set of tokens whose cumulative probability exceeds $p$
+- Direct Answer: the set shrinks when the model is confident and grows when it is uncertain. Adapts to distribution shape at each step.
+- Why: This matters because it tells you how to reason about top-p (nucleus) sampling: sample from the smallest set of tokens whose cumulative probability exceeds $p$.
+- Pitfall: Don't answer "Top-p (nucleus) sampling: sample from the smallest set of tokens whose cumulative probability exceeds $p$" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the set shrinks when the model is confident and grows when it is uncertain. Adapts to distribution shape at each step.
 
-**Beam search?** #flashcard
-maintain $k$ hypotheses in parallel, selecting the highest-probability complete sequence. Deterministic; often too conservative for creative tasks.
+### Beam search
+- Direct Answer: maintain $k$ hypotheses in parallel, selecting the highest-probability complete sequence. Deterministic; often too conservative for creative tasks.
+- Why: This matters because it tells you how to reason about beam search.
+- Pitfall: Don't answer "Beam search" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: maintain $k$ hypotheses in parallel, selecting the highest-probability complete sequence. Deterministic; often too conservative for creative tasks.
 
-**Framing temperature tuning as "improving the model." Temperature is a sampling parameter. The model's calibration?** #flashcard
-whether its top-probability tokens correspond to correct answers — comes from pretraining and fine-tuning, not from sampling parameters.
+### Framing temperature tuning as "improving the model." Temperature is a sampling parameter. The model's calibration
+- Direct Answer: whether its top-probability tokens correspond to correct answers — comes from pretraining and fine-tuning, not from sampling parameters.
+- Why: This matters because it tells you how to reason about framing temperature tuning as "improving the model." temperature is a sampling parameter. the model's calibration.
+- Pitfall: Don't answer "Framing temperature tuning as "improving the model." Temperature is a sampling parameter. The model's calibration" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: whether its top-probability tokens correspond to correct answers — comes from pretraining and fine-tuning, not from sampling parameters.
 
-**Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs.?** #flashcard
-Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs.
+### Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs.
+- Direct Answer: Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs.
+- Why: This matters because it tells you how to reason about using only temperature when top-p often gives better control. temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs..
+- Pitfall: Don't answer "Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty at each step and typically produces more coherent diverse outputs." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using only temperature when top-p often gives better control. Temperature alone can produce either very focused or very random outputs; top-p adapts to the model's own uncertainty…
 
-**Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step.?** #flashcard
-Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step.
+### Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step.
+- Direct Answer: Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step.
+- Why: This matters because it tells you how to reason about conflating causal masking with the model not being able to see previous context. causal masking prevents seeing future context. all previous tokens are fully attended to at every step..
+- Pitfall: Don't answer "Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every step." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Conflating causal masking with the model not being able to see previous context. Causal masking prevents seeing future context. All previous tokens are fully attended to at every…
 
-**Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage.?** #flashcard
-Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage.
+### Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage.
+- Direct Answer: Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage.
+- Why: This matters because it tells you how to reason about ignoring kv-cache memory as a constraint. for long contexts and large batches, the kv-cache can exceed available gpu memory, requiring techniques like sliding window attention or kv-cache eviction to manage..
+- Pitfall: Don't answer "Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or KV-cache eviction to manage." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring KV-cache memory as a constraint. For long contexts and large batches, the KV-cache can exceed available GPU memory, requiring techniques like sliding window attention or…
 
-**Thinking alignment training fundamentally changes the model's knowledge or capabilities. It primarily changes the probability of certain types of outputs?** #flashcard
-the underlying capabilities remain largely intact.
+### Thinking alignment training fundamentally changes the model's knowledge or capabilities. It primarily changes the probability of certain types of outputs
+- Direct Answer: the underlying capabilities remain largely intact.
+- Why: This matters because it tells you how to reason about thinking alignment training fundamentally changes the model's knowledge or capabilities. it primarily changes the probability of certain types of outputs.
+- Pitfall: Don't answer "Thinking alignment training fundamentally changes the model's knowledge or capabilities. It primarily changes the probability of certain types of outputs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the underlying capabilities remain largely intact.
 
-**Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.?** #flashcard
-Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.
+### Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.
+- Direct Answer: Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.
+- Why: This matters because it tells you how to reason about thinking rlhf solves hallucination. rlhf optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty..
+- Pitfall: Don't answer "Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Thinking RLHF solves hallucination. RLHF optimizes for human preference, and human raters sometimes prefer confident, fluent hallucinations over honest expressions of uncertainty.
 
-**Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.?** #flashcard
-Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.
+### Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.
+- Direct Answer: Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.
+- Why: This matters because it tells you how to reason about defaulting to "buy a bigger gpu" as the first optimization. infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency..
+- Pitfall: Don't answer "Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Defaulting to "buy a bigger GPU" as the first optimization. Infrastructure costs scale linearly; quantization, batching, and speculative decoding improve algorithmic efficiency.
 
-**Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory.?** #flashcard
-Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory.
+### Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory.
+- Direct Answer: Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory.
+- Why: This matters because it tells you how to reason about applying the same optimization regardless of bottleneck. memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. diagnosing the bottleneck before applying an optimization is mandatory..
+- Pitfall: Don't answer "Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and operator fusion. Diagnosing the bottleneck before applying an optimization is mandatory." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Applying the same optimization regardless of bottleneck. Memory-bandwidth-bound decoding benefits from quantization and caching; compute-bound prefill benefits from batching and o…
 
-**Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.?** #flashcard
-Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.
+### Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.
+- Direct Answer: Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.
+- Why: This matters because it tells you how to reason about treating perplexity as a measure of output quality. low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs..
+- Pitfall: Don't answer "Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating perplexity as a measure of output quality. Low perplexity means the model fits the test distribution, not that it generates accurate or useful outputs.
 
-**Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.?** #flashcard
-Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.
+### Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.
+- Direct Answer: Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.
+- Why: This matters because it tells you how to reason about treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain..
+- Pitfall: Don't answer "Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating benchmark leaderboard position as a proxy for production suitability without evaluating on data from the target domain.
 
-**Knowledge gaps?** #flashcard
-the model lacks the specific information and generates a plausible-sounding substitute
+### Knowledge gaps
+- Direct Answer: the model lacks the specific information and generates a plausible-sounding substitute
+- Why: This matters because it tells you how to reason about knowledge gaps.
+- Pitfall: Don't answer "Knowledge gaps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model lacks the specific information and generates a plausible-sounding substitute
 
-**Conflation?** #flashcard
-the model confuses similar entities or facts from training data
+### Conflation
+- Direct Answer: the model confuses similar entities or facts from training data
+- Why: This matters because it tells you how to reason about conflation.
+- Pitfall: Don't answer "Conflation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model confuses similar entities or facts from training data
 
-**Context neglect?** #flashcard
-the model ignores provided context and generates from parametric memory
+### Context neglect
+- Direct Answer: the model ignores provided context and generates from parametric memory
+- Why: This matters because it tells you how to reason about context neglect.
+- Pitfall: Don't answer "Context neglect" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model ignores provided context and generates from parametric memory
 
-**Overconfidence: the model assigns high probability to false statements?** #flashcard
-miscalibrated confidence
+### Overconfidence: the model assigns high probability to false statements
+- Direct Answer: miscalibrated confidence
+- Why: This matters because it tells you how to reason about overconfidence: the model assigns high probability to false statements.
+- Pitfall: Don't answer "Overconfidence: the model assigns high probability to false statements" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: miscalibrated confidence
 
-**RAG?** #flashcard
-grounds responses in retrieved documents, reducing reliance on parametric memory for factual claims
+### RAG
+- Direct Answer: grounds responses in retrieved documents, reducing reliance on parametric memory for factual claims
+- Why: This matters because it tells you how to reason about rag.
+- Pitfall: Don't answer "RAG" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: grounds responses in retrieved documents, reducing reliance on parametric memory for factual claims
 
-**Chain-of-thought prompting?** #flashcard
-forces explicit reasoning steps, making errors more detectable and easier to check
+### Chain-of-thought prompting
+- Direct Answer: forces explicit reasoning steps, making errors more detectable and easier to check
+- Why: This matters because it tells you how to reason about chain-of-thought prompting.
+- Pitfall: Don't answer "Chain-of-thought prompting" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: forces explicit reasoning steps, making errors more detectable and easier to check
 
-**Calibration fine-tuning?** #flashcard
-train on examples where the model expresses uncertainty when it should, reducing confident wrong answers
+### Calibration fine-tuning
+- Direct Answer: train on examples where the model expresses uncertainty when it should, reducing confident wrong answers
+- Why: This matters because it tells you how to reason about calibration fine-tuning.
+- Pitfall: Don't answer "Calibration fine-tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: train on examples where the model expresses uncertainty when it should, reducing confident wrong answers
 
-**Attribution requirements?** #flashcard
-require the model to cite the source for each claim; claims without citations are flagged
+### Attribution requirements
+- Direct Answer: require the model to cite the source for each claim; claims without citations are flagged
+- Why: This matters because it tells you how to reason about attribution requirements.
+- Pitfall: Don't answer "Attribution requirements" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: require the model to cite the source for each claim; claims without citations are flagged
 
-**Output verification?** #flashcard
-pass generated claims through a separate fact-checking step before serving
+### Output verification
+- Direct Answer: pass generated claims through a separate fact-checking step before serving
+- Why: This matters because it tells you how to reason about output verification.
+- Pitfall: Don't answer "Output verification" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: pass generated claims through a separate fact-checking step before serving
 
-**Framing hallucination as something that will be "fixed" in the next model version. The training paradigm is fundamentally susceptible?** #flashcard
-improvements reduce frequency but do not eliminate the underlying mechanism. System design should assume hallucination occurs and build in verification.
+### Framing hallucination as something that will be "fixed" in the next model version. The training paradigm is fundamentally susceptible
+- Direct Answer: improvements reduce frequency but do not eliminate the underlying mechanism. System design should assume hallucination occurs and build in verification.
+- Why: This matters because it tells you how to reason about framing hallucination as something that will be "fixed" in the next model version. the training paradigm is fundamentally susceptible.
+- Pitfall: Don't answer "Framing hallucination as something that will be "fixed" in the next model version. The training paradigm is fundamentally susceptible" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: improvements reduce frequency but do not eliminate the underlying mechanism. System design should assume hallucination occurs and build in verification.
 
-**Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data.?** #flashcard
-Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data.
+### Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data.
+- Direct Answer: Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data.
+- Why: This matters because it tells you how to reason about treating hallucination as a uniform problem. the rate and type vary dramatically by domain, query type, and context provision. a model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data..
+- Pitfall: Don't answer "Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represented topics may hallucinate at 40% rate on obscure topics from the long tail of training data." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating hallucination as a uniform problem. The rate and type vary dramatically by domain, query type, and context provision. A model that hallucinates at 5% rate on well-represe…

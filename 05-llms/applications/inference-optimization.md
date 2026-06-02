@@ -208,7 +208,7 @@ Always profile before optimizing: nvtop, nsys, vLLM's built-in metrics endpoint.
 
 Larger batches help by amortizing the weight-load cost across many requests — reading the same weight matrix once and using it for 32 requests instead of 1. This is why throughput scales nearly linearly with batch size up to the compute-bound regime.
 
-*Related: [Speculative Decoding](speculative-decoding.md) | [Context Window Extension](context-window-extension.md) | [Tuning and Optimization](tuning-optimization.md)*
+*Related: [Speculative Decoding](speculative-decoding.md) | [Context Window Extension](../context-window-extension.md) | [Tuning and Optimization](tuning-optimization.md)*
 
 ---
 

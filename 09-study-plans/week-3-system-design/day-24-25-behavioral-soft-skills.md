@@ -101,49 +101,94 @@ Be ready to defend every choice in your projects. "I used it because it's popula
 - **Ask Good Questions**: "How does the team handle model versioning?" and "What does the on-call rotation look like for production models?" show you understand the production dimension of ML. These are better questions than "What does a typical day look like?"
 - **Name the Tradeoff**: For any system design question, name the tradeoff you chose and what you sacrificed. "I chose simplicity over accuracy because the deployment timeline was fixed" is more credible than claiming you found a solution with no downsides.
 
-## Flashcards
+## Rapid Recall
 
-**Situation?** #flashcard
-Context.
+### Situation
+- Direct Answer: Context.
+- Why: This matters because it tells you how to reason about situation.
+- Pitfall: Don't answer "Situation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Context.
 
-**Task?** #flashcard
-Your specific responsibility.
+### Task
+- Direct Answer: Your specific responsibility.
+- Why: This matters because it tells you how to reason about task.
+- Pitfall: Don't answer "Task" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Your specific responsibility.
 
-**Action?** #flashcard
-What you specifically did (Code, meeting, analysis).
+### Action
+- Direct Answer: What you specifically did (Code, meeting, analysis).
+- Why: This matters because it tells you how to reason about action.
+- Pitfall: Don't answer "Action" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What you specifically did (Code, meeting, analysis).
 
-**Result?** #flashcard
-The outcome (Quantified if possible: "Reduced latency by 20%").
+### Result
+- Direct Answer: The outcome (Quantified if possible: "Reduced latency by 20%").
+- Why: This matters because it tells you how to reason about result.
+- Pitfall: Don't answer "Result" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The outcome (Quantified if possible: "Reduced latency by 20%").
 
-**ML Engineers translate math into production code.?** #flashcard
-ML Engineers translate math into production code.
+### ML Engineers translate math into production code.
+- Direct Answer: ML Engineers translate math into production code.
+- Why: This matters because it tells you how to reason about ml engineers translate math into production code..
+- Pitfall: Don't answer "ML Engineers translate math into production code." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ML Engineers translate math into production code.
 
-**They explain performance drops to business stakeholders without jargon.?** #flashcard
-They explain performance drops to business stakeholders without jargon.
+### They explain performance drops to business stakeholders without jargon.
+- Direct Answer: They explain performance drops to business stakeholders without jargon.
+- Why: This matters because it tells you how to reason about they explain performance drops to business stakeholders without jargon..
+- Pitfall: Don't answer "They explain performance drops to business stakeholders without jargon." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: They explain performance drops to business stakeholders without jargon.
 
-**They advocate for data quality improvements to data engineering teams.?** #flashcard
-They advocate for data quality improvements to data engineering teams.
+### They advocate for data quality improvements to data engineering teams.
+- Direct Answer: They advocate for data quality improvements to data engineering teams.
+- Why: This matters because it tells you how to reason about they advocate for data quality improvements to data engineering teams..
+- Pitfall: Don't answer "They advocate for data quality improvements to data engineering teams." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: They advocate for data quality improvements to data engineering teams.
 
-**They push back on unrealistic latency requirements from product teams.?** #flashcard
-They push back on unrealistic latency requirements from product teams.
+### They push back on unrealistic latency requirements from product teams.
+- Direct Answer: They push back on unrealistic latency requirements from product teams.
+- Why: This matters because it tells you how to reason about they push back on unrealistic latency requirements from product teams..
+- Pitfall: Don't answer "They push back on unrealistic latency requirements from product teams." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: They push back on unrealistic latency requirements from product teams.
 
-**Focus on?** #flashcard
-Imbalance, noise, or labeling issues. What specifically did you do about it? What did you measure to know it was actually a problem?
+### Focus on
+- Direct Answer: Imbalance, noise, or labeling issues. What specifically did you do about it? What did you measure to know it was actually a problem?
+- Why: This matters because it tells you how to reason about focus on.
+- Pitfall: Don't answer "Focus on" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Imbalance, noise, or labeling issues. What specifically did you do about it? What did you measure to know it was actually a problem?
 
-**Focus on?** #flashcard
-Analogies, focusing on the "What" rather than the "How."
+### Focus on
+- Direct Answer: Analogies, focusing on the "What" rather than the "How."
+- Why: This matters because it tells you how to reason about focus on.
+- Pitfall: Don't answer "Focus on" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Analogies, focusing on the "What" rather than the "How."
 
-**Focus on?** #flashcard
-Incident response, monitoring tools, identifying Data Drift.
+### Focus on
+- Direct Answer: Incident response, monitoring tools, identifying Data Drift.
+- Why: This matters because it tells you how to reason about focus on.
+- Pitfall: Don't answer "Focus on" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Incident response, monitoring tools, identifying Data Drift.
 
-**Be Concise?** #flashcard
-The most common failure mode is setting up stories for too long. Practice cutting any answer to under 3 minutes for initial delivery.
+### Be Concise
+- Direct Answer: The most common failure mode is setting up stories for too long. Practice cutting any answer to under 3 minutes for initial delivery.
+- Why: This matters because it tells you how to reason about be concise.
+- Pitfall: Don't answer "Be Concise" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The most common failure mode is setting up stories for too long. Practice cutting any answer to under 3 minutes for initial delivery.
 
-**Be Technical but Intuitive?** #flashcard
-Can you explain backpropagation to a 10-year-old? The ability to find the right level of abstraction for the audience is itself a senior-level skill.
+### Be Technical but Intuitive
+- Direct Answer: Can you explain backpropagation to a 10-year-old? The ability to find the right level of abstraction for the audience is itself a senior-level skill.
+- Why: This matters because it tells you how to reason about be technical but intuitive.
+- Pitfall: Don't answer "Be Technical but Intuitive" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Can you explain backpropagation to a 10-year-old? The ability to find the right level of abstraction for the audience is itself a senior-level skill.
 
-**Ask Good Questions?** #flashcard
-"How does the team handle model versioning?" and "What does the on-call rotation look like for production models?" show you understand the production dimension of ML. These are better questions than "What does a typical day look like?"
+### Ask Good Questions
+- Direct Answer: "How does the team handle model versioning?" and "What does the on-call rotation look like for production models?" show you understand the production dimension of ML. These are better questions than "What does a typical day look like?"
+- Why: This matters because it tells you how to reason about ask good questions.
+- Pitfall: Don't answer "Ask Good Questions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "How does the team handle model versioning?" and "What does the on-call rotation look like for production models?" show you understand the production dimension of ML. These are be…
 
-**Name the Tradeoff?** #flashcard
-For any system design question, name the tradeoff you chose and what you sacrificed. "I chose simplicity over accuracy because the deployment timeline was fixed" is more credible than claiming you found a solution with no downsides.
+### Name the Tradeoff
+- Direct Answer: For any system design question, name the tradeoff you chose and what you sacrificed. "I chose simplicity over accuracy because the deployment timeline was fixed" is more credible than claiming you found a solution with no downsides.
+- Why: This matters because it tells you how to reason about name the tradeoff.
+- Pitfall: Don't answer "Name the Tradeoff" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: For any system design question, name the tradeoff you chose and what you sacrificed. "I chose simplicity over accuracy because the deployment timeline was fixed" is more credible…

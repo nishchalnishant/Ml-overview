@@ -25,9 +25,10 @@ The answer "it depends" is always correct — but only if you say what it depend
 
 | File | What it covers |
 |---|---|
-| [ML Engineering & Production](machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. The most comprehensive file. |
-| [Building ML-Powered Applications](building-machine-learning-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
-| [Design Interview Case Studies](machine-learning-design-interview.md) | Structured walkthroughs of common system design prompts |
+| [System Design Index](system-design/README.md) | Full case-study catalog and platform patterns |
+| [ML Engineering & Production](system-design/machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. The most comprehensive file. |
+| [Building ML-Powered Applications](system-design/building-machine-learning-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
+| [Design Interview Case Studies](system-design/machine-learning-design-interview.md) | Structured walkthroughs of common system design prompts |
 | [ML Design Patterns](system-design/machine-learning-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
 | [Recommended Books](books.md) | Essential reading list for MLOps and production ML engineering |
 
@@ -96,6 +97,6 @@ The most common production failure in ML.
 
 ## See Also
 
-- [ML Interview Notes: System Design](../ml-interview-notes/system-design-and-mlops.md)
-- [MLOps Full Notes](../mlops.md)
-- [LLM System Design](../llm-interview-notes/ai-system-design.md)
+- [ML Interview Notes: System Design](../07-interview-prep/ml/system-design-and-mlops.md)
+- [MLOps Full Notes](mlops.md)
+- [LLM System Design](../05-llms/interview-notes/ai-system-design.md)

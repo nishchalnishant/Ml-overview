@@ -84,4 +84,4 @@ To balance the tradeoff, we use regularization:
 ---
 
 > [!TIP]
-> **Learning Tip:** For a rapid interview revision, use the [AI & ML Revision Hub](../AI_ML_REVISION_GUIDE.md). For deep mathematical derivations of these algorithms, see the [Math Derivations Hub](../ml-interview-notes/math-derivations.md).
+> **Learning Tip:** For a rapid interview revision, use the [AI & ML Revision Hub](../01-foundations/AI_ML_REVISION_GUIDE.md). For deep mathematical derivations of these algorithms, see the [Math Derivations Hub](../07-interview-prep/ml/math-derivations.md).

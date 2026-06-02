@@ -1,5 +1,9 @@
 # LLM Interview Notes — *GenAI without the fog*
 
+> **Primary interview hub:** [Interview Hub](../../07-interview-prep/README.md)
+>
+> Use this folder as the deeper GenAI supplement when you need more than the general ML interview path.
+
 > **Priority order** (read the "snappy" version of each first):
 > 1. `llm-fundamentals` — non-negotiable foundation
 > 2. `prompt-engineering` — asked in almost every LLM round

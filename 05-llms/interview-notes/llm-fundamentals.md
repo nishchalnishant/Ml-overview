@@ -267,40 +267,76 @@ A load-balancing auxiliary loss encourages uniform expert utilization — withou
 
 **Common traps**: confusing total parameters with active parameters; not knowing that MoE still requires full model memory (all experts must be on device or accessible quickly); saying that MoE improves quality for free — the quality gain requires careful load-balancing and hyperparameter tuning.
 
-## Flashcards
+## Rapid Recall
 
-**Encoder-only (BERT): no causal mask?** #flashcard
-each token attends to all others in both directions. Excellent for classification, NER, embedding generation. Cannot generate text autoregressively (would need to "see" tokens it hasn't emitted yet).
+### Encoder-only (BERT): no causal mask
+- Direct Answer: each token attends to all others in both directions. Excellent for classification, NER, embedding generation. Cannot generate text autoregressively (would need to "see" tokens it hasn't emitted yet).
+- Why: This matters because it tells you how to reason about encoder-only (bert): no causal mask.
+- Pitfall: Don't answer "Encoder-only (BERT): no causal mask" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: each token attends to all others in both directions. Excellent for classification, NER, embedding generation. Cannot generate text autoregressively (would need to "see" tokens it…
 
-**Decoder-only (GPT family, Llama, Claude): causal mask?** #flashcard
-token i can only attend to tokens 1..i. Trained as a next-token predictor. Everything current state-of-the-art LLMs do uses this architecture because the pretraining objective (next-token prediction) and the architecture (causal attention) are perfectly aligned.
+### Decoder-only (GPT family, Llama, Claude): causal mask
+- Direct Answer: token i can only attend to tokens 1..i. Trained as a next-token predictor. Everything current state-of-the-art LLMs do uses this architecture because the pretraining objective (next-token prediction) and the architecture (causal attention) are perfectly aligned.
+- Why: This matters because it tells you how to reason about decoder-only (gpt family, llama, claude): causal mask.
+- Pitfall: Don't answer "Decoder-only (GPT family, Llama, Claude): causal mask" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: token i can only attend to tokens 1..i. Trained as a next-token predictor. Everything current state-of-the-art LLMs do uses this architecture because the pretraining objective (ne…
 
-**Encoder-decoder (T5, BART)?** #flashcard
-encoder processes the full input bidirectionally; decoder generates output with cross-attention to the encoder's hidden states. Natural for tasks with explicit input/output structure (translation, summarization). More parameters to serve, slower inference.
+### Encoder-decoder (T5, BART)
+- Direct Answer: encoder processes the full input bidirectionally; decoder generates output with cross-attention to the encoder's hidden states. Natural for tasks with explicit input/output structure (translation, summarization). More parameters to serve, slower inference.
+- Why: This matters because it tells you how to reason about encoder-decoder (t5, bart).
+- Pitfall: Don't answer "Encoder-decoder (T5, BART)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: encoder processes the full input bidirectionally; decoder generates output with cross-attention to the encoder's hidden states. Natural for tasks with explicit input/output struct…
 
-**Greedy?** #flashcard
-argmax over vocabulary. Deterministic, fast, often produces repetition loops.
+### Greedy
+- Direct Answer: argmax over vocabulary. Deterministic, fast, often produces repetition loops.
+- Why: This matters because it tells you how to reason about greedy.
+- Pitfall: Don't answer "Greedy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: argmax over vocabulary. Deterministic, fast, often produces repetition loops.
 
-**Temperature?** #flashcard
-divide logits by T before softmax. T < 1 sharpens the distribution (more deterministic); T > 1 flattens it (more random). T = 0 approaches greedy.
+### Temperature
+- Direct Answer: divide logits by T before softmax. T < 1 sharpens the distribution (more deterministic); T > 1 flattens it (more random). T = 0 approaches greedy.
+- Why: This matters because it tells you how to reason about temperature.
+- Pitfall: Don't answer "Temperature" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: divide logits by T before softmax. T < 1 sharpens the distribution (more deterministic); T > 1 flattens it (more random). T = 0 approaches greedy.
 
-**Top-k?** #flashcard
-sample only from the k most probable tokens. Problem: k is fixed regardless of how peaked or flat the distribution is.
+### Top-k
+- Direct Answer: sample only from the k most probable tokens. Problem: k is fixed regardless of how peaked or flat the distribution is.
+- Why: This matters because it tells you how to reason about top-k.
+- Pitfall: Don't answer "Top-k" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sample only from the k most probable tokens. Problem: k is fixed regardless of how peaked or flat the distribution is.
 
-**Top-p (nucleus sampling)?** #flashcard
-include the smallest set of tokens whose cumulative probability ≥ p (typically 0.9–0.95). The number of candidates adapts to the distribution's shape. Standard for most production deployments.
+### Top-p (nucleus sampling)
+- Direct Answer: include the smallest set of tokens whose cumulative probability ≥ p (typically 0.9–0.95). The number of candidates adapts to the distribution's shape. Standard for most production deployments.
+- Why: This matters because it tells you how to reason about top-p (nucleus sampling).
+- Pitfall: Don't answer "Top-p (nucleus sampling)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: include the smallest set of tokens whose cumulative probability ≥ p (typically 0.9–0.95). The number of candidates adapts to the distribution's shape. Standard for most production…
 
-**Beam search?** #flashcard
-maintain B candidate sequences simultaneously, expanding the most probable ones. Better for constrained tasks (translation, summarization) but produces generic text in open-ended generation.
+### Beam search
+- Direct Answer: maintain B candidate sequences simultaneously, expanding the most probable ones. Better for constrained tasks (translation, summarization) but produces generic text in open-ended generation.
+- Why: This matters because it tells you how to reason about beam search.
+- Pitfall: Don't answer "Beam search" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: maintain B candidate sequences simultaneously, expanding the most probable ones. Better for constrained tasks (translation, summarization) but produces generic text in open-ended…
 
-**Sinusoidal (original Transformer)?** #flashcard
-PE(pos, 2i) = sin(pos / 10000^(2i/d)), PE(pos, 2i+1) = cos(pos / 10000^(2i/d)). Different frequencies for different dimensions. Fixed, not learned. Cannot extrapolate beyond training sequence lengths.
+### Sinusoidal (original Transformer)
+- Direct Answer: PE(pos, 2i) = sin(pos / 10000^(2i/d)), PE(pos, 2i+1) = cos(pos / 10000^(2i/d)). Different frequencies for different dimensions. Fixed, not learned. Cannot extrapolate beyond training sequence lengths.
+- Why: This matters because it tells you how to reason about sinusoidal (original transformer).
+- Pitfall: Don't answer "Sinusoidal (original Transformer)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PE(pos, 2i) = sin(pos / 10000^(2i/d)), PE(pos, 2i+1) = cos(pos / 10000^(2i/d)). Different frequencies for different dimensions. Fixed, not learned. Cannot extrapolate beyond train…
 
-**Learned absolute positions?** #flashcard
-each position gets a learned embedding. Works well within training range; degrades outside it.
+### Learned absolute positions
+- Direct Answer: each position gets a learned embedding. Works well within training range; degrades outside it.
+- Why: This matters because it tells you how to reason about learned absolute positions.
+- Pitfall: Don't answer "Learned absolute positions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: each position gets a learned embedding. Works well within training range; degrades outside it.
 
-**RoPE (Rotary Position Embedding): applied to Q and K before the dot product. Relative position enters as a rotation in embedding space?** #flashcard
-token i and token j's attention score depends naturally on (i - j). Used in Llama, Mistral, and most modern open models. Can be extended via RoPE scaling.
+### RoPE (Rotary Position Embedding): applied to Q and K before the dot product. Relative position enters as a rotation in embedding space
+- Direct Answer: token i and token j's attention score depends naturally on (i - j). Used in Llama, Mistral, and most modern open models. Can be extended via RoPE scaling.
+- Why: This matters because it tells you how to reason about rope (rotary position embedding): applied to q and k before the dot product. relative position enters as a rotation in embedding space.
+- Pitfall: Don't answer "RoPE (Rotary Position Embedding): applied to Q and K before the dot product. Relative position enters as a rotation in embedding space" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: token i and token j's attention score depends naturally on (i - j). Used in Llama, Mistral, and most modern open models. Can be extended via RoPE scaling.
 
-**ALiBi (Attention with Linear Biases)?** #flashcard
-adds a linear bias to attention scores based on distance. Enables zero-shot extrapolation to longer sequences.
+### ALiBi (Attention with Linear Biases)
+- Direct Answer: adds a linear bias to attention scores based on distance. Enables zero-shot extrapolation to longer sequences.
+- Why: This matters because it tells you how to reason about alibi (attention with linear biases).
+- Pitfall: Don't answer "ALiBi (Attention with Linear Biases)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: adds a linear bias to attention scores based on distance. Enables zero-shot extrapolation to longer sequences.

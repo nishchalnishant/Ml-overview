@@ -127,88 +127,172 @@ These aren’t “soft” questions. They’re **risk questions**.
 # Q22: Better benchmark agentic system vs simpler maintainable RAG — decide?
 - **Direct answer:** Optimize for total cost of ownership: maintainability + safety + on-call burden. Use agents only where they add real value.
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-AI engineering focuses on shipping AI features end-to-end (LLMs, RAG, agents, safety, cost). ML engineering often centers on training/serving predictive models.
+### Direct answer
+- Direct Answer: AI engineering focuses on shipping AI features end-to-end (LLMs, RAG, agents, safety, cost). ML engineering often centers on training/serving predictive models.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: AI engineering focuses on shipping AI features end-to-end (LLMs, RAG, agents, safety, cost). ML engineering often centers on training/serving predictive models.
 
-**Direct answer?** #flashcard
-If rules are stable → code it. If language/ambiguity is core → AI. If failure cost is high → add constraints/humans.
+### Direct answer
+- Direct Answer: If rules are stable → code it. If language/ambiguity is core → AI. If failure cost is high → add constraints/humans.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If rules are stable → code it. If language/ambiguity is core → AI. If failure cost is high → add constraints/humans.
 
-**Direct answer?** #flashcard
-Define a business metric (deflection, conversion, time saved) + unit cost (tokens/req) + quality guardrails.
+### Direct answer
+- Direct Answer: Define a business metric (deflection, conversion, time saved) + unit cost (tokens/req) + quality guardrails.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Define a business metric (deflection, conversion, time saved) + unit cost (tokens/req) + quality guardrails.
 
-**Direct answer?** #flashcard
-Triage scope → reproduce with traces → add grounding/constraints → ship fix behind flags → add eval to prevent regression.
+### Direct answer
+- Direct Answer: Triage scope → reproduce with traces → add grounding/constraints → ship fix behind flags → add eval to prevent regression.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Triage scope → reproduce with traces → add grounding/constraints → ship fix behind flags → add eval to prevent regression.
 
-**Direct answer?** #flashcard
-API for speed and capability; self-host for control/cost at scale/privacy. Decide by latency, data sensitivity, and ops maturity.
+### Direct answer
+- Direct Answer: API for speed and capability; self-host for control/cost at scale/privacy. Decide by latency, data sensitivity, and ops maturity.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API for speed and capability; self-host for control/cost at scale/privacy. Decide by latency, data sensitivity, and ops maturity.
 
-**Direct answer?** #flashcard
-Show demos + known failure modes early. Define “good enough” with metrics. Don’t promise magic.
+### Direct answer
+- Direct Answer: Show demos + known failure modes early. Define “good enough” with metrics. Don’t promise magic.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Show demos + known failure modes early. Define “good enough” with metrics. Don’t promise magic.
 
-**Direct answer?** #flashcard
-Check retrieval first (chunking, top-k, hybrid, rerank). Then prompt/format. Then evals.
+### Direct answer
+- Direct Answer: Check retrieval first (chunking, top-k, hybrid, rerank). Then prompt/format. Then evals.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Check retrieval first (chunking, top-k, hybrid, rerank). Then prompt/format. Then evals.
 
-**Mini prompt?** #flashcard
-If answers are fluent but wrong, what broke first? → retrieval/grounding.
+### Mini prompt
+- Direct Answer: If answers are fluent but wrong, what broke first? → retrieval/grounding.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If answers are fluent but wrong, what broke first? → retrieval/grounding.
 
-**Direct answer?** #flashcard
-Track a few reliable sources, run small experiments, and focus on principles (retrieval, evals, safety) over hype.
+### Direct answer
+- Direct Answer: Track a few reliable sources, run small experiments, and focus on principles (retrieval, evals, safety) over hype.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Track a few reliable sources, run small experiments, and focus on principles (retrieval, evals, safety) over hype.
 
-**Direct answer?** #flashcard
-Ship experiments behind flags, use eval gates, canary releases, and rollback plans.
+### Direct answer
+- Direct Answer: Ship experiments behind flags, use eval gates, canary releases, and rollback plans.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ship experiments behind flags, use eval gates, canary releases, and rollback plans.
 
-**Use this frame:?** #flashcard
-Use this frame:
+### Use this frame:
+- Direct Answer: Use this frame:
+- Why: This matters because it tells you how to reason about use this frame:.
+- Pitfall: Don't answer "Use this frame:" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Use this frame:
 
-**Stakes?** #flashcard
-what broke / what mattered
+### Stakes
+- Direct Answer: what broke / what mattered
+- Why: This matters because it tells you how to reason about stakes.
+- Pitfall: Don't answer "Stakes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what broke / what mattered
 
-**Constraints?** #flashcard
-latency, privacy, budget
+### Constraints
+- Direct Answer: latency, privacy, budget
+- Why: This matters because it tells you how to reason about constraints.
+- Pitfall: Don't answer "Constraints" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: latency, privacy, budget
 
-**Decision?** #flashcard
-prompt vs RAG vs fine-tune
+### Decision
+- Direct Answer: prompt vs RAG vs fine-tune
+- Why: This matters because it tells you how to reason about decision.
+- Pitfall: Don't answer "Decision" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt vs RAG vs fine-tune
 
-**Guardrails?** #flashcard
-schema, filters, HITL
+### Guardrails
+- Direct Answer: schema, filters, HITL
+- Why: This matters because it tells you how to reason about guardrails.
+- Pitfall: Don't answer "Guardrails" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: schema, filters, HITL
 
-**Result?** #flashcard
-metric lift + incident reduction
+### Result
+- Direct Answer: metric lift + incident reduction
+- Why: This matters because it tells you how to reason about result.
+- Pitfall: Don't answer "Result" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: metric lift + incident reduction
 
-**Direct answer?** #flashcard
-Contain (disable feature/route to safer mode), investigate, fix data/policy, add monitoring + audits.
+### Direct answer
+- Direct Answer: Contain (disable feature/route to safer mode), investigate, fix data/policy, add monitoring + audits.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Contain (disable feature/route to safer mode), investigate, fix data/policy, add monitoring + audits.
 
-**Direct answer?** #flashcard
-Reduce tokens (context compression), cache, route to smaller models, reduce retries, batch.
+### Direct answer
+- Direct Answer: Reduce tokens (context compression), cache, route to smaller models, reduce retries, batch.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reduce tokens (context compression), cache, route to smaller models, reduce retries, batch.
 
-**Direct answer?** #flashcard
-Tie to user value (p95 SLA) and business cost. Use routing: fast model default, slow model for hard cases.
+### Direct answer
+- Direct Answer: Tie to user value (p95 SLA) and business cost. Use routing: fast model default, slow model for hard cases.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tie to user value (p95 SLA) and business cost. Use routing: fast model default, slow model for hard cases.
 
-**Direct answer?** #flashcard
-Monitor drift (data + behavior), refresh retrieval corpus, retrain/fine-tune when needed, add continuous evals.
+### Direct answer
+- Direct Answer: Monitor drift (data + behavior), refresh retrieval corpus, retrain/fine-tune when needed, add continuous evals.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Monitor drift (data + behavior), refresh retrieval corpus, retrain/fine-tune when needed, add continuous evals.
 
-**Direct answer?** #flashcard
-Use analogies: “autocomplete with confidence.” Show examples + safety rails. Set expectations with metrics.
+### Direct answer
+- Direct Answer: Use analogies: “autocomplete with confidence.” Show examples + safety rails. Set expectations with metrics.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Use analogies: “autocomplete with confidence.” Show examples + safety rails. Set expectations with metrics.
 
-**Direct answer?** #flashcard
-Start with prompting + RAG, then synthetic data + PEFT; build a golden eval set early.
+### Direct answer
+- Direct Answer: Start with prompting + RAG, then synthetic data + PEFT; build a golden eval set early.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Start with prompting + RAG, then synthetic data + PEFT; build a golden eval set early.
 
-**Direct answer?** #flashcard
-Align on definitions (success/failure), document contracts (schemas), and agree on escalation paths.
+### Direct answer
+- Direct Answer: Align on definitions (success/failure), document contracts (schemas), and agree on escalation paths.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Align on definitions (success/failure), document contracts (schemas), and agree on escalation paths.
 
-**Direct answer?** #flashcard
-More routing, more eval automation, more on-device, more governance—less “prompt vibes,” more engineering.
+### Direct answer
+- Direct Answer: More routing, more eval automation, more on-device, more governance—less “prompt vibes,” more engineering.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: More routing, more eval automation, more on-device, more governance—less “prompt vibes,” more engineering.
 
-**Direct answer?** #flashcard
-Tie to shipping + operating AI systems: reliability, cost control, and user value.
+### Direct answer
+- Direct Answer: Tie to shipping + operating AI systems: reliability, cost control, and user value.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tie to shipping + operating AI systems: reliability, cost control, and user value.
 
-**Direct answer?** #flashcard
-Translate to user harm + support load + legal risk. Offer mitigations: scope limits, RAG, refusals, HITL.
+### Direct answer
+- Direct Answer: Translate to user harm + support load + legal risk. Offer mitigations: scope limits, RAG, refusals, HITL.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Translate to user harm + support load + legal risk. Offer mitigations: scope limits, RAG, refusals, HITL.
 
-**Direct answer?** #flashcard
-Explain stochastic generation + incomplete info. Compare to humans: high skill, not perfect; build guardrails and appeal paths.
+### Direct answer
+- Direct Answer: Explain stochastic generation + incomplete info. Compare to humans: high skill, not perfect; build guardrails and appeal paths.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Explain stochastic generation + incomplete info. Compare to humans: high skill, not perfect; build guardrails and appeal paths.
 
-**Direct answer?** #flashcard
-Optimize for total cost of ownership: maintainability + safety + on-call burden. Use agents only where they add real value.
+### Direct answer
+- Direct Answer: Optimize for total cost of ownership: maintainability + safety + on-call burden. Use agents only where they add real value.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Optimize for total cost of ownership: maintainability + safety + on-call burden. Use agents only where they add real value.

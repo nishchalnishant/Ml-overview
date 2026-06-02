@@ -278,10 +278,16 @@ This gives consistent effective regularization regardless of each parameter's gr
 
 Key simplification to watch for: sigmoid derivative $\hat{y}(1-\hat{y})$ cancels with terms in BCE and softmax+CE gradients, producing $\hat{y} - y$. This always happens when the activation and the loss are conjugates.
 
-## Flashcards
+## Rapid Recall
 
-**Error: $\hat{y} - y \approx -1$?** #flashcard
-large error
+### Error: $\hat{y} - y \approx -1$
+- Direct Answer: large error
+- Why: This matters because it tells you how to reason about error: $\hat{y} - y \approx -1$.
+- Pitfall: Don't answer "Error: $\hat{y} - y \approx -1$" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: large error
 
-**Sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$?** #flashcard
-near zero
+### Sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$
+- Direct Answer: near zero
+- Why: This matters because it tells you how to reason about sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$.
+- Pitfall: Don't answer "Sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: near zero

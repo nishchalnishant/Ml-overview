@@ -252,7 +252,7 @@ Optimization targets: reduce image resolution (448px vs 1024px gives 5× fewer p
 | Fine text illegible | Low input resolution | Route to higher-resolution pipeline |
 | Lost-in-the-middle | U-shaped attention over long context | Place most relevant images first or last |
 
-*Related: [Context Window Extension](context-window-extension.md) | [Hallucination Mitigation](hallucination-mitigation.md) | [Inference Optimization](inference-optimization.md)*
+*Related: [Context Window Extension](../context-window-extension.md) | [Hallucination Mitigation](hallucination-mitigation.md) | [Inference Optimization](inference-optimization.md)*
 
 ## Flashcards
 

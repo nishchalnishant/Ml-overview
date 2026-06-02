@@ -851,622 +851,1240 @@ Cost impact: routing 40% of requests to a model 10× cheaper reduces average cos
 - Not A/B testing the routing policy against a baseline
 - Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)
 
-## Flashcards
-
-**Listing only training tricks when the question is about serving?** #flashcard
-Listing only training tricks when the question is about serving
-
-**Treating quantization and batching as alternatives rather than orthogonal?** #flashcard
-Treating quantization and batching as alternatives rather than orthogonal
-
-**Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)?** #flashcard
-Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)
-
-**Buying "most FLOPs" GPU when decode is memory-bandwidth-limited?** #flashcard
-Buying "most FLOPs" GPU when decode is memory-bandwidth-limited
-
-**Under-provisioning VRAM by forgetting KV cache grows with batch × context?** #flashcard
-Under-provisioning VRAM by forgetting KV cache grows with batch × context
-
-**Using PCIe-only topology for high tensor-parallelism degrees?** #flashcard
-communication dominates
-
-**Quoting only peak FLOPS without memory bandwidth?** #flashcard
-Quoting only peak FLOPS without memory bandwidth
-
-**Forgetting that KV cache is dynamic?** #flashcard
-it grows with every request in the batch
-
-**Spec-sheet comparisons without profiling on representative workloads?** #flashcard
-Spec-sheet comparisons without profiling on representative workloads
-
-**Each GPU holds identical full model weights?** #flashcard
-Each GPU holds identical full model weights
-
-**Each GPU processes a different batch of data?** #flashcard
-Each GPU processes a different batch of data
-
-**Gradients are all-reduced (averaged) across replicas?** #flashcard
-Gradients are all-reduced (averaged) across replicas
-
-**Memory per GPU = full model weights + activations for local batch?** #flashcard
-Memory per GPU = full model weights + activations for local batch
-
-**Tensor parallelism (TP)?** #flashcard
-Split individual weight matrices across GPUs. GPU 0 holds columns 0..d/2, GPU 1 holds columns d/2..d. AllReduce after each layer.
-
-**Pipeline parallelism (PP)?** #flashcard
-Assign consecutive layers to different GPUs. GPU 0 does layers 0–19, GPU 1 does layers 20–39. Activations pass between stages.
-
-**TP communication dominates at small batch sizes (AllReduce per layer adds latency)?** #flashcard
-TP communication dominates at small batch sizes (AllReduce per layer adds latency)
-
-**PP creates pipeline bubbles?** #flashcard
-GPU 0 is idle while downstream GPUs process
-
-**Combining both naively leads to communication storms on slow interconnects?** #flashcard
-Combining both naively leads to communication storms on slow interconnects
-
-**Using "model parallelism" to mean only TP (PP is also model parallel)?** #flashcard
-Using "model parallelism" to mean only TP (PP is also model parallel)
-
-**Assuming TP always helps?** #flashcard
-at TP degree > 8 on NVLink, communication often hurts
-
-**Forgetting that DP requires each device to hold a complete model replica?** #flashcard
-Forgetting that DP requires each device to hold a complete model replica
-
-**Column-split?** #flashcard
-GPU i holds W[:, ik:(i+1)k]. Compute local XWᵢ. AllGather outputs.
-
-**Row-split?** #flashcard
-GPU i holds W[ik:(i+1)k, :]. Compute local XᵢW. AllReduce sums.
-
-**TP=8 on PCIe is usually slower than TP=2 due to communication overhead?** #flashcard
-TP=8 on PCIe is usually slower than TP=2 due to communication overhead
-
-**TP requires all GPUs to participate in every forward pass?** #flashcard
-one slow GPU stalls the rest
-
-**Higher TP degrees reduce per-GPU memory but increase communication frequency?** #flashcard
-Higher TP degrees reduce per-GPU memory but increase communication frequency
-
-**Claiming TP always speeds up inference?** #flashcard
-Claiming TP always speeds up inference
-
-**Confusing TP (splits tensors within a layer) with PP (splits layers)?** #flashcard
-Confusing TP (splits tensors within a layer) with PP (splits layers)
-
-**Not knowing the AllReduce cost at different batch sizes?** #flashcard
-Not knowing the AllReduce cost at different batch sizes
-
-**Small batch sizes amplify bubble time?** #flashcard
-PP is much less efficient at low concurrency
-
-**More stages = more pipeline latency even when GPUs are busy?** #flashcard
-More stages = more pipeline latency even when GPUs are busy
-
-**Load imbalance?** #flashcard
-if layer 40 is twice as expensive as layer 20, GPU 2 becomes the bottleneck
-
-**Claiming PP always reduces latency?** #flashcard
-it often increases it for single requests
-
-**Confusing PP (splits by layer depth) with TP (splits tensor width)?** #flashcard
-Confusing PP (splits by layer depth) with TP (splits tensor width)
-
-**Not mentioning microbatching as the mitigation for bubbles?** #flashcard
-Not mentioning microbatching as the mitigation for bubbles
-
-**Without PagedAttention?** #flashcard
-admitting new requests requires contiguous KV memory that may not be available even if total free memory is sufficient (fragmentation)
-
-**Long requests can still monopolize batch slots?** #flashcard
-need preemption or length-based admission
-
-**p99 tail latency?** #flashcard
-short requests behind a long queue may still wait if admission control isn't length-aware
-
-**Thinking batching is only a training concern?** #flashcard
-Thinking batching is only a training concern
-
-**Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)?** #flashcard
-Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)
-
-**Claiming continuous batching eliminates tail latency?** #flashcard
-it improves throughput, not worst-case latency
-
-**Low acceptance rate?** #flashcard
-if draft and target disagree often, you run the large model more than unspeculative decoding
-
-**Draft model must run on same hardware?** #flashcard
-adds memory pressure
-
-**Doesn't help with prefill (only decode is the bottleneck)?** #flashcard
-Doesn't help with prefill (only decode is the bottleneck)
-
-**Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)?** #flashcard
-Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)
-
-**Claiming quality degrades?** #flashcard
-it doesn't, by construction of the acceptance criterion
-
-**Not knowing when it fails (low acceptance rate or memory-bound regime)?** #flashcard
-Not knowing when it fails (low acceptance rate or memory-bound regime)
-
-**Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding?** #flashcard
-Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding
-
-**Limit max_seq_len and batch_size?** #flashcard
-hard cap on KV memory
-
-**PagedAttention?** #flashcard
-don't pre-allocate for max length; allocate blocks on demand
-
-**KV quantization (INT8/FP8)?** #flashcard
-halve or quarter KV memory at some quality cost
-
-**Prefix caching?** #flashcard
-if many requests share a system prompt, compute its KV once and reuse
-
-**Forgetting KV cache in capacity planning?** #flashcard
-you can fit the model but not serve any requests
-
-**Pre-allocating contiguous max-length KV for every request?** #flashcard
-catastrophic fragmentation
-
-**Caching with PII in shared prefix cache?** #flashcard
-data leakage risk
-
-**Accounting for weights but not KV in VRAM planning?** #flashcard
-Accounting for weights but not KV in VRAM planning
-
-**Not knowing that GQA dramatically reduces KV cache size?** #flashcard
-Not knowing that GQA dramatically reduces KV cache size
-
-**Treating "KV cache" and "response cache" as the same thing (they're not)?** #flashcard
-Treating "KV cache" and "response cache" as the same thing (they're not)
-
-**Divide KV cache into fixed-size blocks, e.g., 16 tokens per block?** #flashcard
-Divide KV cache into fixed-size blocks, e.g., 16 tokens per block
-
-**Each sequence has a page table?** #flashcard
-logical token position → physical block index
-
-**Allocate one block at a time as generation proceeds?** #flashcard
-Allocate one block at a time as generation proceeds
-
-**On request completion, mark blocks as free for reuse?** #flashcard
-On request completion, mark blocks as free for reuse
-
-**Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)?** #flashcard
-Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)
-
-**Very small block sizes (e.g., 4 tokens)?** #flashcard
-too many page table lookups, kernel overhead
-
-**Very large block sizes (e.g., 256 tokens)?** #flashcard
-loses the fragmentation benefit
-
-**Prefix sharing with dynamic prefixes?** #flashcard
-copy-on-write overhead for sequences that diverge quickly
-
-**Thinking vLLM is primarily about the model?** #flashcard
-it's about the memory scheduler and serving stack
-
-**Not knowing the block size trade-off?** #flashcard
-Not knowing the block size trade-off
-
-**Confusing prefix caching (reuse computed KV) with response caching (reuse final output)?** #flashcard
-Confusing prefix caching (reuse computed KV) with response caching (reuse final output)
-
-**Assuming desktop benchmark numbers transfer to phone?** #flashcard
-Neural Engine throughput profiles differently from GPU
-
-**Thermal throttling?** #flashcard
-sustained inference degrades after 30–60 seconds on mobile
-
-**GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)?** #flashcard
-GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)
-
-**Applying datacenter optimization thinking to edge?** #flashcard
-Applying datacenter optimization thinking to edge
-
-**Ignoring battery/thermal as constraints?** #flashcard
-Ignoring battery/thermal as constraints
-
-**Not knowing platform-specific runtimes (CoreML, NNAPI)?** #flashcard
-Not knowing platform-specific runtimes (CoreML, NNAPI)
-
-**Quantizing with a calibration dataset that doesn't match production distribution?** #flashcard
-Quantizing with a calibration dataset that doesn't match production distribution
-
-**Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others?** #flashcard
-Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others
-
-**Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)?** #flashcard
-Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)
-
-**BF16 vs FP16?** #flashcard
-BF16 has wider exponent range (better for training stability); FP16 has higher precision in mantissa
-
-**Claiming quantization has no quality impact without eval?** #flashcard
-Claiming quantization has no quality impact without eval
-
-**Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)?** #flashcard
-Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)
-
-**Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)?** #flashcard
-Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)
-
-**GPU cold start: provisioning an A100, loading model weights (140 GB over NVMe/network), compiling CUDA graphs?** #flashcard
-3–10 minutes. This is not acceptable for burst handling.
-
-**Mitigation?** #flashcard
-min_replicas ≥ 1, warm pools with loaded weights, pre-pulled container images, compiled model artifacts cached
-
-**Pure CPU-based HPA for GPU workloads?** #flashcard
-Pure CPU-based HPA for GPU workloads
-
-**Setting min_replicas=0 for interactive SLOs?** #flashcard
-cold starts are unacceptably slow
-
-**Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools?** #flashcard
-Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools
-
-**Scaling only on CPU when GPU is the bottleneck?** #flashcard
-Scaling only on CPU when GPU is the bottleneck
-
-**Not knowing that model load time (not container start) dominates GPU cold start?** #flashcard
-Not knowing that model load time (not container start) dominates GPU cold start
-
-**Ignoring batch vs interactive traffic separation?** #flashcard
-Ignoring batch vs interactive traffic separation
-
-**Pure round-robin with variable-length requests (systematic load imbalance)?** #flashcard
-Pure round-robin with variable-length requests (systematic load imbalance)
-
-**No health checks?** #flashcard
-routing to a replica that loaded the wrong model or has OOM errors
-
-**Sticky sessions for stateless serving?** #flashcard
-usually wrong; state lives in the request, not the server
-
-**Assuming round-robin is fine because "it's stateless"?** #flashcard
-Assuming round-robin is fine because "it's stateless"
-
-**Not thinking about long prompts tying up one replica?** #flashcard
-Not thinking about long prompts tying up one replica
-
-**Conflating model routing (which model to use) with load balancing (which replica of the same model)?** #flashcard
-Conflating model routing (which model to use) with load balancing (which replica of the same model)
-
-**Forgetting KV cache when colocating models?** #flashcard
-the models fit in VRAM at zero requests, but KV pressure evicts models mid-request
-
-**LRU eviction without request-ahead loading?** #flashcard
-first request after eviction is slow
-
-**MIG partitions are fixed at setup?** #flashcard
-can't be resized per traffic pattern dynamically
-
-**Ignoring KV footprint when calculating "fits on the GPU"?** #flashcard
-Ignoring KV footprint when calculating "fits on the GPU"
-
-**Assuming MIG is always appropriate?** #flashcard
-it adds operational complexity and fixed capacity allocation
-
-**Not having a routing layer that knows model placement?** #flashcard
-Not having a routing layer that knows model placement
-
-**Shards parameters, gradients, and optimizer states across DP ranks?** #flashcard
-Shards parameters, gradients, and optimizer states across DP ranks
-
-**AllGather parameters before each layer's forward pass, free after?** #flashcard
-AllGather parameters before each layer's forward pass, free after
-
-**ReduceScatter gradients during backward?** #flashcard
-ReduceScatter gradients during backward
-
-**Memory per GPU?** #flashcard
-O(model_size / num_gpus) instead of O(model_size)
-
-**Stage 1?** #flashcard
-shard optimizer states only. Each GPU holds full weights, sharded optimizer state.
-
-**Stage 2?** #flashcard
-+ shard gradients. Reduced gradient memory.
-
-**Stage 3?** #flashcard
-+ shard parameters (equivalent to FSDP). Minimum memory.
-
-**ZeRO-Infinity?** #flashcard
-offload to CPU/NVMe for extreme scale.
-
-**Training, PyTorch ecosystem → FSDP?** #flashcard
-Training, PyTorch ecosystem → FSDP
-
-**Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity?** #flashcard
-Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity
-
-**Inference, single node → TP (fast interconnect required)?** #flashcard
-Inference, single node → TP (fast interconnect required)
-
-**Inference, multi-node → TP within node + PP across nodes?** #flashcard
-Inference, multi-node → TP within node + PP across nodes
-
-**High sharding degree with slow interconnect?** #flashcard
-AllGather/ReduceScatter communication dominates training time
-
-**ZeRO-3 with many small modules?** #flashcard
-excessive communication granularity
-
-**Mixing FSDP sharding with non-FSDP modules?** #flashcard
-gradient/parameter misalignment
-
-**Using "sharding" without specifying which type?** #flashcard
-Using "sharding" without specifying which type
-
-**Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)?** #flashcard
-Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)
-
-**Applying training sharding strategies to inference serving?** #flashcard
-Applying training sharding strategies to inference serving
-
-**When queue depth > max_queue_depth?** #flashcard
-reject new requests with 429 + Retry-After
-
-**When pending tokens > GPU_memory × 0.9: backpressure?** #flashcard
-stop admitting until KV memory clears
-
-**Never unbounded queues?** #flashcard
-they hide memory pressure and cause OOM under burst
-
-**Shortest-job-first (predict output length)?** #flashcard
-minimizes mean wait time
-
-**Weighted fair queuing?** #flashcard
-prevent starvation of low-priority tenants
-
-**Unbounded queue?** #flashcard
-requests accumulate, memory usage grows, OOM kills the server
-
-**Pure FIFO with long requests?** #flashcard
-short interactive requests starve
-
-**No backpressure?** #flashcard
-load balancer keeps sending requests that can't be served, cascading failure
-
-**Implementing FIFO and calling it "fair"?** #flashcard
-Implementing FIFO and calling it "fair"
-
-**Not limiting queue depth (unbounded queue = OOM vulnerability)?** #flashcard
-Not limiting queue depth (unbounded queue = OOM vulnerability)
-
-**Not distinguishing rate limiting (per-tenant) from admission control (global capacity)?** #flashcard
-Not distinguishing rate limiting (per-tenant) from admission control (global capacity)
-
-**GPU utilization?** #flashcard
-idle GPUs burn money. A 40% utilized GPU cluster costs 2.5× per token vs a busy one.
-
-**Engineering time?** #flashcard
-1–2 engineers full-time maintaining GPU infra vs zero for API.
-
-**On-call burden?** #flashcard
-GPU failures, CUDA OOM, model crashes at 3am.
-
-**Flexibility?** #flashcard
-self-hosted locks you to one model; API lets you switch cheaply.
-
-**Data residency / compliance requirements → self-host (no choice)?** #flashcard
-Data residency / compliance requirements → self-host (no choice)
-
-**High volume + stable workload + GPU ops expertise → evaluate self-host?** #flashcard
-High volume + stable workload + GPU ops expertise → evaluate self-host
-
-**Rapid iteration / uncertain volume / small team → API + gateway?** #flashcard
-Rapid iteration / uncertain volume / small team → API + gateway
-
-**Best of both?** #flashcard
-API for general traffic, self-host for private/high-volume paths
-
-**Comparing API price × volume vs GPU hardware cost only (ignoring ops)?** #flashcard
-Comparing API price × volume vs GPU hardware cost only (ignoring ops)
-
-**Assuming 100% GPU utilization in self-host projections?** #flashcard
-Assuming 100% GPU utilization in self-host projections
-
-**Ignoring vendor lock-in risk in API-first projections?** #flashcard
-Ignoring vendor lock-in risk in API-first projections
-
-**Recommending self-host without accounting for staffing cost?** #flashcard
-Recommending self-host without accounting for staffing cost
-
-**Not mentioning hybrid as a common real-world answer?** #flashcard
-Not mentioning hybrid as a common real-world answer
-
-**Scale-to-zero for interactive chat?** #flashcard
-users see 3–10 minute first-response latency
-
-**Over-provisioning warm pools?** #flashcard
-expensive for low-traffic applications
-
-**Not caching compiled CUDA graphs?** #flashcard
-repeated compilation on every restart
-
-**Assuming serverless = zero cold start with the right settings?** #flashcard
-Assuming serverless = zero cold start with the right settings
-
-**Not knowing that CUDA graph compilation adds substantial startup time?** #flashcard
-Not knowing that CUDA graph compilation adds substantial startup time
-
-**Treating cold start as a solvable problem rather than a managed trade-off?** #flashcard
-Treating cold start as a solvable problem rather than a managed trade-off
-
-**Cache key missing temperature: deterministic (temp=0) and stochastic (temp=0.7) responses share a key?** #flashcard
-wrong
-
-**Semantic cache false positives?** #flashcard
-"What's Python?" and "What's COBOL?" might be too similar by embedding
-
-**Prefix KV cache invalidation?** #flashcard
-any change to the system prompt invalidates all cached KV blocks
-
-**Treating all caches as equivalent (response cache and KV cache are very different)?** #flashcard
-Treating all caches as equivalent (response cache and KV cache are very different)
-
-**Missing decoder params in cache keys?** #flashcard
-Missing decoder params in cache keys
-
-**Caching PII without access controls?** #flashcard
-Caching PII without access controls
-
-**Sync long jobs with 30s gateway timeouts?** #flashcard
-requests fail mid-generation
-
-**Async without job cleanup?** #flashcard
-job state accumulates, storage fills
-
-**Streaming without backpressure?** #flashcard
-if client disconnects, GPU continues generating wasted tokens
-
-**Treating streaming as "async"?** #flashcard
-it's still a synchronous HTTP connection
-
-**Using sync for document generation without timeout planning?** #flashcard
-Using sync for document generation without timeout planning
-
-**No TTL on async job state?** #flashcard
-No TTL on async job state
-
-**Stage 1?** #flashcard
-shard optimizer states across DP ranks. Each GPU holds full weights and gradients, but only 1/N of optimizer state. Memory: ~60% of full DP.
-
-**Stage 2?** #flashcard
-+ shard gradients. Memory: ~33% of full DP.
-
-**Stage 3?** #flashcard
-+ shard parameters (equivalent to FSDP). Memory: O(1/N) per GPU.
-
-**Forward pass?** #flashcard
-AllGather parameters before each layer, free after layer completes
-
-**Backward pass?** #flashcard
-ReduceScatter gradients after each layer
-
-**Optimizer step?** #flashcard
-each rank updates its local shard; AllGather to reconstruct for next forward pass
-
-**FSDP?** #flashcard
-native PyTorch 2.0+, tight integration with torch.compile, better for HuggingFace-based training
-
-**DeepSpeed ZeRO-3?** #flashcard
-more features (CPU/NVMe offload, ZeRO-Infinity), custom launcher, more configuration options
-
-**Both achieve similar memory reduction at equivalent sharding levels?** #flashcard
-Both achieve similar memory reduction at equivalent sharding levels
-
-**High ZeRO/FSDP sharding with slow interconnect?** #flashcard
-AllGather for each layer dominates training time
-
-**ZeRO-3 with PyTorch compile?** #flashcard
-extra work needed for compatibility
-
-**Not using activation checkpointing alongside sharding?** #flashcard
-activations can still be a memory bottleneck
-
-**Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)?** #flashcard
-Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)
-
-**Not knowing CPU offload exists (ZeRO-Infinity)?** #flashcard
-Not knowing CPU offload exists (ZeRO-Infinity)
-
-**Conflating training sharding with inference serving strategies?** #flashcard
-Conflating training sharding with inference serving strategies
-
-**queue_wait = time from request arrival to GPU processing start?** #flashcard
-queue_wait = time from request arrival to GPU processing start
-
-**prefill_time = time to process all prompt tokens (compute-bound)?** #flashcard
-prefill_time = time to process all prompt tokens (compute-bound)
-
-**tpot = time per output token during decode (memory-bandwidth-bound)?** #flashcard
-tpot = time per output token during decode (memory-bandwidth-bound)
-
-**TTFT = queue_wait + prefill_time?** #flashcard
-TTFT = queue_wait + prefill_time
-
-**High queue_wait → request backlog, need more replicas or better load balancing?** #flashcard
-High queue_wait → request backlog, need more replicas or better load balancing
-
-**High prefill_time → long prompts or compute bottleneck; consider prompt compression?** #flashcard
-High prefill_time → long prompts or compute bottleneck; consider prompt compression
-
-**High TPOT → memory bandwidth saturated; consider quantization or larger batch?** #flashcard
-High TPOT → memory bandwidth saturated; consider quantization or larger batch
-
-**KV cache pressure → high fragmentation; check PagedAttention block allocation stats?** #flashcard
-KV cache pressure → high fragmentation; check PagedAttention block allocation stats
-
-**DCGM?** #flashcard
-GPU utilization, memory used, memory bandwidth utilization, PCIe/NVLink bandwidth
-
-**PyTorch Profiler?** #flashcard
-per-operation timing, kernel launch overhead, CUDA stream serialization
-
-**Nsight Systems?** #flashcard
-GPU timeline, kernel concurrency, memory copy overhead
-
-**TTFT p50/p95/p99?** #flashcard
-TTFT p50/p95/p99
-
-**TPOT p50/p95/p99 (inter-token latency)?** #flashcard
-TPOT p50/p95/p99 (inter-token latency)
-
-**Tokens/sec throughput?** #flashcard
-Tokens/sec throughput
-
-**GPU utilization (target > 80%)?** #flashcard
-GPU utilization (target > 80%)
-
-**KV cache block utilization?** #flashcard
-KV cache block utilization
-
-**Queue depth?** #flashcard
-Queue depth
-
-**Measuring only total latency?** #flashcard
-hides whether prefill or decode is the bottleneck
-
-**Alerting only on mean latency?** #flashcard
-p99 can be 5× mean under realistic load distributions
-
-**No per-request tracing?** #flashcard
-can't reproduce failures or attribute latency spikes
-
-**Measuring only total latency without phase breakdown?** #flashcard
-Measuring only total latency without phase breakdown
-
-**Conflating p50 and p99?** #flashcard
-LLM latency distributions have heavy tails
-
-**Not tracking KV cache pressure as a leading indicator of throughput collapse?** #flashcard
-Not tracking KV cache pressure as a leading indicator of throughput collapse
-
-**Classifier latency adds to TTFT?** #flashcard
-must be sub-10ms or route async
-
-**Misclassification?** #flashcard
-routing a complex reasoning task to the small model, then having to re-run → 2× cost
-
-**Quality regression monitoring?** #flashcard
-must track quality per route, not just average
-
-**Routing only by user tier or request metadata, ignoring content complexity?** #flashcard
-Routing only by user tier or request metadata, ignoring content complexity
-
-**Not A/B testing the routing policy against a baseline?** #flashcard
-Not A/B testing the routing policy against a baseline
-
-**Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)?** #flashcard
-Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)
+## Rapid Recall
+
+### Listing only training tricks when the question is about serving
+- Direct Answer: Listing only training tricks when the question is about serving
+- Why: This matters because it tells you how to reason about listing only training tricks when the question is about serving.
+- Pitfall: Don't answer "Listing only training tricks when the question is about serving" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Listing only training tricks when the question is about serving
+
+### Treating quantization and batching as alternatives rather than orthogonal
+- Direct Answer: Treating quantization and batching as alternatives rather than orthogonal
+- Why: This matters because it tells you how to reason about treating quantization and batching as alternatives rather than orthogonal.
+- Pitfall: Don't answer "Treating quantization and batching as alternatives rather than orthogonal" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating quantization and batching as alternatives rather than orthogonal
+
+### Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)
+- Direct Answer: Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)
+- Why: This matters because it tells you how to reason about not distinguishing ttft (prefill-bound) from tpot (decode-bound).
+- Pitfall: Don't answer "Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not distinguishing TTFT (prefill-bound) from TPOT (decode-bound)
+
+### Buying "most FLOPs" GPU when decode is memory-bandwidth-limited
+- Direct Answer: Buying "most FLOPs" GPU when decode is memory-bandwidth-limited
+- Why: This matters because it tells you how to reason about buying "most flops" gpu when decode is memory-bandwidth-limited.
+- Pitfall: Don't answer "Buying "most FLOPs" GPU when decode is memory-bandwidth-limited" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Buying "most FLOPs" GPU when decode is memory-bandwidth-limited
+
+### Under-provisioning VRAM by forgetting KV cache grows with batch × context
+- Direct Answer: Under-provisioning VRAM by forgetting KV cache grows with batch × context
+- Why: This matters because it tells you how to reason about under-provisioning vram by forgetting kv cache grows with batch × context.
+- Pitfall: Don't answer "Under-provisioning VRAM by forgetting KV cache grows with batch × context" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Under-provisioning VRAM by forgetting KV cache grows with batch × context
+
+### Using PCIe-only topology for high tensor-parallelism degrees
+- Direct Answer: communication dominates
+- Why: This matters because it tells you how to reason about using pcie-only topology for high tensor-parallelism degrees.
+- Pitfall: Don't answer "Using PCIe-only topology for high tensor-parallelism degrees" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: communication dominates
+
+### Quoting only peak FLOPS without memory bandwidth
+- Direct Answer: Quoting only peak FLOPS without memory bandwidth
+- Why: This matters because it tells you how to reason about quoting only peak flops without memory bandwidth.
+- Pitfall: Don't answer "Quoting only peak FLOPS without memory bandwidth" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Quoting only peak FLOPS without memory bandwidth
+
+### Forgetting that KV cache is dynamic
+- Direct Answer: it grows with every request in the batch
+- Why: This matters because it tells you how to reason about forgetting that kv cache is dynamic.
+- Pitfall: Don't answer "Forgetting that KV cache is dynamic" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it grows with every request in the batch
+
+### Spec-sheet comparisons without profiling on representative workloads
+- Direct Answer: Spec-sheet comparisons without profiling on representative workloads
+- Why: This matters because it tells you how to reason about spec-sheet comparisons without profiling on representative workloads.
+- Pitfall: Don't answer "Spec-sheet comparisons without profiling on representative workloads" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Spec-sheet comparisons without profiling on representative workloads
+
+### Each GPU holds identical full model weights
+- Direct Answer: Each GPU holds identical full model weights
+- Why: This matters because it tells you how to reason about each gpu holds identical full model weights.
+- Pitfall: Don't answer "Each GPU holds identical full model weights" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Each GPU holds identical full model weights
+
+### Each GPU processes a different batch of data
+- Direct Answer: Each GPU processes a different batch of data
+- Why: This matters because it tells you how to reason about each gpu processes a different batch of data.
+- Pitfall: Don't answer "Each GPU processes a different batch of data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Each GPU processes a different batch of data
+
+### Gradients are all-reduced (averaged) across replicas
+- Direct Answer: Gradients are all-reduced (averaged) across replicas
+- Why: This matters because it tells you how to reason about gradients are all-reduced (averaged) across replicas.
+- Pitfall: Don't answer "Gradients are all-reduced (averaged) across replicas" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Gradients are all-reduced (averaged) across replicas
+
+### Memory per GPU = full model weights + activations for local batch
+- Direct Answer: Memory per GPU = full model weights + activations for local batch
+- Why: This matters because it tells you how to reason about memory per gpu = full model weights + activations for local batch.
+- Pitfall: Don't answer "Memory per GPU = full model weights + activations for local batch" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Memory per GPU = full model weights + activations for local batch
+
+### Tensor parallelism (TP)
+- Direct Answer: Split individual weight matrices across GPUs. GPU 0 holds columns 0..d/2, GPU 1 holds columns d/2..d. AllReduce after each layer.
+- Why: This matters because it tells you how to reason about tensor parallelism (tp).
+- Pitfall: Don't answer "Tensor parallelism (TP)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Split individual weight matrices across GPUs. GPU 0 holds columns 0..d/2, GPU 1 holds columns d/2..d. AllReduce after each layer.
+
+### Pipeline parallelism (PP)
+- Direct Answer: Assign consecutive layers to different GPUs. GPU 0 does layers 0–19, GPU 1 does layers 20–39. Activations pass between stages.
+- Why: This matters because it tells you how to reason about pipeline parallelism (pp).
+- Pitfall: Don't answer "Pipeline parallelism (PP)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assign consecutive layers to different GPUs. GPU 0 does layers 0–19, GPU 1 does layers 20–39. Activations pass between stages.
+
+### TP communication dominates at small batch sizes (AllReduce per layer adds latency)
+- Direct Answer: TP communication dominates at small batch sizes (AllReduce per layer adds latency)
+- Why: This matters because it tells you how to reason about tp communication dominates at small batch sizes (allreduce per layer adds latency).
+- Pitfall: Don't answer "TP communication dominates at small batch sizes (AllReduce per layer adds latency)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: TP communication dominates at small batch sizes (AllReduce per layer adds latency)
+
+### PP creates pipeline bubbles
+- Direct Answer: GPU 0 is idle while downstream GPUs process
+- Why: This matters because it tells you how to reason about pp creates pipeline bubbles.
+- Pitfall: Don't answer "PP creates pipeline bubbles" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU 0 is idle while downstream GPUs process
+
+### Combining both naively leads to communication storms on slow interconnects
+- Direct Answer: Combining both naively leads to communication storms on slow interconnects
+- Why: This matters because it tells you how to reason about combining both naively leads to communication storms on slow interconnects.
+- Pitfall: Don't answer "Combining both naively leads to communication storms on slow interconnects" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Combining both naively leads to communication storms on slow interconnects
+
+### Using "model parallelism" to mean only TP (PP is also model parallel)
+- Direct Answer: Using "model parallelism" to mean only TP (PP is also model parallel)
+- Why: This matters because it tells you how to reason about using "model parallelism" to mean only tp (pp is also model parallel).
+- Pitfall: Don't answer "Using "model parallelism" to mean only TP (PP is also model parallel)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using "model parallelism" to mean only TP (PP is also model parallel)
+
+### Assuming TP always helps
+- Direct Answer: at TP degree > 8 on NVLink, communication often hurts
+- Why: This matters because it tells you how to reason about assuming tp always helps.
+- Pitfall: Don't answer "Assuming TP always helps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: at TP degree > 8 on NVLink, communication often hurts
+
+### Forgetting that DP requires each device to hold a complete model replica
+- Direct Answer: Forgetting that DP requires each device to hold a complete model replica
+- Why: This matters because it tells you how to reason about forgetting that dp requires each device to hold a complete model replica.
+- Pitfall: Don't answer "Forgetting that DP requires each device to hold a complete model replica" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Forgetting that DP requires each device to hold a complete model replica
+
+### Column-split
+- Direct Answer: GPU i holds W[:, ik:(i+1)k]. Compute local XWᵢ. AllGather outputs.
+- Why: This matters because it tells you how to reason about column-split.
+- Pitfall: Don't answer "Column-split" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU i holds W[:, ik:(i+1)k]. Compute local XWᵢ. AllGather outputs.
+
+### Row-split
+- Direct Answer: GPU i holds W[ik:(i+1)k, :]. Compute local XᵢW. AllReduce sums.
+- Why: This matters because it tells you how to reason about row-split.
+- Pitfall: Don't answer "Row-split" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU i holds W[ik:(i+1)k, :]. Compute local XᵢW. AllReduce sums.
+
+### TP=8 on PCIe is usually slower than TP=2 due to communication overhead
+- Direct Answer: TP=8 on PCIe is usually slower than TP=2 due to communication overhead
+- Why: This matters because it tells you how to reason about tp=8 on pcie is usually slower than tp=2 due to communication overhead.
+- Pitfall: Don't answer "TP=8 on PCIe is usually slower than TP=2 due to communication overhead" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: TP=8 on PCIe is usually slower than TP=2 due to communication overhead
+
+### TP requires all GPUs to participate in every forward pass
+- Direct Answer: one slow GPU stalls the rest
+- Why: This matters because it tells you how to reason about tp requires all gpus to participate in every forward pass.
+- Pitfall: Don't answer "TP requires all GPUs to participate in every forward pass" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: one slow GPU stalls the rest
+
+### Higher TP degrees reduce per-GPU memory but increase communication frequency
+- Direct Answer: Higher TP degrees reduce per-GPU memory but increase communication frequency
+- Why: This matters because it tells you how to reason about higher tp degrees reduce per-gpu memory but increase communication frequency.
+- Pitfall: Don't answer "Higher TP degrees reduce per-GPU memory but increase communication frequency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Higher TP degrees reduce per-GPU memory but increase communication frequency
+
+### Claiming TP always speeds up inference
+- Direct Answer: Claiming TP always speeds up inference
+- Why: This matters because it tells you how to reason about claiming tp always speeds up inference.
+- Pitfall: Don't answer "Claiming TP always speeds up inference" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Claiming TP always speeds up inference
+
+### Confusing TP (splits tensors within a layer) with PP (splits layers)
+- Direct Answer: Confusing TP (splits tensors within a layer) with PP (splits layers)
+- Why: This matters because it tells you how to reason about confusing tp (splits tensors within a layer) with pp (splits layers).
+- Pitfall: Don't answer "Confusing TP (splits tensors within a layer) with PP (splits layers)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing TP (splits tensors within a layer) with PP (splits layers)
+
+### Not knowing the AllReduce cost at different batch sizes
+- Direct Answer: Not knowing the AllReduce cost at different batch sizes
+- Why: This matters because it tells you how to reason about not knowing the allreduce cost at different batch sizes.
+- Pitfall: Don't answer "Not knowing the AllReduce cost at different batch sizes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing the AllReduce cost at different batch sizes
+
+### Small batch sizes amplify bubble time
+- Direct Answer: PP is much less efficient at low concurrency
+- Why: This matters because it tells you how to reason about small batch sizes amplify bubble time.
+- Pitfall: Don't answer "Small batch sizes amplify bubble time" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PP is much less efficient at low concurrency
+
+### More stages = more pipeline latency even when GPUs are busy
+- Direct Answer: More stages = more pipeline latency even when GPUs are busy
+- Why: This matters because it tells you how to reason about more stages = more pipeline latency even when gpus are busy.
+- Pitfall: Don't answer "More stages = more pipeline latency even when GPUs are busy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: More stages = more pipeline latency even when GPUs are busy
+
+### Load imbalance
+- Direct Answer: if layer 40 is twice as expensive as layer 20, GPU 2 becomes the bottleneck
+- Why: This matters because it tells you how to reason about load imbalance.
+- Pitfall: Don't answer "Load imbalance" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if layer 40 is twice as expensive as layer 20, GPU 2 becomes the bottleneck
+
+### Claiming PP always reduces latency
+- Direct Answer: it often increases it for single requests
+- Why: This matters because it tells you how to reason about claiming pp always reduces latency.
+- Pitfall: Don't answer "Claiming PP always reduces latency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it often increases it for single requests
+
+### Confusing PP (splits by layer depth) with TP (splits tensor width)
+- Direct Answer: Confusing PP (splits by layer depth) with TP (splits tensor width)
+- Why: This matters because it tells you how to reason about confusing pp (splits by layer depth) with tp (splits tensor width).
+- Pitfall: Don't answer "Confusing PP (splits by layer depth) with TP (splits tensor width)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing PP (splits by layer depth) with TP (splits tensor width)
+
+### Not mentioning microbatching as the mitigation for bubbles
+- Direct Answer: Not mentioning microbatching as the mitigation for bubbles
+- Why: This matters because it tells you how to reason about not mentioning microbatching as the mitigation for bubbles.
+- Pitfall: Don't answer "Not mentioning microbatching as the mitigation for bubbles" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not mentioning microbatching as the mitigation for bubbles
+
+### Without PagedAttention
+- Direct Answer: admitting new requests requires contiguous KV memory that may not be available even if total free memory is sufficient (fragmentation)
+- Why: This matters because it tells you how to reason about without pagedattention.
+- Pitfall: Don't answer "Without PagedAttention" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: admitting new requests requires contiguous KV memory that may not be available even if total free memory is sufficient (fragmentation)
+
+### Long requests can still monopolize batch slots
+- Direct Answer: need preemption or length-based admission
+- Why: This matters because it tells you how to reason about long requests can still monopolize batch slots.
+- Pitfall: Don't answer "Long requests can still monopolize batch slots" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: need preemption or length-based admission
+
+### p99 tail latency
+- Direct Answer: short requests behind a long queue may still wait if admission control isn't length-aware
+- Why: This matters because it tells you how to reason about p99 tail latency.
+- Pitfall: Don't answer "p99 tail latency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: short requests behind a long queue may still wait if admission control isn't length-aware
+
+### Thinking batching is only a training concern
+- Direct Answer: Thinking batching is only a training concern
+- Why: This matters because it tells you how to reason about thinking batching is only a training concern.
+- Pitfall: Don't answer "Thinking batching is only a training concern" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Thinking batching is only a training concern
+
+### Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)
+- Direct Answer: Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)
+- Why: This matters because it tells you how to reason about not knowing that continuous batching requires solving kv memory allocation (pagedattention).
+- Pitfall: Don't answer "Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing that continuous batching requires solving KV memory allocation (PagedAttention)
+
+### Claiming continuous batching eliminates tail latency
+- Direct Answer: it improves throughput, not worst-case latency
+- Why: This matters because it tells you how to reason about claiming continuous batching eliminates tail latency.
+- Pitfall: Don't answer "Claiming continuous batching eliminates tail latency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it improves throughput, not worst-case latency
+
+### Low acceptance rate
+- Direct Answer: if draft and target disagree often, you run the large model more than unspeculative decoding
+- Why: This matters because it tells you how to reason about low acceptance rate.
+- Pitfall: Don't answer "Low acceptance rate" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if draft and target disagree often, you run the large model more than unspeculative decoding
+
+### Draft model must run on same hardware
+- Direct Answer: adds memory pressure
+- Why: This matters because it tells you how to reason about draft model must run on same hardware.
+- Pitfall: Don't answer "Draft model must run on same hardware" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: adds memory pressure
+
+### Doesn't help with prefill (only decode is the bottleneck)
+- Direct Answer: Doesn't help with prefill (only decode is the bottleneck)
+- Why: This matters because it tells you how to reason about doesn't help with prefill (only decode is the bottleneck).
+- Pitfall: Don't answer "Doesn't help with prefill (only decode is the bottleneck)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Doesn't help with prefill (only decode is the bottleneck)
+
+### Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)
+- Direct Answer: Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)
+- Why: This matters because it tells you how to reason about not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited).
+- Pitfall: Don't answer "Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not beneficial when the bottleneck is memory, not compute (small batch, bandwidth-limited)
+
+### Claiming quality degrades
+- Direct Answer: it doesn't, by construction of the acceptance criterion
+- Why: This matters because it tells you how to reason about claiming quality degrades.
+- Pitfall: Don't answer "Claiming quality degrades" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it doesn't, by construction of the acceptance criterion
+
+### Not knowing when it fails (low acceptance rate or memory-bound regime)
+- Direct Answer: Not knowing when it fails (low acceptance rate or memory-bound regime)
+- Why: This matters because it tells you how to reason about not knowing when it fails (low acceptance rate or memory-bound regime).
+- Pitfall: Don't answer "Not knowing when it fails (low acceptance rate or memory-bound regime)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing when it fails (low acceptance rate or memory-bound regime)
+
+### Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding
+- Direct Answer: Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding
+- Why: This matters because it tells you how to reason about confusing medusa/eagle variants (self-speculative, no separate draft model) with standard speculative decoding.
+- Pitfall: Don't answer "Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing Medusa/Eagle variants (self-speculative, no separate draft model) with standard speculative decoding
+
+### Limit max_seq_len and batch_size
+- Direct Answer: hard cap on KV memory
+- Why: This matters because it tells you how to reason about limit max_seq_len and batch_size.
+- Pitfall: Don't answer "Limit max_seq_len and batch_size" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: hard cap on KV memory
+
+### PagedAttention
+- Direct Answer: don't pre-allocate for max length; allocate blocks on demand
+- Why: This matters because it tells you how to reason about pagedattention.
+- Pitfall: Don't answer "PagedAttention" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: don't pre-allocate for max length; allocate blocks on demand
+
+### KV quantization (INT8/FP8)
+- Direct Answer: halve or quarter KV memory at some quality cost
+- Why: This matters because it tells you how to reason about kv quantization (int8/fp8).
+- Pitfall: Don't answer "KV quantization (INT8/FP8)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: halve or quarter KV memory at some quality cost
+
+### Prefix caching
+- Direct Answer: if many requests share a system prompt, compute its KV once and reuse
+- Why: This matters because it tells you how to reason about prefix caching.
+- Pitfall: Don't answer "Prefix caching" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if many requests share a system prompt, compute its KV once and reuse
+
+### Forgetting KV cache in capacity planning
+- Direct Answer: you can fit the model but not serve any requests
+- Why: This matters because it tells you how to reason about forgetting kv cache in capacity planning.
+- Pitfall: Don't answer "Forgetting KV cache in capacity planning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you can fit the model but not serve any requests
+
+### Pre-allocating contiguous max-length KV for every request
+- Direct Answer: catastrophic fragmentation
+- Why: This matters because it tells you how to reason about pre-allocating contiguous max-length kv for every request.
+- Pitfall: Don't answer "Pre-allocating contiguous max-length KV for every request" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: catastrophic fragmentation
+
+### Caching with PII in shared prefix cache
+- Direct Answer: data leakage risk
+- Why: This matters because it tells you how to reason about caching with pii in shared prefix cache.
+- Pitfall: Don't answer "Caching with PII in shared prefix cache" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: data leakage risk
+
+### Accounting for weights but not KV in VRAM planning
+- Direct Answer: Accounting for weights but not KV in VRAM planning
+- Why: This matters because it tells you how to reason about accounting for weights but not kv in vram planning.
+- Pitfall: Don't answer "Accounting for weights but not KV in VRAM planning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Accounting for weights but not KV in VRAM planning
+
+### Not knowing that GQA dramatically reduces KV cache size
+- Direct Answer: Not knowing that GQA dramatically reduces KV cache size
+- Why: This matters because it tells you how to reason about not knowing that gqa dramatically reduces kv cache size.
+- Pitfall: Don't answer "Not knowing that GQA dramatically reduces KV cache size" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing that GQA dramatically reduces KV cache size
+
+### Treating "KV cache" and "response cache" as the same thing (they're not)
+- Direct Answer: Treating "KV cache" and "response cache" as the same thing (they're not)
+- Why: This matters because it tells you how to reason about treating "kv cache" and "response cache" as the same thing (they're not).
+- Pitfall: Don't answer "Treating "KV cache" and "response cache" as the same thing (they're not)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating "KV cache" and "response cache" as the same thing (they're not)
+
+### Divide KV cache into fixed-size blocks, e.g., 16 tokens per block
+- Direct Answer: Divide KV cache into fixed-size blocks, e.g., 16 tokens per block
+- Why: This matters because it tells you how to reason about divide kv cache into fixed-size blocks, e.g., 16 tokens per block.
+- Pitfall: Don't answer "Divide KV cache into fixed-size blocks, e.g., 16 tokens per block" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Divide KV cache into fixed-size blocks, e.g., 16 tokens per block
+
+### Each sequence has a page table
+- Direct Answer: logical token position → physical block index
+- Why: This matters because it tells you how to reason about each sequence has a page table.
+- Pitfall: Don't answer "Each sequence has a page table" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: logical token position → physical block index
+
+### Allocate one block at a time as generation proceeds
+- Direct Answer: Allocate one block at a time as generation proceeds
+- Why: This matters because it tells you how to reason about allocate one block at a time as generation proceeds.
+- Pitfall: Don't answer "Allocate one block at a time as generation proceeds" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Allocate one block at a time as generation proceeds
+
+### On request completion, mark blocks as free for reuse
+- Direct Answer: On request completion, mark blocks as free for reuse
+- Why: This matters because it tells you how to reason about on request completion, mark blocks as free for reuse.
+- Pitfall: Don't answer "On request completion, mark blocks as free for reuse" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: On request completion, mark blocks as free for reuse
+
+### Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)
+- Direct Answer: Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)
+- Why: This matters because it tells you how to reason about sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write).
+- Pitfall: Don't answer "Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)
+
+### Very small block sizes (e.g., 4 tokens)
+- Direct Answer: too many page table lookups, kernel overhead
+- Why: This matters because it tells you how to reason about very small block sizes (e.g., 4 tokens).
+- Pitfall: Don't answer "Very small block sizes (e.g., 4 tokens)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: too many page table lookups, kernel overhead
+
+### Very large block sizes (e.g., 256 tokens)
+- Direct Answer: loses the fragmentation benefit
+- Why: This matters because it tells you how to reason about very large block sizes (e.g., 256 tokens).
+- Pitfall: Don't answer "Very large block sizes (e.g., 256 tokens)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: loses the fragmentation benefit
+
+### Prefix sharing with dynamic prefixes
+- Direct Answer: copy-on-write overhead for sequences that diverge quickly
+- Why: This matters because it tells you how to reason about prefix sharing with dynamic prefixes.
+- Pitfall: Don't answer "Prefix sharing with dynamic prefixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: copy-on-write overhead for sequences that diverge quickly
+
+### Thinking vLLM is primarily about the model
+- Direct Answer: it's about the memory scheduler and serving stack
+- Why: This matters because it tells you how to reason about thinking vllm is primarily about the model.
+- Pitfall: Don't answer "Thinking vLLM is primarily about the model" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it's about the memory scheduler and serving stack
+
+### Not knowing the block size trade-off
+- Direct Answer: Not knowing the block size trade-off
+- Why: This matters because it tells you how to reason about not knowing the block size trade-off.
+- Pitfall: Don't answer "Not knowing the block size trade-off" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing the block size trade-off
+
+### Confusing prefix caching (reuse computed KV) with response caching (reuse final output)
+- Direct Answer: Confusing prefix caching (reuse computed KV) with response caching (reuse final output)
+- Why: This matters because it tells you how to reason about confusing prefix caching (reuse computed kv) with response caching (reuse final output).
+- Pitfall: Don't answer "Confusing prefix caching (reuse computed KV) with response caching (reuse final output)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing prefix caching (reuse computed KV) with response caching (reuse final output)
+
+### Assuming desktop benchmark numbers transfer to phone
+- Direct Answer: Neural Engine throughput profiles differently from GPU
+- Why: This matters because it tells you how to reason about assuming desktop benchmark numbers transfer to phone.
+- Pitfall: Don't answer "Assuming desktop benchmark numbers transfer to phone" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Neural Engine throughput profiles differently from GPU
+
+### Thermal throttling
+- Direct Answer: sustained inference degrades after 30–60 seconds on mobile
+- Why: This matters because it tells you how to reason about thermal throttling.
+- Pitfall: Don't answer "Thermal throttling" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sustained inference degrades after 30–60 seconds on mobile
+
+### GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)
+- Direct Answer: GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)
+- Why: This matters because it tells you how to reason about gguf q4_k_m quality is acceptable for general chat but can hurt specialized tasks (math, code).
+- Pitfall: Don't answer "GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GGUF Q4_K_M quality is acceptable for general chat but can hurt specialized tasks (math, code)
+
+### Applying datacenter optimization thinking to edge
+- Direct Answer: Applying datacenter optimization thinking to edge
+- Why: This matters because it tells you how to reason about applying datacenter optimization thinking to edge.
+- Pitfall: Don't answer "Applying datacenter optimization thinking to edge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Applying datacenter optimization thinking to edge
+
+### Ignoring battery/thermal as constraints
+- Direct Answer: Ignoring battery/thermal as constraints
+- Why: This matters because it tells you how to reason about ignoring battery/thermal as constraints.
+- Pitfall: Don't answer "Ignoring battery/thermal as constraints" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring battery/thermal as constraints
+
+### Not knowing platform-specific runtimes (CoreML, NNAPI)
+- Direct Answer: Not knowing platform-specific runtimes (CoreML, NNAPI)
+- Why: This matters because it tells you how to reason about not knowing platform-specific runtimes (coreml, nnapi).
+- Pitfall: Don't answer "Not knowing platform-specific runtimes (CoreML, NNAPI)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing platform-specific runtimes (CoreML, NNAPI)
+
+### Quantizing with a calibration dataset that doesn't match production distribution
+- Direct Answer: Quantizing with a calibration dataset that doesn't match production distribution
+- Why: This matters because it tells you how to reason about quantizing with a calibration dataset that doesn't match production distribution.
+- Pitfall: Don't answer "Quantizing with a calibration dataset that doesn't match production distribution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Quantizing with a calibration dataset that doesn't match production distribution
+
+### Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others
+- Direct Answer: Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others
+- Why: This matters because it tells you how to reason about quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others.
+- Pitfall: Don't answer "Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Quantizing sensitive layers (first/last layers often degrade more) at the same bit width as others
+
+### Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)
+- Direct Answer: Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)
+- Why: This matters because it tells you how to reason about claiming "no quality loss" without task-specific evaluation (perplexity is a proxy).
+- Pitfall: Don't answer "Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Claiming "no quality loss" without task-specific evaluation (perplexity is a proxy)
+
+### BF16 vs FP16
+- Direct Answer: BF16 has wider exponent range (better for training stability); FP16 has higher precision in mantissa
+- Why: This matters because it tells you how to reason about bf16 vs fp16.
+- Pitfall: Don't answer "BF16 vs FP16" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: BF16 has wider exponent range (better for training stability); FP16 has higher precision in mantissa
+
+### Claiming quantization has no quality impact without eval
+- Direct Answer: Claiming quantization has no quality impact without eval
+- Why: This matters because it tells you how to reason about claiming quantization has no quality impact without eval.
+- Pitfall: Don't answer "Claiming quantization has no quality impact without eval" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Claiming quantization has no quality impact without eval
+
+### Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)
+- Direct Answer: Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)
+- Why: This matters because it tells you how to reason about not distinguishing ptq (no retraining) from qat (quantization-aware training).
+- Pitfall: Don't answer "Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not distinguishing PTQ (no retraining) from QAT (quantization-aware training)
+
+### Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)
+- Direct Answer: Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)
+- Why: This matters because it tells you how to reason about confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied).
+- Pitfall: Don't answer "Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing weight quantization with activation quantization (activation quantization is harder and less commonly applied)
+
+### GPU cold start: provisioning an A100, loading model weights (140 GB over NVMe/network), compiling CUDA graphs
+- Direct Answer: 3–10 minutes. This is not acceptable for burst handling.
+- Why: This matters because it tells you how to reason about gpu cold start: provisioning an a100, loading model weights (140 gb over nvme/network), compiling cuda graphs.
+- Pitfall: Don't answer "GPU cold start: provisioning an A100, loading model weights (140 GB over NVMe/network), compiling CUDA graphs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 3–10 minutes. This is not acceptable for burst handling.
+
+### Mitigation
+- Direct Answer: min_replicas ≥ 1, warm pools with loaded weights, pre-pulled container images, compiled model artifacts cached
+- Why: This matters because it tells you how to reason about mitigation.
+- Pitfall: Don't answer "Mitigation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: min_replicas ≥ 1, warm pools with loaded weights, pre-pulled container images, compiled model artifacts cached
+
+### Pure CPU-based HPA for GPU workloads
+- Direct Answer: Pure CPU-based HPA for GPU workloads
+- Why: This matters because it tells you how to reason about pure cpu-based hpa for gpu workloads.
+- Pitfall: Don't answer "Pure CPU-based HPA for GPU workloads" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Pure CPU-based HPA for GPU workloads
+
+### Setting min_replicas=0 for interactive SLOs
+- Direct Answer: cold starts are unacceptably slow
+- Why: This matters because it tells you how to reason about setting min_replicas=0 for interactive slos.
+- Pitfall: Don't answer "Setting min_replicas=0 for interactive SLOs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: cold starts are unacceptably slow
+
+### Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools
+- Direct Answer: Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools
+- Why: This matters because it tells you how to reason about not separating interactive (p95 latency slo) and batch (throughput slo) pools.
+- Pitfall: Don't answer "Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not separating interactive (p95 latency SLO) and batch (throughput SLO) pools
+
+### Scaling only on CPU when GPU is the bottleneck
+- Direct Answer: Scaling only on CPU when GPU is the bottleneck
+- Why: This matters because it tells you how to reason about scaling only on cpu when gpu is the bottleneck.
+- Pitfall: Don't answer "Scaling only on CPU when GPU is the bottleneck" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Scaling only on CPU when GPU is the bottleneck
+
+### Not knowing that model load time (not container start) dominates GPU cold start
+- Direct Answer: Not knowing that model load time (not container start) dominates GPU cold start
+- Why: This matters because it tells you how to reason about not knowing that model load time (not container start) dominates gpu cold start.
+- Pitfall: Don't answer "Not knowing that model load time (not container start) dominates GPU cold start" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing that model load time (not container start) dominates GPU cold start
+
+### Ignoring batch vs interactive traffic separation
+- Direct Answer: Ignoring batch vs interactive traffic separation
+- Why: This matters because it tells you how to reason about ignoring batch vs interactive traffic separation.
+- Pitfall: Don't answer "Ignoring batch vs interactive traffic separation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring batch vs interactive traffic separation
+
+### Pure round-robin with variable-length requests (systematic load imbalance)
+- Direct Answer: Pure round-robin with variable-length requests (systematic load imbalance)
+- Why: This matters because it tells you how to reason about pure round-robin with variable-length requests (systematic load imbalance).
+- Pitfall: Don't answer "Pure round-robin with variable-length requests (systematic load imbalance)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Pure round-robin with variable-length requests (systematic load imbalance)
+
+### No health checks
+- Direct Answer: routing to a replica that loaded the wrong model or has OOM errors
+- Why: This matters because it tells you how to reason about no health checks.
+- Pitfall: Don't answer "No health checks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: routing to a replica that loaded the wrong model or has OOM errors
+
+### Sticky sessions for stateless serving
+- Direct Answer: usually wrong; state lives in the request, not the server
+- Why: This matters because it tells you how to reason about sticky sessions for stateless serving.
+- Pitfall: Don't answer "Sticky sessions for stateless serving" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: usually wrong; state lives in the request, not the server
+
+### Assuming round-robin is fine because "it's stateless"
+- Direct Answer: Assuming round-robin is fine because "it's stateless"
+- Why: This matters because it tells you how to reason about assuming round-robin is fine because "it's stateless".
+- Pitfall: Don't answer "Assuming round-robin is fine because "it's stateless"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming round-robin is fine because "it's stateless"
+
+### Not thinking about long prompts tying up one replica
+- Direct Answer: Not thinking about long prompts tying up one replica
+- Why: This matters because it tells you how to reason about not thinking about long prompts tying up one replica.
+- Pitfall: Don't answer "Not thinking about long prompts tying up one replica" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not thinking about long prompts tying up one replica
+
+### Conflating model routing (which model to use) with load balancing (which replica of the same model)
+- Direct Answer: Conflating model routing (which model to use) with load balancing (which replica of the same model)
+- Why: This matters because it tells you how to reason about conflating model routing (which model to use) with load balancing (which replica of the same model).
+- Pitfall: Don't answer "Conflating model routing (which model to use) with load balancing (which replica of the same model)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Conflating model routing (which model to use) with load balancing (which replica of the same model)
+
+### Forgetting KV cache when colocating models
+- Direct Answer: the models fit in VRAM at zero requests, but KV pressure evicts models mid-request
+- Why: This matters because it tells you how to reason about forgetting kv cache when colocating models.
+- Pitfall: Don't answer "Forgetting KV cache when colocating models" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the models fit in VRAM at zero requests, but KV pressure evicts models mid-request
+
+### LRU eviction without request-ahead loading
+- Direct Answer: first request after eviction is slow
+- Why: This matters because it tells you how to reason about lru eviction without request-ahead loading.
+- Pitfall: Don't answer "LRU eviction without request-ahead loading" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: first request after eviction is slow
+
+### MIG partitions are fixed at setup
+- Direct Answer: can't be resized per traffic pattern dynamically
+- Why: This matters because it tells you how to reason about mig partitions are fixed at setup.
+- Pitfall: Don't answer "MIG partitions are fixed at setup" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: can't be resized per traffic pattern dynamically
+
+### Ignoring KV footprint when calculating "fits on the GPU"
+- Direct Answer: Ignoring KV footprint when calculating "fits on the GPU"
+- Why: This matters because it tells you how to reason about ignoring kv footprint when calculating "fits on the gpu".
+- Pitfall: Don't answer "Ignoring KV footprint when calculating "fits on the GPU"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring KV footprint when calculating "fits on the GPU"
+
+### Assuming MIG is always appropriate
+- Direct Answer: it adds operational complexity and fixed capacity allocation
+- Why: This matters because it tells you how to reason about assuming mig is always appropriate.
+- Pitfall: Don't answer "Assuming MIG is always appropriate" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it adds operational complexity and fixed capacity allocation
+
+### Not having a routing layer that knows model placement
+- Direct Answer: Not having a routing layer that knows model placement
+- Why: This matters because it tells you how to reason about not having a routing layer that knows model placement.
+- Pitfall: Don't answer "Not having a routing layer that knows model placement" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not having a routing layer that knows model placement
+
+### Shards parameters, gradients, and optimizer states across DP ranks
+- Direct Answer: Shards parameters, gradients, and optimizer states across DP ranks
+- Why: This matters because it tells you how to reason about shards parameters, gradients, and optimizer states across dp ranks.
+- Pitfall: Don't answer "Shards parameters, gradients, and optimizer states across DP ranks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Shards parameters, gradients, and optimizer states across DP ranks
+
+### AllGather parameters before each layer's forward pass, free after
+- Direct Answer: AllGather parameters before each layer's forward pass, free after
+- Why: This matters because it tells you how to reason about allgather parameters before each layer's forward pass, free after.
+- Pitfall: Don't answer "AllGather parameters before each layer's forward pass, free after" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: AllGather parameters before each layer's forward pass, free after
+
+### ReduceScatter gradients during backward
+- Direct Answer: ReduceScatter gradients during backward
+- Why: This matters because it tells you how to reason about reducescatter gradients during backward.
+- Pitfall: Don't answer "ReduceScatter gradients during backward" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ReduceScatter gradients during backward
+
+### Memory per GPU
+- Direct Answer: O(model_size / num_gpus) instead of O(model_size)
+- Why: This matters because it tells you how to reason about memory per gpu.
+- Pitfall: Don't answer "Memory per GPU" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: O(model_size / num_gpus) instead of O(model_size)
+
+### Stage 1
+- Direct Answer: shard optimizer states only. Each GPU holds full weights, sharded optimizer state.
+- Why: This matters because it tells you how to reason about stage 1.
+- Pitfall: Don't answer "Stage 1" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: shard optimizer states only. Each GPU holds full weights, sharded optimizer state.
+
+### Stage 2
+- Direct Answer: + shard gradients. Reduced gradient memory.
+- Why: This matters because it tells you how to reason about stage 2.
+- Pitfall: Don't answer "Stage 2" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: + shard gradients. Reduced gradient memory.
+
+### Stage 3
+- Direct Answer: + shard parameters (equivalent to FSDP). Minimum memory.
+- Why: This matters because it tells you how to reason about stage 3.
+- Pitfall: Don't answer "Stage 3" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: + shard parameters (equivalent to FSDP). Minimum memory.
+
+### ZeRO-Infinity
+- Direct Answer: offload to CPU/NVMe for extreme scale.
+- Why: This matters because it tells you how to reason about zero-infinity.
+- Pitfall: Don't answer "ZeRO-Infinity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: offload to CPU/NVMe for extreme scale.
+
+### Training, PyTorch ecosystem → FSDP
+- Direct Answer: Training, PyTorch ecosystem → FSDP
+- Why: This matters because it tells you how to reason about training, pytorch ecosystem → fsdp.
+- Pitfall: Don't answer "Training, PyTorch ecosystem → FSDP" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Training, PyTorch ecosystem → FSDP
+
+### Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity
+- Direct Answer: Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity
+- Why: This matters because it tells you how to reason about training, want cpu/nvme offload → deepspeed zero-3 / zero-infinity.
+- Pitfall: Don't answer "Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity
+
+### Inference, single node → TP (fast interconnect required)
+- Direct Answer: Inference, single node → TP (fast interconnect required)
+- Why: This matters because it tells you how to reason about inference, single node → tp (fast interconnect required).
+- Pitfall: Don't answer "Inference, single node → TP (fast interconnect required)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Inference, single node → TP (fast interconnect required)
+
+### Inference, multi-node → TP within node + PP across nodes
+- Direct Answer: Inference, multi-node → TP within node + PP across nodes
+- Why: This matters because it tells you how to reason about inference, multi-node → tp within node + pp across nodes.
+- Pitfall: Don't answer "Inference, multi-node → TP within node + PP across nodes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Inference, multi-node → TP within node + PP across nodes
+
+### High sharding degree with slow interconnect
+- Direct Answer: AllGather/ReduceScatter communication dominates training time
+- Why: This matters because it tells you how to reason about high sharding degree with slow interconnect.
+- Pitfall: Don't answer "High sharding degree with slow interconnect" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: AllGather/ReduceScatter communication dominates training time
+
+### ZeRO-3 with many small modules
+- Direct Answer: excessive communication granularity
+- Why: This matters because it tells you how to reason about zero-3 with many small modules.
+- Pitfall: Don't answer "ZeRO-3 with many small modules" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: excessive communication granularity
+
+### Mixing FSDP sharding with non-FSDP modules
+- Direct Answer: gradient/parameter misalignment
+- Why: This matters because it tells you how to reason about mixing fsdp sharding with non-fsdp modules.
+- Pitfall: Don't answer "Mixing FSDP sharding with non-FSDP modules" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: gradient/parameter misalignment
+
+### Using "sharding" without specifying which type
+- Direct Answer: Using "sharding" without specifying which type
+- Why: This matters because it tells you how to reason about using "sharding" without specifying which type.
+- Pitfall: Don't answer "Using "sharding" without specifying which type" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using "sharding" without specifying which type
+
+### Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)
+- Direct Answer: Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)
+- Why: This matters because it tells you how to reason about claiming fsdp and zero-3 are the same (they're similar but different implementations).
+- Pitfall: Don't answer "Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Claiming FSDP and ZeRO-3 are the same (they're similar but different implementations)
+
+### Applying training sharding strategies to inference serving
+- Direct Answer: Applying training sharding strategies to inference serving
+- Why: This matters because it tells you how to reason about applying training sharding strategies to inference serving.
+- Pitfall: Don't answer "Applying training sharding strategies to inference serving" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Applying training sharding strategies to inference serving
+
+### When queue depth > max_queue_depth
+- Direct Answer: reject new requests with 429 + Retry-After
+- Why: This matters because it tells you how to reason about when queue depth > max_queue_depth.
+- Pitfall: Don't answer "When queue depth > max_queue_depth" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reject new requests with 429 + Retry-After
+
+### When pending tokens > GPU_memory × 0.9: backpressure
+- Direct Answer: stop admitting until KV memory clears
+- Why: This matters because it tells you how to reason about when pending tokens > gpu_memory × 0.9: backpressure.
+- Pitfall: Don't answer "When pending tokens > GPU_memory × 0.9: backpressure" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: stop admitting until KV memory clears
+
+### Never unbounded queues
+- Direct Answer: they hide memory pressure and cause OOM under burst
+- Why: This matters because it tells you how to reason about never unbounded queues.
+- Pitfall: Don't answer "Never unbounded queues" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: they hide memory pressure and cause OOM under burst
+
+### Shortest-job-first (predict output length)
+- Direct Answer: minimizes mean wait time
+- Why: This matters because it tells you how to reason about shortest-job-first (predict output length).
+- Pitfall: Don't answer "Shortest-job-first (predict output length)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: minimizes mean wait time
+
+### Weighted fair queuing
+- Direct Answer: prevent starvation of low-priority tenants
+- Why: This matters because it tells you how to reason about weighted fair queuing.
+- Pitfall: Don't answer "Weighted fair queuing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prevent starvation of low-priority tenants
+
+### Unbounded queue
+- Direct Answer: requests accumulate, memory usage grows, OOM kills the server
+- Why: This matters because it tells you how to reason about unbounded queue.
+- Pitfall: Don't answer "Unbounded queue" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: requests accumulate, memory usage grows, OOM kills the server
+
+### Pure FIFO with long requests
+- Direct Answer: short interactive requests starve
+- Why: This matters because it tells you how to reason about pure fifo with long requests.
+- Pitfall: Don't answer "Pure FIFO with long requests" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: short interactive requests starve
+
+### No backpressure
+- Direct Answer: load balancer keeps sending requests that can't be served, cascading failure
+- Why: This matters because it tells you how to reason about no backpressure.
+- Pitfall: Don't answer "No backpressure" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: load balancer keeps sending requests that can't be served, cascading failure
+
+### Implementing FIFO and calling it "fair"
+- Direct Answer: Implementing FIFO and calling it "fair"
+- Why: This matters because it tells you how to reason about implementing fifo and calling it "fair".
+- Pitfall: Don't answer "Implementing FIFO and calling it "fair"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Implementing FIFO and calling it "fair"
+
+### Not limiting queue depth (unbounded queue = OOM vulnerability)
+- Direct Answer: Not limiting queue depth (unbounded queue = OOM vulnerability)
+- Why: This matters because it tells you how to reason about not limiting queue depth (unbounded queue = oom vulnerability).
+- Pitfall: Don't answer "Not limiting queue depth (unbounded queue = OOM vulnerability)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not limiting queue depth (unbounded queue = OOM vulnerability)
+
+### Not distinguishing rate limiting (per-tenant) from admission control (global capacity)
+- Direct Answer: Not distinguishing rate limiting (per-tenant) from admission control (global capacity)
+- Why: This matters because it tells you how to reason about not distinguishing rate limiting (per-tenant) from admission control (global capacity).
+- Pitfall: Don't answer "Not distinguishing rate limiting (per-tenant) from admission control (global capacity)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not distinguishing rate limiting (per-tenant) from admission control (global capacity)
+
+### GPU utilization
+- Direct Answer: idle GPUs burn money. A 40% utilized GPU cluster costs 2.5× per token vs a busy one.
+- Why: This matters because it tells you how to reason about gpu utilization.
+- Pitfall: Don't answer "GPU utilization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: idle GPUs burn money. A 40% utilized GPU cluster costs 2.5× per token vs a busy one.
+
+### Engineering time
+- Direct Answer: 1–2 engineers full-time maintaining GPU infra vs zero for API.
+- Why: This matters because it tells you how to reason about engineering time.
+- Pitfall: Don't answer "Engineering time" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 1–2 engineers full-time maintaining GPU infra vs zero for API.
+
+### On-call burden
+- Direct Answer: GPU failures, CUDA OOM, model crashes at 3am.
+- Why: This matters because it tells you how to reason about on-call burden.
+- Pitfall: Don't answer "On-call burden" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU failures, CUDA OOM, model crashes at 3am.
+
+### Flexibility
+- Direct Answer: self-hosted locks you to one model; API lets you switch cheaply.
+- Why: This matters because it tells you how to reason about flexibility.
+- Pitfall: Don't answer "Flexibility" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: self-hosted locks you to one model; API lets you switch cheaply.
+
+### Data residency / compliance requirements → self-host (no choice)
+- Direct Answer: Data residency / compliance requirements → self-host (no choice)
+- Why: This matters because it tells you how to reason about data residency / compliance requirements → self-host (no choice).
+- Pitfall: Don't answer "Data residency / compliance requirements → self-host (no choice)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Data residency / compliance requirements → self-host (no choice)
+
+### High volume + stable workload + GPU ops expertise → evaluate self-host
+- Direct Answer: High volume + stable workload + GPU ops expertise → evaluate self-host
+- Why: This matters because it tells you how to reason about high volume + stable workload + gpu ops expertise → evaluate self-host.
+- Pitfall: Don't answer "High volume + stable workload + GPU ops expertise → evaluate self-host" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: High volume + stable workload + GPU ops expertise → evaluate self-host
+
+### Rapid iteration / uncertain volume / small team → API + gateway
+- Direct Answer: Rapid iteration / uncertain volume / small team → API + gateway
+- Why: This matters because it tells you how to reason about rapid iteration / uncertain volume / small team → api + gateway.
+- Pitfall: Don't answer "Rapid iteration / uncertain volume / small team → API + gateway" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Rapid iteration / uncertain volume / small team → API + gateway
+
+### Best of both
+- Direct Answer: API for general traffic, self-host for private/high-volume paths
+- Why: This matters because it tells you how to reason about best of both.
+- Pitfall: Don't answer "Best of both" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API for general traffic, self-host for private/high-volume paths
+
+### Comparing API price × volume vs GPU hardware cost only (ignoring ops)
+- Direct Answer: Comparing API price × volume vs GPU hardware cost only (ignoring ops)
+- Why: This matters because it tells you how to reason about comparing api price × volume vs gpu hardware cost only (ignoring ops).
+- Pitfall: Don't answer "Comparing API price × volume vs GPU hardware cost only (ignoring ops)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Comparing API price × volume vs GPU hardware cost only (ignoring ops)
+
+### Assuming 100% GPU utilization in self-host projections
+- Direct Answer: Assuming 100% GPU utilization in self-host projections
+- Why: This matters because it tells you how to reason about assuming 100% gpu utilization in self-host projections.
+- Pitfall: Don't answer "Assuming 100% GPU utilization in self-host projections" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming 100% GPU utilization in self-host projections
+
+### Ignoring vendor lock-in risk in API-first projections
+- Direct Answer: Ignoring vendor lock-in risk in API-first projections
+- Why: This matters because it tells you how to reason about ignoring vendor lock-in risk in api-first projections.
+- Pitfall: Don't answer "Ignoring vendor lock-in risk in API-first projections" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring vendor lock-in risk in API-first projections
+
+### Recommending self-host without accounting for staffing cost
+- Direct Answer: Recommending self-host without accounting for staffing cost
+- Why: This matters because it tells you how to reason about recommending self-host without accounting for staffing cost.
+- Pitfall: Don't answer "Recommending self-host without accounting for staffing cost" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Recommending self-host without accounting for staffing cost
+
+### Not mentioning hybrid as a common real-world answer
+- Direct Answer: Not mentioning hybrid as a common real-world answer
+- Why: This matters because it tells you how to reason about not mentioning hybrid as a common real-world answer.
+- Pitfall: Don't answer "Not mentioning hybrid as a common real-world answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not mentioning hybrid as a common real-world answer
+
+### Scale-to-zero for interactive chat
+- Direct Answer: users see 3–10 minute first-response latency
+- Why: This matters because it tells you how to reason about scale-to-zero for interactive chat.
+- Pitfall: Don't answer "Scale-to-zero for interactive chat" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users see 3–10 minute first-response latency
+
+### Over-provisioning warm pools
+- Direct Answer: expensive for low-traffic applications
+- Why: This matters because it tells you how to reason about over-provisioning warm pools.
+- Pitfall: Don't answer "Over-provisioning warm pools" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: expensive for low-traffic applications
+
+### Not caching compiled CUDA graphs
+- Direct Answer: repeated compilation on every restart
+- Why: This matters because it tells you how to reason about not caching compiled cuda graphs.
+- Pitfall: Don't answer "Not caching compiled CUDA graphs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: repeated compilation on every restart
+
+### Assuming serverless = zero cold start with the right settings
+- Direct Answer: Assuming serverless = zero cold start with the right settings
+- Why: This matters because it tells you how to reason about assuming serverless = zero cold start with the right settings.
+- Pitfall: Don't answer "Assuming serverless = zero cold start with the right settings" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming serverless = zero cold start with the right settings
+
+### Not knowing that CUDA graph compilation adds substantial startup time
+- Direct Answer: Not knowing that CUDA graph compilation adds substantial startup time
+- Why: This matters because it tells you how to reason about not knowing that cuda graph compilation adds substantial startup time.
+- Pitfall: Don't answer "Not knowing that CUDA graph compilation adds substantial startup time" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing that CUDA graph compilation adds substantial startup time
+
+### Treating cold start as a solvable problem rather than a managed trade-off
+- Direct Answer: Treating cold start as a solvable problem rather than a managed trade-off
+- Why: This matters because it tells you how to reason about treating cold start as a solvable problem rather than a managed trade-off.
+- Pitfall: Don't answer "Treating cold start as a solvable problem rather than a managed trade-off" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating cold start as a solvable problem rather than a managed trade-off
+
+### Cache key missing temperature: deterministic (temp=0) and stochastic (temp=0.7) responses share a key
+- Direct Answer: wrong
+- Why: This matters because it tells you how to reason about cache key missing temperature: deterministic (temp=0) and stochastic (temp=0.7) responses share a key.
+- Pitfall: Don't answer "Cache key missing temperature: deterministic (temp=0) and stochastic (temp=0.7) responses share a key" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: wrong
+
+### Semantic cache false positives
+- Direct Answer: "What's Python?" and "What's COBOL?" might be too similar by embedding
+- Why: This matters because it tells you how to reason about semantic cache false positives.
+- Pitfall: Don't answer "Semantic cache false positives" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "What's Python?" and "What's COBOL?" might be too similar by embedding
+
+### Prefix KV cache invalidation
+- Direct Answer: any change to the system prompt invalidates all cached KV blocks
+- Why: This matters because it tells you how to reason about prefix kv cache invalidation.
+- Pitfall: Don't answer "Prefix KV cache invalidation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: any change to the system prompt invalidates all cached KV blocks
+
+### Treating all caches as equivalent (response cache and KV cache are very different)
+- Direct Answer: Treating all caches as equivalent (response cache and KV cache are very different)
+- Why: This matters because it tells you how to reason about treating all caches as equivalent (response cache and kv cache are very different).
+- Pitfall: Don't answer "Treating all caches as equivalent (response cache and KV cache are very different)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating all caches as equivalent (response cache and KV cache are very different)
+
+### Missing decoder params in cache keys
+- Direct Answer: Missing decoder params in cache keys
+- Why: This matters because it tells you how to reason about missing decoder params in cache keys.
+- Pitfall: Don't answer "Missing decoder params in cache keys" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Missing decoder params in cache keys
+
+### Caching PII without access controls
+- Direct Answer: Caching PII without access controls
+- Why: This matters because it tells you how to reason about caching pii without access controls.
+- Pitfall: Don't answer "Caching PII without access controls" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Caching PII without access controls
+
+### Sync long jobs with 30s gateway timeouts
+- Direct Answer: requests fail mid-generation
+- Why: This matters because it tells you how to reason about sync long jobs with 30s gateway timeouts.
+- Pitfall: Don't answer "Sync long jobs with 30s gateway timeouts" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: requests fail mid-generation
+
+### Async without job cleanup
+- Direct Answer: job state accumulates, storage fills
+- Why: This matters because it tells you how to reason about async without job cleanup.
+- Pitfall: Don't answer "Async without job cleanup" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: job state accumulates, storage fills
+
+### Streaming without backpressure
+- Direct Answer: if client disconnects, GPU continues generating wasted tokens
+- Why: This matters because it tells you how to reason about streaming without backpressure.
+- Pitfall: Don't answer "Streaming without backpressure" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if client disconnects, GPU continues generating wasted tokens
+
+### Treating streaming as "async"
+- Direct Answer: it's still a synchronous HTTP connection
+- Why: This matters because it tells you how to reason about treating streaming as "async".
+- Pitfall: Don't answer "Treating streaming as "async"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it's still a synchronous HTTP connection
+
+### Using sync for document generation without timeout planning
+- Direct Answer: Using sync for document generation without timeout planning
+- Why: This matters because it tells you how to reason about using sync for document generation without timeout planning.
+- Pitfall: Don't answer "Using sync for document generation without timeout planning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using sync for document generation without timeout planning
+
+### No TTL on async job state
+- Direct Answer: No TTL on async job state
+- Why: This matters because it tells you how to reason about no ttl on async job state.
+- Pitfall: Don't answer "No TTL on async job state" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No TTL on async job state
+
+### Stage 1
+- Direct Answer: shard optimizer states across DP ranks. Each GPU holds full weights and gradients, but only 1/N of optimizer state. Memory: ~60% of full DP.
+- Why: This matters because it tells you how to reason about stage 1.
+- Pitfall: Don't answer "Stage 1" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: shard optimizer states across DP ranks. Each GPU holds full weights and gradients, but only 1/N of optimizer state. Memory: ~60% of full DP.
+
+### Stage 2
+- Direct Answer: + shard gradients. Memory: ~33% of full DP.
+- Why: This matters because it tells you how to reason about stage 2.
+- Pitfall: Don't answer "Stage 2" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: + shard gradients. Memory: ~33% of full DP.
+
+### Stage 3
+- Direct Answer: + shard parameters (equivalent to FSDP). Memory: O(1/N) per GPU.
+- Why: This matters because it tells you how to reason about stage 3.
+- Pitfall: Don't answer "Stage 3" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: + shard parameters (equivalent to FSDP). Memory: O(1/N) per GPU.
+
+### Forward pass
+- Direct Answer: AllGather parameters before each layer, free after layer completes
+- Why: This matters because it tells you how to reason about forward pass.
+- Pitfall: Don't answer "Forward pass" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: AllGather parameters before each layer, free after layer completes
+
+### Backward pass
+- Direct Answer: ReduceScatter gradients after each layer
+- Why: This matters because it tells you how to reason about backward pass.
+- Pitfall: Don't answer "Backward pass" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ReduceScatter gradients after each layer
+
+### Optimizer step
+- Direct Answer: each rank updates its local shard; AllGather to reconstruct for next forward pass
+- Why: This matters because it tells you how to reason about optimizer step.
+- Pitfall: Don't answer "Optimizer step" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: each rank updates its local shard; AllGather to reconstruct for next forward pass
+
+### FSDP
+- Direct Answer: native PyTorch 2.0+, tight integration with torch.compile, better for HuggingFace-based training
+- Why: This matters because it tells you how to reason about fsdp.
+- Pitfall: Don't answer "FSDP" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: native PyTorch 2.0+, tight integration with torch.compile, better for HuggingFace-based training
+
+### DeepSpeed ZeRO-3
+- Direct Answer: more features (CPU/NVMe offload, ZeRO-Infinity), custom launcher, more configuration options
+- Why: This matters because it tells you how to reason about deepspeed zero-3.
+- Pitfall: Don't answer "DeepSpeed ZeRO-3" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: more features (CPU/NVMe offload, ZeRO-Infinity), custom launcher, more configuration options
+
+### Both achieve similar memory reduction at equivalent sharding levels
+- Direct Answer: Both achieve similar memory reduction at equivalent sharding levels
+- Why: This matters because it tells you how to reason about both achieve similar memory reduction at equivalent sharding levels.
+- Pitfall: Don't answer "Both achieve similar memory reduction at equivalent sharding levels" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Both achieve similar memory reduction at equivalent sharding levels
+
+### High ZeRO/FSDP sharding with slow interconnect
+- Direct Answer: AllGather for each layer dominates training time
+- Why: This matters because it tells you how to reason about high zero/fsdp sharding with slow interconnect.
+- Pitfall: Don't answer "High ZeRO/FSDP sharding with slow interconnect" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: AllGather for each layer dominates training time
+
+### ZeRO-3 with PyTorch compile
+- Direct Answer: extra work needed for compatibility
+- Why: This matters because it tells you how to reason about zero-3 with pytorch compile.
+- Pitfall: Don't answer "ZeRO-3 with PyTorch compile" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: extra work needed for compatibility
+
+### Not using activation checkpointing alongside sharding
+- Direct Answer: activations can still be a memory bottleneck
+- Why: This matters because it tells you how to reason about not using activation checkpointing alongside sharding.
+- Pitfall: Don't answer "Not using activation checkpointing alongside sharding" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: activations can still be a memory bottleneck
+
+### Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)
+- Direct Answer: Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)
+- Why: This matters because it tells you how to reason about saying fsdp is not related to zero (fsdp ≈ zero-3).
+- Pitfall: Don't answer "Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)
+
+### Not knowing CPU offload exists (ZeRO-Infinity)
+- Direct Answer: Not knowing CPU offload exists (ZeRO-Infinity)
+- Why: This matters because it tells you how to reason about not knowing cpu offload exists (zero-infinity).
+- Pitfall: Don't answer "Not knowing CPU offload exists (ZeRO-Infinity)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing CPU offload exists (ZeRO-Infinity)
+
+### Conflating training sharding with inference serving strategies
+- Direct Answer: Conflating training sharding with inference serving strategies
+- Why: This matters because it tells you how to reason about conflating training sharding with inference serving strategies.
+- Pitfall: Don't answer "Conflating training sharding with inference serving strategies" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Conflating training sharding with inference serving strategies
+
+### queue_wait = time from request arrival to GPU processing start
+- Direct Answer: queue_wait = time from request arrival to GPU processing start
+- Why: This matters because it tells you how to reason about queue_wait = time from request arrival to gpu processing start.
+- Pitfall: Don't answer "queue_wait = time from request arrival to GPU processing start" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: queue_wait = time from request arrival to GPU processing start
+
+### prefill_time = time to process all prompt tokens (compute-bound)
+- Direct Answer: prefill_time = time to process all prompt tokens (compute-bound)
+- Why: This matters because it tells you how to reason about prefill_time = time to process all prompt tokens (compute-bound).
+- Pitfall: Don't answer "prefill_time = time to process all prompt tokens (compute-bound)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prefill_time = time to process all prompt tokens (compute-bound)
+
+### tpot = time per output token during decode (memory-bandwidth-bound)
+- Direct Answer: tpot = time per output token during decode (memory-bandwidth-bound)
+- Why: This matters because it tells you how to reason about tpot = time per output token during decode (memory-bandwidth-bound).
+- Pitfall: Don't answer "tpot = time per output token during decode (memory-bandwidth-bound)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: tpot = time per output token during decode (memory-bandwidth-bound)
+
+### TTFT = queue_wait + prefill_time
+- Direct Answer: TTFT = queue_wait + prefill_time
+- Why: This matters because it tells you how to reason about ttft = queue_wait + prefill_time.
+- Pitfall: Don't answer "TTFT = queue_wait + prefill_time" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: TTFT = queue_wait + prefill_time
+
+### High queue_wait → request backlog, need more replicas or better load balancing
+- Direct Answer: High queue_wait → request backlog, need more replicas or better load balancing
+- Why: This matters because it tells you how to reason about high queue_wait → request backlog, need more replicas or better load balancing.
+- Pitfall: Don't answer "High queue_wait → request backlog, need more replicas or better load balancing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: High queue_wait → request backlog, need more replicas or better load balancing
+
+### High prefill_time → long prompts or compute bottleneck; consider prompt compression
+- Direct Answer: High prefill_time → long prompts or compute bottleneck; consider prompt compression
+- Why: This matters because it tells you how to reason about high prefill_time → long prompts or compute bottleneck; consider prompt compression.
+- Pitfall: Don't answer "High prefill_time → long prompts or compute bottleneck; consider prompt compression" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: High prefill_time → long prompts or compute bottleneck; consider prompt compression
+
+### High TPOT → memory bandwidth saturated; consider quantization or larger batch
+- Direct Answer: High TPOT → memory bandwidth saturated; consider quantization or larger batch
+- Why: This matters because it tells you how to reason about high tpot → memory bandwidth saturated; consider quantization or larger batch.
+- Pitfall: Don't answer "High TPOT → memory bandwidth saturated; consider quantization or larger batch" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: High TPOT → memory bandwidth saturated; consider quantization or larger batch
+
+### KV cache pressure → high fragmentation; check PagedAttention block allocation stats
+- Direct Answer: KV cache pressure → high fragmentation; check PagedAttention block allocation stats
+- Why: This matters because it tells you how to reason about kv cache pressure → high fragmentation; check pagedattention block allocation stats.
+- Pitfall: Don't answer "KV cache pressure → high fragmentation; check PagedAttention block allocation stats" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: KV cache pressure → high fragmentation; check PagedAttention block allocation stats
+
+### DCGM
+- Direct Answer: GPU utilization, memory used, memory bandwidth utilization, PCIe/NVLink bandwidth
+- Why: This matters because it tells you how to reason about dcgm.
+- Pitfall: Don't answer "DCGM" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU utilization, memory used, memory bandwidth utilization, PCIe/NVLink bandwidth
+
+### PyTorch Profiler
+- Direct Answer: per-operation timing, kernel launch overhead, CUDA stream serialization
+- Why: This matters because it tells you how to reason about pytorch profiler.
+- Pitfall: Don't answer "PyTorch Profiler" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: per-operation timing, kernel launch overhead, CUDA stream serialization
+
+### Nsight Systems
+- Direct Answer: GPU timeline, kernel concurrency, memory copy overhead
+- Why: This matters because it tells you how to reason about nsight systems.
+- Pitfall: Don't answer "Nsight Systems" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU timeline, kernel concurrency, memory copy overhead
+
+### TTFT p50/p95/p99
+- Direct Answer: TTFT p50/p95/p99
+- Why: This matters because it tells you how to reason about ttft p50/p95/p99.
+- Pitfall: Don't answer "TTFT p50/p95/p99" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: TTFT p50/p95/p99
+
+### TPOT p50/p95/p99 (inter-token latency)
+- Direct Answer: TPOT p50/p95/p99 (inter-token latency)
+- Why: This matters because it tells you how to reason about tpot p50/p95/p99 (inter-token latency).
+- Pitfall: Don't answer "TPOT p50/p95/p99 (inter-token latency)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: TPOT p50/p95/p99 (inter-token latency)
+
+### Tokens/sec throughput
+- Direct Answer: Tokens/sec throughput
+- Why: This matters because it tells you how to reason about tokens/sec throughput.
+- Pitfall: Don't answer "Tokens/sec throughput" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tokens/sec throughput
+
+### GPU utilization (target > 80%)
+- Direct Answer: GPU utilization (target > 80%)
+- Why: This matters because it tells you how to reason about gpu utilization (target > 80%).
+- Pitfall: Don't answer "GPU utilization (target > 80%)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU utilization (target > 80%)
+
+### KV cache block utilization
+- Direct Answer: KV cache block utilization
+- Why: This matters because it tells you how to reason about kv cache block utilization.
+- Pitfall: Don't answer "KV cache block utilization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: KV cache block utilization
+
+### Queue depth
+- Direct Answer: Queue depth
+- Why: This matters because it tells you how to reason about queue depth.
+- Pitfall: Don't answer "Queue depth" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Queue depth
+
+### Measuring only total latency
+- Direct Answer: hides whether prefill or decode is the bottleneck
+- Why: This matters because it tells you how to reason about measuring only total latency.
+- Pitfall: Don't answer "Measuring only total latency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: hides whether prefill or decode is the bottleneck
+
+### Alerting only on mean latency
+- Direct Answer: p99 can be 5× mean under realistic load distributions
+- Why: This matters because it tells you how to reason about alerting only on mean latency.
+- Pitfall: Don't answer "Alerting only on mean latency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: p99 can be 5× mean under realistic load distributions
+
+### No per-request tracing
+- Direct Answer: can't reproduce failures or attribute latency spikes
+- Why: This matters because it tells you how to reason about no per-request tracing.
+- Pitfall: Don't answer "No per-request tracing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: can't reproduce failures or attribute latency spikes
+
+### Measuring only total latency without phase breakdown
+- Direct Answer: Measuring only total latency without phase breakdown
+- Why: This matters because it tells you how to reason about measuring only total latency without phase breakdown.
+- Pitfall: Don't answer "Measuring only total latency without phase breakdown" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Measuring only total latency without phase breakdown
+
+### Conflating p50 and p99
+- Direct Answer: LLM latency distributions have heavy tails
+- Why: This matters because it tells you how to reason about conflating p50 and p99.
+- Pitfall: Don't answer "Conflating p50 and p99" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: LLM latency distributions have heavy tails
+
+### Not tracking KV cache pressure as a leading indicator of throughput collapse
+- Direct Answer: Not tracking KV cache pressure as a leading indicator of throughput collapse
+- Why: This matters because it tells you how to reason about not tracking kv cache pressure as a leading indicator of throughput collapse.
+- Pitfall: Don't answer "Not tracking KV cache pressure as a leading indicator of throughput collapse" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not tracking KV cache pressure as a leading indicator of throughput collapse
+
+### Classifier latency adds to TTFT
+- Direct Answer: must be sub-10ms or route async
+- Why: This matters because it tells you how to reason about classifier latency adds to ttft.
+- Pitfall: Don't answer "Classifier latency adds to TTFT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: must be sub-10ms or route async
+
+### Misclassification
+- Direct Answer: routing a complex reasoning task to the small model, then having to re-run → 2× cost
+- Why: This matters because it tells you how to reason about misclassification.
+- Pitfall: Don't answer "Misclassification" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: routing a complex reasoning task to the small model, then having to re-run → 2× cost
+
+### Quality regression monitoring
+- Direct Answer: must track quality per route, not just average
+- Why: This matters because it tells you how to reason about quality regression monitoring.
+- Pitfall: Don't answer "Quality regression monitoring" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: must track quality per route, not just average
+
+### Routing only by user tier or request metadata, ignoring content complexity
+- Direct Answer: Routing only by user tier or request metadata, ignoring content complexity
+- Why: This matters because it tells you how to reason about routing only by user tier or request metadata, ignoring content complexity.
+- Pitfall: Don't answer "Routing only by user tier or request metadata, ignoring content complexity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Routing only by user tier or request metadata, ignoring content complexity
+
+### Not A/B testing the routing policy against a baseline
+- Direct Answer: Not A/B testing the routing policy against a baseline
+- Why: This matters because it tells you how to reason about not a/b testing the routing policy against a baseline.
+- Pitfall: Don't answer "Not A/B testing the routing policy against a baseline" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not A/B testing the routing policy against a baseline
+
+### Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)
+- Direct Answer: Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)
+- Why: This matters because it tells you how to reason about forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics).
+- Pitfall: Don't answer "Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Forgetting to monitor quality separately per route (degradation is invisible in aggregate metrics)

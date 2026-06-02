@@ -349,580 +349,1156 @@ These are **system design skeletons** you can speak out loud. Short, structured,
 
 ---
 
-## Flashcards
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**RAG note?** #flashcard
-chunking + hybrid search + reranking + citations; store metadata for audit.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Code note?** #flashcard
-structured output + sandbox execution + policy checks; never auto-merge without review.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Decisioning note?** #flashcard
-offline training + online serving; guardrails for feedback loops and abuse.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Regulated note?** #flashcard
-audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**RAG note?** #flashcard
-chunking + hybrid search + reranking + citations; store metadata for audit.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Code note?** #flashcard
-structured output + sandbox execution + policy checks; never auto-merge without review.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**RAG note?** #flashcard
-chunking + hybrid search + reranking + citations; store metadata for audit.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Reliability?** #flashcard
-multi-region + fallback models + queueing + graceful degradation.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Reliability?** #flashcard
-multi-region + fallback models + queueing + graceful degradation.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**RAG note?** #flashcard
-chunking + hybrid search + reranking + citations; store metadata for audit.
-
-**Regulated note?** #flashcard
-audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Decisioning note?** #flashcard
-offline training + online serving; guardrails for feedback loops and abuse.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
-
-**Clarify (30s)?** #flashcard
-users, volume, latency, languages, privacy/PII, citations, failure tolerance.
-
-**Core architecture?** #flashcard
-client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
-
-**Azure mapping?** #flashcard
-API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
-
-**Quality gates?** #flashcard
-eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
-
-**Safety?** #flashcard
-prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+## Rapid Recall
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### RAG note
+- Direct Answer: chunking + hybrid search + reranking + citations; store metadata for audit.
+- Why: This matters because it tells you how to reason about rag note.
+- Pitfall: Don't answer "RAG note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: chunking + hybrid search + reranking + citations; store metadata for audit.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Code note
+- Direct Answer: structured output + sandbox execution + policy checks; never auto-merge without review.
+- Why: This matters because it tells you how to reason about code note.
+- Pitfall: Don't answer "Code note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: structured output + sandbox execution + policy checks; never auto-merge without review.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Decisioning note
+- Direct Answer: offline training + online serving; guardrails for feedback loops and abuse.
+- Why: This matters because it tells you how to reason about decisioning note.
+- Pitfall: Don't answer "Decisioning note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: offline training + online serving; guardrails for feedback loops and abuse.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Regulated note
+- Direct Answer: audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
+- Why: This matters because it tells you how to reason about regulated note.
+- Pitfall: Don't answer "Regulated note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### RAG note
+- Direct Answer: chunking + hybrid search + reranking + citations; store metadata for audit.
+- Why: This matters because it tells you how to reason about rag note.
+- Pitfall: Don't answer "RAG note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: chunking + hybrid search + reranking + citations; store metadata for audit.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Code note
+- Direct Answer: structured output + sandbox execution + policy checks; never auto-merge without review.
+- Why: This matters because it tells you how to reason about code note.
+- Pitfall: Don't answer "Code note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: structured output + sandbox execution + policy checks; never auto-merge without review.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### RAG note
+- Direct Answer: chunking + hybrid search + reranking + citations; store metadata for audit.
+- Why: This matters because it tells you how to reason about rag note.
+- Pitfall: Don't answer "RAG note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: chunking + hybrid search + reranking + citations; store metadata for audit.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Reliability
+- Direct Answer: multi-region + fallback models + queueing + graceful degradation.
+- Why: This matters because it tells you how to reason about reliability.
+- Pitfall: Don't answer "Reliability" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: multi-region + fallback models + queueing + graceful degradation.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Reliability
+- Direct Answer: multi-region + fallback models + queueing + graceful degradation.
+- Why: This matters because it tells you how to reason about reliability.
+- Pitfall: Don't answer "Reliability" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: multi-region + fallback models + queueing + graceful degradation.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### RAG note
+- Direct Answer: chunking + hybrid search + reranking + citations; store metadata for audit.
+- Why: This matters because it tells you how to reason about rag note.
+- Pitfall: Don't answer "RAG note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: chunking + hybrid search + reranking + citations; store metadata for audit.
+
+### Regulated note
+- Direct Answer: audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
+- Why: This matters because it tells you how to reason about regulated note.
+- Pitfall: Don't answer "Regulated note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: audit logs, explainability, refusal modes; prefer ‘assist’ not ‘decide’.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Decisioning note
+- Direct Answer: offline training + online serving; guardrails for feedback loops and abuse.
+- Why: This matters because it tells you how to reason about decisioning note.
+- Pitfall: Don't answer "Decisioning note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: offline training + online serving; guardrails for feedback loops and abuse.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+
+### Clarify (30s)
+- Direct Answer: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+- Why: This matters because it tells you how to reason about clarify (30s).
+- Pitfall: Don't answer "Clarify (30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users, volume, latency, languages, privacy/PII, citations, failure tolerance.
+
+### Core architecture
+- Direct Answer: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+- Why: This matters because it tells you how to reason about core architecture.
+- Pitfall: Don't answer "Core architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: client → gateway → (router) → LLM/RAG/tools → post-process/validators → response.
+
+### Azure mapping
+- Direct Answer: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+- Why: This matters because it tells you how to reason about azure mapping.
+- Pitfall: Don't answer "Azure mapping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: API Management + App Insights + Key Vault + AKS/managed endpoint + storage + vector search.
+
+### Quality gates
+- Direct Answer: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+- Why: This matters because it tells you how to reason about quality gates.
+- Pitfall: Don't answer "Quality gates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: eval suite, canary, rollback; monitor TTFT/p95 + quality (faithfulness/safety).
+
+### Safety
+- Direct Answer: prompt injection defenses, allow-listed tools, HITL for high-risk actions.
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt injection defenses, allow-listed tools, HITL for high-risk actions.

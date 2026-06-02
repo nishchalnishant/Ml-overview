@@ -46,9 +46,9 @@ Is the prompt just poorly designed?
 ## SFT, LoRA/QLoRA, RLHF, DPO, ORPO, Quantization
 
 > These methods are covered in depth in the core files. See:
-> - [../../training-process.md](../../training-process.md) — SFT mechanics, RLHF (3-stage pipeline), DPO (closed-form derivation), ORPO (no reference model), with TRL code examples
-> - [../../fine-tuning-at-scale.md](../../fine-tuning-at-scale.md) — LoRA math, QLoRA memory analysis, NF4 quantization, ZeRO stages, prefix tuning, adapter layers
-> - [../../fine-tuning-at-scale.md](../../fine-tuning-at-scale.md) (Section 5) — GPTQ, AWQ, GGUF post-training quantization with comparison table
+> - [../training-process.md](../training-process.md) — SFT mechanics, RLHF (3-stage pipeline), DPO (closed-form derivation), ORPO (no reference model), with TRL code examples
+> - [../fine-tuning-at-scale.md](../fine-tuning-at-scale.md) — LoRA math, QLoRA memory analysis, NF4 quantization, ZeRO stages, prefix tuning, adapter layers
+> - [../fine-tuning-at-scale.md](../fine-tuning-at-scale.md) (Section 5) — GPTQ, AWQ, GGUF post-training quantization with comparison table
 > - [../inference-optimization.md](inference-optimization.md) — W4A16, W8A8, SmoothQuant, continuous batching, speculative decoding
 
 ---

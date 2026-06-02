@@ -161,154 +161,304 @@ Fine-tuning is how you change **behavior**. RAG is how you change **knowledge at
 # Q25: RLHF preference data has low annotator agreement. Ensure quality?
 - **Fixes:** clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-Fine-tuning updates model parameters (fully or partially) so it behaves differently on your task.
+### Direct answer
+- Direct Answer: Fine-tuning updates model parameters (fully or partially) so it behaves differently on your task.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Fine-tuning updates model parameters (fully or partially) so it behaves differently on your task.
 
-**Use it when?** #flashcard
-you need consistent style/format, domain behaviors, tool reliability, or latency/cost improvements vs huge prompts.
+### Use it when
+- Direct Answer: you need consistent style/format, domain behaviors, tool reliability, or latency/cost improvements vs huge prompts.
+- Why: This matters because it tells you how to reason about use it when.
+- Pitfall: Don't answer "Use it when" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you need consistent style/format, domain behaviors, tool reliability, or latency/cost improvements vs huge prompts.
 
-**Avoid when?** #flashcard
-you just need fresh facts → use RAG.
+### Avoid when
+- Direct Answer: you just need fresh facts → use RAG.
+- Why: This matters because it tells you how to reason about avoid when.
+- Pitfall: Don't answer "Avoid when" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you just need fresh facts → use RAG.
 
-**Full FT?** #flashcard
-updates all weights → most flexible, most expensive, risk of forgetting.
+### Full FT
+- Direct Answer: updates all weights → most flexible, most expensive, risk of forgetting.
+- Why: This matters because it tells you how to reason about full ft.
+- Pitfall: Don't answer "Full FT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: updates all weights → most flexible, most expensive, risk of forgetting.
 
-**PEFT?** #flashcard
-train a small set of params (LoRA/adapters/prefix) → cheaper, safer, easier multi-tenant.
+### PEFT
+- Direct Answer: train a small set of params (LoRA/adapters/prefix) → cheaper, safer, easier multi-tenant.
+- Why: This matters because it tells you how to reason about peft.
+- Pitfall: Don't answer "PEFT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: train a small set of params (LoRA/adapters/prefix) → cheaper, safer, easier multi-tenant.
 
-**DevOps bridge?** #flashcard
-full FT = fork the whole service; PEFT = ship a lightweight plugin.
+### DevOps bridge
+- Direct Answer: full FT = fork the whole service; PEFT = ship a lightweight plugin.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: full FT = fork the whole service; PEFT = ship a lightweight plugin.
 
-**Direct answer?** #flashcard
-Freeze base weights; learn low-rank update \(\Delta W pprox BA\) with tiny matrices.
+### Direct answer
+- Direct Answer: Freeze base weights; learn low-rank update \(\Delta W pprox BA\) with tiny matrices.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Freeze base weights; learn low-rank update \(\Delta W pprox BA\) with tiny matrices.
 
-**Analogy (music)?** #flashcard
-You don’t re-record the track—you add an EQ/remix layer.
+### Analogy (music)
+- Direct Answer: You don’t re-record the track—you add an EQ/remix layer.
+- Why: This matters because it tells you how to reason about analogy (music).
+- Pitfall: Don't answer "Analogy (music)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: You don’t re-record the track—you add an EQ/remix layer.
 
-**Direct answer?** #flashcard
-Quantize base weights (e.g., 4-bit NF4) during training while keeping LoRA adapters in 16-bit.
+### Direct answer
+- Direct Answer: Quantize base weights (e.g., 4-bit NF4) during training while keeping LoRA adapters in 16-bit.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Quantize base weights (e.g., 4-bit NF4) during training while keeping LoRA adapters in 16-bit.
 
-**Why it matters?** #flashcard
-makes big-model tuning feasible on small GPUs.
+### Why it matters
+- Direct Answer: makes big-model tuning feasible on small GPUs.
+- Why: This matters because it tells you how to reason about why it matters.
+- Pitfall: Don't answer "Why it matters" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: makes big-model tuning feasible on small GPUs.
 
-**Prompt tuning?** #flashcard
-learn soft prompt vectors.
+### Prompt tuning
+- Direct Answer: learn soft prompt vectors.
+- Why: This matters because it tells you how to reason about prompt tuning.
+- Pitfall: Don't answer "Prompt tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: learn soft prompt vectors.
 
-**Prefix tuning?** #flashcard
-learn soft “prefix” vectors injected into attention.
+### Prefix tuning
+- Direct Answer: learn soft “prefix” vectors injected into attention.
+- Why: This matters because it tells you how to reason about prefix tuning.
+- Pitfall: Don't answer "Prefix tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: learn soft “prefix” vectors injected into attention.
 
-**LoRA?** #flashcard
-modifies linear layers via low-rank updates; often stronger and widely used.
+### LoRA
+- Direct Answer: modifies linear layers via low-rank updates; often stronger and widely used.
+- Why: This matters because it tells you how to reason about lora.
+- Pitfall: Don't answer "LoRA" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: modifies linear layers via low-rank updates; often stronger and widely used.
 
-**Direct answer?** #flashcard
-Insert small trainable modules between layers while freezing the base.
+### Direct answer
+- Direct Answer: Insert small trainable modules between layers while freezing the base.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Insert small trainable modules between layers while freezing the base.
 
-**Note?** #flashcard
-can add inference overhead unless merged/optimized.
+### Note
+- Direct Answer: can add inference overhead unless merged/optimized.
+- Why: This matters because it tells you how to reason about note.
+- Pitfall: Don't answer "Note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: can add inference overhead unless merged/optimized.
 
-**Direct answer?** #flashcard
-Use preference feedback to push outputs toward helpful/safe behavior (often via reward model + PPO historically).
+### Direct answer
+- Direct Answer: Use preference feedback to push outputs toward helpful/safe behavior (often via reward model + PPO historically).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Use preference feedback to push outputs toward helpful/safe behavior (often via reward model + PPO historically).
 
-**DevOps bridge?** #flashcard
-policy training + compliance gates for a system that would otherwise “do whatever works.”
+### DevOps bridge
+- Direct Answer: policy training + compliance gates for a system that would otherwise “do whatever works.”
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: policy training + compliance gates for a system that would otherwise “do whatever works.”
 
-**Direct answer?** #flashcard
-SFT on instruction→response pairs to make base models follow commands/chat format reliably.
+### Direct answer
+- Direct Answer: SFT on instruction→response pairs to make base models follow commands/chat format reliably.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: SFT on instruction→response pairs to make base models follow commands/chat format reliably.
 
-**Checklist?** #flashcard
-clear objective, clean templates, dedupe, balance, red-team examples, train/val split, PII scrubbing.
+### Checklist
+- Direct Answer: clear objective, clean templates, dedupe, balance, red-team examples, train/val split, PII scrubbing.
+- Why: This matters because it tells you how to reason about checklist.
+- Pitfall: Don't answer "Checklist" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: clear objective, clean templates, dedupe, balance, red-team examples, train/val split, PII scrubbing.
 
-**Mini prompt?** #flashcard
-What kills you fastest? → leakage (train examples repeated in eval).
+### Mini prompt
+- Direct Answer: What kills you fastest? → leakage (train examples repeated in eval).
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What kills you fastest? → leakage (train examples repeated in eval).
 
-**Direct answer?** #flashcard
-Model overwrites general skills while learning new domain.
+### Direct answer
+- Direct Answer: Model overwrites general skills while learning new domain.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Model overwrites general skills while learning new domain.
 
-**Fixes?** #flashcard
-PEFT, mix in general data, lower LR, fewer epochs, regularization, rehearsal.
+### Fixes
+- Direct Answer: PEFT, mix in general data, lower LR, fewer epochs, regularization, rehearsal.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PEFT, mix in general data, lower LR, fewer epochs, regularization, rehearsal.
 
-**Prompting?** #flashcard
-fastest iteration; best for formatting/instructions.
+### Prompting
+- Direct Answer: fastest iteration; best for formatting/instructions.
+- Why: This matters because it tells you how to reason about prompting.
+- Pitfall: Don't answer "Prompting" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fastest iteration; best for formatting/instructions.
 
-**RAG?** #flashcard
-best for changing/adding facts + citations.
+### RAG
+- Direct Answer: best for changing/adding facts + citations.
+- Why: This matters because it tells you how to reason about rag.
+- Pitfall: Don't answer "RAG" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: best for changing/adding facts + citations.
 
-**Fine-tuning?** #flashcard
-best for stable behavior, tone, domain style, tool reliability, latency/cost.
+### Fine-tuning
+- Direct Answer: best for stable behavior, tone, domain style, tool reliability, latency/cost.
+- Why: This matters because it tells you how to reason about fine-tuning.
+- Pitfall: Don't answer "Fine-tuning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: best for stable behavior, tone, domain style, tool reliability, latency/cost.
 
-**Direct answer?** #flashcard
-task success + format validity + safety + regression tests.
+### Direct answer
+- Direct Answer: task success + format validity + safety + regression tests.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: task success + format validity + safety + regression tests.
 
-**DevOps bridge?** #flashcard
-treat evals like CI checks; block promotion if regressions.
+### DevOps bridge
+- Direct Answer: treat evals like CI checks; block promotion if regressions.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat evals like CI checks; block promotion if regressions.
 
-**Direct answer?** #flashcard
-generate training pairs using a strong model/humans; filter and validate.
+### Direct answer
+- Direct Answer: generate training pairs using a strong model/humans; filter and validate.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: generate training pairs using a strong model/humans; filter and validate.
 
-**Risk?** #flashcard
-model learns your generator’s quirks; must diversify and audit.
+### Risk
+- Direct Answer: model learns your generator’s quirks; must diversify and audit.
+- Why: This matters because it tells you how to reason about risk.
+- Pitfall: Don't answer "Risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model learns your generator’s quirks; must diversify and audit.
 
-**LR?** #flashcard
-too high = forget/instability; too low = no learning.
+### LR
+- Direct Answer: too high = forget/instability; too low = no learning.
+- Why: This matters because it tells you how to reason about lr.
+- Pitfall: Don't answer "LR" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: too high = forget/instability; too low = no learning.
 
-**Epochs?** #flashcard
-too many = memorization.
+### Epochs
+- Direct Answer: too many = memorization.
+- Why: This matters because it tells you how to reason about epochs.
+- Pitfall: Don't answer "Epochs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: too many = memorization.
 
-**Batch size?** #flashcard
-affects stability; use grad accumulation.
+### Batch size
+- Direct Answer: affects stability; use grad accumulation.
+- Why: This matters because it tells you how to reason about batch size.
+- Pitfall: Don't answer "Batch size" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: affects stability; use grad accumulation.
 
-**LoRA rank?** #flashcard
-small ranks often saturate; higher ranks can overfit.
+### LoRA rank
+- Direct Answer: small ranks often saturate; higher ranks can overfit.
+- Why: This matters because it tells you how to reason about lora rank.
+- Pitfall: Don't answer "LoRA rank" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: small ranks often saturate; higher ranks can overfit.
 
-**Direct answer?** #flashcard
-domain templates + terminology + safety constraints + eval sets.
+### Direct answer
+- Direct Answer: domain templates + terminology + safety constraints + eval sets.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: domain templates + terminology + safety constraints + eval sets.
 
-**Best practice?** #flashcard
-pair with RAG for latest policies/guidelines.
+### Best practice
+- Direct Answer: pair with RAG for latest policies/guidelines.
+- Why: This matters because it tells you how to reason about best practice.
+- Pitfall: Don't answer "Best practice" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: pair with RAG for latest policies/guidelines.
 
-**Direct answer?** #flashcard
-continue pre-training on large unlabeled domain text to shift the base distribution.
+### Direct answer
+- Direct Answer: continue pre-training on large unlabeled domain text to shift the base distribution.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: continue pre-training on large unlabeled domain text to shift the base distribution.
 
-**When?** #flashcard
-you need domain language modeling improvements, not just instruction format.
+### When
+- Direct Answer: you need domain language modeling improvements, not just instruction format.
+- Why: This matters because it tells you how to reason about when.
+- Pitfall: Don't answer "When" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you need domain language modeling improvements, not just instruction format.
 
-**Options?** #flashcard
-merge sequentially (risk interference), route by task, or compose via weighted merges.
+### Options
+- Direct Answer: merge sequentially (risk interference), route by task, or compose via weighted merges.
+- Why: This matters because it tells you how to reason about options.
+- Pitfall: Don't answer "Options" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: merge sequentially (risk interference), route by task, or compose via weighted merges.
 
-**DevOps bridge?** #flashcard
-multiple plugins need versioning + compatibility tests.
+### DevOps bridge
+- Direct Answer: multiple plugins need versioning + compatibility tests.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: multiple plugins need versioning + compatibility tests.
 
-**SFT?** #flashcard
-learn “ideal answers.”
+### SFT
+- Direct Answer: learn “ideal answers.”
+- Why: This matters because it tells you how to reason about sft.
+- Pitfall: Don't answer "SFT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: learn “ideal answers.”
 
-**Alignment?** #flashcard
-learn preferences/safety trade-offs (RLHF/DPO/RLAIF).
+### Alignment
+- Direct Answer: learn preferences/safety trade-offs (RLHF/DPO/RLAIF).
+- Why: This matters because it tells you how to reason about alignment.
+- Pitfall: Don't answer "Alignment" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: learn preferences/safety trade-offs (RLHF/DPO/RLAIF).
 
-**Direct answer?** #flashcard
-reinforcement learning from AI feedback instead of humans (model judges with a constitution/rubric).
+### Direct answer
+- Direct Answer: reinforcement learning from AI feedback instead of humans (model judges with a constitution/rubric).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reinforcement learning from AI feedback instead of humans (model judges with a constitution/rubric).
 
-**Direct answer?** #flashcard
-compress behavior from teacher to student.
+### Direct answer
+- Direct Answer: compress behavior from teacher to student.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: compress behavior from teacher to student.
 
-**Legal note?** #flashcard
-licensing/data provenance matters; don’t distill proprietary outputs into redistributable weights without rights.
+### Legal note
+- Direct Answer: licensing/data provenance matters; don’t distill proprietary outputs into redistributable weights without rights.
+- Why: This matters because it tells you how to reason about legal note.
+- Pitfall: Don't answer "Legal note" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: licensing/data provenance matters; don’t distill proprietary outputs into redistributable weights without rights.
 
-**Fixes?** #flashcard
-clean data, dedupe, add retrieval grounding, strengthen evals, add counterexamples, reduce epochs.
+### Fixes
+- Direct Answer: clean data, dedupe, add retrieval grounding, strengthen evals, add counterexamples, reduce epochs.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: clean data, dedupe, add retrieval grounding, strengthen evals, add counterexamples, reduce epochs.
 
-**Choose LoRA/PEFT?** #flashcard
-limited GPUs, multi-tenant adapters, lower risk.
+### Choose LoRA/PEFT
+- Direct Answer: limited GPUs, multi-tenant adapters, lower risk.
+- Why: This matters because it tells you how to reason about choose lora/peft.
+- Pitfall: Don't answer "Choose LoRA/PEFT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: limited GPUs, multi-tenant adapters, lower risk.
 
-**Choose full FT?** #flashcard
-you need deep capability shift and can afford the cost.
+### Choose full FT
+- Direct Answer: you need deep capability shift and can afford the cost.
+- Why: This matters because it tells you how to reason about choose full ft.
+- Pitfall: Don't answer "Choose full FT" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you need deep capability shift and can afford the cost.
 
-**Fixes?** #flashcard
-more/cleaner data, stronger regularization, early stopping, lower LR, fewer epochs, better splits.
+### Fixes
+- Direct Answer: more/cleaner data, stronger regularization, early stopping, lower LR, fewer epochs, better splits.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: more/cleaner data, stronger regularization, early stopping, lower LR, fewer epochs, better splits.
 
-**Fixes?** #flashcard
-PEFT, rehearsal mix, lower LR, fewer steps, add general eval gates.
+### Fixes
+- Direct Answer: PEFT, rehearsal mix, lower LR, fewer steps, add general eval gates.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PEFT, rehearsal mix, lower LR, fewer steps, add general eval gates.
 
-**Fixes?** #flashcard
-clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.
+### Fixes
+- Direct Answer: clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.

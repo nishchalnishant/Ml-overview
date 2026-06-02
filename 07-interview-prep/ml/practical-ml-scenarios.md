@@ -545,151 +545,298 @@ The diagnostic order matters. Retraining before diagnosing the root cause fixes 
 4. Describe the fix that addresses the root cause
 5. Add monitoring to detect the same failure earlier next time
 
-## Flashcards
+## Rapid Recall
 
-**PSI on "days since last login"?** #flashcard
-0.31 (above the 0.25 threshold). The offline training data was from a period of normal usage. A product change two weeks ago changed login patterns significantly.
+### PSI on "days since last login"
+- Direct Answer: 0.31 (above the 0.25 threshold). The offline training data was from a period of normal usage. A product change two weeks ago changed login patterns significantly.
+- Why: This matters because it tells you how to reason about psi on "days since last login".
+- Pitfall: Don't answer "PSI on "days since last login"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 0.31 (above the 0.25 threshold). The offline training data was from a period of normal usage. A product change two weeks ago changed login patterns significantly.
 
-**Prediction distribution?** #flashcard
-scores cluster near 0.2–0.4. Offline they were distributed across 0.1–0.9. The model is not discriminating.
+### Prediction distribution
+- Direct Answer: scores cluster near 0.2–0.4. Offline they were distributed across 0.1–0.9. The model is not discriminating.
+- Why: This matters because it tells you how to reason about prediction distribution.
+- Pitfall: Don't answer "Prediction distribution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: scores cluster near 0.2–0.4. Offline they were distributed across 0.1–0.9. The model is not discriminating.
 
-**Feature computation: offline "days since login" was capped at 30 days. Serving version was not capped and includes users with 180+ days?** #flashcard
-an entire bucket that training never saw.
+### Feature computation: offline "days since login" was capped at 30 days. Serving version was not capped and includes users with 180+ days
+- Direct Answer: an entire bucket that training never saw.
+- Why: This matters because it tells you how to reason about feature computation: offline "days since login" was capped at 30 days. serving version was not capped and includes users with 180+ days.
+- Pitfall: Don't answer "Feature computation: offline "days since login" was capped at 30 days. Serving version was not capped and includes users with 180+ days" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: an entire bucket that training never saw.
 
-**False negative (missed fraud)?** #flashcard
-financial loss plus reputational damage
+### False negative (missed fraud)
+- Direct Answer: financial loss plus reputational damage
+- Why: This matters because it tells you how to reason about false negative (missed fraud).
+- Pitfall: Don't answer "False negative (missed fraud)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: financial loss plus reputational damage
 
-**False positive (flagged legitimate transaction)?** #flashcard
-review cost plus customer friction
+### False positive (flagged legitimate transaction)
+- Direct Answer: review cost plus customer friction
+- Why: This matters because it tells you how to reason about false positive (flagged legitimate transaction).
+- Pitfall: Don't answer "False positive (flagged legitimate transaction)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: review cost plus customer friction
 
-**Precision-recall AUC?** #flashcard
-measures the tradeoff between catching fraud and generating false alarms, independent of class balance
+### Precision-recall AUC
+- Direct Answer: measures the tradeoff between catching fraud and generating false alarms, independent of class balance
+- Why: This matters because it tells you how to reason about precision-recall auc.
+- Pitfall: Don't answer "Precision-recall AUC" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: measures the tradeoff between catching fraud and generating false alarms, independent of class balance
 
-**Recall at target precision?** #flashcard
-what fraction of fraud do we catch if we constrain false positive rate to X%?
+### Recall at target precision
+- Direct Answer: what fraction of fraud do we catch if we constrain false positive rate to X%?
+- Why: This matters because it tells you how to reason about recall at target precision.
+- Pitfall: Don't answer "Recall at target precision" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what fraction of fraud do we catch if we constrain false positive rate to X%?
 
-**Cost-sensitive evaluation?** #flashcard
-expected cost = FN_cost × FN_rate + FP_cost × FP_rate
+### Cost-sensitive evaluation
+- Direct Answer: expected cost = FN_cost × FN_rate + FP_cost × FP_rate
+- Why: This matters because it tells you how to reason about cost-sensitive evaluation.
+- Pitfall: Don't answer "Cost-sensitive evaluation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: expected cost = FN_cost × FN_rate + FP_cost × FP_rate
 
-**Was the correct source document in the top-k retrieved context? (Retrieval recall)?** #flashcard
-Was the correct source document in the top-k retrieved context? (Retrieval recall)
+### Was the correct source document in the top-k retrieved context? (Retrieval recall)
+- Direct Answer: Was the correct source document in the top-k retrieved context? (Retrieval recall)
+- Why: This matters because it tells you how to reason about was the correct source document in the top-k retrieved context? (retrieval recall).
+- Pitfall: Don't answer "Was the correct source document in the top-k retrieved context? (Retrieval recall)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Was the correct source document in the top-k retrieved context? (Retrieval recall)
 
-**If yes, did the answer contradict the retrieved context? (Generation faithfulness)?** #flashcard
-If yes, did the answer contradict the retrieved context? (Generation faithfulness)
+### If yes, did the answer contradict the retrieved context? (Generation faithfulness)
+- Direct Answer: If yes, did the answer contradict the retrieved context? (Generation faithfulness)
+- Why: This matters because it tells you how to reason about if yes, did the answer contradict the retrieved context? (generation faithfulness).
+- Pitfall: Don't answer "If yes, did the answer contradict the retrieved context? (Generation faithfulness)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If yes, did the answer contradict the retrieved context? (Generation faithfulness)
 
-**If the source was retrieved, was it at position 1 or position 8? (Position matters?** #flashcard
-"lost in the middle" effect)
+### If the source was retrieved, was it at position 1 or position 8? (Position matters
+- Direct Answer: "lost in the middle" effect)
+- Why: This matters because it tells you how to reason about if the source was retrieved, was it at position 1 or position 8? (position matters.
+- Pitfall: Don't answer "If the source was retrieved, was it at position 1 or position 8? (Position matters" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "lost in the middle" effect)
 
-**Chunking strategy?** #flashcard
-if chunks are too large, the relevant information is diluted. If too small, context is fragmented. Typical sweet spot: 300–500 tokens with 50-token overlap.
+### Chunking strategy
+- Direct Answer: if chunks are too large, the relevant information is diluted. If too small, context is fragmented. Typical sweet spot: 300–500 tokens with 50-token overlap.
+- Why: This matters because it tells you how to reason about chunking strategy.
+- Pitfall: Don't answer "Chunking strategy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if chunks are too large, the relevant information is diluted. If too small, context is fragmented. Typical sweet spot: 300–500 tokens with 50-token overlap.
 
-**Retrieval method?** #flashcard
-BM25 (keyword matching) for precise factual queries; dense retrieval (vector similarity) for semantic queries. Hybrid often outperforms either alone.
+### Retrieval method
+- Direct Answer: BM25 (keyword matching) for precise factual queries; dense retrieval (vector similarity) for semantic queries. Hybrid often outperforms either alone.
+- Why: This matters because it tells you how to reason about retrieval method.
+- Pitfall: Don't answer "Retrieval method" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: BM25 (keyword matching) for precise factual queries; dense retrieval (vector similarity) for semantic queries. Hybrid often outperforms either alone.
 
-**Reranking?** #flashcard
-a cross-encoder reranker (e.g., a BERT-based relevance model) reranks top-k candidates with much higher precision than vector similarity.
+### Reranking
+- Direct Answer: a cross-encoder reranker (e.g., a BERT-based relevance model) reranks top-k candidates with much higher precision than vector similarity.
+- Why: This matters because it tells you how to reason about reranking.
+- Pitfall: Don't answer "Reranking" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a cross-encoder reranker (e.g., a BERT-based relevance model) reranks top-k candidates with much higher precision than vector similarity.
 
-**Metadata filtering?** #flashcard
-filter retrieved chunks by document type, date, source before final selection.
+### Metadata filtering
+- Direct Answer: filter retrieved chunks by document type, date, source before final selection.
+- Why: This matters because it tells you how to reason about metadata filtering.
+- Pitfall: Don't answer "Metadata filtering" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: filter retrieved chunks by document type, date, source before final selection.
 
-**Prompt constraints?** #flashcard
-"Answer only based on the provided context. If the information is not in the context, say 'I don't know.'" This reduces hallucination but may increase non-answers.
+### Prompt constraints
+- Direct Answer: "Answer only based on the provided context. If the information is not in the context, say 'I don't know.'" This reduces hallucination but may increase non-answers.
+- Why: This matters because it tells you how to reason about prompt constraints.
+- Pitfall: Don't answer "Prompt constraints" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Answer only based on the provided context. If the information is not in the context, say 'I don't know.'" This reduces hallucination but may increase non-answers.
 
-**Grounded citation?** #flashcard
-require the model to cite which retrieved passage supports each claim. If it cannot cite, it should not claim.
+### Grounded citation
+- Direct Answer: require the model to cite which retrieved passage supports each claim. If it cannot cite, it should not claim.
+- Why: This matters because it tells you how to reason about grounded citation.
+- Pitfall: Don't answer "Grounded citation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: require the model to cite which retrieved passage supports each claim. If it cannot cite, it should not claim.
 
-**Answer verification?** #flashcard
-a separate model or rule checks whether each sentence in the response is supported by any retrieved passage (Natural Language Inference or string overlap).
+### Answer verification
+- Direct Answer: a separate model or rule checks whether each sentence in the response is supported by any retrieved passage (Natural Language Inference or string overlap).
+- Why: This matters because it tells you how to reason about answer verification.
+- Pitfall: Don't answer "Answer verification" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a separate model or rule checks whether each sentence in the response is supported by any retrieved passage (Natural Language Inference or string overlap).
 
-**Temperature?** #flashcard
-lower temperature reduces creative generation but also reduces hallucination.
+### Temperature
+- Direct Answer: lower temperature reduces creative generation but also reduces hallucination.
+- Why: This matters because it tells you how to reason about temperature.
+- Pitfall: Don't answer "Temperature" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: lower temperature reduces creative generation but also reduces hallucination.
 
-**Retrieval recall@5 (fraction of queries where the answer-containing chunk is in the top 5)?** #flashcard
-0.61. This means 39% of queries fail at retrieval.
+### Retrieval recall@5 (fraction of queries where the answer-containing chunk is in the top 5)
+- Direct Answer: 0.61. This means 39% of queries fail at retrieval.
+- Why: This matters because it tells you how to reason about retrieval recall@5 (fraction of queries where the answer-containing chunk is in the top 5).
+- Pitfall: Don't answer "Retrieval recall@5 (fraction of queries where the answer-containing chunk is in the top 5)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 0.61. This means 39% of queries fail at retrieval.
 
-**Of the 61% where retrieval succeeds?** #flashcard
-generation faithfulness (answer consistent with retrieved context) = 0.81. So 19% of successful retrievals still hallucinate.
+### Of the 61% where retrieval succeeds
+- Direct Answer: generation faithfulness (answer consistent with retrieved context) = 0.81. So 19% of successful retrievals still hallucinate.
+- Why: This matters because it tells you how to reason about of the 61% where retrieval succeeds.
+- Pitfall: Don't answer "Of the 61% where retrieval succeeds" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: generation faithfulness (answer consistent with retrieved context) = 0.81. So 19% of successful retrievals still hallucinate.
 
-**Quantization?** #flashcard
-int8 inference reduces memory bandwidth pressure. 2–4× speedup on CPU, 1.5–2× on GPU.
+### Quantization
+- Direct Answer: int8 inference reduces memory bandwidth pressure. 2–4× speedup on CPU, 1.5–2× on GPU.
+- Why: This matters because it tells you how to reason about quantization.
+- Pitfall: Don't answer "Quantization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: int8 inference reduces memory bandwidth pressure. 2–4× speedup on CPU, 1.5–2× on GPU.
 
-**Distillation?** #flashcard
-train a smaller student model (4-layer BERT instead of 12-layer). 3–5× speedup with 2–3% quality loss.
+### Distillation
+- Direct Answer: train a smaller student model (4-layer BERT instead of 12-layer). 3–5× speedup with 2–3% quality loss.
+- Why: This matters because it tells you how to reason about distillation.
+- Pitfall: Don't answer "Distillation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: train a smaller student model (4-layer BERT instead of 12-layer). 3–5× speedup with 2–3% quality loss.
 
-**Pruning?** #flashcard
-remove attention heads or MLP neurons with low gradient norms. Structured pruning gives real speedups; unstructured pruning does not.
+### Pruning
+- Direct Answer: remove attention heads or MLP neurons with low gradient norms. Structured pruning gives real speedups; unstructured pruning does not.
+- Why: This matters because it tells you how to reason about pruning.
+- Pitfall: Don't answer "Pruning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: remove attention heads or MLP neurons with low gradient norms. Structured pruning gives real speedups; unstructured pruning does not.
 
-**ONNX + TensorRT compilation?** #flashcard
-graph optimization and kernel fusion. 1.5–3× improvement without model changes.
+### ONNX + TensorRT compilation
+- Direct Answer: graph optimization and kernel fusion. 1.5–3× improvement without model changes.
+- Why: This matters because it tells you how to reason about onnx + tensorrt compilation.
+- Pitfall: Don't answer "ONNX + TensorRT compilation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: graph optimization and kernel fusion. 1.5–3× improvement without model changes.
 
-**Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).?** #flashcard
-Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).
+### Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).
+- Direct Answer: Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).
+- Why: This matters because it tells you how to reason about precompute user and item embeddings in batch (hourly or daily). online lookup is o(1) instead of o(feature computation)..
+- Pitfall: Don't answer "Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Precompute user and item embeddings in batch (hourly or daily). Online lookup is O(1) instead of O(feature computation).
 
-**Use in-process caching?** #flashcard
-cache recent lookups to avoid repeated Redis calls for the same user within a session.
+### Use in-process caching
+- Direct Answer: cache recent lookups to avoid repeated Redis calls for the same user within a session.
+- Why: This matters because it tells you how to reason about use in-process caching.
+- Pitfall: Don't answer "Use in-process caching" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: cache recent lookups to avoid repeated Redis calls for the same user within a session.
 
-**Two-stage architecture?** #flashcard
-fast ANN retrieval (10–20ms) to get 500 candidates, then a lighter ranker on candidates. The expensive model does not score all items.
+### Two-stage architecture
+- Direct Answer: fast ANN retrieval (10–20ms) to get 500 candidates, then a lighter ranker on candidates. The expensive model does not score all items.
+- Why: This matters because it tells you how to reason about two-stage architecture.
+- Pitfall: Don't answer "Two-stage architecture" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fast ANN retrieval (10–20ms) to get 500 candidates, then a lighter ranker on candidates. The expensive model does not score all items.
 
-**Asynchronous precomputation?** #flashcard
-compute recommendations for users who are likely to visit soon (e.g., users active in the last hour) in background, serve from cache.
+### Asynchronous precomputation
+- Direct Answer: compute recommendations for users who are likely to visit soon (e.g., users active in the last hour) in background, serve from cache.
+- Why: This matters because it tells you how to reason about asynchronous precomputation.
+- Pitfall: Don't answer "Asynchronous precomputation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: compute recommendations for users who are likely to visit soon (e.g., users active in the last hour) in background, serve from cache.
 
-**Onboarding quiz?** #flashcard
-ask the user to rate 5–10 items or select preferred categories. Build a content-based user profile immediately.
+### Onboarding quiz
+- Direct Answer: ask the user to rate 5–10 items or select preferred categories. Build a content-based user profile immediately.
+- Why: This matters because it tells you how to reason about onboarding quiz.
+- Pitfall: Don't answer "Onboarding quiz" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ask the user to rate 5–10 items or select preferred categories. Build a content-based user profile immediately.
 
-**Demographic priors?** #flashcard
-use coarse user attributes (location, device type) to assign a population-level prior. "New users from this region typically engage with X."
+### Demographic priors
+- Direct Answer: use coarse user attributes (location, device type) to assign a population-level prior. "New users from this region typically engage with X."
+- Why: This matters because it tells you how to reason about demographic priors.
+- Pitfall: Don't answer "Demographic priors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: use coarse user attributes (location, device type) to assign a population-level prior. "New users from this region typically engage with X."
 
-**Popularity?** #flashcard
-show globally popular items while personalization data accumulates. Not ideal, but better than random.
+### Popularity
+- Direct Answer: show globally popular items while personalization data accumulates. Not ideal, but better than random.
+- Why: This matters because it tells you how to reason about popularity.
+- Pitfall: Don't answer "Popularity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: show globally popular items while personalization data accumulates. Not ideal, but better than random.
 
-**Content-based similarity?** #flashcard
-embed new items using their metadata (genre, tags, description, cast). Find existing items with similar embeddings. Recommend to users who interacted with those similar items.
+### Content-based similarity
+- Direct Answer: embed new items using their metadata (genre, tags, description, cast). Find existing items with similar embeddings. Recommend to users who interacted with those similar items.
+- Why: This matters because it tells you how to reason about content-based similarity.
+- Pitfall: Don't answer "Content-based similarity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: embed new items using their metadata (genre, tags, description, cast). Find existing items with similar embeddings. Recommend to users who interacted with those similar items.
 
-**Cold start item injection?** #flashcard
-mix a fraction of new items into all users' recommendations. Collect feedback to bootstrap the CF signal.
+### Cold start item injection
+- Direct Answer: mix a fraction of new items into all users' recommendations. Collect feedback to bootstrap the CF signal.
+- Why: This matters because it tells you how to reason about cold start item injection.
+- Pitfall: Don't answer "Cold start item injection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: mix a fraction of new items into all users' recommendations. Collect feedback to bootstrap the CF signal.
 
-**Context-aware popularity?** #flashcard
-a new movie in genre X should be shown to users with strong genre X preference, not to the general population.
+### Context-aware popularity
+- Direct Answer: a new movie in genre X should be shown to users with strong genre X preference, not to the general population.
+- Why: This matters because it tells you how to reason about context-aware popularity.
+- Pitfall: Don't answer "Context-aware popularity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a new movie in genre X should be shown to users with strong genre X preference, not to the general population.
 
-**Run a content-based system initially?** #flashcard
-Run a content-based system initially
+### Run a content-based system initially
+- Direct Answer: Run a content-based system initially
+- Why: This matters because it tells you how to reason about run a content-based system initially.
+- Pitfall: Don't answer "Run a content-based system initially" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Run a content-based system initially
 
-**Track all user interactions with full logging?** #flashcard
-Track all user interactions with full logging
+### Track all user interactions with full logging
+- Direct Answer: Track all user interactions with full logging
+- Why: This matters because it tells you how to reason about track all user interactions with full logging.
+- Pitfall: Don't answer "Track all user interactions with full logging" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Track all user interactions with full logging
 
-**Switch to collaborative filtering after enough signal accumulates?** #flashcard
-Switch to collaborative filtering after enough signal accumulates
+### Switch to collaborative filtering after enough signal accumulates
+- Direct Answer: Switch to collaborative filtering after enough signal accumulates
+- Why: This matters because it tells you how to reason about switch to collaborative filtering after enough signal accumulates.
+- Pitfall: Don't answer "Switch to collaborative filtering after enough signal accumulates" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Switch to collaborative filtering after enough signal accumulates
 
-**Define the transition threshold?** #flashcard
-"when the CF model's offline AUC on held-out interactions exceeds content-based by X%, switch"
+### Define the transition threshold
+- Direct Answer: "when the CF model's offline AUC on held-out interactions exceeds content-based by X%, switch"
+- Why: This matters because it tells you how to reason about define the transition threshold.
+- Pitfall: Don't answer "Define the transition threshold" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "when the CF model's offline AUC on held-out interactions exceeds content-based by X%, switch"
 
-**Data drift?** #flashcard
-P(X) changes. The input distribution shifts. The model may still perform well if P(Y|X) is stable.
+### Data drift
+- Direct Answer: P(X) changes. The input distribution shifts. The model may still perform well if P(Y|X) is stable.
+- Why: This matters because it tells you how to reason about data drift.
+- Pitfall: Don't answer "Data drift" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: P(X) changes. The input distribution shifts. The model may still perform well if P(Y|X) is stable.
 
-**Concept drift?** #flashcard
-P(Y|X) changes. The same input now has a different label. The model's learned function is no longer correct regardless of how the inputs are distributed.
+### Concept drift
+- Direct Answer: P(Y|X) changes. The same input now has a different label. The model's learned function is no longer correct regardless of how the inputs are distributed.
+- Why: This matters because it tells you how to reason about concept drift.
+- Pitfall: Don't answer "Concept drift" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: P(Y|X) changes. The same input now has a different label. The model's learned function is no longer correct regardless of how the inputs are distributed.
 
-**Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.?** #flashcard
-Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.
+### Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.
+- Direct Answer: Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.
+- Why: This matters because it tells you how to reason about data drift can be detected by monitoring input distributions (psi, ks test). no labels required..
+- Pitfall: Don't answer "Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Data drift can be detected by monitoring input distributions (PSI, KS test). No labels required.
 
-**Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.?** #flashcard
-Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.
+### Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.
+- Direct Answer: Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.
+- Why: This matters because it tells you how to reason about concept drift can only be detected by monitoring prediction accuracy. this requires ground truth labels, which often arrive with a delay..
+- Pitfall: Don't answer "Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Concept drift can only be detected by monitoring prediction accuracy. This requires ground truth labels, which often arrive with a delay.
 
-**Monitor prediction distributions?** #flashcard
-if the model's score distribution shifts substantially while input distributions remain stable, the model is responding differently to the same inputs.
+### Monitor prediction distributions
+- Direct Answer: if the model's score distribution shifts substantially while input distributions remain stable, the model is responding differently to the same inputs.
+- Why: This matters because it tells you how to reason about monitor prediction distributions.
+- Pitfall: Don't answer "Monitor prediction distributions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if the model's score distribution shifts substantially while input distributions remain stable, the model is responding differently to the same inputs.
 
-**Proxy signals?** #flashcard
-in fraud, use chargeback rates as a lagged label. In recommendations, use downstream engagement as a label proxy.
+### Proxy signals
+- Direct Answer: in fraud, use chargeback rates as a lagged label. In recommendations, use downstream engagement as a label proxy.
+- Why: This matters because it tells you how to reason about proxy signals.
+- Pitfall: Don't answer "Proxy signals" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: in fraud, use chargeback rates as a lagged label. In recommendations, use downstream engagement as a label proxy.
 
-**Drift detectors?** #flashcard
-ADWIN (Adaptive Windowing) or DDM (Drift Detection Method) on incoming predictions or calibrated errors.
+### Drift detectors
+- Direct Answer: ADWIN (Adaptive Windowing) or DDM (Drift Detection Method) on incoming predictions or calibrated errors.
+- Why: This matters because it tells you how to reason about drift detectors.
+- Pitfall: Don't answer "Drift detectors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ADWIN (Adaptive Windowing) or DDM (Drift Detection Method) on incoming predictions or calibrated errors.
 
-**Interpreting coefficients (regulatory requirements, fairness analysis)?** #flashcard
-Interpreting coefficients (regulatory requirements, fairness analysis)
+### Interpreting coefficients (regulatory requirements, fairness analysis)
+- Direct Answer: Interpreting coefficients (regulatory requirements, fairness analysis)
+- Why: This matters because it tells you how to reason about interpreting coefficients (regulatory requirements, fairness analysis).
+- Pitfall: Don't answer "Interpreting coefficients (regulatory requirements, fairness analysis)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Interpreting coefficients (regulatory requirements, fairness analysis)
 
-**Stable coefficient estimates across different data samples?** #flashcard
-Stable coefficient estimates across different data samples
+### Stable coefficient estimates across different data samples
+- Direct Answer: Stable coefficient estimates across different data samples
+- Why: This matters because it tells you how to reason about stable coefficient estimates across different data samples.
+- Pitfall: Don't answer "Stable coefficient estimates across different data samples" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Stable coefficient estimates across different data samples
 
-**Feature selection based on coefficient magnitude?** #flashcard
-Feature selection based on coefficient magnitude
+### Feature selection based on coefficient magnitude
+- Direct Answer: Feature selection based on coefficient magnitude
+- Why: This matters because it tells you how to reason about feature selection based on coefficient magnitude.
+- Pitfall: Don't answer "Feature selection based on coefficient magnitude" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Feature selection based on coefficient magnitude

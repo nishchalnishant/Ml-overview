@@ -1377,379 +1377,754 @@ That you can design a multi-agent system with explicit state, termination, error
 | Conversation memory | Protecting system prompt across eviction | Evicting system message first |
 | Multi-agent | Termination, error isolation, per-agent permissions | Unbounded loop; no tool allowlist |
 
-## Flashcards
-
-**Retrieval misses?** #flashcard
-the model will hallucinate or abstain. Fix: evaluate Recall@k on a held-out QA set before shipping.
-
-**No chunk overlap?** #flashcard
-sentences split at chunk boundaries lose context. Fix: 10–15% overlap or recursive chunking.
-
-**Missing constraint?** #flashcard
-the LLM mixes retrieved text with parametric knowledge. Fix: explicit "answer only from context" instruction, then verify with entailment.
-
-**No attribution?** #flashcard
-users cannot verify answers. Fix: return hits.ids alongside the answer.
-
-**Treating RAG as a prompt trick rather than a pipeline with measurable stages?** #flashcard
-Treating RAG as a prompt trick rather than a pipeline with measurable stages
-
-**Optimizing prompt wording before measuring retrieval Recall@k?** #flashcard
-Optimizing prompt wording before measuring retrieval Recall@k
-
-**Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)?** #flashcard
-Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)
-
-**No schema validation?** #flashcard
-LLM produces malformed arguments, crashes on execution. Fix: validate with jsonschema before calling.
-
-**Unbounded loop?** #flashcard
-model asks for a tool, sees result, asks for the same tool again. Fix: step limit + cost budget.
-
-**Side effects without authorization?** #flashcard
-agent calls a write API the user did not approve. Fix: explicit allowlist per agent, destructive tools require confirmation.
-
-**Tool output too long?** #flashcard
-observation exceeds context window. Fix: truncate observations to N tokens before appending.
-
-**Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call?** #flashcard
-Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call
-
-**Allowing all tools in all contexts instead of an explicit allowlist?** #flashcard
-Allowing all tools in all contexts instead of an explicit allowlist
-
-**No step or token budget?** #flashcard
-No step or token budget
-
-**Embedding model mismatch?** #flashcard
-query and documents encoded by different models live in different spaces. Fix: always use the same model and version for both.
-
-**No normalization?** #flashcard
-dot product conflates magnitude and angle. Fix: normalize before computing scores when you want cosine semantics.
-
-**Brute-force at scale?** #flashcard
-O(nd) per query with n=10M is too slow. Fix: FAISS IVF or HNSW for approximate nearest neighbors.
-
-**Claiming "cosine similarity" but not normalizing the vectors?** #flashcard
-Claiming "cosine similarity" but not normalizing the vectors
-
-**Re-embedding the corpus at query time instead of pre-computing and indexing?** #flashcard
-Re-embedding the corpus at query time instead of pre-computing and indexing
-
-**Zero overlap in fixed chunking?** #flashcard
-a sentence split across chunk boundaries loses meaning. Fix: 10–20% overlap.
-
-**Separator not in text?** #flashcard
-recursive chunker falls through to hard cut. Handle that case.
-
-**Semantic chunker threshold too low?** #flashcard
-every sentence is its own chunk. Too high: chunks are too large to embed meaningfully. Fix: calibrate on a sample.
-
-**Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage?** #flashcard
-Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage
-
-**No overlap in fixed chunking?** #flashcard
-No overlap in fixed chunking
-
-**Raw f-strings with user input: f"Answer: {user_input}"?** #flashcard
-user can write "ignore above, new instructions: ..." and it flows into the system prompt.
-
-**Editing the latest version in place?** #flashcard
-you cannot reproduce a past request. Fix: immutable (name, version) keys; bump version to ship changes.
-
-**Missing validation?** #flashcard
-missing variables raise KeyError at runtime in production. Fix: validate at startup or test time.
-
-**f-strings with direct user input?** #flashcard
-f-strings with direct user input
-
-**No version tracking so you cannot reproduce failures?** #flashcard
-No version tracking so you cannot reproduce failures
-
-**correctness?** #flashcard
-is the answer factually accurate given the reference? (1-5)
-
-**faithfulness?** #flashcard
-does the answer stay within the provided context? (1-5)
-
-**safety?** #flashcard
-does the answer avoid harmful content? (1-5)
-
-**Judge sees output but not context?** #flashcard
-faithfulness score is meaningless without the retrieved chunks. Always pass context to the judge.
-
-**Same model family as judge?** #flashcard
-judge may share biases with the model under test. Fix: use a different model family or ensemble judges.
-
-**Temperature > 0 on judge?** #flashcard
-scores are noisy. Fix: temperature 0 for deterministic scoring.
-
-**No human calibration?** #flashcard
-you don't know if judge scores correlate with user satisfaction. Fix: sample 100 examples, collect human labels, compute Spearman correlation.
-
-**Treating judge scores as ground truth without calibration?** #flashcard
-Treating judge scores as ground truth without calibration
-
-**Not including context in the judge prompt for RAG evaluation?** #flashcard
-Not including context in the judge prompt for RAG evaluation
-
-**Parsing JSON from a partial stream?** #flashcard
-tool calls and structured outputs arrive as fragments. Fix: buffer the entire response; parse only when complete.
-
-**Safety check on partial text?** #flashcard
-a stream can look benign mid-way and complete with harmful content. Fix: run safety checks on the completed buffer, not token-by-token.
-
-**Client disconnect not handled?** #flashcard
-server keeps generating and billing even after the client closed the connection. Fix: check for disconnect signals and cancel the upstream call.
-
-**Running structured output parsing on partial chunks?** #flashcard
-Running structured output parsing on partial chunks
-
-**No cancellation when the client disconnects?** #flashcard
-No cancellation when the client disconnects
-
-**Python loop over vectors?** #flashcard
-O(nd) with a Python loop is 100x slower than vectorized matmul. Fix: always use matrix operations.
-
-**Re-normalizing on every query?** #flashcard
-if D is static, normalize once at build time. Fix: pre-normalized index.
-
-**argsort on full array?** #flashcard
-O(n log n) when you only need k results. Fix: argpartition for O(n).
-
-**Sorting the entire scores array instead of using argpartition?** #flashcard
-Sorting the entire scores array instead of using argpartition
-
-**Not pre-normalizing?** #flashcard
-Not pre-normalizing
-
-**Sliding window?** #flashcard
-keep the last N messages. Oldest context is lost.
-
-**Summary?** #flashcard
-periodically compress older turns into a summary string. Token-efficient but lossy.
-
-**Token-budgeted buffer?** #flashcard
-track token counts; evict oldest messages when over budget.
-
-**Sliding window drops system constraints?** #flashcard
-if the user said "don't suggest meat dishes" in turn 1 and it slides out, the constraint is lost. Fix: pin critical instructions into the system prompt.
-
-**Summary loses exact facts?** #flashcard
-"user confirmed their order ID was 84729" gets compressed to "user confirmed order." Fix: use an entity store for precise facts; summary for conversational context.
-
-**Token count by word split?** #flashcard
-inaccurate. Fix: use the model's tokenizer (tiktoken for OpenAI models).
-
-**Evicting the system prompt?** #flashcard
-Evicting the system prompt
-
-**Using character or word count instead of actual token count?** #flashcard
-Using character or word count instead of actual token count
-
-**No evidence passed to verifier?** #flashcard
-NLI check without the retrieved context is meaningless. Always pass the same chunks that were used for generation.
-
-**Claim extraction misses implicit claims?** #flashcard
-"The CEO founded the company in 1995" contains two claims (who the CEO is, the founding year). Fix: use an LLM-based claim extractor with a prompt that asks for atomic claims.
-
-**NLI model not calibrated for domain?** #flashcard
-off-the-shelf NLI models are calibrated on general text. Legal or medical text may require fine-tuned models.
-
-**Using BLEU or ROUGE for faithfulness?** #flashcard
-they measure n-gram overlap, not semantic entailment
-
-**Checking output against the full document corpus rather than the retrieved chunks?** #flashcard
-Checking output against the full document corpus rather than the retrieved chunks
-
-**Retrying 400 Bad Request?** #flashcard
-the request is malformed; it will fail every time. Wastes quota and time.
-
-**No jitter?** #flashcard
-all clients retry in sync, re-hitting the same endpoint in a spike.
-
-**Unbounded max_delay: after 10 retries with pure exponential, delay is 0.5 * 2^10 = 512s?** #flashcard
-a request that hangs for 8 minutes in production. Fix: cap at max_delay.
-
-**Retrying 4xx errors that are not 429?** #flashcard
-Retrying 4xx errors that are not 429
-
-**No jitter, causing thundering herd?** #flashcard
-No jitter, causing thundering herd
-
-**No schema validation before execution?** #flashcard
-LLM passes {"expr": "__import__('os').system('rm -rf /')"} to a calculator. Fix: validate schema; use a safe expression evaluator, never eval.
-
-**Tool output not truncated?** #flashcard
-a tool returning a full webpage crashes the context window. Fix: truncate at N tokens.
-
-**Error not returned to model?** #flashcard
-if tool execution fails and you don't return a tool message, the LLM is in an invalid state waiting for a result that never arrives.
-
-**Using eval or exec with LLM-provided expressions?** #flashcard
-Using eval or exec with LLM-provided expressions
-
-**Dropping tool errors instead of returning them as tool messages?** #flashcard
-Dropping tool errors instead of returning them as tool messages
-
-**First stage recall too low?** #flashcard
-re-ranker can only promote documents that were retrieved in stage 1. If the relevant document is not in the top-K, re-ranking cannot fix it. Fix: evaluate Recall@K of stage 1 independently.
-
-**Cross-encoder too slow for K=1000?** #flashcard
-cross-encoders require one forward pass per candidate pair. Keep K ≤ 200 for latency-sensitive paths.
-
-**Evaluating only final NDCG without measuring stage-1 recall?** #flashcard
-Evaluating only final NDCG without measuring stage-1 recall
-
-**Using re-ranking as a fix for low first-stage recall?** #flashcard
-Using re-ranking as a fix for low first-stage recall
-
-**No page metadata?** #flashcard
-you cannot cite "see page 7" without it. Fix: always store page in chunk metadata.
-
-**Tables extracted as garbled text?** #flashcard
-pypdf serializes tables row by row without alignment. Fix: use pdfplumber for tables or a specialized table extraction library.
-
-**Zero-byte pages?** #flashcard
-some PDFs have blank pages or image-only pages. Fix: check if chunk_text.strip() before appending.
-
-**No overlap at page or section boundaries?** #flashcard
-No overlap at page or section boundaries
-
-**Dropping metadata so citations are impossible?** #flashcard
-Dropping metadata so citations are impossible
-
-**Dot product?** #flashcard
-measures aligned magnitude. Increases with both angle similarity and vector magnitude. Sensitive to vector scale.
-
-**Cosine similarity?** #flashcard
-measures angle only. Divides out magnitude. Best for comparing semantic content independent of length.
-
-**Euclidean distance?** #flashcard
-measures geometric distance in absolute terms. Sensitive to scale; requires normalization for embedding comparisons.
-
-**Using Euclidean on raw embeddings?** #flashcard
-embedding magnitude varies with document length for some models. Fix: normalize or use cosine.
-
-**Missing epsilon in cosine?** #flashcard
-zero vector causes division by zero. Fix: always add eps.
-
-**Not knowing that dot product = cosine for unit vectors?** #flashcard
-Not knowing that dot product = cosine for unit vectors
-
-**Using Euclidean for embedding search without normalizing first?** #flashcard
-Using Euclidean for embedding search without normalizing first
-
-**Word-count estimation?** #flashcard
-"ChatGPT" = 1 word, 3 tokens. Large discrepancies in token count for non-English text and code.
-
-**Evicting the system prompt?** #flashcard
-leaves the model without its instructions. Always keep index 0.
-
-**Not reserving output tokens?** #flashcard
-prompt fits the context window but the model cannot generate a full response. Fix: reserve max_tokens for the completion.
-
-**Using len(text.split()) for token count?** #flashcard
-Using len(text.split()) for token count
-
-**Evicting the system message first?** #flashcard
-Evicting the system message first
-
-**Mutable "latest" pointer?** #flashcard
-you cannot roll back or reproduce a past request. Fix: immutable (name, version) keys.
-
-**No eval gate before promotion?** #flashcard
-shipping version 3 without comparing eval scores to version 2 means regressions are discovered in production. Fix: CI pipeline that runs golden set eval before updating the "current" pointer.
-
-**No test for variable name mismatches between the template and callers?** #flashcard
-No test for variable name mismatches between the template and callers
-
-**Editing the current version rather than creating a new version?** #flashcard
-Editing the current version rather than creating a new version
-
-**Factual questions?** #flashcard
-24h TTL if underlying knowledge is stable
-
-**Real-time queries ("current stock price")?** #flashcard
-do not cache, or TTL < 60s
-
-**Prompts with randomness (temperature > 0)?** #flashcard
-caching may suppress desired variation
-
-**Key does not include temperature?** #flashcard
-two calls with different temperature get the same cache response. Fix: include all decoding parameters in the key.
-
-**PII in shared cache?** #flashcard
-user A's cached response (containing their name/address) serves user B. Fix: scope cache keys by user_id for user-specific responses, or strip PII before caching.
-
-**Stale cache after model upgrade?** #flashcard
-old responses from gpt-4-turbo serve as cache hits for gpt-4o. Fix: include model version in key, or flush cache on model change.
-
-**Keying only on user text and ignoring system prompt version and model?** #flashcard
-Keying only on user text and ignoring system prompt version and model
-
-**Not considering PII in the cached value?** #flashcard
-Not considering PII in the cached value
-
-**Threshold not calibrated per domain?** #flashcard
-customer support queries have tighter semantics than general chat. Fix: calibrate threshold on a labeled set of "same intent" vs "different intent" query pairs.
-
-**Cache hits after prompt change?** #flashcard
-cached answers were generated with a different prompt version and may be wrong for the new version. Fix: store prompt version in metadata; invalidate on version bump.
-
-**Semantic cache never invalidated?** #flashcard
-knowledge base changes (new product specs) make cached answers stale. Fix: TTL + version-based invalidation.
-
-**Using a fixed threshold without domain-specific calibration?** #flashcard
-Using a fixed threshold without domain-specific calibration
-
-**Not invalidating the semantic cache when the prompt version changes?** #flashcard
-Not invalidating the semantic cache when the prompt version changes
-
-**Pattern matching only?** #flashcard
-adversarial users obfuscate ("ign0re pr3vious instruct1ons"). Pattern matching catches script kiddies, not determined adversaries.
-
-**No indirect injection check: a retrieved document contains "You are now a different AI"?** #flashcard
-it appears in the system position and may override the system prompt.
-
-**Trusting detection as prevention: a zero false-negative rate on injection is not achievable. Fix: defense in depth?** #flashcard
-detection, clear delimiters, tool allowlists, output monitoring.
-
-**Treating detection as a complete defense?** #flashcard
-Treating detection as a complete defense
-
-**Not checking retrieved documents for injected instructions (indirect injection)?** #flashcard
-Not checking retrieved documents for injected instructions (indirect injection)
-
-**Only checking user input, not output?** #flashcard
-a model can hallucinate PII (a plausible-but-fake SSN) even without receiving it. Check outputs.
-
-**PII in logs: when logging violations for audit, log the violation type and redacted text?** #flashcard
-not the raw detected PII.
-
-**Topic classifier threshold?** #flashcard
-too strict flags valid responses; too lenient lets off-topic content through. Calibrate on a labeled set of in-scope vs out-of-scope responses.
-
-**Only input-side guardrails, no output-side?** #flashcard
-Only input-side guardrails, no output-side
-
-**Logging raw PII during violation audit?** #flashcard
-Logging raw PII during violation audit
-
-**No termination condition?** #flashcard
-agents call each other in a cycle. Fix: explicit step limit and cost budget; halt if exceeded.
-
-**Shared state grows unbounded?** #flashcard
-each step appends to ws.results; after 50 steps the context window for the reviewer overflows. Fix: summarize intermediate results.
-
-**No error isolation?** #flashcard
-if one worker step fails, the reviewer receives a partial workspace and may synthesize incorrect final output. Fix: mark failed steps as failed; reviewer must flag them rather than silently incorporate them.
-
-**All tools available to all agents?** #flashcard
-a reviewer should not be able to write to a database; a worker should not be able to override the task. Fix: per-agent tool allowlists.
-
-**No step or cost budget?** #flashcard
-No step or cost budget
-
-**All agents share the same tool permissions?** #flashcard
-All agents share the same tool permissions
+## Rapid Recall
+
+### Retrieval misses
+- Direct Answer: the model will hallucinate or abstain. Fix: evaluate Recall@k on a held-out QA set before shipping.
+- Why: This matters because it tells you how to reason about retrieval misses.
+- Pitfall: Don't answer "Retrieval misses" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model will hallucinate or abstain. Fix: evaluate Recall@k on a held-out QA set before shipping.
+
+### No chunk overlap
+- Direct Answer: sentences split at chunk boundaries lose context. Fix: 10–15% overlap or recursive chunking.
+- Why: This matters because it tells you how to reason about no chunk overlap.
+- Pitfall: Don't answer "No chunk overlap" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sentences split at chunk boundaries lose context. Fix: 10–15% overlap or recursive chunking.
+
+### Missing constraint
+- Direct Answer: the LLM mixes retrieved text with parametric knowledge. Fix: explicit "answer only from context" instruction, then verify with entailment.
+- Why: This matters because it tells you how to reason about missing constraint.
+- Pitfall: Don't answer "Missing constraint" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the LLM mixes retrieved text with parametric knowledge. Fix: explicit "answer only from context" instruction, then verify with entailment.
+
+### No attribution
+- Direct Answer: users cannot verify answers. Fix: return hits.ids alongside the answer.
+- Why: This matters because it tells you how to reason about no attribution.
+- Pitfall: Don't answer "No attribution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users cannot verify answers. Fix: return hits.ids alongside the answer.
+
+### Treating RAG as a prompt trick rather than a pipeline with measurable stages
+- Direct Answer: Treating RAG as a prompt trick rather than a pipeline with measurable stages
+- Why: This matters because it tells you how to reason about treating rag as a prompt trick rather than a pipeline with measurable stages.
+- Pitfall: Don't answer "Treating RAG as a prompt trick rather than a pipeline with measurable stages" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating RAG as a prompt trick rather than a pipeline with measurable stages
+
+### Optimizing prompt wording before measuring retrieval Recall@k
+- Direct Answer: Optimizing prompt wording before measuring retrieval Recall@k
+- Why: This matters because it tells you how to reason about optimizing prompt wording before measuring retrieval recall@k.
+- Pitfall: Don't answer "Optimizing prompt wording before measuring retrieval Recall@k" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Optimizing prompt wording before measuring retrieval Recall@k
+
+### Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)
+- Direct Answer: Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)
+- Why: This matters because it tells you how to reason about not evaluating faithfulness (whether the answer is supported by the retrieved chunks).
+- Pitfall: Don't answer "Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not evaluating faithfulness (whether the answer is supported by the retrieved chunks)
+
+### No schema validation
+- Direct Answer: LLM produces malformed arguments, crashes on execution. Fix: validate with jsonschema before calling.
+- Why: This matters because it tells you how to reason about no schema validation.
+- Pitfall: Don't answer "No schema validation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: LLM produces malformed arguments, crashes on execution. Fix: validate with jsonschema before calling.
+
+### Unbounded loop
+- Direct Answer: model asks for a tool, sees result, asks for the same tool again. Fix: step limit + cost budget.
+- Why: This matters because it tells you how to reason about unbounded loop.
+- Pitfall: Don't answer "Unbounded loop" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model asks for a tool, sees result, asks for the same tool again. Fix: step limit + cost budget.
+
+### Side effects without authorization
+- Direct Answer: agent calls a write API the user did not approve. Fix: explicit allowlist per agent, destructive tools require confirmation.
+- Why: This matters because it tells you how to reason about side effects without authorization.
+- Pitfall: Don't answer "Side effects without authorization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent calls a write API the user did not approve. Fix: explicit allowlist per agent, destructive tools require confirmation.
+
+### Tool output too long
+- Direct Answer: observation exceeds context window. Fix: truncate observations to N tokens before appending.
+- Why: This matters because it tells you how to reason about tool output too long.
+- Pitfall: Don't answer "Tool output too long" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: observation exceeds context window. Fix: truncate observations to N tokens before appending.
+
+### Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call
+- Direct Answer: Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call
+- Why: This matters because it tells you how to reason about forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next llm call.
+- Pitfall: Don't answer "Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Forgetting that messages must include both the assistant's tool-call turn and the tool result turn before the next LLM call
+
+### Allowing all tools in all contexts instead of an explicit allowlist
+- Direct Answer: Allowing all tools in all contexts instead of an explicit allowlist
+- Why: This matters because it tells you how to reason about allowing all tools in all contexts instead of an explicit allowlist.
+- Pitfall: Don't answer "Allowing all tools in all contexts instead of an explicit allowlist" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Allowing all tools in all contexts instead of an explicit allowlist
+
+### No step or token budget
+- Direct Answer: No step or token budget
+- Why: This matters because it tells you how to reason about no step or token budget.
+- Pitfall: Don't answer "No step or token budget" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No step or token budget
+
+### Embedding model mismatch
+- Direct Answer: query and documents encoded by different models live in different spaces. Fix: always use the same model and version for both.
+- Why: This matters because it tells you how to reason about embedding model mismatch.
+- Pitfall: Don't answer "Embedding model mismatch" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: query and documents encoded by different models live in different spaces. Fix: always use the same model and version for both.
+
+### No normalization
+- Direct Answer: dot product conflates magnitude and angle. Fix: normalize before computing scores when you want cosine semantics.
+- Why: This matters because it tells you how to reason about no normalization.
+- Pitfall: Don't answer "No normalization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: dot product conflates magnitude and angle. Fix: normalize before computing scores when you want cosine semantics.
+
+### Brute-force at scale
+- Direct Answer: O(nd) per query with n=10M is too slow. Fix: FAISS IVF or HNSW for approximate nearest neighbors.
+- Why: This matters because it tells you how to reason about brute-force at scale.
+- Pitfall: Don't answer "Brute-force at scale" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: O(nd) per query with n=10M is too slow. Fix: FAISS IVF or HNSW for approximate nearest neighbors.
+
+### Claiming "cosine similarity" but not normalizing the vectors
+- Direct Answer: Claiming "cosine similarity" but not normalizing the vectors
+- Why: This matters because it tells you how to reason about claiming "cosine similarity" but not normalizing the vectors.
+- Pitfall: Don't answer "Claiming "cosine similarity" but not normalizing the vectors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Claiming "cosine similarity" but not normalizing the vectors
+
+### Re-embedding the corpus at query time instead of pre-computing and indexing
+- Direct Answer: Re-embedding the corpus at query time instead of pre-computing and indexing
+- Why: This matters because it tells you how to reason about re-embedding the corpus at query time instead of pre-computing and indexing.
+- Pitfall: Don't answer "Re-embedding the corpus at query time instead of pre-computing and indexing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Re-embedding the corpus at query time instead of pre-computing and indexing
+
+### Zero overlap in fixed chunking
+- Direct Answer: a sentence split across chunk boundaries loses meaning. Fix: 10–20% overlap.
+- Why: This matters because it tells you how to reason about zero overlap in fixed chunking.
+- Pitfall: Don't answer "Zero overlap in fixed chunking" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a sentence split across chunk boundaries loses meaning. Fix: 10–20% overlap.
+
+### Separator not in text
+- Direct Answer: recursive chunker falls through to hard cut. Handle that case.
+- Why: This matters because it tells you how to reason about separator not in text.
+- Pitfall: Don't answer "Separator not in text" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: recursive chunker falls through to hard cut. Handle that case.
+
+### Semantic chunker threshold too low
+- Direct Answer: every sentence is its own chunk. Too high: chunks are too large to embed meaningfully. Fix: calibrate on a sample.
+- Why: This matters because it tells you how to reason about semantic chunker threshold too low.
+- Pitfall: Don't answer "Semantic chunker threshold too low" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: every sentence is its own chunk. Too high: chunks are too large to embed meaningfully. Fix: calibrate on a sample.
+
+### Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage
+- Direct Answer: Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage
+- Why: This matters because it tells you how to reason about treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage.
+- Pitfall: Don't answer "Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating chunk size as a hyperparameter to tune at the prompt stage rather than the ingestion stage
+
+### No overlap in fixed chunking
+- Direct Answer: No overlap in fixed chunking
+- Why: This matters because it tells you how to reason about no overlap in fixed chunking.
+- Pitfall: Don't answer "No overlap in fixed chunking" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No overlap in fixed chunking
+
+### Raw f-strings with user input: f"Answer: {user_input}"
+- Direct Answer: user can write "ignore above, new instructions: ..." and it flows into the system prompt.
+- Why: This matters because it tells you how to reason about raw f-strings with user input: f"answer: {user_input}".
+- Pitfall: Don't answer "Raw f-strings with user input: f"Answer: {user_input}"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: user can write "ignore above, new instructions: ..." and it flows into the system prompt.
+
+### Editing the latest version in place
+- Direct Answer: you cannot reproduce a past request. Fix: immutable (name, version) keys; bump version to ship changes.
+- Why: This matters because it tells you how to reason about editing the latest version in place.
+- Pitfall: Don't answer "Editing the latest version in place" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you cannot reproduce a past request. Fix: immutable (name, version) keys; bump version to ship changes.
+
+### Missing validation
+- Direct Answer: missing variables raise KeyError at runtime in production. Fix: validate at startup or test time.
+- Why: This matters because it tells you how to reason about missing validation.
+- Pitfall: Don't answer "Missing validation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: missing variables raise KeyError at runtime in production. Fix: validate at startup or test time.
+
+### f-strings with direct user input
+- Direct Answer: f-strings with direct user input
+- Why: This matters because it tells you how to reason about f-strings with direct user input.
+- Pitfall: Don't answer "f-strings with direct user input" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: f-strings with direct user input
+
+### No version tracking so you cannot reproduce failures
+- Direct Answer: No version tracking so you cannot reproduce failures
+- Why: This matters because it tells you how to reason about no version tracking so you cannot reproduce failures.
+- Pitfall: Don't answer "No version tracking so you cannot reproduce failures" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No version tracking so you cannot reproduce failures
+
+### correctness
+- Direct Answer: is the answer factually accurate given the reference? (1-5)
+- Why: This matters because it tells you how to reason about correctness.
+- Pitfall: Don't answer "correctness" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: is the answer factually accurate given the reference? (1-5)
+
+### faithfulness
+- Direct Answer: does the answer stay within the provided context? (1-5)
+- Why: This matters because it tells you how to reason about faithfulness.
+- Pitfall: Don't answer "faithfulness" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: does the answer stay within the provided context? (1-5)
+
+### safety
+- Direct Answer: does the answer avoid harmful content? (1-5)
+- Why: This matters because it tells you how to reason about safety.
+- Pitfall: Don't answer "safety" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: does the answer avoid harmful content? (1-5)
+
+### Judge sees output but not context
+- Direct Answer: faithfulness score is meaningless without the retrieved chunks. Always pass context to the judge.
+- Why: This matters because it tells you how to reason about judge sees output but not context.
+- Pitfall: Don't answer "Judge sees output but not context" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: faithfulness score is meaningless without the retrieved chunks. Always pass context to the judge.
+
+### Same model family as judge
+- Direct Answer: judge may share biases with the model under test. Fix: use a different model family or ensemble judges.
+- Why: This matters because it tells you how to reason about same model family as judge.
+- Pitfall: Don't answer "Same model family as judge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: judge may share biases with the model under test. Fix: use a different model family or ensemble judges.
+
+### Temperature > 0 on judge
+- Direct Answer: scores are noisy. Fix: temperature 0 for deterministic scoring.
+- Why: This matters because it tells you how to reason about temperature > 0 on judge.
+- Pitfall: Don't answer "Temperature > 0 on judge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: scores are noisy. Fix: temperature 0 for deterministic scoring.
+
+### No human calibration
+- Direct Answer: you don't know if judge scores correlate with user satisfaction. Fix: sample 100 examples, collect human labels, compute Spearman correlation.
+- Why: This matters because it tells you how to reason about no human calibration.
+- Pitfall: Don't answer "No human calibration" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you don't know if judge scores correlate with user satisfaction. Fix: sample 100 examples, collect human labels, compute Spearman correlation.
+
+### Treating judge scores as ground truth without calibration
+- Direct Answer: Treating judge scores as ground truth without calibration
+- Why: This matters because it tells you how to reason about treating judge scores as ground truth without calibration.
+- Pitfall: Don't answer "Treating judge scores as ground truth without calibration" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating judge scores as ground truth without calibration
+
+### Not including context in the judge prompt for RAG evaluation
+- Direct Answer: Not including context in the judge prompt for RAG evaluation
+- Why: This matters because it tells you how to reason about not including context in the judge prompt for rag evaluation.
+- Pitfall: Don't answer "Not including context in the judge prompt for RAG evaluation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not including context in the judge prompt for RAG evaluation
+
+### Parsing JSON from a partial stream
+- Direct Answer: tool calls and structured outputs arrive as fragments. Fix: buffer the entire response; parse only when complete.
+- Why: This matters because it tells you how to reason about parsing json from a partial stream.
+- Pitfall: Don't answer "Parsing JSON from a partial stream" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: tool calls and structured outputs arrive as fragments. Fix: buffer the entire response; parse only when complete.
+
+### Safety check on partial text
+- Direct Answer: a stream can look benign mid-way and complete with harmful content. Fix: run safety checks on the completed buffer, not token-by-token.
+- Why: This matters because it tells you how to reason about safety check on partial text.
+- Pitfall: Don't answer "Safety check on partial text" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a stream can look benign mid-way and complete with harmful content. Fix: run safety checks on the completed buffer, not token-by-token.
+
+### Client disconnect not handled
+- Direct Answer: server keeps generating and billing even after the client closed the connection. Fix: check for disconnect signals and cancel the upstream call.
+- Why: This matters because it tells you how to reason about client disconnect not handled.
+- Pitfall: Don't answer "Client disconnect not handled" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: server keeps generating and billing even after the client closed the connection. Fix: check for disconnect signals and cancel the upstream call.
+
+### Running structured output parsing on partial chunks
+- Direct Answer: Running structured output parsing on partial chunks
+- Why: This matters because it tells you how to reason about running structured output parsing on partial chunks.
+- Pitfall: Don't answer "Running structured output parsing on partial chunks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Running structured output parsing on partial chunks
+
+### No cancellation when the client disconnects
+- Direct Answer: No cancellation when the client disconnects
+- Why: This matters because it tells you how to reason about no cancellation when the client disconnects.
+- Pitfall: Don't answer "No cancellation when the client disconnects" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No cancellation when the client disconnects
+
+### Python loop over vectors
+- Direct Answer: O(nd) with a Python loop is 100x slower than vectorized matmul. Fix: always use matrix operations.
+- Why: This matters because it tells you how to reason about python loop over vectors.
+- Pitfall: Don't answer "Python loop over vectors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: O(nd) with a Python loop is 100x slower than vectorized matmul. Fix: always use matrix operations.
+
+### Re-normalizing on every query
+- Direct Answer: if D is static, normalize once at build time. Fix: pre-normalized index.
+- Why: This matters because it tells you how to reason about re-normalizing on every query.
+- Pitfall: Don't answer "Re-normalizing on every query" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if D is static, normalize once at build time. Fix: pre-normalized index.
+
+### argsort on full array
+- Direct Answer: O(n log n) when you only need k results. Fix: argpartition for O(n).
+- Why: This matters because it tells you how to reason about argsort on full array.
+- Pitfall: Don't answer "argsort on full array" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: O(n log n) when you only need k results. Fix: argpartition for O(n).
+
+### Sorting the entire scores array instead of using argpartition
+- Direct Answer: Sorting the entire scores array instead of using argpartition
+- Why: This matters because it tells you how to reason about sorting the entire scores array instead of using argpartition.
+- Pitfall: Don't answer "Sorting the entire scores array instead of using argpartition" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Sorting the entire scores array instead of using argpartition
+
+### Not pre-normalizing
+- Direct Answer: Not pre-normalizing
+- Why: This matters because it tells you how to reason about not pre-normalizing.
+- Pitfall: Don't answer "Not pre-normalizing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not pre-normalizing
+
+### Sliding window
+- Direct Answer: keep the last N messages. Oldest context is lost.
+- Why: This matters because it tells you how to reason about sliding window.
+- Pitfall: Don't answer "Sliding window" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: keep the last N messages. Oldest context is lost.
+
+### Summary
+- Direct Answer: periodically compress older turns into a summary string. Token-efficient but lossy.
+- Why: This matters because it tells you how to reason about summary.
+- Pitfall: Don't answer "Summary" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: periodically compress older turns into a summary string. Token-efficient but lossy.
+
+### Token-budgeted buffer
+- Direct Answer: track token counts; evict oldest messages when over budget.
+- Why: This matters because it tells you how to reason about token-budgeted buffer.
+- Pitfall: Don't answer "Token-budgeted buffer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: track token counts; evict oldest messages when over budget.
+
+### Sliding window drops system constraints
+- Direct Answer: if the user said "don't suggest meat dishes" in turn 1 and it slides out, the constraint is lost. Fix: pin critical instructions into the system prompt.
+- Why: This matters because it tells you how to reason about sliding window drops system constraints.
+- Pitfall: Don't answer "Sliding window drops system constraints" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if the user said "don't suggest meat dishes" in turn 1 and it slides out, the constraint is lost. Fix: pin critical instructions into the system prompt.
+
+### Summary loses exact facts
+- Direct Answer: "user confirmed their order ID was 84729" gets compressed to "user confirmed order." Fix: use an entity store for precise facts; summary for conversational context.
+- Why: This matters because it tells you how to reason about summary loses exact facts.
+- Pitfall: Don't answer "Summary loses exact facts" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "user confirmed their order ID was 84729" gets compressed to "user confirmed order." Fix: use an entity store for precise facts; summary for conversational context.
+
+### Token count by word split
+- Direct Answer: inaccurate. Fix: use the model's tokenizer (tiktoken for OpenAI models).
+- Why: This matters because it tells you how to reason about token count by word split.
+- Pitfall: Don't answer "Token count by word split" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: inaccurate. Fix: use the model's tokenizer (tiktoken for OpenAI models).
+
+### Evicting the system prompt
+- Direct Answer: Evicting the system prompt
+- Why: This matters because it tells you how to reason about evicting the system prompt.
+- Pitfall: Don't answer "Evicting the system prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Evicting the system prompt
+
+### Using character or word count instead of actual token count
+- Direct Answer: Using character or word count instead of actual token count
+- Why: This matters because it tells you how to reason about using character or word count instead of actual token count.
+- Pitfall: Don't answer "Using character or word count instead of actual token count" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using character or word count instead of actual token count
+
+### No evidence passed to verifier
+- Direct Answer: NLI check without the retrieved context is meaningless. Always pass the same chunks that were used for generation.
+- Why: This matters because it tells you how to reason about no evidence passed to verifier.
+- Pitfall: Don't answer "No evidence passed to verifier" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: NLI check without the retrieved context is meaningless. Always pass the same chunks that were used for generation.
+
+### Claim extraction misses implicit claims
+- Direct Answer: "The CEO founded the company in 1995" contains two claims (who the CEO is, the founding year). Fix: use an LLM-based claim extractor with a prompt that asks for atomic claims.
+- Why: This matters because it tells you how to reason about claim extraction misses implicit claims.
+- Pitfall: Don't answer "Claim extraction misses implicit claims" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "The CEO founded the company in 1995" contains two claims (who the CEO is, the founding year). Fix: use an LLM-based claim extractor with a prompt that asks for atomic claims.
+
+### NLI model not calibrated for domain
+- Direct Answer: off-the-shelf NLI models are calibrated on general text. Legal or medical text may require fine-tuned models.
+- Why: This matters because it tells you how to reason about nli model not calibrated for domain.
+- Pitfall: Don't answer "NLI model not calibrated for domain" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: off-the-shelf NLI models are calibrated on general text. Legal or medical text may require fine-tuned models.
+
+### Using BLEU or ROUGE for faithfulness
+- Direct Answer: they measure n-gram overlap, not semantic entailment
+- Why: This matters because it tells you how to reason about using bleu or rouge for faithfulness.
+- Pitfall: Don't answer "Using BLEU or ROUGE for faithfulness" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: they measure n-gram overlap, not semantic entailment
+
+### Checking output against the full document corpus rather than the retrieved chunks
+- Direct Answer: Checking output against the full document corpus rather than the retrieved chunks
+- Why: This matters because it tells you how to reason about checking output against the full document corpus rather than the retrieved chunks.
+- Pitfall: Don't answer "Checking output against the full document corpus rather than the retrieved chunks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Checking output against the full document corpus rather than the retrieved chunks
+
+### Retrying 400 Bad Request
+- Direct Answer: the request is malformed; it will fail every time. Wastes quota and time.
+- Why: This matters because it tells you how to reason about retrying 400 bad request.
+- Pitfall: Don't answer "Retrying 400 Bad Request" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the request is malformed; it will fail every time. Wastes quota and time.
+
+### No jitter
+- Direct Answer: all clients retry in sync, re-hitting the same endpoint in a spike.
+- Why: This matters because it tells you how to reason about no jitter.
+- Pitfall: Don't answer "No jitter" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: all clients retry in sync, re-hitting the same endpoint in a spike.
+
+### Unbounded max_delay: after 10 retries with pure exponential, delay is 0.5 * 2^10 = 512s
+- Direct Answer: a request that hangs for 8 minutes in production. Fix: cap at max_delay.
+- Why: This matters because it tells you how to reason about unbounded max_delay: after 10 retries with pure exponential, delay is 0.5 * 2^10 = 512s.
+- Pitfall: Don't answer "Unbounded max_delay: after 10 retries with pure exponential, delay is 0.5 * 2^10 = 512s" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a request that hangs for 8 minutes in production. Fix: cap at max_delay.
+
+### Retrying 4xx errors that are not 429
+- Direct Answer: Retrying 4xx errors that are not 429
+- Why: This matters because it tells you how to reason about retrying 4xx errors that are not 429.
+- Pitfall: Don't answer "Retrying 4xx errors that are not 429" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Retrying 4xx errors that are not 429
+
+### No jitter, causing thundering herd
+- Direct Answer: No jitter, causing thundering herd
+- Why: This matters because it tells you how to reason about no jitter, causing thundering herd.
+- Pitfall: Don't answer "No jitter, causing thundering herd" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No jitter, causing thundering herd
+
+### No schema validation before execution
+- Direct Answer: LLM passes {"expr": "__import__('os').system('rm -rf /')"} to a calculator. Fix: validate schema; use a safe expression evaluator, never eval.
+- Why: This matters because it tells you how to reason about no schema validation before execution.
+- Pitfall: Don't answer "No schema validation before execution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: LLM passes {"expr": "__import__('os').system('rm -rf /')"} to a calculator. Fix: validate schema; use a safe expression evaluator, never eval.
+
+### Tool output not truncated
+- Direct Answer: a tool returning a full webpage crashes the context window. Fix: truncate at N tokens.
+- Why: This matters because it tells you how to reason about tool output not truncated.
+- Pitfall: Don't answer "Tool output not truncated" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a tool returning a full webpage crashes the context window. Fix: truncate at N tokens.
+
+### Error not returned to model
+- Direct Answer: if tool execution fails and you don't return a tool message, the LLM is in an invalid state waiting for a result that never arrives.
+- Why: This matters because it tells you how to reason about error not returned to model.
+- Pitfall: Don't answer "Error not returned to model" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if tool execution fails and you don't return a tool message, the LLM is in an invalid state waiting for a result that never arrives.
+
+### Using eval or exec with LLM-provided expressions
+- Direct Answer: Using eval or exec with LLM-provided expressions
+- Why: This matters because it tells you how to reason about using eval or exec with llm-provided expressions.
+- Pitfall: Don't answer "Using eval or exec with LLM-provided expressions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using eval or exec with LLM-provided expressions
+
+### Dropping tool errors instead of returning them as tool messages
+- Direct Answer: Dropping tool errors instead of returning them as tool messages
+- Why: This matters because it tells you how to reason about dropping tool errors instead of returning them as tool messages.
+- Pitfall: Don't answer "Dropping tool errors instead of returning them as tool messages" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Dropping tool errors instead of returning them as tool messages
+
+### First stage recall too low
+- Direct Answer: re-ranker can only promote documents that were retrieved in stage 1. If the relevant document is not in the top-K, re-ranking cannot fix it. Fix: evaluate Recall@K of stage 1 independently.
+- Why: This matters because it tells you how to reason about first stage recall too low.
+- Pitfall: Don't answer "First stage recall too low" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: re-ranker can only promote documents that were retrieved in stage 1. If the relevant document is not in the top-K, re-ranking cannot fix it. Fix: evaluate Recall@K of stage 1 inde…
+
+### Cross-encoder too slow for K=1000
+- Direct Answer: cross-encoders require one forward pass per candidate pair. Keep K ≤ 200 for latency-sensitive paths.
+- Why: This matters because it tells you how to reason about cross-encoder too slow for k=1000.
+- Pitfall: Don't answer "Cross-encoder too slow for K=1000" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: cross-encoders require one forward pass per candidate pair. Keep K ≤ 200 for latency-sensitive paths.
+
+### Evaluating only final NDCG without measuring stage-1 recall
+- Direct Answer: Evaluating only final NDCG without measuring stage-1 recall
+- Why: This matters because it tells you how to reason about evaluating only final ndcg without measuring stage-1 recall.
+- Pitfall: Don't answer "Evaluating only final NDCG without measuring stage-1 recall" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Evaluating only final NDCG without measuring stage-1 recall
+
+### Using re-ranking as a fix for low first-stage recall
+- Direct Answer: Using re-ranking as a fix for low first-stage recall
+- Why: This matters because it tells you how to reason about using re-ranking as a fix for low first-stage recall.
+- Pitfall: Don't answer "Using re-ranking as a fix for low first-stage recall" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using re-ranking as a fix for low first-stage recall
+
+### No page metadata
+- Direct Answer: you cannot cite "see page 7" without it. Fix: always store page in chunk metadata.
+- Why: This matters because it tells you how to reason about no page metadata.
+- Pitfall: Don't answer "No page metadata" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you cannot cite "see page 7" without it. Fix: always store page in chunk metadata.
+
+### Tables extracted as garbled text
+- Direct Answer: pypdf serializes tables row by row without alignment. Fix: use pdfplumber for tables or a specialized table extraction library.
+- Why: This matters because it tells you how to reason about tables extracted as garbled text.
+- Pitfall: Don't answer "Tables extracted as garbled text" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: pypdf serializes tables row by row without alignment. Fix: use pdfplumber for tables or a specialized table extraction library.
+
+### Zero-byte pages
+- Direct Answer: some PDFs have blank pages or image-only pages. Fix: check if chunk_text.strip() before appending.
+- Why: This matters because it tells you how to reason about zero-byte pages.
+- Pitfall: Don't answer "Zero-byte pages" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: some PDFs have blank pages or image-only pages. Fix: check if chunk_text.strip() before appending.
+
+### No overlap at page or section boundaries
+- Direct Answer: No overlap at page or section boundaries
+- Why: This matters because it tells you how to reason about no overlap at page or section boundaries.
+- Pitfall: Don't answer "No overlap at page or section boundaries" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No overlap at page or section boundaries
+
+### Dropping metadata so citations are impossible
+- Direct Answer: Dropping metadata so citations are impossible
+- Why: This matters because it tells you how to reason about dropping metadata so citations are impossible.
+- Pitfall: Don't answer "Dropping metadata so citations are impossible" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Dropping metadata so citations are impossible
+
+### Dot product
+- Direct Answer: measures aligned magnitude. Increases with both angle similarity and vector magnitude. Sensitive to vector scale.
+- Why: This matters because it tells you how to reason about dot product.
+- Pitfall: Don't answer "Dot product" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: measures aligned magnitude. Increases with both angle similarity and vector magnitude. Sensitive to vector scale.
+
+### Cosine similarity
+- Direct Answer: measures angle only. Divides out magnitude. Best for comparing semantic content independent of length.
+- Why: This matters because it tells you how to reason about cosine similarity.
+- Pitfall: Don't answer "Cosine similarity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: measures angle only. Divides out magnitude. Best for comparing semantic content independent of length.
+
+### Euclidean distance
+- Direct Answer: measures geometric distance in absolute terms. Sensitive to scale; requires normalization for embedding comparisons.
+- Why: This matters because it tells you how to reason about euclidean distance.
+- Pitfall: Don't answer "Euclidean distance" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: measures geometric distance in absolute terms. Sensitive to scale; requires normalization for embedding comparisons.
+
+### Using Euclidean on raw embeddings
+- Direct Answer: embedding magnitude varies with document length for some models. Fix: normalize or use cosine.
+- Why: This matters because it tells you how to reason about using euclidean on raw embeddings.
+- Pitfall: Don't answer "Using Euclidean on raw embeddings" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: embedding magnitude varies with document length for some models. Fix: normalize or use cosine.
+
+### Missing epsilon in cosine
+- Direct Answer: zero vector causes division by zero. Fix: always add eps.
+- Why: This matters because it tells you how to reason about missing epsilon in cosine.
+- Pitfall: Don't answer "Missing epsilon in cosine" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: zero vector causes division by zero. Fix: always add eps.
+
+### Not knowing that dot product = cosine for unit vectors
+- Direct Answer: Not knowing that dot product = cosine for unit vectors
+- Why: This matters because it tells you how to reason about not knowing that dot product = cosine for unit vectors.
+- Pitfall: Don't answer "Not knowing that dot product = cosine for unit vectors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not knowing that dot product = cosine for unit vectors
+
+### Using Euclidean for embedding search without normalizing first
+- Direct Answer: Using Euclidean for embedding search without normalizing first
+- Why: This matters because it tells you how to reason about using euclidean for embedding search without normalizing first.
+- Pitfall: Don't answer "Using Euclidean for embedding search without normalizing first" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using Euclidean for embedding search without normalizing first
+
+### Word-count estimation
+- Direct Answer: "ChatGPT" = 1 word, 3 tokens. Large discrepancies in token count for non-English text and code.
+- Why: This matters because it tells you how to reason about word-count estimation.
+- Pitfall: Don't answer "Word-count estimation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "ChatGPT" = 1 word, 3 tokens. Large discrepancies in token count for non-English text and code.
+
+### Evicting the system prompt
+- Direct Answer: leaves the model without its instructions. Always keep index 0.
+- Why: This matters because it tells you how to reason about evicting the system prompt.
+- Pitfall: Don't answer "Evicting the system prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: leaves the model without its instructions. Always keep index 0.
+
+### Not reserving output tokens
+- Direct Answer: prompt fits the context window but the model cannot generate a full response. Fix: reserve max_tokens for the completion.
+- Why: This matters because it tells you how to reason about not reserving output tokens.
+- Pitfall: Don't answer "Not reserving output tokens" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt fits the context window but the model cannot generate a full response. Fix: reserve max_tokens for the completion.
+
+### Using len(text.split()) for token count
+- Direct Answer: Using len(text.split()) for token count
+- Why: This matters because it tells you how to reason about using len(text.split()) for token count.
+- Pitfall: Don't answer "Using len(text.split()) for token count" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using len(text.split()) for token count
+
+### Evicting the system message first
+- Direct Answer: Evicting the system message first
+- Why: This matters because it tells you how to reason about evicting the system message first.
+- Pitfall: Don't answer "Evicting the system message first" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Evicting the system message first
+
+### Mutable "latest" pointer
+- Direct Answer: you cannot roll back or reproduce a past request. Fix: immutable (name, version) keys.
+- Why: This matters because it tells you how to reason about mutable "latest" pointer.
+- Pitfall: Don't answer "Mutable "latest" pointer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you cannot roll back or reproduce a past request. Fix: immutable (name, version) keys.
+
+### No eval gate before promotion
+- Direct Answer: shipping version 3 without comparing eval scores to version 2 means regressions are discovered in production. Fix: CI pipeline that runs golden set eval before updating the "current" pointer.
+- Why: This matters because it tells you how to reason about no eval gate before promotion.
+- Pitfall: Don't answer "No eval gate before promotion" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: shipping version 3 without comparing eval scores to version 2 means regressions are discovered in production. Fix: CI pipeline that runs golden set eval before updating the "curre…
+
+### No test for variable name mismatches between the template and callers
+- Direct Answer: No test for variable name mismatches between the template and callers
+- Why: This matters because it tells you how to reason about no test for variable name mismatches between the template and callers.
+- Pitfall: Don't answer "No test for variable name mismatches between the template and callers" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No test for variable name mismatches between the template and callers
+
+### Editing the current version rather than creating a new version
+- Direct Answer: Editing the current version rather than creating a new version
+- Why: This matters because it tells you how to reason about editing the current version rather than creating a new version.
+- Pitfall: Don't answer "Editing the current version rather than creating a new version" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Editing the current version rather than creating a new version
+
+### Factual questions
+- Direct Answer: 24h TTL if underlying knowledge is stable
+- Why: This matters because it tells you how to reason about factual questions.
+- Pitfall: Don't answer "Factual questions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 24h TTL if underlying knowledge is stable
+
+### Real-time queries ("current stock price")
+- Direct Answer: do not cache, or TTL < 60s
+- Why: This matters because it tells you how to reason about real-time queries ("current stock price").
+- Pitfall: Don't answer "Real-time queries ("current stock price")" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: do not cache, or TTL < 60s
+
+### Prompts with randomness (temperature > 0)
+- Direct Answer: caching may suppress desired variation
+- Why: This matters because it tells you how to reason about prompts with randomness (temperature > 0).
+- Pitfall: Don't answer "Prompts with randomness (temperature > 0)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: caching may suppress desired variation
+
+### Key does not include temperature
+- Direct Answer: two calls with different temperature get the same cache response. Fix: include all decoding parameters in the key.
+- Why: This matters because it tells you how to reason about key does not include temperature.
+- Pitfall: Don't answer "Key does not include temperature" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: two calls with different temperature get the same cache response. Fix: include all decoding parameters in the key.
+
+### PII in shared cache
+- Direct Answer: user A's cached response (containing their name/address) serves user B. Fix: scope cache keys by user_id for user-specific responses, or strip PII before caching.
+- Why: This matters because it tells you how to reason about pii in shared cache.
+- Pitfall: Don't answer "PII in shared cache" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: user A's cached response (containing their name/address) serves user B. Fix: scope cache keys by user_id for user-specific responses, or strip PII before caching.
+
+### Stale cache after model upgrade
+- Direct Answer: old responses from gpt-4-turbo serve as cache hits for gpt-4o. Fix: include model version in key, or flush cache on model change.
+- Why: This matters because it tells you how to reason about stale cache after model upgrade.
+- Pitfall: Don't answer "Stale cache after model upgrade" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: old responses from gpt-4-turbo serve as cache hits for gpt-4o. Fix: include model version in key, or flush cache on model change.
+
+### Keying only on user text and ignoring system prompt version and model
+- Direct Answer: Keying only on user text and ignoring system prompt version and model
+- Why: This matters because it tells you how to reason about keying only on user text and ignoring system prompt version and model.
+- Pitfall: Don't answer "Keying only on user text and ignoring system prompt version and model" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Keying only on user text and ignoring system prompt version and model
+
+### Not considering PII in the cached value
+- Direct Answer: Not considering PII in the cached value
+- Why: This matters because it tells you how to reason about not considering pii in the cached value.
+- Pitfall: Don't answer "Not considering PII in the cached value" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not considering PII in the cached value
+
+### Threshold not calibrated per domain
+- Direct Answer: customer support queries have tighter semantics than general chat. Fix: calibrate threshold on a labeled set of "same intent" vs "different intent" query pairs.
+- Why: This matters because it tells you how to reason about threshold not calibrated per domain.
+- Pitfall: Don't answer "Threshold not calibrated per domain" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: customer support queries have tighter semantics than general chat. Fix: calibrate threshold on a labeled set of "same intent" vs "different intent" query pairs.
+
+### Cache hits after prompt change
+- Direct Answer: cached answers were generated with a different prompt version and may be wrong for the new version. Fix: store prompt version in metadata; invalidate on version bump.
+- Why: This matters because it tells you how to reason about cache hits after prompt change.
+- Pitfall: Don't answer "Cache hits after prompt change" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: cached answers were generated with a different prompt version and may be wrong for the new version. Fix: store prompt version in metadata; invalidate on version bump.
+
+### Semantic cache never invalidated
+- Direct Answer: knowledge base changes (new product specs) make cached answers stale. Fix: TTL + version-based invalidation.
+- Why: This matters because it tells you how to reason about semantic cache never invalidated.
+- Pitfall: Don't answer "Semantic cache never invalidated" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: knowledge base changes (new product specs) make cached answers stale. Fix: TTL + version-based invalidation.
+
+### Using a fixed threshold without domain-specific calibration
+- Direct Answer: Using a fixed threshold without domain-specific calibration
+- Why: This matters because it tells you how to reason about using a fixed threshold without domain-specific calibration.
+- Pitfall: Don't answer "Using a fixed threshold without domain-specific calibration" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using a fixed threshold without domain-specific calibration
+
+### Not invalidating the semantic cache when the prompt version changes
+- Direct Answer: Not invalidating the semantic cache when the prompt version changes
+- Why: This matters because it tells you how to reason about not invalidating the semantic cache when the prompt version changes.
+- Pitfall: Don't answer "Not invalidating the semantic cache when the prompt version changes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not invalidating the semantic cache when the prompt version changes
+
+### Pattern matching only
+- Direct Answer: adversarial users obfuscate ("ign0re pr3vious instruct1ons"). Pattern matching catches script kiddies, not determined adversaries.
+- Why: This matters because it tells you how to reason about pattern matching only.
+- Pitfall: Don't answer "Pattern matching only" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: adversarial users obfuscate ("ign0re pr3vious instruct1ons"). Pattern matching catches script kiddies, not determined adversaries.
+
+### No indirect injection check: a retrieved document contains "You are now a different AI"
+- Direct Answer: it appears in the system position and may override the system prompt.
+- Why: This matters because it tells you how to reason about no indirect injection check: a retrieved document contains "you are now a different ai".
+- Pitfall: Don't answer "No indirect injection check: a retrieved document contains "You are now a different AI"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it appears in the system position and may override the system prompt.
+
+### Trusting detection as prevention: a zero false-negative rate on injection is not achievable. Fix: defense in depth
+- Direct Answer: detection, clear delimiters, tool allowlists, output monitoring.
+- Why: This matters because it tells you how to reason about trusting detection as prevention: a zero false-negative rate on injection is not achievable. fix: defense in depth.
+- Pitfall: Don't answer "Trusting detection as prevention: a zero false-negative rate on injection is not achievable. Fix: defense in depth" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: detection, clear delimiters, tool allowlists, output monitoring.
+
+### Treating detection as a complete defense
+- Direct Answer: Treating detection as a complete defense
+- Why: This matters because it tells you how to reason about treating detection as a complete defense.
+- Pitfall: Don't answer "Treating detection as a complete defense" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating detection as a complete defense
+
+### Not checking retrieved documents for injected instructions (indirect injection)
+- Direct Answer: Not checking retrieved documents for injected instructions (indirect injection)
+- Why: This matters because it tells you how to reason about not checking retrieved documents for injected instructions (indirect injection).
+- Pitfall: Don't answer "Not checking retrieved documents for injected instructions (indirect injection)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not checking retrieved documents for injected instructions (indirect injection)
+
+### Only checking user input, not output
+- Direct Answer: a model can hallucinate PII (a plausible-but-fake SSN) even without receiving it. Check outputs.
+- Why: This matters because it tells you how to reason about only checking user input, not output.
+- Pitfall: Don't answer "Only checking user input, not output" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a model can hallucinate PII (a plausible-but-fake SSN) even without receiving it. Check outputs.
+
+### PII in logs: when logging violations for audit, log the violation type and redacted text
+- Direct Answer: not the raw detected PII.
+- Why: This matters because it tells you how to reason about pii in logs: when logging violations for audit, log the violation type and redacted text.
+- Pitfall: Don't answer "PII in logs: when logging violations for audit, log the violation type and redacted text" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: not the raw detected PII.
+
+### Topic classifier threshold
+- Direct Answer: too strict flags valid responses; too lenient lets off-topic content through. Calibrate on a labeled set of in-scope vs out-of-scope responses.
+- Why: This matters because it tells you how to reason about topic classifier threshold.
+- Pitfall: Don't answer "Topic classifier threshold" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: too strict flags valid responses; too lenient lets off-topic content through. Calibrate on a labeled set of in-scope vs out-of-scope responses.
+
+### Only input-side guardrails, no output-side
+- Direct Answer: Only input-side guardrails, no output-side
+- Why: This matters because it tells you how to reason about only input-side guardrails, no output-side.
+- Pitfall: Don't answer "Only input-side guardrails, no output-side" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Only input-side guardrails, no output-side
+
+### Logging raw PII during violation audit
+- Direct Answer: Logging raw PII during violation audit
+- Why: This matters because it tells you how to reason about logging raw pii during violation audit.
+- Pitfall: Don't answer "Logging raw PII during violation audit" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Logging raw PII during violation audit
+
+### No termination condition
+- Direct Answer: agents call each other in a cycle. Fix: explicit step limit and cost budget; halt if exceeded.
+- Why: This matters because it tells you how to reason about no termination condition.
+- Pitfall: Don't answer "No termination condition" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agents call each other in a cycle. Fix: explicit step limit and cost budget; halt if exceeded.
+
+### Shared state grows unbounded
+- Direct Answer: each step appends to ws.results; after 50 steps the context window for the reviewer overflows. Fix: summarize intermediate results.
+- Why: This matters because it tells you how to reason about shared state grows unbounded.
+- Pitfall: Don't answer "Shared state grows unbounded" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: each step appends to ws.results; after 50 steps the context window for the reviewer overflows. Fix: summarize intermediate results.
+
+### No error isolation
+- Direct Answer: if one worker step fails, the reviewer receives a partial workspace and may synthesize incorrect final output. Fix: mark failed steps as failed; reviewer must flag them rather than silently incorporate them.
+- Why: This matters because it tells you how to reason about no error isolation.
+- Pitfall: Don't answer "No error isolation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if one worker step fails, the reviewer receives a partial workspace and may synthesize incorrect final output. Fix: mark failed steps as failed; reviewer must flag them rather tha…
+
+### All tools available to all agents
+- Direct Answer: a reviewer should not be able to write to a database; a worker should not be able to override the task. Fix: per-agent tool allowlists.
+- Why: This matters because it tells you how to reason about all tools available to all agents.
+- Pitfall: Don't answer "All tools available to all agents" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a reviewer should not be able to write to a database; a worker should not be able to override the task. Fix: per-agent tool allowlists.
+
+### No step or cost budget
+- Direct Answer: No step or cost budget
+- Why: This matters because it tells you how to reason about no step or cost budget.
+- Pitfall: Don't answer "No step or cost budget" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No step or cost budget
+
+### All agents share the same tool permissions
+- Direct Answer: All agents share the same tool permissions
+- Why: This matters because it tells you how to reason about all agents share the same tool permissions.
+- Pitfall: Don't answer "All agents share the same tool permissions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: All agents share the same tool permissions

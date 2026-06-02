@@ -136,115 +136,226 @@ Embeddings turn messy language into **geometry**. Vector databases turn that geo
 # Q22: Short queries fail — improve?
 - **Fixes:** query expansion (LLM rewrite), hybrid search, user intent classification, add synonyms/metadata boosting.
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-Dense vectors that represent meaning so similarity becomes distance.
+### Direct answer
+- Direct Answer: Dense vectors that represent meaning so similarity becomes distance.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Dense vectors that represent meaning so similarity becomes distance.
 
-**Fashion analogy?** #flashcard
-turning an outfit into a feature vector: fabric, cut, silhouette, vibe.
+### Fashion analogy
+- Direct Answer: turning an outfit into a feature vector: fabric, cut, silhouette, vibe.
+- Why: This matters because it tells you how to reason about fashion analogy.
+- Pitfall: Don't answer "Fashion analogy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: turning an outfit into a feature vector: fabric, cut, silhouette, vibe.
 
-**Direct answer?** #flashcard
-tokenize → encoder → pooled hidden state → vector; trained so semantically similar texts map nearby.
+### Direct answer
+- Direct Answer: tokenize → encoder → pooled hidden state → vector; trained so semantically similar texts map nearby.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: tokenize → encoder → pooled hidden state → vector; trained so semantically similar texts map nearby.
 
-**Sparse?** #flashcard
-keyword-like (BM25/TF-IDF-ish signals).
+### Sparse
+- Direct Answer: keyword-like (BM25/TF-IDF-ish signals).
+- Why: This matters because it tells you how to reason about sparse.
+- Pitfall: Don't answer "Sparse" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: keyword-like (BM25/TF-IDF-ish signals).
 
-**Dense?** #flashcard
-semantic meaning in continuous space.
+### Dense
+- Direct Answer: semantic meaning in continuous space.
+- Why: This matters because it tells you how to reason about dense.
+- Pitfall: Don't answer "Dense" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: semantic meaning in continuous space.
 
-**Hybrid is common in production.?** #flashcard
-Hybrid is common in production.
+### Hybrid is common in production.
+- Direct Answer: Hybrid is common in production.
+- Why: This matters because it tells you how to reason about hybrid is common in production..
+- Pitfall: Don't answer "Hybrid is common in production." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Hybrid is common in production.
 
-**Cosine?** #flashcard
-angle similarity (scale-invariant).
+### Cosine
+- Direct Answer: angle similarity (scale-invariant).
+- Why: This matters because it tells you how to reason about cosine.
+- Pitfall: Don't answer "Cosine" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: angle similarity (scale-invariant).
 
-**Dot product?** #flashcard
-similar to cosine if vectors are normalized; faster sometimes.
+### Dot product
+- Direct Answer: similar to cosine if vectors are normalized; faster sometimes.
+- Why: This matters because it tells you how to reason about dot product.
+- Pitfall: Don't answer "Dot product" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: similar to cosine if vectors are normalized; faster sometimes.
 
-**Euclidean?** #flashcard
-distance in space; sensitive to scale.
+### Euclidean
+- Direct Answer: distance in space; sensitive to scale.
+- Why: This matters because it tells you how to reason about euclidean.
+- Pitfall: Don't answer "Euclidean" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: distance in space; sensitive to scale.
 
-**Direct answer?** #flashcard
-Stores vectors + runs approximate nearest neighbor search (ANN) efficiently.
+### Direct answer
+- Direct Answer: Stores vectors + runs approximate nearest neighbor search (ANN) efficiently.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Stores vectors + runs approximate nearest neighbor search (ANN) efficiently.
 
-**DevOps bridge?** #flashcard
-classic DBs answer exact queries; vector DBs answer “closest neighbors.”
+### DevOps bridge
+- Direct Answer: classic DBs answer exact queries; vector DBs answer “closest neighbors.”
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: classic DBs answer exact queries; vector DBs answer “closest neighbors.”
 
-**Criteria?** #flashcard
-domain fit, multilingual, cost/latency, dimension size, licensing.
+### Criteria
+- Direct Answer: domain fit, multilingual, cost/latency, dimension size, licensing.
+- Why: This matters because it tells you how to reason about criteria.
+- Pitfall: Don't answer "Criteria" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: domain fit, multilingual, cost/latency, dimension size, licensing.
 
-**Mini prompt?** #flashcard
-What breaks instantly? → indexing with one model, querying with another.
+### Mini prompt
+- Direct Answer: What breaks instantly? → indexing with one model, querying with another.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What breaks instantly? → indexing with one model, querying with another.
 
-**Higher dim can improve nuance but increases storage, memory bandwidth, index size.?** #flashcard
-Higher dim can improve nuance but increases storage, memory bandwidth, index size.
+### Higher dim can improve nuance but increases storage, memory bandwidth, index size.
+- Direct Answer: Higher dim can improve nuance but increases storage, memory bandwidth, index size.
+- Why: This matters because it tells you how to reason about higher dim can improve nuance but increases storage, memory bandwidth, index size..
+- Pitfall: Don't answer "Higher dim can improve nuance but increases storage, memory bandwidth, index size." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Higher dim can improve nuance but increases storage, memory bandwidth, index size.
 
-**Lower dim is cheaper and often good enough.?** #flashcard
-Lower dim is cheaper and often good enough.
+### Lower dim is cheaper and often good enough.
+- Direct Answer: Lower dim is cheaper and often good enough.
+- Why: This matters because it tells you how to reason about lower dim is cheaper and often good enough..
+- Pitfall: Don't answer "Lower dim is cheaper and often good enough." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Lower dim is cheaper and often good enough.
 
-**Direct answer?** #flashcard
-new model changes the coordinate space.
+### Direct answer
+- Direct Answer: new model changes the coordinate space.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: new model changes the coordinate space.
 
-**Safe rollout?** #flashcard
-dual-write embeddings, backfill, A/B evaluate retrieval, then cut over.
+### Safe rollout
+- Direct Answer: dual-write embeddings, backfill, A/B evaluate retrieval, then cut over.
+- Why: This matters because it tells you how to reason about safe rollout.
+- Pitfall: Don't answer "Safe rollout" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: dual-write embeddings, backfill, A/B evaluate retrieval, then cut over.
 
-**Direct answer?** #flashcard
-map text+image (etc.) into a shared space (e.g., CLIP).
+### Direct answer
+- Direct Answer: map text+image (etc.) into a shared space (e.g., CLIP).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: map text+image (etc.) into a shared space (e.g., CLIP).
 
-**Patterns?** #flashcard
-namespace per tenant, metadata filters, per-tenant keys, shard hot tenants.
+### Patterns
+- Direct Answer: namespace per tenant, metadata filters, per-tenant keys, shard hot tenants.
+- Why: This matters because it tells you how to reason about patterns.
+- Pitfall: Don't answer "Patterns" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: namespace per tenant, metadata filters, per-tenant keys, shard hot tenants.
 
-**DevOps bridge?** #flashcard
-it’s isolation + RBAC + noisy-neighbor control.
+### DevOps bridge
+- Direct Answer: it’s isolation + RBAC + noisy-neighbor control.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it’s isolation + RBAC + noisy-neighbor control.
 
-**Direct answer?** #flashcard
-compress vectors (float16/int8/product quantization) to cut storage.
+### Direct answer
+- Direct Answer: compress vectors (float16/int8/product quantization) to cut storage.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: compress vectors (float16/int8/product quantization) to cut storage.
 
-**Trade-off?** #flashcard
-some recall loss.
+### Trade-off
+- Direct Answer: some recall loss.
+- Why: This matters because it tells you how to reason about trade-off.
+- Pitfall: Don't answer "Trade-off" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: some recall loss.
 
-**Metrics?** #flashcard
-recall@k, MRR, nDCG; human relevance judgments.
+### Metrics
+- Direct Answer: recall@k, MRR, nDCG; human relevance judgments.
+- Why: This matters because it tells you how to reason about metrics.
+- Pitfall: Don't answer "Metrics" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: recall@k, MRR, nDCG; human relevance judgments.
 
-**Production?** #flashcard
-evaluate end-to-end (retrieval + answer quality for RAG).
+### Production
+- Direct Answer: evaluate end-to-end (retrieval + answer quality for RAG).
+- Why: This matters because it tells you how to reason about production.
+- Pitfall: Don't answer "Production" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: evaluate end-to-end (retrieval + answer quality for RAG).
 
-**Direct answer?** #flashcard
-filtering, access control, citations (source/page), time-based routing.
+### Direct answer
+- Direct Answer: filtering, access control, citations (source/page), time-based routing.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: filtering, access control, citations (source/page), time-based routing.
 
-**Patterns?** #flashcard
-sharding, HNSW/IVF/PQ, caching hot queries, batch ingestion, tiered storage.
+### Patterns
+- Direct Answer: sharding, HNSW/IVF/PQ, caching hot queries, batch ingestion, tiered storage.
+- Why: This matters because it tells you how to reason about patterns.
+- Pitfall: Don't answer "Patterns" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sharding, HNSW/IVF/PQ, caching hot queries, batch ingestion, tiered storage.
 
-**Azure hint?** #flashcard
-treat it like search infra (index build + query SLA).
+### Azure hint
+- Direct Answer: treat it like search infra (index build + query SLA).
+- Why: This matters because it tells you how to reason about azure hint.
+- Pitfall: Don't answer "Azure hint" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: treat it like search infra (index build + query SLA).
 
-**Direct answer?** #flashcard
-combine keyword (BM25) + vector similarity.
+### Direct answer
+- Direct Answer: combine keyword (BM25) + vector similarity.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: combine keyword (BM25) + vector similarity.
 
-**Why?** #flashcard
-exact IDs/numbers + semantic meaning.
+### Why
+- Direct Answer: exact IDs/numbers + semantic meaning.
+- Why: This matters because it tells you how to reason about why.
+- Pitfall: Don't answer "Why" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: exact IDs/numbers + semantic meaning.
 
-**Direct answer?** #flashcard
-contrastive training on domain pairs (query, relevant doc) and hard negatives.
+### Direct answer
+- Direct Answer: contrastive training on domain pairs (query, relevant doc) and hard negatives.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: contrastive training on domain pairs (query, relevant doc) and hard negatives.
 
-**Fixes?** #flashcard
-lower dimension, quantize, prune old docs, smaller top-k, better chunking.
+### Fixes
+- Direct Answer: lower dimension, quantize, prune old docs, smaller top-k, better chunking.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: lower dimension, quantize, prune old docs, smaller top-k, better chunking.
 
-**Fixes?** #flashcard
-ANN index choice, shard/replicate, optimize ingestion, move to distributed index.
+### Fixes
+- Direct Answer: ANN index choice, shard/replicate, optimize ingestion, move to distributed index.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ANN index choice, shard/replicate, optimize ingestion, move to distributed index.
 
-**Fix?** #flashcard
-you can’t compare vectors across dims/spaces. Re-embed + rebuild index, or run dual indexes during migration.
+### Fix
+- Direct Answer: you can’t compare vectors across dims/spaces. Re-embed + rebuild index, or run dual indexes during migration.
+- Why: This matters because it tells you how to reason about fix.
+- Pitfall: Don't answer "Fix" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you can’t compare vectors across dims/spaces. Re-embed + rebuild index, or run dual indexes during migration.
 
-**Causes?** #flashcard
-bad chunking, wrong embedder, no metadata filters, semantic gap, no reranking.
+### Causes
+- Direct Answer: bad chunking, wrong embedder, no metadata filters, semantic gap, no reranking.
+- Why: This matters because it tells you how to reason about causes.
+- Pitfall: Don't answer "Causes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: bad chunking, wrong embedder, no metadata filters, semantic gap, no reranking.
 
-**Fix?** #flashcard
-reranker + hybrid search + better chunk boundaries.
+### Fix
+- Direct Answer: reranker + hybrid search + better chunk boundaries.
+- Why: This matters because it tells you how to reason about fix.
+- Pitfall: Don't answer "Fix" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reranker + hybrid search + better chunk boundaries.
 
-**Process?** #flashcard
-rollback, compare metrics, inspect queries with failures, recalibrate thresholds, ensure backfill complete.
+### Process
+- Direct Answer: rollback, compare metrics, inspect queries with failures, recalibrate thresholds, ensure backfill complete.
+- Why: This matters because it tells you how to reason about process.
+- Pitfall: Don't answer "Process" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: rollback, compare metrics, inspect queries with failures, recalibrate thresholds, ensure backfill complete.
 
-**Fixes?** #flashcard
-query expansion (LLM rewrite), hybrid search, user intent classification, add synonyms/metadata boosting.
+### Fixes
+- Direct Answer: query expansion (LLM rewrite), hybrid search, user intent classification, add synonyms/metadata boosting.
+- Why: This matters because it tells you how to reason about fixes.
+- Pitfall: Don't answer "Fixes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: query expansion (LLM rewrite), hybrid search, user intent classification, add synonyms/metadata boosting.

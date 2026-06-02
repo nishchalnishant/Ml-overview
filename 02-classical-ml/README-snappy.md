@@ -47,7 +47,7 @@ tags: [classicalml, ml, readme-snappy]
 - [Unsupervised learning cheat sheet](unsupervised-learning-snappy.md)
 - [Deep dive: supervised](supervised-learning.md)
 - [Deep dive: unsupervised](unsupervised-learning.md)
-- [AI & ML revision guide](../AI_ML_REVISION_GUIDE.md)
+- [AI & ML revision guide](../01-foundations/AI_ML_REVISION_GUIDE.md)
 
 ## Flashcards
 
@@ -78,5 +78,5 @@ supervised](supervised-learning.md)
 **[Deep dive?** #flashcard
 unsupervised](unsupervised-learning.md)
 
-**[AI & ML revision guide](../AI_ML_REVISION_GUIDE.md)?** #flashcard
-[AI & ML revision guide](../AI_ML_REVISION_GUIDE.md)
+**[AI & ML revision guide](../01-foundations/AI_ML_REVISION_GUIDE.md)?** #flashcard
+[AI & ML revision guide](../01-foundations/AI_ML_REVISION_GUIDE.md)

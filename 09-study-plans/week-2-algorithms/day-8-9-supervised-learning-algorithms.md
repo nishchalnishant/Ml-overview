@@ -134,43 +134,82 @@ rf = RandomForestClassifier(n_estimators=100, max_depth=None)
 xgb = XGBClassifier(learning_rate=0.1, n_estimators=1000, early_stopping_rounds=50)
 ```
 
-## Flashcards
+## Rapid Recall
 
-**Gini Impurity?** #flashcard
-$G = 1 - \sum_k p_k^2$. Probability of misclassifying a randomly chosen element. Range [0, 0.5] for binary classification.
+### Gini Impurity
+- Direct Answer: $G = 1 - \sum_k p_k^2$. Probability of misclassifying a randomly chosen element. Range [0, 0.5] for binary classification.
+- Why: This matters because it tells you how to reason about gini impurity.
+- Pitfall: Don't answer "Gini Impurity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $G = 1 - \sum_k p_k^2$. Probability of misclassifying a randomly chosen element. Range [0, 0.5] for binary classification.
 
-**Entropy (decision tree)?** #flashcard
-$H = -\sum_k p_k \log_2 p_k$. Information-theoretic impurity measure. Range [0, 1] for binary classification.
+### Entropy (decision tree)
+- Direct Answer: $H = -\sum_k p_k \log_2 p_k$. Information-theoretic impurity measure. Range [0, 1] for binary classification.
+- Why: This matters because it tells you how to reason about entropy (decision tree).
+- Pitfall: Don't answer "Entropy (decision tree)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $H = -\sum_k p_k \log_2 p_k$. Information-theoretic impurity measure. Range [0, 1] for binary classification.
 
-**Pre-pruning vs. Post-pruning?** #flashcard
-Pre-pruning: stop splitting early via max_depth/min_samples_leaf. Post-pruning: grow full tree then remove subtrees that don't improve validation performance.
+### Pre-pruning vs. Post-pruning
+- Direct Answer: Pre-pruning: stop splitting early via max_depth/min_samples_leaf. Post-pruning: grow full tree then remove subtrees that don't improve validation performance.
+- Why: This matters because it tells you how to reason about pre-pruning vs. post-pruning.
+- Pitfall: Don't answer "Pre-pruning vs. Post-pruning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Pre-pruning: stop splitting early via max_depth/min_samples_leaf. Post-pruning: grow full tree then remove subtrees that don't improve validation performance.
 
-**Hard Margin?** #flashcard
-Assumes linear separability.
+### Hard Margin
+- Direct Answer: Assumes linear separability.
+- Why: This matters because it tells you how to reason about hard margin.
+- Pitfall: Don't answer "Hard Margin" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assumes linear separability.
 
-**Soft Margin?** #flashcard
-Allows some misclassifications (controlled by $C$).
+### Soft Margin
+- Direct Answer: Allows some misclassifications (controlled by $C$).
+- Why: This matters because it tells you how to reason about soft margin.
+- Pitfall: Don't answer "Soft Margin" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Allows some misclassifications (controlled by $C$).
 
-**Kernel Trick?** #flashcard
-Maps data to high-dim space where it is linearly separable.
+### Kernel Trick
+- Direct Answer: Maps data to high-dim space where it is linearly separable.
+- Why: This matters because it tells you how to reason about kernel trick.
+- Pitfall: Don't answer "Kernel Trick" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Maps data to high-dim space where it is linearly separable.
 
-**RBF Kernel?** #flashcard
-$K(x, x') = \exp(-\gamma ||x - x'||^2)$
+### RBF Kernel
+- Direct Answer: $K(x, x') = \exp(-\gamma ||x - x'||^2)$
+- Why: This matters because it tells you how to reason about rbf kernel.
+- Pitfall: Don't answer "RBF Kernel" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $K(x, x') = \exp(-\gamma ||x - x'||^2)$
 
-**Concept?** #flashcard
-Train $M$ models on $M$ random subsets (with replacement). Average their predictions.
+### Concept
+- Direct Answer: Train $M$ models on $M$ random subsets (with replacement). Average their predictions.
+- Why: This matters because it tells you how to reason about concept.
+- Pitfall: Don't answer "Concept" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Train $M$ models on $M$ random subsets (with replacement). Average their predictions.
 
-**Example?** #flashcard
-Random Forest.
+### Example
+- Direct Answer: Random Forest.
+- Why: This matters because it tells you how to reason about example.
+- Pitfall: Don't answer "Example" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Random Forest.
 
-**Impact?** #flashcard
-Reduces Variance by averaging predictions.
+### Impact
+- Direct Answer: Reduces Variance by averaging predictions.
+- Why: This matters because it tells you how to reason about impact.
+- Pitfall: Don't answer "Impact" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reduces Variance by averaging predictions.
 
-**Concept?** #flashcard
-Train models sequentially. Model $i+1$ corrects the errors of model $i$.
+### Concept
+- Direct Answer: Train models sequentially. Model $i+1$ corrects the errors of model $i$.
+- Why: This matters because it tells you how to reason about concept.
+- Pitfall: Don't answer "Concept" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Train models sequentially. Model $i+1$ corrects the errors of model $i$.
 
-**Examples?** #flashcard
-AdaBoost, Gradient Boosting, XGBoost.
+### Examples
+- Direct Answer: AdaBoost, Gradient Boosting, XGBoost.
+- Why: This matters because it tells you how to reason about examples.
+- Pitfall: Don't answer "Examples" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: AdaBoost, Gradient Boosting, XGBoost.
 
-**Impact?** #flashcard
-Reduces Bias (and often Variance, though it can overfit).
+### Impact
+- Direct Answer: Reduces Bias (and often Variance, though it can overfit).
+- Why: This matters because it tells you how to reason about impact.
+- Pitfall: Don't answer "Impact" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reduces Bias (and often Variance, though it can overfit).

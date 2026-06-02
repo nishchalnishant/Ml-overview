@@ -73,7 +73,7 @@ This folder contains structured learning paths for ML interview preparation and 
 *Focus: LLM-specific topics, rapid-fire Q&A, mock interviews.*
 
 - **Day 26-27: LLM Specialist Training**
-    - Study: [LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md) & [RAG](../07-interview-prep/llm/retrieval-augmented-generation-rag.md)
+    - Study: [LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md) & [RAG](../05-llms/interview-notes/retrieval-augmented-generation-rag.md)
     - Key Concept: Tokenization, RLHF, Prompt Engineering, LoRA, Vector DBs.
 - **Day 28: Implementation Fluency**
     - Practice: Implement attention, backprop, k-means from scratch.

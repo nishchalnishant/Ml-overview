@@ -31,8 +31,9 @@ MIND-MAP.md              Full topic mind map + gap analysis
 - **[AI & ML revision guide](01-foundations/AI_ML_REVISION_GUIDE.md)** — Golden rules, architectures, math you can whiteboard, infra patterns, gotchas.
 - **[30-day roadmap](09-study-plans/README.md)** — Structured reps from zero to "I can hold the room."
 - **[Math derivations hub](07-interview-prep/ml/math-derivations.md)** — Chain rule to attention, with your pen.
-- **[LLM interview notes](05-llms/interview-notes/README.md)** — RAG, agents, alignment, serving — the GenAI setlist.
-- **[ML interview notes](07-interview-prep/ml/README.md)** — Full classical + DL Q&A bank.
+- **[Interview hub](07-interview-prep/README.md)** — canonical entry point for interview prep.
+- **[ML interview notes](07-interview-prep/ml/README.md)** — full classical + DL Q&A bank.
+- **[LLM deep dives](05-llms/interview-notes/README.md)** — RAG, agents, alignment, serving.
 - **[Pre-interview checklist](07-interview-prep/PRE-INTERVIEW-CHECKLIST.md)** — 48h → 24h → morning-of: what to review, verify, and do before walking in.
 
 **10-Minute Revision Cards** (skim before any topic or interview)

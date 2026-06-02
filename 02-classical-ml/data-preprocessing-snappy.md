@@ -81,7 +81,7 @@ tags: [classicalml, ml, data-preprocessing-snappy]
 
 ---
 
-> **Code path:** For sklearn `Pipeline` + `ColumnTransformer` patterns, see [ML coding patterns](../ml-interview-notes/coding.md) — one artifact, reproducible stages, fewer “works on my machine” ghosts.
+> **Code path:** For sklearn `Pipeline` + `ColumnTransformer` patterns, see [ML coding patterns](../07-interview-prep/ml/coding.md) — one artifact, reproducible stages, fewer “works on my machine” ghosts.
 
 ## Flashcards
 

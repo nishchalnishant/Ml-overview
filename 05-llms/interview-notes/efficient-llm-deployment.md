@@ -658,64 +658,124 @@ Every technique in this file is answering the same two questions:
 
 The key insight that ties everything together: **decode is memory-bandwidth-bound**. You're not waiting for compute — you're waiting for weights to move from HBM to compute cores. That's why smaller models (quantization), less data movement (Flash Attention), and better hardware utilization (batching) all help.
 
-## Flashcards
+## Rapid Recall
 
-**Weights?** #flashcard
-70B × 0.5B × 1.25 = ~44 GB
+### Weights
+- Direct Answer: 70B × 0.5B × 1.25 = ~44 GB
+- Why: This matters because it tells you how to reason about weights.
+- Pitfall: Don't answer "Weights" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 70B × 0.5B × 1.25 = ~44 GB
 
-**KV cache?** #flashcard
-2 × 80 × 8 × 128 × 8192 × 16 × 2 = ~43 GB
+### KV cache
+- Direct Answer: 2 × 80 × 8 × 128 × 8192 × 16 × 2 = ~43 GB
+- Why: This matters because it tells you how to reason about kv cache.
+- Pitfall: Don't answer "KV cache" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 2 × 80 × 8 × 128 × 8192 × 16 × 2 = ~43 GB
 
-**Total?** #flashcard
-~87 GB → requires 2× A100 80GB
+### Total
+- Direct Answer: ~87 GB → requires 2× A100 80GB
+- Why: This matters because it tells you how to reason about total.
+- Pitfall: Don't answer "Total" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ~87 GB → requires 2× A100 80GB
 
-**KV cache divided into fixed-size pages (e.g., 16 tokens per page)?** #flashcard
-KV cache divided into fixed-size pages (e.g., 16 tokens per page)
+### KV cache divided into fixed-size pages (e.g., 16 tokens per page)
+- Direct Answer: KV cache divided into fixed-size pages (e.g., 16 tokens per page)
+- Why: This matters because it tells you how to reason about kv cache divided into fixed-size pages (e.g., 16 tokens per page).
+- Pitfall: Don't answer "KV cache divided into fixed-size pages (e.g., 16 tokens per page)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: KV cache divided into fixed-size pages (e.g., 16 tokens per page)
 
-**Page table maps logical sequence positions to physical pages?** #flashcard
-Page table maps logical sequence positions to physical pages
+### Page table maps logical sequence positions to physical pages
+- Direct Answer: Page table maps logical sequence positions to physical pages
+- Why: This matters because it tells you how to reason about page table maps logical sequence positions to physical pages.
+- Pitfall: Don't answer "Page table maps logical sequence positions to physical pages" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Page table maps logical sequence positions to physical pages
 
-**Allocate pages on demand; release immediately when request finishes?** #flashcard
-Allocate pages on demand; release immediately when request finishes
+### Allocate pages on demand; release immediately when request finishes
+- Direct Answer: Allocate pages on demand; release immediately when request finishes
+- Why: This matters because it tells you how to reason about allocate pages on demand; release immediately when request finishes.
+- Pitfall: Don't answer "Allocate pages on demand; release immediately when request finishes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Allocate pages on demand; release immediately when request finishes
 
-**Share physical pages across requests with identical prefixes (copy-on-write)?** #flashcard
-Share physical pages across requests with identical prefixes (copy-on-write)
+### Share physical pages across requests with identical prefixes (copy-on-write)
+- Direct Answer: Share physical pages across requests with identical prefixes (copy-on-write)
+- Why: This matters because it tells you how to reason about share physical pages across requests with identical prefixes (copy-on-write).
+- Pitfall: Don't answer "Share physical pages across requests with identical prefixes (copy-on-write)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Share physical pages across requests with identical prefixes (copy-on-write)
 
-**Medusa?** #flashcard
-extra parallel LM heads at the final layer, each predicting k steps ahead. No separate draft model.
+### Medusa
+- Direct Answer: extra parallel LM heads at the final layer, each predicting k steps ahead. No separate draft model.
+- Why: This matters because it tells you how to reason about medusa.
+- Pitfall: Don't answer "Medusa" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: extra parallel LM heads at the final layer, each predicting k steps ahead. No separate draft model.
 
-**Eagle?** #flashcard
-a small draft model that reuses the target's hidden states, achieving higher acceptance rates than an independent draft model.
+### Eagle
+- Direct Answer: a small draft model that reuses the target's hidden states, achieving higher acceptance rates than an independent draft model.
+- Why: This matters because it tells you how to reason about eagle.
+- Pitfall: Don't answer "Eagle" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a small draft model that reuses the target's hidden states, achieving higher acceptance rates than an independent draft model.
 
-**Memory: O(N) instead of O(N²)?** #flashcard
-attention matrices never materialize
+### Memory: O(N) instead of O(N²)
+- Direct Answer: attention matrices never materialize
+- Why: This matters because it tells you how to reason about memory: o(n) instead of o(n²).
+- Pitfall: Don't answer "Memory: O(N) instead of O(N²)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: attention matrices never materialize
 
-**Speed?** #flashcard
-2–4× faster for long sequences (less HBM traffic)
+### Speed
+- Direct Answer: 2–4× faster for long sequences (less HBM traffic)
+- Why: This matters because it tells you how to reason about speed.
+- Pitfall: Don't answer "Speed" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 2–4× faster for long sequences (less HBM traffic)
 
-**Output: mathematically identical?** #flashcard
-not an approximation
+### Output: mathematically identical
+- Direct Answer: not an approximation
+- Why: This matters because it tells you how to reason about output: mathematically identical.
+- Pitfall: Don't answer "Output: mathematically identical" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: not an approximation
 
-**Tensor parallelism?** #flashcard
-split a single layer across GPUs (wide split). High communication frequency, low latency per communication.
+### Tensor parallelism
+- Direct Answer: split a single layer across GPUs (wide split). High communication frequency, low latency per communication.
+- Why: This matters because it tells you how to reason about tensor parallelism.
+- Pitfall: Don't answer "Tensor parallelism" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: split a single layer across GPUs (wide split). High communication frequency, low latency per communication.
 
-**Pipeline parallelism?** #flashcard
-split layers across GPUs (depth split). Low communication frequency, but GPUs can be idle waiting for the previous stage.
+### Pipeline parallelism
+- Direct Answer: split layers across GPUs (depth split). Low communication frequency, but GPUs can be idle waiting for the previous stage.
+- Why: This matters because it tells you how to reason about pipeline parallelism.
+- Pitfall: Don't answer "Pipeline parallelism" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: split layers across GPUs (depth split). Low communication frequency, but GPUs can be idle waiting for the previous stage.
 
-**Config?** #flashcard
-INT4 weights, BF16 KV cache, batch=16, max_seq=8192
+### Config
+- Direct Answer: INT4 weights, BF16 KV cache, batch=16, max_seq=8192
+- Why: This matters because it tells you how to reason about config.
+- Pitfall: Don't answer "Config" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: INT4 weights, BF16 KV cache, batch=16, max_seq=8192
 
-**Weights?** #flashcard
-70 × 10⁹ × 0.5 bytes × 1.25 = 43.75 GB
+### Weights
+- Direct Answer: 70 × 10⁹ × 0.5 bytes × 1.25 = 43.75 GB
+- Why: This matters because it tells you how to reason about weights.
+- Pitfall: Don't answer "Weights" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 70 × 10⁹ × 0.5 bytes × 1.25 = 43.75 GB
 
-**KV cache?** #flashcard
-2 × 80 × 8 × 128 × 8192 × 16 × 2 bytes = 42.9 GB
+### KV cache
+- Direct Answer: 2 × 80 × 8 × 128 × 8192 × 16 × 2 bytes = 42.9 GB
+- Why: This matters because it tells you how to reason about kv cache.
+- Pitfall: Don't answer "KV cache" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 2 × 80 × 8 × 128 × 8192 × 16 × 2 bytes = 42.9 GB
 
-**Total?** #flashcard
-~87 GB → 2× A100 80GB with TP=2
+### Total
+- Direct Answer: ~87 GB → 2× A100 80GB with TP=2
+- Why: This matters because it tells you how to reason about total.
+- Pitfall: Don't answer "Total" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ~87 GB → 2× A100 80GB with TP=2
 
-**Prefill (processing the input prompt)?** #flashcard
-compute-bound, scales with prompt length
+### Prefill (processing the input prompt)
+- Direct Answer: compute-bound, scales with prompt length
+- Why: This matters because it tells you how to reason about prefill (processing the input prompt).
+- Pitfall: Don't answer "Prefill (processing the input prompt)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: compute-bound, scales with prompt length
 
-**Decode (generating output tokens)?** #flashcard
-memory-bandwidth-bound, scales with model size
+### Decode (generating output tokens)
+- Direct Answer: memory-bandwidth-bound, scales with model size
+- Why: This matters because it tells you how to reason about decode (generating output tokens).
+- Pitfall: Don't answer "Decode (generating output tokens)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: memory-bandwidth-bound, scales with model size

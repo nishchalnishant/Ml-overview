@@ -314,163 +314,322 @@ Policy-based RL (REINFORCE, PPO): directly parameterize and optimize the policy 
 - treating exploration as a minor implementation detail — in RL, insufficient exploration means the agent never discovers that better strategies exist; the explore-exploit tradeoff is a first-class problem, not an afterthought
 - not recognizing that RL is dramatically harder to debug than supervised learning — the training signal is delayed, noisy, non-stationary, and the data distribution changes as the policy changes; standard supervised learning debugging intuitions do not transfer directly
 
-## Flashcards
+## Rapid Recall
 
-**defining ML as "the model learns from data" without saying what generalization means?** #flashcard
-any system can memorize a training set; the hard part is performing on examples that were never seen during training
+### defining ML as "the model learns from data" without saying what generalization means
+- Direct Answer: any system can memorize a training set; the hard part is performing on examples that were never seen during training
+- Why: This matters because it tells you how to reason about defining ml as "the model learns from data" without saying what generalization means.
+- Pitfall: Don't answer "defining ML as "the model learns from data" without saying what generalization means" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: any system can memorize a training set; the hard part is performing on examples that were never seen during training
 
-**not recognizing that the training objective and the true goal can diverge?** #flashcard
-a model that minimizes cross-entropy on training data is not necessarily doing what the business wants; these need to be audited separately
+### not recognizing that the training objective and the true goal can diverge
+- Direct Answer: a model that minimizes cross-entropy on training data is not necessarily doing what the business wants; these need to be audited separately
+- Why: This matters because it tells you how to reason about not recognizing that the training objective and the true goal can diverge.
+- Pitfall: Don't answer "not recognizing that the training objective and the true goal can diverge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a model that minimizes cross-entropy on training data is not necessarily doing what the business wants; these need to be audited separately
 
-**fraud detection with historical labeled transactions → supervised?** #flashcard
-fraud detection with historical labeled transactions → supervised
+### fraud detection with historical labeled transactions → supervised
+- Direct Answer: fraud detection with historical labeled transactions → supervised
+- Why: This matters because it tells you how to reason about fraud detection with historical labeled transactions → supervised.
+- Pitfall: Don't answer "fraud detection with historical labeled transactions → supervised" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fraud detection with historical labeled transactions → supervised
 
-**customer segmentation without any labels → unsupervised?** #flashcard
-customer segmentation without any labels → unsupervised
+### customer segmentation without any labels → unsupervised
+- Direct Answer: customer segmentation without any labels → unsupervised
+- Why: This matters because it tells you how to reason about customer segmentation without any labels → unsupervised.
+- Pitfall: Don't answer "customer segmentation without any labels → unsupervised" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: customer segmentation without any labels → unsupervised
 
-**training a model to play a game by receiving the score → reinforcement learning?** #flashcard
-training a model to play a game by receiving the score → reinforcement learning
+### training a model to play a game by receiving the score → reinforcement learning
+- Direct Answer: training a model to play a game by receiving the score → reinforcement learning
+- Why: This matters because it tells you how to reason about training a model to play a game by receiving the score → reinforcement learning.
+- Pitfall: Don't answer "training a model to play a game by receiving the score → reinforcement learning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: training a model to play a game by receiving the score → reinforcement learning
 
-**treating these as mutually exclusive?** #flashcard
-many real systems blend them: self-supervised learning uses self-generated labels; semi-supervised uses a small labeled set plus a large unlabeled set; weakly supervised uses noisy labels from heuristics
+### treating these as mutually exclusive
+- Direct Answer: many real systems blend them: self-supervised learning uses self-generated labels; semi-supervised uses a small labeled set plus a large unlabeled set; weakly supervised uses noisy labels from heuristics
+- Why: This matters because it tells you how to reason about treating these as mutually exclusive.
+- Pitfall: Don't answer "treating these as mutually exclusive" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: many real systems blend them: self-supervised learning uses self-generated labels; semi-supervised uses a small labeled set plus a large unlabeled set; weakly supervised uses nois…
 
-**treating unsupervised as "unguided"?** #flashcard
-you still make explicit choices about distance metric, number of clusters, and architecture; these embed prior assumptions about the structure you expect to find
+### treating unsupervised as "unguided"
+- Direct Answer: you still make explicit choices about distance metric, number of clusters, and architecture; these embed prior assumptions about the structure you expect to find
+- Why: This matters because it tells you how to reason about treating unsupervised as "unguided".
+- Pitfall: Don't answer "treating unsupervised as "unguided"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you still make explicit choices about distance metric, number of clusters, and architecture; these embed prior assumptions about the structure you expect to find
 
-**"95% training accuracy, 70% validation accuracy" → variance. The gap reveals memorization. Prescriptions?** #flashcard
-regularization, more data, simpler model, dropout.
+### "95% training accuracy, 70% validation accuracy" → variance. The gap reveals memorization. Prescriptions
+- Direct Answer: regularization, more data, simpler model, dropout.
+- Why: This matters because it tells you how to reason about "95% training accuracy, 70% validation accuracy" → variance. the gap reveals memorization. prescriptions.
+- Pitfall: Don't answer ""95% training accuracy, 70% validation accuracy" → variance. The gap reveals memorization. Prescriptions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: regularization, more data, simpler model, dropout.
 
-**"70% training accuracy, 68% validation accuracy" → bias. The model is systematically wrong and does not have the capacity to learn the pattern. Prescriptions?** #flashcard
-more features, more expressive model, less regularization.
+### "70% training accuracy, 68% validation accuracy" → bias. The model is systematically wrong and does not have the capacity to learn the pattern. Prescriptions
+- Direct Answer: more features, more expressive model, less regularization.
+- Why: This matters because it tells you how to reason about "70% training accuracy, 68% validation accuracy" → bias. the model is systematically wrong and does not have the capacity to learn the pattern. prescriptions.
+- Pitfall: Don't answer ""70% training accuracy, 68% validation accuracy" → bias. The model is systematically wrong and does not have the capacity to learn the pattern. Prescriptions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: more features, more expressive model, less regularization.
 
-**applying regularization to a high-bias model?** #flashcard
-this restricts an already underpowered model and makes it worse
+### applying regularization to a high-bias model
+- Direct Answer: this restricts an already underpowered model and makes it worse
+- Why: This matters because it tells you how to reason about applying regularization to a high-bias model.
+- Pitfall: Don't answer "applying regularization to a high-bias model" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: this restricts an already underpowered model and makes it worse
 
-**assuming more data fixes variance?** #flashcard
-it helps, but a model with zero regularization will simply re-overfit to the larger training set; the fix requires a combination of more data and appropriate regularization
+### assuming more data fixes variance
+- Direct Answer: it helps, but a model with zero regularization will simply re-overfit to the larger training set; the fix requires a combination of more data and appropriate regularization
+- Why: This matters because it tells you how to reason about assuming more data fixes variance.
+- Pitfall: Don't answer "assuming more data fixes variance" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it helps, but a model with zero regularization will simply re-overfit to the larger training set; the fix requires a combination of more data and appropriate regularization
 
-**treating the tradeoff as a fixed curve?** #flashcard
-with a better model architecture or better features, you can reduce both bias and variance simultaneously; the tradeoff only holds within a fixed model family
+### treating the tradeoff as a fixed curve
+- Direct Answer: with a better model architecture or better features, you can reduce both bias and variance simultaneously; the tradeoff only holds within a fixed model family
+- Why: This matters because it tells you how to reason about treating the tradeoff as a fixed curve.
+- Pitfall: Don't answer "treating the tradeoff as a fixed curve" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: with a better model architecture or better features, you can reduce both bias and variance simultaneously; the tradeoff only holds within a fixed model family
 
-**Both high error?** #flashcard
-underfitting (bias problem)
+### Both high error
+- Direct Answer: underfitting (bias problem)
+- Why: This matters because it tells you how to reason about both high error.
+- Pitfall: Don't answer "Both high error" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: underfitting (bias problem)
 
-**Training error low, validation error high?** #flashcard
-overfitting (variance problem)
+### Training error low, validation error high
+- Direct Answer: overfitting (variance problem)
+- Why: This matters because it tells you how to reason about training error low, validation error high.
+- Pitfall: Don't answer "Training error low, validation error high" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: overfitting (variance problem)
 
-**Both low with a small gap?** #flashcard
-the sweet spot
+### Both low with a small gap
+- Direct Answer: the sweet spot
+- Why: This matters because it tells you how to reason about both low with a small gap.
+- Pitfall: Don't answer "Both low with a small gap" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the sweet spot
 
-**not having a validation set and only looking at training loss?** #flashcard
-you cannot diagnose overfitting without held-out data; training loss alone tells you nothing about generalization
+### not having a validation set and only looking at training loss
+- Direct Answer: you cannot diagnose overfitting without held-out data; training loss alone tells you nothing about generalization
+- Why: This matters because it tells you how to reason about not having a validation set and only looking at training loss.
+- Pitfall: Don't answer "not having a validation set and only looking at training loss" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you cannot diagnose overfitting without held-out data; training loss alone tells you nothing about generalization
 
-**using validation performance to repeatedly select models without a final held-out test set?** #flashcard
-after 20 rounds of model selection based on the validation set, the validation estimate has effectively been "trained on" and is optimistically biased
+### using validation performance to repeatedly select models without a final held-out test set
+- Direct Answer: after 20 rounds of model selection based on the validation set, the validation estimate has effectively been "trained on" and is optimistically biased
+- Why: This matters because it tells you how to reason about using validation performance to repeatedly select models without a final held-out test set.
+- Pitfall: Don't answer "using validation performance to repeatedly select models without a final held-out test set" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: after 20 rounds of model selection based on the validation set, the validation estimate has effectively been "trained on" and is optimistically biased
 
-**reporting training loss as model quality?** #flashcard
-loss magnitude is only meaningful relative to a baseline or when compared within the same loss function; an absolute cross-entropy number is not interpretable without context
+### reporting training loss as model quality
+- Direct Answer: loss magnitude is only meaningful relative to a baseline or when compared within the same loss function; an absolute cross-entropy number is not interpretable without context
+- Why: This matters because it tells you how to reason about reporting training loss as model quality.
+- Pitfall: Don't answer "reporting training loss as model quality" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: loss magnitude is only meaningful relative to a baseline or when compared within the same loss function; an absolute cross-entropy number is not interpretable without context
 
-**using accuracy as the metric on imbalanced data?** #flashcard
-if 99% of examples are negative, predict-all-negative achieves 99% accuracy with 0% recall on the class you actually care about
+### using accuracy as the metric on imbalanced data
+- Direct Answer: if 99% of examples are negative, predict-all-negative achieves 99% accuracy with 0% recall on the class you actually care about
+- Why: This matters because it tells you how to reason about using accuracy as the metric on imbalanced data.
+- Pitfall: Don't answer "using accuracy as the metric on imbalanced data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if 99% of examples are negative, predict-all-negative achieves 99% accuracy with 0% recall on the class you actually care about
 
-**not checking that the metric aligns with the business objective before training starts?** #flashcard
-discovering the metric mismatch after training is expensive
+### not checking that the metric aligns with the business objective before training starts
+- Direct Answer: discovering the metric mismatch after training is expensive
+- Why: This matters because it tells you how to reason about not checking that the metric aligns with the business objective before training starts.
+- Pitfall: Don't answer "not checking that the metric aligns with the business objective before training starts" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: discovering the metric mismatch after training is expensive
 
-**Epoch?** #flashcard
-one full pass through the training dataset
+### Epoch
+- Direct Answer: one full pass through the training dataset
+- Why: This matters because it tells you how to reason about epoch.
+- Pitfall: Don't answer "Epoch" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: one full pass through the training dataset
 
-**Batch?** #flashcard
-the subset of data used in one optimizer step
+### Batch
+- Direct Answer: the subset of data used in one optimizer step
+- Why: This matters because it tells you how to reason about batch.
+- Pitfall: Don't answer "Batch" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the subset of data used in one optimizer step
 
-**Batch size?** #flashcard
-number of examples in one batch
+### Batch size
+- Direct Answer: number of examples in one batch
+- Why: This matters because it tells you how to reason about batch size.
+- Pitfall: Don't answer "Batch size" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: number of examples in one batch
 
-**Iteration?** #flashcard
-one optimizer step (one batch processed)
+### Iteration
+- Direct Answer: one optimizer step (one batch processed)
+- Why: This matters because it tells you how to reason about iteration.
+- Pitfall: Don't answer "Iteration" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: one optimizer step (one batch processed)
 
-**confusing "faster training per epoch" with "better final performance" when increasing batch size?** #flashcard
-larger batches can converge faster per epoch but often generalize worse because noisy gradients from small batches act as implicit regularization
+### confusing "faster training per epoch" with "better final performance" when increasing batch size
+- Direct Answer: larger batches can converge faster per epoch but often generalize worse because noisy gradients from small batches act as implicit regularization
+- Why: This matters because it tells you how to reason about confusing "faster training per epoch" with "better final performance" when increasing batch size.
+- Pitfall: Don't answer "confusing "faster training per epoch" with "better final performance" when increasing batch size" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: larger batches can converge faster per epoch but often generalize worse because noisy gradients from small batches act as implicit regularization
 
-**not knowing that larger batch sizes typically require a proportionally larger learning rate (linear scaling rule)?** #flashcard
-using a large batch with the small-batch learning rate will underfit because each step is too small relative to the gradient quality
+### not knowing that larger batch sizes typically require a proportionally larger learning rate (linear scaling rule)
+- Direct Answer: using a large batch with the small-batch learning rate will underfit because each step is too small relative to the gradient quality
+- Why: This matters because it tells you how to reason about not knowing that larger batch sizes typically require a proportionally larger learning rate (linear scaling rule).
+- Pitfall: Don't answer "not knowing that larger batch sizes typically require a proportionally larger learning rate (linear scaling rule)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: using a large batch with the small-batch learning rate will underfit because each step is too small relative to the gradient quality
 
-**the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)?** #flashcard
-the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)
+### the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)
+- Direct Answer: the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)
+- Why: This matters because it tells you how to reason about the loss function must match the output type (cross-entropy for classification, mse/mae for regression).
+- Pitfall: Don't answer "the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the loss function must match the output type (cross-entropy for classification, MSE/MAE for regression)
 
-**the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)?** #flashcard
-the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)
+### the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)
+- Direct Answer: the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)
+- Why: This matters because it tells you how to reason about the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression).
+- Pitfall: Don't answer "the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the output layer activation must match (softmax for multiclass, sigmoid for binary, linear/identity for regression)
 
-**calibration means different things in each case?** #flashcard
-calibration means different things in each case
+### calibration means different things in each case
+- Direct Answer: calibration means different things in each case
+- Why: This matters because it tells you how to reason about calibration means different things in each case.
+- Pitfall: Don't answer "calibration means different things in each case" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: calibration means different things in each case
 
-**treating a regression problem as classification by binning the output?** #flashcard
-you lose ordinal information and add sensitivity to the choice of bin boundaries, which is an arbitrary hyperparameter
+### treating a regression problem as classification by binning the output
+- Direct Answer: you lose ordinal information and add sensitivity to the choice of bin boundaries, which is an arbitrary hyperparameter
+- Why: This matters because it tells you how to reason about treating a regression problem as classification by binning the output.
+- Pitfall: Don't answer "treating a regression problem as classification by binning the output" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you lose ordinal information and add sensitivity to the choice of bin boundaries, which is an arbitrary hyperparameter
 
-**using sigmoid output with MSE loss for binary classification?** #flashcard
-technically valid but creates poor gradient behavior near saturation; cross-entropy is the principled choice for classification outputs
+### using sigmoid output with MSE loss for binary classification
+- Direct Answer: technically valid but creates poor gradient behavior near saturation; cross-entropy is the principled choice for classification outputs
+- Why: This matters because it tells you how to reason about using sigmoid output with mse loss for binary classification.
+- Pitfall: Don't answer "using sigmoid output with MSE loss for binary classification" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: technically valid but creates poor gradient behavior near saturation; cross-entropy is the principled choice for classification outputs
 
-**assuming L1 is always better for interpretability?** #flashcard
-when features are grouped and correlated, L1 arbitrarily picks one from the group and discards the rest; Elastic Net (L1 + L2) is more stable in this case
+### assuming L1 is always better for interpretability
+- Direct Answer: when features are grouped and correlated, L1 arbitrarily picks one from the group and discards the rest; Elastic Net (L1 + L2) is more stable in this case
+- Why: This matters because it tells you how to reason about assuming l1 is always better for interpretability.
+- Pitfall: Don't answer "assuming L1 is always better for interpretability" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: when features are grouped and correlated, L1 arbitrarily picks one from the group and discards the rest; Elastic Net (L1 + L2) is more stable in this case
 
-**applying strong regularization to a high-bias model?** #flashcard
-the model is already underpowered; adding regularization makes it worse by further restricting its capacity
+### applying strong regularization to a high-bias model
+- Direct Answer: the model is already underpowered; adding regularization makes it worse by further restricting its capacity
+- Why: This matters because it tells you how to reason about applying strong regularization to a high-bias model.
+- Pitfall: Don't answer "applying strong regularization to a high-bias model" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model is already underpowered; adding regularization makes it worse by further restricting its capacity
 
-**applying dropout to small, already-underpowered networks?** #flashcard
-if the model has high bias, dropout reduces capacity further and makes it worse
+### applying dropout to small, already-underpowered networks
+- Direct Answer: if the model has high bias, dropout reduces capacity further and makes it worse
+- Why: This matters because it tells you how to reason about applying dropout to small, already-underpowered networks.
+- Pitfall: Don't answer "applying dropout to small, already-underpowered networks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if the model has high bias, dropout reduces capacity further and makes it worse
 
-**forgetting to call model.eval() at inference time?** #flashcard
-active dropout at inference gives stochastic predictions with roughly half the neurons active each call, causing inconsistent outputs; this is a common production bug
+### forgetting to call model.eval() at inference time
+- Direct Answer: active dropout at inference gives stochastic predictions with roughly half the neurons active each call, causing inconsistent outputs; this is a common production bug
+- Why: This matters because it tells you how to reason about forgetting to call model.eval() at inference time.
+- Pitfall: Don't answer "forgetting to call model.eval() at inference time" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: active dropout at inference gives stochastic predictions with roughly half the neurons active each call, causing inconsistent outputs; this is a common production bug
 
-**applying dropout after the final output layer?** #flashcard
-almost never correct
+### applying dropout after the final output layer
+- Direct Answer: almost never correct
+- Why: This matters because it tells you how to reason about applying dropout after the final output layer.
+- Pitfall: Don't answer "applying dropout after the final output layer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: almost never correct
 
-**treating pre-trained embeddings as permanently frozen when fine-tuning is available?** #flashcard
-if you have enough task data, fine-tuning the embeddings to your specific task often significantly improves performance; frozen embeddings may not encode the task-relevant distinctions
+### treating pre-trained embeddings as permanently frozen when fine-tuning is available
+- Direct Answer: if you have enough task data, fine-tuning the embeddings to your specific task often significantly improves performance; frozen embeddings may not encode the task-relevant distinctions
+- Why: This matters because it tells you how to reason about treating pre-trained embeddings as permanently frozen when fine-tuning is available.
+- Pitfall: Don't answer "treating pre-trained embeddings as permanently frozen when fine-tuning is available" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if you have enough task data, fine-tuning the embeddings to your specific task often significantly improves performance; frozen embeddings may not encode the task-relevant distinc…
 
-**using very high-dimensional embeddings for low-cardinality categories?** #flashcard
-wasted parameters; a practical rule of thumb is embedding dimension ≈ min(50, category_count / 2)
+### using very high-dimensional embeddings for low-cardinality categories
+- Direct Answer: wasted parameters; a practical rule of thumb is embedding dimension ≈ min(50, category_count / 2)
+- Why: This matters because it tells you how to reason about using very high-dimensional embeddings for low-cardinality categories.
+- Pitfall: Don't answer "using very high-dimensional embeddings for low-cardinality categories" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: wasted parameters; a practical rule of thumb is embedding dimension ≈ min(50, category_count / 2)
 
-**using sigmoid at the output of a multiclass classifier?** #flashcard
-sigmoid applied per class does not constrain probabilities to sum to 1; use softmax for multiclass problems
+### using sigmoid at the output of a multiclass classifier
+- Direct Answer: sigmoid applied per class does not constrain probabilities to sum to 1; use softmax for multiclass problems
+- Why: This matters because it tells you how to reason about using sigmoid at the output of a multiclass classifier.
+- Pitfall: Don't answer "using sigmoid at the output of a multiclass classifier" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sigmoid applied per class does not constrain probabilities to sum to 1; use softmax for multiclass problems
 
-**computing softmax naively?** #flashcard
-exponentiating large logits causes numerical overflow; subtract the max logit first before exponentiating (mathematically equivalent but numerically stable)
+### computing softmax naively
+- Direct Answer: exponentiating large logits causes numerical overflow; subtract the max logit first before exponentiating (mathematically equivalent but numerically stable)
+- Why: This matters because it tells you how to reason about computing softmax naively.
+- Pitfall: Don't answer "computing softmax naively" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: exponentiating large logits causes numerical overflow; subtract the max logit first before exponentiating (mathematically equivalent but numerically stable)
 
-**performing feature selection or preprocessing before cross-validation and then evaluating inside the CV loop?** #flashcard
-the preprocessing has already seen all the validation data; this is leakage. Preprocessing must be refit inside each fold.
+### performing feature selection or preprocessing before cross-validation and then evaluating inside the CV loop
+- Direct Answer: the preprocessing has already seen all the validation data; this is leakage. Preprocessing must be refit inside each fold.
+- Why: This matters because it tells you how to reason about performing feature selection or preprocessing before cross-validation and then evaluating inside the cv loop.
+- Pitfall: Don't answer "performing feature selection or preprocessing before cross-validation and then evaluating inside the CV loop" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the preprocessing has already seen all the validation data; this is leakage. Preprocessing must be refit inside each fold.
 
-**reporting the cross-validation score as the final generalization estimate after using it for model selection?** #flashcard
-the CV was used to select the model, so it is optimistically biased as a performance estimate. You need a held-out test set for the final number.
+### reporting the cross-validation score as the final generalization estimate after using it for model selection
+- Direct Answer: the CV was used to select the model, so it is optimistically biased as a performance estimate. You need a held-out test set for the final number.
+- Why: This matters because it tells you how to reason about reporting the cross-validation score as the final generalization estimate after using it for model selection.
+- Pitfall: Don't answer "reporting the cross-validation score as the final generalization estimate after using it for model selection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the CV was used to select the model, so it is optimistically biased as a performance estimate. You need a held-out test set for the final number.
 
-**Spam filter?** #flashcard
-optimize precision. Missing real email is worse than seeing spam.
+### Spam filter
+- Direct Answer: optimize precision. Missing real email is worse than seeing spam.
+- Why: This matters because it tells you how to reason about spam filter.
+- Pitfall: Don't answer "Spam filter" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: optimize precision. Missing real email is worse than seeing spam.
 
-**Cancer detection?** #flashcard
-optimize recall. Missing a real case is far worse than an unnecessary biopsy.
+### Cancer detection
+- Direct Answer: optimize recall. Missing a real case is far worse than an unnecessary biopsy.
+- Why: This matters because it tells you how to reason about cancer detection.
+- Pitfall: Don't answer "Cancer detection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: optimize recall. Missing a real case is far worse than an unnecessary biopsy.
 
-**Fraud detection where the investigation team has limited capacity?** #flashcard
-use F1 or set the threshold to match the team's daily review capacity from the precision-recall curve.
+### Fraud detection where the investigation team has limited capacity
+- Direct Answer: use F1 or set the threshold to match the team's daily review capacity from the precision-recall curve.
+- Why: This matters because it tells you how to reason about fraud detection where the investigation team has limited capacity.
+- Pitfall: Don't answer "Fraud detection where the investigation team has limited capacity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: use F1 or set the threshold to match the team's daily review capacity from the precision-recall curve.
 
-**using accuracy as the primary metric on imbalanced data?** #flashcard
-a model that predicts "not fraud" for every transaction achieves 99.9% accuracy on a 0.1% positive-rate dataset, with 0% recall on the class you care about
+### using accuracy as the primary metric on imbalanced data
+- Direct Answer: a model that predicts "not fraud" for every transaction achieves 99.9% accuracy on a 0.1% positive-rate dataset, with 0% recall on the class you care about
+- Why: This matters because it tells you how to reason about using accuracy as the primary metric on imbalanced data.
+- Pitfall: Don't answer "using accuracy as the primary metric on imbalanced data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a model that predicts "not fraud" for every transaction achieves 99.9% accuracy on a 0.1% positive-rate dataset, with 0% recall on the class you care about
 
-**fixing the threshold at 0.5 without reasoning about error costs?** #flashcard
-0.5 assumes false positives and false negatives have equal cost; that is rarely true in practice
+### fixing the threshold at 0.5 without reasoning about error costs
+- Direct Answer: 0.5 assumes false positives and false negatives have equal cost; that is rarely true in practice
+- Why: This matters because it tells you how to reason about fixing the threshold at 0.5 without reasoning about error costs.
+- Pitfall: Don't answer "fixing the threshold at 0.5 without reasoning about error costs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 0.5 assumes false positives and false negatives have equal cost; that is rarely true in practice
 
-**treating all anomaly detection as supervised binary classification?** #flashcard
-you will miss novel anomaly types and the model degrades as adversaries learn your detection patterns
+### treating all anomaly detection as supervised binary classification
+- Direct Answer: you will miss novel anomaly types and the model degrades as adversaries learn your detection patterns
+- Why: This matters because it tells you how to reason about treating all anomaly detection as supervised binary classification.
+- Pitfall: Don't answer "treating all anomaly detection as supervised binary classification" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you will miss novel anomaly types and the model degrades as adversaries learn your detection patterns
 
-**setting the anomaly threshold without understanding the operational context?** #flashcard
-precision at very low recall is usually meaningless; set the threshold based on how many anomalies you can actually review per day
+### setting the anomaly threshold without understanding the operational context
+- Direct Answer: precision at very low recall is usually meaningless; set the threshold based on how many anomalies you can actually review per day
+- Why: This matters because it tells you how to reason about setting the anomaly threshold without understanding the operational context.
+- Pitfall: Don't answer "setting the anomaly threshold without understanding the operational context" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: precision at very low recall is usually meaningless; set the threshold based on how many anomalies you can actually review per day
 
-**thinking regularization alone addresses high-dimensional problems?** #flashcard
-dimensionality reduction (PCA, feature selection) or a model architecture with appropriate inductive bias is often more important than regularization
+### thinking regularization alone addresses high-dimensional problems
+- Direct Answer: dimensionality reduction (PCA, feature selection) or a model architecture with appropriate inductive bias is often more important than regularization
+- Why: This matters because it tells you how to reason about thinking regularization alone addresses high-dimensional problems.
+- Pitfall: Don't answer "thinking regularization alone addresses high-dimensional problems" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: dimensionality reduction (PCA, feature selection) or a model architecture with appropriate inductive bias is often more important than regularization
 
-**treating all features as equally useful in high-dimensional settings?** #flashcard
-uninformative features drown out informative ones; feature selection becomes more critical, not less, as dimensionality grows
+### treating all features as equally useful in high-dimensional settings
+- Direct Answer: uninformative features drown out informative ones; feature selection becomes more critical, not less, as dimensionality grows
+- Why: This matters because it tells you how to reason about treating all features as equally useful in high-dimensional settings.
+- Pitfall: Don't answer "treating all features as equally useful in high-dimensional settings" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: uninformative features drown out informative ones; feature selection becomes more critical, not less, as dimensionality grows
 
-**treating exploration as a minor implementation detail?** #flashcard
-in RL, insufficient exploration means the agent never discovers that better strategies exist; the explore-exploit tradeoff is a first-class problem, not an afterthought
+### treating exploration as a minor implementation detail
+- Direct Answer: in RL, insufficient exploration means the agent never discovers that better strategies exist; the explore-exploit tradeoff is a first-class problem, not an afterthought
+- Why: This matters because it tells you how to reason about treating exploration as a minor implementation detail.
+- Pitfall: Don't answer "treating exploration as a minor implementation detail" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: in RL, insufficient exploration means the agent never discovers that better strategies exist; the explore-exploit tradeoff is a first-class problem, not an afterthought
 
-**not recognizing that RL is dramatically harder to debug than supervised learning?** #flashcard
-the training signal is delayed, noisy, non-stationary, and the data distribution changes as the policy changes; standard supervised learning debugging intuitions do not transfer directly
+### not recognizing that RL is dramatically harder to debug than supervised learning
+- Direct Answer: the training signal is delayed, noisy, non-stationary, and the data distribution changes as the policy changes; standard supervised learning debugging intuitions do not transfer directly
+- Why: This matters because it tells you how to reason about not recognizing that rl is dramatically harder to debug than supervised learning.
+- Pitfall: Don't answer "not recognizing that RL is dramatically harder to debug than supervised learning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the training signal is delayed, noisy, non-stationary, and the data distribution changes as the policy changes; standard supervised learning debugging intuitions do not transfer d…

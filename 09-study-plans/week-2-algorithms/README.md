@@ -39,11 +39,11 @@
 
 ## Linked Resources
 
-- [Supervised Learning](../02-classical-ml/supervised-learning.md)
-- [Unsupervised Learning](../02-classical-ml/unsupervised-learning.md)
-- [Deep Learning Overview](../03-deep-learning/README.md)
-- [Algorithms & Theory (interview notes)](../07-interview-prep/ml/algorithms.md)
-- [Model Evaluation & Metrics](../07-interview-prep/ml/model-evaluation.md)
+- [Supervised Learning](../../02-classical-ml/supervised-learning.md)
+- [Unsupervised Learning](../../02-classical-ml/unsupervised-learning.md)
+- [Deep Learning Overview](../../03-deep-learning/README.md)
+- [Algorithms & Theory (interview notes)](../../07-interview-prep/ml/algorithms.md)
+- [Model Evaluation & Metrics](../../07-interview-prep/ml/model-evaluation.md)
 - Day files in this folder: day-8-9, day-10-11, day-12-14, day-15-16, day-17-18, day-19-21
 
 ---

@@ -974,385 +974,766 @@ class AgentState(TypedDict):
 | Guardrails | System prompt, secondary LLM, deterministic code | All three; code for hard constraints |
 | Code execution | Host, container, VM | Container/VM always; never host |
 
-## Flashcards
-
-**Stateful loop?** #flashcard
-enables multi-step execution that a single call cannot do
-
-**Memory?** #flashcard
-prevents context loss across steps
-
-**Tool execution?** #flashcard
-enables interaction with the real world
-
-**Max steps?** #flashcard
-prevents infinite loops
-
-**Terminal detection?** #flashcard
-clean stopping when the task is complete
-
-**Without max_steps?** #flashcard
-infinite loops, especially on ambiguous tasks.
-
-**Without memory management?** #flashcard
-context window overflow; early context is truncated and the agent forgets the original task.
-
-**Without structured stopping conditions?** #flashcard
-the agent hallucinates completion or loops indefinitely.
-
-**"An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.?** #flashcard
-"An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.
-
-**Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.?** #flashcard
-Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.
-
-**What it is: the current context window?** #flashcard
-system prompt, recent conversation history, recent tool results
-
-**What it solves?** #flashcard
-immediate coherence across the last N turns
-
-**Limit?** #flashcard
-fixed size; earlier context is truncated when exceeded
-
-**Management?** #flashcard
-sliding window, summarization of old context, selective pruning
-
-**What it is?** #flashcard
-a vector database of previous observations, facts, documents
-
-**What it solves?** #flashcard
-retrieval of relevant past information that no longer fits in context
-
-**Mechanism?** #flashcard
-embed current query, retrieve top-k similar stored items, inject into context
-
-**What it is?** #flashcard
-structured log of what actions were taken, what results were returned
-
-**What it solves?** #flashcard
-reproducibility, reflection, debugging; "what did I already try?"
-
-**Used for?** #flashcard
-agent reflection ("I already searched for X and found Y"), avoiding repeated failures
-
-**Using only short-term memory?** #flashcard
-agent forgets the original task on long sequences.
-
-**Using only long-term memory without short-term?** #flashcard
-no coherence in the current task thread.
-
-**Retrieving too much long-term context?** #flashcard
-injects irrelevant information that confuses the model.
-
-**Not managing episodic memory?** #flashcard
-agent retries actions that already failed without knowing they failed.
-
-**Treating the context window as "the memory." This works for short tasks and breaks for long ones.?** #flashcard
-Treating the context window as "the memory." This works for short tasks and breaks for long ones.
-
-**No memory eviction strategy?** #flashcard
-context overflow at step 50 is predictable and must be handled.
-
-**Tools that raise exceptions?** #flashcard
-crash the agent loop unless you catch everything.
-
-**Tools that return huge outputs?** #flashcard
-fill the context window, crowd out relevant information.
-
-**Tools without clear descriptions?** #flashcard
-the model doesn't know when to use them.
-
-**Too many tools in context?** #flashcard
-model can't distinguish which to use; tool routing is required.
-
-**"The model calls the API." The model generates a JSON description of a call; the application executes it.?** #flashcard
-"The model calls the API." The model generates a JSON description of a call; the application executes it.
-
-**Tools that return exceptions instead of error strings?** #flashcard
-breaks the agent loop.
-
-**Without max_steps?** #flashcard
-infinite loop when the model can't complete the task.
-
-**Thoughts can be hallucinated rationalizations that precede wrong tool calls.?** #flashcard
-Thoughts can be hallucinated rationalizations that precede wrong tool calls.
-
-**Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.?** #flashcard
-Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.
-
-**The model may generate a "Thought" that ignores the previous Observation.?** #flashcard
-The model may generate a "Thought" that ignores the previous Observation.
-
-**Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.?** #flashcard
-Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.
-
-**Forgetting max_steps?** #flashcard
-the most common production bug in ReAct agents.
-
-**The planner can generate a bad plan; the executor faithfully executes wrong steps.?** #flashcard
-The planner can generate a bad plan; the executor faithfully executes wrong steps.
-
-**If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.?** #flashcard
-If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.
-
-**Synthesizer must reason over potentially inconsistent results from different executor contexts.?** #flashcard
-Synthesizer must reason over potentially inconsistent results from different executor contexts.
-
-**Using Plan-and-Execute for short, adaptive tasks?** #flashcard
-the overhead isn't worth it.
-
-**Not handling plan failures?** #flashcard
-if step 3 fails, what happens to steps 4-10 that depend on it?
-
-**The code execution agent has NO web browsing tools?** #flashcard
-it can't be weaponized by malicious web content.
-
-**The research agent has NO code execution tools?** #flashcard
-it can't run arbitrary code from scraped pages.
-
-**The document agent has access only to the document index, not to files outside the index.?** #flashcard
-The document agent has access only to the document index, not to files outside the index.
-
-**Synchronous?** #flashcard
-orchestrator waits for specialist result before continuing.
-
-**Asynchronous?** #flashcard
-orchestrator dispatches to multiple specialists in parallel, aggregates results.
-
-**Peer-to-peer: specialists can invoke each other directly (use carefully?** #flashcard
-creates hard-to-debug loops).
-
-**Over-communication?** #flashcard
-agents passing full contexts between themselves causes combinatorial context growth.
-
-**Circular dependencies?** #flashcard
-Agent A calls Agent B which calls Agent A.
-
-**No result validation?** #flashcard
-the orchestrator trusts specialist outputs without checking for hallucination or errors.
-
-**Privilege escalation?** #flashcard
-if a specialist agent can invoke the orchestrator, an attacker might use the specialist to gain orchestrator-level capabilities.
-
-**"Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.?** #flashcard
-"Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.
-
-**Not defining clear interfaces between agents?** #flashcard
-what format does the specialist return? What happens on error?
-
-**MCP doesn't solve authentication?** #flashcard
-the server must still implement auth.
-
-**MCP doesn't prevent prompt injection via tool outputs?** #flashcard
-a malicious tool result can contain instructions.
-
-**Version compatibility?** #flashcard
-if the server updates its tool schema, clients must be updated.
-
-**"MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.?** #flashcard
-"MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.
-
-**Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.?** #flashcard
-Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.
-
-**Infinite retries without a cap?** #flashcard
-agent loops on a broken tool forever.
-
-**Silently swallowing errors?** #flashcard
-agent continues with stale state, producing downstream hallucinations.
-
-**Reflection without external grounding?** #flashcard
-if the agent "decides" the error didn't happen, reflection produces wrong reasoning.
-
-**Using raise in tool functions instead of return error_string.?** #flashcard
-Using raise in tool functions instead of return error_string.
-
-**No backoff on retries?** #flashcard
-rate-limited APIs will stay rate-limited if you retry immediately.
-
-**max_steps?** #flashcard
-derived from task complexity. Research tasks: 20-50 steps. Simple Q&A: 3-5 steps.
-
-**token_budget?** #flashcard
-derived from cost tolerance. Set as a hard cap, not a soft warning.
-
-**Emergency stop: if the agent produces the same tool call 3 times in a row, it's looping?** #flashcard
-force stop.
-
-**Only LLM-driven stopping?** #flashcard
-model hallucinates "FINAL_ANSWER:" on a failed task.
-
-**Only system-driven stopping?** #flashcard
-legitimate long tasks are killed before completion.
-
-**No loop detection?** #flashcard
-an agent making the same failing call repeatedly until budget exhausted.
-
-**"We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.?** #flashcard
-"We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.
-
-**Token budget too generous?** #flashcard
-a runaway agent can consume $1000 in API costs before the budget is hit.
-
-**Evaluating only final state?** #flashcard
-agents that succeed via unsafe paths pass.
-
-**LLM-as-judge with position bias?** #flashcard
-judge prefers responses it sees first.
-
-**No adversarial test cases?** #flashcard
-agent looks good on benign inputs, fails on edge cases.
-
-**"We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.?** #flashcard
-"We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.
-
-**Only running happy-path tests without error injection.?** #flashcard
-Only running happy-path tests without error injection.
-
-**Direct injection?** #flashcard
-user input contains instructions that override the system prompt.
-
-**Indirect injection?** #flashcard
-malicious content in retrieved data (web pages, documents, tool outputs) contains instructions.
-
-**Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.?** #flashcard
-Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.
-
-**Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).?** #flashcard
-Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).
-
-**HITL adds latency; attackers can craft slow-burn attacks that pass individual review.?** #flashcard
-HITL adds latency; attackers can craft slow-burn attacks that pass individual review.
-
-**"We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.?** #flashcard
-"We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.
-
-**No tool allowlists?** #flashcard
-an agent with unrestricted tool access is a fully general remote code execution vulnerability.
-
-**Blocking on every action?** #flashcard
-removes the value of automation.
-
-**No approval timeout?** #flashcard
-agent waits forever for a reviewer who never sees the notification.
-
-**No audit log of auto-executed actions?** #flashcard
-"on-the-loop" monitoring with no logs is just theater.
-
-**"We'll add human review for everything." This makes the system slower than doing it manually.?** #flashcard
-"We'll add human review for everything." This makes the system slower than doing it manually.
-
-**No state persistence?** #flashcard
-if the process dies while waiting for approval, the task is lost.
-
-**Output-only guardrails?** #flashcard
-malicious inputs can manipulate the reasoning process even if the final output is filtered.
-
-**System prompt-only guardrails?** #flashcard
-bypassed by direct or indirect injection.
-
-**No independent input and output layers?** #flashcard
-guardrails can be constructed to fail by exploiting the gap.
-
-**"Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.?** #flashcard
-"Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.
-
-**Single-layer guardrails (only input or only output)?** #flashcard
-always need both.
-
-**Format errors?** #flashcard
-"Your JSON is malformed" → model fixes it
-
-**Incomplete task coverage?** #flashcard
-"You missed addressing part 3 of the question"
-
-**Logical inconsistency?** #flashcard
-model can see contradictions in its own text
-
-**Factual errors?** #flashcard
-the model doesn't have access to ground truth, so it can't correct wrong facts
-
-**After ~3 iterations?** #flashcard
-diminishing returns; additional reflection rarely changes the answer
-
-**Without external grounding?** #flashcard
-factual accuracy requires retrieval, not self-critique
-
-**Unlimited reflection loops?** #flashcard
-no improvement after N=3, just costs
-
-**Reflection inside the same context?** #flashcard
-model confirms itself
-
-**No external grounding for factual claims?** #flashcard
-reflection can't fix hallucinations
-
-**"We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.?** #flashcard
-"We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.
-
-**Multiple reflection rounds without checking whether anything changed.?** #flashcard
-Multiple reflection rounds without checking whether anything changed.
-
-**[ ] Code executes in container/VM, not on host?** #flashcard
-[ ] Code executes in container/VM, not on host
-
-**[ ] No network access (or strictly allowlisted)?** #flashcard
-[ ] No network access (or strictly allowlisted)
-
-**[ ] No access to host filesystem?** #flashcard
-[ ] No access to host filesystem
-
-**[ ] Hard timeout (default 30s)?** #flashcard
-[ ] Hard timeout (default 30s)
-
-**[ ] Memory and CPU limits?** #flashcard
-[ ] Memory and CPU limits
-
-**[ ] Fresh container per execution (no state leakage)?** #flashcard
-[ ] Fresh container per execution (no state leakage)
-
-**[ ] Output sanitized before returning to model (no file paths, no secrets)?** #flashcard
-[ ] Output sanitized before returning to model (no file paths, no secrets)
-
-**Running code on host?** #flashcard
-any LLM error or injection → system compromise.
-
-**No timeout?** #flashcard
-an infinite loop hangs the agent.
-
-**Shared container across executions?** #flashcard
-state from execution N leaks to execution N+1.
-
-**No output sanitization?** #flashcard
-the sandbox output can itself contain injected instructions.
-
-**"We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.?** #flashcard
-"We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.
-
-**Persistent containers?** #flashcard
-state from previous executions (files, installed packages) contaminates later ones.
-
-**State?** #flashcard
-a typed dict shared across all nodes. Each node reads from and writes to state.
-
-**Nodes?** #flashcard
-functions that take state, do computation, return updated state.
-
-**Edges?** #flashcard
-connect nodes; can be conditional (route based on state values).
-
-**Missing checkpointer?** #flashcard
-no pause/resume capability, agent state lost on process restart.
-
-**No Reducers for concurrent writes?** #flashcard
-last-write-wins causes data loss.
-
-**Unbounded cycles?** #flashcard
-without a maximum iteration condition, cycles run forever.
-
-**"LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.?** #flashcard
-"LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.
-
-**Using LangGraph for simple linear workflows?** #flashcard
-the overhead isn't justified.
+## Rapid Recall
+
+### Stateful loop
+- Direct Answer: enables multi-step execution that a single call cannot do
+- Why: This matters because it tells you how to reason about stateful loop.
+- Pitfall: Don't answer "Stateful loop" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: enables multi-step execution that a single call cannot do
+
+### Memory
+- Direct Answer: prevents context loss across steps
+- Why: This matters because it tells you how to reason about memory.
+- Pitfall: Don't answer "Memory" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prevents context loss across steps
+
+### Tool execution
+- Direct Answer: enables interaction with the real world
+- Why: This matters because it tells you how to reason about tool execution.
+- Pitfall: Don't answer "Tool execution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: enables interaction with the real world
+
+### Max steps
+- Direct Answer: prevents infinite loops
+- Why: This matters because it tells you how to reason about max steps.
+- Pitfall: Don't answer "Max steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prevents infinite loops
+
+### Terminal detection
+- Direct Answer: clean stopping when the task is complete
+- Why: This matters because it tells you how to reason about terminal detection.
+- Pitfall: Don't answer "Terminal detection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: clean stopping when the task is complete
+
+### Without max_steps
+- Direct Answer: infinite loops, especially on ambiguous tasks.
+- Why: This matters because it tells you how to reason about without max_steps.
+- Pitfall: Don't answer "Without max_steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: infinite loops, especially on ambiguous tasks.
+
+### Without memory management
+- Direct Answer: context window overflow; early context is truncated and the agent forgets the original task.
+- Why: This matters because it tells you how to reason about without memory management.
+- Pitfall: Don't answer "Without memory management" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: context window overflow; early context is truncated and the agent forgets the original task.
+
+### Without structured stopping conditions
+- Direct Answer: the agent hallucinates completion or loops indefinitely.
+- Why: This matters because it tells you how to reason about without structured stopping conditions.
+- Pitfall: Don't answer "Without structured stopping conditions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the agent hallucinates completion or loops indefinitely.
+
+### "An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.
+- Direct Answer: "An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.
+- Why: This matters because it tells you how to reason about "an agent just uses tools." tool use is one component. an agent without memory, loop control, and stopping conditions will fail on non-trivial tasks..
+- Pitfall: Don't answer ""An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "An agent just uses tools." Tool use is one component. An agent without memory, loop control, and stopping conditions will fail on non-trivial tasks.
+
+### Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.
+- Direct Answer: Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.
+- Why: This matters because it tells you how to reason about treating the agent loop as optional. without explicit loop control, you don't have a reliable agent..
+- Pitfall: Don't answer "Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating the agent loop as optional. Without explicit loop control, you don't have a reliable agent.
+
+### What it is: the current context window
+- Direct Answer: system prompt, recent conversation history, recent tool results
+- Why: This matters because it tells you how to reason about what it is: the current context window.
+- Pitfall: Don't answer "What it is: the current context window" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: system prompt, recent conversation history, recent tool results
+
+### What it solves
+- Direct Answer: immediate coherence across the last N turns
+- Why: This matters because it tells you how to reason about what it solves.
+- Pitfall: Don't answer "What it solves" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: immediate coherence across the last N turns
+
+### Limit
+- Direct Answer: fixed size; earlier context is truncated when exceeded
+- Why: This matters because it tells you how to reason about limit.
+- Pitfall: Don't answer "Limit" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fixed size; earlier context is truncated when exceeded
+
+### Management
+- Direct Answer: sliding window, summarization of old context, selective pruning
+- Why: This matters because it tells you how to reason about management.
+- Pitfall: Don't answer "Management" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sliding window, summarization of old context, selective pruning
+
+### What it is
+- Direct Answer: a vector database of previous observations, facts, documents
+- Why: This matters because it tells you how to reason about what it is.
+- Pitfall: Don't answer "What it is" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a vector database of previous observations, facts, documents
+
+### What it solves
+- Direct Answer: retrieval of relevant past information that no longer fits in context
+- Why: This matters because it tells you how to reason about what it solves.
+- Pitfall: Don't answer "What it solves" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: retrieval of relevant past information that no longer fits in context
+
+### Mechanism
+- Direct Answer: embed current query, retrieve top-k similar stored items, inject into context
+- Why: This matters because it tells you how to reason about mechanism.
+- Pitfall: Don't answer "Mechanism" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: embed current query, retrieve top-k similar stored items, inject into context
+
+### What it is
+- Direct Answer: structured log of what actions were taken, what results were returned
+- Why: This matters because it tells you how to reason about what it is.
+- Pitfall: Don't answer "What it is" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: structured log of what actions were taken, what results were returned
+
+### What it solves
+- Direct Answer: reproducibility, reflection, debugging; "what did I already try?"
+- Why: This matters because it tells you how to reason about what it solves.
+- Pitfall: Don't answer "What it solves" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reproducibility, reflection, debugging; "what did I already try?"
+
+### Used for
+- Direct Answer: agent reflection ("I already searched for X and found Y"), avoiding repeated failures
+- Why: This matters because it tells you how to reason about used for.
+- Pitfall: Don't answer "Used for" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent reflection ("I already searched for X and found Y"), avoiding repeated failures
+
+### Using only short-term memory
+- Direct Answer: agent forgets the original task on long sequences.
+- Why: This matters because it tells you how to reason about using only short-term memory.
+- Pitfall: Don't answer "Using only short-term memory" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent forgets the original task on long sequences.
+
+### Using only long-term memory without short-term
+- Direct Answer: no coherence in the current task thread.
+- Why: This matters because it tells you how to reason about using only long-term memory without short-term.
+- Pitfall: Don't answer "Using only long-term memory without short-term" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: no coherence in the current task thread.
+
+### Retrieving too much long-term context
+- Direct Answer: injects irrelevant information that confuses the model.
+- Why: This matters because it tells you how to reason about retrieving too much long-term context.
+- Pitfall: Don't answer "Retrieving too much long-term context" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: injects irrelevant information that confuses the model.
+
+### Not managing episodic memory
+- Direct Answer: agent retries actions that already failed without knowing they failed.
+- Why: This matters because it tells you how to reason about not managing episodic memory.
+- Pitfall: Don't answer "Not managing episodic memory" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent retries actions that already failed without knowing they failed.
+
+### Treating the context window as "the memory." This works for short tasks and breaks for long ones.
+- Direct Answer: Treating the context window as "the memory." This works for short tasks and breaks for long ones.
+- Why: This matters because it tells you how to reason about treating the context window as "the memory." this works for short tasks and breaks for long ones..
+- Pitfall: Don't answer "Treating the context window as "the memory." This works for short tasks and breaks for long ones." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating the context window as "the memory." This works for short tasks and breaks for long ones.
+
+### No memory eviction strategy
+- Direct Answer: context overflow at step 50 is predictable and must be handled.
+- Why: This matters because it tells you how to reason about no memory eviction strategy.
+- Pitfall: Don't answer "No memory eviction strategy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: context overflow at step 50 is predictable and must be handled.
+
+### Tools that raise exceptions
+- Direct Answer: crash the agent loop unless you catch everything.
+- Why: This matters because it tells you how to reason about tools that raise exceptions.
+- Pitfall: Don't answer "Tools that raise exceptions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: crash the agent loop unless you catch everything.
+
+### Tools that return huge outputs
+- Direct Answer: fill the context window, crowd out relevant information.
+- Why: This matters because it tells you how to reason about tools that return huge outputs.
+- Pitfall: Don't answer "Tools that return huge outputs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fill the context window, crowd out relevant information.
+
+### Tools without clear descriptions
+- Direct Answer: the model doesn't know when to use them.
+- Why: This matters because it tells you how to reason about tools without clear descriptions.
+- Pitfall: Don't answer "Tools without clear descriptions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model doesn't know when to use them.
+
+### Too many tools in context
+- Direct Answer: model can't distinguish which to use; tool routing is required.
+- Why: This matters because it tells you how to reason about too many tools in context.
+- Pitfall: Don't answer "Too many tools in context" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model can't distinguish which to use; tool routing is required.
+
+### "The model calls the API." The model generates a JSON description of a call; the application executes it.
+- Direct Answer: "The model calls the API." The model generates a JSON description of a call; the application executes it.
+- Why: This matters because it tells you how to reason about "the model calls the api." the model generates a json description of a call; the application executes it..
+- Pitfall: Don't answer ""The model calls the API." The model generates a JSON description of a call; the application executes it." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "The model calls the API." The model generates a JSON description of a call; the application executes it.
+
+### Tools that return exceptions instead of error strings
+- Direct Answer: breaks the agent loop.
+- Why: This matters because it tells you how to reason about tools that return exceptions instead of error strings.
+- Pitfall: Don't answer "Tools that return exceptions instead of error strings" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: breaks the agent loop.
+
+### Without max_steps
+- Direct Answer: infinite loop when the model can't complete the task.
+- Why: This matters because it tells you how to reason about without max_steps.
+- Pitfall: Don't answer "Without max_steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: infinite loop when the model can't complete the task.
+
+### Thoughts can be hallucinated rationalizations that precede wrong tool calls.
+- Direct Answer: Thoughts can be hallucinated rationalizations that precede wrong tool calls.
+- Why: This matters because it tells you how to reason about thoughts can be hallucinated rationalizations that precede wrong tool calls..
+- Pitfall: Don't answer "Thoughts can be hallucinated rationalizations that precede wrong tool calls." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Thoughts can be hallucinated rationalizations that precede wrong tool calls.
+
+### Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.
+- Direct Answer: Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.
+- Why: This matters because it tells you how to reason about long react traces fill the context window; step 15 can no longer see step 1's reasoning..
+- Pitfall: Don't answer "Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.
+
+### The model may generate a "Thought" that ignores the previous Observation.
+- Direct Answer: The model may generate a "Thought" that ignores the previous Observation.
+- Why: This matters because it tells you how to reason about the model may generate a "thought" that ignores the previous observation..
+- Pitfall: Don't answer "The model may generate a "Thought" that ignores the previous Observation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The model may generate a "Thought" that ignores the previous Observation.
+
+### Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.
+- Direct Answer: Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.
+- Why: This matters because it tells you how to reason about treating react as "tool use + explanation." the key is that thoughts constrain subsequent actions, not that they narrate them..
+- Pitfall: Don't answer "Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating ReAct as "tool use + explanation." The key is that thoughts constrain subsequent actions, not that they narrate them.
+
+### Forgetting max_steps
+- Direct Answer: the most common production bug in ReAct agents.
+- Why: This matters because it tells you how to reason about forgetting max_steps.
+- Pitfall: Don't answer "Forgetting max_steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the most common production bug in ReAct agents.
+
+### The planner can generate a bad plan; the executor faithfully executes wrong steps.
+- Direct Answer: The planner can generate a bad plan; the executor faithfully executes wrong steps.
+- Why: This matters because it tells you how to reason about the planner can generate a bad plan; the executor faithfully executes wrong steps..
+- Pitfall: Don't answer "The planner can generate a bad plan; the executor faithfully executes wrong steps." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The planner can generate a bad plan; the executor faithfully executes wrong steps.
+
+### If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.
+- Direct Answer: If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.
+- Why: This matters because it tells you how to reason about if step n depends on step n-1's result in an unexpected way, a static plan can't adapt..
+- Pitfall: Don't answer "If step N depends on step N-1's result in an unexpected way, a static plan can't adapt." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If step N depends on step N-1's result in an unexpected way, a static plan can't adapt.
+
+### Synthesizer must reason over potentially inconsistent results from different executor contexts.
+- Direct Answer: Synthesizer must reason over potentially inconsistent results from different executor contexts.
+- Why: This matters because it tells you how to reason about synthesizer must reason over potentially inconsistent results from different executor contexts..
+- Pitfall: Don't answer "Synthesizer must reason over potentially inconsistent results from different executor contexts." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Synthesizer must reason over potentially inconsistent results from different executor contexts.
+
+### Using Plan-and-Execute for short, adaptive tasks
+- Direct Answer: the overhead isn't worth it.
+- Why: This matters because it tells you how to reason about using plan-and-execute for short, adaptive tasks.
+- Pitfall: Don't answer "Using Plan-and-Execute for short, adaptive tasks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the overhead isn't worth it.
+
+### Not handling plan failures
+- Direct Answer: if step 3 fails, what happens to steps 4-10 that depend on it?
+- Why: This matters because it tells you how to reason about not handling plan failures.
+- Pitfall: Don't answer "Not handling plan failures" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if step 3 fails, what happens to steps 4-10 that depend on it?
+
+### The code execution agent has NO web browsing tools
+- Direct Answer: it can't be weaponized by malicious web content.
+- Why: This matters because it tells you how to reason about the code execution agent has no web browsing tools.
+- Pitfall: Don't answer "The code execution agent has NO web browsing tools" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it can't be weaponized by malicious web content.
+
+### The research agent has NO code execution tools
+- Direct Answer: it can't run arbitrary code from scraped pages.
+- Why: This matters because it tells you how to reason about the research agent has no code execution tools.
+- Pitfall: Don't answer "The research agent has NO code execution tools" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it can't run arbitrary code from scraped pages.
+
+### The document agent has access only to the document index, not to files outside the index.
+- Direct Answer: The document agent has access only to the document index, not to files outside the index.
+- Why: This matters because it tells you how to reason about the document agent has access only to the document index, not to files outside the index..
+- Pitfall: Don't answer "The document agent has access only to the document index, not to files outside the index." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The document agent has access only to the document index, not to files outside the index.
+
+### Synchronous
+- Direct Answer: orchestrator waits for specialist result before continuing.
+- Why: This matters because it tells you how to reason about synchronous.
+- Pitfall: Don't answer "Synchronous" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: orchestrator waits for specialist result before continuing.
+
+### Asynchronous
+- Direct Answer: orchestrator dispatches to multiple specialists in parallel, aggregates results.
+- Why: This matters because it tells you how to reason about asynchronous.
+- Pitfall: Don't answer "Asynchronous" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: orchestrator dispatches to multiple specialists in parallel, aggregates results.
+
+### Peer-to-peer: specialists can invoke each other directly (use carefully
+- Direct Answer: creates hard-to-debug loops).
+- Why: This matters because it tells you how to reason about peer-to-peer: specialists can invoke each other directly (use carefully.
+- Pitfall: Don't answer "Peer-to-peer: specialists can invoke each other directly (use carefully" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: creates hard-to-debug loops).
+
+### Over-communication
+- Direct Answer: agents passing full contexts between themselves causes combinatorial context growth.
+- Why: This matters because it tells you how to reason about over-communication.
+- Pitfall: Don't answer "Over-communication" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agents passing full contexts between themselves causes combinatorial context growth.
+
+### Circular dependencies
+- Direct Answer: Agent A calls Agent B which calls Agent A.
+- Why: This matters because it tells you how to reason about circular dependencies.
+- Pitfall: Don't answer "Circular dependencies" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Agent A calls Agent B which calls Agent A.
+
+### No result validation
+- Direct Answer: the orchestrator trusts specialist outputs without checking for hallucination or errors.
+- Why: This matters because it tells you how to reason about no result validation.
+- Pitfall: Don't answer "No result validation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the orchestrator trusts specialist outputs without checking for hallucination or errors.
+
+### Privilege escalation
+- Direct Answer: if a specialist agent can invoke the orchestrator, an attacker might use the specialist to gain orchestrator-level capabilities.
+- Why: This matters because it tells you how to reason about privilege escalation.
+- Pitfall: Don't answer "Privilege escalation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if a specialist agent can invoke the orchestrator, an attacker might use the specialist to gain orchestrator-level capabilities.
+
+### "Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.
+- Direct Answer: "Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.
+- Why: This matters because it tells you how to reason about "multi-agent = parallel agents." parallelism is one benefit. security isolation through least privilege is the more important design principle..
+- Pitfall: Don't answer ""Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Multi-agent = parallel agents." Parallelism is one benefit. Security isolation through least privilege is the more important design principle.
+
+### Not defining clear interfaces between agents
+- Direct Answer: what format does the specialist return? What happens on error?
+- Why: This matters because it tells you how to reason about not defining clear interfaces between agents.
+- Pitfall: Don't answer "Not defining clear interfaces between agents" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what format does the specialist return? What happens on error?
+
+### MCP doesn't solve authentication
+- Direct Answer: the server must still implement auth.
+- Why: This matters because it tells you how to reason about mcp doesn't solve authentication.
+- Pitfall: Don't answer "MCP doesn't solve authentication" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the server must still implement auth.
+
+### MCP doesn't prevent prompt injection via tool outputs
+- Direct Answer: a malicious tool result can contain instructions.
+- Why: This matters because it tells you how to reason about mcp doesn't prevent prompt injection via tool outputs.
+- Pitfall: Don't answer "MCP doesn't prevent prompt injection via tool outputs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a malicious tool result can contain instructions.
+
+### Version compatibility
+- Direct Answer: if the server updates its tool schema, clients must be updated.
+- Why: This matters because it tells you how to reason about version compatibility.
+- Pitfall: Don't answer "Version compatibility" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if the server updates its tool schema, clients must be updated.
+
+### "MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.
+- Direct Answer: "MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.
+- Why: This matters because it tells you how to reason about "mcp = function calling." function calling is a model capability; mcp is a transport protocol between the application and tool servers. they're complementary..
+- Pitfall: Don't answer ""MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "MCP = function calling." Function calling is a model capability; MCP is a transport protocol between the application and tool servers. They're complementary.
+
+### Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.
+- Direct Answer: Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.
+- Why: This matters because it tells you how to reason about thinking mcp provides security guarantees. it provides a standard interface; security is still your responsibility..
+- Pitfall: Don't answer "Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Thinking MCP provides security guarantees. It provides a standard interface; security is still your responsibility.
+
+### Infinite retries without a cap
+- Direct Answer: agent loops on a broken tool forever.
+- Why: This matters because it tells you how to reason about infinite retries without a cap.
+- Pitfall: Don't answer "Infinite retries without a cap" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent loops on a broken tool forever.
+
+### Silently swallowing errors
+- Direct Answer: agent continues with stale state, producing downstream hallucinations.
+- Why: This matters because it tells you how to reason about silently swallowing errors.
+- Pitfall: Don't answer "Silently swallowing errors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent continues with stale state, producing downstream hallucinations.
+
+### Reflection without external grounding
+- Direct Answer: if the agent "decides" the error didn't happen, reflection produces wrong reasoning.
+- Why: This matters because it tells you how to reason about reflection without external grounding.
+- Pitfall: Don't answer "Reflection without external grounding" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if the agent "decides" the error didn't happen, reflection produces wrong reasoning.
+
+### Using raise in tool functions instead of return error_string.
+- Direct Answer: Using raise in tool functions instead of return error_string.
+- Why: This matters because it tells you how to reason about using raise in tool functions instead of return error_string..
+- Pitfall: Don't answer "Using raise in tool functions instead of return error_string." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using raise in tool functions instead of return error_string.
+
+### No backoff on retries
+- Direct Answer: rate-limited APIs will stay rate-limited if you retry immediately.
+- Why: This matters because it tells you how to reason about no backoff on retries.
+- Pitfall: Don't answer "No backoff on retries" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: rate-limited APIs will stay rate-limited if you retry immediately.
+
+### max_steps
+- Direct Answer: derived from task complexity. Research tasks: 20-50 steps. Simple Q&A: 3-5 steps.
+- Why: This matters because it tells you how to reason about max_steps.
+- Pitfall: Don't answer "max_steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: derived from task complexity. Research tasks: 20-50 steps. Simple Q&A: 3-5 steps.
+
+### token_budget
+- Direct Answer: derived from cost tolerance. Set as a hard cap, not a soft warning.
+- Why: This matters because it tells you how to reason about token_budget.
+- Pitfall: Don't answer "token_budget" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: derived from cost tolerance. Set as a hard cap, not a soft warning.
+
+### Emergency stop: if the agent produces the same tool call 3 times in a row, it's looping
+- Direct Answer: force stop.
+- Why: This matters because it tells you how to reason about emergency stop: if the agent produces the same tool call 3 times in a row, it's looping.
+- Pitfall: Don't answer "Emergency stop: if the agent produces the same tool call 3 times in a row, it's looping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: force stop.
+
+### Only LLM-driven stopping
+- Direct Answer: model hallucinates "FINAL_ANSWER:" on a failed task.
+- Why: This matters because it tells you how to reason about only llm-driven stopping.
+- Pitfall: Don't answer "Only LLM-driven stopping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model hallucinates "FINAL_ANSWER:" on a failed task.
+
+### Only system-driven stopping
+- Direct Answer: legitimate long tasks are killed before completion.
+- Why: This matters because it tells you how to reason about only system-driven stopping.
+- Pitfall: Don't answer "Only system-driven stopping" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: legitimate long tasks are killed before completion.
+
+### No loop detection
+- Direct Answer: an agent making the same failing call repeatedly until budget exhausted.
+- Why: This matters because it tells you how to reason about no loop detection.
+- Pitfall: Don't answer "No loop detection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: an agent making the same failing call repeatedly until budget exhausted.
+
+### "We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.
+- Direct Answer: "We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.
+- Why: This matters because it tells you how to reason about "we tell the model to stop when done." the model can't reliably detect when it's stuck. system-level limits are non-negotiable..
+- Pitfall: Don't answer ""We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We tell the model to stop when done." The model can't reliably detect when it's stuck. System-level limits are non-negotiable.
+
+### Token budget too generous
+- Direct Answer: a runaway agent can consume $1000 in API costs before the budget is hit.
+- Why: This matters because it tells you how to reason about token budget too generous.
+- Pitfall: Don't answer "Token budget too generous" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a runaway agent can consume $1000 in API costs before the budget is hit.
+
+### Evaluating only final state
+- Direct Answer: agents that succeed via unsafe paths pass.
+- Why: This matters because it tells you how to reason about evaluating only final state.
+- Pitfall: Don't answer "Evaluating only final state" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agents that succeed via unsafe paths pass.
+
+### LLM-as-judge with position bias
+- Direct Answer: judge prefers responses it sees first.
+- Why: This matters because it tells you how to reason about llm-as-judge with position bias.
+- Pitfall: Don't answer "LLM-as-judge with position bias" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: judge prefers responses it sees first.
+
+### No adversarial test cases
+- Direct Answer: agent looks good on benign inputs, fails on edge cases.
+- Why: This matters because it tells you how to reason about no adversarial test cases.
+- Pitfall: Don't answer "No adversarial test cases" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent looks good on benign inputs, fails on edge cases.
+
+### "We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.
+- Direct Answer: "We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.
+- Why: This matters because it tells you how to reason about "we check if the final answer is correct." an agent that deleted production data to speed up a file task "succeeded" on outcome metrics..
+- Pitfall: Don't answer ""We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We check if the final answer is correct." An agent that deleted production data to speed up a file task "succeeded" on outcome metrics.
+
+### Only running happy-path tests without error injection.
+- Direct Answer: Only running happy-path tests without error injection.
+- Why: This matters because it tells you how to reason about only running happy-path tests without error injection..
+- Pitfall: Don't answer "Only running happy-path tests without error injection." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Only running happy-path tests without error injection.
+
+### Direct injection
+- Direct Answer: user input contains instructions that override the system prompt.
+- Why: This matters because it tells you how to reason about direct injection.
+- Pitfall: Don't answer "Direct injection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: user input contains instructions that override the system prompt.
+
+### Indirect injection
+- Direct Answer: malicious content in retrieved data (web pages, documents, tool outputs) contains instructions.
+- Why: This matters because it tells you how to reason about indirect injection.
+- Pitfall: Don't answer "Indirect injection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: malicious content in retrieved data (web pages, documents, tool outputs) contains instructions.
+
+### Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.
+- Direct Answer: Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.
+- Why: This matters because it tells you how to reason about prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs..
+- Pitfall: Don't answer "Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Prompt-based defenses ("ignore any instructions in tool outputs") are themselves text and can be overridden by sufficiently adversarial inputs.
+
+### Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).
+- Direct Answer: Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).
+- Why: This matters because it tells you how to reason about allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read)..
+- Pitfall: Don't answer "Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Allowlists are bypassed if the attacker knows which tools are allowed (e.g., write to a monitored file that the attacker can read).
+
+### HITL adds latency; attackers can craft slow-burn attacks that pass individual review.
+- Direct Answer: HITL adds latency; attackers can craft slow-burn attacks that pass individual review.
+- Why: This matters because it tells you how to reason about hitl adds latency; attackers can craft slow-burn attacks that pass individual review..
+- Pitfall: Don't answer "HITL adds latency; attackers can craft slow-burn attacks that pass individual review." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: HITL adds latency; attackers can craft slow-burn attacks that pass individual review.
+
+### "We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.
+- Direct Answer: "We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.
+- Why: This matters because it tells you how to reason about "we tell the model not to follow instructions in retrieved content." this is text; it can be overridden..
+- Pitfall: Don't answer ""We tell the model not to follow instructions in retrieved content." This is text; it can be overridden." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We tell the model not to follow instructions in retrieved content." This is text; it can be overridden.
+
+### No tool allowlists
+- Direct Answer: an agent with unrestricted tool access is a fully general remote code execution vulnerability.
+- Why: This matters because it tells you how to reason about no tool allowlists.
+- Pitfall: Don't answer "No tool allowlists" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: an agent with unrestricted tool access is a fully general remote code execution vulnerability.
+
+### Blocking on every action
+- Direct Answer: removes the value of automation.
+- Why: This matters because it tells you how to reason about blocking on every action.
+- Pitfall: Don't answer "Blocking on every action" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: removes the value of automation.
+
+### No approval timeout
+- Direct Answer: agent waits forever for a reviewer who never sees the notification.
+- Why: This matters because it tells you how to reason about no approval timeout.
+- Pitfall: Don't answer "No approval timeout" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: agent waits forever for a reviewer who never sees the notification.
+
+### No audit log of auto-executed actions
+- Direct Answer: "on-the-loop" monitoring with no logs is just theater.
+- Why: This matters because it tells you how to reason about no audit log of auto-executed actions.
+- Pitfall: Don't answer "No audit log of auto-executed actions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "on-the-loop" monitoring with no logs is just theater.
+
+### "We'll add human review for everything." This makes the system slower than doing it manually.
+- Direct Answer: "We'll add human review for everything." This makes the system slower than doing it manually.
+- Why: This matters because it tells you how to reason about "we'll add human review for everything." this makes the system slower than doing it manually..
+- Pitfall: Don't answer ""We'll add human review for everything." This makes the system slower than doing it manually." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We'll add human review for everything." This makes the system slower than doing it manually.
+
+### No state persistence
+- Direct Answer: if the process dies while waiting for approval, the task is lost.
+- Why: This matters because it tells you how to reason about no state persistence.
+- Pitfall: Don't answer "No state persistence" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: if the process dies while waiting for approval, the task is lost.
+
+### Output-only guardrails
+- Direct Answer: malicious inputs can manipulate the reasoning process even if the final output is filtered.
+- Why: This matters because it tells you how to reason about output-only guardrails.
+- Pitfall: Don't answer "Output-only guardrails" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: malicious inputs can manipulate the reasoning process even if the final output is filtered.
+
+### System prompt-only guardrails
+- Direct Answer: bypassed by direct or indirect injection.
+- Why: This matters because it tells you how to reason about system prompt-only guardrails.
+- Pitfall: Don't answer "System prompt-only guardrails" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: bypassed by direct or indirect injection.
+
+### No independent input and output layers
+- Direct Answer: guardrails can be constructed to fail by exploiting the gap.
+- Why: This matters because it tells you how to reason about no independent input and output layers.
+- Pitfall: Don't answer "No independent input and output layers" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: guardrails can be constructed to fail by exploiting the gap.
+
+### "Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.
+- Direct Answer: "Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.
+- Why: This matters because it tells you how to reason about "our system prompt tells the model not to discuss x." this is guidance, not a guardrail..
+- Pitfall: Don't answer ""Our system prompt tells the model not to discuss X." This is guidance, not a guardrail." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Our system prompt tells the model not to discuss X." This is guidance, not a guardrail.
+
+### Single-layer guardrails (only input or only output)
+- Direct Answer: always need both.
+- Why: This matters because it tells you how to reason about single-layer guardrails (only input or only output).
+- Pitfall: Don't answer "Single-layer guardrails (only input or only output)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: always need both.
+
+### Format errors
+- Direct Answer: "Your JSON is malformed" → model fixes it
+- Why: This matters because it tells you how to reason about format errors.
+- Pitfall: Don't answer "Format errors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Your JSON is malformed" → model fixes it
+
+### Incomplete task coverage
+- Direct Answer: "You missed addressing part 3 of the question"
+- Why: This matters because it tells you how to reason about incomplete task coverage.
+- Pitfall: Don't answer "Incomplete task coverage" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "You missed addressing part 3 of the question"
+
+### Logical inconsistency
+- Direct Answer: model can see contradictions in its own text
+- Why: This matters because it tells you how to reason about logical inconsistency.
+- Pitfall: Don't answer "Logical inconsistency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model can see contradictions in its own text
+
+### Factual errors
+- Direct Answer: the model doesn't have access to ground truth, so it can't correct wrong facts
+- Why: This matters because it tells you how to reason about factual errors.
+- Pitfall: Don't answer "Factual errors" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model doesn't have access to ground truth, so it can't correct wrong facts
+
+### After ~3 iterations
+- Direct Answer: diminishing returns; additional reflection rarely changes the answer
+- Why: This matters because it tells you how to reason about after ~3 iterations.
+- Pitfall: Don't answer "After ~3 iterations" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: diminishing returns; additional reflection rarely changes the answer
+
+### Without external grounding
+- Direct Answer: factual accuracy requires retrieval, not self-critique
+- Why: This matters because it tells you how to reason about without external grounding.
+- Pitfall: Don't answer "Without external grounding" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: factual accuracy requires retrieval, not self-critique
+
+### Unlimited reflection loops
+- Direct Answer: no improvement after N=3, just costs
+- Why: This matters because it tells you how to reason about unlimited reflection loops.
+- Pitfall: Don't answer "Unlimited reflection loops" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: no improvement after N=3, just costs
+
+### Reflection inside the same context
+- Direct Answer: model confirms itself
+- Why: This matters because it tells you how to reason about reflection inside the same context.
+- Pitfall: Don't answer "Reflection inside the same context" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: model confirms itself
+
+### No external grounding for factual claims
+- Direct Answer: reflection can't fix hallucinations
+- Why: This matters because it tells you how to reason about no external grounding for factual claims.
+- Pitfall: Don't answer "No external grounding for factual claims" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reflection can't fix hallucinations
+
+### "We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.
+- Direct Answer: "We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.
+- Why: This matters because it tells you how to reason about "we just add reflection to every step." reflection without external grounding doesn't fix factual errors..
+- Pitfall: Don't answer ""We just add reflection to every step." Reflection without external grounding doesn't fix factual errors." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We just add reflection to every step." Reflection without external grounding doesn't fix factual errors.
+
+### Multiple reflection rounds without checking whether anything changed.
+- Direct Answer: Multiple reflection rounds without checking whether anything changed.
+- Why: This matters because it tells you how to reason about multiple reflection rounds without checking whether anything changed..
+- Pitfall: Don't answer "Multiple reflection rounds without checking whether anything changed." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Multiple reflection rounds without checking whether anything changed.
+
+### [ ] Code executes in container/VM, not on host
+- Direct Answer: [ ] Code executes in container/VM, not on host
+- Why: This matters because it tells you how to reason about [ ] code executes in container/vm, not on host.
+- Pitfall: Don't answer "[ ] Code executes in container/VM, not on host" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] Code executes in container/VM, not on host
+
+### [ ] No network access (or strictly allowlisted)
+- Direct Answer: [ ] No network access (or strictly allowlisted)
+- Why: This matters because it tells you how to reason about [ ] no network access (or strictly allowlisted).
+- Pitfall: Don't answer "[ ] No network access (or strictly allowlisted)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] No network access (or strictly allowlisted)
+
+### [ ] No access to host filesystem
+- Direct Answer: [ ] No access to host filesystem
+- Why: This matters because it tells you how to reason about [ ] no access to host filesystem.
+- Pitfall: Don't answer "[ ] No access to host filesystem" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] No access to host filesystem
+
+### [ ] Hard timeout (default 30s)
+- Direct Answer: [ ] Hard timeout (default 30s)
+- Why: This matters because it tells you how to reason about [ ] hard timeout (default 30s).
+- Pitfall: Don't answer "[ ] Hard timeout (default 30s)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] Hard timeout (default 30s)
+
+### [ ] Memory and CPU limits
+- Direct Answer: [ ] Memory and CPU limits
+- Why: This matters because it tells you how to reason about [ ] memory and cpu limits.
+- Pitfall: Don't answer "[ ] Memory and CPU limits" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] Memory and CPU limits
+
+### [ ] Fresh container per execution (no state leakage)
+- Direct Answer: [ ] Fresh container per execution (no state leakage)
+- Why: This matters because it tells you how to reason about [ ] fresh container per execution (no state leakage).
+- Pitfall: Don't answer "[ ] Fresh container per execution (no state leakage)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] Fresh container per execution (no state leakage)
+
+### [ ] Output sanitized before returning to model (no file paths, no secrets)
+- Direct Answer: [ ] Output sanitized before returning to model (no file paths, no secrets)
+- Why: This matters because it tells you how to reason about [ ] output sanitized before returning to model (no file paths, no secrets).
+- Pitfall: Don't answer "[ ] Output sanitized before returning to model (no file paths, no secrets)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: [ ] Output sanitized before returning to model (no file paths, no secrets)
+
+### Running code on host
+- Direct Answer: any LLM error or injection → system compromise.
+- Why: This matters because it tells you how to reason about running code on host.
+- Pitfall: Don't answer "Running code on host" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: any LLM error or injection → system compromise.
+
+### No timeout
+- Direct Answer: an infinite loop hangs the agent.
+- Why: This matters because it tells you how to reason about no timeout.
+- Pitfall: Don't answer "No timeout" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: an infinite loop hangs the agent.
+
+### Shared container across executions
+- Direct Answer: state from execution N leaks to execution N+1.
+- Why: This matters because it tells you how to reason about shared container across executions.
+- Pitfall: Don't answer "Shared container across executions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: state from execution N leaks to execution N+1.
+
+### No output sanitization
+- Direct Answer: the sandbox output can itself contain injected instructions.
+- Why: This matters because it tells you how to reason about no output sanitization.
+- Pitfall: Don't answer "No output sanitization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the sandbox output can itself contain injected instructions.
+
+### "We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.
+- Direct Answer: "We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.
+- Why: This matters because it tells you how to reason about "we use subprocess.run() with a timeout." this runs on the host with the agent's permissions. not a sandbox..
+- Pitfall: Don't answer ""We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We use subprocess.run() with a timeout." This runs on the host with the agent's permissions. Not a sandbox.
+
+### Persistent containers
+- Direct Answer: state from previous executions (files, installed packages) contaminates later ones.
+- Why: This matters because it tells you how to reason about persistent containers.
+- Pitfall: Don't answer "Persistent containers" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: state from previous executions (files, installed packages) contaminates later ones.
+
+### State
+- Direct Answer: a typed dict shared across all nodes. Each node reads from and writes to state.
+- Why: This matters because it tells you how to reason about state.
+- Pitfall: Don't answer "State" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a typed dict shared across all nodes. Each node reads from and writes to state.
+
+### Nodes
+- Direct Answer: functions that take state, do computation, return updated state.
+- Why: This matters because it tells you how to reason about nodes.
+- Pitfall: Don't answer "Nodes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: functions that take state, do computation, return updated state.
+
+### Edges
+- Direct Answer: connect nodes; can be conditional (route based on state values).
+- Why: This matters because it tells you how to reason about edges.
+- Pitfall: Don't answer "Edges" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: connect nodes; can be conditional (route based on state values).
+
+### Missing checkpointer
+- Direct Answer: no pause/resume capability, agent state lost on process restart.
+- Why: This matters because it tells you how to reason about missing checkpointer.
+- Pitfall: Don't answer "Missing checkpointer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: no pause/resume capability, agent state lost on process restart.
+
+### No Reducers for concurrent writes
+- Direct Answer: last-write-wins causes data loss.
+- Why: This matters because it tells you how to reason about no reducers for concurrent writes.
+- Pitfall: Don't answer "No Reducers for concurrent writes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: last-write-wins causes data loss.
+
+### Unbounded cycles
+- Direct Answer: without a maximum iteration condition, cycles run forever.
+- Why: This matters because it tells you how to reason about unbounded cycles.
+- Pitfall: Don't answer "Unbounded cycles" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: without a maximum iteration condition, cycles run forever.
+
+### "LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.
+- Direct Answer: "LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.
+- Why: This matters because it tells you how to reason about "langgraph is just langchain with loops." the explicit state typing and checkpointer persistence are the distinguishing features..
+- Pitfall: Don't answer ""LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "LangGraph is just LangChain with loops." The explicit state typing and Checkpointer persistence are the distinguishing features.
+
+### Using LangGraph for simple linear workflows
+- Direct Answer: the overhead isn't justified.
+- Why: This matters because it tells you how to reason about using langgraph for simple linear workflows.
+- Pitfall: Don't answer "Using LangGraph for simple linear workflows" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the overhead isn't justified.

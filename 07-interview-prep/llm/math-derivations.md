@@ -323,13 +323,22 @@ The formula alone is never a complete answer. After $\partial \mathcal{L}/\parti
 **Not knowing Adam's bias correction is derived, not assumed:**
 The correction factor $(1 - \beta_1^t)$ falls directly out of taking the expectation of the unrolled EMA. It is not a heuristic. At $t = 1$ with $\beta_1 = 0.9$, the raw first moment is 10× too small. The correction inflates it to the correct scale. This is why Adam starts fast.
 
-## Flashcards
+## Rapid Recall
 
-**Reconstruction term?** #flashcard
-the decoder must be able to reconstruct $x$ from samples drawn from the encoder's distribution. Maximizing this trains the encoder-decoder pair.
+### Reconstruction term
+- Direct Answer: the decoder must be able to reconstruct $x$ from samples drawn from the encoder's distribution. Maximizing this trains the encoder-decoder pair.
+- Why: This matters because it tells you how to reason about reconstruction term.
+- Pitfall: Don't answer "Reconstruction term" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the decoder must be able to reconstruct $x$ from samples drawn from the encoder's distribution. Maximizing this trains the encoder-decoder pair.
 
-**KL term: the encoder's approximate posterior $q_\phi(z \mid x)$ must stay close to the prior $p(z) = \mathcal{N}(0, I)$. This regularizes the latent space?** #flashcard
-keeps it continuous and sample-able.
+### KL term: the encoder's approximate posterior $q_\phi(z \mid x)$ must stay close to the prior $p(z) = \mathcal{N}(0, I)$. This regularizes the latent space
+- Direct Answer: keeps it continuous and sample-able.
+- Why: This matters because it tells you how to reason about kl term: the encoder's approximate posterior $q_\phi(z \mid x)$ must stay close to the prior $p(z) = \mathcal{n}(0, i)$. this regularizes the latent space.
+- Pitfall: Don't answer "KL term: the encoder's approximate posterior $q_\phi(z \mid x)$ must stay close to the prior $p(z) = \mathcal{N}(0, I)$. This regularizes the latent space" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: keeps it continuous and sample-able.
 
-**The gap: $\log p_\theta(x) - \text{ELBO} = D_\text{KL}(q_\phi(z \mid x) \| p_\theta(z \mid x))$?** #flashcard
-how well the encoder approximates the true posterior. Maximizing ELBO simultaneously improves the generative model and tightens this approximation.
+### The gap: $\log p_\theta(x) - \text{ELBO} = D_\text{KL}(q_\phi(z \mid x) \| p_\theta(z \mid x))$
+- Direct Answer: how well the encoder approximates the true posterior. Maximizing ELBO simultaneously improves the generative model and tightens this approximation.
+- Why: This matters because it tells you how to reason about the gap: $\log p_\theta(x) - \text{elbo} = d_\text{kl}(q_\phi(z \mid x) \| p_\theta(z \mid x))$.
+- Pitfall: Don't answer "The gap: $\log p_\theta(x) - \text{ELBO} = D_\text{KL}(q_\phi(z \mid x) \| p_\theta(z \mid x))$" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: how well the encoder approximates the true posterior. Maximizing ELBO simultaneously improves the generative model and tightens this approximation.

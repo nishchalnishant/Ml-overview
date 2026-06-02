@@ -286,211 +286,418 @@ ight)
 # Q47: Why is ROUGE or BLEU often insufficient for evaluating LLMs?
 - **Direct answer:** n-gram overlap misses semantic equivalence; use semantic/functional/judge-based evals.
 
-## Flashcards
-
-**Direct answer?** #flashcard
-what you say in 10 seconds.
-
-**Azure/DevOps bridge?** #flashcard
-the mapping you already trust.
-
-**Analogy?** #flashcard
-fashion / Mumbai Indians / classic romance + Gulzar-style context.
-
-**Mini prompt?** #flashcard
-quick interactive break.
-
-**Direct answer?** #flashcard
-A foundation model is a huge self-supervised model trained on broad data that you adapt (prompt/RAG/fine-tune) for many tasks.
-
-**Azure/DevOps bridge?** #flashcard
-It’s “build on Azure” vs “build your own datacenter.” You spend less time on core modeling and more on integration + policy + observability.
-
-**Analogy?** #flashcard
-Capsule wardrobe—same staples, different styling.
-
-**Mini pop quiz?** #flashcard
-Name a non-text foundation model. → CLIP, Stable Diffusion, Wav2Vec.
-
-**Direct answer?** #flashcard
-An LLM generates text by predicting the next token repeatedly (autoregressive decoding), typically using Transformers.
-
-**Mechanics (one breath)?** #flashcard
-prompt → tokenize → Transformer → logits → softmax → decode → append token → repeat.
-
-**Mini prompt?** #flashcard
-temperature=0 gives you what vibe? → deterministic / strict.
-
-**Direct answer?** #flashcard
-Transformers use self-attention to connect tokens directly, enabling parallel training and long-range context.
-
-**Ghazal hook?** #flashcard
-Like a Gulzar line—meaning depends on what came before and what surrounds it. Attention is “who is this word in conversation with?”
-
-**Trade-off?** #flashcard
-naive attention has ugly scaling with long context.
-
-**Direct answer?** #flashcard
-embeddings + position signal + attention + FFN + residuals + LayerNorm.
-
-**DevOps bridge?** #flashcard
-residual paths are the “safe rollback route” for gradients.
-
-**Direct answer?** #flashcard
-Tokenization slices text into tokens (often subwords) and maps them to IDs.
-
-**Practical truths?** #flashcard
-1 token ≠ 1 word; tokenizers can create a token tax for some languages.
-
-**Direct answer?** #flashcard
-BPE iteratively merges frequent adjacent symbols until a fixed vocabulary is built (often byte-level).
-
-**Fashion analogy?** #flashcard
-threads → panels → outfit.
-
-**Direct answer?** #flashcard
-WordPiece uses likelihood-based merges; SentencePiece is language-agnostic and treats spaces as characters.
-
-**Mini prompt?** #flashcard
-Which is friendlier to languages without spaces? → SentencePiece.
-
-**Direct answer?** #flashcard
-Attention doesn’t encode order by itself, so we inject position info (absolute or relative-ish like RoPE/ALiBi).
-
-**Direct answer?** #flashcard
-A training-time mask that prevents decoder models from attending to future tokens.
-
-**DevOps bridge?** #flashcard
-blocks leakage at the mechanism level (like forbidding prod secrets in PR pipelines).
-
-**Direct answer:?** #flashcard
-Direct answer:
-
-**Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.?** #flashcard
-Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.
-
-**Direct answer?** #flashcard
-Q asks, K advertises, V carries payload. Dot(Q,K) gives weights; weights mix V.
-
-**Direct answer?** #flashcard
-Multiple heads learn different relationship patterns in parallel.
-
-**MI analogy?** #flashcard
-multiple fielders for different shots.
-
-**Direct answer?** #flashcard
-Max tokens (input + output) per call; outside the window = forgotten.
-
-**DevOps bridge?** #flashcard
-context window ≈ RAM; fine-tuning ≈ installed software; RAG ≈ read-through cache.
-
-**Direct answer?** #flashcard
-Temperature rescales logits before softmax:
-
-**Low T = deterministic; high T = diverse + more hallucination risk.?** #flashcard
-Low T = deterministic; high T = diverse + more hallucination risk.
-
-**Direct answer?** #flashcard
-Top-k keeps the k most likely tokens; Top-p keeps the smallest set with cumulative probability ≥ p.
-
-**Direct answer?** #flashcard
-Logits are raw scores per vocab token; softmax turns them into probabilities; decoding chooses/samples a token.
-
-**Direct answer?** #flashcard
-Add input back to sublayer output; improves stability and gradient flow.
-
-**Direct answer?** #flashcard
-Closed = strongest, fastest adoption; Open = control/customization/on-prem, but you own ops.
-
-**Azure lens?** #flashcard
-closed feels like managed PaaS; open feels like AKS.
-
-**Direct answer?** #flashcard
-Encoder-only for understanding/embeddings; decoder-only for generation; encoder-decoder for seq2seq transforms.
-
-**Direct answer?** #flashcard
-Cache past K/V tensors so decoding doesn’t recompute history every token.
-
-**Infra reality?** #flashcard
-it’s a latency win and a VRAM bill.
-
-**Direct answer?** #flashcard
-CLM predicts next token from past; MLM fills blanks using both sides.
-
-**Direct answer?** #flashcard
-Train a smaller student to mimic a larger teacher (often via soft targets/logits).
-
-**Direct answer?** #flashcard
-Route tokens to a subset of expert networks; huge capacity with sparse compute.
-
-**Direct answer?** #flashcard
-Dense runs all params each step; sparse conditionally activates subsets.
-
-**Direct answer?** #flashcard
-GPU-kernel optimization that reduces attention memory IO (tiling + fused ops) without changing math.
-
-**Direct answer?** #flashcard
-Share K/V across groups of query heads to shrink KV cache with little quality loss.
-
-**Direct answer?** #flashcard
-Rotate Q/K vectors by position so dot products encode relative distance; helps length extrapolation.
-
-**Direct answer?** #flashcard
-Combine system constraints + few-shot + constrained decoding/structured outputs (schema-driven).
-
-**Direct answer?** #flashcard
-Use RAG, map-reduce summarization, and/or agentic search tools.
-
-**Direct answer?** #flashcard
-Explicit escape hatch + grounding (retrieval) + low temperature + optional confidence gates.
-
-**Direct answer?** #flashcard
-Tighten format contract (“only code”), few-shot, stop sequences/structured output, lower temperature.
-
-**Direct answer?** #flashcard
-In long prompts, models use start/end info better than middle; recall can be U-shaped.
-
-**Direct answer?** #flashcard
-Reduce weight/activation precision (FP16 → INT8/INT4) to cut memory and bandwidth.
-
-**Direct answer?** #flashcard
-8-bit ≈ near-lossless; 4-bit ≈ best local/cheap; 2-bit often collapses quality.
-
-**Direct answer?** #flashcard
-GPTQ compensates quantization error layer-wise; AWQ protects salient weights via activation profiling.
-
-**Direct answer?** #flashcard
-Fine-tune by training a tiny subset (adapters/LoRA/prefix) while freezing the base.
-
-**Direct answer?** #flashcard
-Learn low-rank matrices \(A,B\) so \(\Delta Wpprox BA\), added to frozen weights.
-
-**Direct answer?** #flashcard
-Quantize base model (e.g., 4-bit NF4) during tuning while training LoRA adapters in 16-bit.
-
-**Direct answer?** #flashcard
-Alignment using preference feedback (reward signal) + optimization (historically PPO).
-
-**Direct answer?** #flashcard
-A rulebook-driven alignment approach using critique/rewrite against a “constitution,” reducing human labeling.
-
-**Direct answer?** #flashcard
-Supervised tuning on instruction→response pairs to make base models follow commands reliably.
-
-**Direct answer?** #flashcard
-Preference alignment via a stable supervised-style objective on (chosen, rejected) pairs.
-
-**Direct answer?** #flashcard
-RL algorithm with clipped updates to prevent destructive policy jumps.
-
-**Direct answer?** #flashcard
-Humans can’t label at scale; reward models provide scalable scalar feedback.
-
-**Direct answer?** #flashcard
-Perplexity, task benchmarks (MMLU/HumanEval), judge/human A/B.
-
-**Direct answer?** #flashcard
-How surprised the model is on held-out text:
-
-**Direct answer?** #flashcard
-n-gram overlap misses semantic equivalence; use semantic/functional/judge-based evals.
+## Rapid Recall
+
+### Direct answer
+- Direct Answer: what you say in 10 seconds.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what you say in 10 seconds.
+
+### Azure/DevOps bridge
+- Direct Answer: the mapping you already trust.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the mapping you already trust.
+
+### Analogy
+- Direct Answer: fashion / Mumbai Indians / classic romance + Gulzar-style context.
+- Why: This matters because it tells you how to reason about analogy.
+- Pitfall: Don't answer "Analogy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fashion / Mumbai Indians / classic romance + Gulzar-style context.
+
+### Mini prompt
+- Direct Answer: quick interactive break.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: quick interactive break.
+
+### Direct answer
+- Direct Answer: A foundation model is a huge self-supervised model trained on broad data that you adapt (prompt/RAG/fine-tune) for many tasks.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: A foundation model is a huge self-supervised model trained on broad data that you adapt (prompt/RAG/fine-tune) for many tasks.
+
+### Azure/DevOps bridge
+- Direct Answer: It’s “build on Azure” vs “build your own datacenter.” You spend less time on core modeling and more on integration + policy + observability.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: It’s “build on Azure” vs “build your own datacenter.” You spend less time on core modeling and more on integration + policy + observability.
+
+### Analogy
+- Direct Answer: Capsule wardrobe—same staples, different styling.
+- Why: This matters because it tells you how to reason about analogy.
+- Pitfall: Don't answer "Analogy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Capsule wardrobe—same staples, different styling.
+
+### Mini pop quiz
+- Direct Answer: Name a non-text foundation model. → CLIP, Stable Diffusion, Wav2Vec.
+- Why: This matters because it tells you how to reason about mini pop quiz.
+- Pitfall: Don't answer "Mini pop quiz" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Name a non-text foundation model. → CLIP, Stable Diffusion, Wav2Vec.
+
+### Direct answer
+- Direct Answer: An LLM generates text by predicting the next token repeatedly (autoregressive decoding), typically using Transformers.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: An LLM generates text by predicting the next token repeatedly (autoregressive decoding), typically using Transformers.
+
+### Mechanics (one breath)
+- Direct Answer: prompt → tokenize → Transformer → logits → softmax → decode → append token → repeat.
+- Why: This matters because it tells you how to reason about mechanics (one breath).
+- Pitfall: Don't answer "Mechanics (one breath)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt → tokenize → Transformer → logits → softmax → decode → append token → repeat.
+
+### Mini prompt
+- Direct Answer: temperature=0 gives you what vibe? → deterministic / strict.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: temperature=0 gives you what vibe? → deterministic / strict.
+
+### Direct answer
+- Direct Answer: Transformers use self-attention to connect tokens directly, enabling parallel training and long-range context.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Transformers use self-attention to connect tokens directly, enabling parallel training and long-range context.
+
+### Ghazal hook
+- Direct Answer: Like a Gulzar line—meaning depends on what came before and what surrounds it. Attention is “who is this word in conversation with?”
+- Why: This matters because it tells you how to reason about ghazal hook.
+- Pitfall: Don't answer "Ghazal hook" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Like a Gulzar line—meaning depends on what came before and what surrounds it. Attention is “who is this word in conversation with?”
+
+### Trade-off
+- Direct Answer: naive attention has ugly scaling with long context.
+- Why: This matters because it tells you how to reason about trade-off.
+- Pitfall: Don't answer "Trade-off" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: naive attention has ugly scaling with long context.
+
+### Direct answer
+- Direct Answer: embeddings + position signal + attention + FFN + residuals + LayerNorm.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: embeddings + position signal + attention + FFN + residuals + LayerNorm.
+
+### DevOps bridge
+- Direct Answer: residual paths are the “safe rollback route” for gradients.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: residual paths are the “safe rollback route” for gradients.
+
+### Direct answer
+- Direct Answer: Tokenization slices text into tokens (often subwords) and maps them to IDs.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tokenization slices text into tokens (often subwords) and maps them to IDs.
+
+### Practical truths
+- Direct Answer: 1 token ≠ 1 word; tokenizers can create a token tax for some languages.
+- Why: This matters because it tells you how to reason about practical truths.
+- Pitfall: Don't answer "Practical truths" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 1 token ≠ 1 word; tokenizers can create a token tax for some languages.
+
+### Direct answer
+- Direct Answer: BPE iteratively merges frequent adjacent symbols until a fixed vocabulary is built (often byte-level).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: BPE iteratively merges frequent adjacent symbols until a fixed vocabulary is built (often byte-level).
+
+### Fashion analogy
+- Direct Answer: threads → panels → outfit.
+- Why: This matters because it tells you how to reason about fashion analogy.
+- Pitfall: Don't answer "Fashion analogy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: threads → panels → outfit.
+
+### Direct answer
+- Direct Answer: WordPiece uses likelihood-based merges; SentencePiece is language-agnostic and treats spaces as characters.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: WordPiece uses likelihood-based merges; SentencePiece is language-agnostic and treats spaces as characters.
+
+### Mini prompt
+- Direct Answer: Which is friendlier to languages without spaces? → SentencePiece.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Which is friendlier to languages without spaces? → SentencePiece.
+
+### Direct answer
+- Direct Answer: Attention doesn’t encode order by itself, so we inject position info (absolute or relative-ish like RoPE/ALiBi).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Attention doesn’t encode order by itself, so we inject position info (absolute or relative-ish like RoPE/ALiBi).
+
+### Direct answer
+- Direct Answer: A training-time mask that prevents decoder models from attending to future tokens.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: A training-time mask that prevents decoder models from attending to future tokens.
+
+### DevOps bridge
+- Direct Answer: blocks leakage at the mechanism level (like forbidding prod secrets in PR pipelines).
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: blocks leakage at the mechanism level (like forbidding prod secrets in PR pipelines).
+
+### Direct answer:
+- Direct Answer: Direct answer:
+- Why: This matters because it tells you how to reason about direct answer:.
+- Pitfall: Don't answer "Direct answer:" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Direct answer:
+
+### Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.
+- Direct Answer: Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.
+- Why: This matters because it tells you how to reason about why \(\sqrt{d_k}\)? keeps dot products from blowing up so gradients don’t vanish..
+- Pitfall: Don't answer "Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Why \(\sqrt{d_k}\)? Keeps dot products from blowing up so gradients don’t vanish.
+
+### Direct answer
+- Direct Answer: Q asks, K advertises, V carries payload. Dot(Q,K) gives weights; weights mix V.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Q asks, K advertises, V carries payload. Dot(Q,K) gives weights; weights mix V.
+
+### Direct answer
+- Direct Answer: Multiple heads learn different relationship patterns in parallel.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Multiple heads learn different relationship patterns in parallel.
+
+### MI analogy
+- Direct Answer: multiple fielders for different shots.
+- Why: This matters because it tells you how to reason about mi analogy.
+- Pitfall: Don't answer "MI analogy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: multiple fielders for different shots.
+
+### Direct answer
+- Direct Answer: Max tokens (input + output) per call; outside the window = forgotten.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Max tokens (input + output) per call; outside the window = forgotten.
+
+### DevOps bridge
+- Direct Answer: context window ≈ RAM; fine-tuning ≈ installed software; RAG ≈ read-through cache.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: context window ≈ RAM; fine-tuning ≈ installed software; RAG ≈ read-through cache.
+
+### Direct answer
+- Direct Answer: Temperature rescales logits before softmax:
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Temperature rescales logits before softmax:
+
+### Low T = deterministic; high T = diverse + more hallucination risk.
+- Direct Answer: Low T = deterministic; high T = diverse + more hallucination risk.
+- Why: This matters because it tells you how to reason about low t = deterministic; high t = diverse + more hallucination risk..
+- Pitfall: Don't answer "Low T = deterministic; high T = diverse + more hallucination risk." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Low T = deterministic; high T = diverse + more hallucination risk.
+
+### Direct answer
+- Direct Answer: Top-k keeps the k most likely tokens; Top-p keeps the smallest set with cumulative probability ≥ p.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Top-k keeps the k most likely tokens; Top-p keeps the smallest set with cumulative probability ≥ p.
+
+### Direct answer
+- Direct Answer: Logits are raw scores per vocab token; softmax turns them into probabilities; decoding chooses/samples a token.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Logits are raw scores per vocab token; softmax turns them into probabilities; decoding chooses/samples a token.
+
+### Direct answer
+- Direct Answer: Add input back to sublayer output; improves stability and gradient flow.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Add input back to sublayer output; improves stability and gradient flow.
+
+### Direct answer
+- Direct Answer: Closed = strongest, fastest adoption; Open = control/customization/on-prem, but you own ops.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Closed = strongest, fastest adoption; Open = control/customization/on-prem, but you own ops.
+
+### Azure lens
+- Direct Answer: closed feels like managed PaaS; open feels like AKS.
+- Why: This matters because it tells you how to reason about azure lens.
+- Pitfall: Don't answer "Azure lens" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: closed feels like managed PaaS; open feels like AKS.
+
+### Direct answer
+- Direct Answer: Encoder-only for understanding/embeddings; decoder-only for generation; encoder-decoder for seq2seq transforms.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Encoder-only for understanding/embeddings; decoder-only for generation; encoder-decoder for seq2seq transforms.
+
+### Direct answer
+- Direct Answer: Cache past K/V tensors so decoding doesn’t recompute history every token.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Cache past K/V tensors so decoding doesn’t recompute history every token.
+
+### Infra reality
+- Direct Answer: it’s a latency win and a VRAM bill.
+- Why: This matters because it tells you how to reason about infra reality.
+- Pitfall: Don't answer "Infra reality" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it’s a latency win and a VRAM bill.
+
+### Direct answer
+- Direct Answer: CLM predicts next token from past; MLM fills blanks using both sides.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: CLM predicts next token from past; MLM fills blanks using both sides.
+
+### Direct answer
+- Direct Answer: Train a smaller student to mimic a larger teacher (often via soft targets/logits).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Train a smaller student to mimic a larger teacher (often via soft targets/logits).
+
+### Direct answer
+- Direct Answer: Route tokens to a subset of expert networks; huge capacity with sparse compute.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Route tokens to a subset of expert networks; huge capacity with sparse compute.
+
+### Direct answer
+- Direct Answer: Dense runs all params each step; sparse conditionally activates subsets.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Dense runs all params each step; sparse conditionally activates subsets.
+
+### Direct answer
+- Direct Answer: GPU-kernel optimization that reduces attention memory IO (tiling + fused ops) without changing math.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPU-kernel optimization that reduces attention memory IO (tiling + fused ops) without changing math.
+
+### Direct answer
+- Direct Answer: Share K/V across groups of query heads to shrink KV cache with little quality loss.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Share K/V across groups of query heads to shrink KV cache with little quality loss.
+
+### Direct answer
+- Direct Answer: Rotate Q/K vectors by position so dot products encode relative distance; helps length extrapolation.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Rotate Q/K vectors by position so dot products encode relative distance; helps length extrapolation.
+
+### Direct answer
+- Direct Answer: Combine system constraints + few-shot + constrained decoding/structured outputs (schema-driven).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Combine system constraints + few-shot + constrained decoding/structured outputs (schema-driven).
+
+### Direct answer
+- Direct Answer: Use RAG, map-reduce summarization, and/or agentic search tools.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Use RAG, map-reduce summarization, and/or agentic search tools.
+
+### Direct answer
+- Direct Answer: Explicit escape hatch + grounding (retrieval) + low temperature + optional confidence gates.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Explicit escape hatch + grounding (retrieval) + low temperature + optional confidence gates.
+
+### Direct answer
+- Direct Answer: Tighten format contract (“only code”), few-shot, stop sequences/structured output, lower temperature.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tighten format contract (“only code”), few-shot, stop sequences/structured output, lower temperature.
+
+### Direct answer
+- Direct Answer: In long prompts, models use start/end info better than middle; recall can be U-shaped.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: In long prompts, models use start/end info better than middle; recall can be U-shaped.
+
+### Direct answer
+- Direct Answer: Reduce weight/activation precision (FP16 → INT8/INT4) to cut memory and bandwidth.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Reduce weight/activation precision (FP16 → INT8/INT4) to cut memory and bandwidth.
+
+### Direct answer
+- Direct Answer: 8-bit ≈ near-lossless; 4-bit ≈ best local/cheap; 2-bit often collapses quality.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: 8-bit ≈ near-lossless; 4-bit ≈ best local/cheap; 2-bit often collapses quality.
+
+### Direct answer
+- Direct Answer: GPTQ compensates quantization error layer-wise; AWQ protects salient weights via activation profiling.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: GPTQ compensates quantization error layer-wise; AWQ protects salient weights via activation profiling.
+
+### Direct answer
+- Direct Answer: Fine-tune by training a tiny subset (adapters/LoRA/prefix) while freezing the base.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Fine-tune by training a tiny subset (adapters/LoRA/prefix) while freezing the base.
+
+### Direct answer
+- Direct Answer: Learn low-rank matrices \(A,B\) so \(\Delta Wpprox BA\), added to frozen weights.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Learn low-rank matrices \(A,B\) so \(\Delta Wpprox BA\), added to frozen weights.
+
+### Direct answer
+- Direct Answer: Quantize base model (e.g., 4-bit NF4) during tuning while training LoRA adapters in 16-bit.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Quantize base model (e.g., 4-bit NF4) during tuning while training LoRA adapters in 16-bit.
+
+### Direct answer
+- Direct Answer: Alignment using preference feedback (reward signal) + optimization (historically PPO).
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Alignment using preference feedback (reward signal) + optimization (historically PPO).
+
+### Direct answer
+- Direct Answer: A rulebook-driven alignment approach using critique/rewrite against a “constitution,” reducing human labeling.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: A rulebook-driven alignment approach using critique/rewrite against a “constitution,” reducing human labeling.
+
+### Direct answer
+- Direct Answer: Supervised tuning on instruction→response pairs to make base models follow commands reliably.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Supervised tuning on instruction→response pairs to make base models follow commands reliably.
+
+### Direct answer
+- Direct Answer: Preference alignment via a stable supervised-style objective on (chosen, rejected) pairs.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Preference alignment via a stable supervised-style objective on (chosen, rejected) pairs.
+
+### Direct answer
+- Direct Answer: RL algorithm with clipped updates to prevent destructive policy jumps.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RL algorithm with clipped updates to prevent destructive policy jumps.
+
+### Direct answer
+- Direct Answer: Humans can’t label at scale; reward models provide scalable scalar feedback.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Humans can’t label at scale; reward models provide scalable scalar feedback.
+
+### Direct answer
+- Direct Answer: Perplexity, task benchmarks (MMLU/HumanEval), judge/human A/B.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Perplexity, task benchmarks (MMLU/HumanEval), judge/human A/B.
+
+### Direct answer
+- Direct Answer: How surprised the model is on held-out text:
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: How surprised the model is on held-out text:
+
+### Direct answer
+- Direct Answer: n-gram overlap misses semantic equivalence; use semantic/functional/judge-based evals.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: n-gram overlap misses semantic equivalence; use semantic/functional/judge-based evals.

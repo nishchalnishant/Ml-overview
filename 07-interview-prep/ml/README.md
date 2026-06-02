@@ -69,9 +69,13 @@ That set gives you:
 | `algorithms.md` | Trees, boosting, clustering, SVM, PCA. |
 | `data-preprocessing-and-feature-engineering.md` | Feature work, leakage, scaling, encoding. |
 | `probability-and-statistics.md` | Interview math without the pain. |
+| `canonical-stats-questions.md` | Extra drill-down on statistics and probability edge cases. |
+| `optimization-theory.md` | Deeper optimization intuition and derivations. |
+| `probabilistic-graphical-models.md` | Structured probability, graphical models, and inference. |
 | `nlp.md` | Classical NLP to Transformers. |
 | `computer-vision.md` | Detection, segmentation, OCR, ViTs. |
 | `coding.md` | Implementations plus what to say while coding. |
+| `practical-ml-scenarios.md` | Situation-based prompts and production judgment. |
 | `behavioral-and-scenario-based-questions.md` | The human round. Still important. |
 
 ---

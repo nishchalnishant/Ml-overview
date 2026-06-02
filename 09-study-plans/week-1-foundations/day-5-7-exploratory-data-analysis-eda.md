@@ -184,61 +184,118 @@ import missingno as msno
 msno.matrix(df)  # visualize where values are missing
 ```
 
-## Flashcards
+## Rapid Recall
 
-**Central Tendency?** #flashcard
-Mean (sensitive to outliers), Median (robust), Mode.
+### Central Tendency
+- Direct Answer: Mean (sensitive to outliers), Median (robust), Mode.
+- Why: This matters because it tells you how to reason about central tendency.
+- Pitfall: Don't answer "Central Tendency" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Mean (sensitive to outliers), Median (robust), Mode.
 
-**Dispersion?** #flashcard
-Standard Deviation, Variance, Skewness, Kurtosis.
+### Dispersion
+- Direct Answer: Standard Deviation, Variance, Skewness, Kurtosis.
+- Why: This matters because it tells you how to reason about dispersion.
+- Pitfall: Don't answer "Dispersion" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Standard Deviation, Variance, Skewness, Kurtosis.
 
-**Skewness?** #flashcard
-Measure of asymmetry. Positive skew = long tail on the right.
+### Skewness
+- Direct Answer: Measure of asymmetry. Positive skew = long tail on the right.
+- Why: This matters because it tells you how to reason about skewness.
+- Pitfall: Don't answer "Skewness" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Measure of asymmetry. Positive skew = long tail on the right.
 
-**Log-Transform?** #flashcard
-Useful for making skewed distributions more Normal.
+### Log-Transform
+- Direct Answer: Useful for making skewed distributions more Normal.
+- Why: This matters because it tells you how to reason about log-transform.
+- Pitfall: Don't answer "Log-Transform" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Useful for making skewed distributions more Normal.
 
-**Pearson Correlation ($r$)?** #flashcard
-Measures linear relationship. Range $[-1, 1]$.
+### Pearson Correlation ($r$)
+- Direct Answer: Measures linear relationship. Range $[-1, 1]$.
+- Why: This matters because it tells you how to reason about pearson correlation ($r$).
+- Pitfall: Don't answer "Pearson Correlation ($r$)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Measures linear relationship. Range $[-1, 1]$.
 
-**Spearman Rank?** #flashcard
-Measures monotonic relationship (non-linear but increasing/decreasing).
+### Spearman Rank
+- Direct Answer: Measures monotonic relationship (non-linear but increasing/decreasing).
+- Why: This matters because it tells you how to reason about spearman rank.
+- Pitfall: Don't answer "Spearman Rank" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Measures monotonic relationship (non-linear but increasing/decreasing).
 
-**Caution?** #flashcard
-Correlation $\neq$ Causation.
+### Caution
+- Direct Answer: Correlation $\neq$ Causation.
+- Why: This matters because it tells you how to reason about caution.
+- Pitfall: Don't answer "Caution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Correlation $\neq$ Causation.
 
-**Box Plot?** #flashcard
-Shows Q1, Median, Q3, and "Whiskers". Any point beyond $1.5 \times IQR$ is a candidate for inspection.
+### Box Plot
+- Direct Answer: Shows Q1, Median, Q3, and "Whiskers". Any point beyond $1.5 \times IQR$ is a candidate for inspection.
+- Why: This matters because it tells you how to reason about box plot.
+- Pitfall: Don't answer "Box Plot" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Shows Q1, Median, Q3, and "Whiskers". Any point beyond $1.5 \times IQR$ is a candidate for inspection.
 
-**Violin Plot?** #flashcard
-Combines box plots with a kernel density estimation of the data.
+### Violin Plot
+- Direct Answer: Combines box plots with a kernel density estimation of the data.
+- Why: This matters because it tells you how to reason about violin plot.
+- Pitfall: Don't answer "Violin Plot" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Combines box plots with a kernel density estimation of the data.
 
-**MCAR (Missing Completely at Random)?** #flashcard
-Missingness is unrelated to any variable. Safe to impute or drop.
+### MCAR (Missing Completely at Random)
+- Direct Answer: Missingness is unrelated to any variable. Safe to impute or drop.
+- Why: This matters because it tells you how to reason about mcar (missing completely at random).
+- Pitfall: Don't answer "MCAR (Missing Completely at Random)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Missingness is unrelated to any variable. Safe to impute or drop.
 
-**MAR (Missing at Random)?** #flashcard
-Missingness depends on other observed variables. Can be modeled.
+### MAR (Missing at Random)
+- Direct Answer: Missingness depends on other observed variables. Can be modeled.
+- Why: This matters because it tells you how to reason about mar (missing at random).
+- Pitfall: Don't answer "MAR (Missing at Random)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Missingness depends on other observed variables. Can be modeled.
 
-**MNAR (Missing Not at Random): Missingness depends on the missing value itself. Dangerous?** #flashcard
-imputation will introduce systematic bias.
+### MNAR (Missing Not at Random): Missingness depends on the missing value itself. Dangerous
+- Direct Answer: imputation will introduce systematic bias.
+- Why: This matters because it tells you how to reason about mnar (missing not at random): missingness depends on the missing value itself. dangerous.
+- Pitfall: Don't answer "MNAR (Missing Not at Random): Missingness depends on the missing value itself. Dangerous" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: imputation will introduce systematic bias.
 
-**Bayes' Theorem?** #flashcard
-$P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates belief in A after observing evidence B.
+### Bayes' Theorem
+- Direct Answer: $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates belief in A after observing evidence B.
+- Why: This matters because it tells you how to reason about bayes' theorem.
+- Pitfall: Don't answer "Bayes' Theorem" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: $P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$. Updates belief in A after observing evidence B.
 
-**Central Limit Theorem?** #flashcard
-As sample size grows, the distribution of the sample mean approaches Normal regardless of the population distribution.
+### Central Limit Theorem
+- Direct Answer: As sample size grows, the distribution of the sample mean approaches Normal regardless of the population distribution.
+- Why: This matters because it tells you how to reason about central limit theorem.
+- Pitfall: Don't answer "Central Limit Theorem" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: As sample size grows, the distribution of the sample mean approaches Normal regardless of the population distribution.
 
-**p-value?** #flashcard
-Probability of observing data this extreme or more extreme *if* $H_0$ were true. Not the probability $H_0$ is true.
+### p-value
+- Direct Answer: Probability of observing data this extreme or more extreme *if* $H_0$ were true. Not the probability $H_0$ is true.
+- Why: This matters because it tells you how to reason about p-value.
+- Pitfall: Don't answer "p-value" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Probability of observing data this extreme or more extreme *if* $H_0$ were true. Not the probability $H_0$ is true.
 
-**Type I Error?** #flashcard
-Rejecting a true $H_0$ (false positive). Controlled by significance threshold $\alpha$.
+### Type I Error
+- Direct Answer: Rejecting a true $H_0$ (false positive). Controlled by significance threshold $\alpha$.
+- Why: This matters because it tells you how to reason about type i error.
+- Pitfall: Don't answer "Type I Error" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Rejecting a true $H_0$ (false positive). Controlled by significance threshold $\alpha$.
 
-**Type II Error?** #flashcard
-Failing to reject a false $H_0$ (false negative). Related to $\beta = 1 - \text{power}$.
+### Type II Error
+- Direct Answer: Failing to reject a false $H_0$ (false negative). Related to $\beta = 1 - \text{power}$.
+- Why: This matters because it tells you how to reason about type ii error.
+- Pitfall: Don't answer "Type II Error" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Failing to reject a false $H_0$ (false negative). Related to $\beta = 1 - \text{power}$.
 
-**When to use chi-squared test?** #flashcard
-When comparing categorical proportions — e.g., does click rate differ between two groups?
+### When to use chi-squared test
+- Direct Answer: When comparing categorical proportions — e.g., does click rate differ between two groups?
+- Why: This matters because it tells you how to reason about when to use chi-squared test.
+- Pitfall: Don't answer "When to use chi-squared test" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: When comparing categorical proportions — e.g., does click rate differ between two groups?
 
-**When to use Mann-Whitney U instead of t-test?** #flashcard
-When the normality assumption is violated and sample is small (n < 30). Non-parametric alternative to independent t-test.
+### When to use Mann-Whitney U instead of t-test
+- Direct Answer: When the normality assumption is violated and sample is small (n < 30). Non-parametric alternative to independent t-test.
+- Why: This matters because it tells you how to reason about when to use mann-whitney u instead of t-test.
+- Pitfall: Don't answer "When to use Mann-Whitney U instead of t-test" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: When the normality assumption is violated and sample is small (n < 30). Non-parametric alternative to independent t-test.

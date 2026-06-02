@@ -107,25 +107,46 @@ When answering case study questions in interviews:
 **3. "Why does Google Search use multiple models for one query?"**
 > Complexity. One model handles spelling, another handles synonyms, another handles semantic intent (BERT), and finally, a ranking model combines all signals. This is called a **Modular Architecture** and it enables independent improvement of each component.
 
-## Flashcards
+## Rapid Recall
 
-**Metric?** #flashcard
-Not just CTR (Click-Through Rate) but Watch Time (engagement quality).
+### Metric
+- Direct Answer: Not just CTR (Click-Through Rate) but Watch Time (engagement quality).
+- Why: This matters because it tells you how to reason about metric.
+- Pitfall: Don't answer "Metric" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not just CTR (Click-Through Rate) but Watch Time (engagement quality).
 
-**Task?** #flashcard
-Identify people/objects/scenes without explicit tags from users.
+### Task
+- Direct Answer: Identify people/objects/scenes without explicit tags from users.
+- Why: This matters because it tells you how to reason about task.
+- Pitfall: Don't answer "Task" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Identify people/objects/scenes without explicit tags from users.
 
-**Tech?** #flashcard
-Models like CLIP or contrastive learning to align images and text in a shared embedding space.
+### Tech
+- Direct Answer: Models like CLIP or contrastive learning to align images and text in a shared embedding space.
+- Why: This matters because it tells you how to reason about tech.
+- Pitfall: Don't answer "Tech" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Models like CLIP or contrastive learning to align images and text in a shared embedding space.
 
-**One module handles spelling correction.?** #flashcard
-One module handles spelling correction.
+### One module handles spelling correction.
+- Direct Answer: One module handles spelling correction.
+- Why: This matters because it tells you how to reason about one module handles spelling correction..
+- Pitfall: Don't answer "One module handles spelling correction." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: One module handles spelling correction.
 
-**One handles synonym expansion.?** #flashcard
-One handles synonym expansion.
+### One handles synonym expansion.
+- Direct Answer: One handles synonym expansion.
+- Why: This matters because it tells you how to reason about one handles synonym expansion..
+- Pitfall: Don't answer "One handles synonym expansion." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: One handles synonym expansion.
 
-**One handles semantic intent (BERT-based).?** #flashcard
-One handles semantic intent (BERT-based).
+### One handles semantic intent (BERT-based).
+- Direct Answer: One handles semantic intent (BERT-based).
+- Why: This matters because it tells you how to reason about one handles semantic intent (bert-based)..
+- Pitfall: Don't answer "One handles semantic intent (BERT-based)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: One handles semantic intent (BERT-based).
 
-**A ranking model combines all signals.?** #flashcard
-A ranking model combines all signals.
+### A ranking model combines all signals.
+- Direct Answer: A ranking model combines all signals.
+- Why: This matters because it tells you how to reason about a ranking model combines all signals..
+- Pitfall: Don't answer "A ranking model combines all signals." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: A ranking model combines all signals.

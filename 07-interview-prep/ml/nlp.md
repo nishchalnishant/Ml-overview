@@ -269,94 +269,184 @@ Attention handles long-range relationships in O(n²) operations per layer rather
 **If asked to choose an approach for a new NLP task:**
 Ask first: What is the data size? What is the latency budget? Is the task generative or discriminative? What is the interpretability requirement? TF-IDF plus logistic regression is a legitimate production answer when data is limited, latency is strict, and interpretability matters. Fine-tuned transformers are the answer when those constraints do not bind.
 
-## Flashcards
+## Rapid Recall
 
-**Bag-of-words loses word order entirely?** #flashcard
-Bag-of-words loses word order entirely
+### Bag-of-words loses word order entirely
+- Direct Answer: Bag-of-words loses word order entirely
+- Why: This matters because it tells you how to reason about bag-of-words loses word order entirely.
+- Pitfall: Don't answer "Bag-of-words loses word order entirely" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Bag-of-words loses word order entirely
 
-**TF-IDF loses order but recovers relative discriminative value across documents?** #flashcard
-TF-IDF loses order but recovers relative discriminative value across documents
+### TF-IDF loses order but recovers relative discriminative value across documents
+- Direct Answer: TF-IDF loses order but recovers relative discriminative value across documents
+- Why: This matters because it tells you how to reason about tf-idf loses order but recovers relative discriminative value across documents.
+- Pitfall: Don't answer "TF-IDF loses order but recovers relative discriminative value across documents" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: TF-IDF loses order but recovers relative discriminative value across documents
 
-**Word embeddings capture distributional similarity but produce context-free representations?** #flashcard
-"bank" gets one vector regardless of whether the context is financial or riverbank
+### Word embeddings capture distributional similarity but produce context-free representations
+- Direct Answer: "bank" gets one vector regardless of whether the context is financial or riverbank
+- Why: This matters because it tells you how to reason about word embeddings capture distributional similarity but produce context-free representations.
+- Pitfall: Don't answer "Word embeddings capture distributional similarity but produce context-free representations" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "bank" gets one vector regardless of whether the context is financial or riverbank
 
-**RNNs process order sequentially but lose long-range context to gradient decay?** #flashcard
-RNNs process order sequentially but lose long-range context to gradient decay
+### RNNs process order sequentially but lose long-range context to gradient decay
+- Direct Answer: RNNs process order sequentially but lose long-range context to gradient decay
+- Why: This matters because it tells you how to reason about rnns process order sequentially but lose long-range context to gradient decay.
+- Pitfall: Don't answer "RNNs process order sequentially but lose long-range context to gradient decay" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RNNs process order sequentially but lose long-range context to gradient decay
 
-**Transformers model relationships between all positions simultaneously, removing the sequential bottleneck?** #flashcard
-Transformers model relationships between all positions simultaneously, removing the sequential bottleneck
+### Transformers model relationships between all positions simultaneously, removing the sequential bottleneck
+- Direct Answer: Transformers model relationships between all positions simultaneously, removing the sequential bottleneck
+- Why: This matters because it tells you how to reason about transformers model relationships between all positions simultaneously, removing the sequential bottleneck.
+- Pitfall: Don't answer "Transformers model relationships between all positions simultaneously, removing the sequential bottleneck" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Transformers model relationships between all positions simultaneously, removing the sequential bottleneck
 
-**Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."?** #flashcard
-Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."
+### Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."
+- Direct Answer: Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."
+- Why: This matters because it tells you how to reason about using tf-idf on tasks requiring understanding of syntax or negation. it cannot distinguish "the server is not responding" from "the server is responding.".
+- Pitfall: Don't answer "Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using TF-IDF on tasks requiring understanding of syntax or negation. It cannot distinguish "the server is not responding" from "the server is responding."
 
-**Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate.?** #flashcard
-Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate.
+### Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate.
+- Direct Answer: Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate.
+- Why: This matters because it tells you how to reason about skipping the simple baseline because it feels unsophisticated. production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate..
+- Pitfall: Don't answer "Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex systems that are marginally more accurate." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Skipping the simple baseline because it feels unsophisticated. Production systems that are interpretable, cheap, and accurate enough are better engineering decisions than complex…
 
-**Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary.?** #flashcard
-Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary.
+### Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary.
+- Direct Answer: Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary.
+- Why: This matters because it tells you how to reason about treating word2vec embeddings as context-sensitive. they are not. "bank" always gets the same vector regardless of surrounding context. that is precisely why contextual embeddings were necessary..
+- Pitfall: Don't answer "Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings were necessary." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating Word2Vec embeddings as context-sensitive. They are not. "Bank" always gets the same vector regardless of surrounding context. That is precisely why contextual embeddings…
 
-**Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better.?** #flashcard
-Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better.
+### Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better.
+- Direct Answer: Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better.
+- Why: This matters because it tells you how to reason about assuming glove outperforms word2vec because it uses global statistics. on small corpora, the global co-occurrence matrix is too sparse to be informative, and word2vec's local window approach can perform better..
+- Pitfall: Don't answer "Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local window approach can perform better." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming GloVe outperforms Word2Vec because it uses global statistics. On small corpora, the global co-occurrence matrix is too sparse to be informative, and Word2Vec's local wind…
 
-**Input gate?** #flashcard
-how much new information to write to cell state
+### Input gate
+- Direct Answer: how much new information to write to cell state
+- Why: This matters because it tells you how to reason about input gate.
+- Pitfall: Don't answer "Input gate" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: how much new information to write to cell state
 
-**Forget gate: how much of existing cell state to preserve?** #flashcard
-can stay near 1.0 for many steps
+### Forget gate: how much of existing cell state to preserve
+- Direct Answer: can stay near 1.0 for many steps
+- Why: This matters because it tells you how to reason about forget gate: how much of existing cell state to preserve.
+- Pitfall: Don't answer "Forget gate: how much of existing cell state to preserve" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: can stay near 1.0 for many steps
 
-**Output gate?** #flashcard
-how much of cell state to expose as hidden state
+### Output gate
+- Direct Answer: how much of cell state to expose as hidden state
+- Why: This matters because it tells you how to reason about output gate.
+- Pitfall: Don't answer "Output gate" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: how much of cell state to expose as hidden state
 
-**Saying "RNNs are bad, Transformers are good" without articulating the specific failure. The interviewer wants the mechanism?** #flashcard
-sequential bottleneck plus vanishing gradient, solved by direct position-to-position routing in attention.
+### Saying "RNNs are bad, Transformers are good" without articulating the specific failure. The interviewer wants the mechanism
+- Direct Answer: sequential bottleneck plus vanishing gradient, solved by direct position-to-position routing in attention.
+- Why: This matters because it tells you how to reason about saying "rnns are bad, transformers are good" without articulating the specific failure. the interviewer wants the mechanism.
+- Pitfall: Don't answer "Saying "RNNs are bad, Transformers are good" without articulating the specific failure. The interviewer wants the mechanism" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sequential bottleneck plus vanishing gradient, solved by direct position-to-position routing in attention.
 
-**Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.?** #flashcard
-Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.
+### Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.
+- Direct Answer: Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.
+- Why: This matters because it tells you how to reason about forgetting that rnns and lstms remain relevant in resource-constrained deployment where the o(n²) attention cost of transformers is prohibitive..
+- Pitfall: Don't answer "Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Forgetting that RNNs and LSTMs remain relevant in resource-constrained deployment where the O(n²) attention cost of Transformers is prohibitive.
 
-**A position emits a query?** #flashcard
-what am I looking for?
+### A position emits a query
+- Direct Answer: what am I looking for?
+- Why: This matters because it tells you how to reason about a position emits a query.
+- Pitfall: Don't answer "A position emits a query" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what am I looking for?
 
-**Every position emits a key?** #flashcard
-what do I offer for matching?
+### Every position emits a key
+- Direct Answer: what do I offer for matching?
+- Why: This matters because it tells you how to reason about every position emits a key.
+- Pitfall: Don't answer "Every position emits a key" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: what do I offer for matching?
 
-**The dot product of query and key gives a compatibility score?** #flashcard
-The dot product of query and key gives a compatibility score
+### The dot product of query and key gives a compatibility score
+- Direct Answer: The dot product of query and key gives a compatibility score
+- Why: This matters because it tells you how to reason about the dot product of query and key gives a compatibility score.
+- Pitfall: Don't answer "The dot product of query and key gives a compatibility score" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The dot product of query and key gives a compatibility score
 
-**The value is what actually gets aggregated when the match is strong?** #flashcard
-The value is what actually gets aggregated when the match is strong
+### The value is what actually gets aggregated when the match is strong
+- Direct Answer: The value is what actually gets aggregated when the match is strong
+- Why: This matters because it tells you how to reason about the value is what actually gets aggregated when the match is strong.
+- Pitfall: Don't answer "The value is what actually gets aggregated when the match is strong" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The value is what actually gets aggregated when the match is strong
 
-**Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.?** #flashcard
-Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.
+### Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.
+- Direct Answer: Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.
+- Why: This matters because it tells you how to reason about explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. the answer is softmax saturation and gradient vanishing, not numerical overflow..
+- Pitfall: Don't answer "Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Explaining $\sqrt{d_k}$ as preventing "too large values" without specifying why that matters. The answer is softmax saturation and gradient vanishing, not numerical overflow.
 
-**Describing attention as "the model looks at all words." Attention is learned and task-specific. The model does not uniformly attend to all positions?** #flashcard
-it learns which positions are relevant for each query.
+### Describing attention as "the model looks at all words." Attention is learned and task-specific. The model does not uniformly attend to all positions
+- Direct Answer: it learns which positions are relevant for each query.
+- Why: This matters because it tells you how to reason about describing attention as "the model looks at all words." attention is learned and task-specific. the model does not uniformly attend to all positions.
+- Pitfall: Don't answer "Describing attention as "the model looks at all words." Attention is learned and task-specific. The model does not uniformly attend to all positions" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it learns which positions are relevant for each query.
 
-**Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law.?** #flashcard
-Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law.
+### Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law.
+- Direct Answer: Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law.
+- Why: This matters because it tells you how to reason about asserting "bert is better for understanding" as a hard rule. gpt-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law..
+- Pitfall: Don't answer "Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a law." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Asserting "BERT is better for understanding" as a hard rule. GPT-class models at sufficient scale are highly effective for understanding tasks; the preference is a tendency, not a…
 
-**Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation.?** #flashcard
-Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation.
+### Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation.
+- Direct Answer: Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation.
+- Why: This matters because it tells you how to reason about ignoring encoder-decoder architectures (t5, bart), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation..
+- Pitfall: Don't answer "Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive output generation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ignoring encoder-decoder architectures (T5, BART), which are often the right choice for sequence-to-sequence tasks where you need both a rich input encoding and autoregressive out…
 
-**Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.?** #flashcard
-Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.
+### Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.
+- Direct Answer: Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.
+- Why: This matters because it tells you how to reason about confusing tokenization with the embedding lookup. tokenization converts text to integer token ids. the embedding layer then maps ids to vectors. these are separate operations..
+- Pitfall: Don't answer "Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Confusing tokenization with the embedding lookup. Tokenization converts text to integer token IDs. The embedding layer then maps IDs to vectors. These are separate operations.
 
-**Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.?** #flashcard
-Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.
+### Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.
+- Direct Answer: Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.
+- Why: This matters because it tells you how to reason about assuming the tokenizer is fixed. vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation..
+- Pitfall: Don't answer "Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Assuming the tokenizer is fixed. Vocabulary extension, tokenizer fine-tuning, and full retraining are all valid approaches for domain adaptation.
 
-**Comparing perplexity across models with different tokenizers. This produces misleading conclusions.?** #flashcard
-Comparing perplexity across models with different tokenizers. This produces misleading conclusions.
+### Comparing perplexity across models with different tokenizers. This produces misleading conclusions.
+- Direct Answer: Comparing perplexity across models with different tokenizers. This produces misleading conclusions.
+- Why: This matters because it tells you how to reason about comparing perplexity across models with different tokenizers. this produces misleading conclusions..
+- Pitfall: Don't answer "Comparing perplexity across models with different tokenizers. This produces misleading conclusions." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Comparing perplexity across models with different tokenizers. This produces misleading conclusions.
 
-**Treating perplexity reduction as a proxy for downstream task improvement. They often correlate but do not have to?** #flashcard
-a model can improve perplexity through memorization without improving reasoning or generalization.
+### Treating perplexity reduction as a proxy for downstream task improvement. They often correlate but do not have to
+- Direct Answer: a model can improve perplexity through memorization without improving reasoning or generalization.
+- Why: This matters because it tells you how to reason about treating perplexity reduction as a proxy for downstream task improvement. they often correlate but do not have to.
+- Pitfall: Don't answer "Treating perplexity reduction as a proxy for downstream task improvement. They often correlate but do not have to" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a model can improve perplexity through memorization without improving reasoning or generalization.
 
-**Extractive?** #flashcard
-copy spans directly from the source document. Faithful by construction because no new words are introduced. Tends to produce choppy summaries because natural summaries often require paraphrase.
+### Extractive
+- Direct Answer: copy spans directly from the source document. Faithful by construction because no new words are introduced. Tends to produce choppy summaries because natural summaries often require paraphrase.
+- Why: This matters because it tells you how to reason about extractive.
+- Pitfall: Don't answer "Extractive" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: copy spans directly from the source document. Faithful by construction because no new words are introduced. Tends to produce choppy summaries because natural summaries often requi…
 
-**Abstractive: generate new text. More natural-sounding. Introduces the risk of hallucination?** #flashcard
-the model can produce plausible-sounding claims not present in the source.
+### Abstractive: generate new text. More natural-sounding. Introduces the risk of hallucination
+- Direct Answer: the model can produce plausible-sounding claims not present in the source.
+- Why: This matters because it tells you how to reason about abstractive: generate new text. more natural-sounding. introduces the risk of hallucination.
+- Pitfall: Don't answer "Abstractive: generate new text. More natural-sounding. Introduces the risk of hallucination" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model can produce plausible-sounding claims not present in the source.
 
-**Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination.?** #flashcard
-Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination.
+### Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination.
+- Direct Answer: Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination.
+- Why: This matters because it tells you how to reason about treating high rouge scores as evidence of good summarization. rouge measures n-gram overlap with reference summaries, which rewards systems that copy text. it systematically undervalues abstractive quality and cannot detect hallucination..
+- Pitfall: Don't answer "Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically undervalues abstractive quality and cannot detect hallucination." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating high ROUGE scores as evidence of good summarization. ROUGE measures n-gram overlap with reference summaries, which rewards systems that copy text. It systematically under…
 
-**Not raising the evaluation problem?** #flashcard
-reference summaries reflect one annotator's judgment about what is important, which may not match what the application actually needs.
+### Not raising the evaluation problem
+- Direct Answer: reference summaries reflect one annotator's judgment about what is important, which may not match what the application actually needs.
+- Why: This matters because it tells you how to reason about not raising the evaluation problem.
+- Pitfall: Don't answer "Not raising the evaluation problem" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reference summaries reflect one annotator's judgment about what is important, which may not match what the application actually needs.

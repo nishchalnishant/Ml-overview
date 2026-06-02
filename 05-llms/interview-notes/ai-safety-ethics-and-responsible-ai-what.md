@@ -1320,535 +1320,1066 @@ Periodically include "gold standard" cases with known ground truth to measure wh
 | NIST AI RMF | US voluntary framework | Govern, Map, Measure, Manage cycles; documentation and eval artifacts |
 | HIPAA (US healthcare) | Protected health information | Minimum necessary use, access controls, audit trails |
 
-## Flashcards
-
-**RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.?** #flashcard
-RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.
-
-**Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.?** #flashcard
-Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.
-
-**Low temperature reduces hallucination variance but doesn't eliminate it?** #flashcard
-the most probable wrong token is still wrong.
-
-**"We tell the model not to hallucinate." This is not a mechanism; it's a wish.?** #flashcard
-"We tell the model not to hallucinate." This is not a mechanism; it's a wish.
-
-**No faithfulness check on RAG outputs?** #flashcard
-the model can still contradict its retrieved context.
-
-**Direct injection?** #flashcard
-user input contains instructions that override the system prompt.
-
-**Indirect injection?** #flashcard
-malicious instructions embedded in retrieved content (web pages, documents, tool outputs).
-
-**Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.?** #flashcard
-Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.
-
-**Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.?** #flashcard
-Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.
-
-**HITL adds latency; not suitable for high-throughput agents.?** #flashcard
-HITL adds latency; not suitable for high-throughput agents.
-
-**"Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.?** #flashcard
-"Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.
-
-**Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).?** #flashcard
-Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).
-
-**Independent classifier?** #flashcard
-not the same model as the one generating, not just a prompt check
-
-**Both layers?** #flashcard
-input AND output checked separately
-
-**Log decisions with reasons?** #flashcard
-for audit, feedback, and threshold calibration
-
-**Multi-stage for high-risk?** #flashcard
-high-severity categories use heavier classifiers at the cost of latency
-
-**Single-layer guardrails (input only)?** #flashcard
-the model can still produce harmful output via indirect prompting.
-
-**Output-only guardrails?** #flashcard
-malicious inputs can manipulate the reasoning process even if the final output is filtered.
-
-**Using the main LLM as the safety judge?** #flashcard
-the same model can be manipulated into passing its own harmful output.
-
-**"Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.?** #flashcard
-"Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.
-
-**"We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.?** #flashcard
-"We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.
-
-**Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.?** #flashcard
-Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.
-
-**Alignment failures interact?** #flashcard
-a sycophantic model will also hallucinate more when confirming user beliefs.
-
-**"We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.?** #flashcard
-"We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.
-
-**Treating alignment as a one-time training problem rather than an ongoing measurement problem.?** #flashcard
-Treating alignment as a one-time training problem rather than an ongoing measurement problem.
-
-**Training data bias?** #flashcard
-historical outcomes reflect past discrimination
-
-**Proxy features?** #flashcard
-correlated with protected attributes (zip code ~ race; school name ~ gender)
-
-**Label bias?** #flashcard
-human-labeled data inherits annotator biases
-
-**Pre-processing?** #flashcard
-reweight examples, rebalance data
-
-**In-processing?** #flashcard
-adversarial debiasing (make protected attribute unpredictable from representation)
-
-**Post-processing?** #flashcard
-threshold calibration per group
-
-**Single-attribute audits?** #flashcard
-mathematically compatible with severe intersectional harm. A model can pass gender audit and race audit while performing 4× worse for Black women.
-
-**Removing protected attributes?** #flashcard
-the model re-learns them from correlated proxies.
-
-**Threshold calibration alone?** #flashcard
-addresses symptoms, not the representation-level cause.
-
-**"We removed race and gender from features." Correlated proxies (zip code, school name) remain.?** #flashcard
-"We removed race and gender from features." Correlated proxies (zip code, school name) remain.
-
-**Only running single-attribute audits without intersectional evaluation.?** #flashcard
-Only running single-attribute audits without intersectional evaluation.
-
-**No retention policy?** #flashcard
-data accumulates indefinitely, increasing liability.
-
-**No deletion mechanism?** #flashcard
-user exercises right to erasure; you can't fulfill it.
-
-**Using data for model training without consent beyond what it was collected for (purpose limitation violation).?** #flashcard
-Using data for model training without consent beyond what it was collected for (purpose limitation violation).
-
-**"Legal handles privacy." No?** #flashcard
-retention policies, deletion APIs, and access controls are engineering.
-
-**No data inventory?** #flashcard
-you can't comply with rights requests if you don't know what data you have.
-
-**Redacting user input but not retrieved documents?** #flashcard
-PII from documents leaks into responses.
-
-**No ACL on retrieval?** #flashcard
-any user can retrieve any document, including documents with other users' PII.
-
-**Logging full queries and responses?** #flashcard
-logs become a PII store; logs must also be redacted.
-
-**"We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.?** #flashcard
-"We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.
-
-**Redacting at output only?** #flashcard
-the model's reasoning was already contaminated by PII in the context.
-
-**SHAP (SHapley Additive exPlanations)?** #flashcard
-attribute prediction to input features using game theory. "This application was denied because feature 'payment_history' contributed -0.42 to the score."
-
-**LIME?** #flashcard
-locally approximate model behavior with a simpler linear model around a specific input.
-
-**Chain-of-Thought explanations?** #flashcard
-the model's reasoning trace as an explanation (for LLMs).
-
-**Attention visualization?** #flashcard
-which tokens the model attended to (caveat: attention is not always explanation).
-
-**Probing classifiers?** #flashcard
-train a linear classifier on internal representations to test if they encode a concept.
-
-**Activation patching?** #flashcard
-intervene on specific activations to trace causal pathways.
-
-**Mechanistic interpretability (circuits)?** #flashcard
-identify specific attention heads and MLP layers that implement behaviors.
-
-**SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.?** #flashcard
-SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.
-
-**Attention-based explanations are often misleading?** #flashcard
-high attention doesn't imply causal importance.
-
-**Explanations for deep networks are imperfect approximations. Always caveat their limitations.?** #flashcard
-Explanations for deep networks are imperfect approximations. Always caveat their limitations.
-
-**"We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.?** #flashcard
-"We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.
-
-**"High attention = important feature." Attention doesn't equal causal importance.?** #flashcard
-"High attention = important feature." Attention doesn't equal causal importance.
-
-**Displaying maximum confidence on every response?** #flashcard
-users stop discriminating, trust is mis-calibrated, errors go unchallenged.
-
-**Never abstaining?** #flashcard
-teaches users the system knows everything, which it doesn't.
-
-**No correction mechanism?** #flashcard
-users have no way to signal errors, accuracy doesn't improve.
-
-**"We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.?** #flashcard
-"We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.
-
-**No abstention?** #flashcard
-always generating an answer when sometimes "I don't know" is the right answer.
-
-**Whitebox (attacker knows model): FGSM, PGD?** #flashcard
-gradient-based perturbations
-
-**Blackbox (query access only)?** #flashcard
-transferability of adversarial examples
-
-**Character-level attacks?** #flashcard
-homoglyphs, zero-width characters, Unicode normalization attacks
-
-**Semantic attacks?** #flashcard
-paraphrasing that preserves meaning but bypasses classifiers
-
-**No defense against all adversarial attacks?** #flashcard
-adversarial training on known attack types doesn't defend against novel attacks.
-
-**Preprocessing adds latency.?** #flashcard
-Preprocessing adds latency.
-
-**Adversarial training can reduce clean accuracy.?** #flashcard
-Adversarial training can reduce clean accuracy.
-
-**"We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.?** #flashcard
-"We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.
-
-**Only defending at training time without runtime monitoring.?** #flashcard
-Only defending at training time without runtime monitoring.
-
-**Track provenance of every training example?** #flashcard
-Track provenance of every training example
-
-**Outlier detection on new training data?** #flashcard
-Outlier detection on new training data
-
-**Separate validation by data source?** #flashcard
-Separate validation by data source
-
-**Content review pipeline for ingested web data?** #flashcard
-Content review pipeline for ingested web data
-
-**Unknown trigger types can't be detected by targeted testing.?** #flashcard
-Unknown trigger types can't be detected by targeted testing.
-
-**If the clean checkpoint is also compromised, retraining from it doesn't help.?** #flashcard
-If the clean checkpoint is also compromised, retraining from it doesn't help.
-
-**No regression test after remediation?** #flashcard
-the same attack can recur.
-
-**"The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.?** #flashcard
-"The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.
-
-**No regression tests added after remediation.?** #flashcard
-No regression tests added after remediation.
-
-**Single threshold across all users?** #flashcard
-systematically wrong for groups not well-represented in calibration data.
-
-**No human review for borderline cases?** #flashcard
-either over-blocks (high threshold) or under-blocks (low threshold) on ambiguous content.
-
-**No feedback loop?** #flashcard
-appeals that overturn decisions aren't used to improve the classifier.
-
-**Setting a threshold once during development and never revisiting it.?** #flashcard
-Setting a threshold once during development and never revisiting it.
-
-**No disaggregated false positive rate analysis.?** #flashcard
-No disaggregated false positive rate analysis.
-
-**NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.?** #flashcard
-NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.
-
-**Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.?** #flashcard
-Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.
-
-**Documentation without engineering artifacts is theater.?** #flashcard
-Documentation without engineering artifacts is theater.
-
-**"We follow NIST AI RMF" with no actual eval artifacts or incident response process.?** #flashcard
-"We follow NIST AI RMF" with no actual eval artifacts or incident response process.
-
-**Treating the framework as documentation-only rather than as a driver of engineering deliverables.?** #flashcard
-Treating the framework as documentation-only rather than as a driver of engineering deliverables.
-
-**Deduplicate training data?** #flashcard
-memorization scales with repetition count
-
-**Filter high-repetition samples?** #flashcard
-Filter high-repetition samples
-
-**Run memorization evaluation before release?** #flashcard
-prompt with known copyrighted passages and measure verbatim match rate
-
-**Inference-time filtering is not sufficient long-term?** #flashcard
-the root cause is in the training data.
-
-**n-gram overlap misses paraphrased verbatim reproduction.?** #flashcard
-n-gram overlap misses paraphrased verbatim reproduction.
-
-**The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.?** #flashcard
-The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.
-
-**Treating inference-time filtering as sufficient without addressing training data.?** #flashcard
-Treating inference-time filtering as sufficient without addressing training data.
-
-**No evaluation of what the threshold catches vs misses.?** #flashcard
-No evaluation of what the threshold catches vs misses.
-
-**Unacceptable risk?** #flashcard
-banned (real-time biometric surveillance, social scoring)
-
-**High risk?** #flashcard
-requires conformity assessment before deployment (CV screening, credit, medical devices, critical infrastructure)
-
-**Limited risk?** #flashcard
-transparency requirements (chatbots must disclose they're AI)
-
-**Minimal risk?** #flashcard
-no requirements
-
-**Retrofitting human oversight after deployment requires redesigning user flows?** #flashcard
-very expensive.
-
-**Conformity assessments require evidence?** #flashcard
-without evaluation artifacts, you have nothing to assess.
-
-**"Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.?** #flashcard
-"Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.
-
-**Waiting until launch to think about conformity assessment.?** #flashcard
-Waiting until launch to think about conformity assessment.
-
-**No version history for models/prompts?** #flashcard
-even partial reconstruction is impossible.
-
-**Over-logging without retention policy?** #flashcard
-logs become a compliance liability.
-
-**Logging raw queries and responses?** #flashcard
-PII in logs; must sanitize before storing.
-
-**No model version pinning?** #flashcard
-you don't know which model made the decision.
-
-**Logging only the output?** #flashcard
-the output alone can't be used to reconstruct why a specific decision was made.
-
-**Model card not versioned?** #flashcard
-stale card describes a model that no longer exists.
-
-**Only aggregate metrics?** #flashcard
-hides group disparities that matter for deployment decisions.
-
-**Limitations section not updated with production failures?** #flashcard
-discovered failure modes belong in the card.
-
-**Publishing a model card once and never updating it.?** #flashcard
-Publishing a model card once and never updating it.
-
-**Listing only aggregate metrics and saying "may occasionally produce incorrect information."?** #flashcard
-Listing only aggregate metrics and saying "may occasionally produce incorrect information."
-
-**Rate limiting by request count?** #flashcard
-a single request can generate arbitrarily many tokens.
-
-**Monitoring in silos?** #flashcard
-behavior that looks normal per-account looks anomalous across accounts.
-
-**No feedback from output filtering to account management?** #flashcard
-violations aren't recorded against accounts.
-
-**"Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.?** #flashcard
-"Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.
-
-**Rate limiting by request count without token counting.?** #flashcard
-Rate limiting by request count without token counting.
-
-**ε=10?** #flashcard
-weak privacy, high utility (use for low-sensitivity data)
-
-**ε=1?** #flashcard
-moderate privacy, moderate utility (common for sensitive data)
-
-**ε=0.1?** #flashcard
-strong privacy, significant utility loss (use only if the threat model requires it)
-
-**DP applies to training, not inference. Inference-time privacy requires separate controls.?** #flashcard
-DP applies to training, not inference. Inference-time privacy requires separate controls.
-
-**Small datasets amplify the utility cost of DP?** #flashcard
-smaller dataset → more noise needed → larger accuracy loss.
-
-**ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.?** #flashcard
-ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.
-
-**Setting ε arbitrarily without connecting it to a threat model.?** #flashcard
-Setting ε arbitrarily without connecting it to a threat model.
-
-**"We use differential privacy" without specifying ε and δ?** #flashcard
-the guarantee is meaningless without them.
-
-**k-anonymity?** #flashcard
-generalize/suppress rare quasi-identifier combinations
-
-**l-diversity?** #flashcard
-within each k-anonymous group, ensure diversity in sensitive attributes
-
-**Differential privacy?** #flashcard
-add calibrated noise to query results or synthetic data
-
-**Synthetic data generation?** #flashcard
-generate statistical twins instead of releasing real records
-
-**k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.?** #flashcard
-k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.
-
-**DP provides formal guarantees but reduces utility.?** #flashcard
-DP provides formal guarantees but reduces utility.
-
-**Synthetic data can leak if the generator trained on small groups.?** #flashcard
-Synthetic data can leak if the generator trained on small groups.
-
-**"We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.?** #flashcard
-"We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.
-
-**No re-identification risk assessment before data release.?** #flashcard
-No re-identification risk assessment before data release.
-
-**Adversarial debiasing reduces task accuracy alongside proxy predictability.?** #flashcard
-Adversarial debiasing reduces task accuracy alongside proxy predictability.
-
-**Some proxies may be legitimate task features.?** #flashcard
-Some proxies may be legitimate task features.
-
-**Intersectional proxy discrimination requires intersectional adversary training.?** #flashcard
-Intersectional proxy discrimination requires intersectional adversary training.
-
-**"We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).?** #flashcard
-"We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).
-
-**Not auditing the representation for protected attribute leakage after training.?** #flashcard
-Not auditing the representation for protected attribute leakage after training.
-
-**False negatives in crisis detection?** #flashcard
-indirect signals ("I just feel like disappearing") may not trigger the classifier.
-
-**Single-model approach?** #flashcard
-crisis detection and response generation in the same model; the model can rationalize past the crisis template.
-
-**"We told the model not to give harmful advice." Not a safety override.?** #flashcard
-"We told the model not to give harmful advice." Not a safety override.
-
-**Crisis detector and responder are the same model.?** #flashcard
-Crisis detector and responder are the same model.
-
-**Importance weighting requires a valid propensity model, which may itself be biased.?** #flashcard
-Importance weighting requires a valid propensity model, which may itself be biased.
-
-**Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).?** #flashcard
-Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).
-
-**Evaluating only on held-out data from the same biased collection process.?** #flashcard
-Evaluating only on held-out data from the same biased collection process.
-
-**No longitudinal monitoring for outcome drift across subgroups.?** #flashcard
-No longitudinal monitoring for outcome drift across subgroups.
-
-**Meaningful?** #flashcard
-describe factors and their direction, not just "the algorithm decided"
-
-**Specific to the individual?** #flashcard
-not a generic policy statement
-
-**Tied to logged decision artifacts?** #flashcard
-reproducible from the audit trail
-
-**Does not expose confidential business logic or training data?** #flashcard
-Does not expose confidential business logic or training data
-
-**Without audit logs (see Q16), you cannot produce a faithful explanation.?** #flashcard
-Without audit logs (see Q16), you cannot produce a faithful explanation.
-
-**Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.?** #flashcard
-Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.
-
-**"We can't explain because it's a neural network." GDPR doesn't exempt you.?** #flashcard
-"We can't explain because it's a neural network." GDPR doesn't exempt you.
-
-**Generic policy explanation rather than individual-specific factors.?** #flashcard
-Generic policy explanation rather than individual-specific factors.
-
-**Machine unlearning methods are approximate and may not provide formal guarantees.?** #flashcard
-Machine unlearning methods are approximate and may not provide formal guarantees.
-
-**Membership inference validation is imperfect.?** #flashcard
-Membership inference validation is imperfect.
-
-**Regulatory requirements on what constitutes "sufficient" erasure are still evolving.?** #flashcard
-Regulatory requirements on what constitutes "sufficient" erasure are still evolving.
-
-**"We deleted it from the database." That doesn't address model weights.?** #flashcard
-"We deleted it from the database." That doesn't address model weights.
-
-**Claiming full erasure without validation.?** #flashcard
-Claiming full erasure without validation.
-
-**Coordinate-wise median?** #flashcard
-resistant to outliers; requires < 50% malicious clients
-
-**Trimmed mean?** #flashcard
-remove top-k and bottom-k before averaging; requires knowing malicious fraction
-
-**Norm clipping + noise?** #flashcard
-bound each client's influence; clipped = update / max(1, ||update|| / C)
-
-**Robust aggregation assumes < 50% malicious (for median-based methods).?** #flashcard
-Robust aggregation assumes < 50% malicious (for median-based methods).
-
-**Sophisticated attacks stay within normal update norms.?** #flashcard
-Sophisticated attacks stay within normal update norms.
-
-**Secure aggregation (cryptographic) does not prevent poisoning?** #flashcard
-it hides individual updates, making anomaly detection harder.
-
-**"We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.?** #flashcard
-"We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.
-
-**Independent review adds workflow time; must be calibrated to case risk.?** #flashcard
-Independent review adds workflow time; must be calibrated to case risk.
-
-**Clinicians may perform the independent review perfunctorily.?** #flashcard
-Clinicians may perform the independent review perfunctorily.
-
-**Providing explanations for AI predictions can increase trust even when the explanation is wrong.?** #flashcard
-Providing explanations for AI predictions can increase trust even when the explanation is wrong.
-
-**Using agreement rate as the success metric.?** #flashcard
-Using agreement rate as the success metric.
-
-**"We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.?** #flashcard
-"We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.
+## Rapid Recall
+
+### RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.
+- Direct Answer: RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.
+- Why: This matters because it tells you how to reason about rag grounding only works if the retrieval finds relevant documents. if the retrieval misses, the model still hallucinates based on training data..
+- Pitfall: Don't answer "RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.
+
+### Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.
+- Direct Answer: Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.
+- Why: This matters because it tells you how to reason about faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases..
+- Pitfall: Don't answer "Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.
+
+### Low temperature reduces hallucination variance but doesn't eliminate it
+- Direct Answer: the most probable wrong token is still wrong.
+- Why: This matters because it tells you how to reason about low temperature reduces hallucination variance but doesn't eliminate it.
+- Pitfall: Don't answer "Low temperature reduces hallucination variance but doesn't eliminate it" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the most probable wrong token is still wrong.
+
+### "We tell the model not to hallucinate." This is not a mechanism; it's a wish.
+- Direct Answer: "We tell the model not to hallucinate." This is not a mechanism; it's a wish.
+- Why: This matters because it tells you how to reason about "we tell the model not to hallucinate." this is not a mechanism; it's a wish..
+- Pitfall: Don't answer ""We tell the model not to hallucinate." This is not a mechanism; it's a wish." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We tell the model not to hallucinate." This is not a mechanism; it's a wish.
+
+### No faithfulness check on RAG outputs
+- Direct Answer: the model can still contradict its retrieved context.
+- Why: This matters because it tells you how to reason about no faithfulness check on rag outputs.
+- Pitfall: Don't answer "No faithfulness check on RAG outputs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model can still contradict its retrieved context.
+
+### Direct injection
+- Direct Answer: user input contains instructions that override the system prompt.
+- Why: This matters because it tells you how to reason about direct injection.
+- Pitfall: Don't answer "Direct injection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: user input contains instructions that override the system prompt.
+
+### Indirect injection
+- Direct Answer: malicious instructions embedded in retrieved content (web pages, documents, tool outputs).
+- Why: This matters because it tells you how to reason about indirect injection.
+- Pitfall: Don't answer "Indirect injection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: malicious instructions embedded in retrieved content (web pages, documents, tool outputs).
+
+### Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.
+- Direct Answer: Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.
+- Why: This matters because it tells you how to reason about prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs..
+- Pitfall: Don't answer "Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.
+
+### Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.
+- Direct Answer: Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.
+- Why: This matters because it tells you how to reason about tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous..
+- Pitfall: Don't answer "Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.
+
+### HITL adds latency; not suitable for high-throughput agents.
+- Direct Answer: HITL adds latency; not suitable for high-throughput agents.
+- Why: This matters because it tells you how to reason about hitl adds latency; not suitable for high-throughput agents..
+- Pitfall: Don't answer "HITL adds latency; not suitable for high-throughput agents." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: HITL adds latency; not suitable for high-throughput agents.
+
+### "Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.
+- Direct Answer: "Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.
+- Why: This matters because it tells you how to reason about "our system prompt tells the model to ignore malicious instructions." this is guidance, not enforcement..
+- Pitfall: Don't answer ""Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Our system prompt tells the model to ignore malicious instructions." This is guidance, not enforcement.
+
+### Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).
+- Direct Answer: Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).
+- Why: This matters because it tells you how to reason about only defending against direct injection (user input) while ignoring indirect injection (retrieved content)..
+- Pitfall: Don't answer "Only defending against direct injection (user input) while ignoring indirect injection (retrieved content)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Only defending against direct injection (user input) while ignoring indirect injection (retrieved content).
+
+### Independent classifier
+- Direct Answer: not the same model as the one generating, not just a prompt check
+- Why: This matters because it tells you how to reason about independent classifier.
+- Pitfall: Don't answer "Independent classifier" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: not the same model as the one generating, not just a prompt check
+
+### Both layers
+- Direct Answer: input AND output checked separately
+- Why: This matters because it tells you how to reason about both layers.
+- Pitfall: Don't answer "Both layers" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: input AND output checked separately
+
+### Log decisions with reasons
+- Direct Answer: for audit, feedback, and threshold calibration
+- Why: This matters because it tells you how to reason about log decisions with reasons.
+- Pitfall: Don't answer "Log decisions with reasons" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: for audit, feedback, and threshold calibration
+
+### Multi-stage for high-risk
+- Direct Answer: high-severity categories use heavier classifiers at the cost of latency
+- Why: This matters because it tells you how to reason about multi-stage for high-risk.
+- Pitfall: Don't answer "Multi-stage for high-risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: high-severity categories use heavier classifiers at the cost of latency
+
+### Single-layer guardrails (input only)
+- Direct Answer: the model can still produce harmful output via indirect prompting.
+- Why: This matters because it tells you how to reason about single-layer guardrails (input only).
+- Pitfall: Don't answer "Single-layer guardrails (input only)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model can still produce harmful output via indirect prompting.
+
+### Output-only guardrails
+- Direct Answer: malicious inputs can manipulate the reasoning process even if the final output is filtered.
+- Why: This matters because it tells you how to reason about output-only guardrails.
+- Pitfall: Don't answer "Output-only guardrails" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: malicious inputs can manipulate the reasoning process even if the final output is filtered.
+
+### Using the main LLM as the safety judge
+- Direct Answer: the same model can be manipulated into passing its own harmful output.
+- Why: This matters because it tells you how to reason about using the main llm as the safety judge.
+- Pitfall: Don't answer "Using the main LLM as the safety judge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the same model can be manipulated into passing its own harmful output.
+
+### "Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.
+- Direct Answer: "Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.
+- Why: This matters because it tells you how to reason about "our system prompt includes safety instructions." that's part of the model's context, not a guardrail..
+- Pitfall: Don't answer ""Our system prompt includes safety instructions." That's part of the model's context, not a guardrail." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Our system prompt includes safety instructions." That's part of the model's context, not a guardrail.
+
+### "We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.
+- Direct Answer: "We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.
+- Why: This matters because it tells you how to reason about "we filter outputs with a regex." regex catches keyword patterns; semantic safety violations slip through..
+- Pitfall: Don't answer ""We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We filter outputs with a regex." Regex catches keyword patterns; semantic safety violations slip through.
+
+### Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.
+- Direct Answer: Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.
+- Why: This matters because it tells you how to reason about alignment evals are themselves proxy measures. a model can learn to perform well on alignment evals without actually being aligned..
+- Pitfall: Don't answer "Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Alignment evals are themselves proxy measures. A model can learn to perform well on alignment evals without actually being aligned.
+
+### Alignment failures interact
+- Direct Answer: a sycophantic model will also hallucinate more when confirming user beliefs.
+- Why: This matters because it tells you how to reason about alignment failures interact.
+- Pitfall: Don't answer "Alignment failures interact" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a sycophantic model will also hallucinate more when confirming user beliefs.
+
+### "We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.
+- Direct Answer: "We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.
+- Why: This matters because it tells you how to reason about "we'll add more safety examples to training." more examples don't fix the reward model's systematic preference for agreement..
+- Pitfall: Don't answer ""We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We'll add more safety examples to training." More examples don't fix the reward model's systematic preference for agreement.
+
+### Treating alignment as a one-time training problem rather than an ongoing measurement problem.
+- Direct Answer: Treating alignment as a one-time training problem rather than an ongoing measurement problem.
+- Why: This matters because it tells you how to reason about treating alignment as a one-time training problem rather than an ongoing measurement problem..
+- Pitfall: Don't answer "Treating alignment as a one-time training problem rather than an ongoing measurement problem." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating alignment as a one-time training problem rather than an ongoing measurement problem.
+
+### Training data bias
+- Direct Answer: historical outcomes reflect past discrimination
+- Why: This matters because it tells you how to reason about training data bias.
+- Pitfall: Don't answer "Training data bias" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: historical outcomes reflect past discrimination
+
+### Proxy features
+- Direct Answer: correlated with protected attributes (zip code ~ race; school name ~ gender)
+- Why: This matters because it tells you how to reason about proxy features.
+- Pitfall: Don't answer "Proxy features" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: correlated with protected attributes (zip code ~ race; school name ~ gender)
+
+### Label bias
+- Direct Answer: human-labeled data inherits annotator biases
+- Why: This matters because it tells you how to reason about label bias.
+- Pitfall: Don't answer "Label bias" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: human-labeled data inherits annotator biases
+
+### Pre-processing
+- Direct Answer: reweight examples, rebalance data
+- Why: This matters because it tells you how to reason about pre-processing.
+- Pitfall: Don't answer "Pre-processing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reweight examples, rebalance data
+
+### In-processing
+- Direct Answer: adversarial debiasing (make protected attribute unpredictable from representation)
+- Why: This matters because it tells you how to reason about in-processing.
+- Pitfall: Don't answer "In-processing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: adversarial debiasing (make protected attribute unpredictable from representation)
+
+### Post-processing
+- Direct Answer: threshold calibration per group
+- Why: This matters because it tells you how to reason about post-processing.
+- Pitfall: Don't answer "Post-processing" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: threshold calibration per group
+
+### Single-attribute audits
+- Direct Answer: mathematically compatible with severe intersectional harm. A model can pass gender audit and race audit while performing 4× worse for Black women.
+- Why: This matters because it tells you how to reason about single-attribute audits.
+- Pitfall: Don't answer "Single-attribute audits" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: mathematically compatible with severe intersectional harm. A model can pass gender audit and race audit while performing 4× worse for Black women.
+
+### Removing protected attributes
+- Direct Answer: the model re-learns them from correlated proxies.
+- Why: This matters because it tells you how to reason about removing protected attributes.
+- Pitfall: Don't answer "Removing protected attributes" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model re-learns them from correlated proxies.
+
+### Threshold calibration alone
+- Direct Answer: addresses symptoms, not the representation-level cause.
+- Why: This matters because it tells you how to reason about threshold calibration alone.
+- Pitfall: Don't answer "Threshold calibration alone" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: addresses symptoms, not the representation-level cause.
+
+### "We removed race and gender from features." Correlated proxies (zip code, school name) remain.
+- Direct Answer: "We removed race and gender from features." Correlated proxies (zip code, school name) remain.
+- Why: This matters because it tells you how to reason about "we removed race and gender from features." correlated proxies (zip code, school name) remain..
+- Pitfall: Don't answer ""We removed race and gender from features." Correlated proxies (zip code, school name) remain." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We removed race and gender from features." Correlated proxies (zip code, school name) remain.
+
+### Only running single-attribute audits without intersectional evaluation.
+- Direct Answer: Only running single-attribute audits without intersectional evaluation.
+- Why: This matters because it tells you how to reason about only running single-attribute audits without intersectional evaluation..
+- Pitfall: Don't answer "Only running single-attribute audits without intersectional evaluation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Only running single-attribute audits without intersectional evaluation.
+
+### No retention policy
+- Direct Answer: data accumulates indefinitely, increasing liability.
+- Why: This matters because it tells you how to reason about no retention policy.
+- Pitfall: Don't answer "No retention policy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: data accumulates indefinitely, increasing liability.
+
+### No deletion mechanism
+- Direct Answer: user exercises right to erasure; you can't fulfill it.
+- Why: This matters because it tells you how to reason about no deletion mechanism.
+- Pitfall: Don't answer "No deletion mechanism" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: user exercises right to erasure; you can't fulfill it.
+
+### Using data for model training without consent beyond what it was collected for (purpose limitation violation).
+- Direct Answer: Using data for model training without consent beyond what it was collected for (purpose limitation violation).
+- Why: This matters because it tells you how to reason about using data for model training without consent beyond what it was collected for (purpose limitation violation)..
+- Pitfall: Don't answer "Using data for model training without consent beyond what it was collected for (purpose limitation violation)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using data for model training without consent beyond what it was collected for (purpose limitation violation).
+
+### "Legal handles privacy." No
+- Direct Answer: retention policies, deletion APIs, and access controls are engineering.
+- Why: This matters because it tells you how to reason about "legal handles privacy." no.
+- Pitfall: Don't answer ""Legal handles privacy." No" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: retention policies, deletion APIs, and access controls are engineering.
+
+### No data inventory
+- Direct Answer: you can't comply with rights requests if you don't know what data you have.
+- Why: This matters because it tells you how to reason about no data inventory.
+- Pitfall: Don't answer "No data inventory" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you can't comply with rights requests if you don't know what data you have.
+
+### Redacting user input but not retrieved documents
+- Direct Answer: PII from documents leaks into responses.
+- Why: This matters because it tells you how to reason about redacting user input but not retrieved documents.
+- Pitfall: Don't answer "Redacting user input but not retrieved documents" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PII from documents leaks into responses.
+
+### No ACL on retrieval
+- Direct Answer: any user can retrieve any document, including documents with other users' PII.
+- Why: This matters because it tells you how to reason about no acl on retrieval.
+- Pitfall: Don't answer "No ACL on retrieval" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: any user can retrieve any document, including documents with other users' PII.
+
+### Logging full queries and responses
+- Direct Answer: logs become a PII store; logs must also be redacted.
+- Why: This matters because it tells you how to reason about logging full queries and responses.
+- Pitfall: Don't answer "Logging full queries and responses" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: logs become a PII store; logs must also be redacted.
+
+### "We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.
+- Direct Answer: "We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.
+- Why: This matters because it tells you how to reason about "we don't ask users for their pii." pii can be in uploaded documents, retrieved content, or inferred from user behavior..
+- Pitfall: Don't answer ""We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We don't ask users for their PII." PII can be in uploaded documents, retrieved content, or inferred from user behavior.
+
+### Redacting at output only
+- Direct Answer: the model's reasoning was already contaminated by PII in the context.
+- Why: This matters because it tells you how to reason about redacting at output only.
+- Pitfall: Don't answer "Redacting at output only" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model's reasoning was already contaminated by PII in the context.
+
+### SHAP (SHapley Additive exPlanations)
+- Direct Answer: attribute prediction to input features using game theory. "This application was denied because feature 'payment_history' contributed -0.42 to the score."
+- Why: This matters because it tells you how to reason about shap (shapley additive explanations).
+- Pitfall: Don't answer "SHAP (SHapley Additive exPlanations)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: attribute prediction to input features using game theory. "This application was denied because feature 'payment_history' contributed -0.42 to the score."
+
+### LIME
+- Direct Answer: locally approximate model behavior with a simpler linear model around a specific input.
+- Why: This matters because it tells you how to reason about lime.
+- Pitfall: Don't answer "LIME" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: locally approximate model behavior with a simpler linear model around a specific input.
+
+### Chain-of-Thought explanations
+- Direct Answer: the model's reasoning trace as an explanation (for LLMs).
+- Why: This matters because it tells you how to reason about chain-of-thought explanations.
+- Pitfall: Don't answer "Chain-of-Thought explanations" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the model's reasoning trace as an explanation (for LLMs).
+
+### Attention visualization
+- Direct Answer: which tokens the model attended to (caveat: attention is not always explanation).
+- Why: This matters because it tells you how to reason about attention visualization.
+- Pitfall: Don't answer "Attention visualization" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: which tokens the model attended to (caveat: attention is not always explanation).
+
+### Probing classifiers
+- Direct Answer: train a linear classifier on internal representations to test if they encode a concept.
+- Why: This matters because it tells you how to reason about probing classifiers.
+- Pitfall: Don't answer "Probing classifiers" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: train a linear classifier on internal representations to test if they encode a concept.
+
+### Activation patching
+- Direct Answer: intervene on specific activations to trace causal pathways.
+- Why: This matters because it tells you how to reason about activation patching.
+- Pitfall: Don't answer "Activation patching" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: intervene on specific activations to trace causal pathways.
+
+### Mechanistic interpretability (circuits)
+- Direct Answer: identify specific attention heads and MLP layers that implement behaviors.
+- Why: This matters because it tells you how to reason about mechanistic interpretability (circuits).
+- Pitfall: Don't answer "Mechanistic interpretability (circuits)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: identify specific attention heads and MLP layers that implement behaviors.
+
+### SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.
+- Direct Answer: SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.
+- Why: This matters because it tells you how to reason about shap and lime produce post-hoc approximations; they may not reflect the model's actual computation..
+- Pitfall: Don't answer "SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: SHAP and LIME produce post-hoc approximations; they may not reflect the model's actual computation.
+
+### Attention-based explanations are often misleading
+- Direct Answer: high attention doesn't imply causal importance.
+- Why: This matters because it tells you how to reason about attention-based explanations are often misleading.
+- Pitfall: Don't answer "Attention-based explanations are often misleading" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: high attention doesn't imply causal importance.
+
+### Explanations for deep networks are imperfect approximations. Always caveat their limitations.
+- Direct Answer: Explanations for deep networks are imperfect approximations. Always caveat their limitations.
+- Why: This matters because it tells you how to reason about explanations for deep networks are imperfect approximations. always caveat their limitations..
+- Pitfall: Don't answer "Explanations for deep networks are imperfect approximations. Always caveat their limitations." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Explanations for deep networks are imperfect approximations. Always caveat their limitations.
+
+### "We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.
+- Direct Answer: "We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.
+- Why: This matters because it tells you how to reason about "we can't explain neural networks." gdpr doesn't exempt you; shap provides practical output-level explanations..
+- Pitfall: Don't answer ""We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We can't explain neural networks." GDPR doesn't exempt you; SHAP provides practical output-level explanations.
+
+### "High attention = important feature." Attention doesn't equal causal importance.
+- Direct Answer: "High attention = important feature." Attention doesn't equal causal importance.
+- Why: This matters because it tells you how to reason about "high attention = important feature." attention doesn't equal causal importance..
+- Pitfall: Don't answer ""High attention = important feature." Attention doesn't equal causal importance." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "High attention = important feature." Attention doesn't equal causal importance.
+
+### Displaying maximum confidence on every response
+- Direct Answer: users stop discriminating, trust is mis-calibrated, errors go unchallenged.
+- Why: This matters because it tells you how to reason about displaying maximum confidence on every response.
+- Pitfall: Don't answer "Displaying maximum confidence on every response" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users stop discriminating, trust is mis-calibrated, errors go unchallenged.
+
+### Never abstaining
+- Direct Answer: teaches users the system knows everything, which it doesn't.
+- Why: This matters because it tells you how to reason about never abstaining.
+- Pitfall: Don't answer "Never abstaining" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: teaches users the system knows everything, which it doesn't.
+
+### No correction mechanism
+- Direct Answer: users have no way to signal errors, accuracy doesn't improve.
+- Why: This matters because it tells you how to reason about no correction mechanism.
+- Pitfall: Don't answer "No correction mechanism" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: users have no way to signal errors, accuracy doesn't improve.
+
+### "We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.
+- Direct Answer: "We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.
+- Why: This matters because it tells you how to reason about "we want users to trust our ai." if trust exceeds reliability, users will be harmed by the system..
+- Pitfall: Don't answer ""We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We want users to trust our AI." If trust exceeds reliability, users will be harmed by the system.
+
+### No abstention
+- Direct Answer: always generating an answer when sometimes "I don't know" is the right answer.
+- Why: This matters because it tells you how to reason about no abstention.
+- Pitfall: Don't answer "No abstention" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: always generating an answer when sometimes "I don't know" is the right answer.
+
+### Whitebox (attacker knows model): FGSM, PGD
+- Direct Answer: gradient-based perturbations
+- Why: This matters because it tells you how to reason about whitebox (attacker knows model): fgsm, pgd.
+- Pitfall: Don't answer "Whitebox (attacker knows model): FGSM, PGD" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: gradient-based perturbations
+
+### Blackbox (query access only)
+- Direct Answer: transferability of adversarial examples
+- Why: This matters because it tells you how to reason about blackbox (query access only).
+- Pitfall: Don't answer "Blackbox (query access only)" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: transferability of adversarial examples
+
+### Character-level attacks
+- Direct Answer: homoglyphs, zero-width characters, Unicode normalization attacks
+- Why: This matters because it tells you how to reason about character-level attacks.
+- Pitfall: Don't answer "Character-level attacks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: homoglyphs, zero-width characters, Unicode normalization attacks
+
+### Semantic attacks
+- Direct Answer: paraphrasing that preserves meaning but bypasses classifiers
+- Why: This matters because it tells you how to reason about semantic attacks.
+- Pitfall: Don't answer "Semantic attacks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: paraphrasing that preserves meaning but bypasses classifiers
+
+### No defense against all adversarial attacks
+- Direct Answer: adversarial training on known attack types doesn't defend against novel attacks.
+- Why: This matters because it tells you how to reason about no defense against all adversarial attacks.
+- Pitfall: Don't answer "No defense against all adversarial attacks" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: adversarial training on known attack types doesn't defend against novel attacks.
+
+### Preprocessing adds latency.
+- Direct Answer: Preprocessing adds latency.
+- Why: This matters because it tells you how to reason about preprocessing adds latency..
+- Pitfall: Don't answer "Preprocessing adds latency." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Preprocessing adds latency.
+
+### Adversarial training can reduce clean accuracy.
+- Direct Answer: Adversarial training can reduce clean accuracy.
+- Why: This matters because it tells you how to reason about adversarial training can reduce clean accuracy..
+- Pitfall: Don't answer "Adversarial training can reduce clean accuracy." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Adversarial training can reduce clean accuracy.
+
+### "We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.
+- Direct Answer: "We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.
+- Why: This matters because it tells you how to reason about "we sanitize inputs." character normalization defends against character-level attacks, not gradient-based adversarial attacks..
+- Pitfall: Don't answer ""We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We sanitize inputs." Character normalization defends against character-level attacks, not gradient-based adversarial attacks.
+
+### Only defending at training time without runtime monitoring.
+- Direct Answer: Only defending at training time without runtime monitoring.
+- Why: This matters because it tells you how to reason about only defending at training time without runtime monitoring..
+- Pitfall: Don't answer "Only defending at training time without runtime monitoring." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Only defending at training time without runtime monitoring.
+
+### Track provenance of every training example
+- Direct Answer: Track provenance of every training example
+- Why: This matters because it tells you how to reason about track provenance of every training example.
+- Pitfall: Don't answer "Track provenance of every training example" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Track provenance of every training example
+
+### Outlier detection on new training data
+- Direct Answer: Outlier detection on new training data
+- Why: This matters because it tells you how to reason about outlier detection on new training data.
+- Pitfall: Don't answer "Outlier detection on new training data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Outlier detection on new training data
+
+### Separate validation by data source
+- Direct Answer: Separate validation by data source
+- Why: This matters because it tells you how to reason about separate validation by data source.
+- Pitfall: Don't answer "Separate validation by data source" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Separate validation by data source
+
+### Content review pipeline for ingested web data
+- Direct Answer: Content review pipeline for ingested web data
+- Why: This matters because it tells you how to reason about content review pipeline for ingested web data.
+- Pitfall: Don't answer "Content review pipeline for ingested web data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Content review pipeline for ingested web data
+
+### Unknown trigger types can't be detected by targeted testing.
+- Direct Answer: Unknown trigger types can't be detected by targeted testing.
+- Why: This matters because it tells you how to reason about unknown trigger types can't be detected by targeted testing..
+- Pitfall: Don't answer "Unknown trigger types can't be detected by targeted testing." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Unknown trigger types can't be detected by targeted testing.
+
+### If the clean checkpoint is also compromised, retraining from it doesn't help.
+- Direct Answer: If the clean checkpoint is also compromised, retraining from it doesn't help.
+- Why: This matters because it tells you how to reason about if the clean checkpoint is also compromised, retraining from it doesn't help..
+- Pitfall: Don't answer "If the clean checkpoint is also compromised, retraining from it doesn't help." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If the clean checkpoint is also compromised, retraining from it doesn't help.
+
+### No regression test after remediation
+- Direct Answer: the same attack can recur.
+- Why: This matters because it tells you how to reason about no regression test after remediation.
+- Pitfall: Don't answer "No regression test after remediation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the same attack can recur.
+
+### "The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.
+- Direct Answer: "The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.
+- Why: This matters because it tells you how to reason about "the model passes benchmarks, so it's safe." backdoors are designed to preserve benchmark accuracy..
+- Pitfall: Don't answer ""The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "The model passes benchmarks, so it's safe." Backdoors are designed to preserve benchmark accuracy.
+
+### No regression tests added after remediation.
+- Direct Answer: No regression tests added after remediation.
+- Why: This matters because it tells you how to reason about no regression tests added after remediation..
+- Pitfall: Don't answer "No regression tests added after remediation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No regression tests added after remediation.
+
+### Single threshold across all users
+- Direct Answer: systematically wrong for groups not well-represented in calibration data.
+- Why: This matters because it tells you how to reason about single threshold across all users.
+- Pitfall: Don't answer "Single threshold across all users" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: systematically wrong for groups not well-represented in calibration data.
+
+### No human review for borderline cases
+- Direct Answer: either over-blocks (high threshold) or under-blocks (low threshold) on ambiguous content.
+- Why: This matters because it tells you how to reason about no human review for borderline cases.
+- Pitfall: Don't answer "No human review for borderline cases" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: either over-blocks (high threshold) or under-blocks (low threshold) on ambiguous content.
+
+### No feedback loop
+- Direct Answer: appeals that overturn decisions aren't used to improve the classifier.
+- Why: This matters because it tells you how to reason about no feedback loop.
+- Pitfall: Don't answer "No feedback loop" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: appeals that overturn decisions aren't used to improve the classifier.
+
+### Setting a threshold once during development and never revisiting it.
+- Direct Answer: Setting a threshold once during development and never revisiting it.
+- Why: This matters because it tells you how to reason about setting a threshold once during development and never revisiting it..
+- Pitfall: Don't answer "Setting a threshold once during development and never revisiting it." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Setting a threshold once during development and never revisiting it.
+
+### No disaggregated false positive rate analysis.
+- Direct Answer: No disaggregated false positive rate analysis.
+- Why: This matters because it tells you how to reason about no disaggregated false positive rate analysis..
+- Pitfall: Don't answer "No disaggregated false positive rate analysis." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No disaggregated false positive rate analysis.
+
+### NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.
+- Direct Answer: NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.
+- Why: This matters because it tells you how to reason about nist ai rmf is a framework, not a compliance checklist. it doesn't specify which metrics to use..
+- Pitfall: Don't answer "NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: NIST AI RMF is a framework, not a compliance checklist. It doesn't specify which metrics to use.
+
+### Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.
+- Direct Answer: Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.
+- Why: This matters because it tells you how to reason about without the measure function having actual thresholds, manage has nothing to trigger on..
+- Pitfall: Don't answer "Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Without the MEASURE function having actual thresholds, MANAGE has nothing to trigger on.
+
+### Documentation without engineering artifacts is theater.
+- Direct Answer: Documentation without engineering artifacts is theater.
+- Why: This matters because it tells you how to reason about documentation without engineering artifacts is theater..
+- Pitfall: Don't answer "Documentation without engineering artifacts is theater." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Documentation without engineering artifacts is theater.
+
+### "We follow NIST AI RMF" with no actual eval artifacts or incident response process.
+- Direct Answer: "We follow NIST AI RMF" with no actual eval artifacts or incident response process.
+- Why: This matters because it tells you how to reason about "we follow nist ai rmf" with no actual eval artifacts or incident response process..
+- Pitfall: Don't answer ""We follow NIST AI RMF" with no actual eval artifacts or incident response process." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We follow NIST AI RMF" with no actual eval artifacts or incident response process.
+
+### Treating the framework as documentation-only rather than as a driver of engineering deliverables.
+- Direct Answer: Treating the framework as documentation-only rather than as a driver of engineering deliverables.
+- Why: This matters because it tells you how to reason about treating the framework as documentation-only rather than as a driver of engineering deliverables..
+- Pitfall: Don't answer "Treating the framework as documentation-only rather than as a driver of engineering deliverables." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating the framework as documentation-only rather than as a driver of engineering deliverables.
+
+### Deduplicate training data
+- Direct Answer: memorization scales with repetition count
+- Why: This matters because it tells you how to reason about deduplicate training data.
+- Pitfall: Don't answer "Deduplicate training data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: memorization scales with repetition count
+
+### Filter high-repetition samples
+- Direct Answer: Filter high-repetition samples
+- Why: This matters because it tells you how to reason about filter high-repetition samples.
+- Pitfall: Don't answer "Filter high-repetition samples" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Filter high-repetition samples
+
+### Run memorization evaluation before release
+- Direct Answer: prompt with known copyrighted passages and measure verbatim match rate
+- Why: This matters because it tells you how to reason about run memorization evaluation before release.
+- Pitfall: Don't answer "Run memorization evaluation before release" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: prompt with known copyrighted passages and measure verbatim match rate
+
+### Inference-time filtering is not sufficient long-term
+- Direct Answer: the root cause is in the training data.
+- Why: This matters because it tells you how to reason about inference-time filtering is not sufficient long-term.
+- Pitfall: Don't answer "Inference-time filtering is not sufficient long-term" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the root cause is in the training data.
+
+### n-gram overlap misses paraphrased verbatim reproduction.
+- Direct Answer: n-gram overlap misses paraphrased verbatim reproduction.
+- Why: This matters because it tells you how to reason about n-gram overlap misses paraphrased verbatim reproduction..
+- Pitfall: Don't answer "n-gram overlap misses paraphrased verbatim reproduction." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: n-gram overlap misses paraphrased verbatim reproduction.
+
+### The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.
+- Direct Answer: The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.
+- Why: This matters because it tells you how to reason about the threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation..
+- Pitfall: Don't answer "The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: The threshold choice creates a precision-recall tradeoff; too strict blocks legitimate quotation.
+
+### Treating inference-time filtering as sufficient without addressing training data.
+- Direct Answer: Treating inference-time filtering as sufficient without addressing training data.
+- Why: This matters because it tells you how to reason about treating inference-time filtering as sufficient without addressing training data..
+- Pitfall: Don't answer "Treating inference-time filtering as sufficient without addressing training data." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Treating inference-time filtering as sufficient without addressing training data.
+
+### No evaluation of what the threshold catches vs misses.
+- Direct Answer: No evaluation of what the threshold catches vs misses.
+- Why: This matters because it tells you how to reason about no evaluation of what the threshold catches vs misses..
+- Pitfall: Don't answer "No evaluation of what the threshold catches vs misses." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No evaluation of what the threshold catches vs misses.
+
+### Unacceptable risk
+- Direct Answer: banned (real-time biometric surveillance, social scoring)
+- Why: This matters because it tells you how to reason about unacceptable risk.
+- Pitfall: Don't answer "Unacceptable risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: banned (real-time biometric surveillance, social scoring)
+
+### High risk
+- Direct Answer: requires conformity assessment before deployment (CV screening, credit, medical devices, critical infrastructure)
+- Why: This matters because it tells you how to reason about high risk.
+- Pitfall: Don't answer "High risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: requires conformity assessment before deployment (CV screening, credit, medical devices, critical infrastructure)
+
+### Limited risk
+- Direct Answer: transparency requirements (chatbots must disclose they're AI)
+- Why: This matters because it tells you how to reason about limited risk.
+- Pitfall: Don't answer "Limited risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: transparency requirements (chatbots must disclose they're AI)
+
+### Minimal risk
+- Direct Answer: no requirements
+- Why: This matters because it tells you how to reason about minimal risk.
+- Pitfall: Don't answer "Minimal risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: no requirements
+
+### Retrofitting human oversight after deployment requires redesigning user flows
+- Direct Answer: very expensive.
+- Why: This matters because it tells you how to reason about retrofitting human oversight after deployment requires redesigning user flows.
+- Pitfall: Don't answer "Retrofitting human oversight after deployment requires redesigning user flows" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: very expensive.
+
+### Conformity assessments require evidence
+- Direct Answer: without evaluation artifacts, you have nothing to assess.
+- Why: This matters because it tells you how to reason about conformity assessments require evidence.
+- Pitfall: Don't answer "Conformity assessments require evidence" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: without evaluation artifacts, you have nothing to assess.
+
+### "Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.
+- Direct Answer: "Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.
+- Why: This matters because it tells you how to reason about "legal handles compliance." technical documentation, bias audits, and audit logging are engineering deliverables..
+- Pitfall: Don't answer ""Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Legal handles compliance." Technical documentation, bias audits, and audit logging are engineering deliverables.
+
+### Waiting until launch to think about conformity assessment.
+- Direct Answer: Waiting until launch to think about conformity assessment.
+- Why: This matters because it tells you how to reason about waiting until launch to think about conformity assessment..
+- Pitfall: Don't answer "Waiting until launch to think about conformity assessment." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Waiting until launch to think about conformity assessment.
+
+### No version history for models/prompts
+- Direct Answer: even partial reconstruction is impossible.
+- Why: This matters because it tells you how to reason about no version history for models/prompts.
+- Pitfall: Don't answer "No version history for models/prompts" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: even partial reconstruction is impossible.
+
+### Over-logging without retention policy
+- Direct Answer: logs become a compliance liability.
+- Why: This matters because it tells you how to reason about over-logging without retention policy.
+- Pitfall: Don't answer "Over-logging without retention policy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: logs become a compliance liability.
+
+### Logging raw queries and responses
+- Direct Answer: PII in logs; must sanitize before storing.
+- Why: This matters because it tells you how to reason about logging raw queries and responses.
+- Pitfall: Don't answer "Logging raw queries and responses" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: PII in logs; must sanitize before storing.
+
+### No model version pinning
+- Direct Answer: you don't know which model made the decision.
+- Why: This matters because it tells you how to reason about no model version pinning.
+- Pitfall: Don't answer "No model version pinning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: you don't know which model made the decision.
+
+### Logging only the output
+- Direct Answer: the output alone can't be used to reconstruct why a specific decision was made.
+- Why: This matters because it tells you how to reason about logging only the output.
+- Pitfall: Don't answer "Logging only the output" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the output alone can't be used to reconstruct why a specific decision was made.
+
+### Model card not versioned
+- Direct Answer: stale card describes a model that no longer exists.
+- Why: This matters because it tells you how to reason about model card not versioned.
+- Pitfall: Don't answer "Model card not versioned" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: stale card describes a model that no longer exists.
+
+### Only aggregate metrics
+- Direct Answer: hides group disparities that matter for deployment decisions.
+- Why: This matters because it tells you how to reason about only aggregate metrics.
+- Pitfall: Don't answer "Only aggregate metrics" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: hides group disparities that matter for deployment decisions.
+
+### Limitations section not updated with production failures
+- Direct Answer: discovered failure modes belong in the card.
+- Why: This matters because it tells you how to reason about limitations section not updated with production failures.
+- Pitfall: Don't answer "Limitations section not updated with production failures" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: discovered failure modes belong in the card.
+
+### Publishing a model card once and never updating it.
+- Direct Answer: Publishing a model card once and never updating it.
+- Why: This matters because it tells you how to reason about publishing a model card once and never updating it..
+- Pitfall: Don't answer "Publishing a model card once and never updating it." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Publishing a model card once and never updating it.
+
+### Listing only aggregate metrics and saying "may occasionally produce incorrect information."
+- Direct Answer: Listing only aggregate metrics and saying "may occasionally produce incorrect information."
+- Why: This matters because it tells you how to reason about listing only aggregate metrics and saying "may occasionally produce incorrect information.".
+- Pitfall: Don't answer "Listing only aggregate metrics and saying "may occasionally produce incorrect information."" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Listing only aggregate metrics and saying "may occasionally produce incorrect information."
+
+### Rate limiting by request count
+- Direct Answer: a single request can generate arbitrarily many tokens.
+- Why: This matters because it tells you how to reason about rate limiting by request count.
+- Pitfall: Don't answer "Rate limiting by request count" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: a single request can generate arbitrarily many tokens.
+
+### Monitoring in silos
+- Direct Answer: behavior that looks normal per-account looks anomalous across accounts.
+- Why: This matters because it tells you how to reason about monitoring in silos.
+- Pitfall: Don't answer "Monitoring in silos" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: behavior that looks normal per-account looks anomalous across accounts.
+
+### No feedback from output filtering to account management
+- Direct Answer: violations aren't recorded against accounts.
+- Why: This matters because it tells you how to reason about no feedback from output filtering to account management.
+- Pitfall: Don't answer "No feedback from output filtering to account management" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: violations aren't recorded against accounts.
+
+### "Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.
+- Direct Answer: "Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.
+- Why: This matters because it tells you how to reason about "our content filter blocks misuse." a single filter with known bypass techniques is insufficient..
+- Pitfall: Don't answer ""Our content filter blocks misuse." A single filter with known bypass techniques is insufficient." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "Our content filter blocks misuse." A single filter with known bypass techniques is insufficient.
+
+### Rate limiting by request count without token counting.
+- Direct Answer: Rate limiting by request count without token counting.
+- Why: This matters because it tells you how to reason about rate limiting by request count without token counting..
+- Pitfall: Don't answer "Rate limiting by request count without token counting." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Rate limiting by request count without token counting.
+
+### ε=10
+- Direct Answer: weak privacy, high utility (use for low-sensitivity data)
+- Why: This matters because it tells you how to reason about ε=10.
+- Pitfall: Don't answer "ε=10" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: weak privacy, high utility (use for low-sensitivity data)
+
+### ε=1
+- Direct Answer: moderate privacy, moderate utility (common for sensitive data)
+- Why: This matters because it tells you how to reason about ε=1.
+- Pitfall: Don't answer "ε=1" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: moderate privacy, moderate utility (common for sensitive data)
+
+### ε=0.1
+- Direct Answer: strong privacy, significant utility loss (use only if the threat model requires it)
+- Why: This matters because it tells you how to reason about ε=0.1.
+- Pitfall: Don't answer "ε=0.1" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: strong privacy, significant utility loss (use only if the threat model requires it)
+
+### DP applies to training, not inference. Inference-time privacy requires separate controls.
+- Direct Answer: DP applies to training, not inference. Inference-time privacy requires separate controls.
+- Why: This matters because it tells you how to reason about dp applies to training, not inference. inference-time privacy requires separate controls..
+- Pitfall: Don't answer "DP applies to training, not inference. Inference-time privacy requires separate controls." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: DP applies to training, not inference. Inference-time privacy requires separate controls.
+
+### Small datasets amplify the utility cost of DP
+- Direct Answer: smaller dataset → more noise needed → larger accuracy loss.
+- Why: This matters because it tells you how to reason about small datasets amplify the utility cost of dp.
+- Pitfall: Don't answer "Small datasets amplify the utility cost of DP" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: smaller dataset → more noise needed → larger accuracy loss.
+
+### ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.
+- Direct Answer: ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.
+- Why: This matters because it tells you how to reason about ε is a design parameter that must be connected to a threat model; reporting dp without the ε value is meaningless..
+- Pitfall: Don't answer "ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: ε is a design parameter that must be connected to a threat model; reporting DP without the ε value is meaningless.
+
+### Setting ε arbitrarily without connecting it to a threat model.
+- Direct Answer: Setting ε arbitrarily without connecting it to a threat model.
+- Why: This matters because it tells you how to reason about setting ε arbitrarily without connecting it to a threat model..
+- Pitfall: Don't answer "Setting ε arbitrarily without connecting it to a threat model." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Setting ε arbitrarily without connecting it to a threat model.
+
+### "We use differential privacy" without specifying ε and δ
+- Direct Answer: the guarantee is meaningless without them.
+- Why: This matters because it tells you how to reason about "we use differential privacy" without specifying ε and δ.
+- Pitfall: Don't answer ""We use differential privacy" without specifying ε and δ" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the guarantee is meaningless without them.
+
+### k-anonymity
+- Direct Answer: generalize/suppress rare quasi-identifier combinations
+- Why: This matters because it tells you how to reason about k-anonymity.
+- Pitfall: Don't answer "k-anonymity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: generalize/suppress rare quasi-identifier combinations
+
+### l-diversity
+- Direct Answer: within each k-anonymous group, ensure diversity in sensitive attributes
+- Why: This matters because it tells you how to reason about l-diversity.
+- Pitfall: Don't answer "l-diversity" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: within each k-anonymous group, ensure diversity in sensitive attributes
+
+### Differential privacy
+- Direct Answer: add calibrated noise to query results or synthetic data
+- Why: This matters because it tells you how to reason about differential privacy.
+- Pitfall: Don't answer "Differential privacy" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: add calibrated noise to query results or synthetic data
+
+### Synthetic data generation
+- Direct Answer: generate statistical twins instead of releasing real records
+- Why: This matters because it tells you how to reason about synthetic data generation.
+- Pitfall: Don't answer "Synthetic data generation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: generate statistical twins instead of releasing real records
+
+### k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.
+- Direct Answer: k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.
+- Why: This matters because it tells you how to reason about k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data..
+- Pitfall: Don't answer "k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: k-anonymity doesn't prevent all linkage attacks; more powerful adversaries may have additional external data.
+
+### DP provides formal guarantees but reduces utility.
+- Direct Answer: DP provides formal guarantees but reduces utility.
+- Why: This matters because it tells you how to reason about dp provides formal guarantees but reduces utility..
+- Pitfall: Don't answer "DP provides formal guarantees but reduces utility." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: DP provides formal guarantees but reduces utility.
+
+### Synthetic data can leak if the generator trained on small groups.
+- Direct Answer: Synthetic data can leak if the generator trained on small groups.
+- Why: This matters because it tells you how to reason about synthetic data can leak if the generator trained on small groups..
+- Pitfall: Don't answer "Synthetic data can leak if the generator trained on small groups." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Synthetic data can leak if the generator trained on small groups.
+
+### "We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.
+- Direct Answer: "We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.
+- Why: This matters because it tells you how to reason about "we removed names and emails, so it's anonymized." quasi-identifiers are the real risk..
+- Pitfall: Don't answer ""We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We removed names and emails, so it's anonymized." Quasi-identifiers are the real risk.
+
+### No re-identification risk assessment before data release.
+- Direct Answer: No re-identification risk assessment before data release.
+- Why: This matters because it tells you how to reason about no re-identification risk assessment before data release..
+- Pitfall: Don't answer "No re-identification risk assessment before data release." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No re-identification risk assessment before data release.
+
+### Adversarial debiasing reduces task accuracy alongside proxy predictability.
+- Direct Answer: Adversarial debiasing reduces task accuracy alongside proxy predictability.
+- Why: This matters because it tells you how to reason about adversarial debiasing reduces task accuracy alongside proxy predictability..
+- Pitfall: Don't answer "Adversarial debiasing reduces task accuracy alongside proxy predictability." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Adversarial debiasing reduces task accuracy alongside proxy predictability.
+
+### Some proxies may be legitimate task features.
+- Direct Answer: Some proxies may be legitimate task features.
+- Why: This matters because it tells you how to reason about some proxies may be legitimate task features..
+- Pitfall: Don't answer "Some proxies may be legitimate task features." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Some proxies may be legitimate task features.
+
+### Intersectional proxy discrimination requires intersectional adversary training.
+- Direct Answer: Intersectional proxy discrimination requires intersectional adversary training.
+- Why: This matters because it tells you how to reason about intersectional proxy discrimination requires intersectional adversary training..
+- Pitfall: Don't answer "Intersectional proxy discrimination requires intersectional adversary training." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Intersectional proxy discrimination requires intersectional adversary training.
+
+### "We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).
+- Direct Answer: "We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).
+- Why: This matters because it tells you how to reason about "we removed gender, race, and zip code." correlated proxies remain (school name, neighborhood)..
+- Pitfall: Don't answer ""We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We removed gender, race, and zip code." Correlated proxies remain (school name, neighborhood).
+
+### Not auditing the representation for protected attribute leakage after training.
+- Direct Answer: Not auditing the representation for protected attribute leakage after training.
+- Why: This matters because it tells you how to reason about not auditing the representation for protected attribute leakage after training..
+- Pitfall: Don't answer "Not auditing the representation for protected attribute leakage after training." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Not auditing the representation for protected attribute leakage after training.
+
+### False negatives in crisis detection
+- Direct Answer: indirect signals ("I just feel like disappearing") may not trigger the classifier.
+- Why: This matters because it tells you how to reason about false negatives in crisis detection.
+- Pitfall: Don't answer "False negatives in crisis detection" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: indirect signals ("I just feel like disappearing") may not trigger the classifier.
+
+### Single-model approach
+- Direct Answer: crisis detection and response generation in the same model; the model can rationalize past the crisis template.
+- Why: This matters because it tells you how to reason about single-model approach.
+- Pitfall: Don't answer "Single-model approach" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: crisis detection and response generation in the same model; the model can rationalize past the crisis template.
+
+### "We told the model not to give harmful advice." Not a safety override.
+- Direct Answer: "We told the model not to give harmful advice." Not a safety override.
+- Why: This matters because it tells you how to reason about "we told the model not to give harmful advice." not a safety override..
+- Pitfall: Don't answer ""We told the model not to give harmful advice." Not a safety override." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We told the model not to give harmful advice." Not a safety override.
+
+### Crisis detector and responder are the same model.
+- Direct Answer: Crisis detector and responder are the same model.
+- Why: This matters because it tells you how to reason about crisis detector and responder are the same model..
+- Pitfall: Don't answer "Crisis detector and responder are the same model." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Crisis detector and responder are the same model.
+
+### Importance weighting requires a valid propensity model, which may itself be biased.
+- Direct Answer: Importance weighting requires a valid propensity model, which may itself be biased.
+- Why: This matters because it tells you how to reason about importance weighting requires a valid propensity model, which may itself be biased..
+- Pitfall: Don't answer "Importance weighting requires a valid propensity model, which may itself be biased." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Importance weighting requires a valid propensity model, which may itself be biased.
+
+### Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).
+- Direct Answer: Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).
+- Why: This matters because it tells you how to reason about counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data)..
+- Pitfall: Don't answer "Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Counterfactual data collection has real-world costs (some decisions are made non-optimally to gather data).
+
+### Evaluating only on held-out data from the same biased collection process.
+- Direct Answer: Evaluating only on held-out data from the same biased collection process.
+- Why: This matters because it tells you how to reason about evaluating only on held-out data from the same biased collection process..
+- Pitfall: Don't answer "Evaluating only on held-out data from the same biased collection process." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Evaluating only on held-out data from the same biased collection process.
+
+### No longitudinal monitoring for outcome drift across subgroups.
+- Direct Answer: No longitudinal monitoring for outcome drift across subgroups.
+- Why: This matters because it tells you how to reason about no longitudinal monitoring for outcome drift across subgroups..
+- Pitfall: Don't answer "No longitudinal monitoring for outcome drift across subgroups." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: No longitudinal monitoring for outcome drift across subgroups.
+
+### Meaningful
+- Direct Answer: describe factors and their direction, not just "the algorithm decided"
+- Why: This matters because it tells you how to reason about meaningful.
+- Pitfall: Don't answer "Meaningful" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: describe factors and their direction, not just "the algorithm decided"
+
+### Specific to the individual
+- Direct Answer: not a generic policy statement
+- Why: This matters because it tells you how to reason about specific to the individual.
+- Pitfall: Don't answer "Specific to the individual" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: not a generic policy statement
+
+### Tied to logged decision artifacts
+- Direct Answer: reproducible from the audit trail
+- Why: This matters because it tells you how to reason about tied to logged decision artifacts.
+- Pitfall: Don't answer "Tied to logged decision artifacts" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: reproducible from the audit trail
+
+### Does not expose confidential business logic or training data
+- Direct Answer: Does not expose confidential business logic or training data
+- Why: This matters because it tells you how to reason about does not expose confidential business logic or training data.
+- Pitfall: Don't answer "Does not expose confidential business logic or training data" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Does not expose confidential business logic or training data
+
+### Without audit logs (see Q16), you cannot produce a faithful explanation.
+- Direct Answer: Without audit logs (see Q16), you cannot produce a faithful explanation.
+- Why: This matters because it tells you how to reason about without audit logs (see q16), you cannot produce a faithful explanation..
+- Pitfall: Don't answer "Without audit logs (see Q16), you cannot produce a faithful explanation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Without audit logs (see Q16), you cannot produce a faithful explanation.
+
+### Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.
+- Direct Answer: Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.
+- Why: This matters because it tells you how to reason about explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong..
+- Pitfall: Don't answer "Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Explanations that are post-hoc confabulations (not tied to actual decision factors) are both legally and ethically wrong.
+
+### "We can't explain because it's a neural network." GDPR doesn't exempt you.
+- Direct Answer: "We can't explain because it's a neural network." GDPR doesn't exempt you.
+- Why: This matters because it tells you how to reason about "we can't explain because it's a neural network." gdpr doesn't exempt you..
+- Pitfall: Don't answer ""We can't explain because it's a neural network." GDPR doesn't exempt you." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We can't explain because it's a neural network." GDPR doesn't exempt you.
+
+### Generic policy explanation rather than individual-specific factors.
+- Direct Answer: Generic policy explanation rather than individual-specific factors.
+- Why: This matters because it tells you how to reason about generic policy explanation rather than individual-specific factors..
+- Pitfall: Don't answer "Generic policy explanation rather than individual-specific factors." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Generic policy explanation rather than individual-specific factors.
+
+### Machine unlearning methods are approximate and may not provide formal guarantees.
+- Direct Answer: Machine unlearning methods are approximate and may not provide formal guarantees.
+- Why: This matters because it tells you how to reason about machine unlearning methods are approximate and may not provide formal guarantees..
+- Pitfall: Don't answer "Machine unlearning methods are approximate and may not provide formal guarantees." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Machine unlearning methods are approximate and may not provide formal guarantees.
+
+### Membership inference validation is imperfect.
+- Direct Answer: Membership inference validation is imperfect.
+- Why: This matters because it tells you how to reason about membership inference validation is imperfect..
+- Pitfall: Don't answer "Membership inference validation is imperfect." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Membership inference validation is imperfect.
+
+### Regulatory requirements on what constitutes "sufficient" erasure are still evolving.
+- Direct Answer: Regulatory requirements on what constitutes "sufficient" erasure are still evolving.
+- Why: This matters because it tells you how to reason about regulatory requirements on what constitutes "sufficient" erasure are still evolving..
+- Pitfall: Don't answer "Regulatory requirements on what constitutes "sufficient" erasure are still evolving." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Regulatory requirements on what constitutes "sufficient" erasure are still evolving.
+
+### "We deleted it from the database." That doesn't address model weights.
+- Direct Answer: "We deleted it from the database." That doesn't address model weights.
+- Why: This matters because it tells you how to reason about "we deleted it from the database." that doesn't address model weights..
+- Pitfall: Don't answer ""We deleted it from the database." That doesn't address model weights." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We deleted it from the database." That doesn't address model weights.
+
+### Claiming full erasure without validation.
+- Direct Answer: Claiming full erasure without validation.
+- Why: This matters because it tells you how to reason about claiming full erasure without validation..
+- Pitfall: Don't answer "Claiming full erasure without validation." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Claiming full erasure without validation.
+
+### Coordinate-wise median
+- Direct Answer: resistant to outliers; requires < 50% malicious clients
+- Why: This matters because it tells you how to reason about coordinate-wise median.
+- Pitfall: Don't answer "Coordinate-wise median" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: resistant to outliers; requires < 50% malicious clients
+
+### Trimmed mean
+- Direct Answer: remove top-k and bottom-k before averaging; requires knowing malicious fraction
+- Why: This matters because it tells you how to reason about trimmed mean.
+- Pitfall: Don't answer "Trimmed mean" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: remove top-k and bottom-k before averaging; requires knowing malicious fraction
+
+### Norm clipping + noise
+- Direct Answer: bound each client's influence; clipped = update / max(1, ||update|| / C)
+- Why: This matters because it tells you how to reason about norm clipping + noise.
+- Pitfall: Don't answer "Norm clipping + noise" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: bound each client's influence; clipped = update / max(1, ||update|| / C)
+
+### Robust aggregation assumes < 50% malicious (for median-based methods).
+- Direct Answer: Robust aggregation assumes < 50% malicious (for median-based methods).
+- Why: This matters because it tells you how to reason about robust aggregation assumes < 50% malicious (for median-based methods)..
+- Pitfall: Don't answer "Robust aggregation assumes < 50% malicious (for median-based methods)." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Robust aggregation assumes < 50% malicious (for median-based methods).
+
+### Sophisticated attacks stay within normal update norms.
+- Direct Answer: Sophisticated attacks stay within normal update norms.
+- Why: This matters because it tells you how to reason about sophisticated attacks stay within normal update norms..
+- Pitfall: Don't answer "Sophisticated attacks stay within normal update norms." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Sophisticated attacks stay within normal update norms.
+
+### Secure aggregation (cryptographic) does not prevent poisoning
+- Direct Answer: it hides individual updates, making anomaly detection harder.
+- Why: This matters because it tells you how to reason about secure aggregation (cryptographic) does not prevent poisoning.
+- Pitfall: Don't answer "Secure aggregation (cryptographic) does not prevent poisoning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: it hides individual updates, making anomaly detection harder.
+
+### "We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.
+- Direct Answer: "We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.
+- Why: This matters because it tells you how to reason about "we use secure aggregation, so we're protected." secure aggregation is a privacy mechanism, not a poisoning defense..
+- Pitfall: Don't answer ""We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We use secure aggregation, so we're protected." Secure aggregation is a privacy mechanism, not a poisoning defense.
+
+### Independent review adds workflow time; must be calibrated to case risk.
+- Direct Answer: Independent review adds workflow time; must be calibrated to case risk.
+- Why: This matters because it tells you how to reason about independent review adds workflow time; must be calibrated to case risk..
+- Pitfall: Don't answer "Independent review adds workflow time; must be calibrated to case risk." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Independent review adds workflow time; must be calibrated to case risk.
+
+### Clinicians may perform the independent review perfunctorily.
+- Direct Answer: Clinicians may perform the independent review perfunctorily.
+- Why: This matters because it tells you how to reason about clinicians may perform the independent review perfunctorily..
+- Pitfall: Don't answer "Clinicians may perform the independent review perfunctorily." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Clinicians may perform the independent review perfunctorily.
+
+### Providing explanations for AI predictions can increase trust even when the explanation is wrong.
+- Direct Answer: Providing explanations for AI predictions can increase trust even when the explanation is wrong.
+- Why: This matters because it tells you how to reason about providing explanations for ai predictions can increase trust even when the explanation is wrong..
+- Pitfall: Don't answer "Providing explanations for AI predictions can increase trust even when the explanation is wrong." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Providing explanations for AI predictions can increase trust even when the explanation is wrong.
+
+### Using agreement rate as the success metric.
+- Direct Answer: Using agreement rate as the success metric.
+- Why: This matters because it tells you how to reason about using agreement rate as the success metric..
+- Pitfall: Don't answer "Using agreement rate as the success metric." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Using agreement rate as the success metric.
+
+### "We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.
+- Direct Answer: "We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.
+- Why: This matters because it tells you how to reason about "we show uncertainty scores." without workflow changes, uncertainty displays don't reduce over-reliance..
+- Pitfall: Don't answer ""We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance." by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: "We show uncertainty scores." Without workflow changes, uncertainty displays don't reduce over-reliance.

@@ -163,124 +163,244 @@ LLMs are non-deterministic services. So “it worked once” is not a victory—
 # Q28: Red team multimodal models?
 - **Direct answer:** test cross-modal attacks (image text, hidden instructions), OCR paths, combined prompts.
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-Build evals first, iterate with metrics, and ship only when gates pass.
+### Direct answer
+- Direct Answer: Build evals first, iterate with metrics, and ship only when gates pass.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Build evals first, iterate with metrics, and ship only when gates pass.
 
-**DevOps bridge?** #flashcard
-exactly like test-driven development + CI checks.
+### DevOps bridge
+- Direct Answer: exactly like test-driven development + CI checks.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: exactly like test-driven development + CI checks.
 
-**Common buckets?** #flashcard
-correctness, faithfulness, safety, format validity, latency/cost.
+### Common buckets
+- Direct Answer: correctness, faithfulness, safety, format validity, latency/cost.
+- Why: This matters because it tells you how to reason about common buckets.
+- Pitfall: Don't answer "Common buckets" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: correctness, faithfulness, safety, format validity, latency/cost.
 
-**Mini prompt?** #flashcard
-If this is a SQL generator, what’s the best metric? → execution accuracy.
+### Mini prompt
+- Direct Answer: If this is a SQL generator, what’s the best metric? → execution accuracy.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: If this is a SQL generator, what’s the best metric? → execution accuracy.
 
-**BLEU/ROUGE?** #flashcard
-n-gram overlap (good for constrained extraction, not free-form).
+### BLEU/ROUGE
+- Direct Answer: n-gram overlap (good for constrained extraction, not free-form).
+- Why: This matters because it tells you how to reason about bleu/rouge.
+- Pitfall: Don't answer "BLEU/ROUGE" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: n-gram overlap (good for constrained extraction, not free-form).
 
-**BERTScore?** #flashcard
-semantic similarity via embeddings.
+### BERTScore
+- Direct Answer: semantic similarity via embeddings.
+- Why: This matters because it tells you how to reason about bertscore.
+- Pitfall: Don't answer "BERTScore" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: semantic similarity via embeddings.
 
-**Direct answer?** #flashcard
-rubric-based evaluation using an LLM to score outputs.
+### Direct answer
+- Direct Answer: rubric-based evaluation using an LLM to score outputs.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: rubric-based evaluation using an LLM to score outputs.
 
-**Risk?** #flashcard
-judge bias; mitigate with calibration and consistency checks.
+### Risk
+- Direct Answer: judge bias; mitigate with calibration and consistency checks.
+- Why: This matters because it tells you how to reason about risk.
+- Pitfall: Don't answer "Risk" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: judge bias; mitigate with calibration and consistency checks.
 
-**Pros?** #flashcard
-scalable, captures nuance.
+### Pros
+- Direct Answer: scalable, captures nuance.
+- Why: This matters because it tells you how to reason about pros.
+- Pitfall: Don't answer "Pros" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: scalable, captures nuance.
 
-**Limits?** #flashcard
-bias, contamination, preference drift, prompt sensitivity.
+### Limits
+- Direct Answer: bias, contamination, preference drift, prompt sensitivity.
+- Why: This matters because it tells you how to reason about limits.
+- Pitfall: Don't answer "Limits" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: bias, contamination, preference drift, prompt sensitivity.
 
-**Direct answer?** #flashcard
-curated prompts + trained raters + rubric + inter-annotator agreement.
+### Direct answer
+- Direct Answer: curated prompts + trained raters + rubric + inter-annotator agreement.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: curated prompts + trained raters + rubric + inter-annotator agreement.
 
-**Direct answer?** #flashcard
-systematically attack your system with adversarial prompts to find failures.
+### Direct answer
+- Direct Answer: systematically attack your system with adversarial prompts to find failures.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: systematically attack your system with adversarial prompts to find failures.
 
-**DevOps bridge?** #flashcard
-security testing + chaos engineering for language.
+### DevOps bridge
+- Direct Answer: security testing + chaos engineering for language.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: security testing + chaos engineering for language.
 
-**Patterns?** #flashcard
-grounding checks, citation verification, claim extraction + evidence matching.
+### Patterns
+- Direct Answer: grounding checks, citation verification, claim extraction + evidence matching.
+- Why: This matters because it tells you how to reason about patterns.
+- Pitfall: Don't answer "Patterns" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: grounding checks, citation verification, claim extraction + evidence matching.
 
-**Direct answer?** #flashcard
-test robustness against prompt injection, jailbreaks, edge inputs, multilingual attacks.
+### Direct answer
+- Direct Answer: test robustness against prompt injection, jailbreaks, edge inputs, multilingual attacks.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: test robustness against prompt injection, jailbreaks, edge inputs, multilingual attacks.
 
-**Direct answer?** #flashcard
-fixed eval set + expected outputs/criteria; run on every prompt/model change.
+### Direct answer
+- Direct Answer: fixed eval set + expected outputs/criteria; run on every prompt/model change.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fixed eval set + expected outputs/criteria; run on every prompt/model change.
 
-**Use?** #flashcard
-directional signal.
+### Use
+- Direct Answer: directional signal.
+- Why: This matters because it tells you how to reason about use.
+- Pitfall: Don't answer "Use" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: directional signal.
 
-**Caution?** #flashcard
-contamination and “teaching to the test.”
+### Caution
+- Direct Answer: contamination and “teaching to the test.”
+- Why: This matters because it tells you how to reason about caution.
+- Pitfall: Don't answer "Caution" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: contamination and “teaching to the test.”
 
-**Retrieval?** #flashcard
-context precision/recall, recall@k.
+### Retrieval
+- Direct Answer: context precision/recall, recall@k.
+- Why: This matters because it tells you how to reason about retrieval.
+- Pitfall: Don't answer "Retrieval" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: context precision/recall, recall@k.
 
-**Generation?** #flashcard
-faithfulness, answer relevance.
+### Generation
+- Direct Answer: faithfulness, answer relevance.
+- Why: This matters because it tells you how to reason about generation.
+- Pitfall: Don't answer "Generation" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: faithfulness, answer relevance.
 
-**System?** #flashcard
-latency and cost.
+### System
+- Direct Answer: latency and cost.
+- Why: This matters because it tells you how to reason about system.
+- Pitfall: Don't answer "System" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: latency and cost.
 
-**Metrics?** #flashcard
-task success, tool correctness, safety violations, loop rate, cost, time.
+### Metrics
+- Direct Answer: task success, tool correctness, safety violations, loop rate, cost, time.
+- Why: This matters because it tells you how to reason about metrics.
+- Pitfall: Don't answer "Metrics" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: task success, tool correctness, safety violations, loop rate, cost, time.
 
-**Offline?** #flashcard
-curated datasets, repeatable.
+### Offline
+- Direct Answer: curated datasets, repeatable.
+- Why: This matters because it tells you how to reason about offline.
+- Pitfall: Don't answer "Offline" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: curated datasets, repeatable.
 
-**Online?** #flashcard
-production signals, A/B tests, user feedback.
+### Online
+- Direct Answer: production signals, A/B tests, user feedback.
+- Why: This matters because it tells you how to reason about online.
+- Pitfall: Don't answer "Online" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: production signals, A/B tests, user feedback.
 
-**Techniques?** #flashcard
-claim checking against sources, citation audits, retrieval-based verification.
+### Techniques
+- Direct Answer: claim checking against sources, citation audits, retrieval-based verification.
+- Why: This matters because it tells you how to reason about techniques.
+- Pitfall: Don't answer "Techniques" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: claim checking against sources, citation audits, retrieval-based verification.
 
-**Metrics?** #flashcard
-goal completion, consistency, memory correctness, tone/safety.
+### Metrics
+- Direct Answer: goal completion, consistency, memory correctness, tone/safety.
+- Why: This matters because it tells you how to reason about metrics.
+- Pitfall: Don't answer "Metrics" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: goal completion, consistency, memory correctness, tone/safety.
 
-**Direct answer?** #flashcard
-high-quality labeled prompts used as regression anchors.
+### Direct answer
+- Direct Answer: high-quality labeled prompts used as regression anchors.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: high-quality labeled prompts used as regression anchors.
 
-**Direct answer?** #flashcard
-sample traffic, run shadow evals, alert on drift/regressions.
+### Direct answer
+- Direct Answer: sample traffic, run shadow evals, alert on drift/regressions.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: sample traffic, run shadow evals, alert on drift/regressions.
 
-**DevOps bridge?** #flashcard
-continuous testing + observability.
+### DevOps bridge
+- Direct Answer: continuous testing + observability.
+- Why: This matters because it tells you how to reason about devops bridge.
+- Pitfall: Don't answer "DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: continuous testing + observability.
 
-**Direct answer?** #flashcard
-subgroup analysis, counterfactual tests, fairness metrics + qualitative review.
+### Direct answer
+- Direct Answer: subgroup analysis, counterfactual tests, fairness metrics + qualitative review.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: subgroup analysis, counterfactual tests, fairness metrics + qualitative review.
 
-**Direct answer?** #flashcard
-paired A/B tests, significance testing, control for prompt mix.
+### Direct answer
+- Direct Answer: paired A/B tests, significance testing, control for prompt mix.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: paired A/B tests, significance testing, control for prompt mix.
 
-**Direct answer?** #flashcard
-fuzzing with paraphrases, typos, dialects, adversarial templates.
+### Direct answer
+- Direct Answer: fuzzing with paraphrases, typos, dialects, adversarial templates.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fuzzing with paraphrases, typos, dialects, adversarial templates.
 
-**Traditional ML?** #flashcard
-fixed labels, deterministic metrics.
+### Traditional ML
+- Direct Answer: fixed labels, deterministic metrics.
+- Why: This matters because it tells you how to reason about traditional ml.
+- Pitfall: Don't answer "Traditional ML" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: fixed labels, deterministic metrics.
 
-**LLMs?** #flashcard
-open-ended outputs; need rubrics, semantic/functional checks.
+### LLMs
+- Direct Answer: open-ended outputs; need rubrics, semantic/functional checks.
+- Why: This matters because it tells you how to reason about llms.
+- Pitfall: Don't answer "LLMs" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: open-ended outputs; need rubrics, semantic/functional checks.
 
-**Steps?** #flashcard
-define success → collect prompts → define rubrics → automate scoring → set gates → monitor.
+### Steps
+- Direct Answer: define success → collect prompts → define rubrics → automate scoring → set gates → monitor.
+- Why: This matters because it tells you how to reason about steps.
+- Pitfall: Don't answer "Steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: define success → collect prompts → define rubrics → automate scoring → set gates → monitor.
 
-**Direct answer?** #flashcard
-align with product risk/cost, document trade-offs, pick primary metric + constraints.
+### Direct answer
+- Direct Answer: align with product risk/cost, document trade-offs, pick primary metric + constraints.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: align with product risk/cost, document trade-offs, pick primary metric + constraints.
 
-**Direct answer?** #flashcard
-continuous eval + drift checks + periodic audits.
+### Direct answer
+- Direct Answer: continuous eval + drift checks + periodic audits.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: continuous eval + drift checks + periodic audits.
 
-**Controls?** #flashcard
-version prompts/models/data, log configs, deterministic settings, store eval datasets.
+### Controls
+- Direct Answer: version prompts/models/data, log configs, deterministic settings, store eval datasets.
+- Why: This matters because it tells you how to reason about controls.
+- Pitfall: Don't answer "Controls" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: version prompts/models/data, log configs, deterministic settings, store eval datasets.
 
-**Plan?** #flashcard
-injection tests, jailbreaks, PII extraction, tool abuse, refusal quality, rate limit tests.
+### Plan
+- Direct Answer: injection tests, jailbreaks, PII extraction, tool abuse, refusal quality, rate limit tests.
+- Why: This matters because it tells you how to reason about plan.
+- Pitfall: Don't answer "Plan" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: injection tests, jailbreaks, PII extraction, tool abuse, refusal quality, rate limit tests.
 
-**Direct answer?** #flashcard
-test cross-modal attacks (image text, hidden instructions), OCR paths, combined prompts.
+### Direct answer
+- Direct Answer: test cross-modal attacks (image text, hidden instructions), OCR paths, combined prompts.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: test cross-modal attacks (image text, hidden instructions), OCR paths, combined prompts.

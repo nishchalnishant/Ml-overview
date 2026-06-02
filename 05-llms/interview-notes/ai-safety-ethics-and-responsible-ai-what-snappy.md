@@ -246,175 +246,346 @@ This is not a philosophy class. This is **how you avoid incidents** in productio
 
 ---
 
-## Flashcards
+## Rapid Recall
 
-**Direct answer?** #flashcard
-Ground with RAG/citations, constrain outputs, lower randomness, add verifiers/evals.
+### Direct answer
+- Direct Answer: Ground with RAG/citations, constrain outputs, lower randomness, add verifiers/evals.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Ground with RAG/citations, constrain outputs, lower randomness, add verifiers/evals.
 
-**Mini prompt?** #flashcard
-What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+### Mini prompt
+- Direct Answer: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
 
-**Direct answer?** #flashcard
-Direct: user says ‘ignore rules’; indirect: malicious text inside retrieved content. Defend with delimiters + tool allow-lists.
+### Direct answer
+- Direct Answer: Direct: user says ‘ignore rules’; indirect: malicious text inside retrieved content. Defend with delimiters + tool allow-lists.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Direct: user says ‘ignore rules’; indirect: malicious text inside retrieved content. Defend with delimiters + tool allow-lists.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Validate inputs, constrain outputs (schemas), filter unsafe content, and add human approvals for risky actions.
+### Direct answer
+- Direct Answer: Validate inputs, constrain outputs (schemas), filter unsafe content, and add human approvals for risky actions.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Validate inputs, constrain outputs (schemas), filter unsafe content, and add human approvals for risky actions.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Align behavior to human values/policies so the system is helpful and safe, not just fluent.
+### Direct answer
+- Direct Answer: Align behavior to human values/policies so the system is helpful and safe, not just fluent.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Align behavior to human values/policies so the system is helpful and safe, not just fluent.
 
-**Direct answer?** #flashcard
-Measure per subgroup, test intersections, fix data/features/objectives, monitor drift.
+### Direct answer
+- Direct Answer: Measure per subgroup, test intersections, fix data/features/objectives, monitor drift.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Measure per subgroup, test intersections, fix data/features/objectives, monitor drift.
 
-**Mini prompt?** #flashcard
-What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+### Mini prompt
+- Direct Answer: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
 
-**Direct answer?** #flashcard
-Purpose limitation, minimization, consent, retention, access rights, auditability.
+### Direct answer
+- Direct Answer: Purpose limitation, minimization, consent, retention, access rights, auditability.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Purpose limitation, minimization, consent, retention, access rights, auditability.
 
-**Direct answer?** #flashcard
-Redact, tokenize, isolate secrets, restrict logging, encrypt, and enforce retention policies.
+### Direct answer
+- Direct Answer: Redact, tokenize, isolate secrets, restrict logging, encrypt, and enforce retention policies.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Redact, tokenize, isolate secrets, restrict logging, encrypt, and enforce retention policies.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Explain why a decision happened in a user/auditor-friendly way.
+### Direct answer
+- Direct Answer: Explain why a decision happened in a user/auditor-friendly way.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Explain why a decision happened in a user/auditor-friendly way.
 
-**Direct answer?** #flashcard
-Interpretability: model is inherently understandable; explainability: post-hoc reasons/attributions.
+### Direct answer
+- Direct Answer: Interpretability: model is inherently understandable; explainability: post-hoc reasons/attributions.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Interpretability: model is inherently understandable; explainability: post-hoc reasons/attributions.
 
-**Direct answer?** #flashcard
-Be transparent, cite sources, show uncertainty, allow appeals, and don’t overclaim.
+### Direct answer
+- Direct Answer: Be transparent, cite sources, show uncertainty, allow appeals, and don’t overclaim.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Be transparent, cite sources, show uncertainty, allow appeals, and don’t overclaim.
 
-**Mini prompt?** #flashcard
-What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+### Mini prompt
+- Direct Answer: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
 
-**Direct answer?** #flashcard
-Injection, evasion, backdoors; defend with validation, sandboxing, monitoring, red-teaming.
+### Direct answer
+- Direct Answer: Injection, evasion, backdoors; defend with validation, sandboxing, monitoring, red-teaming.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Injection, evasion, backdoors; defend with validation, sandboxing, monitoring, red-teaming.
 
-**Direct answer?** #flashcard
-Attacker corrupts training/finetune/RAG corpora to change behavior or insert backdoors.
+### Direct answer
+- Direct Answer: Attacker corrupts training/finetune/RAG corpora to change behavior or insert backdoors.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Attacker corrupts training/finetune/RAG corpora to change behavior or insert backdoors.
 
-**Direct answer?** #flashcard
-Multi-stage: input filter, generation constraints, output filter, human review for edge cases.
+### Direct answer
+- Direct Answer: Multi-stage: input filter, generation constraints, output filter, human review for edge cases.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Multi-stage: input filter, generation constraints, output filter, human review for edge cases.
 
-**Direct answer?** #flashcard
-Use Microsoft/NIST-style principles: fairness, reliability, privacy, transparency, accountability.
+### Direct answer
+- Direct Answer: Use Microsoft/NIST-style principles: fairness, reliability, privacy, transparency, accountability.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Use Microsoft/NIST-style principles: fairness, reliability, privacy, transparency, accountability.
 
-**Direct answer?** #flashcard
-Respect licenses, avoid regurgitation, track provenance, add similarity checks and policies.
+### Direct answer
+- Direct Answer: Respect licenses, avoid regurgitation, track provenance, add similarity checks and policies.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Respect licenses, avoid regurgitation, track provenance, add similarity checks and policies.
 
-**Mini prompt?** #flashcard
-What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+### Mini prompt
+- Direct Answer: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
 
-**Direct answer?** #flashcard
-Risk-based obligations: documentation, logging, human oversight, testing, transparency for high-risk systems.
+### Direct answer
+- Direct Answer: Risk-based obligations: documentation, logging, human oversight, testing, transparency for high-risk systems.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Risk-based obligations: documentation, logging, human oversight, testing, transparency for high-risk systems.
 
-**Direct answer?** #flashcard
-Trace every decision: prompts, retrieval, tools, model version, outputs—redacted and access-controlled.
+### Direct answer
+- Direct Answer: Trace every decision: prompts, retrieval, tools, model version, outputs—redacted and access-controlled.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Trace every decision: prompts, retrieval, tools, model version, outputs—redacted and access-controlled.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Documentation of intended use, limitations, data, evals, safety notes.
+### Direct answer
+- Direct Answer: Documentation of intended use, limitations, data, evals, safety notes.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Documentation of intended use, limitations, data, evals, safety notes.
 
-**Direct answer?** #flashcard
-Rate limits, abuse detection, user verification, policy enforcement, incident response.
+### Direct answer
+- Direct Answer: Rate limits, abuse detection, user verification, policy enforcement, incident response.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Rate limits, abuse detection, user verification, policy enforcement, incident response.
 
-**Direct answer?** #flashcard
-Add noise to training/queries to bound individual data leakage.
+### Direct answer
+- Direct Answer: Add noise to training/queries to bound individual data leakage.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Add noise to training/queries to bound individual data leakage.
 
-**Direct answer?** #flashcard
-Detection → triage → containment → comms → rollback → postmortem → prevention.
+### Direct answer
+- Direct Answer: Detection → triage → containment → comms → rollback → postmortem → prevention.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Detection → triage → containment → comms → rollback → postmortem → prevention.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Framework for mapping/measure/managing AI risks across lifecycle.
+### Direct answer
+- Direct Answer: Framework for mapping/measure/managing AI risks across lifecycle.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Framework for mapping/measure/managing AI risks across lifecycle.
 
-**Direct answer?** #flashcard
-Constrain scope, require disclaimers, route to clinician, crisis escalation, block diagnosis claims.
+### Direct answer
+- Direct Answer: Constrain scope, require disclaimers, route to clinician, crisis escalation, block diagnosis claims.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Constrain scope, require disclaimers, route to clinician, crisis escalation, block diagnosis claims.
 
-**Mini prompt?** #flashcard
-What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+### Mini prompt
+- Direct Answer: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
 
-**Direct answer?** #flashcard
-Dedup data, similarity filters, retrieval grounding, refusal on near-match, output monitoring.
+### Direct answer
+- Direct Answer: Dedup data, similarity filters, retrieval grounding, refusal on near-match, output monitoring.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Dedup data, similarity filters, retrieval grounding, refusal on near-match, output monitoring.
 
-**Direct answer?** #flashcard
-Audit features, remove proxies, rebalance data, adjust objective, human review, fairness constraints.
+### Direct answer
+- Direct Answer: Audit features, remove proxies, rebalance data, adjust objective, human review, fairness constraints.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Audit features, remove proxies, rebalance data, adjust objective, human review, fairness constraints.
 
-**Direct answer?** #flashcard
-Evaluate intersections, not only marginals; targeted data + constraints; document trade-offs.
+### Direct answer
+- Direct Answer: Evaluate intersections, not only marginals; targeted data + constraints; document trade-offs.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Evaluate intersections, not only marginals; targeted data + constraints; document trade-offs.
 
-**Direct answer?** #flashcard
-Provide understandable factors, process transparency, and an appeals path; log decisions.
+### Direct answer
+- Direct Answer: Provide understandable factors, process transparency, and an appeals path; log decisions.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Provide understandable factors, process transparency, and an appeals path; log decisions.
 
-**Direct answer?** #flashcard
-Prefer not training on personal data; for weights: retrain or use unlearning/filters + legal guidance.
+### Direct answer
+- Direct Answer: Prefer not training on personal data; for weights: retrain or use unlearning/filters + legal guidance.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Prefer not training on personal data; for weights: retrain or use unlearning/filters + legal guidance.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Governance, documentation, monitoring, human oversight, security, and quality management system.
+### Direct answer
+- Direct Answer: Governance, documentation, monitoring, human oversight, security, and quality management system.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Governance, documentation, monitoring, human oversight, security, and quality management system.
 
-**Direct answer?** #flashcard
-Tune epsilon, better features, larger datasets, privacy budgeting, and accept trade-offs.
+### Direct answer
+- Direct Answer: Tune epsilon, better features, larger datasets, privacy budgeting, and accept trade-offs.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Tune epsilon, better features, larger datasets, privacy budgeting, and accept trade-offs.
 
-**Direct answer?** #flashcard
-Robust aggregation, anomaly detection, participant reputation, secure enclaves.
+### Direct answer
+- Direct Answer: Robust aggregation, anomaly detection, participant reputation, secure enclaves.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Robust aggregation, anomaly detection, participant reputation, secure enclaves.
 
-**Direct answer?** #flashcard
-Detect proxy features, remove/regularize, use fairness-aware learning, causality checks.
+### Direct answer
+- Direct Answer: Detect proxy features, remove/regularize, use fairness-aware learning, causality checks.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Detect proxy features, remove/regularize, use fairness-aware learning, causality checks.
 
-**Direct answer?** #flashcard
-Randomization, human oversight, counterfactual evaluation, policy constraints.
+### Direct answer
+- Direct Answer: Randomization, human oversight, counterfactual evaluation, policy constraints.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Randomization, human oversight, counterfactual evaluation, policy constraints.
 
-**Direct answer?** #flashcard
-Watermark outputs, provenance metadata, detection tools, policy + takedown pipelines.
+### Direct answer
+- Direct Answer: Watermark outputs, provenance metadata, detection tools, policy + takedown pipelines.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Watermark outputs, provenance metadata, detection tools, policy + takedown pipelines.
 
-**Direct answer?** #flashcard
-Human review channel, explanations, correction workflow, SLA for disputes.
+### Direct answer
+- Direct Answer: Human review channel, explanations, correction workflow, SLA for disputes.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Human review channel, explanations, correction workflow, SLA for disputes.
 
-**Direct answer?** #flashcard
-Start now: structured logs + immutable storage + retention + access controls + replay tools.
+### Direct answer
+- Direct Answer: Start now: structured logs + immutable storage + retention + access controls + replay tools.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Start now: structured logs + immutable storage + retention + access controls + replay tools.
 
-**Azure/DevOps bridge?** #flashcard
-RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+### Azure/DevOps bridge
+- Direct Answer: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
+- Why: This matters because it tells you how to reason about azure/devops bridge.
+- Pitfall: Don't answer "Azure/DevOps bridge" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: RBAC + Key Vault + immutable logs + approval gates + rollbacks.
 
-**Direct answer?** #flashcard
-Stronger anonymization, DP, k-anonymity checks, reduce quasi-identifiers, limit release.
+### Direct answer
+- Direct Answer: Stronger anonymization, DP, k-anonymity checks, reduce quasi-identifiers, limit release.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Stronger anonymization, DP, k-anonymity checks, reduce quasi-identifiers, limit release.
 
-**Direct answer?** #flashcard
-Scan, test triggers, compare behavior, use trusted sources, sandbox, red-team.
+### Direct answer
+- Direct Answer: Scan, test triggers, compare behavior, use trusted sources, sandbox, red-team.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Scan, test triggers, compare behavior, use trusted sources, sandbox, red-team.
 
-**Direct answer?** #flashcard
-Contain, rollback, identify source, retrain from clean snapshot, tighten supply chain.
+### Direct answer
+- Direct Answer: Contain, rollback, identify source, retrain from clean snapshot, tighten supply chain.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Contain, rollback, identify source, retrain from clean snapshot, tighten supply chain.
 
-**Direct answer?** #flashcard
-Crisis detection, escalation, safe responses, limit scope, human support links.
+### Direct answer
+- Direct Answer: Crisis detection, escalation, safe responses, limit scope, human support links.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Crisis detection, escalation, safe responses, limit scope, human support links.
 
-**Mini prompt?** #flashcard
-What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+### Mini prompt
+- Direct Answer: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
+- Why: This matters because it tells you how to reason about mini prompt.
+- Pitfall: Don't answer "Mini prompt" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: What’s the first safe fallback? → refuse/redirect + cite policy + escalate when needed.
 
-**Direct answer?** #flashcard
-Timeline, contributing factors, action items, no blame; improve guardrails and monitoring.
+### Direct answer
+- Direct Answer: Timeline, contributing factors, action items, no blame; improve guardrails and monitoring.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Timeline, contributing factors, action items, no blame; improve guardrails and monitoring.
 
-**Direct answer?** #flashcard
-Calibrate confidence, show uncertainty, require second checks, train users, audit overrides.
+### Direct answer
+- Direct Answer: Calibrate confidence, show uncertainty, require second checks, train users, audit overrides.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Calibrate confidence, show uncertainty, require second checks, train users, audit overrides.
 
-**Direct answer?** #flashcard
-Locale-specific policies, multilingual data, local reviewers, adaptive thresholds.
+### Direct answer
+- Direct Answer: Locale-specific policies, multilingual data, local reviewers, adaptive thresholds.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Locale-specific policies, multilingual data, local reviewers, adaptive thresholds.
 
-**Direct answer?** #flashcard
-Efficient training, smaller models, reuse, quantize, schedule on clean energy, measure emissions.
+### Direct answer
+- Direct Answer: Efficient training, smaller models, reuse, quantize, schedule on clean energy, measure emissions.
+- Why: This matters because it tells you how to reason about direct answer.
+- Pitfall: Don't answer "Direct answer" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Efficient training, smaller models, reuse, quantize, schedule on clean energy, measure emissions.

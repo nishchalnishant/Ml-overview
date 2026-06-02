@@ -115,25 +115,46 @@ score = silhouette_score(X, model.labels_)
 **3. "Why is PCA considered a feature extraction technique rather than selection?"**
 > Feature selection keeps a subset of original features. PCA creates completely new features (linear combinations of the original ones), so it is "extracting" a new representation rather than selecting from the existing one.
 
-## Flashcards
+## Rapid Recall
 
-**Objective?** #flashcard
-Minimize Inertia (Within-cluster sum of squares).
+### Objective
+- Direct Answer: Minimize Inertia (Within-cluster sum of squares).
+- Why: This matters because it tells you how to reason about objective.
+- Pitfall: Don't answer "Objective" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Minimize Inertia (Within-cluster sum of squares).
 
-**The Elbow Method: Plot Inertia vs. $K$ to find the "elbow"?** #flashcard
-the point where adding clusters no longer significantly reduces inertia.
+### The Elbow Method: Plot Inertia vs. $K$ to find the "elbow"
+- Direct Answer: the point where adding clusters no longer significantly reduces inertia.
+- Why: This matters because it tells you how to reason about the elbow method: plot inertia vs. $k$ to find the "elbow".
+- Pitfall: Don't answer "The Elbow Method: Plot Inertia vs. $K$ to find the "elbow"" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: the point where adding clusters no longer significantly reduces inertia.
 
-**Agglomerative?** #flashcard
-Bottom-up approach. Start with individual points and merge them.
+### Agglomerative
+- Direct Answer: Bottom-up approach. Start with individual points and merge them.
+- Why: This matters because it tells you how to reason about agglomerative.
+- Pitfall: Don't answer "Agglomerative" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Bottom-up approach. Start with individual points and merge them.
 
-**Dendrogram?** #flashcard
-A tree-like chart used to visualize the merging process and decide on the number of clusters.
+### Dendrogram
+- Direct Answer: A tree-like chart used to visualize the merging process and decide on the number of clusters.
+- Why: This matters because it tells you how to reason about dendrogram.
+- Pitfall: Don't answer "Dendrogram" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: A tree-like chart used to visualize the merging process and decide on the number of clusters.
 
-**Steps?** #flashcard
-Covariance matrix $\rightarrow$ Eigenvalues/Eigenvectors $\rightarrow$ Sort and pick top $k$.
+### Steps
+- Direct Answer: Covariance matrix $\rightarrow$ Eigenvalues/Eigenvectors $\rightarrow$ Sort and pick top $k$.
+- Why: This matters because it tells you how to reason about steps.
+- Pitfall: Don't answer "Steps" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Covariance matrix $\rightarrow$ Eigenvalues/Eigenvectors $\rightarrow$ Sort and pick top $k$.
 
-**Intuition?** #flashcard
-Maps neighbors in high-dim space to neighbors in low-dim space.
+### Intuition
+- Direct Answer: Maps neighbors in high-dim space to neighbors in low-dim space.
+- Why: This matters because it tells you how to reason about intuition.
+- Pitfall: Don't answer "Intuition" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Maps neighbors in high-dim space to neighbors in low-dim space.
 
-**Warning?** #flashcard
-Does NOT preserve global distances; only local structure is guaranteed.
+### Warning
+- Direct Answer: Does NOT preserve global distances; only local structure is guaranteed.
+- Why: This matters because it tells you how to reason about warning.
+- Pitfall: Don't answer "Warning" by naming the concept alone; state the mechanism and tradeoff.
+- Interview line: Say: Does NOT preserve global distances; only local structure is guaranteed.
