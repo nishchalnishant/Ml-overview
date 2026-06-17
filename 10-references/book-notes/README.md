@@ -1,3 +1,10 @@
+---
+module: References
+topic: Book Notes
+subtopic: ""
+status: unread
+tags: [references, ml, book-notes]
+---
 # Book Notes
 
 Notes and summaries organized by domain. Each entry links to detailed notes and tells you who the book is for.

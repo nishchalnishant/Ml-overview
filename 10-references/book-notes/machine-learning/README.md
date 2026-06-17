@@ -1,3 +1,10 @@
+---
+module: References
+topic: Machine Learning Book Notes
+subtopic: ""
+status: unread
+tags: [references, ml, machine-learning-book-notes]
+---
 # Machine Learning Book Notes
 
 ## Machine Learning Pocket Reference

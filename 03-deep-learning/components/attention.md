@@ -184,32 +184,3 @@ A: MHA (Multi-Head Attention) uses separate K, V projections per head — max ex
 
 **Q: Why does softmax in attention cause issues at long contexts, and how do RoPE and ALiBi address position encoding differently?**  
 A: At long contexts, dot products Q·Kᵀ scale with d_k^0.5 but with many keys, some will be much larger than others — softmax becomes peaky, attending to a few tokens and ignoring the rest. This "attention sink" phenomenon means distant relevant tokens get near-zero weight. Additionally, absolute position encodings learned at training time don't generalize to unseen positions. RoPE encodes position by rotating Q, K vectors by position-dependent angles — only relative positions matter, and the rotation is mathematically smooth for positions beyond training length (though quality still degrades without fine-tuning). ALiBi adds a linear bias proportional to distance: score_{ij} -= m|i-j|, where m is head-specific. ALiBi requires no re-training for length extrapolation and handles very long contexts better, but slightly underperforms RoPE at training lengths.
-
-## Flashcards
-
-**$Q \in \mathbb{R}^{n \times d_k}$?** #flashcard
-queries (what each token is looking for)
-
-**$K \in \mathbb{R}^{m \times d_k}$?** #flashcard
-keys (what each token advertises)
-
-**$V \in \mathbb{R}^{m \times d_v}$?** #flashcard
-values (what each token actually returns)
-
-**Output: $\mathbb{R}^{n \times d_v}$?** #flashcard
-for each query, a weighted blend of values
-
-**Encoder-decoder Transformers (decoder attends to encoder output)?** #flashcard
-Encoder-decoder Transformers (decoder attends to encoder output)
-
-**Multimodal models (text tokens attending to image patch embeddings)?** #flashcard
-Multimodal models (text tokens attending to image patch embeddings)
-
-**Retrieval-augmented generation (query tokens attending to retrieved document tokens)?** #flashcard
-Retrieval-augmented generation (query tokens attending to retrieved document tokens)
-
-**MQA (Multi-Query Attention)?** #flashcard
-all heads share a single $K$, $V$ projection. Cache size divided by $n_\text{heads}$. Some quality loss.
-
-**GQA (Grouped-Query Attention)?** #flashcard
-groups of $g$ heads share one $K$, $V$ pair. Cache reduced by factor $n_\text{heads}/g$. Better quality-memory tradeoff than MQA. Used in LLaMA 3.

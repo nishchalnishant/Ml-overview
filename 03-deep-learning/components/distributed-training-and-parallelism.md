@@ -342,38 +342,3 @@ A: The pipeline bubble is the fraction of time GPUs are idle in a pipelined setu
 
 **Q: When would you use gradient checkpointing and what's the cost?**  
 A: Use gradient checkpointing when activation memory is the bottleneck — typically at long sequence lengths (4K+) or large batch sizes. Standard activation memory = O(L × B × S × d). With checkpointing, it's O(√L × B × S × d) by storing activations only at checkpoint boundaries and recomputing the rest during backward. Cost: approximately 33% extra FLOPs for the recomputed segments. Practical rule: apply checkpointing to every other layer (50% recompute) when activation memory exceeds 30% of GPU VRAM. Modern implementations (FlashAttention) already recompute attention scores during backward, so layer checkpointing mainly saves FFN activations.
-
-## Flashcards
-
-**Model weights (bf16)?** #flashcard
-140 GB
-
-**Adam optimizer states (fp32 master weights + m + v)?** #flashcard
-840 GB
-
-**Gradients (bf16)?** #flashcard
-140 GB
-
-**Activations (for a 4K seq batch)?** #flashcard
-~80 GB
-
-**Total: >1.2 TB?** #flashcard
-requires ~15× A100 80GB GPUs minimum
-
-**Stage 1?** #flashcard
-all-reduce on gradients (same as DP)
-
-**Stage 2?** #flashcard
-reduce-scatter on gradients (slightly better than all-reduce)
-
-**Stage 3?** #flashcard
-all-gather before each layer's forward, reduce-scatter after each layer's backward
-
-**TP degree = GPUs per node (typically 8)?** #flashcard
-keep within NVLink domain
-
-**PP degree = number of nodes if model is very large?** #flashcard
-PP degree = number of nodes if model is very large
-
-**DP = fill remaining GPU budget?** #flashcard
-DP = fill remaining GPU budget

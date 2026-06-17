@@ -1,3 +1,10 @@
+---
+module: Specialized Domains
+topic: Graph Neural Networks
+subtopic: ""
+status: unread
+tags: [specializeddomains, ml, graph-neural-networks]
+---
 # Graph Neural Networks
 
 ---

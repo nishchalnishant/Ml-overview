@@ -1,3 +1,10 @@
+---
+module: References
+topic: Deep Learning Book Notes
+subtopic: ""
+status: unread
+tags: [references, ml, deep-learning-book-notes]
+---
 # Deep Learning Book Notes
 
 Six books, different entry points. Pick based on where you are and what you need.

@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 3 (Days 22-25): System Design
+subtopic: ""
+status: unread
+tags: [studyplans, ml, week-3-days-22-25-system-design]
+---
 # Week 3 (Days 22-25): System Design
 
 **Goal:** Translate ML knowledge into production-scale thinking. This week is about design patterns, trade-off reasoning, and communicating end-to-end system architecture clearly under pressure.

@@ -128,14 +128,3 @@ $$\text{RMSNorm}(x) = \frac{x}{\text{RMS}(x)} \cdot \gamma, \quad \text{RMS}(x) 
 - Transformer FFN (2 linear layers with a 4× width expansion in the middle)
 
 **Output layer**: always match to task — $K$ outputs for $K$-class softmax, 1 output for binary/regression. Never apply activation before the loss function expects raw logits (e.g., `CrossEntropyLoss` in PyTorch applies softmax internally).
-
-## Flashcards
-
-**Autoencoders (compression by design)?** #flashcard
-Autoencoders (compression by design)
-
-**ResNet bottleneck blocks (1×1 convolutions to reduce channels, then 3×3, then expand)?** #flashcard
-ResNet bottleneck blocks (1×1 convolutions to reduce channels, then 3×3, then expand)
-
-**Transformer FFN (2 linear layers with a 4× width expansion in the middle)?** #flashcard
-Transformer FFN (2 linear layers with a 4× width expansion in the middle)

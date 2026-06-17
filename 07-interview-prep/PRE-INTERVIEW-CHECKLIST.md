@@ -17,10 +17,10 @@ Goal: identify gaps, not fill them. If you find a genuine hole, address it now. 
 
 ### Core Topics — Read the Revision Cards
 
-- [ ] [Foundations](../01-foundations/REVISION.md) — math, probability, optimization
-- [ ] [Classical ML](../02-classical-ml/REVISION.md) — trees, SVMs, regularization, metrics
-- [ ] [Deep Learning](../03-deep-learning/REVISION.md) — backprop, attention, training tricks
-- [ ] [Specialized Domains](../04-specialized-domains/REVISION.md) — RL, RecSys, GNN
+- [ ] [Foundations](../01-foundations/flashcards.md) — math, probability, optimization
+- [ ] [Classical ML](../02-classical-ml/classical-ml-flashcards.md) — trees, SVMs, regularization, metrics
+- [ ] [Deep Learning](../03-deep-learning/deep-learning-cheatsheet.md) — backprop, attention, training tricks
+- [ ] [Specialized Domains](../04-specialized-domains/specialized-domains-cheatsheet.md) — RL, RecSys, GNN
 - [ ] [LLMs](../05-llms/REVISION.md) — architecture, RLHF/DPO, LoRA, inference
 - [ ] [Production ML](../06-production-ml/REVISION.md) — MLOps, drift, deployment strategies
 

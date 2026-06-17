@@ -1,3 +1,10 @@
+---
+module: Specialized Domains
+topic: Tabular Data and Deep Learning
+subtopic: ""
+status: unread
+tags: [specializeddomains, ml, tabular-data-and-deep-learning]
+---
 # Tabular Data and Deep Learning
 
 ---

@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Deep Learning
+subtopic: ""
+status: unread
+tags: [deeplearning, ml, deep-learning]
+---
 # Deep Learning
 
 This folder is the deep-learning version of a good Azure DevOps project:
@@ -42,11 +49,11 @@ Deep learning is just software delivery with:
 | [methods/](methods/README.md) | Application areas: NLP, CV, generative models, time series |
 | [methods/computer-vision.md](methods/computer-vision.md) | CNNs, ViTs, detection, segmentation, OCR |
 | [methods/generative-models.md](methods/generative-models.md) | VAEs, GANs, diffusion, autoregressive generation |
-| [methods/nlp.md](methods/nlp.md) | Bag-of-Words through Transformers |
+| [methods/nlp-fundamentals.md](methods/nlp-fundamentals.md) | Bag-of-Words through Transformers |
 | [methods/time-series.md](methods/time-series.md) | Forecasting through the deep-learning lens |
-| [pytorch-README.md](pytorch-README.md) | PyTorch content index |
 | [pytorch-fundamentals.md](pytorch-fundamentals.md) | Dense practical reference: tensors, autograd, training loop, debugging |
-| [pytorch-foundations.md](pytorch-foundations.md) | Conceptual intro bridging DevOps intuitions to PyTorch |
+| [deep-learning-cheatsheet.md](deep-learning-cheatsheet.md) | 10-Minute Revision Card / Cheatsheet |
+| [deep-learning-flashcards.md](deep-learning-flashcards.md) | Consolidated flashcards for the module |
 | [mcp.md](mcp.md) | Tooling and protocol notes for model-connected workflows |
 
 ---
@@ -61,7 +68,7 @@ If you want the highest-value path first:
 4. [components/regularization.md](components/regularization.md)
 5. [components/attention.md](components/attention.md)
 6. [components/transformers.md](components/transformers.md)
-7. [pytorch-foundations.md](pytorch-foundations.md)
+7. [pytorch-fundamentals.md](pytorch-fundamentals.md)
 
 That gives you the fundamentals before the fancier methods.
 

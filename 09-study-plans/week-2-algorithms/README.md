@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 2 (Days 8-21): Algorithms
+subtopic: ""
+status: unread
+tags: [studyplans, ml, week-2-days-8-21-algorithms]
+---
 # Week 2 (Days 8-21): Algorithms
 
 **Goal:** Go whiteboard-ready on the core ML algorithms. Know the math behind each one, not just the API call. This is the longest week because it covers the widest ground — supervised, unsupervised, deep learning, and evaluation.

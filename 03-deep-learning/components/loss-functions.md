@@ -232,14 +232,3 @@ A: MSE = (1/n)Σ(y_i - ŷ_i)² penalizes large errors quadratically — gradient
 
 **Q: What loss function would you use for a multi-label classification problem where samples can belong to multiple classes, and why?**  
 A: Binary cross-entropy (BCE) applied independently per class. Unlike softmax + categorical cross-entropy (which assumes exactly one class is correct), multi-label problems require each class head to output an independent probability. Apply sigmoid (not softmax) to each logit: σ(z_c) = p(label c = 1). Loss: L = -(1/C)Σ_c [y_c·log(σ(z_c)) + (1-y_c)·log(1-σ(z_c))]. Each class is a binary classification problem. Key considerations: (1) Class imbalance is common in multi-label settings (most classes absent in most samples) — use pos_weight parameter in BCEWithLogitsLoss to upweight positive examples; (2) Label correlation — if labels are correlated (e.g., "cat" and "kitten" often co-occur), structured prediction losses (label-conditional BCE) can help; (3) Evaluation: use mean average precision (mAP) across classes, not accuracy (dominated by true negatives since most classes are absent). For extreme class imbalance (e.g., fine-grained attributes with 1% prevalence), combine focal loss with BCE: -(1-p_t)^γ·log(p_t).
-
-## Flashcards
-
-**VAE loss?** #flashcard
-penalize encoder distribution from deviating from Gaussian prior
-
-**Knowledge distillation?** #flashcard
-train student to match teacher's output distribution
-
-**RLHF?** #flashcard
-KL penalty keeping policy close to reference model

@@ -1,3 +1,10 @@
+---
+module: Data Scientist
+topic: 11. Data Scientist Reference
+subtopic: ""
+status: unread
+tags: [datascientist, ml, 11-data-scientist-reference]
+---
 # 11. Data Scientist Reference
 
 Role-specific reference material covering the skills that differentiate a Data Scientist from an ML Engineer or LLM Engineer: statistical rigor, causal thinking, experiment design, data quality, SQL fluency, and business metrics.
@@ -8,13 +15,13 @@ Role-specific reference material covering the skills that differentiate a Data S
 
 | File | Description |
 | :--- | :--- |
-| `statistics-and-probability.md` | Descriptive stats, distributions, hypothesis testing, Bayesian inference, correlation, regression inference |
-| `experiment-design-and-ab-testing.md` | A/B test lifecycle, power analysis, randomization, variance reduction, sequential testing, bandits |
-| `causal-inference.md` | Potential outcomes, DiD, RDD, IV, DAGs, propensity scores, uplift modeling |
-| `eda-and-data-quality.md` | EDA workflow, missing data taxonomy, leakage detection, distribution shift, pandas patterns |
-| `sql-and-data-manipulation.md` | Window functions, joins, CTEs, funnel/cohort/sessionization patterns, performance |
-| `metrics-and-business-analytics.md` | Product metrics frameworks, retention, LTV, churn, anomaly detection, Goodhart's Law |
-| `data-scientist-interview-prep.md` | Interview formats, question frameworks, common traps, SQL/stats/A-B/causal question patterns |
+| [statistics-and-probability.md](statistics-and-probability.md) | Descriptive stats, distributions, hypothesis testing, Bayesian inference, correlation, regression inference |
+| [experiment-design-and-ab-testing.md](experiment-design-and-ab-testing.md) | A/B test lifecycle, power analysis, randomization, variance reduction, sequential testing, bandits |
+| [causal-inference.md](causal-inference.md) | Potential outcomes, DiD, RDD, IV, DAGs, propensity scores, uplift modeling |
+| [eda-and-data-quality.md](eda-and-data-quality.md) | EDA workflow, missing data taxonomy, leakage detection, distribution shift, pandas patterns |
+| [sql-and-data-manipulation.md](sql-and-data-manipulation.md) | Window functions, joins, CTEs, funnel/cohort/sessionization patterns, performance |
+| [metrics-and-business-analytics.md](metrics-and-business-analytics.md) | Product metrics frameworks, retention, LTV, churn, anomaly detection, Goodhart's Law |
+| [data-scientist-interview-prep.md](data-scientist-interview-prep.md) | Interview formats, question frameworks, common traps, SQL/stats/A-B/causal question patterns |
 
 ---
 

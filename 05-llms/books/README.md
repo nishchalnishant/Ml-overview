@@ -1,3 +1,10 @@
+---
+module: LLMs
+topic: Books
+subtopic: ""
+status: unread
+tags: [llms, ml, books]
+---
 # Books
 
 | File | Book | Coverage |

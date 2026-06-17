@@ -1,3 +1,10 @@
+---
+module: Deep Learning
+topic: Deep Learning Methods
+subtopic: ""
+status: unread
+tags: [deeplearning, ml, deep-learning-methods]
+---
 # Deep Learning Methods
 
 This folder is about where deep learning shows up in the real world.
@@ -21,10 +28,16 @@ Think of this as the **use-case layer** on top of the core deep-learning parts.
 
 | File | What it covers |
 | :--- | :--- |
+| [3d-vision.md](3d-vision.md) | Point clouds, NeRF, 3D reconstruction, depth estimation |
 | [computer-vision.md](computer-vision.md) | CNNs, ViTs, object detection, segmentation, OCR, visual reasoning |
+| [dynamic-graphs.md](dynamic-graphs.md) | Graph neural networks over evolving/temporal graphs |
 | [generative-models.md](generative-models.md) | VAEs, GANs, diffusion models, autoregressive generation |
-| [nlp.md](nlp.md) | From Bag-of-Words to Transformers — the full NLP arc |
+| [metric-learning.md](metric-learning.md) | Contrastive/triplet losses, embeddings for retrieval and similarity |
+| [nlp-fundamentals.md](nlp-fundamentals.md) | Tokenization, embeddings, classic NLP pipeline basics |
+| [nlp-advanced.md](nlp-advanced.md) | Modern NLP: pretraining objectives, transfer learning, advanced architectures |
+| [segmentation.md](segmentation.md) | Semantic/instance/panoptic segmentation architectures and losses |
 | [time-series.md](time-series.md) | Forecasting through the deep-learning lens |
+| [video-understanding.md](video-understanding.md) | Action recognition, temporal modeling, video transformers |
 
 ---
 

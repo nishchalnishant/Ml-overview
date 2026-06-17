@@ -147,7 +147,7 @@ $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)
 
 Query $Q$: what this token is looking for. Key $K$: what each token advertises. Value $V$: what each token actually contributes. Compatibility is the dot product; softmax converts scores to weights; the output is a weighted sum of values.
 
-**Why $\sqrt{d_k}$:** Without scaling, dot products have variance $d_k$, so at $d_k=64$ scores have std 8. A score of 30 causes softmax to collapse to a one-hot vector, zeroing gradients. Dividing by $\sqrt{d_k}$ restores variance to 1. Full derivation: [math-derivations.md §5](math-derivations.md#5-why-sqrt-d_k-in-attention-scaling).
+**Why $\sqrt{d_k}$:** Without scaling, dot products have variance $d_k$, so at $d_k=64$ scores have std 8. A score of 30 causes softmax to collapse to a one-hot vector, zeroing gradients. Dividing by $\sqrt{d_k}$ restores variance to 1. Full derivation: [math-derivations.md §5](../ml/math-derivations.md#5-why-sqrtd_k-scaling).
 
 **Multi-head attention** lets the model attend to different aspects simultaneously:
 $$\text{MHA}(Q,K,V) = \text{Concat}(\text{head}_1, \ldots, \text{head}_h) W^O$$
@@ -361,47 +361,3 @@ Whether you reason from task structure to architecture inductive bias — or def
 
 **Trap: recommending Transformers for tabular data.**
 ViT-style models for tabular data rarely beat XGBoost unless the dataset has millions of rows and rich categorical structure requiring learned embeddings. The Transformer's strength is scaling with data and compute; its weakness is requiring enormous data before the absence of inductive bias stops hurting performance. XGBoost has the right inductive bias for tabular data (decision tree splits naturally handle mixed numeric and categorical features, threshold-based splits capture nonlinear interactions efficiently) and trains in minutes. The correct framing: "XGBoost or LightGBM first; move to a neural approach only if you have > 1M rows, need to jointly embed high-cardinality IDs or raw text, or need to share representations across multiple tasks."
-
-## Rapid Recall
-
-### No translation invariance
-- Direct Answer: a cat in the top-left corner is a completely different input vector than a cat in the bottom-right. The model must learn a separate detector for every position.
-- Why: This matters because it tells you how to reason about no translation invariance.
-- Pitfall: Don't answer "No translation invariance" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: a cat in the top-left corner is a completely different input vector than a cat in the bottom-right. The model must learn a separate detector for every position.
-
-### No locality
-- Direct Answer: distant pixels get equal weight to adjacent ones. The correlation structure of natural images (local patches are highly correlated; distant pixels much less so) is invisible to the architecture.
-- Why: This matters because it tells you how to reason about no locality.
-- Pitfall: Don't answer "No locality" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: distant pixels get equal weight to adjacent ones. The correlation structure of natural images (local patches are highly correlated; distant pixels much less so) is invisible to th…
-
-### Parameter explosion
-- Direct Answer: every input pixel independently connected to every hidden unit forces massive parameter counts before any useful computation begins.
-- Why: This matters because it tells you how to reason about parameter explosion.
-- Pitfall: Don't answer "Parameter explosion" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: every input pixel independently connected to every hidden unit forces massive parameter counts before any useful computation begins.
-
-### CNNs
-- Direct Answer: locality and translation equivariance. Data where nearby elements are more correlated than distant ones, and where features appear at multiple positions.
-- Why: This matters because it tells you how to reason about cnns.
-- Pitfall: Don't answer "CNNs" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: locality and translation equivariance. Data where nearby elements are more correlated than distant ones, and where features appear at multiple positions.
-
-### Transformers
-- Direct Answer: arbitrary pairwise relationships. Data where any element might be relevant to any other, and where global context is essential.
-- Why: This matters because it tells you how to reason about transformers.
-- Pitfall: Don't answer "Transformers" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: arbitrary pairwise relationships. Data where any element might be relevant to any other, and where global context is essential.
-
-### GNNs
-- Direct Answer: graph topology. Data with explicit relational structure between entities.
-- Why: This matters because it tells you how to reason about gnns.
-- Pitfall: Don't answer "GNNs" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: graph topology. Data with explicit relational structure between entities.
-
-### MLPs / gradient boosting
-- Direct Answer: tabular data with no spatial or sequential structure among features.
-- Why: This matters because it tells you how to reason about mlps / gradient boosting.
-- Pitfall: Don't answer "MLPs / gradient boosting" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: tabular data with no spatial or sequential structure among features.

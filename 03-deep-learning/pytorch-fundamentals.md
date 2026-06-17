@@ -784,35 +784,3 @@ In Adam, weight decay is applied by adding `wd * param` to the gradient before t
 **Q: What happens if you forget `model.eval()` during validation?**
 
 Dropout stays active — each forward pass randomly zeros different activations, producing different outputs for the same input. BatchNorm uses batch statistics instead of running statistics — unreliable with small validation batches. Validation loss is artificially high and noisy. The model may appear to be overfitting when it isn't.
-
-## Flashcards
-
-**nn.Parameter sets it True automatically?** #flashcard
-model weights are always tracked
-
-**Input data tensors should be False?** #flashcard
-you don't optimize inputs
-
-**Intermediate tensors (non-leaves) don't retain .grad by default?** #flashcard
-they're computed on demand
-
-**Most schedulers (CosineAnnealingLR, StepLR, ReduceLROnPlateau)?** #flashcard
-call scheduler.step() once per epoch, after validation.
-
-**Batch-level schedulers (OneCycleLR)?** #flashcard
-call scheduler.step() once per batch, inside the batch loop.
-
-**Calling at the wrong cadence produces a wrong learning rate curve with no error message.?** #flashcard
-Calling at the wrong cadence produces a wrong learning rate curve with no error message.
-
-**log(0)?** #flashcard
-add epsilon: torch.log(x + 1e-8)
-
-**Division by zero?** #flashcard
-guard denominators
-
-**Exploding gradients?** #flashcard
-use gradient clipping
-
-**Bad initialization?** #flashcard
-use Xavier/Kaiming

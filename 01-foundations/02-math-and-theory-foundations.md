@@ -1,0 +1,161 @@
+---
+module: Foundations
+topic: Math and Theory
+status: unread
+tags: [foundations, math, theory, linear-algebra, revision]
+---
+# Math and Theory Foundations
+
+**For:** Engineers who need the mathematical rigor to understand how models actually learn, why they fail, and how to read academic papers.
+**Use:** A deep reference for linear algebra, probability, information theory, and optimization.
+
+---
+
+## 1. Linear Algebra and Numerical Methods
+
+Linear algebra is the foundational language of Machine Learning. It provides the tools to represent data (tensors), transformations (weights), and optimization landscapes.
+
+### 1.1 Vectors and Matrices
+- **Vector Space:** A set of elements closed under addition and scalar multiplication.
+- **Span:** The set of all possible linear combinations of a set of vectors.
+- **Linear Independence:** No vector in the set can be written as a combination of others.
+- **Basis:** A linearly independent spanning set.
+- **Rank:** The dimension of the vector space generated (or spanned) by its columns.
+- **Null Space (Kernel):** Solutions to $Ax = 0$.
+
+### 1.2 Eigenvalues and Eigenvectors
+$Av = \lambda v$
+A vector $v$ that, when transformed by $A$, only changes in scale ($\lambda$), not in direction.
+- **Trace:** Sum of diagonal elements = Sum of eigenvalues.
+- **Determinant:** Product of eigenvalues. Represents the "volume scaling factor" of the transformation.
+- **Positive Definite:** All $\lambda_i > 0$. Ensures the function is strictly convex (unique global minimum).
+
+### 1.3 Singular Value Decomposition (SVD)
+SVD generalizes eigendecomposition to non-square matrices: $A = U \Sigma V^T$
+- **$U$**: Left singular vectors (orthonormal).
+- **$\Sigma$**: Singular values (diagonal, non-negative, sorted).
+- **$V^T$**: Right singular vectors (orthonormal).
+
+**Why it matters:** SVD is the foundation of PCA. It provides the best low-rank approximation of a matrix (Eckart-Young-Mirsky Theorem). It compresses data by keeping only the largest singular values.
+
+### 1.4 Matrix Calculus Basics
+Derivatives of scalars with respect to vectors (gradients) are crucial for backpropagation.
+- $\nabla_x (a^T x) = a$
+- $\nabla_x (x^T A x) = (A + A^T)x \quad$ (If $A$ is symmetric, this is $2Ax$)
+
+### 1.5 Numerical Stability & Condition Numbers
+The **Condition Number** $\kappa(A) = \frac{\lambda_{max}}{\lambda_{min}}$ measures how sensitive the solution of $Ax=b$ is to small changes in $b$.
+- $\kappa(A) \approx 1$: Well-conditioned (stable).
+- $\kappa(A) \gg 1$: Ill-conditioned (unstable, small rounding errors blow up).
+**Why it matters:** In deep learning, poor condition numbers lead to vanishing/exploding gradients. Regularization ($\lambda I$) artificially improves the condition number by increasing $\lambda_{min}$.
+
+### 1.6 Computational Complexity and Memory Layout
+- Matrix-Vector Product ($N \times N$ by $N \times 1$): $O(N^2)$
+- Matrix-Matrix Product ($N \times N$ by $N \times N$): $O(N^3)$ (naively)
+- SVD: $O(\min(mn^2, m^2n))$
+
+**Memory Layout:**
+Rows vs. Columns. Cache locality dictates that you must multiply matrices in a way that respects their memory layout (C uses row-major, Fortran/BLAS often use column-major). This drastically affects performance.
+
+---
+
+## 2. Calculus for Machine Learning
+
+### 2.1 The Chain Rule
+If $y = g(u)$ and $u = f(x)$, then $\frac{dy}{dx} = \frac{dy}{du} \cdot \frac{du}{dx}$.
+*Why it matters:* This is the theoretical basis of Backpropagation.
+
+### 2.2 Gradients and the Jacobian
+- **Gradient ($\nabla f$):** The vector of partial derivatives of a scalar function. Points in the direction of steepest ascent.
+- **Jacobian ($J$):** The matrix of all first-order partial derivatives of a vector-valued function. Used when transforming vector spaces.
+- **Hessian ($H$):** The matrix of second-order partial derivatives. Determines the curvature of the loss surface. If $H$ is positive-definite, you are at a minimum.
+
+---
+
+## 3. Probability and Statistics
+
+### 3.1 Core Concepts
+- **Random Variable:** Maps outcomes to numbers.
+- **PMF / PDF:** Probability Mass/Density Function. $P(X=x)$.
+- **Expectation:** The long-run average. $E[X] = \sum x \cdot P(x)$.
+- **Variance:** Spread of the distribution. $Var(X) = E[(X - E[X])^2]$.
+
+### 3.2 Bayes' Theorem
+$P(A|B) = \frac{P(B|A) \cdot P(A)}{P(B)}$
+* "What is the probability of my hypothesis $A$ given the data $B$?"
+
+---
+
+## 4. Maximum Likelihood and MAP Estimation
+
+### Maximum Likelihood Estimation (MLE)
+"What parameters $\theta$ make the observed data most probable?"
+$$\hat{\theta}_{MLE} = \arg\max_\theta \sum \log P(x_i | \theta)$$
+- **Connection to Loss:** Minimizing Mean Squared Error (MSE) is mathematically identical to MLE under the assumption of Gaussian noise. Minimizing Cross-Entropy is MLE under a Bernoulli/Multinomial distribution.
+
+### Maximum A Posteriori (MAP) Estimation
+"What parameters $\theta$ are most probable given the data AND our prior beliefs?"
+$$\hat{\theta}_{MAP} = \arg\max_\theta [ \sum \log P(x_i | \theta) + \log P(\theta) ]$$
+- **Connection to Regularization:** MAP with a Gaussian prior on the weights is mathematically equivalent to L2 Regularization (Ridge). A Laplace prior is equivalent to L1 Regularization (Lasso).
+
+---
+
+## 5. Information Theory
+
+### 5.1 Entropy ($H$)
+The measure of uncertainty or "surprise" in a distribution.
+$H(p) = - \sum p_i \log p_i$
+A deterministic event has 0 entropy. A fair coin flip has maximum entropy.
+
+### 5.2 Cross-Entropy
+Measures how many bits are needed to encode data from true distribution $p$ using an estimated distribution $q$.
+$H(p, q) = - \sum p_i \log q_i$
+*Why it matters:* This is the standard loss function for classification. We want our predicted distribution $q$ to match the true label distribution $p$.
+
+### 5.3 KL Divergence
+Measures the distance between two distributions.
+$D_{KL}(p || q) = \sum p_i \log \frac{p_i}{q_i}$
+It is asymmetrical. Cross-Entropy $H(p,q) = H(p) + D_{KL}(p||q)$. Since $H(p)$ is fixed, minimizing cross-entropy minimizes KL divergence.
+
+---
+
+## 6. Generalization Theory
+
+### 6.1 VC Dimension
+The maximum number of points a model can perfectly shatter (classify in all possible ways). A measure of model capacity. If VC dimension is infinite (like 1-NN or large neural networks), classical theory says it should overfit.
+
+### 6.2 Double Descent
+Classical bias-variance theory states that test error forms a U-shape as capacity increases. Modern deep learning observes "Double Descent": once model capacity exceeds the number of parameters needed to memorize the data (interpolation threshold), test error drops again. Over-parameterization acts as implicit regularization.
+
+### 6.3 PAC Learning
+Probably Approximately Correct. Guarantees that, with high probability ($1-\delta$), a model will have an error bounded by $\epsilon$, given sufficient data.
+
+---
+
+## 7. Optimization Theory
+
+### 7.1 Convexity
+A function is convex if a line segment between any two points on the graph lies above the graph. Convex functions have a single, global minimum. Deep learning loss landscapes are **highly non-convex**.
+
+### 7.2 Gradient Descent
+$\theta = \theta - \alpha \nabla J(\theta)$
+- **SGD:** Uses 1 example per step. Very noisy, but fast and provides implicit regularization.
+- **Mini-batch SGD:** Uses $B$ examples. Balances noise and hardware vectorization.
+
+### 7.3 Advanced Optimizers
+- **Momentum:** Averages past gradients to build velocity, dampening oscillations.
+- **Adam:** Computes adaptive learning rates for each parameter by keeping exponentially decaying averages of past gradients and squared gradients.
+
+### 7.4 Loss Landscapes
+Deep neural networks have millions of saddle points (where the gradient is zero, but it's only a minimum in some dimensions). Optimizers like SGD + Momentum easily escape saddle points but can get stuck in sharp minima.
+
+---
+
+## 8. Feature Engineering
+
+Feature engineering bridges the gap between raw data and the model's inductive bias.
+- **Standardization (Z-score):** Centers around 0, variance 1. Essential for distance-based models (KNN, SVM, PCA) and neural networks (helps gradient flow).
+- **Normalization (Min-Max):** Scales between [0,1]. Used when bounds are strictly known (e.g., image pixels).
+- **One-Hot Encoding:** For nominal categories.
+- **Embeddings:** Dense vector representations for high-cardinality categorical variables (words, user IDs).
+- **Polynomial Features:** Helps linear models capture non-linear relationships.

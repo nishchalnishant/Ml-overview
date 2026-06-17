@@ -9,18 +9,45 @@ tags: [classicalml, ml, supervised-learning]
 
 ---
 
-## Algorithm Choice Blueprint
+## Executive Summary & Cheatsheet
 
-| Task | Category | Key Algorithm | Best For |
+### Algorithm Table
+
+| Algorithm | Best for | Key hyperparameters | Watch out for |
 | :--- | :--- | :--- | :--- |
-| **Regression** | Linear | Linear Regression | Interpretability, Baseline |
-| **Regression** | Non-Linear | Random Forest / XGBoost | Complex patterns, Tabular data |
-| **Classification** | Probabilistic | Logistic Regression | Probability estimation, baselines |
-| **Classification** | High-Margin | SVM | High-dim data, clear separation |
-| **Classification** | Fast Baseline | Naive Bayes | Text data, small datasets |
-| **Classification/Regression** | Tree Ensemble | Gradient Boosting | Winning on most tabular benchmarks |
+| **Linear Regression** | Continuous target, interpretability, baseline | Regularization α (Ridge/Lasso) | Linearity + homoscedasticity assumptions; multicollinearity |
+| **Logistic Regression** | Binary/multi-class, calibrated probs, strong baseline | C (inverse reg), solver, max_iter | Use log-loss not MSE; won't fit non-linear boundaries |
+| **SVM** | High-dim, small-medium N, clear margin needed | C, kernel (rbf/poly/linear), γ | Normalize features; slow O(N²–N³) training; kernel matters |
+| **Decision Tree** | Interpretable rules, mixed feature types | max_depth, min_samples_leaf | Overfits without pruning; unstable |
+| **Random Forest** | Tabular data, robust out-of-box, parallel | n_estimators, max_depth | Slow predict at scale; harder to interpret |
+| **Gradient Boosting** | Best tabular accuracy (XGBoost/LightGBM) | learning_rate, n_estimators, max_depth | Overfits if over-tuned; sequential |
+
+### Key Distinctions
+- **Why log-loss for logistic regression?** MSE on probabilities is non-convex. Cross-entropy is convex and brutally punishes confident wrong predictions.
+- **Kernel trick (SVM):** Computes similarity in high-D space without explicitly building coordinates.
+- **Bagging (Random Forest):** Parallel trees, reduces variance, targets original labels.
+- **Boosting (XGBoost):** Sequential trees, reduces bias, targets residuals.
+
+### Evaluation Metrics
+| Metric | Formula | Use when |
+| :--- | :--- | :--- |
+| **Accuracy** | (TP+TN)/N | Balanced classes only |
+| **Precision** | TP/(TP+FP) | False alarms are costly |
+| **Recall** | TP/(TP+FN) | Misses are costly (fraud, cancer) |
+| **F1** | 2·P·R/(P+R) | Imbalanced classes, want balance |
+| **ROC-AUC** | Area under TPR vs FPR | Ranking quality across thresholds |
+| **MSE / RMSE** | mean((y−ŷ)²) | Regression; penalizes large errors |
+
+### When to reach for what
+- **CSV, unknown shape, 1 hour** → Logistic/linear baseline → Gradient boosting with CV
+- **Text, fast inference** → Naive Bayes or Logistic with TF-IDF
+- **High-dim, small N, clear margin** → SVM
+- **Interpretability required** → Single decision tree or logistic regression
+- **Best accuracy on tabular** → XGBoost / LightGBM
 
 ---
+
+## Deep Dive
 
 ## Linear Regression
 
@@ -454,13 +481,4 @@ A: **Algorithm level** (preferred, doesn't discard data): (1) class_weight='bala
 **Q: A classification model has 95% accuracy but the product team says it's useless. Why might this be, and how do you debug it?**  
 A: Classic class imbalance trap. If 95% of examples are negative class, a model that always predicts negative achieves 95% accuracy without learning anything. Debug steps: (1) check class distribution — if majority class > 90%, accuracy is misleading; (2) compute confusion matrix — if precision or recall on the minority class is near zero, the model is failing on the important cases; (3) switch to appropriate metric: F1-score for balanced precision/recall, PR-AUC for overall performance across thresholds, or a business metric (e.g., revenue recovered for fraud detection); (4) check if the model learned a trivial solution — inspect prediction distribution: if all predictions are >0.9 or <0.1, the model isn't discriminating; (5) inspect feature importances — if the top feature is a proxy for the label or a data leakage feature, the accuracy is inflated. Fix: use class_weight='balanced', tune classification threshold to maximize the business metric, retrain with proper evaluation on held-out stratified splits.
 
-## Flashcards
 
-**Gini Importance?** #flashcard
-total reduction of Gini impurity provided by a feature across all trees. Fast but biased toward high-cardinality features.
-
-**Permutation Importance?** #flashcard
-model score drop when a feature's values are randomly shuffled. Slower but more reliable and model-agnostic.
-
-**SHAP values?** #flashcard
-game-theoretically fair attribution. Best choice when explanation quality matters.

@@ -1,3 +1,10 @@
+---
+module: References
+topic: MLOps Book Notes
+subtopic: ""
+status: unread
+tags: [references, ml, mlops-book-notes]
+---
 # MLOps Book Notes
 
 Six books, different angles on production ML. Pick based on your current pain point.

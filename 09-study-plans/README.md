@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: ML Study Plans
+subtopic: ""
+status: unread
+tags: [studyplans, ml, ml-study-plans]
+---
 # ML Study Plans
 
 This folder contains structured learning paths for ML interview preparation and career development. Choose the track that matches your goal.
@@ -19,7 +26,7 @@ This folder contains structured learning paths for ML interview preparation and 
 
 **Reality check:** Thirty days is a **training block**, not a magic spell. Show up daily, keep notes short, and tie each topic back to something you already ship (pipelines, rollbacks, observability).
 
-**Pair with:** [AI_ML_REVISION_GUIDE.md](../01-foundations/AI_ML_REVISION_GUIDE.md) for the **night-before** sprint, and [mlops.md](../06-production-ml/mlops.md) when the conversation turns to **production**.
+**Pair with:** [AI_ML_REVISION_GUIDE.md](../01-foundations/01-ai-ml-systems-and-application.md) for the **night-before** sprint, and [mlops.md](../06-production-ml/mlops.md) when the conversation turns to **production**.
 
 ### Week 1: Foundations & Data Chemistry
 *Focus: Understanding how data moves and how simple models fail.*
@@ -80,11 +87,11 @@ This folder contains structured learning paths for ML interview preparation and 
 - **Day 29: Mock Interview Scenarios**
     - Practice: Full end-to-end timed sessions (25 min per round, spoken aloud).
 - **Day 30: Night-Before Sprint**
-    - Study: [AI & ML Cheat Sheet](../01-foundations/AI_ML_REVISION_GUIDE.md) only — no new concepts.
+    - Study: [AI & ML Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md) only — no new concepts.
 
 ### Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
-1. **[Master Revision Cheat Sheet](../01-foundations/AI_ML_REVISION_GUIDE.md)**
+1. **[Master Revision Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md)**
 2. **[Master Q&A Bank](../07-interview-prep/llm/top-ml-interview-questions.md)**
 
 ---
@@ -404,7 +411,7 @@ Use these to calibrate where to enter the 6-month career tracks above.
 
 ## Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
-1. **[Master Revision Cheat Sheet](../01-foundations/AI_ML_REVISION_GUIDE.md)**
+1. **[Master Revision Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md)**
 2. **[Master Q&A Bank](../07-interview-prep/llm/top-ml-interview-questions.md)**
 
 ---

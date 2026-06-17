@@ -1,3 +1,10 @@
+---
+module: LLMs
+topic: LLM Interview Notes — GenAI without the fog
+subtopic: ""
+status: unread
+tags: [llms, ml, llm-interview-notes-genai-without-the-fog]
+---
 # LLM Interview Notes — *GenAI without the fog*
 
 > **Primary interview hub:** [Interview Hub](../../07-interview-prep/README.md)

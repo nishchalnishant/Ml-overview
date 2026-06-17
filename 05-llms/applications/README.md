@@ -1,3 +1,10 @@
+---
+module: LLMs
+topic: LLM Applications
+subtopic: ""
+status: unread
+tags: [llms, ml, llm-applications]
+---
 # LLM Applications
 
 This folder is where LLM theory stops posing for LinkedIn and starts shipping features.

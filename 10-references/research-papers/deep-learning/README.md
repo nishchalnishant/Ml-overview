@@ -1,3 +1,10 @@
+---
+module: References
+topic: Deep Learning Research Papers
+subtopic: ""
+status: unread
+tags: [references, ml, deep-learning-research-papers]
+---
 # Deep Learning Research Papers
 
 Three files organized by subdomain. Each covers foundational and recent papers worth knowing for interviews and applied work.

@@ -5,6 +5,9 @@ subtopic: Prompt Engineering
 status: unread
 tags: [llms, ml, interview-notes-prompt-enginee]
 ---
+
+> _Full study notes. For the quick-recall version, see [prompt-engineering-snappy.md](prompt-engineering-snappy.md)._
+
 # Prompt Engineering — Interview Notes
 
 ---
@@ -300,101 +303,3 @@ Key metrics by task type:
 **What the interviewer is testing**: whether you would diagnose structured — identifying which component is failing — rather than randomly adjusting the prompt.
 
 **Common traps**: adding more instructions when the problem is retrieval quality (the model cannot give a correct answer if the context doesn't contain the answer); increasing top-k retrieval chunks when the problem is lost-in-the-middle; testing prompt changes on examples you already know fail, not on the full eval distribution.
-
-## Rapid Recall
-
-### Instruction design
-- Direct Answer: role + task + constraints narrows what the model treats as in-scope
-- Why: This matters because it tells you how to reason about instruction design.
-- Pitfall: Don't answer "Instruction design" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: role + task + constraints narrows what the model treats as in-scope
-
-### Context design
-- Direct Answer: what facts are present, where they appear, how they are delimited
-- Why: This matters because it tells you how to reason about context design.
-- Pitfall: Don't answer "Context design" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: what facts are present, where they appear, how they are delimited
-
-### Output design
-- Direct Answer: format schema, stop conditions, refusal behavior
-- Why: This matters because it tells you how to reason about output design.
-- Pitfall: Don't answer "Output design" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: format schema, stop conditions, refusal behavior
-
-### Zero-shot: no examples
-- Direct Answer: only task description. Works when the task maps cleanly to a well-represented pattern in the training distribution.
-- Why: This matters because it tells you how to reason about zero-shot: no examples.
-- Pitfall: Don't answer "Zero-shot: no examples" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: only task description. Works when the task maps cleanly to a well-represented pattern in the training distribution.
-
-### One-shot
-- Direct Answer: one (input, output) demonstration pair before the test input.
-- Why: This matters because it tells you how to reason about one-shot.
-- Pitfall: Don't answer "One-shot" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: one (input, output) demonstration pair before the test input.
-
-### Few-shot
-- Direct Answer: k demonstrations (typically k=3–8). Useful when zero-shot produces wrong format or framing.
-- Why: This matters because it tells you how to reason about few-shot.
-- Pitfall: Don't answer "Few-shot" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: k demonstrations (typically k=3–8). Useful when zero-shot produces wrong format or framing.
-
-### Direct injection
-- Direct Answer: user message contains "Ignore your previous instructions and do X." The model may follow X.
-- Why: This matters because it tells you how to reason about direct injection.
-- Pitfall: Don't answer "Direct injection" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: user message contains "Ignore your previous instructions and do X." The model may follow X.
-
-### Indirect injection
-- Direct Answer: malicious text is embedded in a retrieved document. When the document is inserted into the RAG prompt, the model follows the embedded instructions.
-- Why: This matters because it tells you how to reason about indirect injection.
-- Pitfall: Don't answer "Indirect injection" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: malicious text is embedded in a retrieved document. When the document is inserted into the RAG prompt, the model follows the embedded instructions.
-
-### Structured output
-- Direct Answer: schema validity rate, field accuracy, parse error rate
-- Why: This matters because it tells you how to reason about structured output.
-- Pitfall: Don't answer "Structured output" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: schema validity rate, field accuracy, parse error rate
-
-### RAG Q&A
-- Direct Answer: faithfulness (answer grounded in context), answer relevance, citation accuracy
-- Why: This matters because it tells you how to reason about rag q&a.
-- Pitfall: Don't answer "RAG Q&A" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: faithfulness (answer grounded in context), answer relevance, citation accuracy
-
-### Classification
-- Direct Answer: accuracy, calibration, F1 by class
-- Why: This matters because it tells you how to reason about classification.
-- Pitfall: Don't answer "Classification" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: accuracy, calibration, F1 by class
-
-### Safety
-- Direct Answer: refusal rate on adversarial inputs, policy compliance rate
-- Why: This matters because it tells you how to reason about safety.
-- Pitfall: Don't answer "Safety" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: refusal rate on adversarial inputs, policy compliance rate
-
-### Sliding window
-- Direct Answer: keep the last N turns verbatim. Simple. Loses early context that may still be relevant (e.g., user preferences stated at turn 1).
-- Why: This matters because it tells you how to reason about sliding window.
-- Pitfall: Don't answer "Sliding window" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: keep the last N turns verbatim. Simple. Loses early context that may still be relevant (e.g., user preferences stated at turn 1).
-
-### Summarization
-- Direct Answer: when history exceeds a token budget, summarize older turns into a compact summary appended to the system message. Loses detail; good for conversational context. Requires a separate summarization call.
-- Why: This matters because it tells you how to reason about summarization.
-- Pitfall: Don't answer "Summarization" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: when history exceeds a token budget, summarize older turns into a compact summary appended to the system message. Loses detail; good for conversational context. Requires a separat…
-
-### Entity/state extraction
-- Direct Answer: parse conversation for structured facts (user preferences, stated constraints, confirmed decisions) and store as a structured memory block. Re-insert at each turn. Retains key facts without verbatim history.
-- Why: This matters because it tells you how to reason about entity/state extraction.
-- Pitfall: Don't answer "Entity/state extraction" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: parse conversation for structured facts (user preferences, stated constraints, confirmed decisions) and store as a structured memory block. Re-insert at each turn. Retains key fac…
-
-### RAG memory
-- Direct Answer: embed conversation turns and retrieve relevant past context based on semantic similarity to the current query. Complex infrastructure; useful for very long-lived sessions.
-- Why: This matters because it tells you how to reason about rag memory.
-- Pitfall: Don't answer "RAG memory" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: embed conversation turns and retrieve relevant past context based on semantic similarity to the current query. Complex infrastructure; useful for very long-lived sessions.

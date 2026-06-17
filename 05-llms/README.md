@@ -1,3 +1,10 @@
+---
+module: LLMs
+topic: LLM Core: Theory, Training & Research
+subtopic: ""
+status: unread
+tags: [llms, ml, llm-core-theory-training-research]
+---
 # LLM Core: Theory, Training & Research
 
 This directory serves as the theoretical bedrock for Large Language Models (LLMs). It covers the fundamental research, architectural innovations, and training methodologies that power models like GPT-4, Llama 3, and Claude.

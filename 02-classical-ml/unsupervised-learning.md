@@ -9,16 +9,41 @@ tags: [classicalml, ml, unsupervised-learning]
 
 ---
 
-## Clustering Paradigms
+## Executive Summary & Cheatsheet
 
-| Paradigm | Key Algorithm | Best For | Weakness |
+### Algorithm Table
+
+| Algorithm | Best for | Key hyperparameters | Watch out for |
 | :--- | :--- | :--- | :--- |
-| **Centroid-based** | K-Means | Spherical, even clusters | Must pick K; sensitive to outliers |
-| **Density-based** | DBSCAN | Arbitrary shapes, noise | Struggles with varying densities |
-| **Probabilistic** | GMM | Soft clustering, elliptical shapes | Sensitive to initialization |
-| **Hierarchical** | Agglomerative | Dendrograms, small data | $O(N^3)$ complexity |
+| **K-Means** | Round-ish blobs, customer segmentation, fast | K, n_init, max_iter | Must choose K; outlier-sensitive; assumes spherical clusters |
+| **Hierarchical (Agglomerative)** | Dendrograms, interpretable hierarchy | linkage, distance metric | O(N²) memory; slow at large N |
+| **DBSCAN** | Arbitrary shapes, noisy data, outlier detection | eps, min_samples | Struggles with varying density; sensitive to eps |
+| **PCA** | Dimensionality reduction, decorrelation | n_components | Linear only; components are not interpretable features |
+| **t-SNE** | 2D/3D visualization, explore local cluster structure | perplexity, learning_rate | Not for global structure; non-deterministic; costly at large N |
+| **UMAP** | Visualization at scale, local + some global | n_neighbors, min_dist | Distances between clusters less meaningful than within |
+
+### Choosing K (for K-Means)
+- **Elbow method:** plot inertia (WCSS) vs K → pick the "elbow"
+- **Silhouette score:** range [-1, 1]; higher = tighter + better separated
+- Use **K-Means++** initialization to reduce bad restarts
+
+### Dimensionality Reduction: Three Cameras
+- **PCA:** Linear, fast, global structure, deterministic. Use for preprocessing.
+- **t-SNE:** Non-linear, slow, no global structure, stochastic. Use for final 2D viz.
+- **UMAP:** Non-linear, medium-fast, partial global structure, stochastic. Use for viz at scale.
+
+### Evaluation (no labels)
+| Metric | What it measures | Range | Better = |
+| :--- | :--- | :--- | :--- |
+| **Silhouette** | Cohesion vs separation | [-1, 1] | Higher |
+| **Calinski-Harabasz** | Between/within cluster ratio | [0, ∞) | Higher |
+| **Davies-Bouldin** | Cluster compactness + separation | [0, ∞) | Lower |
+
+*Honest caveat: Internal metrics measure geometry, not business value. Always sanity-check segments against domain knowledge.*
 
 ---
+
+## Deep Dive
 
 ## K-Means Clustering
 
@@ -290,64 +315,4 @@ A: k-means assumes: (1) clusters are spherical (uses Euclidean distance — elon
 **Q: Explain PCA from first principles — what is it actually computing and why do the eigenvectors matter?**
 A: PCA finds the directions of maximum variance in the data. Given centered data X (n×d), the covariance matrix is C = XᵀX/(n-1) (d×d). The eigendecomposition C = VΛVᵀ gives eigenvectors V (principal components) and eigenvalues Λ (variance explained along each direction). The first principal component v₁ is the direction that maximizes Var(Xv) = vᵀCv subject to ||v||=1 — by the Rayleigh quotient, this is the eigenvector with the largest eigenvalue. Projecting X onto the top k eigenvectors: Z = XV_k (n×k) gives the k-dimensional representation that preserves maximum variance. Why it works for compression: most real datasets have rapidly decaying eigenvalues — the top 10 components might capture 95% of variance. Connection to SVD: X = UΣVᵀ, where the right singular vectors V are exactly the PCA eigenvectors. SVD is numerically preferred over eigendecomposition because it avoids computing XᵀX explicitly (which can lose precision). Limitation: PCA is linear — it can't capture nonlinear structure. For nonlinear dimensionality reduction: UMAP (preserves local and some global structure, scalable), t-SNE (preserves local structure only, for visualization), Kernel PCA (implicit nonlinear mapping via kernel trick).
 
-## Flashcards
 
-**ε (eps)?** #flashcard
-neighborhood radius
-
-**MinPts (min_samples)?** #flashcard
-minimum points to form a dense region
-
-**Core point?** #flashcard
-at least MinPts points within ε
-
-**Border point?** #flashcard
-within ε of a core point but fewer than MinPts neighbors
-
-**Noise?** #flashcard
-neither core nor border
-
-**E-step?** #flashcard
-compute soft assignments $r_{ik} = P(z_k | x_i)$ (responsibility of component $k$ for point $i$)
-
-**M-step?** #flashcard
-update $\mu_k$, $\Sigma_k$, $\pi_k$ using weighted MLE
-
-**$O(N^2)$ complexity?** #flashcard
-slow for $N > 10$k without approximations (Barnes-Hut)
-
-**Stochastic?** #flashcard
-different runs give different layouts
-
-**Distances between clusters are not meaningful?** #flashcard
-only local neighborhood structure is preserved
-
-**Cannot be used as features for downstream tasks; only for 2D/3D visualization?** #flashcard
-Cannot be used as features for downstream tasks; only for 2D/3D visualization
-
-**Much faster?** #flashcard
-$O(N \log N)$
-
-**Preserves more global structure?** #flashcard
-Preserves more global structure
-
-**Deterministic (with fixed random_state)?** #flashcard
-Deterministic (with fixed random_state)
-
-**Can be used as general-purpose dimensionality reduction (not just visualization)?** #flashcard
-Can be used as general-purpose dimensionality reduction (not just visualization)
-
-**Silhouette Coefficient?** #flashcard
-range $[-1, 1]$. Measures how much closer each point is to its own cluster than to the nearest other cluster. High = dense, well-separated clusters.
-
-**Calinski-Harabasz Index?** #flashcard
-ratio of between-cluster to within-cluster dispersion. Higher is better.
-
-**Davies-Bouldin Index?** #flashcard
-average similarity between each cluster and its most similar one. Lower is better.
-
-**Adjusted Rand Index (ARI)?** #flashcard
-adjusted for chance, range $[-1, 1]$
-
-**Normalized Mutual Information (NMI)?** #flashcard
-mutual information normalized to $[0, 1]$

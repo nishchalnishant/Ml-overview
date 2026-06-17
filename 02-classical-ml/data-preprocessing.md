@@ -9,6 +9,45 @@ tags: [classicalml, ml, data-preprocessing]
 
 ---
 
+## Executive Summary & Cheatsheet
+
+**Cold open:** Models eat **what you feed them**. In production, the “bug” is often **train ≠ serve**, **leakage**, or **drift**.
+
+### 1. Data leakage — the silent prod killer
+**Workflow (memorize this order):**
+1. **Split first** — `train` / `val` / `test` before transforms that peek at distribution.
+2. **Fit on train only** — scalers, imputers, encoders learn stats from **training** rows.
+3. **Transform everywhere** — apply the **same** fitted params to val/test/prod.
+
+### 2. Missing data — delete, fill, or flag?
+| Move | Technique | Use when | Risk |
+| :--- | :--- | :--- | :--- |
+| **Drop** | Rows/columns | Missingness is huge or MNAR mess | Biased sample if missingness carries signal |
+| **Impute** | Mean / median / mode | Low–moderate missing, MCAR/MAR | Mean lies on skewed columns — prefer **median** |
+| **Fancy** | MICE, k-NN impute | Features correlate | Cost + complexity |
+| **Indicator** | “Was missing?” flag | Missingness **predicts** the target | More dimensions to manage |
+
+### 3. Scaling — standardize vs. normalize
+- **Z-score (standardize):** Zero mean, unit variance — friends with **SVM, logistic regression, PCA**.
+- **Min–max [0,1]:** Bounded range — often seen with **neural nets** and some distance models.
+- **Outliers (IQR quick fix):**
+  - $\text{IQR} = Q3 - Q1$
+  - Fences: $[Q1 - 1.5 \times \text{IQR},\; Q3 + 1.5 \times \text{IQR}]$
+  - **Winsorize / cap** often beats blind delete — keeps sample size, dulls extremes.
+
+### 4. High-cardinality categories
+1. **One-hot** — fine when categories are **few**; explodes when cardinality is huge.
+2. **Target encoding** — category → mean target; **danger:** overfit. Use **CV within train**, smoothing, regularization.
+3. **Hashing** — fixed-size buckets; collisions trade off noise vs. memory — common in **streaming / online** setups.
+
+### 5. Drift — when to retrain
+Watch **covariate shift** — $P(X)$ changes (inputs drift) even if the **old** $P(y|X)$ story might too (**concept drift**). Detection: PSI, K-S tests.
+
+---
+
+## Deep Dive
+
+
 ## 1. Data Leakage
 
 **The problem**: You build a model that scores 0.97 AUC in development and 0.61 AUC in production. Nothing changed except the data. The offline score was a lie — information the model couldn't have at prediction time was accidentally available during training. This is leakage.
@@ -272,43 +311,4 @@ for col in numeric_features:
 
 **What breaks**: Drift detection on individual features misses multivariate drift — two features can each look stable while their joint distribution has shifted. High-dimensional drift detection requires either dimensionality reduction or multivariate tests (MMD). PSI thresholds are rules of thumb, not guarantees — a feature can show PSI > 0.25 due to seasonal variation that does not impair model performance.
 
-## Flashcards
 
-**Target leakage?** #flashcard
-A feature encodes the answer. Example: loan_approved = 1 as a feature when predicting default. The feature was created after the outcome was known.
-
-**Train/test contamination?** #flashcard
-Fitting a scaler or encoder on the full dataset before splitting. The scaler now contains test-set statistics; test data is no longer unseen.
-
-**Temporal leakage?** #flashcard
-Using a feature computed from events that happened after the prediction timestamp. Example: rolling 7-day average of future sales.
-
-**ID/proxy leakage: An ID column or timestamp that correlates with the outcome cohort. Example: customer IDs assigned sequentially?** #flashcard
-high IDs are newer customers with different behavior.
-
-**MCAR (Missing Completely At Random)?** #flashcard
-missingness is independent of any variable. The survey system randomly dropped 5% of rows. Dropping is safe.
-
-**MAR (Missing At Random)?** #flashcard
-missingness depends on other observed variables, not the missing value itself. Older patients skip the income field. Conditional imputation is appropriate.
-
-**MNAR (Missing Not At Random): missingness depends on the value that is missing. High-income people skip the income field. Both deletion and imputation introduce bias?** #flashcard
-missingness is itself a signal.
-
-**Covariate shift: $P(X)$ changes?** #flashcard
-the input distribution shifts. The relationship $P(y|X)$ may be stable.
-
-**Label shift: $P(y)$ changes?** #flashcard
-the prior probability of each class changes.
-
-**Concept drift: $P(y|X)$ changes?** #flashcard
-the underlying relationship the model learned no longer holds.
-
-**PSI < 0.1?** #flashcard
-stable
-
-**PSI 0.1–0.25?** #flashcard
-moderate shift, investigate
-
-**PSI > 0.25?** #flashcard
-major shift, retrain

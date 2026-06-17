@@ -5,6 +5,9 @@ subtopic: Coding And Practical Implementation Snappy
 status: unread
 tags: [llms, ml, interview-notes-coding-and-pra]
 ---
+
+> _Quick-recall companion. For the full deep-dive, see [coding-and-practical-implementation.md](coding-and-practical-implementation.md)._
+
 # Coding & practical implementation — patterns you can type under pressure
 
 This file is intentionally **code-forward** but not bloated. Each question gives a minimal, interview-safe skeleton.

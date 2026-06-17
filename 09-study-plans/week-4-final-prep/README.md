@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 4 (Days 26-30): Final Prep
+subtopic: ""
+status: unread
+tags: [studyplans, ml, week-4-days-26-30-final-prep]
+---
 # Week 4 (Days 26-30): Final Prep
 
 **Goal:** Sharpen everything. This week is not for learning new material — it is for rapid recall, plugging gaps, and simulating real interview conditions. LLM-specific topics get dedicated time here because they appear in almost every modern ML interview.
@@ -39,7 +46,7 @@ Day 30: Revision guide only. No new material. Logistics check. Sleep.
 - [LLM Fundamentals](../../05-llms/interview-notes/llm-fundamentals.md)
 - [RAG](../../05-llms/interview-notes/retrieval-augmented-generation-rag.md)
 - [Top ML Interview Questions (rapid-fire bank)](../../07-interview-prep/llm/top-ml-interview-questions.md)
-- [AI & ML Revision Guide (night-before cheat sheet)](../../01-foundations/AI_ML_REVISION_GUIDE.md)
+- [AI & ML Revision Guide (night-before cheat sheet)](../../01-foundations/01-ai-ml-systems-and-application.md)
 - [Behavioral & Scenario-Based Questions](../../07-interview-prep/ml/behavioral-and-scenario-based-questions.md)
 - Day file in this folder: day-26-30
 

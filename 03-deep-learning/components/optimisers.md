@@ -403,14 +403,3 @@ A: In vanilla Adam, adding L2 regularization (weight decay) to the loss means th
 
 **Q: Why might you choose a simpler optimizer like SGD over Adam for a specific task?**  
 A: SGD with momentum can generalize better than Adam on some tasks — this is the "generalization gap" phenomenon. Adam finds sharp minima quickly; SGD explores more broadly and often finds flatter minima (lower sharpness) that generalize better. Evidence: many CV classification benchmarks (ImageNet ResNets) achieve better test accuracy with SGD + cosine LR than Adam. Intuition: Adam adapts per-parameter LRs to converge fast in the loss landscape it sees during training, which can lead to solutions that fit training data well but are sensitive to distribution shift (sharp minima). SGD is slower but covers more of the loss landscape. Practical rule: for transformer/LLM training → AdamW (faster convergence is critical at scale); for small CNNs with abundant data → try SGD; for production systems where training time is fixed and convergence speed matters → AdamW. Also: SGD requires much less memory (no moment buffers), saving 8 bytes/param vs Adam's 12 bytes/param.
-
-## Flashcards
-
-**Full-batch gradient descent?** #flashcard
-use all data to compute gradient. Low variance, accurate gradient, but prohibitively slow for large datasets.
-
-**SGD (stochastic gradient descent): use one example. Very noisy gradient?** #flashcard
-updates jump around. Fast, but oscillates.
-
-**Mini-batch SGD?** #flashcard
-use 32–512 examples. Practical default: fast GPU parallelism, noisy enough to escape local minima, stable enough to converge.

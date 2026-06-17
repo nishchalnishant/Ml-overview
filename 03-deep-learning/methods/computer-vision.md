@@ -846,14 +846,3 @@ One-stage detectors generate ~100,000 anchors per image but at most a few hundre
 3. Domain augmentation: stain normalization for histopathology, random rotation for X-rays. Avoid augmentations that destroy diagnostically relevant structure.
 4. If unlabeled medical images are available, run SSL pretraining (SimCLR or MAE) on them before supervised fine-tuning.
 5. If labeled data is very scarce (<1k images), use a smaller backbone (ResNet-18 vs ResNet-50) to reduce overfitting risk.
-
-## Flashcards
-
-**ReLU: f(x) = max(0, x). Gradient is exactly 1 for positive inputs?** #flashcard
-no vanishing. Cheap to compute.
-
-**Leaky ReLU?** #flashcard
-f(x) = max(alpha*x, x), alpha ≈ 0.01. Prevents dead neurons that permanently output zero.
-
-**GELU?** #flashcard
-f(x) = x * Phi(x) where Phi is the standard normal CDF. Smooth approximation to ReLU; used in Transformers and modern CNNs.

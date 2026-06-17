@@ -1,3 +1,10 @@
+---
+module: Study Plans
+topic: Week 1 (Days 1-7): Foundations
+subtopic: ""
+status: unread
+tags: [studyplans, ml, week-1-days-1-7-foundations]
+---
 # Week 1 (Days 1-7): Foundations
 
 **Goal:** Build a solid grounding in ML theory, data handling, and statistics before touching any algorithms. These are the topics that trip up candidates who skip straight to models.
@@ -39,7 +46,7 @@
 - [Fundamentals of Machine Learning](../../07-interview-prep/ml/fundamentals-of-machine-learning.md)
 - [Data Preprocessing & Feature Engineering](../../07-interview-prep/ml/data-preprocessing-and-feature-engineering.md)
 - [Probability & Statistics](../../07-interview-prep/ml/probability-and-statistics.md)
-- [AI & ML Revision Guide (night-before cheat sheet)](../../01-foundations/AI_ML_REVISION_GUIDE.md)
+- [AI & ML Revision Guide (night-before cheat sheet)](../../01-foundations/01-ai-ml-systems-and-application.md)
 - Day files in this folder: day-1-2, day-3-4, day-5-7
 
 ---

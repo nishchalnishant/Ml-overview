@@ -190,14 +190,3 @@ A: **Batch Norm**: best for large-batch training on CNNs with fixed-size inputs 
 
 **Q: Why does batch normalization act as regularization, and how does this interact with dropout?**  
 A: BN introduces two sources of randomness: (1) mean and variance are computed over the current mini-batch, not the full dataset — these are noisy estimates, adding stochastic noise to each activation; (2) BN computed on one batch cannot perfectly represent the true distribution, so each sample's normalized value depends on which other samples it's batched with. This noise acts similarly to dropout — it prevents co-adaptation of neurons. When BN and dropout are used together, they can interact poorly: during training, dropout scales activations by 1/p; the scale change is absorbed by BN's normalization (it renormalizes regardless of scale). But at test time, without dropout, the batch statistics see different variance, causing a train/test discrepancy. In practice: for transformers with LayerNorm, dropout after attention/FFN works well because LN doesn't depend on batch statistics. For CNNs with BN, using dropout after BN layers typically hurts — either use one or the other; if both, put dropout before BN.
-
-## Flashcards
-
-**$G = 1$?** #flashcard
-equivalent to LayerNorm (over all channels)
-
-**$G = C$?** #flashcard
-equivalent to InstanceNorm (one channel per group)
-
-**$G = 32$?** #flashcard
-typical setting in detection/segmentation networks

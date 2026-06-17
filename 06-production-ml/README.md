@@ -1,3 +1,10 @@
+---
+module: Production ML
+topic: ML System Design
+subtopic: ""
+status: unread
+tags: [productionml, ml, ml-system-design]
+---
 # ML System Design
 
 The gap between "model works in a notebook" and "model works in production" is where most ML interviews actually test you.

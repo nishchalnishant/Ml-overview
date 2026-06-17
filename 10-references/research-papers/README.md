@@ -1,3 +1,10 @@
+---
+module: References
+topic: Research Papers
+subtopic: ""
+status: unread
+tags: [references, ml, research-papers]
+---
 # Research Papers
 
 Key papers that define the field — organized by domain. Each section includes the paper, year, and why it matters for interviews and production work.

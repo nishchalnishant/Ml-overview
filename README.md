@@ -1,3 +1,10 @@
+---
+module: ML Overview
+topic: AI & ML — Senior Prep, Without the Yawn
+subtopic: ""
+status: unread
+tags: [mloverviewroot, ml, ai-ml-senior-prep-without-the-yawn]
+---
 # AI & ML — Senior Prep, Without the Yawn
 
 You already ship software: pipelines, environments, rollouts, observability. **Machine learning is that same muscle** — except the "binary" you deploy is a model, and the bugs can drift in silently like a change in crowd noise at Wankhede.
@@ -9,17 +16,19 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 ## Repo Structure
 
 ```
-01-foundations/          Intro to AI, glossary, revision guide
+01-foundations/          Intro to AI/ML systems, math & theory, glossary, flashcards
 02-classical-ml/         Supervised, unsupervised, preprocessing, anomaly detection, active learning, Bayesian methods
 03-deep-learning/        Components + methods + transfer learning + video + 3D vision + PyTorch
-04-specialized-domains/  RL, RecSys, GNNs
+04-specialized-domains/  RL, RecSys, GNNs, speech/audio, tabular
 05-llms/                 Architecture, training, applications, interview notes
 06-production-ml/        MLOps, system design
 07-interview-prep/       ML + LLM interview Q&As, scenarios, coding
 08-emerging-topics/      Emerging trends, XAI, causal inference, privacy-preserving ML, continual learning
 09-study-plans/          30-day week-by-week study plan
 10-references/           Book notes, research papers, datasets, tools, benchmarks, notation
+11-data-scientist/       SQL, statistics, A/B testing, metrics, EDA, causal inference
 MIND-MAP.md              Full topic mind map + gap analysis
+FLOWCHARTS.md            Decision flowcharts across topics
 ```
 
 ---
@@ -28,7 +37,8 @@ MIND-MAP.md              Full topic mind map + gap analysis
 
 **Where to start tonight**
 
-- **[AI & ML revision guide](01-foundations/AI_ML_REVISION_GUIDE.md)** — Golden rules, architectures, math you can whiteboard, infra patterns, gotchas.
+- **[AI/ML systems & application](01-foundations/01-ai-ml-systems-and-application.md)** — Golden rules, architectures, infra patterns, gotchas.
+- **[Math & theory foundations](01-foundations/02-math-and-theory-foundations.md)** — The math you can whiteboard.
 - **[30-day roadmap](09-study-plans/README.md)** — Structured reps from zero to "I can hold the room."
 - **[Math derivations hub](07-interview-prep/ml/math-derivations.md)** — Chain rule to attention, with your pen.
 - **[Interview hub](07-interview-prep/README.md)** — canonical entry point for interview prep.
@@ -38,12 +48,12 @@ MIND-MAP.md              Full topic mind map + gap analysis
 
 **10-Minute Revision Cards** (skim before any topic or interview)
 
-| Section | Revision Card |
+| Section | Quick-review card |
 |---------|--------------|
-| Foundations | [REVISION.md](01-foundations/REVISION.md) |
-| Classical ML | [REVISION.md](02-classical-ml/REVISION.md) |
-| Deep Learning | [REVISION.md](03-deep-learning/REVISION.md) |
-| Specialized Domains (RL, RecSys, GNN) | [REVISION.md](04-specialized-domains/REVISION.md) |
+| Foundations | [flashcards.md](01-foundations/flashcards.md) |
+| Classical ML | [classical-ml-flashcards.md](02-classical-ml/classical-ml-flashcards.md) |
+| Deep Learning | [deep-learning-cheatsheet.md](03-deep-learning/deep-learning-cheatsheet.md) · [flashcards](03-deep-learning/deep-learning-flashcards.md) |
+| Specialized Domains (RL, RecSys, GNN) | [specialized-domains-cheatsheet.md](04-specialized-domains/specialized-domains-cheatsheet.md) · [flashcards](04-specialized-domains/specialized-domains-flashcards.md) |
 | LLMs | [REVISION.md](05-llms/REVISION.md) |
 | Production ML | [REVISION.md](06-production-ml/REVISION.md) |
 
@@ -61,9 +71,9 @@ MIND-MAP.md              Full topic mind map + gap analysis
 | [Computer Vision](03-deep-learning/methods/computer-vision.md) | CNNs, detection, ViT, CLIP, self-supervised |
 | [Generative Models](03-deep-learning/methods/generative-models.md) | VAE, GAN, DDPM/DDIM, Stable Diffusion, Flow Matching, DiT/FLUX |
 | [Time Series](03-deep-learning/methods/time-series.md) | ARIMA through Transformers, forecasting, anomaly detection |
-| [Reinforcement Learning](04-specialized-domains/reinforcement-learning/README.md) | MDPs, Q-learning, PPO, RLHF connection |
-| [Recommender Systems](04-specialized-domains/recommender-systems/README.md) | Collaborative filtering, two-tower, ranking |
-| [Graph Neural Networks](04-specialized-domains/graph-neural-networks/README.md) | GCN, GraphSAGE, knowledge graphs |
+| [Reinforcement Learning](04-specialized-domains/rl-fundamentals.md) | MDPs, Q-learning, PPO, RLHF connection ([advanced](04-specialized-domains/rl-advanced.md) · [model-based](04-specialized-domains/rl-model-based.md)) |
+| [Recommender Systems](04-specialized-domains/recommender-systems.md) | Collaborative filtering, two-tower, ranking |
+| [Graph Neural Networks](04-specialized-domains/graph-neural-networks.md) | GCN, GraphSAGE, knowledge graphs |
 | [LLMs](05-llms/README.md) | Architecture, training, scaling, evaluation |
 | [LLM Applications](05-llms/applications/README.md) | RAG, agents, tuning, inference optimization |
 | [Multimodal AI](05-llms/applications/multimodal.md) | CLIP, VLMs, fusion architectures, audio, video, deployment |
@@ -87,6 +97,7 @@ MIND-MAP.md              Full topic mind map + gap analysis
 | [3D Vision & Point Clouds](03-deep-learning/methods/3d-vision.md) | PointNet, PointNet++, NeRF, 3DGS, autonomous driving |
 | [Privacy-Preserving ML](08-emerging-topics/privacy-preserving-ml.md) | DP-SGD, Federated Learning, SMPC, HE |
 | [Continual Learning & NAS](08-emerging-topics/continual-learning.md) | Catastrophic forgetting, EWC, replay, DARTS |
+| [Data Scientist Reference](11-data-scientist/README.md) | SQL, statistics & probability, A/B testing, business metrics, EDA |
 
 ---
 

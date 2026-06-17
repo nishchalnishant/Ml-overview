@@ -1,4 +1,29 @@
+---
+module: Emerging Topics
+topic: Emerging Trends in ML (2023–2025)
+subtopic: ""
+status: unread
+tags: [emergingtopics, ml, emerging-trends-in-ml-2023-2025]
+---
 # Emerging Trends in ML (2023–2025)
+
+## Files in This Folder
+
+| File | What it covers |
+| :--- | :--- |
+| [2025-frontier-models.md](2025-frontier-models.md) | DeepSeek-V3, o3, MoE specifics, KV cache optimization |
+| [frontier-ai-developments-2025.md](frontier-ai-developments-2025.md) | Deployment-focused long-context and speculative decoding |
+| [state-space-models.md](state-space-models.md) | S4, Mamba, HiPPO, hybrid SSM/attention architectures |
+| [large-reasoning-models.md](large-reasoning-models.md) | Test-time compute, RLVR, GRPO, PRMs, o1/R1-style reasoning |
+| [mixture-of-experts.md](mixture-of-experts.md) | Top-k routing, load balancing, Switch/DeepSeek-V3 MoE |
+| [multimodal-architectures.md](multimodal-architectures.md) | CLIP, BLIP-2, LLaVA, iRoPE, audio/video DiT |
+| [diffusion-models.md](diffusion-models.md) | Denoising diffusion, score matching, latent diffusion |
+| [agentic-ai-systems.md](agentic-ai-systems.md) | Agent architectures, tool use, multi-agent coordination |
+| [advanced-rag-and-memory.md](advanced-rag-and-memory.md) | Advanced retrieval, long-term memory architectures for LLMs |
+| [post-training-and-alignment.md](post-training-and-alignment.md) | RLHF, DPO, Constitutional AI, RLAIF |
+| [small-language-models-and-edge.md](small-language-models-and-edge.md) | Phi, distillation, on-device/edge deployment |
+| [vector-databases.md](vector-databases.md) | ANN indexing, HNSW, vector DB architecture for retrieval |
+| [agi-and-asi.md](agi-and-asi.md) | AGI/ASI definitions, timelines, capability trajectories |
 
 ---
 

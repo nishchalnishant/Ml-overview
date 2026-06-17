@@ -278,16 +278,61 @@ This gives consistent effective regularization regardless of each parameter's gr
 
 Key simplification to watch for: sigmoid derivative $\hat{y}(1-\hat{y})$ cancels with terms in BCE and softmax+CE gradients, producing $\hat{y} - y$. This always happens when the activation and the loss are conjugates.
 
-## Rapid Recall
+---
 
-### Error: $\hat{y} - y \approx -1$
-- Direct Answer: large error
-- Why: This matters because it tells you how to reason about error: $\hat{y} - y \approx -1$.
-- Pitfall: Don't answer "Error: $\hat{y} - y \approx -1$" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: large error
+## 10. Variational Lower Bound (ELBO)
 
-### Sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$
-- Direct Answer: near zero
-- Why: This matters because it tells you how to reason about sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$.
-- Pitfall: Don't answer "Sigmoid derivative: $\hat{y}(1 - \hat{y}) \approx 0 \cdot 1 = 0$" by naming the concept alone; state the mechanism and tradeoff.
-- Interview line: Say: near zero
+**When this gets asked and why it matters:** An interviewer asks you to derive the VAE objective. They are testing whether you can apply Jensen's inequality in the correct direction and explain why the ELBO is a *lower* bound (not upper) on the log-likelihood — and what the two terms mean.
+
+### Setup
+
+Maximize the marginal log-likelihood $\log p_\theta(x) = \log \int p_\theta(x \mid z) p(z)\, dz$. For neural decoders this integral over all latent configurations is intractable.
+
+### Derivation
+
+**Step 1 — introduce an approximate posterior** $q_\phi(z \mid x)$:
+$$\log p_\theta(x) = \log \mathbb{E}_{z \sim q_\phi(z \mid x)}\left[\frac{p_\theta(x \mid z) p(z)}{q_\phi(z \mid x)}\right]$$
+
+**Step 2 — apply Jensen's inequality.** For a concave function $f$ (log is concave): $\log \mathbb{E}[X] \geq \mathbb{E}[\log X]$:
+$$\log p_\theta(x) \geq \mathbb{E}_{q_\phi}\left[\log \frac{p_\theta(x \mid z) p(z)}{q_\phi(z \mid x)}\right]$$
+
+**Step 3 — expand:**
+$$\boxed{\text{ELBO} = \underbrace{\mathbb{E}_{q_\phi}[\log p_\theta(x \mid z)]}_{\text{reconstruction term}} - \underbrace{D_\text{KL}(q_\phi(z \mid x) \| p(z))}_{\text{regularization term}} \leq \log p_\theta(x)}$$
+
+**What this tells you:** The reconstruction term forces the decoder to rebuild $x$ from encoder samples; the KL term keeps the approximate posterior close to the prior $p(z) = \mathcal{N}(0, I)$, regularizing the latent space so it stays continuous and sample-able. The bound gap is exactly $D_\text{KL}(q_\phi(z \mid x) \| p_\theta(z \mid x))$ — how well the encoder approximates the true posterior. The two terms are in necessary tension, and that tension is what forces the latent space to have structure.
+
+---
+
+## 11. KL Divergence and the Cross-Entropy Connection
+
+**When this gets asked and why it matters:** An interviewer asks why cross-entropy is the "right" loss for classification. The derivation shows minimizing cross-entropy is exactly minimizing KL divergence to the true label distribution, up to a constant that does not depend on the model.
+
+### Derivation
+
+$$H(p) = -\sum_x p(x) \log p(x), \quad H(p, q) = -\sum_x p(x) \log q(x), \quad D_\text{KL}(p \| q) = \sum_x p(x) \log \frac{p(x)}{q(x)}$$
+
+Decompose KL:
+$$D_\text{KL}(p \| q) = \sum_x p(x)[\log p(x) - \log q(x)] = -H(p) + H(p,q)$$
+
+Rearrange:
+$$H(p, q) = D_\text{KL}(p \| q) + H(p)$$
+
+**What this tells you:** $H(p)$ depends only on the true labels, not on $\theta$, so $\min_\theta H(p, q_\theta) \iff \min_\theta D_\text{KL}(p \| q_\theta)$. The label entropy $H(p)$ is a constant floor — no model can achieve lower cross-entropy than $H(p)$. Cross-entropy minimization is literally minimizing the information-theoretic distance between your model and the true distribution.
+
+---
+
+## 12. Normal Equation for Linear Regression
+
+**When this gets asked and why it matters:** An interviewer asks you to derive the closed-form least-squares solution, state its cost, and explain exactly when gradient descent is preferable instead.
+
+### Derivation
+
+Minimize $\mathcal{L}(\theta) = \|X\theta - y\|^2$. Expand:
+$$\mathcal{L}(\theta) = \theta^T X^T X \theta - 2y^T X\theta + y^T y$$
+
+Set the gradient to zero (using $\nabla_\theta(\theta^T A \theta) = 2A\theta$ for symmetric $A$):
+$$\frac{\partial \mathcal{L}}{\partial \theta} = 2X^T X\theta - 2X^T y = 0 \implies \boxed{\hat{\theta} = (X^T X)^{-1} X^T y}$$
+
+This is the exact global minimum — the loss is convex with a unique minimum when $X^T X$ is invertible.
+
+**What this tells you:** $(X^T X)$ inversion costs $O(d^3)$ in the number of features; at $d = 10{,}000$ that is $10^{12}$ FLOPs — infeasible, so use gradient descent ($O(nd)$ per step) at scale. $(X^T X)$ is singular under multicollinearity; ridge regression adds $\lambda I$ to restore invertibility ($\hat{\theta} = (X^T X + \lambda I)^{-1} X^T y$), which is exactly MAP estimation with a Gaussian prior whose precision is $\lambda$.

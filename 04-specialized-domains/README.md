@@ -1,3 +1,10 @@
+---
+module: Specialized Domains
+topic: Specialized Domains
+subtopic: ""
+status: unread
+tags: [specializeddomains, ml, specialized-domains]
+---
 # Specialized Domains
 
 This folder covers eight specialized areas that appear in ML interviews — reinforcement learning, recommender systems, graph neural networks, computer vision, NLP, speech/audio, time series, and tabular deep learning. Each has its own interview circuit with domain-specific vocabulary and design questions. If you're preparing for a generalist ML role, skim the overview sections. If you're targeting a specialist role, read the full file.
@@ -8,7 +15,7 @@ This folder covers eight specialized areas that appear in ML interviews — rein
 
 ### Computer Vision
 
-[computer-vision/README.md](computer-vision/README.md)
+[../03-deep-learning/methods/computer-vision.md](../03-deep-learning/methods/computer-vision.md)
 
 CV covers the full arc from CNNs to modern vision transformers: convolutional networks (AlexNet, VGG, ResNet residual connections, EfficientNet), object detection (Faster R-CNN, YOLO, FPN, IoU, NMS, focal loss), image segmentation (U-Net, DeepLab, Mask R-CNN, panoptic segmentation), Vision Transformers (ViT patch embeddings, positional encoding, DeiT, DINO, MAE), Swin Transformer (shifted window attention), CLIP (contrastive image-text pretraining), GANs, and diffusion models. 7 interview Q&As included.
 
@@ -18,7 +25,7 @@ CV covers the full arc from CNNs to modern vision transformers: convolutional ne
 
 ### NLP
 
-[nlp/README.md](nlp/README.md)
+[../03-deep-learning/methods/nlp-fundamentals.md](../03-deep-learning/methods/nlp-fundamentals.md)
 
 NLP covers the full progression from classical text representations to modern LLMs: pre-neural methods (Bag-of-Words, TF-IDF, n-gram language models, CRF), word embeddings (Word2Vec CBOW/skip-gram/negative sampling, GloVe, FastText), sequence models (RNN, LSTM, GRU, BiRNN, seq2seq), attention mechanisms (Bahdanau attention, ELMo), Transformer architecture (self-attention, multi-head attention, positional encoding, RoPE), BERT (MLM, NSP, fine-tuning variants), GPT (causal LM, in-context learning, InstructGPT), T5 and BART, and alignment methods (RLHF, DPO, Flash Attention). 7 interview Q&As included.
 
@@ -28,13 +35,13 @@ NLP covers the full progression from classical text representations to modern LL
 
 ### Reinforcement Learning
 
-[reinforcement-learning/README.md](reinforcement-learning/README.md)
+[rl-fundamentals.md](rl-fundamentals.md)
 
 RL covers sequential decision-making under uncertainty: agents, environments, policies, rewards, and value functions. The main file goes from first principles (MDPs, Bellman equations) through classic algorithms (Q-Learning, SARSA, Monte Carlo, TD) to modern deep RL (DQN, PPO, Actor-Critic) and lands on RLHF — the mechanism behind ChatGPT-style alignment. Multi-armed bandits cover exploration-exploitation tradeoffs. 20 interview Q&As and a full equation reference included.
 
 Additional files:
-- [advanced-rl.md](reinforcement-learning/advanced-rl.md): Imitation learning (BC, DAgger, GAIL), Inverse RL (MaxEntropy IRL), Multi-agent RL (QMIX, MAPPO, self-play), Hierarchical RL (Options, HER, Feudal RL), Meta-RL (MAML, RL²), Curriculum learning, Sim-to-real transfer, Offline RL (CQL, IQL, Decision Transformer).
-- [model-based-rl.md](reinforcement-learning/model-based-rl.md): Model-free vs model-based tradeoffs, learned world models (Dyna, MCTS, DreamerV3, MuZero), connection to LLM reasoning (o1-style MCTS, Process Reward Models).
+- [rl-advanced.md](rl-advanced.md): Imitation learning (BC, DAgger, GAIL), Inverse RL (MaxEntropy IRL), Multi-agent RL (QMIX, MAPPO, self-play), Hierarchical RL (Options, HER, Feudal RL), Meta-RL (MAML, RL²), Curriculum learning, Sim-to-real transfer, Offline RL (CQL, IQL, Decision Transformer).
+- [rl-model-based.md](rl-model-based.md): Model-free vs model-based tradeoffs, learned world models (Dyna, MCTS, DreamerV3, MuZero), connection to LLM reasoning (o1-style MCTS, Process Reward Models).
 
 **When it comes up:** Alignment/RLHF roles, LLM fine-tuning positions, any team working on model alignment or instruction following. PPO and RLHF are table stakes for applied LLM roles. Also appears in robotics, game AI, and resource scheduling interviews.
 
@@ -42,7 +49,7 @@ Additional files:
 
 ### Speech and Audio
 
-[speech-audio/README.md](speech-audio/README.md)
+[speech-audio.md](speech-audio.md)
 
 Speech/audio covers the signal processing foundations and end-to-end deep learning systems: audio signals and waveforms, STFT, mel spectrograms, MFCCs, classical HMM-DNN ASR, the alignment problem, CTC (Connectionist Temporal Classification), wav2vec 2.0, attention-based ASR, Conformer architecture, Whisper, speaker verification (d-vectors, x-vectors, ArcFace, EER), speaker diarization (pipeline and EEND), and text-to-speech (Tacotron 2, FastSpeech 2, WaveNet/HiFi-GAN vocoders, VALL-E). 5 interview Q&As included.
 
@@ -52,7 +59,7 @@ Speech/audio covers the signal processing foundations and end-to-end deep learni
 
 ### Time Series
 
-[time-series/README.md](time-series/README.md)
+[../03-deep-learning/methods/time-series.md](../03-deep-learning/methods/time-series.md)
 
 Time series covers both classical statistical methods and modern deep learning approaches: AR/MA/ARMA/ARIMA/SARIMA (with equations), exponential smoothing/Holt-Winters/ETS, Prophet (trend + seasonality + holidays), stationarity testing (ADF, KPSS), STL decomposition, LSTM forecasting, TCN (dilated causal convolutions), N-BEATS, Informer (ProbSparse attention), PatchTST (patch-based transformer), iTransformer, anomaly detection (z-score, Isolation Forest, CUSUM, autoencoder, Deep SVDD), evaluation metrics (MAE/RMSE/MAPE/sMAPE/MASE/CRPS), and multi-step forecasting strategies (DIRECT, RECURSIVE, MIMO). 5 interview Q&As included.
 
@@ -62,7 +69,7 @@ Time series covers both classical statistical methods and modern deep learning a
 
 ### Recommender Systems
 
-[recommender-systems/README.md](recommender-systems/README.md)
+[recommender-systems.md](recommender-systems.md)
 
 RecSys covers the full production recommendation pipeline: collaborative filtering (user-based, item-based, matrix factorization, ALS, iALS for implicit feedback), content-based filtering, neural collaborative filtering (NCF), two-tower retrieval models, learning to rank (pointwise/pairwise/listwise, BPR, LambdaMART), the cold start problem, diversity and filter bubbles, offline/online evaluation metrics (NDCG, MAP, MRR, Precision/Recall@K), and production patterns including feature stores, caching, A/B testing, and monitoring. GNN-based recommenders (LightGCN, PinSage, KG-augmented) and session-based models (GRU4Rec, SASRec, BERT4Rec, SR-GNN) are also covered. 12 interview Q&As included.
 
@@ -72,7 +79,7 @@ RecSys covers the full production recommendation pipeline: collaborative filteri
 
 ### Graph Neural Networks
 
-[graph-neural-networks/README.md](graph-neural-networks/README.md)
+[graph-neural-networks.md](graph-neural-networks.md)
 
 GNNs cover the theory and practice of learning on graph-structured data: graph basics (adjacency matrix, degree, Laplacian), GCN (spectral derivation, message passing, normalization), GraphSAGE (inductive learning, neighborhood sampling, aggregators), Graph Attention Networks (GAT, GATv2), MPNN framework (messages, aggregation, update, readout), GIN (1-WL expressiveness), graph pooling (DiffPool, TopK, SAGPooling), knowledge graph embeddings (TransE, RotatE, DistMult, ComplEx), GNNs in LLM pipelines (GraphRAG, G-Retriever), and scalability at billion-node scale (PinSage, Cluster-GCN, SIGN, over-smoothing, over-squashing). 12 interview Q&As included.
 
@@ -82,7 +89,7 @@ GNNs cover the theory and practice of learning on graph-structured data: graph b
 
 ### Tabular Data and Deep Learning
 
-[tabular-data/README.md](tabular-data/README.md)
+[tabular-data.md](tabular-data.md)
 
 Tabular deep learning covers approaches for structured/tabular data: feature engineering fundamentals (encoding, normalization, missing values, target encoding), entity embeddings for categorical variables, gradient boosting (XGBoost, LightGBM, CatBoost — the production default for most tabular tasks), deep learning approaches (TabNet, FT-Transformer/SAINT, NODE), when neural networks beat tree ensembles (and when they don't), and production patterns for tabular ML pipelines.
 
