@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-advanced-rag-a]
 ---
 # Advanced RAG and Memory Systems
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How naive RAG fails in production and what GraphRAG, Agentic RAG, Self-RAG, and long-context architectures actually solve — with the engineering trade-offs that determine which approach to deploy.
 
 ---

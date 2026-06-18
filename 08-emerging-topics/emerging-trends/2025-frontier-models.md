@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-2025-frontier-]
 ---
 # 2025 Frontier Models — Field Guide
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 > **Companion page:** [Frontier AI Developments 2025](frontier-ai-developments-2025.md) covers the same era from a trends lens (multimodal native fusion, long context, agents). Read both if you want model-by-model depth *and* cross-cutting themes without overlap fatigue.
 
 ---

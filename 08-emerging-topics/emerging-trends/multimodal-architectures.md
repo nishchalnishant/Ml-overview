@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-multimodal-arc]
 ---
 # Multimodal Architectures
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How frontier models unify vision, audio, video, and language into a single representational space — and why this requires fundamentally rethinking tokenization, pretraining, and the attention mechanism.
 
 ---

@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-agentic-ai-sys]
 ---
 # Agentic AI Systems
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How AI agents actually work in production — from the core loop and memory architecture to multi-agent orchestration, tool use, and the failure modes that kill real deployments.
 
 ---

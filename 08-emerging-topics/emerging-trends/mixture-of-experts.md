@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-mixture-of-exp]
 ---
 # Mixture of Experts (MoE)
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How MoE enables training trillion-parameter models while keeping inference cost at a fraction of the full parameter count. The architecture behind DeepSeek-V3, Mixtral, GPT-4 (rumored), and Gemini 1.5.
 
 ---

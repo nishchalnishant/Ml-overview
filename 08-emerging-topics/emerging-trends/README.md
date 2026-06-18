@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-in-ml-2023-2025]
 ---
 # Emerging Trends in ML (2023–2025)
 
+> *Snapshot: June 2026. Every page in this folder is fast-moving frontier content — a current-state map, not settled canon. Re-verify model names, benchmarks, and SOTA claims before quoting them.*
+
 ## Files in This Folder
 
 | File | What it covers |

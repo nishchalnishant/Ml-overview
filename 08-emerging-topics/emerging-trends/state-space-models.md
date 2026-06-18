@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-state-space-mo]
 ---
 # State Space Models
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How Mamba, RWKV, and Jamba solve the O(n²) quadratic attention bottleneck — with the mathematical intuition behind selective state spaces, the recurrence-convolution duality, and the engineering trade-offs that determine when to use SSMs over transformers.
 
 ---

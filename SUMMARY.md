@@ -161,7 +161,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Books](05-llms/books/README.md)
   * [Agentic Design Patterns](05-llms/books/agentic-design-pattern.md)
   * [Hands-On Large Language Models — Jay Alammar](05-llms/books/handson-large-language-models-jay_alammar.md)
-  * [Page 5](05-llms/books/page-5.md)
 * [Revision](05-llms/REVISION.md)
 
 ## 06 — Production ML

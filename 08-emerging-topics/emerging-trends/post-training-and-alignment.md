@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-post-training-]
 ---
 # Post-Training and Alignment
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 The algorithms and training paradigms that transform a pretrained language model into a useful, safe, and instruction-following system — with exact mathematical differences between RLHF, DPO, KTO, and the synthetic data approaches that reduce dependence on human annotation.
 
 ---

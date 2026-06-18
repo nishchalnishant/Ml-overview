@@ -2,10 +2,12 @@
 module: Emerging Topics
 topic: Emerging Trends
 subtopic: Diffusion Models
-status: complete
+status: unread
 tags: [emergingtopics, ml, diffusion, generative-models, ddpm, ddim, stable-diffusion]
 ---
 # Diffusion Models
+
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
 
 Diffusion models are the dominant paradigm for image, audio, and video generation as of 2025. They work by learning to reverse a gradual noising process, producing samples of remarkable quality and diversity. This document covers the mathematical foundations (DDPM, score matching), efficient sampling (DDIM), latent diffusion (Stable Diffusion, DALL-E 3), conditional generation (classifier-free guidance), and flow matching — the successor framework used in FLUX and Sora.
 

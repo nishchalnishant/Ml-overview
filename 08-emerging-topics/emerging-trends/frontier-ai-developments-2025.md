@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-frontier-ai-de]
 ---
 # Frontier AI Developments 2025
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 > **Companion page:** [2025 Frontier Models — Field Guide](2025-frontier-models.md) goes model-by-model (DeepSeek-V3, R1, Llama 4, o3, etc.). This page stays thematic — read the companion when you need named architectures and benchmark comparisons.
 
 Key technical developments across multimodal AI, long-context architectures, model memory, autonomous coding agents, and the new inference paradigms reshaping how AI is deployed.

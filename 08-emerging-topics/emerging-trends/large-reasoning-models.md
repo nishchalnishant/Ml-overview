@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-large-reasonin]
 ---
 # Large Reasoning Models
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How o1, o3, DeepSeek-R1, and Gemini 2.5 Pro achieve superhuman performance on math and code by separating "thinking time" from "answer time." The paradigm shift from next-token prediction to process-level reward optimization.
 
 ---

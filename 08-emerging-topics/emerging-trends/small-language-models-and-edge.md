@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-small-language]
 ---
 # Small Language Models and Edge AI
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 How SLMs achieve near-frontier performance at 1-7B parameters, what quantization formats actually do at the bit level, and the engineering constraints that govern on-device AI deployment.
 
 ---

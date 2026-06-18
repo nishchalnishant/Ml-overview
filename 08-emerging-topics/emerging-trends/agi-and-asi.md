@@ -7,6 +7,8 @@ tags: [emergingtopics, ml, emerging-trends-agi-and-asi]
 ---
 # AGI, ASI, and the Path to General Intelligence
 
+> *Snapshot: June 2026 — frontier topic, moves fast. Treat as a current-state map, not settled canon.*
+
 What AGI/ASI actually means technically, what the leading theories of how to get there are, what evidence exists, and why this matters for understanding where AI is heading.
 
 ---
