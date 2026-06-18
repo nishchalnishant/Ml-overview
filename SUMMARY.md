@@ -180,7 +180,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Streaming ML Pipeline](06-production-ml/system-design/streaming-ml-pipeline.md)
   * [Data Engineering for ML](06-production-ml/system-design/data-engineering-for-ml.md)
   * [Feature Store Architecture](06-production-ml/system-design/feature-store-architecture.md)
-  * [Feature Store — Advanced](06-production-ml/system-design/feature-store-advanced.md)
   * [Embedding Pipeline Design](06-production-ml/system-design/embedding-pipeline-design.md)
   * [Model Registry & Versioning](06-production-ml/system-design/model-registry-versioning.md)
   * [Distributed Training](06-production-ml/system-design/distributed-training.md)

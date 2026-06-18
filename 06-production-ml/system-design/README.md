@@ -41,7 +41,6 @@ Structured prompts and full-system walkthroughs. Start with [ML Engineering & Pr
 | Topic | File |
 | --- | --- |
 | Feature store architecture | [feature-store-architecture.md](feature-store-architecture.md) |
-| Feature store (advanced) | [feature-store-advanced.md](feature-store-advanced.md) |
 | Embedding pipeline design | [embedding-pipeline-design.md](embedding-pipeline-design.md) |
 | Model registry & versioning | [model-registry-versioning.md](model-registry-versioning.md) |
 | Data engineering for ML | [data-engineering-for-ml.md](data-engineering-for-ml.md) |
