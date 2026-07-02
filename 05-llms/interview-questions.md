@@ -7,6 +7,8 @@ tags: [llms, ml, interview-questions]
 ---
 # LLM Interview Questions — First-Principles Structure
 
+> This file is a small set of questions focused on teaching the *reasoning process*, not topic coverage. For a comprehensive topic-by-topic Q&A bank (deep + snappy versions across RAG, agents, fine-tuning, evals, system design, etc.), see [interview-notes/README.md](interview-notes/README.md) — that is the primary bank for breadth; this file is for depth of reasoning on a handful of high-signal questions.
+
 Each question is structured as:
 - **What the interviewer is testing**
 - **The reasoning structure a first-principles thinker uses**

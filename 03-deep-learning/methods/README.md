@@ -36,6 +36,7 @@ Think of this as the **use-case layer** on top of the core deep-learning parts.
 | [nlp-fundamentals.md](nlp-fundamentals.md) | Tokenization, embeddings, classic NLP pipeline basics |
 | [nlp-advanced.md](nlp-advanced.md) | Modern NLP: pretraining objectives, transfer learning, advanced architectures |
 | [segmentation.md](segmentation.md) | Semantic/instance/panoptic segmentation architectures and losses |
+| [open-vocabulary-detection-and-tracking.md](open-vocabulary-detection-and-tracking.md) | Grounding DINO, SAM, Grounded SAM, multi-object tracking (SORT/DeepSORT/ByteTrack), OCR |
 | [time-series.md](time-series.md) | Forecasting through the deep-learning lens |
 | [video-understanding.md](video-understanding.md) | Action recognition, temporal modeling, video transformers |
 

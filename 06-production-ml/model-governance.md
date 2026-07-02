@@ -418,6 +418,8 @@ def log_inference_event(
 
 ## 5. Regulatory Compliance
 
+> This is the canonical treatment of GDPR compliance mechanics (Article 22 explanation generation, Article 17 erasure pipeline, Article 33 breach response) as production capabilities. For the machine-unlearning algorithms behind Article 17 erasure (exact retraining vs. influence-function approximation vs. SISA sharded training), see [privacy-and-fairness.md §3](../07-interview-prep/ml/privacy-and-fairness.md). For Article 22 from the explainability-method side (SHAP/LIME choice, force plots), see [interpretability-and-xai.md §14](../08-emerging-topics/interpretability-and-xai/interpretability-and-xai.md#14-regulatory-context).
+
 ### The Problem
 
 A model automatically rejects loan applications. EU law says individuals have the right not to be subject to solely automated decisions that significantly affect them (GDPR Article 22). The model produces no explanation and offers no human review. Each automated decision is a violation.
@@ -616,6 +618,8 @@ class BreachResponseProtocol:
 ---
 
 ## 6. Model Cards
+
+> This is the canonical worked example (full template + failure modes). For the Mitchell et al. 2019 academic framing (Factors/Evaluation Data schema split) and adjacent documentation standards (IBM FactSheets, Datasheets for Datasets), see [interpretability-and-xai.md §12](../08-emerging-topics/interpretability-and-xai/interpretability-and-xai.md#12-model-cards-and-documentation).
 
 ### The Problem
 

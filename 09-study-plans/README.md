@@ -66,14 +66,14 @@ This folder contains structured learning paths for ML interview preparation and 
 ### Week 3: System Design & Production Polish
 *Focus: RAG, Agentic Systems, and MLOps.*
 
-- **Day 22-23: ML System Design**
-    - Study: [System Design & MLOps](../07-interview-prep/ml/system-design-and-mlops.md)
+- **Day 22: ML System Design**
+    - Study: [day-22-ml-system-design.md](week-3-system-design/day-22-ml-system-design.md) & [System Design & MLOps](../07-interview-prep/ml/system-design-and-mlops.md)
     - Key Concept: Retrieval-Ranking, train-serve skew, feature stores.
-- **Day 24: Case Studies**
-    - Study: Day 23 case studies file in this folder.
+- **Day 23: Case Studies**
+    - Study: [day-23-case-studies.md](week-3-system-design/day-23-case-studies.md)
     - Key Concept: YouTube two-tower, Google Search modularity, fairness in ranking.
-- **Day 25: Behavioral & Soft Skills**
-    - Study: Day 24-25 behavioral file in this folder.
+- **Day 24-25: Behavioral & Soft Skills**
+    - Study: [day-24-25-behavioral-soft-skills.md](week-3-system-design/day-24-25-behavioral-soft-skills.md)
     - Key Concept: STAR method, defending technical choices, cross-team collaboration.
 
 ### Week 4: Final Prep

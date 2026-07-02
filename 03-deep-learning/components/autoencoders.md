@@ -62,6 +62,8 @@ Sparse autoencoders are used in interpretability research (including Anthropic's
 
 ## Variational Autoencoder (VAE)
 
+> This section covers the VAE as an autoencoder variant (ELBO, reparameterization trick, KL collapse). For VAEs in the broader generative-modeling context — comparison against GANs/diffusion, and their role as the encoder/decoder in latent diffusion — see [methods/generative-models.md](../methods/generative-models.md#1-variational-autoencoders-vaes).
+
 **The problem**: a standard autoencoder maps each input to a single point in latent space. If you sample a random point $z$ from that space and decode it, you likely get garbage — the decoder has never been trained to handle points that aren't the encoded outputs of real training examples. The latent space has holes.
 
 **The core insight**: instead of mapping each input to a point, map it to a *distribution* — specifically a Gaussian. Train the decoder to reconstruct from samples drawn from this distribution. To prevent the encoder from learning narrow, non-overlapping distributions (which would defeat the purpose), penalize distributions that deviate from a standard Gaussian prior. Now the latent space is densely covered, and any sampled point can be decoded into something meaningful.

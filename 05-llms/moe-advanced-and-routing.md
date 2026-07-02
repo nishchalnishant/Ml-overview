@@ -9,6 +9,8 @@ tags: [llms, ml, moe-advanced-and-routing]
 
 MoE is the architecture behind Mixtral, DeepSeek, Qwen3, and GPT-4 (rumored). Understanding routing, load balancing, and failure modes is essential for 2024/2025 LLM interviews.
 
+> For the basic "how does a dense FFN become a sparse MoE FFN" architectural sketch inside the standard Transformer block, see [03-deep-learning/components/transformers.md](../03-deep-learning/components/transformers.md#mixture-of-experts-moe-ffn). This file goes deeper: router variants, load-balancing loss derivations, capacity factors, expert parallelism, and production models.
+
 ---
 
 ## 1. Core MoE Architecture

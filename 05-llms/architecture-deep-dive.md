@@ -347,7 +347,7 @@ English: "the cat is on the mat"  → Le chat est sur le tapis.
 
 **GPT-3.5 / InstructGPT (2022)**: 175B + RLHF alignment. The key result from the InstructGPT paper: a 1.3B model aligned with RLHF was preferred by human raters over a 175B unaligned model 71% of the time. Showed that alignment quality matters more than raw scale for real-world utility.
 
-**GPT-4 (2023)**: Architecture not publicly disclosed. Widely believed to be a Mixture of Experts (~8 experts, ~220B active params, ~1.8T total). First OpenAI model with multimodal input (image + text). Context: initially 8,192 tokens, extended to 128K (GPT-4 Turbo). Evaluated on bar exam (90th percentile), GRE, AMC.
+**GPT-4 (2023)**: Architecture not publicly disclosed; figures below are unconfirmed industry estimates, not official numbers. Widely rumored to be a Mixture of Experts (~16 experts, top-2 routing, ~1.8T total params, ~220B active params per forward pass). First OpenAI model with multimodal input (image + text). Context: initially 8,192 tokens, extended to 128K (GPT-4 Turbo). Evaluated on bar exam (90th percentile), GRE, AMC.
 
 **GPT-4o (2024)**: "o" = omni. Native multimodal — processes text, audio, and images in a single model without separate encoder/decoder per modality. Latency: ~320ms audio response (vs. 2.8s for GPT-4V + speech pipeline). Text token stream approach for audio rather than spectrogram-to-spectrogram. Enables end-to-end latency improvements and richer voice interaction.
 
@@ -406,7 +406,7 @@ English: "the cat is on the mat"  → Le chat est sur le tapis.
 **Claude 3 (2024)**: Three-tier model family:
 - **Haiku**: smallest, fastest. Designed for real-time applications, cost-efficient at scale.
 - **Sonnet**: mid-size, balanced capability and speed. Most widely deployed.
-- **Opus**: largest, highest capability. Scored 86.8% on MMLU, matched GPT-4 on most benchmarks at time of release.
+- **Opus**: largest, highest capability. Scored 86.8% on MMLU, competitive with or ahead of GPT-4 on most published benchmarks at time of release.
 All Claude 3 models are natively multimodal (text + image). Context: 200K tokens.
 
 **Claude 3.5 Sonnet (2024)**: Outperformed Claude 3 Opus while being faster and cheaper — demonstrating post-training efficiency gains. Strong coding performance: top scores on SWE-Bench (real GitHub issues). Introduced artifacts (rich document creation in the UI).

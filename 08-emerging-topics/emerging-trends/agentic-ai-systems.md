@@ -319,6 +319,42 @@ class BudgetedAgent:
 
 ---
 
+## 10. Agent Framework Ecosystem
+
+Everything in §1–9 describes agent *patterns*. In practice, teams rarely implement the loop from scratch — they build on a framework that handles orchestration, tool-calling boilerplate, and state management. Framework choice is a real architectural decision, not just tooling preference.
+
+### 10.1 MCP (Model Context Protocol)
+MCP is not a framework — it's a standardized protocol (originated at Anthropic, now widely adopted) for connecting LLM applications to external tools and data sources. Before MCP, every agent framework had its own bespoke tool-integration format; an integration built for LangChain couldn't be reused in AutoGen. MCP defines a common client-server interface: an **MCP server** exposes tools/resources/prompts over a standard schema, and any **MCP client** (Claude Desktop, an IDE, a custom agent) can discover and call them without framework-specific glue code.
+
+```
+Agent/Host (MCP client) ──JSON-RPC──> MCP Server ──> Tool/API/DB/filesystem
+```
+**Why it matters:** MCP turns "N frameworks × M tools" integration work into "N clients + M servers," each written once. It's the closest thing agentic AI has to a USB-C standard for tool access — the same filesystem or database MCP server works whether the calling agent is built on LangGraph, a custom loop, or a chat client.
+
+### 10.2 Framework Comparison
+
+| Framework | Core abstraction | Best for | Trade-off |
+|---|---|---|---|
+| **LangChain** | Chains and Agents composed from modular components (LLMs, retrievers, tools, memory) | Rapid prototyping, broad ecosystem/integration coverage | Heavy abstraction layers; harder to debug or customize control flow at scale |
+| **LangGraph** | Agent workflows as an explicit state graph (nodes = steps, edges = transitions, can be cyclic) | Complex, stateful, multi-step agents needing explicit control flow (loops, conditional branches, human-in-the-loop pauses) | More upfront design work than a simple chain; steeper learning curve |
+| **LlamaIndex** | Data-framework-first: indices, retrievers, query engines, with agent capabilities layered on top | RAG-centric agents where retrieval quality is the primary concern | Less mature multi-agent orchestration than LangGraph/CrewAI |
+| **CrewAI** | "Crews" of role-based agents (e.g. researcher, writer, reviewer) collaborating on a shared task | Multi-agent workflows modeled on human team roles, fast to set up | Less fine-grained control over inter-agent communication than LangGraph |
+| **AutoGen** (Microsoft) | Conversable agents that communicate via structured multi-agent dialogue | Research-oriented multi-agent conversation patterns, code-generation agents | More conversation-centric than task/graph-centric; orchestration logic lives in dialogue patterns rather than an explicit graph |
+
+### 10.3 Choosing Among Them
+- **Need explicit, debuggable control flow with cycles and conditionals** (retry loops, human approval gates) → LangGraph. Its state-graph model maps directly onto §5 (Planning Strategies) and §7 (Failure Modes) — every failure-mode fix (dedup checks, budget cutoffs, checkpointing) is a graph node/edge.
+- **Need to move fast with broad tool/vector-store integrations already built** → LangChain (or LlamaIndex if the task is retrieval-heavy).
+- **Need several specialized agents playing distinct roles with minimal orchestration code** → CrewAI.
+- **Need agents primarily reasoning through structured back-and-forth dialogue** (e.g. code review between a coder agent and a critic agent) → AutoGen.
+- **Need agent-to-tool integration decoupled from any specific framework** → build/consume MCP servers regardless of which orchestration framework sits on top; MCP and these frameworks are not mutually exclusive (LangGraph and CrewAI agents can both call tools over MCP).
+
+### 10.4 Common Failure Modes Specific to Frameworks
+- **Framework lock-in**: bespoke tool/memory formats make migrating between frameworks expensive — a reason MCP adoption is accelerating (§10.1 decouples the tool layer from the orchestration layer).
+- **Debugging opacity**: heavily abstracted chains (LangChain's higher-level constructs especially) can obscure exactly which prompt was sent at which step — pair with tracing (LangSmith, or framework-agnostic tools) rather than relying on print debugging.
+- **Version churn**: this ecosystem moves fast; pin framework versions and test upgrades against a fixed eval set (§8, Evaluation Framework for Agents) before rolling forward.
+
+---
+
 ## Canonical Interview Q&As
 
 **Q: What are the key differences between a single LLM call and a production agent, and what are the main failure modes?**
@@ -329,6 +365,9 @@ A: Orchestrator-worker architecture: (1) Triage agent reads the issue, classifie
 
 **Q: How do you handle an agent that keeps failing on a subtask and getting stuck in a retry loop?**
 A: Several layered defenses: (1) Exponential backoff with max retries (3-5 attempts, not infinite) — after max retries, emit a structured failure and let the orchestrator decide whether to try an alternative approach or fail gracefully. (2) Action deduplication — if the same (tool, params) pair appears twice in recent history, skip it and try something different (the same action is unlikely to succeed a second time without any change). (3) Diverse retry strategies — don't retry with identical input; modify the approach: different search query, different decomposition of the problem, different tool. (4) Failure escalation — after 3 failed retries on a subtask, escalate to the orchestrator with a summary of what was tried; the orchestrator can reassign to a different worker agent or request human guidance. (5) Timeout budgets — each subtask has a wall-clock time budget; exceeding it triggers graceful failure with partial results rather than running indefinitely.
+
+**Q: When would you choose LangGraph over LangChain, or CrewAI over both?**
+A: LangGraph when the workflow needs explicit, debuggable control flow — cycles, conditional branches, human-in-the-loop pauses — modeled as a state graph rather than a linear chain; it maps directly onto the failure-mode fixes in §7 (retry loops, checkpointing) as graph nodes/edges. LangChain when moving fast matters more than fine-grained control flow and the task fits a more linear chain-of-components pattern, leveraging its broad integration ecosystem. CrewAI when the problem naturally decomposes into a handful of role-based agents (researcher, writer, reviewer) collaborating with minimal custom orchestration code. These aren't mutually exclusive with MCP — tool access via MCP servers is a separate, orthogonal decision from which orchestration framework sits on top (§10.1, §10.3).
 
 ## Flashcards
 

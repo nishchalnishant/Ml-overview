@@ -17,6 +17,8 @@ The starting point for the whole repo. Before the algorithm-specific tracks, thi
 | :--- | :--- |
 | [01-ai-ml-systems-and-application.md](01-ai-ml-systems-and-application.md) | Applied AI/ML systems guide — golden rules, architectures, infra patterns, deployment gotchas. The night-before cheat sheet. |
 | [02-math-and-theory-foundations.md](02-math-and-theory-foundations.md) | The math you can whiteboard — linear algebra, probability, optimization, the theory underpinning ML. |
+| [03-python-and-data-tooling.md](03-python-and-data-tooling.md) | NumPy, Pandas, Polars, SciPy, Matplotlib/Seaborn — vectorization, broadcasting, memory/performance. |
+| [04-data-processing-and-eda.md](04-data-processing-and-eda.md) | EDA workflow, missing values, outliers, feature engineering, data leakage, validation strategy, sklearn pipelines. |
 
 ## Quick Reference
 

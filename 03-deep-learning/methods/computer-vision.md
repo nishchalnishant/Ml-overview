@@ -560,62 +560,13 @@ BLIP-2's bridge is a **Q-Former** (Querying Transformer): N learned query embedd
 
 ## 8. Image Generation: GANs, VAEs, Diffusion
 
-### 8.1 Generative Adversarial Networks (GANs)
+Three families dominate image generation, each solving the same problem — model a high-dimensional image distribution well enough to sample realistic new images — with a different training strategy: GANs use an adversarial discriminator, VAEs use a variational latent bottleneck, and diffusion models use iterative denoising.
 
-**The problem**: how do you train a generator to produce realistic images when there is no ground-truth target for each noise sample? Directly maximizing likelihood over image pixels is intractable in high dimensions.
+For the full derivations (GAN minimax objective, mode collapse and WGAN-GP, VAE ELBO and the reparameterization trick, DDPM forward/reverse process math, DDIM, latent diffusion, diffusion transformers), see [generative-models.md](generative-models.md) §1-3 and §6-8 — this section only adds the vision-specific framing:
 
-**The core insight**: train an adversary (discriminator) to distinguish real from generated images. The generator's goal is to fool the discriminator. This creates a minimax game:
-
-```
-min_G max_D E[log D(x)] + E[log(1 - D(G(z)))]
-```
-
-The discriminator provides a training signal to the generator without requiring explicit likelihood computation.
-
-**What breaks**: GAN training is notoriously unstable. Mode collapse — the generator converges to a few high-quality modes while ignoring the rest of the data distribution — is the primary failure mode. If the discriminator becomes too confident, it provides near-zero gradient to the generator. Techniques like gradient penalty (WGAN-GP), spectral normalization, and progressive growing stabilize training but require careful tuning.
-
-### 8.2 Variational Autoencoders (VAEs)
-
-**The problem**: standard autoencoders compress to a point in latent space. The latent space is unstructured — interpolating between two encodings does not produce meaningful intermediate images, because the space between learned codes is unexplored.
-
-**The core insight**: instead of encoding to a point, encode to a *distribution* (mean and variance of a Gaussian). Force this distribution to stay close to a standard normal prior via KL divergence. The latent space becomes smooth and regularized — nearby points decode to similar images.
-
-**The mechanics**: the ELBO loss balances reconstruction quality against latent regularization:
-
-```
-ELBO = E_q[log p(x|z)] - KL(q(z|x) || p(z))
-```
-
-The reparameterization trick `z = mu(x) + sigma(x) * epsilon, epsilon ~ N(0,I)` makes the sampling step differentiable.
-
-**What breaks**: optimizing the ELBO causes blurry reconstructions. The reconstruction term treats each pixel independently under a Gaussian, which means blurring over uncertainty is cheaper than predicting a sharp but slightly wrong image. VAEs produce blurrier outputs than GANs for this reason.
-
-### 8.3 Diffusion Models
-
-**The problem**: GANs are unstable and mode-prone. VAEs are blurry. Is there a stable training procedure that produces sharp, diverse images?
-
-**The core insight**: learn to denoise. If you progressively corrupt an image with Gaussian noise until it becomes pure noise, then train a network to reverse each small denoising step, you implicitly learn the data distribution. Denoising is a well-posed, stable supervised regression — it requires no adversary.
-
-**The mechanics**: the forward process adds noise over T steps:
-```
-q(x_t | x_{t-1}) = N(x_t; sqrt(1-beta_t)*x_{t-1}, beta_t*I)
-```
-
-You can sample any intermediate step in closed form:
-```
-x_t = sqrt(alpha_bar_t)*x_0 + sqrt(1-alpha_bar_t)*epsilon,  epsilon ~ N(0,I)
-```
-
-The network is trained to predict the noise that was added:
-```
-L = E[||epsilon - epsilon_theta(x_t, t)||^2]
-```
-
-At generation time, start from Gaussian noise and run the reverse process T times.
-
-**Score matching view**: the noise-prediction network is mathematically equivalent to estimating the score (gradient of log probability) of the noisy data distribution. Generation is gradient ascent in probability space with injected noise (Langevin dynamics). DDIM makes this deterministic and enables ~50-step generation instead of 1,000.
-
-**What breaks**: sampling requires T forward passes through the network (T=1,000 for DDPM, T=20–50 for DDIM). This is 20–1,000× slower than a single GAN forward pass. Latent diffusion (Stable Diffusion) compresses the image into a small latent space first, running diffusion there — much faster while preserving quality.
+- **GANs** (StyleGAN2, progressive growing) historically produced the sharpest high-resolution faces/textures but are hardest to train and prone to mode collapse.
+- **VAEs** are rarely used alone for photorealistic image generation — their blurry reconstructions (from pixel-wise Gaussian likelihood) make them more useful as a component (e.g., the encoder/decoder in latent diffusion) than a standalone generator.
+- **Diffusion models** (DDPM/DDIM, latent diffusion/Stable Diffusion) are now the dominant approach for image generation because they combine training stability with output sharpness, at the cost of multi-step iterative sampling.
 
 ---
 

@@ -81,6 +81,20 @@ Three projections instead of two; hidden dimension $\frac{8}{3}d_\text{model}$ t
 
 **What breaks**: the FFN is the largest part of the model by parameter count — roughly two thirds of all parameters in a standard Transformer are in FFN layers. Making it more efficient (narrower, sparser, or using mixture-of-experts) is a major target for scaling.
 
+### Mixture-of-Experts (MoE) FFN
+
+**The problem**: making the FFN wider increases model capacity but also increases the compute cost of *every* forward pass — a dense FFN activates 100% of its parameters for every single token, so parameter count and FLOPs scale together. Frontier models want trillions of parameters worth of capacity without paying trillions of FLOPs per token.
+
+**The core insight**: replace the single FFN with $N$ parallel "expert" FFNs of the same shape, plus a lightweight router that selects only the top-$k$ experts (typically $k=1$ or $2$) per token. Total parameter count scales with $N$, but compute per token only scales with $k$ — decoupling capacity from per-token cost.
+
+$$y = \sum_{i \in \text{Top-}k(\text{router}(x))} g_i(x) \cdot \text{FFN}_i(x)$$
+
+where $\text{router}(x) = \text{softmax}(xW_r)$ produces per-expert scores, $\text{Top-}k$ selects the $k$ highest-scoring experts, and $g_i(x)$ is the (renormalized) gate weight for expert $i$. Everything else in the Transformer block (attention, norm, residuals) stays dense — only the FFN sublayer becomes sparse.
+
+**What breaks**: naive top-$k$ routing collapses — the router quickly learns to send most tokens to a handful of "popular" experts, starving the rest of gradient signal (a rich-get-richer dynamic). This is fixed with an auxiliary load-balancing loss that penalizes uneven routing, and at inference, a fixed per-expert capacity that drops or reroutes tokens once an expert's buffer is full. Routing also adds a genuinely new failure surface at serving time — expert-parallel deployments must shard experts across devices and route tokens with all-to-all communication, which is why MoE inference infrastructure (batching, expert placement, capacity tuning) is nontrivial compared to dense models.
+
+> This is only the architectural sketch. Router variants (softmax vs. expert-choice), the load-balancing loss derivations, fine-grained expert segmentation (DeepSeek MoE), token-dropping/capacity-factor mechanics, expert-parallelism sharding, and what experts empirically specialize in are all covered in depth in [05-llms/moe-advanced-and-routing.md](../../05-llms/moe-advanced-and-routing.md) — start there for anything beyond "how does the FFN become sparse."
+
 ---
 
 ## Positional Encodings

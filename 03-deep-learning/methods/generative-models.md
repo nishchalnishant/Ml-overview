@@ -7,7 +7,7 @@ tags: [deeplearning, ml, methods-generative-models]
 ---
 # Generative Models
 
-> Covers VAEs, GANs, Diffusion Models (DDPM/DDIM), Latent Diffusion, Flow Matching, and the DiT/FLUX architecture wave.
+> Covers VAEs, GANs, Diffusion Models (DDPM/DDIM), Latent Diffusion, Flow Matching, and the DiT/FLUX architecture wave. This is the canonical derivation-level treatment — [computer-vision.md](computer-vision.md#8-image-generation-gans-vaes-diffusion) cross-links here rather than repeating the math, and [components/autoencoders.md](../components/autoencoders.md) covers the VAE as an autoencoder variant with a component-level (not generation-pipeline) framing.
 
 ---
 

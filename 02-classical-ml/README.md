@@ -40,4 +40,5 @@ Each core module features an **Executive Summary & Cheatsheet** at the top for q
 | [active-learning.md](active-learning.md) | Query strategies for labeling efficiency under limited budgets |
 | [conformal-prediction.md](conformal-prediction.md) | Distribution-free prediction intervals with coverage guarantees |
 | [time-series-analysis.md](time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
+| [recommender-systems-classical.md](recommender-systems-classical.md) | Neighborhood CF, matrix factorization, ALS vs SGD, implicit feedback (WALS) |
 

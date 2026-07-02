@@ -9,6 +9,8 @@ tags: [llms, ml, llm-core-theory-training-research]
 
 This directory serves as the theoretical bedrock for Large Language Models (LLMs). It covers the fundamental research, architectural innovations, and training methodologies that power models like GPT-4, Llama 3, and Claude.
 
+> **Frontier model roster:** the specific-model examples in this folder's deep-dives (GPT-4o, Claude 3, o3, DeepSeek-R1, Qwen3, etc.) are illustrative, not exhaustive — they're not refreshed every model release. For the current frontier landscape (Claude 4/Opus 4, Gemini 2.5, GPT-5, and beyond), see [08-emerging-topics/emerging-trends/2025-frontier-models.md](../08-emerging-topics/emerging-trends/2025-frontier-models.md) and [frontier-ai-developments-2025.md](../08-emerging-topics/emerging-trends/frontier-ai-developments-2025.md), which are the folders actively kept current.
+
 ## Theoretical Roadmap
 
 ### 1. [Training Lifecycle](training-process.md)
@@ -42,6 +44,8 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 - Architecture deep-dives.
 - Training strategies.
 - Production trade-offs.
+
+> This is a small, first-principles-reasoning-focused set (why the trap exists, how to reason to the answer) — for a much larger topic-by-topic Q&A bank (deep + snappy versions, RAG/agents/fine-tuning/evals/system design), see [interview-notes/README.md](interview-notes/README.md).
 
 ---
 

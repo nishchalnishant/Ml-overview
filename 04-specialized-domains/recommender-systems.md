@@ -100,6 +100,8 @@ Rule-driven, for complex or infrequent purchases (mortgages, cars). More constra
 
 ## 3. Collaborative Filtering Deep Dive
 
+> For the classical matrix-factorization math (ALS vs SGD, implicit-feedback WALS) in more derivation-heavy form, see [02-classical-ml/recommender-systems-classical.md](../02-classical-ml/recommender-systems-classical.md) — this section focuses on the neighborhood-CF intuition and its role in the broader system.
+
 ### 3.1 User-Based CF
 
 **The problem:** You are a new user on a platform. The platform has no item features — it just knows who watched what. How do you generate a personalized recommendation?

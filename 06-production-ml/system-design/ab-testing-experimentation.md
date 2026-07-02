@@ -29,6 +29,8 @@ flowchart TD
 
 ---
 
+> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the underlying statistics (power analysis derivations, Bayesian testing, bandits, PSM, diff-in-diff, RDD, IV, DAGs, uplift modeling), see [experimentation-and-causal-inference.md](../../08-emerging-topics/experimentation-and-causal-inference/experimentation-and-causal-inference.md).
+
 ## Why Experimentation Infrastructure Matters
 
 **The problem**: without controlled experiments, teams cannot distinguish causation from correlation. A new model that coincidentally launched during a holiday spike looks like a win. A feature that hurts a minority group gets shipped because aggregate metrics improved. Reliable decision-making requires proper experimental infrastructure.

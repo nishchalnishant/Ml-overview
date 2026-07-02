@@ -44,7 +44,7 @@ Derivatives of scalars with respect to vectors (gradients) are crucial for backp
 - $\nabla_x (x^T A x) = (A + A^T)x \quad$ (If $A$ is symmetric, this is $2Ax$)
 
 ### 1.5 Numerical Stability & Condition Numbers
-The **Condition Number** $\kappa(A) = \frac{\lambda_{max}}{\lambda_{min}}$ measures how sensitive the solution of $Ax=b$ is to small changes in $b$.
+The **Condition Number** $\kappa(A) = \frac{\sigma_{max}}{\sigma_{min}}$ (ratio of largest to smallest **singular value**, from the SVD above) measures how sensitive the solution of $Ax=b$ is to small changes in $b$. For symmetric positive-definite $A$, singular values equal eigenvalues, so $\kappa(A) = \lambda_{max}/\lambda_{min}$ — but that special case is not the general definition.
 - $\kappa(A) \approx 1$: Well-conditioned (stable).
 - $\kappa(A) \gg 1$: Ill-conditioned (unstable, small rounding errors blow up).
 **Why it matters:** In deep learning, poor condition numbers lead to vanishing/exploding gradients. Regularization ($\lambda I$) artificially improves the condition number by increasing $\lambda_{min}$.

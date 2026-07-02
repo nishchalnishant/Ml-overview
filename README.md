@@ -27,6 +27,7 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 09-study-plans/          30-day week-by-week study plan
 10-references/           Book notes, research papers, datasets, tools, benchmarks, notation
 11-data-scientist/       SQL, statistics, A/B testing, metrics, EDA, causal inference
+12-projects/              Runnable end-to-end projects: tabular ML pipeline, RAG, LoRA fine-tuning
 MIND-MAP.md              Full topic mind map + gap analysis
 FLOWCHARTS.md            Decision flowcharts across topics
 ```
@@ -98,6 +99,7 @@ FLOWCHARTS.md            Decision flowcharts across topics
 | [Privacy-Preserving ML](08-emerging-topics/privacy-preserving-ml.md) | DP-SGD, Federated Learning, SMPC, HE |
 | [Continual Learning & NAS](08-emerging-topics/continual-learning.md) | Catastrophic forgetting, EWC, replay, DARTS |
 | [Data Scientist Reference](11-data-scientist/README.md) | SQL, statistics & probability, A/B testing, business metrics, EDA |
+| [Hands-On Projects](12-projects/README.md) | Runnable tabular ML pipeline, RAG system, and LoRA fine-tuning — not just prose |
 
 ---
 

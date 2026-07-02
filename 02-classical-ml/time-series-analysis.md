@@ -7,7 +7,7 @@ tags: [classicalml, ml, time-series-analysis]
 ---
 # Time Series Analysis
 
-Entirely absent from the repository — this is the complete reference covering classical methods through modern foundation models.
+The complete reference for time series, covering classical statistical methods through modern foundation models.
 
 ---
 

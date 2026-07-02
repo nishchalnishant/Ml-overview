@@ -109,6 +109,8 @@ The dataset contained no names. It contained a unique behavioral fingerprint.
 
 # 3. Machine Unlearning and the Right to Be Forgotten
 
+> This covers the unlearning algorithms (exact retraining, influence functions, SISA). For how an erasure request flows through a production system end-to-end (registry lookup, influence thresholding, audit-log pseudonymization, GDPR Article 17 vs. financial retention conflicts) see [model-governance.md §5](../../06-production-ml/model-governance.md#5-regulatory-compliance).
+
 ## What the interviewer is actually testing
 
 Whether you can translate a legal requirement (GDPR right to erasure) into a technical problem and reason about its difficulty honestly. This is a signal that you have thought about ML systems in production legal environments.

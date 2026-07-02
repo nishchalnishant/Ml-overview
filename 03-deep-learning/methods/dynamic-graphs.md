@@ -7,7 +7,7 @@ tags: [deeplearning, ml, methods-dynamic-graphs]
 ---
 # Dynamic Graphs, Temporal GNNs, and Graph Generation
 
-> Graphs that change over time and methods to model, predict, and generate graph-structured data.
+> Graphs that change over time and methods to model, predict, and generate graph-structured data. Assumes familiarity with static GNNs (GCN, GraphSAGE, GAT, message passing) — see [04-specialized-domains/graph-neural-networks.md](../../04-specialized-domains/graph-neural-networks.md) first if those are unfamiliar.
 
 ---
 
