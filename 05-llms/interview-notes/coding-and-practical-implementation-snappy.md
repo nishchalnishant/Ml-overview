@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-coding-and-pra]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [coding-and-practical-implementation.md](coding-and-practical-implementation.md)._
+> _Quick-recall companion. For the full deep-dive, see [coding-and-practical-implementation.md](13-coding-and-practical-implementation.md)._
 
 # Coding & practical implementation — patterns you can type under pressure
 

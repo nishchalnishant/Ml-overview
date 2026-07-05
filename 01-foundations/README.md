@@ -25,7 +25,7 @@ The starting point for the whole repo. Before the algorithm-specific tracks, thi
 | File | What it covers |
 | :--- | :--- |
 | [flashcards.md](flashcards.md) | Active-recall flashcards for foundational ML concepts. |
-| [ml-glossary.md](ml-glossary.md) | Definitions for the vocabulary used across the rest of the repo. |
+| [ml-glossary.md](06-ml-glossary.md) | Definitions for the vocabulary used across the rest of the repo. |
 
 ---
 

@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-behavioral-and]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [behavioral-and-scenario-based-questions.md](behavioral-and-scenario-based-questions.md)._
+> _Quick-recall companion. For the full deep-dive, see [behavioral-and-scenario-based-questions.md](14-behavioral-and-scenario-based-questions.md)._
 
 # Behavioral & scenario questions — answers that sound like you’ve shipped
 

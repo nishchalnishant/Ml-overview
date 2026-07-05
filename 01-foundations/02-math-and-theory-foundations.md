@@ -117,7 +117,70 @@ Measures the distance between two distributions.
 $D_{KL}(p || q) = \sum p_i \log \frac{p_i}{q_i}$
 It is asymmetrical. Cross-Entropy $H(p,q) = H(p) + D_{KL}(p||q)$. Since $H(p)$ is fixed, minimizing cross-entropy minimizes KL divergence.
 
+> **Deep dive:** See [Information Theory](05-information-theory.md) for Shannon entropy, mutual information, ELBO derivation, and the complete cross-entropy ↔ MLE ↔ KL unification.
+
 ---
+
+## 5b. Bayesian Statistics
+
+### 5b.1 Bayesian Inference Framework
+
+Bayes' theorem for model parameters $\theta$ given data $D$:
+
+$$P(\theta | D) = \frac{P(D | \theta) \cdot P(\theta)}{P(D)}$$
+
+| Term | Name | Intuition |
+|---|---|---|
+| $P(\theta)$ | **Prior** | Belief about $\theta$ before seeing data |
+| $P(D\|\theta)$ | **Likelihood** | How probable is $D$ if $\theta$ is true? |
+| $P(\theta\|D)$ | **Posterior** | Updated belief after seeing data |
+| $P(D)$ | **Evidence** / Marginal | Normalizing constant (often intractable) |
+
+### 5b.2 Conjugate Priors
+
+A **conjugate prior** is a prior distribution that, when combined with a given likelihood, produces a posterior of the same family. This makes Bayesian updating analytically tractable.
+
+| Likelihood | Conjugate Prior | Example |
+|---|---|---|
+| Bernoulli | Beta | Coin flips, click-through rate |
+| Categorical/Multinomial | Dirichlet | Topic models, word counts |
+| Gaussian (known var) | Gaussian | Continuous measurements |
+| Poisson | Gamma | Event counts per unit time |
+
+**Example:** Beta-Bernoulli model for coin flips.
+Prior: $P(p) = \text{Beta}(\alpha, \beta)$ — encodes $\alpha-1$ heads and $\beta-1$ tails prior belief.  
+After observing $h$ heads and $t$ tails:  
+Posterior: $P(p|data) = \text{Beta}(\alpha + h, \beta + t)$ — same family, just updated counts!
+
+### 5b.3 MLE vs MAP vs Full Bayesian
+
+| Approach | Formula | What it returns | Regularization |
+|---|---|---|---|
+| **MLE** | $\arg\max_\theta P(D\|\theta)$ | Point estimate | None |
+| **MAP** | $\arg\max_\theta P(D\|\theta)P(\theta)$ | Point estimate | Implicit via prior |
+| **Full Bayes** | Compute full $P(\theta\|D)$ | Distribution | Full uncertainty |
+
+**MAP = MLE + Regularization:**
+- Gaussian prior $P(\theta) = \mathcal{N}(0, \lambda^{-1}I)$ → MAP equivalent to L2 (Ridge) regularization
+- Laplace prior $P(\theta) \propto \exp(-\lambda|\theta|)$ → MAP equivalent to L1 (Lasso) regularization
+
+### 5b.4 Bayesian Inference in Practice (MCMC)
+
+When the posterior is intractable (most real models), we approximate it:
+
+- **MCMC (Markov Chain Monte Carlo):** Sample from the posterior directly via a Markov chain. Metropolis-Hastings and Hamiltonian Monte Carlo (HMC) are common algorithms. Exact but slow for high dimensions.
+- **Variational Inference:** Approximate the posterior with a simpler distribution $q(\theta)$ from a family $Q$. Minimize $D_{KL}(q(\theta) \| p(\theta|D))$. This is what the **ELBO** optimizes. Fast but approximate.
+- **Laplace Approximation:** Fit a Gaussian to the posterior at its mode (the MAP estimate). Fast, but assumes the posterior is approximately Gaussian.
+
+### 5b.5 Connections to Deep Learning
+
+| Bayesian concept | Deep Learning analogue |
+|---|---|
+| Prior $p(\theta)$ | L2/L1 weight regularization |
+| Posterior predictive | Ensemble / MC Dropout predictions |
+| Variational inference | VAE: $q(z\|x)$ approximates $p(z\|x)$ |
+| Bayes optimal classifier | Theoretically minimum error classifier |
+| Bayesian Optimization | Gaussian Process surrogate for HPO |
 
 ## 6. Generalization Theory
 
@@ -159,3 +222,100 @@ Feature engineering bridges the gap between raw data and the model's inductive b
 - **One-Hot Encoding:** For nominal categories.
 - **Embeddings:** Dense vector representations for high-cardinality categorical variables (words, user IDs).
 - **Polynomial Features:** Helps linear models capture non-linear relationships.
+
+---
+
+## 9. Matrix Calculus Cookbook
+
+This is the set of derivatives you need to derive backpropagation and attention from scratch. All results assume real-valued matrices.
+
+### 9.1 Scalar by Vector (Gradient)
+
+| Expression | Gradient w.r.t. $\mathbf{x}$ | Notes |
+|---|---|---|
+| $a^T x$ | $a$ | Linear form |
+| $x^T A x$ | $(A + A^T)x$ | Quadratic form; $2Ax$ if $A$ symmetric |
+| $\|x\|^2 = x^T x$ | $2x$ | Special case of above |
+| $\|Ax - b\|^2$ | $2A^T(Ax - b)$ | Setting to 0 gives the normal equation |
+
+**Deriving the Normal Equation:**
+$$\nabla_\theta \|X\theta - y\|^2 = 2X^T(X\theta - y) = 0 \implies \theta = (X^TX)^{-1}X^Ty$$
+
+### 9.2 Vector by Vector (Jacobian)
+
+If $\mathbf{y} = f(\mathbf{x})$ and $\mathbf{y} \in \mathbb{R}^m$, $\mathbf{x} \in \mathbb{R}^n$, the Jacobian $J \in \mathbb{R}^{m \times n}$:
+
+$$J_{ij} = \frac{\partial y_i}{\partial x_j}$$
+
+**Softmax Jacobian:** For softmax output $\mathbf{s}$:
+$$\frac{\partial s_i}{\partial z_j} = s_i(\delta_{ij} - s_j)$$
+This is the expression you need when deriving the backprop through the softmax layer.
+
+### 9.3 Attention Score Gradient
+
+Attention: $\text{Attn} = \text{softmax}\!\left(\frac{QK^T}{\sqrt{d_k}}\right)V$
+
+The $\sqrt{d_k}$ scaling exists because: without it, for large $d_k$, dot products $QK^T$ grow in magnitude proportionally to $\sqrt{d_k}$, pushing softmax into saturation (near-zero gradients in the flat regions). To see this: if each element of $q$ and $k$ is independently drawn from $\mathcal{N}(0,1)$, then $q \cdot k \sim \mathcal{N}(0, d_k)$, so variance grows linearly with $d_k$. Dividing by $\sqrt{d_k}$ normalizes to unit variance.
+
+### 9.4 Chain Rule for Matrices (Backpropagation)
+
+For a computational graph $L = f(z)$, $z = Wx + b$:
+$$\frac{\partial L}{\partial W} = \frac{\partial L}{\partial z} \cdot x^T, \quad \frac{\partial L}{\partial x} = W^T \cdot \frac{\partial L}{\partial z}, \quad \frac{\partial L}{\partial b} = \frac{\partial L}{\partial z}$$
+
+This pattern (upstream gradient × local derivative) is the core of every backprop implementation.
+
+---
+
+## 10. Convex Optimization
+
+### 10.1 Convex Sets and Functions
+
+- A set $C$ is **convex** if for any $x, y \in C$, the line segment $\theta x + (1-\theta)y \in C$ for $\theta \in [0,1]$.
+- A function $f$ is **convex** if $f(\theta x + (1-\theta)y) \leq \theta f(x) + (1-\theta)f(y)$.
+- **Why it matters:** Convex functions have **no local minima that aren't global**. Any gradient method converges to the global optimum.
+- **ML examples of convex problems:** Linear regression (MSE), logistic regression, SVMs, Lasso.
+- **Non-convex:** Neural networks, matrix factorization, GMMs. But empirically, SGD finds good solutions anyway.
+
+### 10.2 Conditions for Optimality
+
+**First-order condition:** $f$ is minimized at $x^*$ iff $\nabla f(x^*) = 0$ (for unconstrained convex).
+
+**Second-order condition:** If $\nabla^2 f(x^*)$ (Hessian) is positive definite, $x^*$ is a local minimum. If the Hessian is positive semi-definite everywhere, $f$ is convex.
+
+**KKT Conditions** (constrained optimization $\min f(x)$ s.t. $g_i(x) \leq 0$):
+1. **Primal feasibility:** $g_i(x^*) \leq 0$
+2. **Dual feasibility:** $\lambda_i \geq 0$
+3. **Complementary slackness:** $\lambda_i g_i(x^*) = 0$ (either constraint is active or multiplier is zero)
+4. **Stationarity:** $\nabla f(x^*) + \sum_i \lambda_i \nabla g_i(x^*) = 0$
+
+**SVMs use KKT:** The support vectors are exactly the training points where the margin constraint is active ($g_i = 0$).
+
+### 10.3 Why SGD Works on Non-Convex Landscapes
+
+Deep network loss surfaces have many local minima and saddle points. The key empirical finding:
+1. **Local minima are nearly as good as global:** In high dimensions, most local minima are in dense clusters with similar (good) loss values.
+2. **Saddle points are escapable:** SGD's noise gradient estimates cause random perturbations that push the optimizer off saddle points.
+3. **Sharp vs. flat minima:** SGD with larger learning rates tends to find **flat minima** (wide basins), which generalize better — the model is less sensitive to weight perturbations.
+
+---
+
+## Practice Exercises
+
+**Exercise 1 (Linear Algebra):** Show that PCA is equivalent to computing the eigenvectors of the covariance matrix $C = \frac{1}{n}X^TX$. Use SVD: $X = U\Sigma V^T$. What are the principal components?
+
+**Exercise 2 (Matrix Calculus):** Derive the normal equation $\theta^* = (X^TX)^{-1}X^Ty$ from scratch by differentiating $\|X\theta - y\|_2^2$ w.r.t. $\theta$ and setting the gradient to zero.
+
+**Exercise 3 (Probability):** Prove that MAP estimation with a Gaussian prior $p(\theta) \propto \exp(-\lambda\|\theta\|^2)$ is equivalent to L2-regularized MLE (Ridge regression). *Hint: take the log of both sides of Bayes' theorem.*
+
+**Exercise 4 (Information Theory):** Derive the cross-entropy loss from the MLE objective. Show that $\arg\min_\theta H(P_{data}, P_\theta) = \arg\min_\theta D_{KL}(P_{data} \| P_\theta)$.
+
+**Exercise 5 (Optimization):** Why does gradient descent find the global minimum for logistic regression but not for a neural network? What properties of logistic regression guarantee this?
+
+---
+
+## Where to Next
+
+- **Information Theory (entropy, KL, cross-entropy, mutual information)** → [information-theory.md](05-information-theory.md)
+- **Python implementation of these concepts** → [03-python-and-data-tooling.md](03-python-and-data-tooling.md)
+- **Bayesian methods in practice (GPs, BNNs, variational inference)** → [02-classical-ml/15-bayesian-methods.md](../02-classical-ml/15-bayesian-methods.md)
+- **Optimizers that implement these gradients** → [03-deep-learning/components/06-optimisers.md](../03-deep-learning/components/06-optimisers.md)

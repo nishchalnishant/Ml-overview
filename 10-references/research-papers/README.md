@@ -17,11 +17,11 @@ The goal isn't to read every paper. It's to know which papers introduced which i
 
 | Section | Papers | Key Topics |
 |---|---|---|
-| [Classical ML](ml.md) | ~20 | SVMs, boosting, clustering, calibration, regularization, SHAP, LIME, LightGBM, CatBoost |
-| [MLOps & Production](mlops.md) | ~17 | Technical debt, serving, drift detection, feature stores, model cards, governance |
-| [LLMs](deep-learning/llm.md) | ~25 | Transformers, GPT, RLHF, scaling laws, LoRA, MoE, Mamba, interpretability |
-| [Computer Vision](deep-learning/computer-vision.md) | ~22 | ResNet, YOLO, ViT, CLIP, diffusion, self-supervised |
-| [Time Series](deep-learning/time-series.md) | ~18 | LSTM, TCN, TFT, N-BEATS, DeepAR, foundation models |
+| [Classical ML](01-ml.md) | ~20 | SVMs, boosting, clustering, calibration, regularization, SHAP, LIME, LightGBM, CatBoost |
+| [MLOps & Production](02-mlops.md) | ~17 | Technical debt, serving, drift detection, feature stores, model cards, governance |
+| [LLMs](deep-learning/02-llm.md) | ~25 | Transformers, GPT, RLHF, scaling laws, LoRA, MoE, Mamba, interpretability |
+| [Computer Vision](deep-learning/01-computer-vision.md) | ~22 | ResNet, YOLO, ViT, CLIP, diffusion, self-supervised |
+| [Time Series](deep-learning/03-time-series.md) | ~18 | LSTM, TCN, TFT, N-BEATS, DeepAR, foundation models |
 
 ---
 

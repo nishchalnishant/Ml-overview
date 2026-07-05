@@ -13,12 +13,12 @@ Six books, different entry points. Pick based on where you are and what you need
 
 | Book | Best for | Notes |
 |------|----------|-------|
-| [Alice in Differentiable Wonderland](alice-in-differentiable-wonderland.md) | Intuitive, visual deep learning fundamentals — minimal math, maximum clarity | [notes](alice-in-differentiable-wonderland.md) |
-| [Build a Large Language Model from Scratch](build-a-large-language-model-from-scratch.md) | Implementing a GPT-style LLM end-to-end, every layer from scratch | [notes](build-a-large-language-model-from-scratch.md) |
-| [Deep Learning: A Practitioner's Approach](deep-learning-practitioner-approach.md) | Applied deep learning patterns, neural network architecture decisions in practice | [notes](deep-learning-practitioner-approach.md) |
-| [Deep Learning with PyTorch](deep-learning-with-pytorch.md) | Ground-up PyTorch fluency with real worked examples across vision and NLP | [notes](deep-learning-with-pytorch.md) |
-| [Dive into Deep Learning](dive-into-deep-learning.md) | Rigorous math plus runnable code for CNNs, RNNs, attention, and Transformers | [notes](dive-into-deep-learning.md) |
-| [Grokking Deep Learning](grokking-deep-learning.md) | Building neural networks from scratch with numpy — best for understanding the mechanics | [notes](grokking-deep-learning.md) |
+| [Alice in Differentiable Wonderland](01-alice-in-differentiable-wonderland.md) | Intuitive, visual deep learning fundamentals — minimal math, maximum clarity | [notes](01-alice-in-differentiable-wonderland.md) |
+| [Build a Large Language Model from Scratch](02-build-a-large-language-model-from-scratch.md) | Implementing a GPT-style LLM end-to-end, every layer from scratch | [notes](02-build-a-large-language-model-from-scratch.md) |
+| [Deep Learning: A Practitioner's Approach](03-deep-learning-practitioner-approach.md) | Applied deep learning patterns, neural network architecture decisions in practice | [notes](03-deep-learning-practitioner-approach.md) |
+| [Deep Learning with PyTorch](04-deep-learning-with-pytorch.md) | Ground-up PyTorch fluency with real worked examples across vision and NLP | [notes](04-deep-learning-with-pytorch.md) |
+| [Dive into Deep Learning](05-dive-into-deep-learning.md) | Rigorous math plus runnable code for CNNs, RNNs, attention, and Transformers | [notes](05-dive-into-deep-learning.md) |
+| [Grokking Deep Learning](06-grokking-deep-learning.md) | Building neural networks from scratch with numpy — best for understanding the mechanics | [notes](06-grokking-deep-learning.md) |
 
 ---
 

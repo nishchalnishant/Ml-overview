@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-llm-fundamenta]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [llm-fundamentals.md](llm-fundamentals.md)._
+> _Quick-recall companion. For the full deep-dive, see [llm-fundamentals.md](01-llm-fundamentals.md)._
 
 # LLM fundamentals — the “DevOps brain” edition
 

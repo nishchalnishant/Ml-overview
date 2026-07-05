@@ -33,11 +33,11 @@ The answer "it depends" is always correct — but only if you say what it depend
 | File | What it covers |
 |---|---|
 | [System Design Index](system-design/README.md) | Full case-study catalog and platform patterns |
-| [ML Engineering & Production](system-design/machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. The most comprehensive file. |
-| [Building ML-Powered Applications](system-design/building-machine-learning-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
-| [Design Interview Case Studies](system-design/machine-learning-design-interview.md) | Structured walkthroughs of common system design prompts |
-| [ML Design Patterns](system-design/machine-learning-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
-| [Recommended Books](books.md) | Essential reading list for MLOps and production ML engineering |
+| [ML Engineering & Production](system-design/01-machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. The most comprehensive file. |
+| [Building ML-Powered Applications](system-design/15-building-machine-learning-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
+| [Design Interview Case Studies](system-design/03-machine-learning-design-interview.md) | Structured walkthroughs of common system design prompts |
+| [ML Design Patterns](system-design/02-machine-learning-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
+| [Recommended Books](04-books.md) | Essential reading list for MLOps and production ML engineering |
 
 ---
 
@@ -104,6 +104,6 @@ The most common production failure in ML.
 
 ## See Also
 
-- [ML Interview Notes: System Design](../07-interview-prep/ml/system-design-and-mlops.md)
-- [MLOps Full Notes](mlops.md)
-- [LLM System Design](../05-llms/interview-notes/ai-system-design.md)
+- [ML Interview Notes: System Design](../07-interview-prep/ml/06-system-design-and-mlops.md)
+- [MLOps Full Notes](01-mlops.md)
+- [LLM System Design](../05-llms/interview-notes/07-ai-system-design.md)

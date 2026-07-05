@@ -1,14 +1,36 @@
 ---
 module: Llms
-topic: Applications
-subtopic: Context Window Extension
+topic: Context Window Extension
+subtopic: Applications
 status: unread
-tags: [llms, ml, applications-context-window-ex]
+tags: [llms, context-window, long-context, rope, alibi, sliding-window]
 ---
 # Context Window Extension
 
-This page moved. Read the canonical guide:
+> **📄 Full coverage is in the parent LLMs folder:**
+> **[`05-llms/07-context-window-extension.md`](../07-context-window-extension.md)**
 
-**[Context Window Extension](../context-window-extension.md)** — RoPE extension (linear interpolation, NTK-aware, YaRN, LongRoPE, ALiBi), StreamingLLM, sparse attention, context compression, Mamba/SSM alternatives, lost-in-the-middle, Needle in a Haystack eval, and interview Q&As.
+This page is a navigation redirect. The comprehensive deep dive lives one level up.
 
-> Do not maintain a second copy here — it drifted from the main doc and duplicated GitBook navigation.
+---
+
+## Quick Summary (30-second version)
+
+**The problem:** Transformers trained on short sequences fail catastrophically on longer ones. A model trained on 4K tokens shows degraded performance beyond that — because it has never seen certain positional encodings before.
+
+**The core techniques:**
+
+| Technique | Approach | Best for |
+|---|---|---|
+| **RoPE + NTK scaling** | Adjust rotation frequency at inference | LLaMA, Mistral family |
+| **YaRN** | Non-uniform frequency interpolation | Most cost-efficient |
+| **ALiBi** | Linear attention bias, no positional embedding | Bloom, MPT |
+| **Sliding Window Attention** | Local + global attention (Longformer, Mistral) | Very long sequences |
+| **Ring Attention** | Distributed sequence processing across GPUs | 1M+ token sequences |
+| **Flash Attention** | Memory-efficient exact attention | All modern LLMs |
+
+**Practical rule:** For 4× context extension, NTK-aware interpolation with fine-tuning is the most reliable. For 10×+, use YaRN or train from scratch with the target length.
+
+---
+
+→ For full derivations, interview Q&A, and production considerations: [context-window-extension.md](../07-context-window-extension.md)

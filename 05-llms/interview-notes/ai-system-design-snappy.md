@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-ai-system-desi]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [ai-system-design.md](ai-system-design.md)._
+> _Quick-recall companion. For the full deep-dive, see [ai-system-design.md](07-ai-system-design.md)._
 
 # AI system design — Azure/DevOps-fluent templates
 

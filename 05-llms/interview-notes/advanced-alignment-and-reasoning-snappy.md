@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-advanced-align]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [advanced-alignment-and-reasoning.md](advanced-alignment-and-reasoning.md)._
+> _Quick-recall companion. For the full deep-dive, see [advanced-alignment-and-reasoning.md](17-advanced-alignment-and-reasoning.md)._
 
 # Advanced alignment & reasoning — the “senior vibes” set
 

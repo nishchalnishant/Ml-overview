@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-retrieval-augm]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [retrieval-augmented-generation-rag.md](retrieval-augmented-generation-rag.md)._
+> _Quick-recall companion. For the full deep-dive, see [retrieval-augmented-generation-rag.md](03-retrieval-augmented-generation-rag.md)._
 
 # RAG (Retrieval-Augmented Generation) — the Azure/DevOps-fluent version
 

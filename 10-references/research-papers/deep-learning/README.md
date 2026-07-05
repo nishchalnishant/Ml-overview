@@ -11,7 +11,7 @@ Three files organized by subdomain. Each covers foundational and recent papers w
 
 ---
 
-## [computer-vision.md](computer-vision.md)
+## [01-computer-vision.md](01-computer-vision.md)
 
 Papers on image classification, object detection, segmentation, and visual representation learning.
 
@@ -19,7 +19,7 @@ Papers on image classification, object detection, segmentation, and visual repre
 
 ---
 
-## [llm.md](llm.md)
+## [02-llm.md](02-llm.md)
 
 Papers on large language models — architecture, training, alignment, and emergent capabilities.
 
@@ -27,7 +27,7 @@ Papers on large language models — architecture, training, alignment, and emerg
 
 ---
 
-## [time-series.md](time-series.md)
+## [03-time-series.md](03-time-series.md)
 
 Papers on sequence modeling, forecasting, and temporal pattern recognition.
 

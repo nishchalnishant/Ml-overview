@@ -13,19 +13,19 @@ tags: [emergingtopics, ml, emerging-trends-in-ml-2023-2025]
 
 | File | What it covers |
 | :--- | :--- |
-| [2025-frontier-models.md](2025-frontier-models.md) | DeepSeek-V3, o3, MoE specifics, KV cache optimization |
-| [frontier-ai-developments-2025.md](frontier-ai-developments-2025.md) | Deployment-focused long-context and speculative decoding |
-| [state-space-models.md](state-space-models.md) | S4, Mamba, HiPPO, hybrid SSM/attention architectures |
-| [large-reasoning-models.md](large-reasoning-models.md) | Test-time compute, RLVR, GRPO, PRMs, o1/R1-style reasoning |
-| [mixture-of-experts.md](mixture-of-experts.md) | Top-k routing, load balancing, Switch/DeepSeek-V3 MoE |
-| [multimodal-architectures.md](multimodal-architectures.md) | CLIP, BLIP-2, LLaVA, iRoPE, audio/video DiT |
-| [diffusion-models.md](diffusion-models.md) | Denoising diffusion, score matching, latent diffusion |
-| [agentic-ai-systems.md](agentic-ai-systems.md) | Agent architectures, tool use, multi-agent coordination |
-| [advanced-rag-and-memory.md](advanced-rag-and-memory.md) | Advanced retrieval, long-term memory architectures for LLMs |
-| [post-training-and-alignment.md](post-training-and-alignment.md) | RLHF, DPO, Constitutional AI, RLAIF |
-| [small-language-models-and-edge.md](small-language-models-and-edge.md) | Phi, distillation, on-device/edge deployment |
-| [vector-databases.md](vector-databases.md) | ANN indexing, HNSW, vector DB architecture for retrieval |
-| [agi-and-asi.md](agi-and-asi.md) | AGI/ASI definitions, timelines, capability trajectories |
+| [02-2025-frontier-models.md](02-2025-frontier-models.md) | DeepSeek-V3, o3, MoE specifics, KV cache optimization |
+| [03-frontier-ai-developments-2025.md](03-frontier-ai-developments-2025.md) | Deployment-focused long-context and speculative decoding |
+| [05-state-space-models.md](05-state-space-models.md) | S4, Mamba, HiPPO, hybrid SSM/attention architectures |
+| [06-large-reasoning-models.md](06-large-reasoning-models.md) | Test-time compute, RLVR, GRPO, PRMs, o1/R1-style reasoning |
+| [07-mixture-of-experts.md](07-mixture-of-experts.md) | Top-k routing, load balancing, Switch/DeepSeek-V3 MoE |
+| [08-multimodal-architectures.md](08-multimodal-architectures.md) | CLIP, BLIP-2, LLaVA, iRoPE, audio/video DiT |
+| [09-diffusion-models.md](09-diffusion-models.md) | Denoising diffusion, score matching, latent diffusion |
+| [10-agentic-ai-systems.md](10-agentic-ai-systems.md) | Agent architectures, tool use, multi-agent coordination |
+| [11-advanced-rag-and-memory.md](11-advanced-rag-and-memory.md) | Advanced retrieval, long-term memory architectures for LLMs |
+| [12-post-training-and-alignment.md](12-post-training-and-alignment.md) | RLHF, DPO, Constitutional AI, RLAIF |
+| [13-small-language-models-and-edge.md](13-small-language-models-and-edge.md) | Phi, distillation, on-device/edge deployment |
+| [14-vector-databases.md](14-vector-databases.md) | ANN indexing, HNSW, vector DB architecture for retrieval |
+| [15-agi-and-asi.md](15-agi-and-asi.md) | AGI/ASI definitions, timelines, capability trajectories |
 
 ---
 
@@ -47,7 +47,7 @@ tags: [emergingtopics, ml, emerging-trends-in-ml-2023-2025]
 
 SSMs model sequences as linear dynamical systems with a fixed-size hidden state vector, achieving O(N) recurrent inference (no KV cache) and O(n log n) convolutional training via FFT. **S4** uses the HiPPO matrix (High-order Polynomial Projection Operators) for optimal history compression via Legendre polynomial basis functions. **Mamba** adds input-dependent gates (B, C, Δ) enabling selective token filtering with a hardware-aware parallel associative scan in SRAM — ~5× throughput improvement over Transformers at 2K sequence length. The key limitation: fixed-size state cannot store all key-value associations, so Mamba underperforms attention on exact associative recall. **Hybrid architectures** (Jamba: 1 attention per 7 Mamba layers; RWKV linear attention; Zamba shared attention) recover retrieval capability at lower cost.
 
-> Full coverage — continuous-time SSM derivation, ZOH discretization, HiPPO matrix, S4 DPLR, Mamba selective scan, RWKV, Jamba hybrid: [state-space-models.md](state-space-models.md)
+> Full coverage — continuous-time SSM derivation, ZOH discretization, HiPPO matrix, S4 DPLR, Mamba selective scan, RWKV, Jamba hybrid: [05-state-space-models.md](05-state-space-models.md)
 
 ---
 
@@ -124,7 +124,7 @@ Build a tree of reasoning prefixes. Expand high-UCB nodes with LLM-generated nex
 
 MoE replaces dense FFN sublayers with N expert FFNs and a learned top-k router: `y = Σ_{i ∈ Top-k(G(x))} G_i(x) · E_i(x)`. Total parameters scale with N; FLOPs per token scale with k. Mixtral 8x7B: 46.7B total / 12.9B active — Llama 2 70B quality at 13B inference cost. The central challenge is **routing collapse**: naive routing degrades to always using the same few experts. Solutions: auxiliary load-balancing loss `L = α·N·Σ f_i·P_i`, router z-loss (penalizes large logit magnitudes), expert capacity caps, and DeepSeek-V3's bias-based auxiliary-loss-free routing. All experts must reside in GPU memory regardless of how many are active; expert parallelism requires all-to-all communication.
 
-> Full coverage — top-k routing derivation, load balancing, Switch/Expert Choice/Soft MoE variants, fine-grained and shared experts, DeepSeek-V3 routing: [mixture-of-experts.md](mixture-of-experts.md)
+> Full coverage — top-k routing derivation, load balancing, Switch/Expert Choice/Soft MoE variants, fine-grained and shared experts, DeepSeek-V3 routing: [07-mixture-of-experts.md](07-mixture-of-experts.md)
 
 ---
 
@@ -134,7 +134,7 @@ Standard attention materializes an N×N matrix in GPU HBM: O(N²) memory. At N=1
 
 Context window evolution: GPT-2 (2019): 1K → GPT-3 (2020): 2K → Claude 2 (2023): 100K → Gemini 1.5 Pro (2024): 1M → Llama 4 Scout (2025): 10M.
 
-> Also see: [frontier-ai-developments-2025.md](frontier-ai-developments-2025.md) for deployment-focused long-context and speculative decoding discussion.
+> Also see: [03-frontier-ai-developments-2025.md](03-frontier-ai-developments-2025.md) for deployment-focused long-context and speculative decoding discussion.
 
 ---
 
@@ -235,7 +235,7 @@ Low-probability events (creative, unusual, diverse outputs) are suppressed each 
 
 **CLIP** trains image and text encoders jointly with InfoNCE contrastive loss on 400M pairs, creating a shared embedding space enabling zero-shot classification. **BLIP-2** introduces the Q-Former — N learnable query tokens that bridge a frozen ViT encoder and frozen LLM; only the Q-Former is trained (image-text matching + captioning + VQA). **LLaVA** takes a simpler approach: project CLIP features into the LLM embedding space via a single MLP, with instruction-following data generated synthetically. Production systems (GPT-4V, Gemini, Claude) use modality-specific encoders with late fusion. **VQ-VAE** enables image tokenization via vector quantization to a learned codebook with straight-through gradients. **Early fusion** (Llama 4's iRoPE) passes image patches and text tokens through the same transformer from layer 1 — richer cross-modal interaction but requires training from scratch. Audio: log-mel spectrograms → Whisper (seq2seq, 680K hours); EnCodec/SoundStream → discrete audio tokens. Video: Sora uses a diffusion transformer on spacetime patches.
 
-> Full coverage — ViT dynamic tiling, CLIP math, BLIP-2/Q-Former, LLaVA, iRoPE, audio/video DiT, world model hypothesis: [multimodal-architectures.md](multimodal-architectures.md)
+> Full coverage — ViT dynamic tiling, CLIP math, BLIP-2/Q-Former, LLaVA, iRoPE, audio/video DiT, world model hypothesis: [08-multimodal-architectures.md](08-multimodal-architectures.md)
 
 ---
 
@@ -457,18 +457,18 @@ The problem: as models become more capable, humans can no longer reliably evalua
 
 ## 10. Key Interview Points
 
-**SSMs** (see [state-space-models.md](state-space-models.md) for full derivations):
+**SSMs** (see [05-state-space-models.md](05-state-space-models.md) for full derivations):
 - S4: HiPPO matrix A for optimal Legendre polynomial history compression. Recurrent O(N) inference, convolutional O(n log n) training.
 - Mamba: input-dependent B, C, Δ — selective filtering via hardware-aware parallel associative scan in SRAM. ~5× throughput vs Transformers at 2K.
 - Weakness: fixed-size state cannot store all key-value associations. Underperforms attention on associative recall. Hybrid (Jamba: 1 attention per 7 Mamba) recovers recall.
 
-**Test-time compute** (see [large-reasoning-models.md](large-reasoning-models.md) for full coverage):
+**Test-time compute** (see [06-large-reasoning-models.md](06-large-reasoning-models.md) for full coverage):
 - CoT turns fixed-depth computation into adaptive-depth. Harder problems generate more reasoning tokens.
 - RLVR: reward correct final answers without supervising reasoning steps. Aha-moment behaviors emerge from RL.
 - GRPO: group-relative baselines replace critic network. Sample G rollouts per prompt, normalize advantages within group.
 - PRMs score intermediate steps, harder to game than ORMs. PRM + BoN or beam search outperforms BoN alone.
 
-**MoE** (see [mixture-of-experts.md](mixture-of-experts.md) for full coverage):
+**MoE** (see [07-mixture-of-experts.md](07-mixture-of-experts.md) for full coverage):
 - Top-k routing + load balancing loss: L = α·N·Σ f_i·P_i. Too small α → collapse; too large → hurts task loss.
 - Active params ≠ memory used. All 235B Qwen3 params must be loaded to serve 22B active.
 - Expert collapse: routing entropy monitoring, z-loss, expert dropout.

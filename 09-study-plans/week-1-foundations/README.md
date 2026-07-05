@@ -43,11 +43,11 @@ tags: [studyplans, ml, week-1-days-1-7-foundations]
 
 ## Linked Resources
 
-- [Fundamentals of Machine Learning](../../07-interview-prep/ml/fundamentals-of-machine-learning.md)
-- [Data Preprocessing & Feature Engineering](../../07-interview-prep/ml/data-preprocessing-and-feature-engineering.md)
-- [Probability & Statistics](../../07-interview-prep/ml/probability-and-statistics.md)
+- [Fundamentals of Machine Learning](../../07-interview-prep/ml/01-fundamentals-of-machine-learning.md)
+- [Data Preprocessing & Feature Engineering](../../07-interview-prep/ml/09-data-preprocessing-and-feature-engineering.md)
+- [Probability & Statistics](../../07-interview-prep/ml/10-probability-and-statistics.md)
 - [AI & ML Revision Guide (night-before cheat sheet)](../../01-foundations/01-ai-ml-systems-and-application.md)
-- Day files in this folder: day-1-2, day-3-4, day-5-7
+- Day files in this folder: 01-day-1-2, 02-day-3-4, 03-day-5-7
 
 ---
 

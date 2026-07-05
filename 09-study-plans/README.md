@@ -26,35 +26,35 @@ This folder contains structured learning paths for ML interview preparation and 
 
 **Reality check:** Thirty days is a **training block**, not a magic spell. Show up daily, keep notes short, and tie each topic back to something you already ship (pipelines, rollbacks, observability).
 
-**Pair with:** [AI_ML_REVISION_GUIDE.md](../01-foundations/01-ai-ml-systems-and-application.md) for the **night-before** sprint, and [mlops.md](../06-production-ml/mlops.md) when the conversation turns to **production**.
+**Pair with:** [AI_ML_REVISION_GUIDE.md](../01-foundations/01-ai-ml-systems-and-application.md) for the **night-before** sprint, and [mlops.md](../06-production-ml/01-mlops.md) when the conversation turns to **production**.
 
 ### Week 1: Foundations & Data Chemistry
 *Focus: Understanding how data moves and how simple models fail.*
 
 - **Day 1-2: ML Logic & Paradoxes**
-    - Study: [Fundamentals of Machine Learning](../07-interview-prep/ml/fundamentals-of-machine-learning.md)
+    - Study: [Fundamentals of Machine Learning](../07-interview-prep/ml/01-fundamentals-of-machine-learning.md)
     - Key Concept: Bias-Variance Tradeoff, Occam's Razor, No Free Lunch.
 - **Day 3-4: The Data Pipeline**
-    - Study: [Data Preprocessing & Feature Engineering](../07-interview-prep/ml/data-preprocessing-and-feature-engineering.md)
+    - Study: [Data Preprocessing & Feature Engineering](../07-interview-prep/ml/09-data-preprocessing-and-feature-engineering.md)
     - Key Concept: Data Leakage prevention, Imputation strategies (MICE/Indicator).
 - **Day 5-7: EDA & Statistical Mastery**
-    - Study: [Probability & Statistics](../07-interview-prep/ml/probability-and-statistics.md)
+    - Study: [Probability & Statistics](../07-interview-prep/ml/10-probability-and-statistics.md)
     - Key Concept: P-values, CLT, Type I vs. Type II Errors, EDA patterns.
 
 ### Week 2: Algorithms & Theory (Whiteboard Ready)
 *Focus: Derivations and the "why" behind the algorithms.*
 
 - **Day 8-9: Classical Supervised Learning**
-    - Study: [Algorithms & Theory](../07-interview-prep/ml/algorithms.md)
+    - Study: [Algorithms & Theory](../07-interview-prep/ml/08-algorithms.md)
     - Key Concept: SVM Hinge Loss, k-NN curse of dimensionality, ensemble methods.
 - **Day 10-11: Unsupervised Learning**
-    - Study: [Unsupervised Learning](../02-classical-ml/unsupervised-learning.md)
+    - Study: [Unsupervised Learning](../02-classical-ml/03-unsupervised-learning.md)
     - Key Concept: K-Means convergence, PCA variance vs. predictive power.
 - **Day 12-14: Neural Networks & Backprop**
     - Study: [Deep Learning Overview](../03-deep-learning/README.md)
     - Key Concept: Backprop Chain Rule, activation functions, Adam vs. SGD.
 - **Day 15-16: Model Evaluation**
-    - Study: [Model Evaluation & Metrics](../07-interview-prep/ml/model-evaluation.md)
+    - Study: [Model Evaluation & Metrics](../07-interview-prep/ml/02-model-evaluation.md)
     - Key Concept: ROC vs. PRC, Calibration Curves, F1-Score logic.
 - **Day 17-18: Hyperparameter Tuning**
     - Study: Day 17-18 file in this folder.
@@ -67,20 +67,20 @@ This folder contains structured learning paths for ML interview preparation and 
 *Focus: RAG, Agentic Systems, and MLOps.*
 
 - **Day 22: ML System Design**
-    - Study: [day-22-ml-system-design.md](week-3-system-design/day-22-ml-system-design.md) & [System Design & MLOps](../07-interview-prep/ml/system-design-and-mlops.md)
+    - Study: [01-day-22-ml-system-design.md](week-3-system-design/01-day-22-ml-system-design.md) & [System Design & MLOps](../07-interview-prep/ml/06-system-design-and-mlops.md)
     - Key Concept: Retrieval-Ranking, train-serve skew, feature stores.
 - **Day 23: Case Studies**
-    - Study: [day-23-case-studies.md](week-3-system-design/day-23-case-studies.md)
+    - Study: [02-day-23-case-studies.md](week-3-system-design/02-day-23-case-studies.md)
     - Key Concept: YouTube two-tower, Google Search modularity, fairness in ranking.
 - **Day 24-25: Behavioral & Soft Skills**
-    - Study: [day-24-25-behavioral-soft-skills.md](week-3-system-design/day-24-25-behavioral-soft-skills.md)
+    - Study: [03-day-24-25-behavioral-soft-skills.md](week-3-system-design/03-day-24-25-behavioral-soft-skills.md)
     - Key Concept: STAR method, defending technical choices, cross-team collaboration.
 
 ### Week 4: Final Prep
 *Focus: LLM-specific topics, rapid-fire Q&A, mock interviews.*
 
 - **Day 26-27: LLM Specialist Training**
-    - Study: [LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md) & [RAG](../05-llms/interview-notes/retrieval-augmented-generation-rag.md)
+    - Study: [LLM Fundamentals](../05-llms/interview-notes/01-llm-fundamentals.md) & [RAG](../05-llms/interview-notes/03-retrieval-augmented-generation-rag.md)
     - Key Concept: Tokenization, RLHF, Prompt Engineering, LoRA, Vector DBs.
 - **Day 28: Implementation Fluency**
     - Practice: Implement attention, backprop, k-means from scratch.
@@ -92,7 +92,7 @@ This folder contains structured learning paths for ML interview preparation and 
 ### Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
 1. **[Master Revision Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md)**
-2. **[Master Q&A Bank](../07-interview-prep/llm/top-ml-interview-questions.md)**
+2. **[Master Q&A Bank](../07-interview-prep/llm/01-top-ml-interview-questions.md)**
 
 ---
 
@@ -412,7 +412,7 @@ Use these to calibrate where to enter the 6-month career tracks above.
 ## Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
 1. **[Master Revision Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md)**
-2. **[Master Q&A Bank](../07-interview-prep/llm/top-ml-interview-questions.md)**
+2. **[Master Q&A Bank](../07-interview-prep/llm/01-top-ml-interview-questions.md)**
 
 ---
 

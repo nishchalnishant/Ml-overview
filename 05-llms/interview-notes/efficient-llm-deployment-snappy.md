@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-efficient-llm-]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [efficient-llm-deployment.md](efficient-llm-deployment.md)._
+> _Quick-recall companion. For the full deep-dive, see [efficient-llm-deployment.md](16-efficient-llm-deployment.md)._
 
 # Efficient LLM deployment & optimization — “keep it fast, keep it sane”
 

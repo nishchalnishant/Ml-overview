@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-fine-tuning-an]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [fine-tuning-and-model-adaptation.md](fine-tuning-and-model-adaptation.md)._
+> _Quick-recall companion. For the full deep-dive, see [fine-tuning-and-model-adaptation.md](05-fine-tuning-and-model-adaptation.md)._
 
 # Fine-tuning & model adaptation — the “remaster, not rewrite” playbook
 

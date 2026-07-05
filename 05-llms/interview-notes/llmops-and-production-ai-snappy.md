@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-llmops-and-pro]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [llmops-and-production-ai.md](llmops-and-production-ai.md)._
+> _Quick-recall companion. For the full deep-dive, see [llmops-and-production-ai.md](08-llmops-and-production-ai.md)._
 
 # LLMOps & production AI — ship it like a service
 LLMs in prod are **systems**, not demos: routing, budgets, safety, and observability.

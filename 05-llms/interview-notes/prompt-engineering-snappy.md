@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-prompt-enginee]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [prompt-engineering.md](prompt-engineering.md)._
+> _Quick-recall companion. For the full deep-dive, see [prompt-engineering.md](02-prompt-engineering.md)._
 
 # Prompt engineering — reliability patterns (Azure/DevOps edition)
 

@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-vector-databas]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [vector-databases-and-embeddings.md](vector-databases-and-embeddings.md)._
+> _Quick-recall companion. For the full deep-dive, see [vector-databases-and-embeddings.md](06-vector-databases-and-embeddings.md)._
 
 # Vector databases & embeddings — semantic search infra (Azure/DevOps-fluent)
 

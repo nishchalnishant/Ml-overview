@@ -15,13 +15,13 @@ Role-specific reference material covering the skills that differentiate a Data S
 
 | File | Description |
 | :--- | :--- |
-| [statistics-and-probability.md](statistics-and-probability.md) | Descriptive stats, distributions, hypothesis testing, Bayesian inference, correlation, regression inference |
-| [experiment-design-and-ab-testing.md](experiment-design-and-ab-testing.md) | A/B test lifecycle, power analysis, randomization, variance reduction, sequential testing, bandits |
-| [causal-inference.md](causal-inference.md) | Potential outcomes, DiD, RDD, IV, DAGs, propensity scores, uplift modeling |
-| [eda-and-data-quality.md](eda-and-data-quality.md) | EDA workflow, missing data taxonomy, leakage detection, distribution shift, pandas patterns |
-| [sql-and-data-manipulation.md](sql-and-data-manipulation.md) | Window functions, joins, CTEs, funnel/cohort/sessionization patterns, performance |
-| [metrics-and-business-analytics.md](metrics-and-business-analytics.md) | Product metrics frameworks, retention, LTV, churn, anomaly detection, Goodhart's Law |
-| [data-scientist-interview-prep.md](data-scientist-interview-prep.md) | Interview formats, question frameworks, common traps, SQL/stats/A-B/causal question patterns |
+| [04-statistics-and-probability.md](04-statistics-and-probability.md) | Descriptive stats, distributions, hypothesis testing, Bayesian inference, correlation, regression inference |
+| [07-experiment-design-and-ab-testing.md](07-experiment-design-and-ab-testing.md) | A/B test lifecycle, power analysis, randomization, variance reduction, sequential testing, bandits |
+| [06-causal-inference.md](06-causal-inference.md) | Potential outcomes, DiD, RDD, IV, DAGs, propensity scores, uplift modeling |
+| [02-eda-and-data-quality.md](02-eda-and-data-quality.md) | EDA workflow, missing data taxonomy, leakage detection, distribution shift, pandas patterns |
+| [03-sql-and-data-manipulation.md](03-sql-and-data-manipulation.md) | Window functions, joins, CTEs, funnel/cohort/sessionization patterns, performance |
+| [05-metrics-and-business-analytics.md](05-metrics-and-business-analytics.md) | Product metrics frameworks, retention, LTV, churn, anomaly detection, Goodhart's Law |
+| [01-data-scientist-interview-prep.md](01-data-scientist-interview-prep.md) | Interview formats, question frameworks, common traps, SQL/stats/A-B/causal question patterns |
 
 ---
 

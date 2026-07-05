@@ -13,10 +13,10 @@ Six books, different angles on production ML. Pick based on your current pain po
 
 | Book | Best for | Notes |
 |------|----------|-------|
-| [Designing Machine Learning Systems](designing-machine-learning-systems.md) | Full mental model for production ML — data, features, training, serving, monitoring | [notes](designing-machine-learning-systems.md) |
-| [Machine Learning Design Patterns](machine-learning-design-patterns.md) | Reusable patterns for data representation, training, and serving decisions | [notes](machine-learning-design-patterns.md) |
-| [Machine Learning Engineering](machine-learning-engineering.md) | Dense practical patterns for building and operating real ML systems | [notes](machine-learning-engineering.md) |
-| [Keras to Kubernetes](keras-to-kubernetes.md) | End-to-end deployment: from training to container orchestration | [notes](keras-to-kubernetes.md) |
+| [Designing Machine Learning Systems](01-designing-machine-learning-systems.md) | Full mental model for production ML — data, features, training, serving, monitoring | [notes](01-designing-machine-learning-systems.md) |
+| [Machine Learning Design Patterns](03-machine-learning-design-patterns.md) | Reusable patterns for data representation, training, and serving decisions | [notes](03-machine-learning-design-patterns.md) |
+| [Machine Learning Engineering](04-machine-learning-engineering.md) | Dense practical patterns for building and operating real ML systems | [notes](04-machine-learning-engineering.md) |
+| [Keras to Kubernetes](02-keras-to-kubernetes.md) | End-to-end deployment: from training to container orchestration | [notes](02-keras-to-kubernetes.md) |
 
 ---
 

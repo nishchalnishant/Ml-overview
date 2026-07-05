@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-additional-llm]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [additional-llm-interview-topics.md](additional-llm-interview-topics.md)._
+> _Quick-recall companion. For the full deep-dive, see [additional-llm-interview-topics.md](15-additional-llm-interview-topics.md)._
 
 # Additional LLM interview topics — bonus round (high signal)
 

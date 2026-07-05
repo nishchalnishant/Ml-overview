@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-multi-modal-ai]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [multi-modal-ai.md](multi-modal-ai.md)._
+> _Quick-recall companion. For the full deep-dive, see [multi-modal-ai.md](11-multi-modal-ai.md)._
 
 # Multi-modal AI — text, images, audio (without the hype)
 

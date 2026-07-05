@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-ai-agents-and-]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [ai-agents-and-agentic-systems.md](ai-agents-and-agentic-systems.md)._
+> _Quick-recall companion. For the full deep-dive, see [ai-agents-and-agentic-systems.md](04-ai-agents-and-agentic-systems.md)._
 
 # AI agents & agentic systems — workflow orchestration (Azure/DevOps-fluent)
 

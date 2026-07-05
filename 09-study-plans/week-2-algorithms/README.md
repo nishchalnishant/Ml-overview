@@ -46,12 +46,12 @@ tags: [studyplans, ml, week-2-days-8-21-algorithms]
 
 ## Linked Resources
 
-- [Supervised Learning](../../02-classical-ml/supervised-learning.md)
-- [Unsupervised Learning](../../02-classical-ml/unsupervised-learning.md)
+- [Supervised Learning](../../02-classical-ml/01-supervised-learning.md)
+- [Unsupervised Learning](../../02-classical-ml/03-unsupervised-learning.md)
 - [Deep Learning Overview](../../03-deep-learning/README.md)
-- [Algorithms & Theory (interview notes)](../../07-interview-prep/ml/algorithms.md)
-- [Model Evaluation & Metrics](../../07-interview-prep/ml/model-evaluation.md)
-- Day files in this folder: day-8-9, day-10-11, day-12-14, day-15-16, day-17-18, day-19-21
+- [Algorithms & Theory (interview notes)](../../07-interview-prep/ml/08-algorithms.md)
+- [Model Evaluation & Metrics](../../07-interview-prep/ml/02-model-evaluation.md)
+- Day files in this folder: 01-day-8-9, 02-day-10-11, 03-day-12-14, 04-day-15-16, 05-day-17-18, 06-day-19-21
 
 ---
 

@@ -8,8 +8,8 @@ tags: [interviewprep, ml, ml-interview-notes]
 # ML Interview Notes
 
 > **Quick routing:**
-> - **30 min before interview** → `fundamentals-of-machine-learning.md` + `model-evaluation.md`
-> - **2 hours** → add `algorithms.md` + `system-design-and-mlops.md`
+> - **30 min before interview** → `01-fundamentals-of-machine-learning.md` + `02-model-evaluation.md`
+> - **2 hours** → add `08-algorithms.md` + `06-system-design-and-mlops.md`
 > - **Full day** → read the full list below in order
 >
 > **Deep-dive hubs** (richer content, same topics):
@@ -46,12 +46,12 @@ That is pure DevOps heartbreak.
 
 If you want the **most important notes first**, begin in this order:
 
-1. `fundamentals-of-machine-learning.md`
-2. `model-evaluation.md`
-3. `optimization.md`
-4. `deep-learning.md`
-5. `system-design-and-mlops.md`
-6. `large-language-model.md`
+1. `01-fundamentals-of-machine-learning.md`
+2. `02-model-evaluation.md`
+3. `03-optimization.md`
+4. `05-deep-learning.md`
+5. `06-system-design-and-mlops.md`
+6. `07-large-language-model.md`
 
 That set gives you:
 
@@ -67,23 +67,23 @@ That set gives you:
 
 | File | Why it matters |
 |------|----------------|
-| `fundamentals-of-machine-learning.md` | The IPL powerplay of ML. Must-haves. |
-| `model-evaluation.md` | Where "99% accuracy" gets exposed. |
-| `optimization.md` | Training knobs, optimizer behavior, tuning instincts. |
-| `deep-learning.md` | Neural nets, CNNs, RNNs, Transformers. |
-| `system-design-and-mlops.md` | Azure/DevOps bridge. This should feel like home. |
-| `large-language-model.md` | LLM basics, prompt vs RAG vs fine-tune. |
-| `algorithms.md` | Trees, boosting, clustering, SVM, PCA. |
-| `data-preprocessing-and-feature-engineering.md` | Feature work, leakage, scaling, encoding. |
-| `probability-and-statistics.md` | Interview math without the pain. |
-| `canonical-stats-questions.md` | Extra drill-down on statistics and probability edge cases. |
-| `optimization-theory.md` | Deeper optimization intuition and derivations. |
-| `probabilistic-graphical-models.md` | Structured probability, graphical models, and inference. |
-| `nlp.md` | Classical NLP to Transformers. |
-| `computer-vision.md` | Detection, segmentation, OCR, ViTs. |
-| `coding.md` | Implementations plus what to say while coding. |
-| `practical-ml-scenarios.md` | Situation-based prompts and production judgment. |
-| `behavioral-and-scenario-based-questions.md` | The human round. Still important. |
+| `01-fundamentals-of-machine-learning.md` | The IPL powerplay of ML. Must-haves. |
+| `02-model-evaluation.md` | Where "99% accuracy" gets exposed. |
+| `03-optimization.md` | Training knobs, optimizer behavior, tuning instincts. |
+| `05-deep-learning.md` | Neural nets, CNNs, RNNs, Transformers. |
+| `06-system-design-and-mlops.md` | Azure/DevOps bridge. This should feel like home. |
+| `07-large-language-model.md` | LLM basics, prompt vs RAG vs fine-tune. |
+| `08-algorithms.md` | Trees, boosting, clustering, SVM, PCA. |
+| `09-data-preprocessing-and-feature-engineering.md` | Feature work, leakage, scaling, encoding. |
+| `10-probability-and-statistics.md` | Interview math without the pain. |
+| `11-canonical-stats-questions.md` | Extra drill-down on statistics and probability edge cases. |
+| `04-optimization-theory.md` | Deeper optimization intuition and derivations. |
+| `12-probabilistic-graphical-models.md` | Structured probability, graphical models, and inference. |
+| `13-nlp.md` | Classical NLP to Transformers. |
+| `14-computer-vision.md` | Detection, segmentation, OCR, ViTs. |
+| `15-coding.md` | Implementations plus what to say while coding. |
+| `16-practical-ml-scenarios.md` | Situation-based prompts and production judgment. |
+| `17-behavioral-and-scenario-based-questions.md` | The human round. Still important. |
 
 ---
 

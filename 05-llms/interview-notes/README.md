@@ -20,7 +20,7 @@ tags: [llms, ml, llm-interview-notes-genai-without-the-fog]
 > 6. `llmops-and-production-ai` — for ML engineer roles
 >
 > **Deep dives** (when the interview panel is specialist):
-> [Architecture](../architecture-deep-dive.md) | [Training](../training-process.md) | [Inference optimization](../applications/inference-optimization.md)
+> [Architecture](../03-architecture-deep-dive.md) | [Training](../01-training-process.md) | [Inference optimization](../applications/06-inference-optimization.md)
 
 LLMs are **services** that eat tokens and return distributions. Your job in an interview is to sound like you’ve **operated** them: context, retrieval, safety, cost, evals — not just read the brochure.
 

@@ -22,21 +22,21 @@ Frontier and cross-cutting topics that don't belong to a single classical track:
 | File | What it covers |
 | :--- | :--- |
 | [interpretability-and-xai/](interpretability-and-xai/) | SHAP, LIME, mechanistic interpretability. |
-| [fairness-and-bias.md](fairness-and-bias.md) | Bias sources, fairness metrics, mitigation strategies. |
-| [privacy-preserving-ml.md](privacy-preserving-ml.md) | DP-SGD, federated learning, SMPC, homomorphic encryption. |
-| [adversarial-robustness.md](adversarial-robustness.md) | Adversarial examples, attacks, defenses, certified robustness. |
-| [red-teaming-and-alignment-failures.md](red-teaming-and-alignment-failures.md) | Red-teaming methods and alignment failure modes. |
+| [03-fairness-and-bias.md](03-fairness-and-bias.md) | Bias sources, fairness metrics, mitigation strategies. |
+| [02-privacy-preserving-ml.md](02-privacy-preserving-ml.md) | DP-SGD, federated learning, SMPC, homomorphic encryption. |
+| [04-adversarial-robustness.md](04-adversarial-robustness.md) | Adversarial examples, attacks, defenses, certified robustness. |
+| [01-red-teaming-and-alignment-failures.md](01-red-teaming-and-alignment-failures.md) | Red-teaming methods and alignment failure modes. |
 
 ## Methods
 
 | File | What it covers |
 | :--- | :--- |
 | [experimentation-and-causal-inference/](experimentation-and-causal-inference/) | A/B testing, causal graphs, uplift modeling. |
-| [continual-learning.md](continual-learning.md) | Catastrophic forgetting, EWC, replay, NAS/DARTS. |
+| [05-continual-learning.md](05-continual-learning.md) | Catastrophic forgetting, EWC, replay, NAS/DARTS. |
 
 ---
 
 ## Related
 
 - **Production guardrails & governance** → [06-production-ml/](../06-production-ml/)
-- **Causal inference for DS roles** → [11-data-scientist/causal-inference.md](../11-data-scientist/causal-inference.md)
+- **Causal inference for DS roles** → [11-data-scientist/06-causal-inference.md](../11-data-scientist/06-causal-inference.md)

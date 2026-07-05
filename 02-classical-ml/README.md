@@ -15,30 +15,30 @@ Each core module features an **Executive Summary & Cheatsheet** at the top for q
 
 | File | What it covers |
 | :--- | :--- |
-| [supervised-learning.md](supervised-learning.md) | Linear/Logistic Regression, SVM, Decision Trees, Ensembles (RF/XGBoost), KNN, Naive Bayes |
-| [unsupervised-learning.md](unsupervised-learning.md) | K-Means, DBSCAN, GMM, Hierarchical Clustering, PCA/t-SNE/UMAP |
-| [data-preprocessing.md](data-preprocessing.md) | Data Leakage, Missing Data, Scaling, Categorical Encoding, Concept Drift |
+| [supervised-learning.md](01-supervised-learning.md) | Linear/Logistic Regression, SVM, Decision Trees, Ensembles (RF/XGBoost), KNN, Naive Bayes |
+| [unsupervised-learning.md](03-unsupervised-learning.md) | K-Means, DBSCAN, GMM, Hierarchical Clustering, PCA/t-SNE/UMAP |
+| [data-preprocessing.md](04-data-preprocessing.md) | Data Leakage, Missing Data, Scaling, Categorical Encoding, Concept Drift |
 | [classical-ml-flashcards.md](classical-ml-flashcards.md) | Active recall flashcards for all classical ML concepts |
 
 ## Files in This Folder
 
 | File | What it covers |
 | :--- | :--- |
-| [when-classical-ml-wins.md](when-classical-ml-wins.md) | When to reach for classical ML instead of deep learning |
-| [cross-validation.md](cross-validation.md) | K-fold, stratified, time-series splits, leakage pitfalls |
-| [hyperparameter-optimization.md](hyperparameter-optimization.md) | Grid/random search, Bayesian optimization, Optuna |
-| [ensemble-methods.md](ensemble-methods.md) | Bagging, boosting, stacking — Random Forest, XGBoost, LightGBM |
-| [feature-selection.md](feature-selection.md) | Filter/wrapper/embedded methods, mutual information, regularization |
-| [dimensionality-reduction.md](dimensionality-reduction.md) | PCA, t-SNE, UMAP, autoencoders for compression |
-| [imbalanced-data.md](imbalanced-data.md) | SMOTE, class weighting, resampling, cost-sensitive learning |
-| [ml-evaluation-metrics.md](ml-evaluation-metrics.md) | Precision/recall, ROC-AUC, calibration, ranking metrics |
-| [model-interpretation.md](model-interpretation.md) | SHAP, LIME, feature importance, partial dependence |
-| [calibration-and-uncertainty.md](calibration-and-uncertainty.md) | Platt scaling, isotonic regression, uncertainty quantification |
-| [bayesian-methods.md](bayesian-methods.md) | Bayesian inference, priors/posteriors, Bayesian linear regression |
-| [anomaly-detection.md](anomaly-detection.md) | Isolation forests, one-class SVM, density-based outlier detection |
-| [online-learning.md](online-learning.md) | Incremental learning, streaming updates, concept drift |
-| [active-learning.md](active-learning.md) | Query strategies for labeling efficiency under limited budgets |
-| [conformal-prediction.md](conformal-prediction.md) | Distribution-free prediction intervals with coverage guarantees |
-| [time-series-analysis.md](time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
-| [recommender-systems-classical.md](recommender-systems-classical.md) | Neighborhood CF, matrix factorization, ALS vs SGD, implicit feedback (WALS) |
+| [when-classical-ml-wins.md](05-when-classical-ml-wins.md) | When to reach for classical ML instead of deep learning |
+| [cross-validation.md](06-cross-validation.md) | K-fold, stratified, time-series splits, leakage pitfalls |
+| [hyperparameter-optimization.md](07-hyperparameter-optimization.md) | Grid/random search, Bayesian optimization, Optuna |
+| [ensemble-methods.md](08-ensemble-methods.md) | Bagging, boosting, stacking — Random Forest, XGBoost, LightGBM |
+| [feature-selection.md](09-feature-selection.md) | Filter/wrapper/embedded methods, mutual information, regularization |
+| [dimensionality-reduction.md](10-dimensionality-reduction.md) | PCA, t-SNE, UMAP, autoencoders for compression |
+| [imbalanced-data.md](11-imbalanced-data.md) | SMOTE, class weighting, resampling, cost-sensitive learning |
+| [ml-evaluation-metrics.md](12-ml-evaluation-metrics.md) | Precision/recall, ROC-AUC, calibration, ranking metrics |
+| [model-interpretation.md](13-model-interpretation.md) | SHAP, LIME, feature importance, partial dependence |
+| [calibration-and-uncertainty.md](14-calibration-and-uncertainty.md) | Platt scaling, isotonic regression, uncertainty quantification |
+| [bayesian-methods.md](15-bayesian-methods.md) | Bayesian inference, priors/posteriors, Bayesian linear regression |
+| [anomaly-detection.md](16-anomaly-detection.md) | Isolation forests, one-class SVM, density-based outlier detection |
+| [online-learning.md](17-online-learning.md) | Incremental learning, streaming updates, concept drift |
+| [active-learning.md](18-active-learning.md) | Query strategies for labeling efficiency under limited budgets |
+| [conformal-prediction.md](19-conformal-prediction.md) | Distribution-free prediction intervals with coverage guarantees |
+| [time-series-analysis.md](20-time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
+| [recommender-systems-classical.md](02-recommender-systems-classical.md) | Neighborhood CF, matrix factorization, ALS vs SGD, implicit feedback (WALS) |
 

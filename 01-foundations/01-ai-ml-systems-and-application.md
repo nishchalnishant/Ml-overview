@@ -214,13 +214,13 @@ When an interviewer asks a technical question, use this structure:
 
 ## 9. Deep-Dive Links
 
-- [LLM Fundamentals](../05-llms/interview-notes/llm-fundamentals.md)
-- [AI System Design](../05-llms/interview-notes/ai-system-design.md)
-- [Math Derivations](../07-interview-prep/ml/math-derivations.md)
-- [MLOps](../06-production-ml/mlops.md)
-- [Reinforcement Learning](../04-specialized-domains/rl-fundamentals.md)
-- [Recommender Systems](../04-specialized-domains/recommender-systems.md)
+- [LLM Fundamentals](../05-llms/interview-notes/01-llm-fundamentals.md)
+- [AI System Design](../05-llms/interview-notes/07-ai-system-design.md)
+- [Math Derivations](../07-interview-prep/ml/18-math-derivations.md)
+- [MLOps](../06-production-ml/01-mlops.md)
+- [Reinforcement Learning](../04-specialized-domains/01-rl-fundamentals.md)
+- [Recommender Systems](../04-specialized-domains/05-recommender-systems.md)
 - [Interpretability & XAI](../08-emerging-topics/interpretability-and-xai/README.md)
 - [Causal Inference & A/B Testing](../08-emerging-topics/experimentation-and-causal-inference/README.md)
 - [Emerging Trends](../08-emerging-topics/emerging-trends/README.md)
-- [Graph Neural Networks](../04-specialized-domains/graph-neural-networks.md)
+- [Graph Neural Networks](../04-specialized-domains/06-graph-neural-networks.md)

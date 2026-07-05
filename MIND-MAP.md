@@ -615,17 +615,17 @@ MACHINE LEARNING
 - Expert → `08-emerging-topics` → `05-llms/applications` → `10-references`
 
 **By interview type:**
-- Classical ML coding → `07-interview-prep/ml/algorithms.md` + `coding.md`
-- ML system design → `06-production-ml/system-design/machine-learning-design-interview.md`
-- LLM theory → `05-llms/architecture-deep-dive.md` + `05-llms/interview-notes/llm-fundamentals.md`
-- LLM system design → `05-llms/interview-notes/ai-system-design.md`
-- Data scientist → `11-data-scientist/data-scientist-interview-prep.md`
-- Behavioral → `07-interview-prep/ml/behavioral-and-scenario-based-questions.md`
+- Classical ML coding → `07-interview-prep/ml/08-algorithms.md` + `coding.md`
+- ML system design → `06-production-ml/system-design/03-machine-learning-design-interview.md`
+- LLM theory → `05-llms/03-architecture-deep-dive.md` + `05-llms/interview-notes/01-llm-fundamentals.md`
+- LLM system design → `05-llms/interview-notes/07-ai-system-design.md`
+- Data scientist → `11-data-scientist/01-data-scientist-interview-prep.md`
+- Behavioral → `07-interview-prep/ml/17-behavioral-and-scenario-based-questions.md`
 
 **By domain:**
-- Vision → `03-deep-learning/methods/computer-vision.md`
+- Vision → `03-deep-learning/methods/03-computer-vision.md`
 - NLP → `03-deep-learning/methods/nlp.md` + `05-llms/`
-- Time Series → `02-classical-ml/time-series-analysis.md` + `03-deep-learning/methods/time-series.md`
+- Time Series → `02-classical-ml/20-time-series-analysis.md` + `03-deep-learning/methods/09-time-series.md`
 - RL → `04-specialized-domains/reinforcement-learning/`
 - RecSys → `04-specialized-domains/recommender-systems/`
 - GNNs → `04-specialized-domains/graph-neural-networks/`
@@ -645,32 +645,32 @@ Advanced → 04-specialized-domains → 05-llms → 06-production-ml/system-desi
 **Expert → 08-emerging-topics → 05-llms/applications → 10-references?** #flashcard
 Expert → 08-emerging-topics → 05-llms/applications → 10-references
 
-**Classical ML coding → 07-interview-prep/ml/algorithms.md + coding.md?** #flashcard
-Classical ML coding → 07-interview-prep/ml/algorithms.md + coding.md
+**Classical ML coding → 07-interview-prep/ml/08-algorithms.md + coding.md?** #flashcard
+Classical ML coding → 07-interview-prep/ml/08-algorithms.md + coding.md
 
-**ML system design → 06-production-ml/system-design/machine-learning-design-interview.md?** #flashcard
-ML system design → 06-production-ml/system-design/machine-learning-design-interview.md
+**ML system design → 06-production-ml/system-design/03-machine-learning-design-interview.md?** #flashcard
+ML system design → 06-production-ml/system-design/03-machine-learning-design-interview.md
 
-**LLM theory → 05-llms/architecture-deep-dive.md + 05-llms/interview-notes/llm-fundamentals.md?** #flashcard
-LLM theory → 05-llms/architecture-deep-dive.md + 05-llms/interview-notes/llm-fundamentals.md
+**LLM theory → 05-llms/03-architecture-deep-dive.md + 05-llms/interview-notes/01-llm-fundamentals.md?** #flashcard
+LLM theory → 05-llms/03-architecture-deep-dive.md + 05-llms/interview-notes/01-llm-fundamentals.md
 
-**LLM system design → 05-llms/interview-notes/ai-system-design.md?** #flashcard
-LLM system design → 05-llms/interview-notes/ai-system-design.md
+**LLM system design → 05-llms/interview-notes/07-ai-system-design.md?** #flashcard
+LLM system design → 05-llms/interview-notes/07-ai-system-design.md
 
-**Data scientist → 11-data-scientist/data-scientist-interview-prep.md?** #flashcard
-Data scientist → 11-data-scientist/data-scientist-interview-prep.md
+**Data scientist → 11-data-scientist/01-data-scientist-interview-prep.md?** #flashcard
+Data scientist → 11-data-scientist/01-data-scientist-interview-prep.md
 
-**Behavioral → 07-interview-prep/ml/behavioral-and-scenario-based-questions.md?** #flashcard
-Behavioral → 07-interview-prep/ml/behavioral-and-scenario-based-questions.md
+**Behavioral → 07-interview-prep/ml/17-behavioral-and-scenario-based-questions.md?** #flashcard
+Behavioral → 07-interview-prep/ml/17-behavioral-and-scenario-based-questions.md
 
-**Vision → 03-deep-learning/methods/computer-vision.md?** #flashcard
-Vision → 03-deep-learning/methods/computer-vision.md
+**Vision → 03-deep-learning/methods/03-computer-vision.md?** #flashcard
+Vision → 03-deep-learning/methods/03-computer-vision.md
 
 **NLP → 03-deep-learning/methods/nlp.md + 05-llms/?** #flashcard
 NLP → 03-deep-learning/methods/nlp.md + 05-llms/
 
-**Time Series → 02-classical-ml/time-series-analysis.md + 03-deep-learning/methods/time-series.md?** #flashcard
-Time Series → 02-classical-ml/time-series-analysis.md + 03-deep-learning/methods/time-series.md
+**Time Series → 02-classical-ml/20-time-series-analysis.md + 03-deep-learning/methods/09-time-series.md?** #flashcard
+Time Series → 02-classical-ml/20-time-series-analysis.md + 03-deep-learning/methods/09-time-series.md
 
 **RL → 04-specialized-domains/reinforcement-learning/?** #flashcard
 RL → 04-specialized-domains/reinforcement-learning/

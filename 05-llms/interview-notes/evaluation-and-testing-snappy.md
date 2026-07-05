@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-evaluation-and]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [evaluation-and-testing.md](evaluation-and-testing.md)._
+> _Quick-recall companion. For the full deep-dive, see [evaluation-and-testing.md](09-evaluation-and-testing.md)._
 
 # Evaluation & testing — CI/CD for LLMs
 

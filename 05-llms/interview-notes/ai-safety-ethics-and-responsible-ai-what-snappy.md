@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-ai-safety-ethi]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [ai-safety-ethics-and-responsible-ai-what.md](ai-safety-ethics-and-responsible-ai-what.md)._
+> _Quick-recall companion. For the full deep-dive, see [ai-safety-ethics-and-responsible-ai-what.md](10-ai-safety-ethics-and-responsible-ai-what.md)._
 
 # AI safety, ethics & responsible AI — practical engineering notes
 

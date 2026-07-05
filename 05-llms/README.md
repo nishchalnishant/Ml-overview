@@ -9,29 +9,29 @@ tags: [llms, ml, llm-core-theory-training-research]
 
 This directory serves as the theoretical bedrock for Large Language Models (LLMs). It covers the fundamental research, architectural innovations, and training methodologies that power models like GPT-4, Llama 3, and Claude.
 
-> **Frontier model roster:** the specific-model examples in this folder's deep-dives (GPT-4o, Claude 3, o3, DeepSeek-R1, Qwen3, etc.) are illustrative, not exhaustive — they're not refreshed every model release. For the current frontier landscape (Claude 4/Opus 4, Gemini 2.5, GPT-5, and beyond), see [08-emerging-topics/emerging-trends/2025-frontier-models.md](../08-emerging-topics/emerging-trends/2025-frontier-models.md) and [frontier-ai-developments-2025.md](../08-emerging-topics/emerging-trends/frontier-ai-developments-2025.md), which are the folders actively kept current.
+> **Frontier model roster:** the specific-model examples in this folder's deep-dives (GPT-4o, Claude 3, o3, DeepSeek-R1, Qwen3, etc.) are illustrative, not exhaustive — they're not refreshed every model release. For the current frontier landscape (Claude 4/Opus 4, Gemini 2.5, GPT-5, and beyond), see [08-emerging-topics/emerging-trends/02-2025-frontier-models.md](../08-emerging-topics/emerging-trends/02-2025-frontier-models.md) and [frontier-ai-developments-2025.md](../08-emerging-topics/emerging-trends/03-frontier-ai-developments-2025.md), which are the folders actively kept current.
 
 ## Theoretical Roadmap
 
-### 1. [Training Lifecycle](training-process.md)
+### 1. [Training Lifecycle](01-training-process.md)
 *From trillions of tokens to a helpful assistant.*
 - Pre-training (Objectives, Data Mixture).
 - SFT (Instruction Tuning).
 - Alignment (RLHF vs DPO).
 
-### 2. [Scaling Laws & Data](scaling-and-data.md)
+### 2. [Scaling Laws & Data](02-scaling-and-data.md)
 *The physics of LLM performance.*
 - Compute Optimality (Chinchilla Laws).
 - Data Quality & Deduplication.
 - Synthetic Data generation.
 
-### 3. [Advanced Architecture](architecture-deep-dive.md)
+### 3. [Advanced Architecture](03-architecture-deep-dive.md)
 *State-of-the-art model internals.*
 - Mixture of Experts (MoE).
 - KV-Cache & Attention Optimization (GQA, MQA).
 - Flash Attention & RoPE.
 
-### 4. [Evaluation & Benchmarks](evaluation-benchmarks.md)
+### 4. [Evaluation & Benchmarks](04-evaluation-benchmarks.md)
 *Measuring intelligence objectively.*
 - MMLU, GSM8K, and HumanEval.
 - Model-as-a-Judge.
@@ -39,7 +39,7 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 
 ---
 
-## [Interview Question Bank](interview-questions.md)
+## [Interview Question Bank](11-interview-questions.md)
 *Direct answers to high-signal LLM interview questions.*
 - Architecture deep-dives.
 - Training strategies.

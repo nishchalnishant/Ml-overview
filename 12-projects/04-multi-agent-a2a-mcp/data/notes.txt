@@ -1,0 +1,8 @@
+Q3 revenue grew 18% year-over-year, driven mainly by the EU region.
+Customer churn ticked up to 4.2% in Q3, the highest in six quarters.
+The support team reported a 30% increase in ticket volume after the pricing change in August.
+Engineering shipped the new onboarding flow in July, which reduced time-to-first-value from 9 days to 3 days.
+Sales pipeline for Q4 is up 22% compared to the same point in Q3.
+Customer satisfaction (CSAT) score dropped from 4.6 to 4.3 out of 5 after the August pricing change.
+The EU region now accounts for 41% of total revenue, up from 33% a year ago.
+Three enterprise accounts churned in September, citing cost as the primary reason.

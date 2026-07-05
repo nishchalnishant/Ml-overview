@@ -13,9 +13,9 @@ This folder covers how to measure whether a change actually caused an effect —
 
 | File | What it covers |
 | :--- | :--- |
-| [experimentation-and-causal-inference.md](experimentation-and-causal-inference.md) | A/B testing mechanics, what breaks (peeking, multiple testing, Simpson's paradox), Bayesian testing, bandits, propensity score matching, diff-in-diff, RDD, instrumental variables, causal DAGs, uplift modeling, and experimentation in ML systems (model A/B tests, interleaving) |
+| [01-experimentation-and-causal-inference.md](01-experimentation-and-causal-inference.md) | A/B testing mechanics, what breaks (peeking, multiple testing, Simpson's paradox), Bayesian testing, bandits, propensity score matching, diff-in-diff, RDD, instrumental variables, causal DAGs, uplift modeling, and experimentation in ML systems (model A/B tests, interleaving) |
 
-> For the infrastructure side of A/B testing (assignment services, logging, experiment platforms), see [06-production-ml/system-design/ab-testing-experimentation.md](../../06-production-ml/system-design/ab-testing-experimentation.md) — that file focuses on system design, this one on the statistics.
+> For the infrastructure side of A/B testing (assignment services, logging, experiment platforms), see [06-production-ml/system-design/14-ab-testing-experimentation.md](../../06-production-ml/system-design/14-ab-testing-experimentation.md) — that file focuses on system design, this one on the statistics.
 
 ---
 

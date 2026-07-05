@@ -28,17 +28,17 @@ Think of this as the **use-case layer** on top of the core deep-learning parts.
 
 | File | What it covers |
 | :--- | :--- |
-| [3d-vision.md](3d-vision.md) | Point clouds, NeRF, 3D reconstruction, depth estimation |
-| [computer-vision.md](computer-vision.md) | CNNs, ViTs, object detection, segmentation, OCR, visual reasoning |
-| [dynamic-graphs.md](dynamic-graphs.md) | Graph neural networks over evolving/temporal graphs |
-| [generative-models.md](generative-models.md) | VAEs, GANs, diffusion models, autoregressive generation |
-| [metric-learning.md](metric-learning.md) | Contrastive/triplet losses, embeddings for retrieval and similarity |
-| [nlp-fundamentals.md](nlp-fundamentals.md) | Tokenization, embeddings, classic NLP pipeline basics |
-| [nlp-advanced.md](nlp-advanced.md) | Modern NLP: pretraining objectives, transfer learning, advanced architectures |
-| [segmentation.md](segmentation.md) | Semantic/instance/panoptic segmentation architectures and losses |
-| [open-vocabulary-detection-and-tracking.md](open-vocabulary-detection-and-tracking.md) | Grounding DINO, SAM, Grounded SAM, multi-object tracking (SORT/DeepSORT/ByteTrack), OCR |
-| [time-series.md](time-series.md) | Forecasting through the deep-learning lens |
-| [video-understanding.md](video-understanding.md) | Action recognition, temporal modeling, video transformers |
+| [3d-vision.md](06-3d-vision.md) | Point clouds, NeRF, 3D reconstruction, depth estimation |
+| [computer-vision.md](03-computer-vision.md) | CNNs, ViTs, object detection, segmentation, OCR, visual reasoning |
+| [dynamic-graphs.md](11-dynamic-graphs.md) | Graph neural networks over evolving/temporal graphs |
+| [generative-models.md](08-generative-models.md) | VAEs, GANs, diffusion models, autoregressive generation |
+| [metric-learning.md](10-metric-learning.md) | Contrastive/triplet losses, embeddings for retrieval and similarity |
+| [nlp-fundamentals.md](01-nlp-fundamentals.md) | Tokenization, embeddings, classic NLP pipeline basics |
+| [nlp-advanced.md](02-nlp-advanced.md) | Modern NLP: pretraining objectives, transfer learning, advanced architectures |
+| [segmentation.md](04-segmentation.md) | Semantic/instance/panoptic segmentation architectures and losses |
+| [open-vocabulary-detection-and-tracking.md](05-open-vocabulary-detection-and-tracking.md) | Grounding DINO, SAM, Grounded SAM, multi-object tracking (SORT/DeepSORT/ByteTrack), OCR |
+| [time-series.md](09-time-series.md) | Forecasting through the deep-learning lens |
+| [video-understanding.md](07-video-understanding.md) | Action recognition, temporal modeling, video transformers |
 
 ---
 

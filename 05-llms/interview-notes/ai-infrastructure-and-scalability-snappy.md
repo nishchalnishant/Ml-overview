@@ -6,7 +6,7 @@ status: unread
 tags: [llms, ml, interview-notes-ai-infrastruct]
 ---
 
-> _Quick-recall companion. For the full deep-dive, see [ai-infrastructure-and-scalability.md](ai-infrastructure-and-scalability.md)._
+> _Quick-recall companion. For the full deep-dive, see [ai-infrastructure-and-scalability.md](12-ai-infrastructure-and-scalability.md)._
 
 # AI infrastructure & scalability — run LLMs like real services
 
