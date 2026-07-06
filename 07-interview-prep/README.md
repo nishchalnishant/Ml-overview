@@ -13,6 +13,7 @@ Use this folder first when you want a clean route instead of jumping between ove
 
 ## Route Map
 
+- [EA-ml-deep-learning-interview.md](EA-ml-deep-learning-interview.md) for a practical ML exercise interview (feature engineering → DL model → HPO → CV → perf → production scaling)
 - [ml/README.md](ml/README.md) for the core ML interview track (algorithms, eval, system design)
 - [llm/README.md](llm/README.md) for the general ML interview portal (rapid-fire Q&A, scenarios, revision)
 - [PRE-INTERVIEW-CHECKLIST.md](PRE-INTERVIEW-CHECKLIST.md) for the final 48-hour sanity pass
