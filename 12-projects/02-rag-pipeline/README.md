@@ -52,5 +52,4 @@ python query.py "How does attention scaling work?"
 ## Where to Next
 
 - **RAG theory, chunking strategies, reranking** → [05-llms/](../../05-llms/)
-- **Agentic RAG / multi-step retrieval** → [08-emerging-topics/emerging-trends/10-agentic-ai-systems.md](../../08-emerging-topics/emerging-trends/10-agentic-ai-systems.md)
 - **Next project: LLM fine-tuning** → [../03-llm-finetuning/](../03-llm-finetuning/)

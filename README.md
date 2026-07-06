@@ -18,8 +18,7 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 ```
 01-foundations/          Intro to AI/ML systems, math & theory, glossary, flashcards
 02-classical-ml/         Supervised, unsupervised, preprocessing, anomaly detection, active learning, Bayesian methods
-03-deep-learning/        Components + methods + transfer learning + video + 3D vision + PyTorch
-04-specialized-domains/  RL, RecSys, GNNs, speech/audio, tabular
+03-deep-learning/        Components + methods (NLP, CV, time series) + transfer learning + PyTorch
 05-llms/                 Architecture, training, applications, interview notes
 06-production-ml/        MLOps, system design
 07-interview-prep/       ML + LLM interview Q&As, scenarios, coding
@@ -54,7 +53,6 @@ FLOWCHARTS.md            Decision flowcharts across topics
 | Foundations | [flashcards.md](01-foundations/flashcards.md) |
 | Classical ML | [classical-ml-flashcards.md](02-classical-ml/classical-ml-flashcards.md) |
 | Deep Learning | [deep-learning-cheatsheet.md](03-deep-learning/deep-learning-cheatsheet.md) · [flashcards](03-deep-learning/deep-learning-flashcards.md) |
-| Specialized Domains (RL, RecSys, GNN) | [specialized-domains-cheatsheet.md](04-specialized-domains/specialized-domains-cheatsheet.md) · [flashcards](04-specialized-domains/specialized-domains-flashcards.md) |
 | LLMs | [REVISION.md](05-llms/REVISION.md) |
 | Production ML | [REVISION.md](06-production-ml/REVISION.md) |
 
@@ -70,11 +68,7 @@ FLOWCHARTS.md            Decision flowcharts across topics
 | [Classical ML](02-classical-ml/) | Bias–variance, trees, calibration, when classical beats DL |
 | [Deep Learning](03-deep-learning/) | Activations, backprop, attention, PyTorch, MCP |
 | [Computer Vision](03-deep-learning/methods/03-computer-vision.md) | CNNs, detection, ViT, CLIP, self-supervised |
-| [Generative Models](03-deep-learning/methods/08-generative-models.md) | VAE, GAN, DDPM/DDIM, Stable Diffusion, Flow Matching, DiT/FLUX |
 | [Time Series](03-deep-learning/methods/09-time-series.md) | ARIMA through Transformers, forecasting, anomaly detection |
-| [Reinforcement Learning](04-specialized-domains/01-rl-fundamentals.md) | MDPs, Q-learning, PPO, RLHF connection ([advanced](04-specialized-domains/02-rl-advanced.md) · [model-based](04-specialized-domains/03-rl-model-based.md)) |
-| [Recommender Systems](04-specialized-domains/05-recommender-systems.md) | Collaborative filtering, two-tower, ranking |
-| [Graph Neural Networks](04-specialized-domains/06-graph-neural-networks.md) | GCN, GraphSAGE, knowledge graphs |
 | [LLMs](05-llms/README.md) | Architecture, training, scaling, evaluation |
 | [LLM Applications](05-llms/applications/README.md) | RAG, agents, tuning, inference optimization |
 | [Multimodal AI](05-llms/applications/09-multimodal.md) | CLIP, VLMs, fusion architectures, audio, video, deployment |
@@ -83,21 +77,10 @@ FLOWCHARTS.md            Decision flowcharts across topics
 | [Production ML](06-production-ml/README.md) | MLOps, CI/CD for ML, deployment |
 | [Model Governance](06-production-ml/03-model-governance.md) | Model registry, audit trails, GDPR, champion-challenger |
 | [ML System Design](06-production-ml/system-design/) | Design patterns, case studies, engineering |
-| [Interpretability & XAI](08-emerging-topics/interpretability-and-xai/README.md) | SHAP, LIME, mechanistic interpretability |
 | [Causal Inference](08-emerging-topics/experimentation-and-causal-inference/README.md) | A/B testing, causal graphs, uplift modeling |
-| [Emerging Trends 2023–2025](08-emerging-topics/emerging-trends/README.md) | Mamba, MoE, test-time scaling, synthetic data, long context |
-| [2025 Frontier Models](08-emerging-topics/emerging-trends/02-2025-frontier-models.md) | DeepSeek, Llama 4, Gemini 2.5, Claude 3.7, GPT-o3, Qwen3 |
 | [Model Compression](03-deep-learning/components/16-model-compression.md) | Quantization, distillation, pruning |
 | [Research Papers](10-references/research-papers/README.md) | 25 foundational LLM papers every ML interview cares about |
-| [Anomaly Detection](02-classical-ml/16-anomaly-detection.md) | IForest, OCSVM, LOF, Autoencoders |
-| [Active Learning](02-classical-ml/18-active-learning.md) | Uncertainty sampling, QbC, Core-Set, BADGE |
-| [Bayesian Methods](02-classical-ml/15-bayesian-methods.md) | GPs, BNNs, variational inference, Bayesian optimization |
-| [Conformal Prediction](02-classical-ml/19-conformal-prediction.md) | Distribution-free coverage guarantees, CQR |
 | [Transfer Learning & Domain Adaptation](03-deep-learning/02-transfer-learning.md) | Fine-tuning, DANN, few-shot, MAML, zero-shot |
-| [Video Understanding](03-deep-learning/methods/07-video-understanding.md) | Two-stream, I3D, SlowFast, Video Transformers |
-| [3D Vision & Point Clouds](03-deep-learning/methods/06-3d-vision.md) | PointNet, PointNet++, NeRF, 3DGS, autonomous driving |
-| [Privacy-Preserving ML](08-emerging-topics/02-privacy-preserving-ml.md) | DP-SGD, Federated Learning, SMPC, HE |
-| [Continual Learning & NAS](08-emerging-topics/05-continual-learning.md) | Catastrophic forgetting, EWC, replay, DARTS |
 | [Data Scientist Reference](11-data-scientist/README.md) | SQL, statistics & probability, A/B testing, business metrics, EDA |
 | [Hands-On Projects](12-projects/README.md) | Runnable tabular ML pipeline, RAG system, and LoRA fine-tuning — not just prose |
 

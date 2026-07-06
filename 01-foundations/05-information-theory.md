@@ -493,4 +493,3 @@ This is why minimizing cross-entropy = minimizing KL divergence = maximum likeli
 - **Goodfellow et al.** — "Deep Learning" Ch. 3 — probability + information theory for ML
 - → [Math and Theory Foundations](02-math-and-theory-foundations.md) — linear algebra, calculus, probability
 - → [Loss Functions](../03-deep-learning/components/05-loss-functions.md) — cross-entropy, focal loss, others in practice
-- → [Bayesian Methods](../02-classical-ml/15-bayesian-methods.md) — KL divergence in variational inference

@@ -34,11 +34,5 @@ Each core module features an **Executive Summary & Cheatsheet** at the top for q
 | [ml-evaluation-metrics.md](12-ml-evaluation-metrics.md) | Precision/recall, ROC-AUC, calibration, ranking metrics |
 | [model-interpretation.md](13-model-interpretation.md) | SHAP, LIME, feature importance, partial dependence |
 | [calibration-and-uncertainty.md](14-calibration-and-uncertainty.md) | Platt scaling, isotonic regression, uncertainty quantification |
-| [bayesian-methods.md](15-bayesian-methods.md) | Bayesian inference, priors/posteriors, Bayesian linear regression |
-| [anomaly-detection.md](16-anomaly-detection.md) | Isolation forests, one-class SVM, density-based outlier detection |
-| [online-learning.md](17-online-learning.md) | Incremental learning, streaming updates, concept drift |
-| [active-learning.md](18-active-learning.md) | Query strategies for labeling efficiency under limited budgets |
-| [conformal-prediction.md](19-conformal-prediction.md) | Distribution-free prediction intervals with coverage guarantees |
 | [time-series-analysis.md](20-time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
-| [recommender-systems-classical.md](02-recommender-systems-classical.md) | Neighborhood CF, matrix factorization, ALS vs SGD, implicit feedback (WALS) |
 

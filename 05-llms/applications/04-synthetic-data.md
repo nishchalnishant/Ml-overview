@@ -532,5 +532,4 @@ This iterative flywheel is how Phi-3, Qwen, DeepSeek, and Llama 3 achieve their 
 
 - **Instruction tuning SFT** → [05-llms/applications/10-tuning-optimization.md](10-tuning-optimization.md)
 - **RLHF, DPO, GRPO** → [05-llms/applications/10-tuning-optimization.md](10-tuning-optimization.md)
-- **Reasoning models and RLVR** → [08-emerging-topics/emerging-trends/06-large-reasoning-models.md](../../08-emerging-topics/emerging-trends/06-large-reasoning-models.md)
 - **RAG (augmenting with real data)** → [rag.md](02-rag.md)

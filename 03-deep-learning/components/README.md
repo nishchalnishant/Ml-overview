@@ -30,7 +30,6 @@ These are the core concepts every serious deep-learning conversation keeps comin
 | [backpropagation.md](01-backpropagation.md) | Chain rule, gradient flow, vanishing/exploding gradients, gradient clipping |
 | [distributed-training-and-parallelism.md](13-distributed-training-and-parallelism.md) | Data/tensor/pipeline parallelism, ZeRO, sharding strategies |
 | [hidden-layers.md](04-hidden-layers.md) | Layer types, depth vs width, capacity tradeoffs |
-| [instruction-tuning-and-alignment.md](15-instruction-tuning-and-alignment.md) | SFT, RLHF, DPO — turning a base model into an assistant |
 | [loss-functions.md](05-loss-functions.md) | MSE, cross-entropy, focal loss, contrastive, triplet — when each applies |
 | [model-compression.md](16-model-compression.md) | Pruning, quantization, knowledge distillation, deployment tradeoffs |
 | [normalization.md](07-normalization.md) | BatchNorm, LayerNorm, RMSNorm — why and where each is used |
@@ -38,7 +37,7 @@ These are the core concepts every serious deep-learning conversation keeps comin
 | [quantization-pruning-detailed.md](17-quantization-pruning-detailed.md) | INT8/INT4 quantization, structured/unstructured pruning, accuracy tradeoffs |
 | [regularization.md](08-regularization.md) | Dropout, batch norm, layer norm, weight decay, early stopping |
 | [rnn-lstm-gru.md](09-rnn-lstm-gru.md) | Recurrent architectures, gating, vanishing gradients, when they still matter |
-| [scaling-laws-and-chinchilla.md](14-scaling-laws-and-chinchilla.md) | Compute-optimal scaling, Chinchilla, parameters vs data tradeoffs |
+| [llm-serving.md](18-llm-serving.md) | LLM inference serving, batching, KV cache, continuous batching |
 | [transformers.md](11-transformers.md) | Full Transformer architecture: embeddings, attention, FFN, positional encoding |
 | [weight-initialization.md](03-weight-initialization.md) | Xavier, He, and why bad init breaks deep nets |
 

@@ -418,7 +418,7 @@ def log_inference_event(
 
 ## 5. Regulatory Compliance
 
-> This is the canonical treatment of GDPR compliance mechanics (Article 22 explanation generation, Article 17 erasure pipeline, Article 33 breach response) as production capabilities. For the machine-unlearning algorithms behind Article 17 erasure (exact retraining vs. influence-function approximation vs. SISA sharded training), see [privacy-and-fairness.md §3](../07-interview-prep/ml/20-privacy-and-fairness.md). For Article 22 from the explainability-method side (SHAP/LIME choice, force plots), see [interpretability-and-xai.md §14](../08-emerging-topics/interpretability-and-xai/01-interpretability-and-xai.md#14-regulatory-context).
+> This is the canonical treatment of GDPR compliance mechanics (Article 22 explanation generation, Article 17 erasure pipeline, Article 33 breach response) as production capabilities. For the machine-unlearning algorithms behind Article 17 erasure (exact retraining vs. influence-function approximation vs. SISA sharded training), see [privacy-and-fairness.md §3](../07-interview-prep/ml/20-privacy-and-fairness.md).
 
 ### The Problem
 
@@ -619,7 +619,7 @@ class BreachResponseProtocol:
 
 ## 6. Model Cards
 
-> This is the canonical worked example (full template + failure modes). For the Mitchell et al. 2019 academic framing (Factors/Evaluation Data schema split) and adjacent documentation standards (IBM FactSheets, Datasheets for Datasets), see [interpretability-and-xai.md §12](../08-emerging-topics/interpretability-and-xai/01-interpretability-and-xai.md#12-model-cards-and-documentation).
+> This is the canonical worked example (full template + failure modes), covering the Mitchell et al. 2019 academic framing (Factors/Evaluation Data schema split) and adjacent documentation standards (IBM FactSheets, Datasheets for Datasets).
 
 ### The Problem
 

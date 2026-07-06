@@ -629,7 +629,7 @@ MACHINE LEARNING
 - RL → `04-specialized-domains/reinforcement-learning/`
 - RecSys → `04-specialized-domains/recommender-systems/`
 - GNNs → `04-specialized-domains/graph-neural-networks/`
-- Emerging → `08-emerging-topics/emerging-trends/`
+- Emerging → `08-emerging-topics/experimentation-and-causal-inference/`
 
 ## Flashcards
 
@@ -681,5 +681,5 @@ RecSys → 04-specialized-domains/recommender-systems/
 **GNNs → 04-specialized-domains/graph-neural-networks/?** #flashcard
 GNNs → 04-specialized-domains/graph-neural-networks/
 
-**Emerging → 08-emerging-topics/emerging-trends/?** #flashcard
-Emerging → 08-emerging-topics/emerging-trends/
+**Emerging → 08-emerging-topics/experimentation-and-causal-inference/?** #flashcard
+Emerging → 08-emerging-topics/experimentation-and-causal-inference/

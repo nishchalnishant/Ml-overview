@@ -317,5 +317,4 @@ Deep network loss surfaces have many local minima and saddle points. The key emp
 
 - **Information Theory (entropy, KL, cross-entropy, mutual information)** → [information-theory.md](05-information-theory.md)
 - **Python implementation of these concepts** → [03-python-and-data-tooling.md](03-python-and-data-tooling.md)
-- **Bayesian methods in practice (GPs, BNNs, variational inference)** → [02-classical-ml/15-bayesian-methods.md](../02-classical-ml/15-bayesian-methods.md)
 - **Optimizers that implement these gradients** → [03-deep-learning/components/06-optimisers.md](../03-deep-learning/components/06-optimisers.md)

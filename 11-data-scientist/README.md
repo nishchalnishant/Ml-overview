@@ -28,7 +28,7 @@ Role-specific reference material covering the skills that differentiate a Data S
 ## How This Fits the Repo
 
 - **Foundations of the math**: `01-foundations/` and `02-classical-ml/`
-- **Deep learning and specialized models**: `03-deep-learning/`, `04-specialized-domains/`
+- **Deep learning**: `03-deep-learning/`
 - **LLMs and generative AI**: `05-llms/`
 - **Production and MLOps**: `06-production-ml/`
 - **This folder**: fills the gap for data scientist–specific skills — statistics, experiments, causal inference, SQL, and business analytics

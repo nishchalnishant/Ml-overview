@@ -33,11 +33,11 @@ Deep learning is just software delivery with:
 
 ## Navigation
 
-> Full per-file tables live in [components/README.md](components/README.md) and [methods/README.md](methods/README.md) — those are the source of truth; this table is a curated subset. If a file is missing from here, check the sub-folder README first.
+> Full per-file table for components lives in [components/README.md](components/README.md) — that is the source of truth; this table is a curated subset. If a file is missing from here, check the sub-folder README first.
 
 | File / Folder | What it covers |
 | :--- | :--- |
-| [components/](components/README.md) | Core building blocks: activations, loss, backprop, optimizers, normalization, attention, transformers, RNN/LSTM/GRU, scaling laws, distributed training, instruction tuning, quantization |
+| [components/](components/README.md) | Core building blocks: activations, loss, backprop, optimizers, normalization, attention, transformers, RNN/LSTM/GRU, distributed training, quantization |
 | [components/02-activation-functions.md](components/02-activation-functions.md) | ReLU, sigmoid, tanh, GELU, swish — when and why |
 | [components/10-attention.md](components/10-attention.md) | Scaled dot-product attention, multi-head attention |
 | [components/12-autoencoders.md](components/12-autoencoders.md) | Encoder-decoder structure, latent space, VAEs |
@@ -52,21 +52,12 @@ Deep learning is just software delivery with:
 | [components/08-regularization.md](components/08-regularization.md) | Dropout, batch norm, weight decay, early stopping |
 | [components/03-weight-initialization.md](components/03-weight-initialization.md) | Xavier, He, why bad init breaks deep nets |
 | [components/11-transformers.md](components/11-transformers.md) | Transformer architecture end to end, incl. MoE FFN |
-| [components/14-scaling-laws-and-chinchilla.md](components/14-scaling-laws-and-chinchilla.md) | Compute-optimal scaling, Chinchilla |
 | [components/13-distributed-training-and-parallelism.md](components/13-distributed-training-and-parallelism.md) | Data/tensor/pipeline parallelism, ZeRO |
-| [components/15-instruction-tuning-and-alignment.md](components/15-instruction-tuning-and-alignment.md) | SFT, RLHF, DPO |
-| [methods/](methods/README.md) | Application areas: NLP, CV, generative models, time series, video, 3D, graphs |
+| [components/18-llm-serving.md](components/18-llm-serving.md) | LLM inference serving, batching, KV cache |
+| [methods/](methods/) | Application areas: NLP, CV, time series |
 | [methods/03-computer-vision.md](methods/03-computer-vision.md) | CNNs, ViTs, object detection |
-| [methods/04-segmentation.md](methods/04-segmentation.md) | Semantic/instance/panoptic segmentation, pose estimation |
-| [methods/05-open-vocabulary-detection-and-tracking.md](methods/05-open-vocabulary-detection-and-tracking.md) | Grounding DINO, SAM, multi-object tracking, OCR |
-| [methods/08-generative-models.md](methods/08-generative-models.md) | VAEs, GANs, diffusion, autoregressive generation |
 | [methods/01-nlp-fundamentals.md](methods/01-nlp-fundamentals.md) | Bag-of-Words through Transformers |
-| [methods/02-nlp-advanced.md](methods/02-nlp-advanced.md) | Pretraining objectives, transfer learning |
 | [methods/09-time-series.md](methods/09-time-series.md) | Forecasting through the deep-learning lens |
-| [methods/07-video-understanding.md](methods/07-video-understanding.md) | Action recognition, video transformers |
-| [methods/06-3d-vision.md](methods/06-3d-vision.md) | Point clouds, NeRF, 3D reconstruction |
-| [methods/11-dynamic-graphs.md](methods/11-dynamic-graphs.md) | Temporal GNNs, graph generation |
-| [methods/10-metric-learning.md](methods/10-metric-learning.md) | Contrastive/triplet losses, retrieval embeddings |
 | [transfer-learning.md](02-transfer-learning.md) | Fine-tuning, DANN, few-shot, MAML, zero-shot |
 | [pytorch-fundamentals.md](01-pytorch-fundamentals.md) | Dense practical reference: tensors, autograd, training loop, debugging |
 | [deep-learning-cheatsheet.md](deep-learning-cheatsheet.md) | 10-Minute Revision Card / Cheatsheet |
