@@ -1,0 +1,373 @@
+<!DOCTYPE html>
+        <html>
+        <head>
+            <meta charset="UTF-8">
+            <title>--- core ---</title>
+            <style>
+/* From extension vscode.github */
+/*---------------------------------------------------------------------------------------------
+ *  Copyright (c) Microsoft Corporation. All rights reserved.
+ *  Licensed under the MIT License. See License.txt in the project root for license information.
+ *--------------------------------------------------------------------------------------------*/
+
+.vscode-dark img[src$=\#gh-light-mode-only],
+.vscode-light img[src$=\#gh-dark-mode-only],
+.vscode-high-contrast:not(.vscode-high-contrast-light) img[src$=\#gh-light-mode-only],
+.vscode-high-contrast-light img[src$=\#gh-dark-mode-only] {
+	display: none;
+}
+
+/* From extension dendron.dendron */
+@font-face {
+  font-family: "fontello";
+  src: url("../font/fontello.eot?7840610");
+  src: url("../font/fontello.eot?7840610#iefix") format("embedded-opentype"),
+    url("../font/fontello.woff2?7840610") format("woff2"),
+    url("../font/fontello.woff?7840610") format("woff"),
+    url("../font/fontello.ttf?7840610") format("truetype"),
+    url("../font/fontello.svg?7840610#fontello") format("svg");
+  font-weight: normal;
+  font-style: normal;
+}
+/* Chrome hack: SVG is rendered more smooth in Windozze. 100% magic, uncomment if you need it. */
+/* Note, that will break hinting! In other OS-es font will be not as sharp as it could be */
+/*
+@media screen and (-webkit-min-device-pixel-ratio:0) {
+  @font-face {
+    font-family: 'fontello';
+    src: url('../font/fontello.svg?7840610#fontello') format('svg');
+  }
+}
+*/
+
+[class^="icon-"]:before,
+[class*=" icon-"]:before {
+  font-family: "fontello";
+  font-style: normal;
+  font-weight: normal;
+  speak: never;
+
+  display: inline-block;
+  text-decoration: inherit;
+  width: 1em;
+  margin-right: 0.2em;
+  text-align: center;
+  /* opacity: .8; */
+
+  /* For safety - reset parent styles, that can break glyph codes*/
+  font-variant: normal;
+  text-transform: none;
+
+  /* fix buttons height, for twitter bootstrap */
+  line-height: 1em;
+
+  /* Animation center compensation - margins should be symmetric */
+  /* remove if not needed */
+  margin-left: 0.2em;
+
+  /* you can be more comfortable with increased icons size */
+  /* font-size: 120%; */
+
+  /* Font smoothing. That was taken from TWBS */
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+
+  /* Uncomment for 3D effect */
+  /* text-shadow: 1px 1px 1px rgba(127, 127, 127, 0.3); */
+}
+
+.icon-link:before {
+  content: "\e800";
+} /* '' */
+
+.memo-markdown-embed {
+  /* border: 1px solid #ddd; */
+  /* border-radius: 6px; */
+  /* padding: 5px 20px 15px 20px;
+  margin: 0 20px; */
+  border-bottom: dashed thin;
+  position: relative;
+}
+
+.memo-markdown-embed-title {
+  height: 36px;
+  text-overflow: ellipsis;
+  overflow: hidden;
+  white-space: nowrap;
+  font-size: 26px;
+  line-height: 42px;
+  top: 5px;
+  left: 0;
+  right: 0;
+  width: 100%;
+  text-align: center;
+  font-weight: 900;
+}
+
+.memo-markdown-embed-link {
+  border-bottom: dashed thin;
+  /* position: absolute;
+  top: 6px;
+  right: 12px; */
+  /* /cursor: pointer; */
+  /* //float: right; */
+}
+
+.memo-markdown-embed-link i {
+  font-size: 18px;
+  color: #535353;
+}
+
+.memo-markdown-embed-link:hover i {
+  color: #000000;
+}
+
+.vscode-dark .memo-markdown-embed-link:hover i {
+  color: #ffffff;
+}
+
+.memo-markdown-embed-content {
+  /* max-height: 500px; */
+  /* overflow-y: auto;
+  padding-right: 10px; */
+}
+
+.memo-invalid-link {
+  color: #cc0013 !important;
+  cursor: not-allowed;
+}
+
+.memo-cyclic-link-warning {
+  text-align: center;
+}
+
+</style>
+            
+        <link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/markdown.css">
+<link rel="stylesheet" href="https://cdn.jsdelivr.net/gh/Microsoft/vscode/extensions/markdown-language-features/media/highlight.css">
+<style>
+            body {
+                font-family: -apple-system, BlinkMacSystemFont, 'Segoe WPC', 'Segoe UI', system-ui, 'Ubuntu', 'Droid Sans', sans-serif;
+                font-size: 14px;
+                line-height: 1.6;
+            }
+        </style>
+        <style>
+.task-list-item {
+    list-style-type: none;
+}
+
+.task-list-item-checkbox {
+    margin-left: -20px;
+    vertical-align: middle;
+    pointer-events: none;
+}
+</style>
+<style>
+:root {
+  --color-note: #0969da;
+  --color-tip: #1a7f37;
+  --color-warning: #9a6700;
+  --color-severe: #bc4c00;
+  --color-caution: #d1242f;
+  --color-important: #8250df;
+}
+
+</style>
+<style>
+@media (prefers-color-scheme: dark) {
+  :root {
+    --color-note: #2f81f7;
+    --color-tip: #3fb950;
+    --color-warning: #d29922;
+    --color-severe: #db6d28;
+    --color-caution: #f85149;
+    --color-important: #a371f7;
+  }
+}
+
+</style>
+<style>
+.markdown-alert {
+  padding: 0.5rem 1rem;
+  margin-bottom: 16px;
+  color: inherit;
+  border-left: .25em solid #888;
+}
+
+.markdown-alert>:first-child {
+  margin-top: 0
+}
+
+.markdown-alert>:last-child {
+  margin-bottom: 0
+}
+
+.markdown-alert .markdown-alert-title {
+  display: flex;
+  font-weight: 500;
+  align-items: center;
+  line-height: 1
+}
+
+.markdown-alert .markdown-alert-title .octicon {
+  margin-right: 0.5rem;
+  display: inline-block;
+  overflow: visible !important;
+  vertical-align: text-bottom;
+  fill: currentColor;
+}
+
+.markdown-alert.markdown-alert-note {
+  border-left-color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-note .markdown-alert-title {
+  color: var(--color-note);
+}
+
+.markdown-alert.markdown-alert-important {
+  border-left-color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-important .markdown-alert-title {
+  color: var(--color-important);
+}
+
+.markdown-alert.markdown-alert-warning {
+  border-left-color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-warning .markdown-alert-title {
+  color: var(--color-warning);
+}
+
+.markdown-alert.markdown-alert-tip {
+  border-left-color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-tip .markdown-alert-title {
+  color: var(--color-tip);
+}
+
+.markdown-alert.markdown-alert-caution {
+  border-left-color: var(--color-caution);
+}
+
+.markdown-alert.markdown-alert-caution .markdown-alert-title {
+  color: var(--color-caution);
+}
+
+</style>
+        
+        </head>
+        <body class="vscode-body vscode-light">
+            <pre><code class="language-python"><span class="hljs-comment"># --- core ---</span>
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+
+<span class="hljs-comment"># --- split / preprocess ---</span>
+<span class="hljs-keyword">from</span> sklearn.model_selection <span class="hljs-keyword">import</span> train_test_split, StratifiedKFold, KFold, GroupKFold, TimeSeriesSplit
+<span class="hljs-keyword">from</span> sklearn.preprocessing <span class="hljs-keyword">import</span> StandardScaler, OneHotEncoder, OrdinalEncoder
+<span class="hljs-keyword">from</span> sklearn.impute <span class="hljs-keyword">import</span> SimpleImputer
+<span class="hljs-keyword">from</span> sklearn.compose <span class="hljs-keyword">import</span> ColumnTransformer
+<span class="hljs-keyword">from</span> sklearn.pipeline <span class="hljs-keyword">import</span> Pipeline
+
+<span class="hljs-comment"># --- baseline models ---</span>
+<span class="hljs-keyword">from</span> sklearn.linear_model <span class="hljs-keyword">import</span> LogisticRegression, Ridge
+<span class="hljs-keyword">from</span> sklearn.ensemble <span class="hljs-keyword">import</span> GradientBoostingClassifier, GradientBoostingRegressor
+
+<span class="hljs-comment"># --- metrics ---</span>
+<span class="hljs-keyword">from</span> sklearn.metrics <span class="hljs-keyword">import</span> roc_auc_score, average_precision_score  <span class="hljs-comment"># classification</span>
+<span class="hljs-keyword">from</span> sklearn.metrics <span class="hljs-keyword">import</span> mean_absolute_error, root_mean_squared_error  <span class="hljs-comment"># regression</span>
+
+<span class="hljs-comment"># --- deep learning ---</span>
+<span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">from</span> torch <span class="hljs-keyword">import</span> nn
+<span class="hljs-keyword">from</span> torch.utils.data <span class="hljs-keyword">import</span> Dataset, DataLoader
+
+<span class="hljs-comment"># --- hyperparameter search ---</span>
+<span class="hljs-keyword">from</span> scipy.stats <span class="hljs-keyword">import</span> loguniform, randint
+<span class="hljs-keyword">from</span> sklearn.model_selection <span class="hljs-keyword">import</span> RandomizedSearchCV
+<span class="hljs-keyword">import</span> optuna
+</code></pre>
+<pre><code class="language-python"><span class="hljs-comment"># ML TEMPLATE</span>
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+<span class="hljs-keyword">from</span> sklearn.model_selection <span class="hljs-keyword">import</span> train_test_split
+<span class="hljs-keyword">from</span> sklearn.preprocessing <span class="hljs-keyword">import</span> StandardScaler, OneHotEncoder
+<span class="hljs-keyword">from</span> sklearn.impute <span class="hljs-keyword">import</span> SimpleImputer
+<span class="hljs-keyword">from</span> sklearn.compose <span class="hljs-keyword">import</span> ColumnTransformer
+<span class="hljs-keyword">from</span> sklearn.pipeline <span class="hljs-keyword">import</span> Pipeline
+<span class="hljs-keyword">from</span> sklearn.linear_model <span class="hljs-keyword">import</span> LogisticRegression
+<span class="hljs-keyword">from</span> sklearn.metrics <span class="hljs-keyword">import</span> roc_auc_score
+
+NUMERIC_FEATURES = [<span class="hljs-string">&quot;age&quot;</span>, <span class="hljs-string">&quot;tenure_months&quot;</span>, <span class="hljs-string">&quot;monthly_charge&quot;</span>]
+CATEGORICAL_FEATURES = [<span class="hljs-string">&quot;contract_type&quot;</span>, <span class="hljs-string">&quot;payment_method&quot;</span>]
+
+df = pd.read_csv(<span class="hljs-string">&quot;data.csv&quot;</span>)
+X, y = df[NUMERIC_FEATURES + CATEGORICAL_FEATURES], df[<span class="hljs-string">&quot;label&quot;</span>]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="hljs-number">0.2</span>, random_state=<span class="hljs-number">42</span>, stratify=y)
+
+preprocessor = ColumnTransformer([
+    (<span class="hljs-string">&quot;num&quot;</span>, Pipeline([(<span class="hljs-string">&quot;impute&quot;</span>, SimpleImputer(strategy=<span class="hljs-string">&quot;median&quot;</span>)), (<span class="hljs-string">&quot;scale&quot;</span>, StandardScaler())]), NUMERIC_FEATURES),
+    (<span class="hljs-string">&quot;cat&quot;</span>, Pipeline([(<span class="hljs-string">&quot;impute&quot;</span>, SimpleImputer(strategy=<span class="hljs-string">&quot;most_frequent&quot;</span>)), (<span class="hljs-string">&quot;encode&quot;</span>, OneHotEncoder(handle_unknown=<span class="hljs-string">&quot;ignore&quot;</span>))]), CATEGORICAL_FEATURES),
+]).fit(X_train)
+X_train, X_test = preprocessor.transform(X_train), preprocessor.transform(X_test)
+
+model = LogisticRegression(max_iter=<span class="hljs-number">1000</span>)
+model.fit(X_train, y_train)
+<span class="hljs-built_in">print</span>(roc_auc_score(y_test, model.predict_proba(X_test)[:, <span class="hljs-number">1</span>]))
+</code></pre>
+<pre><code class="language-python"><span class="hljs-comment"># DL TEMPLATE</span>
+<span class="hljs-keyword">import</span> numpy <span class="hljs-keyword">as</span> np
+<span class="hljs-keyword">import</span> pandas <span class="hljs-keyword">as</span> pd
+<span class="hljs-keyword">import</span> torch
+<span class="hljs-keyword">from</span> torch <span class="hljs-keyword">import</span> nn
+<span class="hljs-keyword">from</span> sklearn.model_selection <span class="hljs-keyword">import</span> train_test_split
+<span class="hljs-keyword">from</span> sklearn.preprocessing <span class="hljs-keyword">import</span> StandardScaler, OneHotEncoder
+<span class="hljs-keyword">from</span> sklearn.impute <span class="hljs-keyword">import</span> SimpleImputer
+<span class="hljs-keyword">from</span> sklearn.compose <span class="hljs-keyword">import</span> ColumnTransformer
+<span class="hljs-keyword">from</span> sklearn.pipeline <span class="hljs-keyword">import</span> Pipeline
+<span class="hljs-keyword">from</span> sklearn.metrics <span class="hljs-keyword">import</span> roc_auc_score
+
+NUMERIC_FEATURES = [<span class="hljs-string">&quot;age&quot;</span>, <span class="hljs-string">&quot;tenure_months&quot;</span>, <span class="hljs-string">&quot;monthly_charge&quot;</span>]
+CATEGORICAL_FEATURES = [<span class="hljs-string">&quot;contract_type&quot;</span>, <span class="hljs-string">&quot;payment_method&quot;</span>]
+
+df = pd.read_csv(<span class="hljs-string">&quot;data.csv&quot;</span>)
+X, y = df[NUMERIC_FEATURES + CATEGORICAL_FEATURES], df[<span class="hljs-string">&quot;label&quot;</span>]
+X_train, X_test, y_train, y_test = train_test_split(X, y, test_size=<span class="hljs-number">0.2</span>, random_state=<span class="hljs-number">42</span>, stratify=y)
+
+preprocessor = ColumnTransformer([
+    (<span class="hljs-string">&quot;num&quot;</span>, Pipeline([(<span class="hljs-string">&quot;impute&quot;</span>, SimpleImputer(strategy=<span class="hljs-string">&quot;median&quot;</span>)), (<span class="hljs-string">&quot;scale&quot;</span>, StandardScaler())]), NUMERIC_FEATURES),
+    (<span class="hljs-string">&quot;cat&quot;</span>, Pipeline([(<span class="hljs-string">&quot;impute&quot;</span>, SimpleImputer(strategy=<span class="hljs-string">&quot;most_frequent&quot;</span>)), (<span class="hljs-string">&quot;encode&quot;</span>, OneHotEncoder(handle_unknown=<span class="hljs-string">&quot;ignore&quot;</span>))]), CATEGORICAL_FEATURES),
+]).fit(X_train)
+X_train, X_test = preprocessor.transform(X_train), preprocessor.transform(X_test)
+
+model = nn.Sequential(
+    nn.Linear(X_train.shape[<span class="hljs-number">1</span>], <span class="hljs-number">64</span>), nn.ReLU(), nn.BatchNorm1d(<span class="hljs-number">64</span>), nn.Dropout(<span class="hljs-number">0.2</span>),
+    nn.Linear(<span class="hljs-number">64</span>, <span class="hljs-number">1</span>),
+)
+optimizer = torch.optim.Adam(model.parameters(), lr=<span class="hljs-number">1e-3</span>, weight_decay=<span class="hljs-number">1e-4</span>)
+loss_fn = nn.BCEWithLogitsLoss()
+
+x_t = torch.tensor(X_train, dtype=torch.float32)
+y_t = torch.tensor(y_train.values, dtype=torch.float32)
+
+<span class="hljs-keyword">for</span> epoch <span class="hljs-keyword">in</span> <span class="hljs-built_in">range</span>(<span class="hljs-number">50</span>):
+    model.train()
+    optimizer.zero_grad()
+    loss = loss_fn(model(x_t).squeeze(-<span class="hljs-number">1</span>), y_t)
+    loss.backward()
+    optimizer.step()
+
+model.<span class="hljs-built_in">eval</span>()
+<span class="hljs-keyword">with</span> torch.no_grad():
+    preds = torch.sigmoid(model(torch.tensor(X_test, dtype=torch.float32)).squeeze(-<span class="hljs-number">1</span>)).numpy()
+<span class="hljs-built_in">print</span>(roc_auc_score(y_test, preds))
+</code></pre>
+
+            
+            
+        </body>
+        </html>

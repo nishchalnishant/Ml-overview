@@ -149,3 +149,13 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 - [ ] [PRE-INTERVIEW-CHECKLIST.md](PRE-INTERVIEW-CHECKLIST.md) — 48h/24h/morning-of checklist
 - [ ] Run [12-projects/01-tabular-ml-pipeline/](../12-projects/01-tabular-ml-pipeline/) end-to-end once, out loud, narrating each step
 - [ ] Have 2 questions ready for the interviewer about EA's ML stack (e.g., "what's the feature store / serving latency budget for player-facing models?")
+
+---
+
+## Later round: production problem + coding + justified tradeoffs
+
+If a later round is framed as "solve a real production problem end to end (with coding), make and
+justify tradeoffs" rather than a clean-dataset pipeline drill, switch prep material — see
+[ROUND3-tradeoff-drills.md](ROUND3-tradeoff-drills.md) for the tradeoff bank (model choice, serving
+architecture, feature pipeline, rollout, metrics) and the clarify-first / narrate-tradeoffs runbook
+for ambiguous scenarios.

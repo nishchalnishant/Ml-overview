@@ -11,281 +11,131 @@ Concept + intuition + tradeoff for each question.
 
 ---
 
-## 1. What is Machine Learning?
+## Easy
 
+#### Q: What is Machine Learning?
 Learning a function $f: X \to Y$ from data $(x_i, y_i)$ rather than hand-coding rules.
-
 **Types:**
 - **Supervised:** labeled $(x, y)$ pairs — classification, regression
 - **Unsupervised:** unlabeled $x$ — clustering, density estimation, representation learning
 - **Reinforcement:** agent learns by interacting with environment, maximizing cumulative reward
 
----
-
-## 2. Bias-Variance Tradeoff
-
-$$\mathbb{E}[(y - \hat{f}(x))^2] = \underbrace{\text{Bias}^2[\hat{f}]}_{\text{systematic error}} + \underbrace{\text{Var}[\hat{f}]}_{\text{sensitivity to data}} + \sigma^2$$
-
-- **High bias (underfitting):** model too simple, misses patterns. Fix: more capacity, better features
-- **High variance (overfitting):** model too complex, memorizes noise. Fix: regularization, more data
-- **Goal:** minimize total error, not just training error
-
----
-
-## 3. Overfitting vs Underfitting Diagnosis
-
-```
-Training loss \ Validation loss:
-  Both high          → Underfitting (model too simple or features too weak)
-  Train low, val high → Overfitting (memorizing training data)
-  Both low, close    → Generalizing well
-```
-
-```python
-from sklearn.model_selection import learning_curve
-train_sizes, train_scores, val_scores = learning_curve(model, X, y, cv=5)
-# Converging gap = diminishing overfitting with more data
-# Persistent gap at large n = high variance problem
-```
-
----
-
-## 4. Train / Validation / Test Split
-
-| Split | Purpose | When to touch |
-| :--- | :--- | :--- |
-| Train | Learn parameters | Every training run |
-| Validation | Tune hyperparameters, select model | During development |
-| Test | Final unbiased evaluation | Once — at the end |
-
+#### Q: Explain the Train / Validation / Test Split.
+- **Train**: Learn parameters. Touched every training run.
+- **Validation**: Tune hyperparameters, select model. Touched during development.
+- **Test**: Final unbiased evaluation. Touched once — at the end.
 **Common mistakes:** tuning hyperparameters on the test set (optimistic bias), using future data in train for time series (leakage).
-
 For time series: always use temporal splits. Random splits allow future data to leak into training.
 
----
+#### Q: What is the difference between a Hyperparameter and a Parameter?
+- **Parameters**: Learned from Data (gradient descent). Examples: Weights, biases. Tuning method: Optimization.
+- **Hyperparameters**: Set before training. Examples: Learning rate, depth, regularization. Tuning method: Grid search, random search, Bayesian optimization.
 
-## 5. Hyperparameter vs Parameter
+#### Q: What is Feature Scaling, and which algorithms need it?
+- **KNN**: Yes (Distance-based — unscaled features dominate)
+- **SVM**: Yes (Kernel distances, margin computation)
+- **Logistic regression**: Yes (Gradient magnitudes depend on feature scale)
+- **Neural nets**: Yes (Exploding/vanishing gradients)
+- **Decision trees / XGBoost**: No (Split-based — only feature rank matters)
 
-| | Parameters | Hyperparameters |
-| :--- | :--- | :--- |
-| **Learned from** | Data (gradient descent) | Set before training |
-| **Examples** | Weights, biases | Learning rate, depth, regularization |
-| **Tuning method** | Optimization | Grid search, random search, Bayesian optimization |
-
----
-
-## 6. Feature Scaling
-
-**Why it matters for some algorithms:**
-
-| Algorithm | Needs scaling? | Reason |
-| :--- | :--- | :--- |
-| KNN | Yes | Distance-based — unscaled features dominate |
-| SVM | Yes | Kernel distances, margin computation |
-| Logistic regression | Yes | Gradient magnitudes depend on feature scale |
-| Neural nets | Yes | Exploding/vanishing gradients |
-| Decision trees / XGBoost | No | Split-based — only feature rank matters |
-
-```python
-from sklearn.preprocessing import StandardScaler, MinMaxScaler
-
-# StandardScaler: zero mean, unit variance — good for algorithms assuming Gaussian
-scaler = StandardScaler()  # z = (x - mean) / std
-
-# MinMaxScaler: [0, 1] range — good for neural nets, image pixels
-scaler = MinMaxScaler()    # z = (x - min) / (max - min)
-```
-
----
-
-## 7. Logistic Regression
-
-$$P(y=1 \mid x) = \sigma(w^T x + b) = \frac{1}{1+e^{-(w^Tx+b)}}$$
-
-**Loss:** binary cross-entropy = $-\frac{1}{n}\sum[y\log\hat{p} + (1-y)\log(1-\hat{p})]$
-
-**Decision boundary:** linear in feature space. For non-linear boundaries: add polynomial features or use a neural net.
-
-**Regularization:** C in sklearn = inverse lambda. Low C = more regularization. L1 → sparse coefficients. L2 → all coefficients non-zero.
-
----
-
-## 8. Precision vs Recall
-
-$$\text{Precision} = \frac{TP}{TP+FP} \quad \text{Recall} = \frac{TP}{TP+FN} \quad F1 = \frac{2PR}{P+R}$$
-
+#### Q: Explain Precision vs Recall and F1 score.
+- **Precision** = TP / (TP + FP)
+- **Recall** = TP / (TP + FN)
+- **F1** = 2PR / (P + R)
 - **High precision needed:** spam filter (don't block legitimate email)
 - **High recall needed:** cancer screening (don't miss cases)
 - **F1:** balanced. PR-AUC better than ROC-AUC for rare positive classes.
 
----
-
-## 9. Bagging vs Boosting
-
-| | Bagging | Boosting |
-| :--- | :--- | :--- |
-| **Training** | Independent parallel models | Sequential, each fixes previous errors |
-| **Reduces** | Variance | Bias |
-| **Examples** | Random Forest | XGBoost, LightGBM, AdaBoost |
-| **Overfitting risk** | Lower | Higher (if too many rounds) |
-| **Speed** | Fast (parallelizable) | Slower (sequential dependency) |
-
-**Random Forest:** builds $T$ trees, each on a bootstrap sample with a random feature subset. Averages predictions.
-
-**XGBoost:** fits additive models $F_m(x) = F_{m-1}(x) + \alpha h_m(x)$ where each $h_m$ is a shallow tree fitted to residuals, with L1/L2 regularization on tree weights.
+#### Q: What is the Bias-Variance Tradeoff?
+Total expected error = Bias^2 + Variance + Irreducible Noise.
+- **High bias (underfitting):** model too simple, misses patterns. Fix: more capacity, better features.
+- **High variance (overfitting):** model too complex, memorizes noise. Fix: regularization, more data.
+- **Goal:** minimize total error, not just training error.
 
 ---
 
-## 10. Backpropagation
+## Medium
 
-Chain rule applied layer-by-layer from loss to parameters:
+#### Q: How do you diagnose Overfitting vs Underfitting from loss curves?
+- **Both high**: Underfitting (model too simple or features too weak).
+- **Train low, val high**: Overfitting (memorizing training data).
+- **Both low, close**: Generalizing well.
 
-$$\frac{\partial \mathcal{L}}{\partial W^{(l)}} = \frac{\partial \mathcal{L}}{\partial a^{(l)}} \cdot \frac{\partial a^{(l)}}{\partial z^{(l)}} \cdot \frac{\partial z^{(l)}}{\partial W^{(l)}}$$
+#### Q: Explain Logistic Regression, its loss, and regularization.
+Predicts probabilities using a sigmoid function: $P(y=1 \mid x) = \sigma(w^T x + b)$.
+**Loss:** binary cross-entropy.
+**Decision boundary:** linear in feature space.
+**Regularization:** C in sklearn = inverse lambda. Low C = more regularization. L1 → sparse coefficients. L2 → all coefficients non-zero.
 
+#### Q: Compare Bagging vs Boosting.
+- **Bagging**: Trains independent parallel models. Reduces variance. Examples: Random Forest. Lower overfitting risk. Fast (parallelizable).
+- **Boosting**: Trains sequentially, each fixes previous errors. Reduces bias. Examples: XGBoost, LightGBM, AdaBoost. Higher overfitting risk if too many rounds. Slower (sequential dependency).
+
+#### Q: How does Backpropagation work?
+Chain rule applied layer-by-layer from loss to parameters.
 Forward pass: compute and cache activations. Backward pass: compute gradients in reverse using cached activations.
+Activations must be cached because computing the gradient of a weight requires the activation from the previous layer.
 
-**Why cache activations?** Computing $\partial z / \partial W$ requires $a^{(l-1)}$ — must store it during forward pass.
+#### Q: Why do we need BatchNorm?
+Reduces internal covariate shift (distribution of inputs to each layer stays stable).
+Allows higher learning rates because gradients stay well-scaled.
+Acts as a regularizer due to noise from batch statistics.
+LayerNorm is used instead of BatchNorm in Transformers because LayerNorm normalizes over features per sample, while BatchNorm normalizes over the batch dimension, which is problematic for variable-length sequences.
 
----
+#### Q: Why is ReLU the most common activation function?
+- Non-saturating for positive values → no vanishing gradient problem.
+- Computationally cheap (threshold operation).
+- Sparse activations (half the neurons off) → implicit regularization.
+- **Dying ReLU problem:** if a neuron always receives negative input, gradient is always 0. Fix: LeakyReLU, ELU, or careful initialization.
 
-## 11. Why BatchNorm?
+#### Q: Compare Transformers to LSTMs.
+- **LSTM**: Sequential $O(T)$ depth. Long-range memory degrades with distance. Cannot parallelize across time. Complexity: $O(T \cdot d^2)$. Used today in embedded systems, short sequences.
+- **Transformer**: Parallel $O(1)$ depth. Full attention to all positions. Fully parallelizable training. Complexity: $O(T^2 \cdot d)$ — quadratic in sequence. Used everywhere at scale.
 
-$$\hat{x} = \frac{x - \mu_B}{\sqrt{\sigma_B^2 + \epsilon}}, \quad y = \gamma \hat{x} + \beta$$
+#### Q: How do you handle Class Imbalance?
+- `class_weight="balanced"`: Always try first — free.
+- **SMOTE (synthetic oversampling)**: Tabular data with low minority count.
+- **Undersampling**: Large dataset where majority is very abundant.
+- **Focal loss**: Deep learning — down-weights easy examples.
+- **Threshold tuning**: When you have a probability score — use cost matrix.
 
-- Reduces **internal covariate shift**: distribution of inputs to each layer stays stable
-- Allows higher learning rates (gradients stay well-scaled)
-- Acts as regularizer (noise from batch statistics)
-
-**LayerNorm vs BatchNorm:** LayerNorm normalizes over features per sample (independent of batch size). Standard for Transformers. BatchNorm normalizes over the batch dimension — problematic for variable-length sequences and small batches.
-
----
-
-## 12. Why ReLU?
-
-$$\text{ReLU}(x) = \max(0, x), \quad \frac{d}{dx}\text{ReLU} = \begin{cases} 1 & x > 0 \\ 0 & x \leq 0 \end{cases}$$
-
-- Non-saturating for positive values → no vanishing gradient problem
-- Computationally cheap (threshold operation)
-- Sparse activations (half the neurons off) → implicit regularization
-
-**Dying ReLU problem:** if a neuron always receives negative input, gradient is always 0 — neuron never updates. Fix: LeakyReLU, ELU, or careful initialization.
-
----
-
-## 13. Transformer vs LSTM
-
-| | LSTM | Transformer |
-| :--- | :--- | :--- |
-| **Processing** | Sequential — $O(T)$ depth | Parallel — $O(1)$ depth |
-| **Long-range memory** | Degrades with distance | Full attention to all positions |
-| **Training** | Cannot parallelize across time | Fully parallelizable |
-| **Complexity** | $O(T \cdot d^2)$ | $O(T^2 \cdot d)$ — quadratic in sequence |
-| **Use today** | Embedded systems, short sequences | Everything at scale |
-
-LSTM is still used in low-latency edge settings where a small model must process streaming data without the quadratic attention cost.
+#### Q: What are the different types of Model Drift?
+- **Feature drift**: $P(X)$ changes. Detect via KS test, PSI on features.
+- **Concept drift**: $P(Y \mid X)$ changes. Detect by monitoring prediction accuracy on labeled slice.
+- **Label drift**: $P(Y)$ changes. Detect by monitoring score distribution.
 
 ---
 
-## 14. Class Imbalance
+## Hard
 
-**Problem:** minority class accuracy is drowned by majority class.
+#### Q: Explain the Candidate Generation vs Ranking (Two-Stage Pattern) in recommendations.
+Running a heavy model on 10M items per query is too expensive.
+- **Stage 1**: Fast retrieval (ANN, BM25, collaborative filtering) reduces millions of items to ~1000 candidates. Tools: FAISS, Elasticsearch, two-tower embeddings.
+- **Stage 2**: Heavy ranking (neural net with full features) ranks candidates to top 10–20 results. Tools: LightGBM LambdaMART, DCN, DIN.
 
-**Solutions:**
+#### Q: Why use Cross-Validation instead of a single Train/Val split?
+A single train/val split can overfit to the particular split. Cross-validation averages over multiple splits to give a robust estimate of out-of-sample performance.
+- **Stratified K-Fold**: preserves class ratio in each fold for classification.
+- **Time-series CV**: cannot use random folds — use a rolling window forward (e.g. `TimeSeriesSplit`) to prevent data leakage.
 
-| Method | When to use |
-| :--- | :--- |
-| `class_weight="balanced"` | Always try first — free |
-| SMOTE (synthetic oversampling) | Tabular data with low minority count |
-| Undersampling | Large dataset where majority is very abundant |
-| Focal loss | Deep learning — down-weights easy examples |
-| Threshold tuning | When you have a probability score — use cost matrix |
+#### Q: Compare different variants of Gradient Descent.
+- **Batch GD**: Full dataset. Stable, exact gradient, but slow per step and needs full data in memory.
+- **SGD**: 1 sample. Fast updates, escapes local minima, but noisy and high variance.
+- **Mini-batch SGD**: 32–512 samples. Best of both — GPU-efficient. Requires tuning batch size.
+- **Adam**: Adaptive LR, fast convergence, but can generalize worse than SGD+momentum on some tasks.
 
-```python
-from sklearn.utils.class_weight import compute_class_weight
-import numpy as np
+#### Q: How do different Regularization Techniques work?
+- **L1 (Lasso)**: Sparse weights — some exactly 0. Adds absolute value penalty.
+- **L2 (Ridge)**: Small weights — none exactly 0. Adds squared penalty.
+- **Dropout**: Random deactivation at training, forcing the network to not rely on any single neuron.
+- **Early stopping**: Stop training before validation loss increases.
+- **Data augmentation**: Increase effective dataset size via domain-specific transforms.
 
-weights = compute_class_weight("balanced", classes=np.unique(y_train), y=y_train)
-class_weight_dict = dict(enumerate(weights))
-# Pass to model: RandomForestClassifier(class_weight=class_weight_dict)
-```
-
----
-
-## 15. Model Drift
-
-| Type | Cause | Detection |
-| :--- | :--- | :--- |
-| Feature drift | $P(X)$ changes | KS test, PSI on features |
-| Concept drift | $P(Y \mid X)$ changes | Monitor prediction accuracy on labeled slice |
-| Label drift | $P(Y)$ changes | Monitor score distribution |
-
-**PSI thresholds:** < 0.1 = stable, 0.1–0.25 = monitoring needed, > 0.25 = retrain.
-
----
-
-## 16. Candidate Generation vs Ranking (Two-Stage Pattern)
-
-**Why two stages?** Running a heavy model on 10M items per query is too expensive.
-
-```
-Millions of items
-    → Stage 1: Fast retrieval (ANN, BM25, collaborative filtering)
-    → ~1000 candidates
-    → Stage 2: Heavy ranking (neural net with full features)
-    → Top 10–20 results
-```
-
-**Stage 1 tools:** FAISS (approximate nearest neighbor), Elasticsearch (BM25), two-tower embeddings.  
-**Stage 2 tools:** LightGBM LambdaMART, DCN, DIN.
-
----
-
-## 17. Why Cross-Validate?
-
-A single train/val split can overfit to the particular split. Cross-validation averages over multiple splits:
-
-$$\text{CV score} = \frac{1}{K}\sum_{k=1}^K \mathcal{L}(f_{-k}, D_k)$$
-
-where $f_{-k}$ is trained on all folds except $k$, evaluated on fold $k$.
-
-**Stratified K-Fold** (for classification): preserves class ratio in each fold. Use `StratifiedKFold` instead of `KFold` when class imbalance exists.
-
-**Time-series CV:** cannot use random folds — use `TimeSeriesSplit` (rolling window forward).
-
----
-
-## 18. Gradient Descent Variants
-
-| Variant | Batch size | Pros | Cons |
-| :--- | :--- | :--- | :--- |
-| Batch GD | Full dataset | Stable, exact gradient | Slow per step, needs full data in memory |
-| SGD | 1 sample | Fast updates, escapes local minima | Noisy, high variance |
-| Mini-batch SGD | 32–512 | Best of both — GPU-efficient | Requires tuning batch size |
-| Adam | Mini-batch | Adaptive LR, fast convergence | Can generalize worse than SGD+momentum |
-
----
-
-## 19. Regularization Techniques
-
-| Method | Effect | Formula |
-| :--- | :--- | :--- |
-| L1 (Lasso) | Sparse weights — some exactly 0 | $+\lambda\sum\|w_i\|$ |
-| L2 (Ridge/weight decay) | Small weights — none exactly 0 | $+\lambda\sum w_i^2$ |
-| Dropout | Random deactivation at training | Keep prob $p$; scale by $1/p$ at test |
-| Early stopping | Stop before val loss increases | No added compute |
-| Data augmentation | Increase effective dataset size | Domain-specific transforms |
-
----
-
-## 20. Key Numbers to Know
-
-| Fact | Value |
-| :--- | :--- |
-| Chinchilla optimal tokens/param | ~20 |
-| GPT-3 params | 175B |
-| LLaMA 3 training tokens | 15T |
-| Standard attention complexity | $O(n^2 d)$ |
-| LoRA trainable params | ~0.06% of base model |
-| BF16 memory | 2 bytes/param |
-| FP32 memory | 4 bytes/param |
-| 70B model BF16 VRAM | ~140GB |
+#### Q: What are some key numbers an ML engineer should know?
+- Chinchilla optimal tokens/param: ~20
+- GPT-3 params: 175B
+- LLaMA 3 training tokens: 15T
+- Standard attention complexity: $O(n^2 d)$
+- LoRA trainable params: ~0.06% of base model
+- BF16 memory: 2 bytes/param
+- 70B model BF16 VRAM: ~140GB
