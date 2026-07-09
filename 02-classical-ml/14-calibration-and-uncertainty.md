@@ -337,34 +337,4 @@ A: **Aleatoric uncertainty** (data uncertainty): inherent noise in the data that
 **Q: A model has 0.92 ROC-AUC but your product team is unhappy with its predictions. What calibration and threshold issues might explain this?**
 A: Several issues: (1) **Miscalibration** — ROC-AUC measures ranking quality (whether positive scores higher than negative), not probability accuracy. A model can rank perfectly but output p=0.99 for cases that are only 60% likely to be positive. If the team is making threshold-based decisions (flag if p > 0.5), miscalibrated probabilities lead to unexpected false positive rates. Fix: check reliability diagram and apply temperature scaling. (2) **Wrong threshold** — the default 0.5 threshold is arbitrary. If the cost of a false negative is 10× a false positive (e.g., fraud), the optimal threshold should be much lower than 0.5. Use the cost-sensitive threshold: argmin_t [FPR(t)·C_FP + FNR(t)·C_FN]. (3) **Class imbalance** — with 1% positive rate, even a calibrated p=0.5 prediction is very rare; the team may be seeing many low-confidence positives that they expect to be high. Fix: recalibrate with the true base rate. (4) **Distribution shift** — model was calibrated on training distribution; production inputs may differ (feature drift → probabilities shift). Check PSI on input features and recalibrate periodically.
 
-## Flashcards
-
-**Points above the diagonal: model is underconfident?** #flashcard
-the true positive rate exceeds the predicted probability. The model is more right than it thinks.
-
-**Points below the diagonal: model is overconfident?** #flashcard
-the true positive rate is lower than the predicted probability. The model is more wrong than it thinks.
-
-**S-shaped curve (above for low $p$, below for high $p$)?** #flashcard
-classic random forest pattern.
-
-**strategy='uniform'?** #flashcard
-equal-width bins in probability space. Can have sparse bins at extremes.
-
-**strategy='quantile'?** #flashcard
-equal-count bins. Better for skewed score distributions.
-
-**$T > 1$?** #flashcard
-softer distribution, less confident
-
-**$T < 1$?** #flashcard
-sharper distribution, more confident (rarely needed)
-
-**$T = 1$?** #flashcard
-unchanged
-
-**Aleatoric uncertainty?** #flashcard
-Variance of the label given the input, $\text{Var}[Y | X = x]$. Comes from noise in the data generating process. Cannot be reduced by collecting more data.
-
-**Epistemic uncertainty?** #flashcard
-Uncertainty about the model parameters given finite training data. Decreases with more data in the uncertain region.
+For active-recall drilling on these terms, see [classical-ml-flashcards.md](classical-ml-flashcards.md).

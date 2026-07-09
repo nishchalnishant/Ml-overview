@@ -65,6 +65,18 @@ pip install -r requirements.txt
 python run_regression_drill.py
 ```
 
+## Third drill: ambiguous production scenario (not a clean dataset)
+
+`template/` and `template-regression/` both hand you a clean feature/target split — good for
+drilling the mechanics, but not representative of a round framed as "solve a real production
+problem end to end, make and justify tradeoffs." For that format, drill
+[`production-scenario/`](production-scenario/) instead: a fraud-scoring scenario stated only as a
+business ask, with messy generated data (label lag, schema drift, merchant concentration, severe
+class imbalance) you have to find yourself before modeling anything. See
+[`production-scenario/00_scenario_brief.md`](production-scenario/00_scenario_brief.md) to start,
+and [07-interview-prep/ROUND3-tradeoff-drills.md](../../07-interview-prep/ROUND3-tradeoff-drills.md)
+for the tradeoff-justification patterns this drill exercises.
+
 ## Scope
 
 Built for two interview archetypes: **tabular, single dataset, binary classification OR

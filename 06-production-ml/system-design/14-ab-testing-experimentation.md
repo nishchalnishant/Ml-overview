@@ -29,7 +29,7 @@ flowchart TD
 
 ---
 
-> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the underlying statistics (power analysis derivations, Bayesian testing, bandits, PSM, diff-in-diff, RDD, IV, DAGs, uplift modeling), see [experimentation-and-causal-inference.md](../../08-emerging-topics/experimentation-and-causal-inference/01-experimentation-and-causal-inference.md).
+> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the underlying statistics (PSM, IPW, doubly robust estimators, diff-in-diff, RDD, IV), see [Causal Inference](../../11-data-scientist/06-causal-inference.md).
 
 ## Why Experimentation Infrastructure Matters
 

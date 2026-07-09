@@ -198,17 +198,7 @@ Offline evaluation does not guarantee online business outcomes.
 When an interviewer asks a technical question, use this structure:
 > "The direct answer is ___. The intuition is ___. In production, the trade-off is usually ___."
 
-**"Explain bias-variance trade-off with an example."**
-"Linear regression on quadratic data has high bias (consistently wrong). A 20-degree polynomial on 50 points has high variance (memorizes noise). Reducing one increases the other, except in ensembles like Random Forest."
-
-**"How would you handle imbalanced data?"**
-"First, switch to PR-AUC or F1. Then use class weights in the loss, or SMOTE for the minority class. The choice depends on whether false positives or false negatives cost more."
-
-**"When would you use Random Forest vs. XGBoost?"**
-"Random Forest is my robust baseline — minimal tuning, rarely overfits badly. XGBoost is when I need maximum performance and have time to tune learning rate and depth."
-
-**"Explain how attention works."**
-"Inputs project to Query, Key, and Value. Dot product of Query and Key gives relevance scores. Softmax converts to weights, which sum the Values. √d_k scaling prevents softmax saturation. It processes sequences in parallel, unlike RNNs."
+Worked examples of this pattern (bias-variance, imbalanced data, model selection, attention) are in [interviewquestions.md](interviewquestions.md).
 
 ---
 

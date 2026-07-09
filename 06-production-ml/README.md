@@ -33,10 +33,14 @@ The answer "it depends" is always correct — but only if you say what it depend
 | File | What it covers |
 |---|---|
 | [System Design Index](system-design/README.md) | Full case-study catalog and platform patterns |
+| [MLOps Full Notes](01-mlops.md) | CI/CD for ML, pipelines, monitoring, retraining triggers |
+| [Deployment Patterns](02-deployment-patterns.md) | Rollout strategies, latency optimization, serving patterns |
+| [Model Governance](03-model-governance.md) | Registry, versioning, approval gates, audit trails, regulatory compliance |
 | [ML Engineering & Production](system-design/01-machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. The most comprehensive file. |
 | [Building ML-Powered Applications](system-design/15-building-machine-learning-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
 | [Design Interview Case Studies](system-design/03-machine-learning-design-interview.md) | Structured walkthroughs of common system design prompts |
 | [ML Design Patterns](system-design/02-machine-learning-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
+| [Interview Questions](interviewquestions.md) | Tiered Easy/Medium/Hard Q&A bank across MLOps, serving, and system design |
 | [Recommended Books](04-books.md) | Essential reading list for MLOps and production ML engineering |
 
 ---

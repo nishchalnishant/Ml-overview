@@ -46,8 +46,8 @@ Deep learning is just software delivery with:
 | [components/09-rnn-lstm-gru.md](components/09-rnn-lstm-gru.md) | Recurrent architectures, gating, when they still matter |
 | [components/04-hidden-layers.md](components/04-hidden-layers.md) | Layer types, depth vs width tradeoffs |
 | [components/05-loss-functions.md](components/05-loss-functions.md) | MSE, cross-entropy, focal loss, contrastive |
-| [components/16-model-compression.md](components/16-model-compression.md) | Pruning, quantization, distillation |
-| [components/17-quantization-pruning-detailed.md](components/17-quantization-pruning-detailed.md) | INT8/INT4 quantization, structured/unstructured pruning |
+| [components/16-model-compression.md](components/16-model-compression.md) | Compression overview: pruning, quantization, distillation — start here |
+| [components/17-quantization-pruning-detailed.md](components/17-quantization-pruning-detailed.md) | Math/code deep-dive on quantization and pruning internals — read after 16 |
 | [components/06-optimisers.md](components/06-optimisers.md) | SGD, Adam, AdaGrad, learning rate schedules |
 | [components/08-regularization.md](components/08-regularization.md) | Dropout, batch norm, weight decay, early stopping |
 | [components/03-weight-initialization.md](components/03-weight-initialization.md) | Xavier, He, why bad init breaks deep nets |
@@ -62,7 +62,6 @@ Deep learning is just software delivery with:
 | [pytorch-fundamentals.md](01-pytorch-fundamentals.md) | Dense practical reference: tensors, autograd, training loop, debugging |
 | [deep-learning-cheatsheet.md](deep-learning-cheatsheet.md) | 10-Minute Revision Card / Cheatsheet |
 | [deep-learning-flashcards.md](deep-learning-flashcards.md) | Consolidated flashcards for the module |
-| [mcp.md](mcp.md) | Tooling and protocol notes for model-connected workflows |
 
 ---
 

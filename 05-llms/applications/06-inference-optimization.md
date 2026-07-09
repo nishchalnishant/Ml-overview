@@ -128,19 +128,9 @@ This eliminates head-of-line blocking. For mixed-length workloads, continuous ba
 
 ## Speculative Decoding
 
-**The problem:** generating each token requires one full forward pass through all N layers. On a large model, each pass reads all model weights from HBM. With 140 GB of weights and 2 TB/s HBM bandwidth, each token takes ~70ms minimum — a hard floor imposed by memory bandwidth, not the model's arithmetic. The GPU's tensor cores are largely idle.
+Autoregressive decode is memory-bandwidth bound (~70ms/token on a 140GB model at 2TB/s HBM), not compute bound — a small draft model proposes K tokens, the target model verifies all K in one parallel pass, and rejection sampling guarantees the output distribution is unchanged. Speedup depends entirely on the draft model's acceptance rate.
 
-**The core insight:** a small model can cheaply propose K candidate tokens. The large model can verify all K proposals in a single forward pass — the same cost as verifying 1 token. If most proposals are correct, K tokens are produced for roughly the cost of 1 target model pass.
-
-**The mechanics:**
-1. The draft model generates K candidate tokens autoregressively.
-2. The target model processes all K tokens in one parallel forward pass.
-3. Each draft token is accepted or rejected via rejection sampling: accept with probability min(1, q(token)/p(token)).
-4. All accepted tokens are output; the first rejected position uses the target model's distribution.
-
-The rejection sampling step guarantees the output distribution is exactly the target model's distribution — this is not an approximation.
-
-**What breaks:** speedup depends on the draft model's acceptance rate. High-temperature sampling reduces acceptance rates by widening the distribution gap between draft and target. Long speculative chains (K > 8) rarely help — most proposals are rejected before the end. Large batch sizes already have high GPU utilization — draft overhead without proportional speedup makes things worse.
+> Full mechanics, acceptance-rate math, and failure modes: [07-speculative-decoding.md](07-speculative-decoding.md).
 
 ---
 

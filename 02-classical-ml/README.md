@@ -35,4 +35,5 @@ Each core module features an **Executive Summary & Cheatsheet** at the top for q
 | [model-interpretation.md](13-model-interpretation.md) | SHAP, LIME, feature importance, partial dependence |
 | [calibration-and-uncertainty.md](14-calibration-and-uncertainty.md) | Platt scaling, isotonic regression, uncertainty quantification |
 | [time-series-analysis.md](20-time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
+| [interviewquestions.md](interviewquestions.md) | Interview-style Q&A across classical ML topics |
 

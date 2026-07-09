@@ -49,6 +49,8 @@ where scale and zero-point are computed from activation statistics on a calibrat
 
 **What breaks**: QAT requires re-training or fine-tuning, which costs compute. For INT8, PTQ is usually good enough and much cheaper. Use QAT when PTQ accuracy is unacceptable and you have the training budget.
 
+> For the straight-through-estimator implementation and PTQ-vs-QAT tradeoff table, see [17-quantization-pruning-detailed.md § 4](17-quantization-pruning-detailed.md#4-quantization-aware-training-qat).
+
 ---
 
 ### GPTQ and AWQ for LLMs
@@ -62,6 +64,8 @@ where scale and zero-point are computed from activation statistics on a calibrat
 **AWQ (Activation-aware Weight Quantization)**: observes that not all weights are equally important. Weights that multiply large-magnitude activations matter more — their quantization error gets amplified. AWQ scales these channels before quantization to protect them.
 
 **What breaks**: AWQ requires access to calibration activations. Faster to apply than GPTQ, and often more robust across architectures, but both are approximations — neither fully recovers the original model's quality.
+
+> For the Hessian-based algorithm, AWQ's scale-search formula, and full code, see [17-quantization-pruning-detailed.md § 3](17-quantization-pruning-detailed.md#3-post-training-quantization-ptq).
 
 ---
 
@@ -140,6 +144,8 @@ Rule: if you cannot control the inference hardware, use structured pruning. Unst
 **The mechanics**: compute a threshold (globally across all layers, or per-layer). Zero all weights below the threshold. Fine-tune the pruned model to recover accuracy. Repeat.
 
 **What breaks**: global thresholding can be overly aggressive on some layers (whose weights happen to be small in magnitude but are functionally critical) and too conservative on others. A weight that is small now might have been important at an earlier stage of training. Iterative gradual pruning — increase sparsity slowly over training steps rather than all at once — reduces accuracy collapse.
+
+> For Iterative Magnitude Pruning and Movement Pruning formulas and code, see [17-quantization-pruning-detailed.md § 7](17-quantization-pruning-detailed.md#7-pruning).
 
 ---
 

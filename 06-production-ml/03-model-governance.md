@@ -7,7 +7,7 @@ tags: [productionml, ml, model-governance]
 ---
 # Model Governance
 
-> **See also:** [MLOps](01-mlops.md) | [Deployment Patterns](02-deployment-patterns.md) | [LLM Training Stability](../05-llms/05-training-stability.md)
+> **See also:** [MLOps](01-mlops.md) | [Deployment Patterns](02-deployment-patterns.md) | [LLM Training Stability](../05-llms/05-training-stability.md) | [Model Registry & Versioning (tooling deep-dive)](system-design/10-model-registry-versioning.md) — this file covers governance/compliance framing (audit trails, approval gates, model cards); that one covers hands-on registry tooling and canary rollout mechanics.
 
 ## 1. Model Registry and Metadata
 

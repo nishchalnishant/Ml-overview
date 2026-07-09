@@ -9,6 +9,8 @@ tags: [deeplearning, ml, components-quantization-prunin]
 
 How to make large models smaller and faster without significant quality loss. Critical for LLM deployment interviews.
 
+> Read [16-model-compression.md](16-model-compression.md) first for the conceptual overview (why each technique exists, when to reach for it). This file is the math/code deep-dive on quantization and pruning specifically.
+
 ---
 
 ## 1. Why Quantization

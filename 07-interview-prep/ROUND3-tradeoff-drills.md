@@ -127,7 +127,8 @@ Say this shape every time, it demonstrates the "justify" bar directly:
 
 ## Where to Next
 
-- **Live-coding pipeline drill** → [12-projects/05-interview-template/](../12-projects/05-interview-template/)
+- **Ambiguous production scenario to drill this against (fraud-scoring, messy data, find the traps yourself)** → [12-projects/05-interview-template/production-scenario/](../12-projects/05-interview-template/production-scenario/)
+- **Live-coding pipeline drill (clean dataset, mechanics only)** → [12-projects/05-interview-template/](../12-projects/05-interview-template/)
 - **Full production checklist (post-training → deployed → monitored)** → same template's README, "From trained model to production" and "After deployment" sections
 - **System design references for a specific domain** → [06-production-ml/system-design/](../06-production-ml/system-design/)
 - **EA-specific routing for the earlier rounds** → [EA-ml-deep-learning-interview.md](EA-ml-deep-learning-interview.md)

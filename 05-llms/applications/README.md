@@ -33,10 +33,10 @@ That is why good LLM engineering feels surprisingly close to platform engineerin
 
 Read these in order:
 
-1. `how-to-train-your-dragon-llm.md`
-2. `rag.md`
-3. `tuning-optimization.md`
-4. `agentic-workflows.md`
+1. `11-how-to-train-your-dragon-llm.md`
+2. `02-rag.md`
+3. `10-tuning-optimization.md`
+4. `01-agentic-workflows.md`
 
 That journey gives you the clean progression:
 
@@ -47,17 +47,41 @@ That journey gives you the clean progression:
 
 ## What Each File Helps You Do
 
-- `how-to-train-your-dragon-llm.md`
+- `11-how-to-train-your-dragon-llm.md`
   Understand attention, tokens, inference, scaling, and why LLMs behave the way they do.
 
-- `rag.md`
+- `02-rag.md`
   Learn how to ground answers in fresh documents instead of hoping the model memorized everything.
 
-- `tuning-optimization.md`
+- `03-prompt-optimization-and-versioning.md`
+  Treat prompts as versioned, testable artifacts instead of throwaway strings.
+
+- `04-synthetic-data.md`
+  Generate and filter training data with LLMs instead of relying purely on human-labeled sets.
+
+- `05-hallucination-mitigation.md`
+  Reduce ungrounded, confidently-wrong outputs with grounding, decoding, and verification techniques.
+
+- `06-inference-optimization.md`
+  Speed up serving with KV cache, PagedAttention, FlashAttention, and batching strategies.
+
+- `07-speculative-decoding.md`
+  Get multi-token-per-step throughput by pairing a small draft model with the target model.
+
+- `08-model-merging.md`
+  Combine multiple fine-tuned models into one without retraining.
+
+- `09-multimodal.md`
+  Extend LLMs to handle vision, audio, and other modalities alongside text.
+
+- `10-tuning-optimization.md`
   Decide when to prompt, when to retrieve, when to fine-tune, and when to save GPU money with smarter adaptation.
 
-- `agentic-workflows.md`
+- `01-agentic-workflows.md`
   Design multi-step LLM systems that can think, call tools, recover, and not spiral into chaos.
+
+- `12-mcp.md`
+  Understand the Model Context Protocol — the standard interface that makes tools reusable across agent frameworks.
 
 ## Azure / DevOps Bridge
 

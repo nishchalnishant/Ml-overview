@@ -1,9 +1,0 @@
-# Retrieval-Augmented Generation
-
-Retrieval-Augmented Generation (RAG) combines a retrieval system with a generative language model. Instead of relying solely on knowledge baked into model weights during pretraining, RAG retrieves relevant documents from an external corpus at inference time and conditions generation on that retrieved context. This reduces hallucination, allows the knowledge base to be updated without retraining, and provides citation-backed answers.
-
-A typical RAG pipeline has these stages: document chunking, embedding, indexing, retrieval, optional reranking, and generation. Chunking splits long documents into smaller passages, usually with some overlap between consecutive chunks so that information spanning a chunk boundary isn't lost. Embedding converts each chunk into a dense vector using a sentence-embedding model. These vectors are stored in a vector index (such as FAISS, or a managed vector database) that supports fast approximate nearest-neighbor search.
-
-At query time, the user's question is embedded with the same model, and the index returns the top-k most similar chunks by cosine similarity or another distance metric. A reranking stage, often a cross-encoder that jointly scores the query and each candidate passage, can improve precision by re-scoring the initial candidate set with a more expensive but more accurate model. Finally, the retrieved (and reranked) chunks are inserted into the language model's prompt as context, and the model generates an answer grounded in that context, ideally with citations back to the source chunks.
-
-Agentic RAG extends this pattern by allowing the model to issue multiple retrieval queries, reformulate the query based on initial results, or decide when retrieval is unnecessary — moving from a single fixed retrieve-then-generate pass to a more flexible, multi-step retrieval loop.

@@ -47,6 +47,8 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 
 > This is a small, first-principles-reasoning-focused set (why the trap exists, how to reason to the answer) — for a much larger topic-by-topic Q&A bank (deep + snappy versions, RAG/agents/fine-tuning/evals/system design), see [interview-notes/README.md](interview-notes/README.md).
 
+There is also [interviewquestions.md](interviewquestions.md) — a rapid-fire Easy/Medium/Hard tiered Q&A bank spanning the whole folder (tokenization through RLHF math), calibrated to interview round depth rather than organized by topic.
+
 ---
 
 ## [Recommended Reading](books/README.md)

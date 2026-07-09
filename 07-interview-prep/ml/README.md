@@ -84,6 +84,10 @@ That set gives you:
 | `15-coding.md` | Implementations plus what to say while coding. |
 | `16-practical-ml-scenarios.md` | Situation-based prompts and production judgment. |
 | `17-behavioral-and-scenario-based-questions.md` | The human round. Still important. |
+| `18-math-derivations.md` | Worked math derivations behind common ML/DL results. |
+| `19-maths.md` | Linear algebra and information theory refresher. |
+| `20-privacy-and-fairness.md` | Differential privacy, fairness metrics, bias mitigation. |
+| `21-additional-ml-interview-topics.md` | Data leakage, SMOTE, BatchNorm vs LayerNorm, and other grab-bag topics. |
 
 ---
 

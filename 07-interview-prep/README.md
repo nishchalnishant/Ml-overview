@@ -17,6 +17,7 @@ Use this folder first when you want a clean route instead of jumping between ove
 - [ml/README.md](ml/README.md) for the core ML interview track (algorithms, eval, system design)
 - [llm/README.md](llm/README.md) for the general ML interview portal (rapid-fire Q&A, scenarios, revision)
 - [PRE-INTERVIEW-CHECKLIST.md](PRE-INTERVIEW-CHECKLIST.md) for the final 48-hour sanity pass
+- [interviewquestions.md](interviewquestions.md) for a single tiered (Easy/Medium/Hard) final-drill pass consolidated across every file in this folder
 - [../05-llms/interview-notes/README.md](../05-llms/interview-notes/README.md) for deeper GenAI and LLM-specific interview notes
 
 ## Recommended Order

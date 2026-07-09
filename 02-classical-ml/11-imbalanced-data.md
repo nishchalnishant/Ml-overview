@@ -432,10 +432,4 @@ X_train, X_test, y_train, y_test = train_test_split(
 )
 ```
 
-## Flashcards
-
-**$\gamma = 0$?** #flashcard
-reduces to weighted cross-entropy
-
-**$\gamma = 2$ (typical)?** #flashcard
-easy examples downweighted by ~100x
+For active-recall drilling on these terms, see [classical-ml-flashcards.md](classical-ml-flashcards.md).

@@ -9,6 +9,8 @@ tags: [interviewprep, ml, ml-nlp]
 
 **Primary reference:** [NLP methods](../../03-deep-learning/methods/01-nlp-fundamentals.md) | [LLM fundamentals](../../05-llms/interview-notes/01-llm-fundamentals.md)
 
+> For a first-principles, self-attention-derivation treatment of this same ground, see [llm/09-nlp-transformers.md](../llm/09-nlp-transformers.md).
+
 ---
 
 ## 1. Why NLP Is Hard

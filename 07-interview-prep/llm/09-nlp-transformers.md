@@ -7,6 +7,8 @@ tags: [interviewprep, ml, llm-nlp-transformers]
 ---
 # NLP and Transformers — First-Principles Interview Guide
 
+> For classical-NLP-to-Transformers coverage from the core ML track, see [ml/13-nlp.md](../ml/13-nlp.md).
+
 ---
 
 ## 1. Tokenization

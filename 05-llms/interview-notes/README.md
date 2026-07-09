@@ -54,6 +54,7 @@ You now have **two versions** of most notes:
 | Extras | `additional-llm-interview-topics.md` | `additional-llm-interview-topics-snappy.md` | Scaling laws, RLHF/DPO, MoE, long context, hallucinations, distillation, AWQ/GPTQ, **prompt injection** |
 | Efficient deployment | `efficient-llm-deployment.md` | `efficient-llm-deployment-snappy.md` | Quantization, caching, batching, routing — serving playbook |
 | Alignment & reasoning | `advanced-alignment-and-reasoning.md` | `advanced-alignment-and-reasoning-snappy.md` | RLHF/DPO, ReAct, agents — the “senior” layer |
+| Production failures | [18-production-alignment-failures.md](18-production-alignment-failures.md) | *(no snappy version)* | Real-world alignment/safety incidents and postmortems |
 
 ---
 

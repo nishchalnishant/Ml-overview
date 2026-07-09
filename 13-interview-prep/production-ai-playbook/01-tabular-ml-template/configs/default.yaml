@@ -1,0 +1,17 @@
+model:
+  type: "xgboost"
+  max_depth: 5
+  learning_rate: 0.1
+  n_estimators: 100
+
+data:
+  features:
+    - "age"
+    - "income"
+    - "credit_score"
+  target: "default_status"
+  categorical_features: []
+  
+app:
+  name: "Tabular ML Inference API"
+  version: "0.1.0"

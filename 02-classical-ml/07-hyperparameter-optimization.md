@@ -177,27 +177,7 @@ analysis = tune.run(train_fn, config=search_space, scheduler=scheduler, num_samp
 
 ## Cross-Validation for HPO
 
-**The problem**: You tune hyperparameters using cross-validation. You report the best CV score as the model's performance. But you selected the configuration that happened to score best on *this particular* CV arrangement — the reported score is optimistic.
-
-**The core insight**: Hyperparameter selection and performance estimation are separate problems that require separate data. Nested cross-validation provides unbiased performance estimation while still using all available data.
-
-```python
-from sklearn.model_selection import GridSearchCV, cross_val_score, StratifiedKFold
-from sklearn.ensemble import RandomForestClassifier
-
-outer_cv = StratifiedKFold(n_splits=5, shuffle=True, random_state=42)
-inner_cv = StratifiedKFold(n_splits=3, shuffle=True, random_state=0)
-
-gs = GridSearchCV(
-    RandomForestClassifier(),
-    param_grid={'n_estimators': [100, 300], 'max_depth': [3, 5]},
-    cv=inner_cv
-)
-nested_scores = cross_val_score(gs, X, y, cv=outer_cv, scoring='roc_auc')
-print(f"Unbiased estimate: {nested_scores.mean():.3f} ± {nested_scores.std():.3f}")
-```
-
-The model you deploy is trained on all data using the best configuration from a separate, non-nested tuning run. Nested CV scores are for honest reporting only.
+For unbiased performance estimation after HP tuning, see [Nested Cross-Validation](06-cross-validation.md#nested-cross-validation) in the cross-validation module.
 
 ---
 
@@ -232,19 +212,4 @@ Focus the remaining budget on the top 2–3 most important hyperparameters. Fixi
 | BOHB | 20–100 | Expensive deep models, best general-purpose |
 | PBT | Population size × training cost | Hyperparameter schedules, RL-style training |
 
-## Flashcards
-
-**Expected Improvement (EI)?** #flashcard
-Expected gain over the current best, under the surrogate's uncertainty. Standard choice.
-
-**Upper Confidence Bound (UCB)?** #flashcard
-$\mu(\lambda) + \kappa \cdot \sigma(\lambda)$. Optimistic under uncertainty. $\kappa$ controls exploration.
-
-**Thompson Sampling?** #flashcard
-Sample a function from the surrogate's posterior, maximize it. Simple and parallelizable.
-
-**Grid and random search are trivially parallel?** #flashcard
-no communication needed between workers.
-
-**Bayesian optimization has a sequential bottleneck?** #flashcard
-each new configuration depends on all previous results. Use asynchronous variants or batch acquisition (evaluate k configurations simultaneously using approximate acquisition).
+For active-recall drilling on these terms, see [classical-ml-flashcards.md](classical-ml-flashcards.md).

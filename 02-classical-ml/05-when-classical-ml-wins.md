@@ -145,15 +145,7 @@ X_res, y_res = sm.fit_resample(X_train, y_train)
 
 **The core insight**: Logistic regression is natively calibrated because it directly optimizes log-loss, a proper scoring rule. Its predicted probabilities satisfy $P(Y=1 \mid \hat{p}(X)=p) \approx p$ without any post-hoc adjustment. Neural networks and SVMs optimized for accuracy or margin are not calibrated by default and require an additional calibration step.
 
-**The mechanics**:
-
-| Model | Typical calibration behavior | Cause |
-|---|---|---|
-| Logistic Regression | Well-calibrated natively | Optimizes log-loss (proper scoring rule) |
-| Random Forest | S-shaped miscalibration | Vote averaging compresses probabilities |
-| SVM | Severely miscalibrated | Optimizes margin, not likelihood |
-| XGBoost | Moderately overconfident | Boosting concentrates mass near class boundaries |
-| Deep Networks | Overconfident | Over-parameterization, batch normalization |
+**The mechanics**: see the per-model calibration behavior table in [14-calibration-and-uncertainty.md](14-calibration-and-uncertainty.md).
 
 Post-hoc calibration for any classical model:
 
@@ -242,13 +234,4 @@ Input: problem specification
 | Domain expertise available | Feature engineering directly encodes domain knowledge | Domain knowledge must be discovered from data |
 | No domain expertise, novel domain | — | Learned representations from raw input |
 
-## Flashcards
-
-**Simulatability?** #flashcard
-A human steps through the model manually. A decision tree with depth ≤ 5 satisfies this. No neural network does.
-
-**Local explanations?** #flashcard
-Explain one prediction. Logistic regression coefficients × feature values give exact local attribution. TreeSHAP gives exact local attribution for gradient-boosted trees in milliseconds.
-
-**Global feature importance?** #flashcard
-Which features drive the model across the dataset. MDI importance from random forests (biased toward high-cardinality features) or permutation importance and SHAP summary plots (unbiased) work directly.
+For active-recall drilling on these terms, see [classical-ml-flashcards.md](classical-ml-flashcards.md).
