@@ -137,6 +137,131 @@ Can one instance handle the load if it's more powerful?
 
 ---
 
+## 7.6.1 Deploying a Model onto Kubernetes — Step by Step
+
+### The Path
+```text
+1. Wrap the model in a serving container (FastAPI/TorchServe/Triton + /predict + /health).
+2. Push the image to a registry (ECR/GCR/ACR/private).
+3. Define a Deployment (pods, replicas, resource requests/limits, probes).
+4. Define a Service (stable internal DNS + load balancing across pods).
+5. Define an Ingress or Gateway (external routing, TLS termination).
+6. Define an HPA (scale on CPU/QPS/GPU metrics).
+7. Roll out via a Deployment strategy (rolling/canary/blue-green — see 7.5).
+```
+
+### Minimal Serving Container
+```dockerfile
+FROM python:3.11-slim
+WORKDIR /app
+COPY requirements.txt .
+RUN pip install --no-cache-dir -r requirements.txt
+COPY model/ ./model/
+COPY app.py .
+EXPOSE 8080
+CMD ["uvicorn", "app:app", "--host", "0.0.0.0", "--port", "8080", "--workers", "2"]
+```
+
+### Deployment Manifest
+```yaml
+apiVersion: apps/v1
+kind: Deployment
+metadata:
+  name: fraud-model
+  labels: { app: fraud-model }
+spec:
+  replicas: 3
+  selector:
+    matchLabels: { app: fraud-model }
+  template:
+    metadata:
+      labels: { app: fraud-model }
+    spec:
+      containers:
+        - name: fraud-model
+          image: registry.internal/fraud-model:1.4.2
+          ports: [{ containerPort: 8080 }]
+          resources:
+            requests: { cpu: "500m", memory: "512Mi" }
+            limits:   { cpu: "2",    memory: "2Gi" }
+          readinessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 5
+            periodSeconds: 10
+          livenessProbe:
+            httpGet: { path: /health, port: 8080 }
+            initialDelaySeconds: 15
+            periodSeconds: 20
+          env:
+            - name: MODEL_PATH
+              value: /app/model/fraud_v1.4.2.onnx
+      terminationGracePeriodSeconds: 30
+---
+apiVersion: v1
+kind: Service
+metadata:
+  name: fraud-model-svc
+spec:
+  selector: { app: fraud-model }
+  ports: [{ port: 80, targetPort: 8080 }]
+  type: ClusterIP
+---
+apiVersion: autoscaling/v2
+kind: HorizontalPodAutoscaler
+metadata:
+  name: fraud-model-hpa
+spec:
+  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: fraud-model }
+  minReplicas: 3
+  maxReplicas: 30
+  metrics:
+    - type: Resource
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
+```
+
+### GPU Model Serving Notes
+- Request GPUs explicitly: `resources.limits: { nvidia.com/gpu: 1 }` — GPUs are never shared by default (one pod = one full GPU unless using MPS/MIG).
+- Use a `nodeSelector` or `nodeAffinity` to pin GPU pods to GPU-enabled node pools; keep CPU-only services off those (expensive) nodes.
+- Add a `toleration` if GPU nodes are tainted (common, to stop non-GPU pods from scheduling there by accident).
+- For LLM/large-model serving, prefer a dedicated server (Triton, TorchServe, vLLM, TGI) over a hand-rolled FastAPI loop — they handle dynamic batching and KV-cache management for you.
+
+### When the Model Doesn't Fit on One GPU
+`nvidia.com/gpu: 1` requests a *whole GPU's compute*, but says nothing about whether the model's weights + activations + KV cache fit in that GPU's memory. If they don't, the pod will OOM at load time regardless of how many replicas you run. Options, roughly in order of how much they complicate the K8s layer:
+
+```text
+Does the model fit on one GPU if quantized?
+├── YES → Quantize (INT8/FP8/GGUF/AWQ) and stay single-GPU.
+│   └── Cheapest fix. Try this before adding infra complexity.
+├── NO, but fits across a few GPUs on one node → Tensor/pipeline parallelism, single pod, multi-GPU.
+│   └── request { nvidia.com/gpu: 4 } in ONE pod's container spec (all GPUs on one node).
+│   └── Needs a multi-GPU-aware server: vLLM (--tensor-parallel-size), TGI, Triton w/ FasterTransformer.
+└── NO, doesn't fit even across one node's GPUs → Multi-node model parallelism.
+    └── Requires a framework that shards across pods/nodes (DeepSpeed, Megatron, Ray Serve, vLLM multi-node w/ Ray).
+    └── K8s can't do this natively — you need a higher-level orchestrator (Ray on K8s, KubeRay) to coordinate the pods as one logical serving unit, plus a fast interconnect (NVLink/InfiniBand) or throughput tanks.
+```
+
+| Approach | K8s Change | Tradeoff |
+| :--- | :--- | :--- |
+| **Quantization** (INT8/AWQ/GPTQ/GGUF) | None — still 1 GPU/pod | Some accuracy loss; cheapest, try first |
+| **Tensor parallelism, single node** | `nvidia.com/gpu: N` in one pod, `nodeSelector` pinning to a multi-GPU node | Needs NVLink between GPUs for low overhead; server must support it |
+| **Multi-node model parallelism** | Move off plain Deployments to KubeRay/Ray Serve or a training-style multi-pod job | Highest complexity; network becomes the bottleneck without fast interconnect |
+| **CPU offload (DeepSpeed ZeRO-Infinity)** | Same 1-GPU pod, larger memory request for CPU RAM | Much slower inference; only viable for latency-tolerant batch use |
+
+**The trap to avoid:** just bumping `resources.limits.memory` on the pod does nothing for GPU OOMs — pod memory limits govern host RAM, not GPU VRAM. GPU memory has no cgroup-style limit in vanilla K8s; the only way to "give a pod more GPU memory" is to give it more GPUs (or a bigger GPU) via `nvidia.com/gpu` count/type, or to shrink what the model needs (quantization, smaller KV cache, shorter context).
+
+### What Actually Matters Here
+| Concern | K8s Mechanism |
+| :--- | :--- |
+| Zero-downtime rollout | `strategy.rollingUpdate` with `maxUnavailable: 0`, backed by `readinessProbe` |
+| Don't route traffic to a pod still loading model weights | `readinessProbe` fails until model is loaded in memory |
+| Kill a hung pod | `livenessProbe` + `restartPolicy: Always` |
+| Autoscale on real load, not just CPU | Custom metrics via Prometheus Adapter (QPS, queue depth, GPU util) feeding the HPA |
+| Prevent noisy-neighbor OOM kills | `resources.limits.memory` set close to `requests.memory` |
+| Finish in-flight requests on scale-down | `terminationGracePeriodSeconds` + app-level graceful shutdown handler |
+| Canary/blue-green rollout | Argo Rollouts or Flagger on top of the base Deployment (native K8s only does rolling updates) |
+
+---
+
 ## 7.7 Caching
 
 ### Decision Tree

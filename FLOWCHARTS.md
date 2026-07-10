@@ -1574,3 +1574,133 @@ SQL PATTERNS FOR DATA SCIENCE
     ├── predicate pushdown → filter early → use WHERE not HAVING when possible
     └── partition pruning → filter on partition column → avoid full table scan
 ```
+
+---
+
+## PART 15 — ML/DL/LLM PRODUCTION DEPLOYMENT
+
+### 15.1 Real-Time Serving Architecture
+
+```
+Real-Time Model Serving (System Design)
+│
+├── Request Path
+│   ├── Client → API Gateway/LB → Model Service → Response → p99 SLA governs every hop
+│   ├── Feature fetch → online feature store (Redis/DynamoDB) → must match offline training features
+│   └── Model inference → in-process (embedded) or RPC (gRPC/HTTP to model server) → RPC adds network hop
+│
+├── Sync vs Async Serving
+│   ├── Sync (request-response) → user-facing, low-latency → recommendations, fraud, search ranking
+│   └── Async (queue-based) → batch scoring, non-blocking → Kafka/SQS → consumer pool scores + writes result
+│
+├── Model Server Choice
+│   ├── Custom FastAPI/Flask → simple, full control → no dynamic batching, DIY scaling
+│   ├── Triton Inference Server → multi-framework, dynamic batching, concurrent model execution → GPU-efficient
+│   ├── TorchServe → PyTorch-native, handler API → good default for single-framework shops
+│   └── vLLM / TGI (LLM-specific) → PagedAttention, continuous batching → built for autoregressive generation
+│
+├── Latency Budget Decomposition
+│   ├── network (client↔gateway↔service) → 5-20ms typical → unavoidable floor
+│   ├── feature fetch → 1-10ms if cached, 50ms+ if cold → cache aggressively
+│   ├── inference → model-size dependent → GBDT <1ms, small NN 5-20ms, LLM 100ms-several sec
+│   └── budget determines model class → sub-10ms SLA rules out large NNs/LLMs entirely
+│
+└── Scaling the Service
+    ├── horizontal pod autoscaling → CPU/QPS/custom metric (GPU util via Prometheus Adapter)
+    ├── load shedding → drop/degrade at overload → return cached/fallback rather than fail
+    └── multi-region deployment → route by geo → reduces cross-region network latency
+```
+
+### 15.2 Classical ML / DL Deployment Pipeline
+
+```
+Classical ML/DL Deployment Pipeline
+│
+├── Packaging
+│   ├── serialize model → pickle/joblib (sklearn), TorchScript/ONNX (DL) → framework-portable format
+│   ├── containerize → Dockerfile bundles model + deps + serving code → immutable artifact
+│   └── model registry → versioned, stage-tagged (staging/prod) → MLflow/SageMaker Model Registry
+│
+├── CI/CD for Models
+│   ├── train → eval gate (metric threshold) → package → push to registry → auto-fails bad models
+│   ├── build image → run smoke tests (load model, sample predict) → push to container registry
+│   └── deploy → triggered by registry promotion, not just code merge → decouples model & code release
+│
+├── Kubernetes Deployment
+│   ├── Deployment (replicas, resource requests/limits) + Service (stable endpoint) + HPA (autoscale)
+│   ├── readiness probe gates traffic until model loaded into memory → avoids routing to cold pod
+│   └── rolling update → old pods drain via terminationGracePeriodSeconds → no dropped in-flight requests
+│
+├── Rollout Strategy
+│   ├── Shadow → mirror prod traffic to new model, log only, zero user impact → validate before any exposure
+│   ├── Canary → 5% → 25% → 100% traffic ramp → auto-rollback on metric/latency regression
+│   └── Blue/Green → instant full swap, old env kept warm → fast rollback, 2× resource cost during switch
+│
+└── Rollback
+    ├── automated trigger → error rate spike, p99 latency breach, prediction-distribution shift
+    └── revert to last-known-good registry version → same deployment pipeline in reverse
+```
+
+### 15.3 LLM Production Deployment
+
+```
+LLM Production Deployment
+│
+├── Serving Stack
+│   ├── vLLM/TGI on GPU nodes → PagedAttention + continuous batching → high throughput per GPU
+│   ├── model doesn't fit one GPU → quantize (INT8/AWQ/GPTQ) → tensor parallel (single node, multi-GPU)
+│   │   → multi-node model parallel (Ray/KubeRay + DeepSpeed/Megatron) → CPU offload as last resort
+│   └── KV-cache growth with context length → drives GPU memory ceiling → sliding window/eviction to bound it
+│
+├── Kubernetes for LLMs
+│   ├── nvidia.com/gpu resource request → whole-GPU scheduling by default → MPS/MIG needed to share
+│   ├── nodeSelector/tolerations → route pods to GPU node pool → separate from CPU workloads
+│   └── KubeRay → orchestrates multi-node Ray cluster for models spanning >1 node → plain Deployments can't coordinate this
+│
+├── Request Handling
+│   ├── streaming responses (SSE/WebSocket) → user sees tokens as generated → masks high total latency
+│   ├── prompt caching → reuse KV-cache for repeated prefixes (system prompt) → cuts prefill cost
+│   └── request queuing/prioritization → interactive vs batch traffic classes → prevent batch starving chat
+│
+├── RAG in the Serving Path
+│   ├── retrieve (vector DB/BM25) → rerank → construct prompt → generate → adds retrieval latency before LLM call
+│   └── semantic cache → skip regeneration for near-duplicate queries → embed query, check cache similarity
+│
+├── Safety & Guardrails at Serve Time
+│   ├── input moderation → block jailbreak/injection before hitting the model → fast, cheap classifier first
+│   ├── output moderation/constrained decoding → grammar-constrained JSON, toxicity filter → post-generation gate
+│   └── human-in-the-loop → approval gate before any irreversible action an agent proposes
+│
+└── Cost & Latency Levers
+    ├── model size → smaller/distilled model where task allows → biggest single cost lever
+    ├── speculative decoding → small draft model + big model verifies → 2-3× speedup, no quality loss
+    └── batching aggressiveness → higher batch = higher throughput, higher per-request latency → tune to SLA
+```
+
+### 15.4 Monitoring & Feedback Loop in Production
+
+```
+Production Monitoring & Feedback Loop
+│
+├── Online Metrics
+│   ├── latency (p50/p95/p99) + throughput (QPS) + error rate → the operational trio
+│   └── prediction distribution → compare live scores to training distribution → early proxy for drift
+│
+├── Model Quality Signals
+│   ├── data drift → PSI on input features → >0.2 = investigate
+│   ├── concept drift → live accuracy/label-based metric decay → often structural (patch/season), not gradual
+│   └── calibration drift → predicted probability vs realized outcome rate diverges → re-calibrate or retrain
+│
+├── LLM-Specific Monitoring
+│   ├── hallucination rate → sampled human eval or automated (SelfCheckGPT/FactScore/RAGAS)
+│   ├── token cost & latency per request → budget guardrails, alert on spend anomalies
+│   └── refusal rate / jailbreak attempts → safety-team dashboard, feeds back into guardrail tuning
+│
+├── Feedback Loop
+│   ├── log predictions + features + (eventually) outcomes → forms next retrain dataset
+│   └── retrain trigger → scheduled or drift-threshold-based → gated behind data-quality check
+│
+└── Incident Response
+    ├── automated rollback on metric/latency breach → same registry-version revert as CI/CD
+    └── fallback to heuristic/cached/previous-model response → never let ML outage break the product
+```
