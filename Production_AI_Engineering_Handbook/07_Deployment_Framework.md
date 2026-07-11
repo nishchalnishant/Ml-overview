@@ -235,9 +235,7 @@ Does the model fit on one GPU if quantized?
 ├── NO, but fits across a few GPUs on one node → Tensor/pipeline parallelism, single pod, multi-GPU.
 │   └── request { nvidia.com/gpu: 4 } in ONE pod's container spec (all GPUs on one node).
 │   └── Needs a multi-GPU-aware server: vLLM (--tensor-parallel-size), TGI, Triton w/ FasterTransformer.
-└── NO, doesn't fit even across one node's GPUs → Multi-node model parallelism.
-    └── Requires a framework that shards across pods/nodes (DeepSpeed, Megatron, Ray Serve, vLLM multi-node w/ Ray).
-    └── K8s can't do this natively — you need a higher-level orchestrator (Ray on K8s, KubeRay) to coordinate the pods as one logical serving unit, plus a fast interconnect (NVLink/InfiniBand) or throughput tanks.
+└── NO, doesn't fit even across one node's GPUs → Multi-node model parallelism (KubeRay/Ray Serve/DeepSpeed/Megatron shard the model across pods/nodes; K8s can't do this natively).
 ```
 
 | Approach | K8s Change | Tradeoff |

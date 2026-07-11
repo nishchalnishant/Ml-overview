@@ -185,11 +185,7 @@ Question: What was Apple's Q3 revenue?
 
 ### Self-RAG
 
-**The problem:** standard RAG retrieves for every query, even when retrieval is unnecessary or harmful (it introduces noise for queries the model can answer confidently from parametric knowledge).
-
-**The core insight:** let the model decide when to retrieve, evaluate whether retrieved passages are relevant, and assess whether its generated response is supported by the retrieved evidence. Add special tokens (`[Retrieve]`, `[Relevant]`, `[Supported]`) that the model learns to emit during fine-tuning.
-
-**What breaks:** requires fine-tuning the model on Self-RAG training data. The model's retrieval decisions may not align with actual information need.
+Fine-tunes the model to emit reflection tokens (`[Retrieve]`, `[IsRel]`, `[IsSup]`, `[IsUse]`) so retrieval-need, relevance, and answer quality become learned model behaviors rather than external orchestration logic. Requires a specially fine-tuned model — not replicable with prompting alone. Full token taxonomy and interview framing: see [interview-notes/03-retrieval-augmented-generation-rag.md](../interview-notes/03-retrieval-augmented-generation-rag.md#self-rag).
 
 ### CRAG (Corrective RAG)
 
@@ -199,9 +195,7 @@ Question: What was Apple's Q3 revenue?
 
 ### GraphRAG
 
-**The core insight:** for questions requiring reasoning across multiple entities and their relationships ("how does entity A relate to entity B through entity C?"), flat chunk retrieval may not surface all relevant facts. Build a knowledge graph from documents — extract entities and relationships — and answer multi-hop queries via graph traversal + LLM synthesis.
-
-**What breaks:** entity extraction and relationship extraction are imperfect. The graph construction pipeline is expensive. GraphRAG outperforms flat RAG on complex multi-hop questions; for simple single-document lookups it adds overhead without benefit.
+Build a knowledge graph from documents (entity-relationship triples) so multi-hop and corpus-wide summarization queries can be answered via graph traversal instead of flat chunk retrieval — expensive to construct, wins only when relationships or global themes matter. Local/global search split and tool comparison: see [interview-notes/03-retrieval-augmented-generation-rag.md](../interview-notes/03-retrieval-augmented-generation-rag.md#graph-rag).
 
 ---
 

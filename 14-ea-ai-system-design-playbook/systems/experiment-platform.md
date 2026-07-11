@@ -452,172 +452,9 @@ Drift detection in this system is about **experiment/data integrity**, not a per
 - **No GPU spend**: as noted in Section 14, this system carries zero GPU cost — the biggest single lever available is simply not needing that hardware class at all, unlike sibling model-serving systems in this playbook.
 - **Right-sized Redis footprint**: only cache "currently relevant" assignments (Section 6 estimate ~27GB working set) rather than materializing all historical assignments — expired/concluded-experiment entries are evicted via TTL sweep.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: 15 minutes for Assignment Service (must be near-instant since it blocks session start / storefront rendering across all EA titles). 4 hours for Batch Stats Engine / scorecards (delayed analytics is tolerable). 1 hour for guardrail streaming (real financial/quality risk if guardrails are dark for long).
-- **RPO**: 0 for the config store (Postgres) — allocation changes must not be silently lost (synchronous replication to standby). ~1 minute for event streams (Kafka replication factor 3, acks=all for guardrail-relevant topics; acks=1 acceptable for high-volume, less-critical metric topics to save latency/cost).
-- **Backup strategy**: Postgres continuous WAL archiving + daily full snapshot, point-in-time restore capability. Lakehouse tables versioned via Iceberg snapshot/time-travel (built-in "backup" via retained snapshots, no separate backup pipeline needed). Redis is a pure cache — no backup needed, rebuildable from Postgres/deterministic hash on cold start (cold cache just means a latency blip, not data loss).
-- **Failure drill cadence**: quarterly regional failover game-day exercises specifically for Assignment Service (kill a region, verify client SDK deterministic-hash fallback engages within the 10ms budget's degraded-mode allowance).
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active across NA, EU, APAC. Each region runs a full Assignment Service + regional Redis cache + regional Kafka cluster for ingestion; Config Service is active-active-read / single-region-write with cross-region replication (writes are low-volume admin operations, so a single-writer-with-replicas model is acceptable — avoids multi-master conflict resolution complexity for allocation-% correctness, which must be unambiguous).
-- **Data replication**: config changes replicate globally via CDC (target < 2s cross-region propagation); raw events are regional-first (a EU player's events land in the EU Kafka/lakehouse partition) then asynchronously replicated to a single global lakehouse for unified cross-region analysis (scorecards need global view even though ingestion is regional).
-- **Latency routing**: game client's Assignment Service call is routed via GeoDNS/Anycast to the nearest healthy region; if the local region's Assignment Service is degraded, client SDK falls back to deterministic local hash (no cross-region call — cross-region round trip would itself risk breaching the 10ms budget).
-
-```
-        ┌───────────────┐        ┌───────────────┐        ┌───────────────┐
-        │   NA Region    │        │   EU Region    │        │  APAC Region   │
-        │ Assignment Svc │        │ Assignment Svc │        │ Assignment Svc │
-        │ Regional Redis │        │ Regional Redis │        │ Regional Redis │
-        │ Regional Kafka │        │ Regional Kafka │        │ Regional Kafka │
-        └───────┬───────┘        └───────┬───────┘        └───────┬───────┘
-                │  CDC config replication (bi-directional read, single-writer)
-                └────────────────────────┼────────────────────────┘
-                                         ▼
-                              ┌────────────────────┐
-                              │ Global Config Primary│ (Postgres, single-writer)
-                              └────────────────────┘
-                                         │
-                         async event replication (regional -> global)
-                                         ▼
-                              ┌────────────────────┐
-                              │  Global Lakehouse    │ (unified cross-region
-                              │  (Iceberg on S3)      │  scorecard analysis)
-                              └────────────────────┘
-```
-
-## 32. Blue/Green Deployment
-
-- Applies mainly to the **Assignment Service** and **hash-function/bucketing-algorithm** upgrades: since bucketing must remain reproducible, any change to the hash function is deployed as a new `assignment_hash_version` (Section 9) — blue (current version) keeps serving all in-flight experiments; green (new version) only applies to newly created experiments. Full cutover only happens once all blue-version experiments have concluded, avoiding a "flag day" that would re-randomize live experiments.
-- Config Service and Batch Stats Engine use conventional blue/green for code deploys (new environment fully provisioned, smoke-tested against a shadow config replica, then traffic cut over via load balancer swap) — standard, no experiment-specific nuance here since these aren't stateful in the same way.
-
-## 33. Canary Deployment
-
-- Assignment Service code changes: canary 1% of regional traffic to the new pod version, monitor p99 latency and error rate for 15 minutes, gate on: p99 delta < 1ms vs. baseline, error rate delta < 0.05%, zero increase in assignment-mismatch alerts (a synthetic canary check re-requests assignment for a fixed set of test unit_ids and asserts the variant returned matches the expected deterministic value — catches hash-function regressions specifically, not just generic latency/error health).
-- Guardrail Monitor (Flink) changes: canary via shadow deployment — new job version runs in parallel consuming the same topic (separate consumer group) without triggering auto-pause actions, its outputs are diffed against the production job's outputs for a full day before promotion.
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: canary gate failure (Section 33) auto-rolls-back the deployment (standard k8s rollout `Deployment` revision revert). Guardrail breach on an experiment triggers auto-pause of *that experiment* (not a service rollback) — sets allocation to 0% for the treatment variant/routes all traffic to control, propagated via the same CDC path used for normal config changes (fast, < 2s).
-- **Rollback mechanics for a bad global change** (e.g., a hash-function bug shipped that broke reproducibility): immediate revert to prior `assignment_hash_version`, re-derive all currently-running experiments' assignments from the last-known-good version's cache snapshot (since assignment results were write-through cached — Section 11 — a rollback can replay from cache rather than recomputing, minimizing risk of accidentally re-randomizing users).
-- **Guardrail auto-pause rollback**: once root-caused and fixed, resuming requires a human (experiment owner) explicit re-enable — never auto-resume, to avoid flapping.
-
-## 35. Observability
-
-- **Tracing**: every assignment request carries a trace ID propagated through Assignment Service → Redis lookup → async Kafka exposure-event emission, so a slow p99 request can be root-caused (cache miss? config-load stall? Kafka producer backpressure?) via distributed tracing (OpenTelemetry, Jaeger/Datadog APM backend).
-- **Metrics**: Prometheus-style metrics for QPS/latency/error-rate per service (Section 22), scraped and visualized in Grafana/Datadog dashboards, one dashboard per major component plus a rollup "experiment platform health" exec dashboard.
-- **Logs**: structured JSON logs (Section 24) correlated to traces via trace ID field, shipped to a central log store (Elastic/Datadog Logs), queryable by `experiment_id`/`unit_id_hash`/`trace_id`.
-- **Correlation in practice**: a guardrail-breach alert links directly to (a) the specific experiment's scorecard, (b) the trace of a sample of affected requests, (c) the raw log lines for the guardrail evaluation window — this three-way correlation is what lets an on-call engineer distinguish "real regression" from "guardrail monitor bug" within minutes.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: assignment-service
-  namespace: experiment-platform
-spec:
-  replicas: 12
-  selector:
-    matchLabels: {app: assignment-service}
-  template:
-    metadata:
-      labels: {app: assignment-service}
-    spec:
-      containers:
-        - name: assignment-service
-          image: registry.ea.internal/experiment-platform/assignment-svc:1.42.0
-          resources:
-            requests: {cpu: "1", memory: "512Mi"}
-            limits: {cpu: "2", memory: "1Gi"}
-          ports: [{containerPort: 8080}]
-          readinessProbe:
-            httpGet: {path: /healthz/ready, port: 8080}
-            periodSeconds: 5
-          livenessProbe:
-            httpGet: {path: /healthz/live, port: 8080}
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata: {name: assignment-service, namespace: experiment-platform}
-spec:
-  selector: {app: assignment-service}
-  ports: [{port: 443, targetPort: 8080}]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: {name: assignment-service-hpa, namespace: experiment-platform}
-spec:
-  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: assignment-service}
-  minReplicas: 12
-  maxReplicas: 120
-  metrics:
-    - type: Pods
-      pods:
-        metric: {name: requests_per_second}
-        target: {type: AverageValue, averageValue: "5000"}
-    - type: Pods
-      pods:
-        metric: {name: p99_latency_ms}
-        target: {type: AverageValue, averageValue: "8"}
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_msk_cluster" "experiment_events" {
-  cluster_name           = "experiment-platform-events"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 9  # 3 per AZ x 3 AZ
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    security_groups = [aws_security_group.msk.id]
-    storage_info {
-      ebs_storage_info { volume_size = 2000 } # GB per broker
-    }
-  }
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS" }
-  }
-}
-
-resource "aws_elasticache_replication_group" "assignment_cache" {
-  replication_group_id       = "experiment-assignment-cache"
-  description                 = "Assignment + config cache"
-  node_type                   = "cache.r6g.xlarge"
-  num_node_groups             = 6
-  replicas_per_node_group     = 1
-  automatic_failover_enabled  = true
-  at_rest_encryption_enabled  = true
-  transit_encryption_enabled  = true
-  engine                      = "redis"
-}
-
-resource "aws_rds_cluster" "config_store" {
-  cluster_identifier      = "experiment-config-store"
-  engine                  = "aurora-postgresql"
-  engine_version          = "15.4"
-  master_username         = "config_admin"
-  storage_encrypted       = true
-  backup_retention_period = 14
-  db_subnet_group_name    = aws_db_subnet_group.experiment.name
-}
-
-resource "aws_s3_bucket" "event_lakehouse" {
-  bucket = "ea-experiment-platform-lakehouse"
-  lifecycle_rule {
-    enabled = true
-    transition { days = 30, storage_class = "STANDARD_IA" }
-    transition { days = 180, storage_class = "GLACIER" }
-    expiration { days = 395 } # ~13 months retention
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -704,22 +541,22 @@ The dominant p99 tail contributors are network RTT (unavoidable physical distanc
 
 ## 46. Ideal Answers
 
-1. **Overlapping experiment confounding**: Use mutually-exclusive **layers** — a player is randomized into exactly one experiment per layer via independent hash salts, so experiments in the same layer can't overlap by construction. Cross-layer interactions are handled by (a) restricting which layers can combine via a compatibility matrix set at experiment-creation time, and (b) running periodic interaction-detection analysis (compare metric lift for units in experiment A alone vs. units in both A and B) to catch unexpected interaction effects post-hoc.
+1. **Overlapping experiment confounding**: Use mutually-exclusive **layers** — a player is randomized into exactly one experiment per layer via independent hash salts, so experiments in the same layer can't overlap by construction. Cross-layer interactions are caught via periodic interaction-detection analysis (compare metric lift for units in experiment A alone vs. units in both A and B).
 
-2. **Novelty effects**: Track metric lift as a time series within the scorecard (not just a single aggregate number) and specifically look for a lift trend that decays over the experiment's duration. For ML holdouts in particular (Section 8/15), maintain the long-lived holdout specifically so you can compare "week 1 treatment effect" vs. "week 8 treatment effect" — a persistent holdout is the direct mechanism to distinguish novelty from durable value.
+2. **Novelty effects**: Track metric lift as a time series (not just a single aggregate) and look for a lift trend that decays over the experiment's duration. A persistent ML holdout (Section 8/15) lets you compare "week 1" vs. "week 8" treatment effect to distinguish novelty from durable value.
 
-3. **Sequential testing (mSPRT)**: A fixed-horizon test's p-value is only valid at one pre-specified sample size; checking it repeatedly and stopping the first time p<0.05 is "peeking," which inflates the true false-positive rate far above 5% (can approach 30%+ with frequent peeking). mSPRT (or other always-valid inference methods) constructs a test statistic whose Type-I error is controlled *uniformly over time* — it's valid to check after every single new data point without inflating the false-positive rate, because the sequential boundary itself accounts for the repeated-testing problem mathematically (via a likelihood-ratio martingale argument), rather than relying on a single fixed stopping time.
+3. **Sequential testing (mSPRT)**: A fixed-horizon test's p-value is only valid at one pre-specified sample size; repeatedly checking and stopping at p<0.05 is "peeking," which inflates the false-positive rate well above 5%. mSPRT controls Type-I error *uniformly over time*, so it's valid to check after every new data point without inflating false positives.
 
-4. **Match-level (cluster) randomization**: When randomizing at match_id (a "cluster" containing multiple players), individual player-level outcomes within the same match are correlated (they share match context — same map, same opponents' skill), violating the i.i.d. assumption behind standard variance estimates. This requires cluster-robust variance estimation (or bootstrapping at the cluster level) — treating each of N players as an independent sample when only M << N matches were actually randomized will understate the true variance and produce falsely narrow confidence intervals / inflated significance.
+4. **Match-level (cluster) randomization**: When randomizing at match_id, individual player outcomes within the same match are correlated (shared map, opponents), violating the i.i.d. assumption behind standard variance estimates. This requires cluster-robust variance estimation — treating each player as an independent sample when only matches were randomized understates variance and inflates significance.
 
-5. **2 AM guardrail auto-pause walkthrough**: Guardrail Monitor detects breach (e.g., crash rate +20% relative) in its evaluation window → immediately calls Config Service to set treatment allocation to 0% (fail-safe rollback) → Config Service writes the change + audit log entry → CDC propagates within ~2s to all regional caches → new sessions stop entering the treatment variant (already-assigned units may still see cached treatment briefly per Section 11's write-through caching until their entry naturally ages out of relevance, since the experiment is effectively over) → PagerDuty pages platform on-call (infra health) and Slack-notifies the experiment owner (decision-maker) → owner does NOT get auto-resumed access; a human must investigate root cause and explicitly re-enable, per Section 34's no-auto-resume policy.
+5. **2 AM guardrail auto-pause walkthrough**: Guardrail Monitor detects a breach (e.g., crash rate +20%) and immediately calls Config Service to set treatment allocation to 0%, propagating via CDC within ~2s so new sessions stop entering treatment. On-call and the experiment owner are paged/notified, but resumption requires human investigation — no auto-resume (Section 34).
 
-6. **Multi-armed bandit extension**: Add a bandit-allocation mode to the Config Service where variant allocation percentages are not fixed at experiment creation but recomputed periodically (e.g., hourly) by a bandit-policy service (Thompson sampling or UCB) reading recent reward metrics from the Scorecard/Guardrail pipeline, then pushed as a new allocation-% config change through the same CDC path used for manual changes. Key design tension: bandits actively break the "fixed allocation for the analysis period" assumption that simple frequentist scorecards rely on, so bandit-mode experiments need Bayesian/adaptive-analysis methods in the Batch Stats Engine rather than the standard fixed-sample-size test.
+6. **Multi-armed bandit extension**: Add a bandit-allocation mode where variant allocation is recomputed periodically (e.g., hourly) by a bandit policy (Thompson sampling/UCB) reading recent reward metrics, pushed through the same CDC path as manual changes. Key tension: bandits break the "fixed allocation" assumption behind frequentist scorecards, so bandit experiments need Bayesian/adaptive analysis instead.
 
-7. **Validating hash uniformity**: Run an offline test harness that hashes a large synthetic population (millions of synthetic unit_ids) through the production hash function and chi-square-tests the resulting bucket distribution against the expected uniform distribution; additionally monitor SRM (Section 21) continuously in production as a live, ongoing check of the same property, since synthetic tests alone can't catch subtle correlations between real unit_id generation patterns and the hash function's bit-mixing behavior.
+7. **Validating hash uniformity**: Run an offline harness that hashes millions of synthetic unit_ids through the production hash function and chi-square-tests the bucket distribution against uniform, plus continuously monitor SRM (Section 21) in production as a live check of the same property.
 
-8. **Guaranteeing holdout persistence across model versions**: Holdout membership is stored as its own first-class entity (`holdout_cohort`) in the Config Service, keyed by `unit_id` and a stable `holdout_id` that is independent of any specific model version — model version upgrades reference "respect holdout X" as a gating check rather than re-deriving membership, so upgrading from model v3 to v4 doesn't touch the holdout assignment table at all. Membership changes require elevated RBAC + mandatory notification (Section 41) specifically to prevent silent, accidental "graduation."
+8. **Guaranteeing holdout persistence across model versions**: Holdout membership is stored as its own first-class entity (`holdout_cohort`), keyed by `unit_id` and a stable `holdout_id` independent of model version, so upgrades reference "respect holdout X" rather than re-deriving membership. Membership changes require elevated RBAC + mandatory notification to prevent silent "graduation."
 
-9. **Slow-burn regression detection**: Complement the fast 15-minute guardrail window with a second, longer-window guardrail check (e.g., 7-day trailing average vs. a 30-day-prior baseline) that specifically looks for gradual metric drift rather than sudden breaches — implemented as a second Flink/batch job with wider aggregation windows and CUSUM (cumulative sum) change-point detection, which is specifically designed to catch small sustained shifts that a simple threshold-on-instant-value check would miss.
+9. **Slow-burn regression detection**: Complement the fast 15-minute guardrail window with a longer-window check (e.g., 7-day trailing average vs. 30-day-prior baseline) using CUSUM change-point detection to catch small sustained shifts that an instant-value threshold would miss.
 
-10. **Regional regulatory constraints**: Targeting rules (Section 8) support explicit region-exclusion lists evaluated before bucketing — a player in a restricted region (e.g., loot-box-adjacent mechanics in Belgium/Netherlands) is never entered into the experiment at all (falls through to a guaranteed-safe default/control experience), rather than being entered and then filtered out post-hoc, which would leave an audit trail showing regulatory-sensitive exposure ever occurred. This exclusion logic is itself subject to the same audit-log and elevated-approval requirements as monetization-sensitive experiment changes (Section 25).
+10. **Regional regulatory constraints**: Targeting rules (Section 8) support region-exclusion lists evaluated before bucketing, so a player in a restricted region is never entered into the experiment at all rather than being filtered out post-hoc. This exclusion logic carries the same audit-log and elevated-approval requirements as other monetization-sensitive changes (Section 25).

@@ -468,191 +468,9 @@ On-call routing follows tenant/team ownership where the fault is domain-specific
 - **Per-tenant rate ceilings** (§27) double as a cost-control lever — prevents one studio's misconfigured agent loop from silently inflating the shared infra bill (chargeback model attributes gateway compute cost proportionally to tenant call volume, visible in the business-metrics dashboard, §22).
 - **Tool-call result NOT cached by default** (§11) is itself a conscious cost/correctness tradeoff — caching would save compute but risks serving stale ban-status/entitlement data, judged not worth the small savings given the low absolute cost of the gateway's own compute relative to what a stale-data incident would cost.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RPO | RTO | Backup strategy |
-|---|---|---|---|
-| Tool Registry | 5 min | 15 min | Continuous replication to standby region + point-in-time snapshots every 5 min |
-| Identity & Grant Store (Postgres) | 1 min | 15 min | Streaming WAL replication to standby, automated failover |
-| Audit columnar store (hot) | 15 min | 1 hr | Snapshot-based backup; acceptable RPO since audit is forensic, not transactional-critical |
-| Audit cold store (Parquet/object storage) | Near-zero (object storage cross-region replication) | N/A (durable by design) | Native object-store replication, 11-nines durability |
-| Policy bundles | N/A (regenerable) | 5 min | Not "restored" — recompiled from Grant Store source of truth, so DR here just means Grant Store DR |
-| Gateway (stateless) | N/A | 5 min | No data to restore — just redeploy from container images in standby region |
-
-**Overall system RTO target: 15 minutes** for full data-plane restoration in a region-loss scenario, gated by the Registry/Grant Store failover (the only genuinely stateful, consistency-sensitive components) — everything else either has no state (gateway) or a more relaxed RPO/RTO (audit).
-
-## 31. Multi-Region Deployment
-
-- **Topology: active-active** for the gateway data plane (stateless, deploy identical gateway fleets in each region EA operates from — e.g., US-West, US-East, EU, APAC — matching where studios and player-facing support operations sit).
-- **Registry/Grant Store**: active-passive with a single writable primary region + read replicas in every other region — writes (registrations, grants) are low-volume and latency-tolerant (a studio registering a new tool doesn't need sub-10ms write latency), so single-primary avoids multi-region write-conflict complexity; reads are served locally from the nearest replica.
-- **Grant revocation is the one operation that must NOT wait on cross-region replica lag** — implemented as a dedicated low-latency pub/sub fan-out (§13) that pushes directly to every region's gateway cache, bypassing the read-replica path entirely, to hit the ≤10s global revoke SLA regardless of which region originated the revoke.
-- **Latency routing**: agents connect to their nearest regional gateway via GeoDNS/Anycast; an MCP server itself may only be deployed in one or two regions (e.g., a studio's Frostbite build system lives where that studio's infra is) — the gateway routes cross-region to the tool's actual location when necessary, accepting the added latency for that specific tool rather than trying to replicate every server everywhere.
-
-```
-   US-West Gateway Fleet        EU Gateway Fleet         APAC Gateway Fleet
-        │  (active)                 │ (active)               │ (active)
-        ▼                           ▼                        ▼
-  ┌───────────────────────────────────────────────────────────────┐
-  │        Grant-revoke pub/sub fan-out (cross-region, <2s)         │
-  └───────────────────────────────────────────────────────────────┘
-        │                           │                        │
-        ▼                           ▼                        ▼
-  Registry Read Replica       Registry Read Replica    Registry Read Replica
-        │                           │                        │
-        └──────────────┬────────────┴────────────┬───────────┘
-                        ▼                          ▼
-              Registry PRIMARY (US-West, writable)
-              Grant Store PRIMARY (US-West, writable)
-```
-
-## 32. Blue/Green Deployment
-
-- Applies primarily to **gateway** and **policy engine** releases (the shared, blast-radius-sensitive components).
-- New gateway version deployed as a fully parallel "green" fleet behind the same load balancer, zero live traffic initially; smoke-tests run against green using synthetic `tools/call` requests covering the top-20 most-used tools across representative tenants.
-- Cutover: load balancer weight shifted 0% → 100% to green in one atomic switch (not gradual — that's canary, §33) once smoke tests + a 10-minute shadow-traffic mirror (real requests duplicated to green, responses discarded/compared) show parity in error rate and latency distribution.
-- Blue fleet kept warm for 30 minutes post-cutover as instant rollback target (just flip LB weight back) before decommissioning.
-- **Not used for MCP servers themselves** — those are each owning team's independent deployments; the gateway's circuit breaker treats a bad MCP server deploy as an upstream failure regardless of what deployment strategy that team used.
-
-## 33. Canary Deployment
-
-- Used for **policy bundle changes** and **gateway config changes** that are riskier/harder to fully pre-validate than a code release (e.g., a new default rate-limit policy, a schema-validation strictness change).
-- Traffic split: 1% → 5% → 25% → 100%, each stage held 15 minutes minimum, gated on:
-  - Authz denial rate within 2 std-dev of baseline (a spike means the new policy is over/under-restricting).
-  - Gateway error rate < 0.1% on canary slice.
-  - p99 latency on canary slice within 10% of control slice.
-- Canary slice selected **by tenant**, not randomly by request — rotating a low-traffic, non-production-critical internal tenant (e.g., an internal dev-tools studio) through canary first, before any customer-facing/live-ops tenant sees the new policy — because a bad authz policy affecting a live incident-response agent has outsized cost compared to a random 1% sample would suggest.
-- Automatic rollback (§34) triggers if any gate fails; manual promotion required to advance stages (no fully-automatic promotion for policy changes given the security sensitivity).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: canary gate failure (§33) → automatic revert to prior policy bundle/gateway config version, within 1 evaluation window (15 min max exposure); sustained p99 latency or error-rate SLA breach post blue/green cutover (§32) within the 30-min warm-blue window → automatic LB weight flip back to blue.
-- **Rollback mechanics**: 
-  - Policy bundles: versioned artifacts in object storage, rollback = pub/sub push of the previous version's bundle reference — same fast (<10s) propagation path as a normal update, so rollback is not meaningfully slower than roll-forward.
-  - Gateway: standard k8s Deployment rollback (`kubectl rollout undo` equivalent / GitOps revert commit), pod replacement takes ~2-3 min fleet-wide given readiness-gated rolling restart.
-  - Registry data (a bad tool manifest registered): soft-delete/version-pin model — registry never hard-deletes a prior manifest version, so "rollback" for a bad tool registration is pinning consumers back to the last-known-good version, not a destructive DB restore.
-- **Post-rollback**: incident review required before re-attempting the change; canary stage-gate thresholds revisited if the failure reveals the gate itself was insufficiently sensitive.
-
-## 35. Observability
-
-- **Traces**: every `tools/call` gets a `trace_id` at the agent runtime, propagated through gateway → policy sidecar → MCP server → back, using OpenTelemetry (W3C traceparent header over the MCP JSON-RPC transport's HTTP headers) — this is what makes the §18 stage-by-stage latency breakdown actually debuggable in production rather than theoretical.
-- **Metrics**: §22's metrics, exported via OpenTelemetry/Prometheus exposition, with `trace_id` exemplars attached to latency histograms so a p99 spike in a dashboard can jump directly to a representative slow trace.
-- **Logs**: structured logs (§24) all carry `trace_id`, enabling correlation — a security analyst investigating an anomaly-detector flag (§23) pivots from the alert → the specific `trace_id` → full cross-service trace → structured logs at each hop, without needing to grep across five teams' independent log stores.
-- **Three pillars tying together, concretely**: an on-call engineer sees a gateway p99-latency alert (metric) → drills into the trace exemplar (trace) showing step 7 (§18, upstream MCP server call) is the slow stage → pulls that MCP server's logs filtered by `trace_id` (log) to find the specific downstream DB query that's slow — full path from symptom to root cause across an org boundary (platform team doesn't own that MCP server) without a support ticket ping-pong.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: mcp-gateway
-  namespace: mcp-platform
-spec:
-  replicas: 8
-  selector:
-    matchLabels: {app: mcp-gateway}
-  template:
-    metadata:
-      labels: {app: mcp-gateway}
-    spec:
-      containers:
-        - name: gateway
-          image: registry.ea.internal/mcp-gateway:1.9.3
-          resources:
-            requests: {cpu: "1", memory: "1.5Gi"}
-            limits: {cpu: "2", memory: "2Gi"}
-          ports: [{containerPort: 8443}]
-          readinessProbe:
-            httpGet: {path: /healthz/ready, port: 8443}
-            periodSeconds: 5
-        - name: opa-sidecar
-          image: registry.ea.internal/mcp-policy-sidecar:1.9.3
-          resources:
-            requests: {cpu: "250m", memory: "256Mi"}
----
-apiVersion: v1
-kind: Service
-metadata: {name: mcp-gateway-svc, namespace: mcp-platform}
-spec:
-  selector: {app: mcp-gateway}
-  ports: [{port: 443, targetPort: 8443}]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: {name: mcp-gateway-hpa, namespace: mcp-platform}
-spec:
-  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: mcp-gateway}
-  minReplicas: 8
-  maxReplicas: 30
-  metrics:
-    - type: Pods
-      pods:
-        metric: {name: requests_per_second_per_pod}
-        target: {type: AverageValue, averageValue: "800"}
-    - type: Pods
-      pods:
-        metric: {name: p99_latency_ms}
-        target: {type: AverageValue, averageValue: "40"}
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "kubernetes_namespace" "mcp_platform" {
-  metadata { name = "mcp-platform" }
-}
-
-resource "aws_msk_cluster" "mcp_audit_kafka" {
-  cluster_name           = "mcp-audit-events"
-  kafka_version          = "3.7.0"
-  number_of_broker_nodes = 6
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.xlarge"
-    client_subnets  = var.private_subnet_ids
-    security_groups = [aws_security_group.mcp_kafka_sg.id]
-    storage_info {
-      ebs_storage_info { volume_size = 2000 } # GB per broker, sized for 90-day-ish local buffer
-    }
-  }
-
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS" }
-  }
-}
-
-resource "aws_docdb_cluster" "tool_registry" {
-  cluster_identifier      = "mcp-tool-registry"
-  engine                  = "docdb"
-  master_username         = var.registry_db_admin
-  master_password         = var.registry_db_password
-  backup_retention_period = 7
-  preferred_backup_window = "05:00-06:00"
-  db_subnet_group_name    = aws_docdb_subnet_group.registry.name
-  storage_encrypted       = true
-}
-
-resource "aws_rds_cluster" "identity_grant_store" {
-  cluster_identifier      = "mcp-identity-grants"
-  engine                  = "aurora-postgresql"
-  engine_version          = "16.2"
-  master_username         = var.grants_db_admin
-  master_password         = var.grants_db_password
-  backup_retention_period = 14
-  storage_encrypted       = true
-  replication_source_identifier = null # primary; read replicas defined per-region separately
-}
-
-resource "aws_elasticache_replication_group" "gateway_cache" {
-  replication_group_id = "mcp-gateway-cache"
-  description          = "Registry/policy/tool-search cache-aside layer"
-  engine               = "redis"
-  node_type            = "cache.r6g.large"
-  num_cache_clusters   = 3
-  automatic_failover_enabled = true
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -737,22 +555,22 @@ resource "aws_elasticache_replication_group" "gateway_cache" {
 
 ## 46. Ideal Answers
 
-1. **Sampling/callback handling**: MCP's `sampling/createMessage` lets a server request the *client's* LLM do a completion mid-tool-execution (e.g., a tool needs to summarize something using the agent's model rather than embedding its own). Architecturally this means the gateway can't treat `tools/call` as strictly request/response-terminal — it must keep the session open and route a callback back through the same session context, with its own authz check (the server requesting sampling shouldn't get unrestricted access to the agent's full LLM capability/budget — apply the same per-tool scoping to sampling requests, and count them against the tool's own rate limit, not a separate unbounded channel).
+1. **Sampling/callback handling**: MCP's `sampling/createMessage` lets a server request the *client's* LLM do a completion mid-tool-execution, so the gateway can't treat `tools/call` as strictly request/response-terminal — it must keep the session open and route the callback back through it. Apply the same per-tool authz scoping and rate limit to sampling requests rather than giving the server an unbounded channel.
 
-2. **30s netsplit worst case**: that gateway pod continues serving stale grants/policy for up to 30s beyond the 10s SLA — a real SLA breach. Mitigation layers: (a) the reconciliation job (§41.2) detects version-lag and can proactively pull rather than wait for push, bounding true worst-case exposure; (b) for genuinely high-risk tools, don't rely solely on cached policy — add a "must revalidate live" flag in the tool manifest for anything above a risk threshold (ban/refund-class tools), forcing a synchronous grant-store check even at the cost of extra latency, trading the 15ms/60ms budget for correctness on the highest-blast-radius actions specifically, rather than uniformly.
+2. **30s netsplit worst case**: that gateway pod can serve stale grants/policy for up to 30s beyond the 10s SLA, a real breach. The reconciliation job (§41.2) bounds this by proactively pulling on version-lag, and high-risk tools can carry a "must revalidate live" flag forcing a synchronous grant-store check.
 
-3. **Tenant isolation under misbehavior**: per-tenant rate-limit ceiling (§27) is the first line of defense — token bucket caps one tenant's aggregate call rate regardless of per-agent limits being individually respected. Second line: gateway pods run with fair-queuing/priority classes so no single tenant's request queue starves others even below the hard rate-limit threshold. Third: per-tenant cost/usage dashboards (§22) catch slow-building misbehavior (a buggy retry loop) before it hits the hard limit, via anomaly alerting on call-volume deviation from that tenant's own baseline.
+3. **Tenant isolation under misbehavior**: the per-tenant rate-limit ceiling (§27) is the first line of defense regardless of per-agent limits. Fair-queuing/priority classes on gateway pods stop one tenant's queue from starving others, and per-tenant usage dashboards (§22) catch slow-building misbehavior before it hits the hard limit.
 
-4. **100,000 tools**: first break point is the semantic-search vector index — HNSW at that scale (roughly 5-10x current) is probably still fine memory-wise but re-embedding/reindexing latency on registry churn grows; the more likely actual break point is *registry read cache size* at the gateway (if trying to keep a large working set of manifests locally cached) — would shift to a smarter partial-cache/LRU strategy keyed by which tools a given tenant/agent-class actually uses, rather than assuming full-catalog cacheability.
+4. **100,000 tools**: the semantic-search vector index (HNSW) likely stays fine memory-wise at that scale, but the more likely break point is the gateway's registry read cache size. Fix is a smarter partial-cache/LRU strategy keyed by which tools a tenant/agent-class actually uses, not full-catalog caching.
 
-5. **Search leaking tool existence**: yes, this is a real information-disclosure risk — a tenant seeing "there's a `disable_anticheat_flag` tool" in search results (even if denied on `tools/call`) leaks its existence/naming, which itself can be sensitive. Fix: apply the *same* authz filter to search results as to `tools/list` — the vector index query must be post-filtered (or pre-filtered via a per-tenant visible-tool-ID allowlist) before ranking/returning results, never search over the full unfiltered catalog and rely on downstream call-time denial alone.
+5. **Search leaking tool existence**: yes — a tenant seeing a sensitive tool name in search results (even if denied on `tools/call`) is a real information-disclosure risk. Fix is applying the same authz filter to search as to `tools/list`, pre/post-filtering the vector query rather than relying on call-time denial alone.
 
-6. **Long streaming job**: shift from job-submit+poll to `notifications/progress` (MCP's native progress notification mechanism) over the same session's SSE stream — gateway must keep a long-lived connection (or reconnect-with-cursor semantics) rather than the fire-and-forget async job queue model; needs its own timeout/keepalive tuning distinct from the fast-path sync budget (§18), and circuit-breaker logic needs a different signal than "request timeout" (a legitimately slow-but-healthy multi-minute job shouldn't trip the same breaker as a hung/broken server).
+6. **Long streaming job**: shift from job-submit+poll to `notifications/progress` over the same session's SSE stream, keeping a long-lived connection instead of a fire-and-forget queue. This needs its own timeout/keepalive tuning distinct from the fast-path sync budget (§18) so a healthy multi-minute job doesn't trip the same circuit breaker as a hung server.
 
-7. **Third-party vetting**: beyond sandbox runtime isolation — static analysis of the manifest/schema for suspicious scope requests (asking for tools/data broader than its stated purpose), a manual security review gate before marketplace listing, a probationary period at reduced rate limits and mandatory human-approval-gate on its first N calls per new adopting tenant, and continuous post-admission monitoring (the anomaly detector, §15, applied to third-party servers specifically with a lower alert threshold than first-party).
+7. **Third-party vetting**: beyond sandbox runtime isolation, add static analysis of the manifest for suspicious scope requests and a manual security review gate before marketplace listing. New servers get a probationary period at reduced rate limits with human-approval on their first N calls, plus continuous anomaly monitoring (§15) at a lower alert threshold than first-party.
 
-8. **Name collision confusion**: namespace tools by `{studio}.{domain}.{action}` (e.g., `dice.telemetry.query_matches` vs `bioware.telemetry.query_matches`) so collisions are structurally prevented at the identifier level even if human-readable descriptions are similar; additionally, surface the owning-studio/team prominently in what's shown to the agent's LLM (not just buried in metadata) so the model has a disambiguating signal, and track override/correction rate (§21) as the metric that would catch this problem in production even if the naming discipline slips.
+8. **Name collision confusion**: namespace tools by `{studio}.{domain}.{action}` so collisions are structurally prevented at the identifier level, and surface the owning studio/team prominently to the agent's LLM as a disambiguating signal. Track override/correction rate (§21) as the metric that catches this in production.
 
-9. **Sub-tenant scoping without re-architecture**: the grant model (§10, Postgres, `agent_id × tool × tenant`) can be extended with an additional optional `team_id` column and a hierarchical policy evaluation (team-level grant supersedes/narrows studio-level default) without changing the storage paradigm — the harder part isn't the schema, it's the registry's tenant-partitioning (§10) which currently shards at studio granularity; sub-tenant scoping can live as a *finer authz filter within* a studio's shard rather than needing its own partition, since sub-tenant data volume doesn't independently justify a new sharding dimension.
+9. **Sub-tenant scoping without re-architecture**: the grant model (§10, `agent_id × tool × tenant`) can add an optional `team_id` column with hierarchical policy evaluation without changing the storage paradigm. The harder part is that the registry currently shards at studio granularity, so sub-tenant scoping lives as a finer authz filter within a studio's shard rather than needing its own partition.
 
-10. **Search actively causing harm, signal**: the override rate (§21) tells you it's *mediocre*; what tells you it's *harmful* is correlating search-suggested-and-selected tool calls with downstream error/rollback rates and with the anomaly detector's flags — if calls that originated from a search-suggested (vs. explicitly-named) tool selection show a statistically higher rate of being immediately followed by a corrective/undo action by the same agent session, that's a directly actionable harm signal distinct from generic relevance quality.
+10. **Search actively causing harm, signal**: override rate (§21) tells you search is *mediocre*; what tells you it's *harmful* is correlating search-suggested tool calls with downstream error/rollback rates. If search-suggested selections are followed by corrective/undo actions at a statistically higher rate than explicitly-named ones, that's a direct harm signal.

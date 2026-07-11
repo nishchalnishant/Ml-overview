@@ -451,177 +451,9 @@ Statistical tests run on streaming windows (1hr tumbling + 24hr rolling) to sepa
 - **Storage tiering**: cold training data (>30 days) auto-lifecycles to cheaper storage tier; feature snapshots deduplicated across overlapping training windows.
 - **Reserved + spot hybrid**: baseline steady-state GPU need covered by reserved/on-prem capacity (cheaper amortized), burst-only workloads (launch days, drift storms) use spot/on-demand cloud.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Target | Value |
-|---|---|
-| RTO (control plane: orchestrator, registry) | 30 minutes |
-| RPO (model registry metadata) | 5 minutes (Postgres continuous WAL archiving + point-in-time restore) |
-| RTO (serving fleet, if region fails) | 5 minutes (failover to standby region, section 31) |
-| RPO (training data) | 0 (Kafka durable log + S3 versioned buckets, replayable from source) |
-| Backup strategy | Postgres: automated snapshots every 6h + continuous WAL shipping to S3. Model artifacts: S3 cross-region replication. Kafka: replication factor 3 across AZs. |
-| DR drill cadence | Quarterly game-day: simulate registry DB loss, restore from backup, verify last-known-good model still servable within RTO |
-
-## 31. Multi-Region Deployment
-
-```
-        Region: US-EAST (primary/active)          Region: EU-WEST (active)
-   ┌───────────────────────────────┐        ┌───────────────────────────────┐
-   │ Serving Fleet (Triton/KServe) │        │ Serving Fleet (Triton/KServe) │
-   │ Feature Store (online, local) │        │ Feature Store (online, local) │
-   │ Model Registry (read replica) │◄──────►│ Model Registry (read replica) │
-   └───────────────┬───────────────┘  sync  └───────────────┬───────────────┘
-                    │                                        │
-                    └───────────────┬────────────────────────┘
-                                     ▼
-                     ┌───────────────────────────────┐
-                     │  Model Registry PRIMARY (US)   │
-                     │  Training Orchestrator (US)    │
-                     │  Training GPU Cluster (US)     │
-                     └───────────────────────────────┘
-```
-
-- **Topology**: active-active for *serving* (players routed to nearest region for latency — matchmaking/toxicity inference is latency-sensitive), active-passive for *training/orchestration control plane* (single source of truth in US-EAST to avoid split-brain on promotion decisions; EU registry is a read replica that receives promotion events async).
-- **Data replication**: model artifacts replicated cross-region via S3 CRR (typically < 2 min lag); registry promotion events propagated via a global event bus (Kafka MirrorMaker or equivalent) so EU serving fleet picks up new prod model version within seconds of US promotion.
-- **Latency routing**: GeoDNS/Anycast routes player traffic to nearest serving region; feature store online reads stay region-local (no cross-region hop on the hot path).
-- **Failure handling**: if US-EAST control plane fails, EU can continue serving the last-known-good model (registry read replica still has last-synced state) but cannot process new promotions/retrains until US recovers or a manual failover promotes EU registry replica to primary.
-
-## 32. Blue/Green Deployment
-
-Applied at the **model-serving version** level, not infra level: Triton hosts both "blue" (current champion) and "green" (newly-validated candidate) model versions simultaneously in the same model repository. Traffic-split is controlled by the Canary Controller's routing rule (not a full infra swap) — this is effectively blue/green *within* the serving layer, with the canary ramp (section 33) as the gradual cutover mechanism rather than an instantaneous full swap. Full instantaneous blue/green (100% cutover) is reserved for emergency rollback only (flip pointer back to blue instantly) — normal promotions always go through gradual canary, not a hard blue/green swap, because model-quality regressions are often subtle (calibration drift) and only surface under gradual real-traffic exposure.
-
-## 33. Canary Deployment
-
-| Stage | Traffic % | Duration (min) | Gate Checks |
-|---|---|---|---|
-| Shadow | 0% (mirrored, not served) | 24-48 hrs | Prediction distribution match, no serving-path errors, latency overhead acceptable |
-| Canary-1 | 1% | 2-4 hrs | Error rate < 0.5%, p99 latency within 10% of champion, no business-metric regression (win-rate balance, ban false-positive rate) |
-| Canary-2 | 10% | 4-8 hrs | Same gates + statistical significance check on key business metric delta |
-| Canary-3 | 50% | 8-24 hrs | Same gates, sustained over longer window to catch delayed-label effects (e.g., churn impact) |
-| Full rollout | 100% | — | Final gate pass + (for high-risk model classes) human sign-off |
-
-Traffic split implemented via service-mesh weighted routing (Istio VirtualService weight fields) keyed on request hash (sticky per-player assignment within a stage, avoids a player flip-flopping between champion/candidate mid-session which would create inconsistent matchmaking experience).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: canary-stage SLO breach (latency, error rate), business-metric regression beyond threshold, concept-drift alarm firing on the *new* version post-full-rollout.
-- **Mechanics**: Rollback Controller calls Registry API to flip the "current prod version" pointer back to last-known-good; because serving fleet reads this pointer via a near-real-time pub/sub-invalidated cache (section 11), rollback propagates to all serving pods within seconds — no redeploy, no pod restart, since both versions are already loaded in the Triton model repository during the canary window.
-- **Post-rollback**: candidate automatically demoted to "rejected" stage in registry, owning DS team notified with the triggering metric snapshot attached, retrain-with-fix can be manually requested.
-- **Rollback of a fully-promoted-and-old-version-evicted model**: if the previous champion's artifact was already evicted (past 24h grace period, section 11), rollback instead re-loads the artifact from the registry's S3 store — adds ~1-2 min load time, an accepted tradeoff vs. keeping every old version warm indefinitely.
-
-## 35. Observability
-
-- **Metrics**: Prometheus scrapes all services; Grafana dashboards per model_id (drift, gate pass rate, canary health) and per-pipeline-run.
-- **Tracing**: OpenTelemetry spans across the full retrain lifecycle — one trace per `run_id` spans data-prep → train → gate → shadow → canary, so a Principal engineer debugging "why did promotion take 6 hours" can see exactly which stage stalled.
-- **Logs**: correlated via `run_id`/`request_id` injected into every log line, queryable in OpenSearch; trace_id linked so a Grafana metric anomaly can pivot directly to the relevant trace and logs.
-- **Correlation in practice**: a canary SLO-breach alert links to (a) the Grafana panel showing the metric spike, (b) the distributed trace of that specific inference request, (c) the structured logs from the serving pod at that timestamp, (d) the model_id's registry page showing which version was live — all cross-linked via shared IDs, not siloed dashboards.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: drift-detector-matchmaking
-  labels: { app: drift-detector, model: matchmaking-skill }
-spec:
-  replicas: 3
-  selector: { matchLabels: { app: drift-detector, model: matchmaking-skill } }
-  template:
-    metadata: { labels: { app: drift-detector, model: matchmaking-skill } }
-    spec:
-      containers:
-        - name: drift-detector
-          image: ea-mlplatform/drift-detector:1.14.2
-          resources:
-            requests: { cpu: "1", memory: "2Gi" }
-            limits: { cpu: "2", memory: "4Gi" }
-          env:
-            - name: MODEL_ID
-              value: matchmaking-skill-fc25
-            - name: KAFKA_BROKERS
-              valueFrom: { configMapKeyRef: { name: kafka-config, key: brokers } }
----
-apiVersion: v1
-kind: Service
-metadata: { name: drift-detector-matchmaking }
-spec:
-  selector: { app: drift-detector, model: matchmaking-skill }
-  ports: [{ port: 8080, targetPort: 8080 }]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: drift-detector-matchmaking-hpa }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: drift-detector-matchmaking }
-  minReplicas: 2
-  maxReplicas: 12
-  metrics:
-    - type: External
-      external:
-        metric: { name: kafka_consumergroup_lag, selector: { matchLabels: { topic: player.events } } }
-        target: { type: AverageValue, averageValue: "10000" }
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_eks_node_group" "gpu_training_pool" {
-  cluster_name    = aws_eks_cluster.ml_platform.name
-  node_group_name = "gpu-training-spot"
-  node_role_arn   = aws_iam_role.training_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-
-  capacity_type  = "SPOT"
-  instance_types = ["p4d.24xlarge", "p3.8xlarge"]
-
-  scaling_config {
-    desired_size = 0
-    min_size     = 0
-    max_size     = 16
-  }
-
-  labels = { workload = "training", accelerator = "nvidia-a100" }
-  taint {
-    key = "training-only", value = "true", effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_msk_cluster" "telemetry_bus" {
-  cluster_name           = "ea-ml-telemetry"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 9
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.4xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 2000 } }
-  }
-}
-
-resource "aws_s3_bucket" "model_registry_artifacts" {
-  bucket = "ea-ml-model-registry-artifacts"
-}
-
-resource "aws_s3_bucket_replication_configuration" "artifact_crr" {
-  bucket = aws_s3_bucket.model_registry_artifacts.id
-  role   = aws_iam_role.replication_role.arn
-  rule {
-    id     = "cross-region-replica"
-    status = "Enabled"
-    destination { bucket = aws_s3_bucket.model_registry_artifacts_eu.arn }
-  }
-}
-
-resource "aws_db_instance" "model_registry_db" {
-  identifier              = "model-registry-postgres"
-  engine                  = "postgres"
-  instance_class          = "db.r6g.xlarge"
-  allocated_storage       = 200
-  backup_retention_period = 7
-  multi_az                = true
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -718,22 +550,22 @@ Bottleneck at p99: batching queue wait time when traffic bursts (launch-day matc
 
 ## 46. Ideal Answers
 
-1. **Retrain storm prevention**: Per-model rate limiting on retrain triggers (max 1 manual/10min) plus a circuit breaker that auto-pauses a model's drift-auto-triggering if it fires >3 times in 24h, escalating to on-call instead of retraining blindly — distinguishes real sustained drift from a noisy/misconfigured detector, and caps blast radius on GPU spend.
+1. **Retrain storm prevention**: Per-model rate limiting on retrain triggers (max 1 manual/10min) plus a circuit breaker that auto-pauses drift-auto-triggering if it fires >3 times in 24h, escalating to on-call instead of retraining blindly. This distinguishes real sustained drift from a noisy detector and caps GPU spend blast radius.
 
-2. **Gate service inverted logic bug**: Defense in depth — even if the gate wrongly passes a bad candidate, the shadow evaluation stage independently re-validates against live traffic before any serving exposure, and canary stage 1 (1% traffic) has hard automatic SLO/business-metric rollback triggers independent of the gate's verdict. Additionally, gate results are signed by the gate service's identity and the registry logs every pass/fail with full metric payload for post-incident audit — an inverted-logic bug would still be caught by shadow/canary before meaningful player impact, and the audit trail lets you pinpoint exactly which promotions need retroactive review.
+2. **Gate service inverted logic bug**: Defense in depth — even if the gate wrongly passes a bad candidate, shadow evaluation independently re-validates against live traffic, and canary stage 1 (1% traffic) has automatic SLO/business-metric rollback triggers independent of the gate's verdict. Gate results are also logged with full metric payload for post-incident audit.
 
-3. **Point-in-time correctness across differing pipeline latencies**: Every feature write carries an event-time timestamp (not processing-time), and training-data generation uses as-of/point-in-time joins against the offline store keyed on that event-time — so even if online and offline pipelines have different processing lag, the *logical* correctness of "what did this feature look like at label time" is preserved because it's a timestamp-based join, not a "current value" lookup. Shared feature-transformation code compiled to both streaming and batch paths further prevents train/serve skew from divergent logic (not just divergent timing).
+3. **Point-in-time correctness across differing pipeline latencies**: Every feature write carries an event-time timestamp, and training-data generation uses as-of/point-in-time joins against the offline store keyed on that timestamp, so differing processing lag between online and offline pipelines doesn't corrupt "what the feature looked like at label time." Shared feature-transformation code across streaming and batch paths further prevents train/serve skew.
 
-4. **Concurrent promotion race**: Registry promotion is a transactional state-machine update in Postgres — the promote operation does a compare-and-swap on the model version's current stage (`WHERE stage = 'shadow'` before setting `stage = 'canary'`), so the second concurrent request fails the conditional update and gets a 409-equivalent conflict response, forcing that engineer to re-fetch current state rather than silently double-promoting.
+4. **Concurrent promotion race**: Registry promotion is a transactional compare-and-swap on the model version's stage in Postgres (`WHERE stage = 'shadow'` before setting `stage = 'canary'`), so a second concurrent request fails the conditional update and gets a conflict response rather than silently double-promoting.
 
-5. **Concept drift with delayed labels**: Use two complementary signals — (a) a fast proxy: prediction-score distribution drift (PSI on model outputs) as an early-warning signal available immediately, since prediction drift often precedes/correlates with eventual concept drift; (b) the ground-truth signal once labels resolve (30-day churn outcome), computing rolling AUC/calibration against the delayed-label stream and comparing to the training-time baseline. The proxy triggers a "watch" state; the delayed ground-truth confirms and fires the actual retrain trigger, balancing responsiveness against waiting a full month for confirmed signal.
+5. **Concept drift with delayed labels**: Use two complementary signals — a fast proxy (PSI on prediction-score distribution) as immediate early warning, and the ground-truth signal once labels resolve, computing rolling AUC against the training-time baseline. The proxy triggers a "watch" state; delayed ground-truth confirms and fires the actual retrain.
 
-6. **Segment-level regression despite aggregate improvement**: Never gate purely on aggregate metrics — the validation gate and shadow comparison both run fairness/segment-slice checks (by region, by skill tier, by player tenure) as a required gate criterion, not just overall AUC. A candidate that improves aggregate but regresses a meaningful segment fails the gate and requires explicit DS sign-off to override with documented justification (e.g., intentionally deprioritizing a shrinking segment) — this override itself is logged in the audit trail.
+6. **Segment-level regression despite aggregate improvement**: The validation gate and shadow comparison both run fairness/segment-slice checks (by region, skill tier, tenure) as required criteria, not just overall AUC. A candidate that regresses a meaningful segment fails the gate and requires explicit DS sign-off with documented justification to override.
 
-7. **Rollback after artifact eviction**: The registry always retains the artifact in cold S3 storage even after eviction from the hot serving-node cache (eviction only removes it from the Triton model repository's warm set, not from the source of truth). Rollback in this case takes an extra 1-2 minutes to re-download and load the artifact rather than an instant pointer flip — an accepted latency tradeoff since keeping every historical version warm indefinitely doesn't scale; the grace period (24h) is tuned so this slow-path rollback is rare, triggering only for old versions being rolled back to well after they've been stable-superseded.
+7. **Rollback after artifact eviction**: The registry always retains the artifact in cold S3 storage even after eviction from the hot serving-node cache, so rollback just takes an extra 1-2 minutes to re-download rather than an instant pointer flip — an accepted tradeoff since keeping every historical version warm doesn't scale.
 
-8. **Onboarding a new studio with a different stack**: The platform's core contracts (event schemas on Kafka, the Model Registry API, the validation-gate interface) are stack-agnostic — a new title's telemetry just needs a schema-conformant producer and a feature-pipeline adapter; training jobs are just K8s Jobs, so any training code that can run in a container (regardless of language/framework) plugs into the same orchestrator DAG. The main onboarding cost is building the title-specific feature transformations and gate thresholds, not re-architecting the platform.
+8. **Onboarding a new studio with a different stack**: The platform's core contracts (Kafka event schemas, Model Registry API, validation-gate interface) are stack-agnostic, and training jobs are just K8s Jobs, so any containerized training code plugs into the same orchestrator DAG. The main onboarding cost is title-specific feature transformations and gate thresholds, not re-architecting the platform.
 
-9. **Incremental warm-start vs. full retrain**: Warm-start incremental retraining is faster and cheaper (fine-tunes from existing weights, fewer epochs) and is preferred for frequent/fast-cadence models (fraud) where speed matters more than eliminating accumulated bias. Full retrain-from-scratch is preferred periodically (weekly/monthly backstop) regardless of incremental cadence, because incremental updates can accumulate subtle bias or drift in ways a fresh fit on the full current data distribution corrects — treat incremental as the fast-response tool and full retrain as the periodic correctness reset.
+9. **Incremental warm-start vs. full retrain**: Warm-start incremental retraining is faster/cheaper and preferred for frequent-cadence models (fraud) where speed matters most. Full retrain-from-scratch runs periodically as a backstop regardless of cadence, since incremental updates can accumulate subtle bias that a fresh fit on the full current distribution corrects.
 
-10. **Multi-region promotion during regional incident**: Promotions are only ever authored in the active control-plane region (US-EAST primary) — EU never independently promotes, it only consumes replicated promotion events. If EU is mid-incident, a US promotion still fires but EU's replica may lag until the incident resolves, meaning EU keeps serving its last-synced model version (safe, if stale) rather than risking a partial/inconsistent promotion applied only in one region. If US itself is down, promotions simply queue/fail until control-plane recovery or a manual decision to fail over primary registry role to EU — deliberately no automatic multi-master promotion to avoid split-brain on "which model is actually in prod."
+10. **Multi-region promotion during regional incident**: Promotions are only ever authored in the active control-plane region (US-EAST primary); EU never independently promotes, it only consumes replicated promotion events. If EU is mid-incident, a US promotion still fires but EU keeps serving its last-synced version (safe, if stale) rather than risk a partial/inconsistent promotion — deliberately no automatic multi-master promotion to avoid split-brain on "which model is in prod."

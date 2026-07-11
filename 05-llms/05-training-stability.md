@@ -269,34 +269,7 @@ elif measured_kl < 0.5 * target_kl:
 
 ## 8. Distributed Training Stability: ZeRO and Mixed Parallelism
 
-**The problem**: a 70B model in BF16 requires 140 GB of parameter memory. Add FP32 optimizer states (Adam keeps $m_t$ and $v_t$ per parameter, both in FP32): $70\text{B} \times 3 \times 4 = 840$ GB. A single A100 has 80 GB. Training requires splitting model state across multiple GPUs.
-
-**Naive data parallelism**: each GPU holds a full copy of the model and processes a different batch slice. Gradients are averaged across GPUs. This simply doesn't work for models that exceed single-GPU memory.
-
-**The core insight — ZeRO (Zero Redundancy Optimizer)**: in data parallelism, every GPU holds the same optimizer states, gradients, and parameters. This is pure redundancy. Shard each across all $N$ GPUs.
-
-| Stage | What is sharded | Memory per GPU vs baseline |
-| :--- | :--- | :--- |
-| ZeRO-1 | Optimizer states | ~$1/N$ of optimizer state |
-| ZeRO-2 | Optimizer states + gradients | ~$1/N$ of optimizer state + gradients |
-| ZeRO-3 | All of the above + parameters | ~$1/N$ total |
-
-With ZeRO-3, a 70B model can be trained on 8× A100 80 GB GPUs. The cost is inter-GPU communication to reconstruct parameters before each forward pass — this communication overhead must be overlapped with computation.
-
-```python
-# DeepSpeed ZeRO-3 config
-ds_config = {
-    "zero_optimization": {
-        "stage": 3,
-        "offload_optimizer": {"device": "cpu"},   # spill optimizer states to CPU RAM
-        "offload_param": {"device": "cpu"},
-    },
-    "bf16": {"enabled": True},
-    "gradient_clipping": 1.0,
-}
-```
-
-**What breaks**: ZeRO-3 requires all-gather communication before each layer's forward pass to reconstruct parameters. At small batch sizes or on high-latency interconnects, communication latency becomes the bottleneck rather than computation. Pipeline parallelism and tensor parallelism address different bottlenecks but introduce their own complexity.
+Large models don't fit on a single GPU once you account for parameters, gradients, and optimizer states (e.g., Adam's FP32 moments triple memory), so training must shard state across GPUs. ZeRO (Zero Redundancy Optimizer) does this by splitting the optimizer states, gradients, and (at the highest stage) parameters across all GPUs instead of replicating them, cutting per-GPU memory roughly by the number of GPUs. This matters for stability because it's what makes training large models feasible at all — but it also introduces its own failure mode: sharding requires extra inter-GPU communication to reconstruct parameters before each forward pass, which can bottleneck or stall training on slow interconnects. Deep mechanism details and multi-way parallelism tradeoffs are staff/infra-architect scope.
 
 ---
 

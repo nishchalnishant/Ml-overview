@@ -514,189 +514,9 @@ PARTITIONED BY (run_id);   -- each run isolated; "latest" resolved via lineage p
 | **Scale-to-zero** | Clusters torn down immediately at job completion, not kept warm | Eliminates idle-cluster spend, the single largest waste category in naive batch platforms |
 | **Storage lifecycle/TTL** | Aggressive retention tuning on high-volume outputs (Section 6: top-50 not top-500 recsys candidates, 14-day TTL) | Cuts recsys output storage ~85% (14.4TB → ~2.2TB) |
 
-## 30. Disaster Recovery (RTO/RPO targets, backup strategy)
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RTO | RPO | Strategy |
-|---|---|---|---|
-| Job Orchestrator (control plane) | 15 min | 5 min | Multi-AZ HA deployment, state (job definitions, schedules) in replicated Postgres; failover via standby promotion |
-| Lakehouse (feature/output data) | 1h (for read access restoration) | Near-zero (S3 is 11-nines durable, cross-region replication for critical tables) | S3 versioning + cross-region replication for the feature-snapshot and output tables backing P0 jobs |
-| Model Registry | 30 min | 0 (artifacts immutable once published, replicated to secondary region) | Multi-region artifact replication; registry metadata in replicated Postgres |
-| In-flight batch job (mid-run failure) | N/A — job is simply re-run | N/A (idempotent by design, Section 12) | No "recovery" needed beyond re-submission with the same idempotency_key; partial progress may be salvageable via partition-level checkpoint resume (Spark/Ray native checkpointing) |
-| Online feature-store sink (Redis/Dynamo) | 30 min | Up to 24h (acceptable: next nightly job re-populates) | Cross-AZ replicas; full rebuild is simply "run the last successful job's output write again" — store is a derived cache, not a source of truth |
-
-- Because outputs are versioned/append-only and jobs are idempotent, the platform's actual DR posture leans heavily on **"re-run the job"** as the primary recovery mechanism for data-plane failures — the harder DR problem is control-plane (orchestrator/registry) availability, which gets the tighter RTO/RPO targets above.
-
-## 31. Multi-Region Deployment (active-active vs active-passive, data replication, latency routing)
-
-- **Active-active by region, not by failover pair**: each major region (us-east, eu-west, ap-southeast) runs its own full batch-inference stack (orchestrator instance, Spark/Ray clusters, lakehouse partition) to satisfy data-residency (EU player data never leaves eu-west compute) — this is a data-locality requirement, not primarily a latency-optimization one (batch jobs have no interactive-latency user waiting).
-- **Global control-plane view**: a thin global orchestrator layer aggregates job status/lineage across regions for cross-region visibility (e.g., "show me all P0 job failures globally") without moving actual player data cross-region.
-- **Replication**: model artifacts replicated to all regions (registry is globally readable, artifacts are non-PII); feature/output data is **not** replicated cross-region by default — a US-scoped job only ever touches US-partitioned data.
-- **Cross-region job coordination example**: a "global churn score" business metric that needs to combine per-region outputs is computed by a downstream aggregation job reading only already-aggregated, non-PII summary statistics from each region's warehouse export — raw player rows still never cross region boundaries.
-
-```
-   us-east region                 eu-west region              ap-southeast region
- ┌─────────────────────┐        ┌─────────────────────┐     ┌─────────────────────┐
- │ Orchestrator (local)│        │ Orchestrator (local)│     │ Orchestrator (local)│
- │ Spark/Ray clusters   │        │ Spark/Ray clusters   │     │ Spark/Ray clusters   │
- │ Lakehouse (US data)  │        │ Lakehouse (EU data)  │     │ Lakehouse (APAC data)│
- └──────────┬───────────┘        └──────────┬───────────┘     └──────────┬───────────┘
-            │ job status/lineage only (no raw data)                       │
-            └──────────────────────────┬─────────────────────────────────┘
-                                        ▼
-                          ┌───────────────────────────┐
-                          │  Global Lineage/Status View │
-                          │  (aggregated metadata only) │
-                          └───────────────────────────┘
-```
-
-## 32. Blue/Green Deployment (how it applies to this system specifically)
-
-- Applies to **platform code** (orchestrator, Spark/Ray runtime images, DQ validator logic) — a new orchestrator version is deployed to a green environment, a subset of low-priority (P2) jobs are cut over first, and once stable, P1/P0 job traffic is switched via a config flag (which orchestrator endpoint jobs submit to).
-- Applies **differently to model versions**: "blue/green" for a *model* means running the new model_version's job fully in parallel against the same input partition as the currently-live version, writing to a separate `run_id`/shadow output table, and comparing distributions/business-metric proxies before flipping the "current" lineage pointer (Section 33 canary is the more common pattern for model rollout; true blue/green model swaps are used for high-stakes changes like the anti-cheat classifier where a bad rollout has real integrity consequences).
-- Rollback in blue/green is trivial for platform code (flip traffic back to blue) and for models (lineage pointer simply isn't advanced) — the append-only/versioned design (Section 10) is what makes this cheap.
-
-## 33. Canary Deployment (traffic-split strategy, health-check gates specific to this system)
-
-- **Canary unit = data partition, not request traffic** (no live requests to split here): a new model version is first run against a **small canary partition** (e.g., 1% of accounts, or a single region) alongside the incumbent model on the same data snapshot.
-- **Health-check gates before full rollout**:
-  - Prediction-distribution comparison (canary model vs incumbent) within expected bounds (no wild divergence).
-  - Row-level error/exception rate on canary run ≤ baseline.
-  - For models with fast-feedback labels (e.g., recsys CTR from a canary-served cohort), a short online A/B validation before batch-wide adoption.
-  - DQ Validator (Section 8) runs the same reconciliation/skew checks on canary output as on production runs.
-- **Promotion**: only after canary gates pass does the lineage/model-registry "production pointer" advance to the new version, and subsequent scheduled jobs pick it up automatically; failure at any gate halts promotion and pages the owning ML team, not batch-platform on-call (a canary gate failure is a model-quality issue, not an infra issue).
-
-## 34. Rollback Strategy (automated triggers, rollback mechanics)
-
-- **Automated triggers**: DQ Validator post-score check fails (row-count reconciliation mismatch, drift threshold breach) → job's output is written to its `run_id` partition but the "current/latest" lineage pointer is **not** auto-advanced; downstream consumers (CRM trigger, feature-store sink) that read "latest complete" therefore never see the bad output.
-- **Rollback mechanics**: because output is append-only/versioned by `run_id` (Section 10), "rollback" is simply repointing the lineage "latest" marker to the prior good `run_id` — no data deletion or destructive undo required; the feature-store online sink is re-populated by re-running the write-through push from the prior good `run_id`'s data (cheap, since that data still exists).
-- **Model rollback**: pin job spec's `model_ref.version` back to the previous version (registry never deletes old versions) — next scheduled run uses the reverted model with zero code change.
-- **Manual override**: on-call/ML-team lead can force-advance the lineage pointer past a soft-failed gate if the failure is a known false positive (e.g., legitimate seasonal distribution shift mistaken for drift) — requires a logged justification (audit trail via lineage store).
-
-## 35. Observability (tracing, metrics, logs correlation — the three pillars applied here)
-
-- **Tracing**: each job execution gets a distributed trace spanning orchestrator → cluster provisioning → partition-level Spark/Ray tasks → output write → notification, with `job_id`/`run_id` as the trace-correlation key (OpenTelemetry spans); lets an engineer see "where did the 40 extra minutes go" — provisioning wait vs skewed-partition long-pole vs slow output commit.
-- **Metrics**: Section 22's monitoring metrics exported to Prometheus/equivalent, dashboarded per-tenant and platform-wide (job duration percentiles, cost/row, DLQ rate, drift scores).
-- **Logs**: structured logs (Section 24) correlated via `job_id`/`partition_id`, queryable in a centralized log store (e.g., an ELK/Loki-style system) — enables jumping from a metrics-dashboard anomaly (spike in DLQ rate) straight to the specific partition's task logs.
-- **Correlation in practice**: a single "job health" view surfaces trace timeline + key metrics + tail logs + lineage record for any `job_id`, so on-call doesn't need to separately query four systems during an incident.
-
-## 36. Kubernetes Deployment (a concrete manifest sketch or Deployment/Service/HPA YAML snippet relevant to this system)
-
-```yaml
-apiVersion: sparkoperator.k8s.io/v1beta2
-kind: SparkApplication
-metadata:
-  name: nightly-churn-score-20260709
-  namespace: batch-inference
-spec:
-  type: Python
-  mode: cluster
-  image: registry.internal/ea/batch-inference-spark:1.42.0
-  mainApplicationFile: local:///opt/jobs/churn_score.py
-  arguments: ["--model-version=17", "--run-id=run_2026070902"]
-  sparkVersion: "3.5.0"
-  dynamicAllocation:
-    enabled: true
-    initialExecutors: 20
-    minExecutors: 10
-    maxExecutors: 100
-  driver:
-    cores: 4
-    memory: "8g"
-    serviceAccount: batch-inference-driver
-  executor:
-    cores: 8
-    memory: "16g"
-    instances: 100
-    nodeSelector:
-      capacity-type: spot
-    tolerations:
-      - key: "spot"
-        operator: "Exists"
-        effect: "NoSchedule"
-  restartPolicy:
-    type: OnFailure
-    onFailureRetries: 2
-    onFailureRetryInterval: 60
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata:
-  name: job-submission-workers
-  namespace: batch-inference
-spec:
-  scaleTargetRef:
-    name: job-submission-worker
-  minReplicaCount: 2
-  maxReplicaCount: 30
-  triggers:
-    - type: aws-sqs-queue
-      metadata:
-        queueURL: https://sqs.us-east-1.amazonaws.com/xxxx/job-submissions
-        queueLength: "5"
-```
-
-## 37. Terraform Infrastructure (a concrete Terraform snippet sketch for the core infra of this system)
-
-```hcl
-resource "aws_eks_node_group" "batch_spot" {
-  cluster_name    = aws_eks_cluster.batch_inference.name
-  node_group_name = "batch-spot-cpu"
-  node_role_arn   = aws_iam_role.batch_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-
-  capacity_type  = "SPOT"
-  instance_types = ["m6i.2xlarge", "m6a.2xlarge", "m5.2xlarge"]  # diversified for spot availability
-
-  scaling_config {
-    min_size     = 0
-    max_size     = 400
-    desired_size = 0    # scale-to-zero when idle; Karpenter drives actual scaling
-  }
-
-  taint {
-    key    = "capacity-type"
-    value  = "spot"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_eks_node_group" "batch_gpu" {
-  cluster_name    = aws_eks_cluster.batch_inference.name
-  node_group_name = "batch-gpu-a10g"
-  node_role_arn   = aws_iam_role.batch_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-
-  capacity_type  = "SPOT"
-  instance_types = ["g5.2xlarge", "g5.4xlarge"]
-
-  scaling_config {
-    min_size     = 0
-    max_size     = 64
-    desired_size = 0
-  }
-}
-
-resource "aws_s3_bucket" "lakehouse_outputs" {
-  bucket = "ea-batch-inference-outputs-${var.region}"
-
-  lifecycle_rule {
-    enabled = true
-    prefix  = "recsys_candidates/"
-    expiration {
-      days = 14   # aggressive TTL per Section 29 cost lever
-    }
-  }
-}
-
-resource "aws_sqs_queue" "job_submissions" {
-  name                       = "batch-inference-job-submissions"
-  visibility_timeout_seconds = 300
-  redrive_policy = jsonencode({
-    deadLetterTargetArn = aws_sqs_queue.job_submissions_dlq.arn
-    maxReceiveCount     = 5
-  })
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture (justification)
 
@@ -785,14 +605,14 @@ resource "aws_sqs_queue" "job_submissions" {
 
 ## 46. Ideal Answers (a strong, concise model answer for each follow-up question above)
 
-1. **Idempotent, versioned writes keyed by `(model_version, data_version, partition)` under an explicit `run_id`, plus an `idempotency_key` at the API layer.** A backfill sub-job for a given date range and model version always writes to the same deterministic `run_id`; replaying it either re-executes into the same (now-overwritten-atomically-via-Iceberg-transaction) partition or is rejected/short-circuited by the API layer if the `idempotency_key` matches an already-completed job within its dedup window. Consumers reading via the lineage "latest complete" pointer never see a half-written state because the pointer only advances after an all-or-nothing commit succeeds.
-2. **Spark's dynamic allocation degrades gracefully, not catastrophically**: lost executors' in-flight tasks are marked failed and rescheduled onto surviving/newly-provisioned nodes; the driver doesn't restart the whole job. Concurrently, the on-demand-fallback policy triggers because the job is P0/SLA-tagged — Karpenter provisions on-demand replacement capacity for the lost 150 nodes within its target window (minutes), and the SLA-breach-imminent alert (Section 23) has already fired based on extrapolated completion time, giving on-call visibility before the deadline is actually missed.
-3. **The real cost is operational — two schedulers, two sets of failure modes, two sets of on-call runbooks, two upgrade cadences.** It's justified because the alternative (forcing GPU/DL workloads through Spark, or forcing tabular ETL-heavy joins through Ray) costs more in *engineering* time and runtime efficiency than the ops overhead of maintaining both: Spark's DataFrame/Catalyst optimizer and shuffle machinery are genuinely better for large joins/aggregations; Ray's actor model and native Python/tensor support are genuinely better for batched GPU inference. The break-even is roughly: if GPU/DL workloads are less than ~10% of total job volume, it's often not worth it and Spark-on-GPU/RAPIDS may suffice.
-4. **Canary partition (Section 33) plus a hard gate before the lineage "production" pointer advances.** Concretely: run the new model version against a held-out slice of the same data snapshot the incumbent model just scored, diff the prediction distributions and DQ metrics, and for models with fast-feedback-loop targets (recsys CTR), run a short live online-serving A/B on the canary cohort before wide batch adoption. The key structural property enabling this safely is that batch outputs are append-only/versioned — the "bad" run is never visible to production consumers unless a human/automated gate explicitly promotes it.
-5. **HNSW's build cost and memory footprint scale roughly linearly-ish with catalog size and remain tractable to a few million vectors, but recall/latency starts to degrade and index-build time grows meaningfully past that** — at 5M items, we'd re-evaluate: likely move to IVF-PQ (product quantization) for memory efficiency, add a coarse pre-filter (category/region) to shrink the effective search space per query, and re-benchmark recall@K against a brute-force ground truth on a sampled eval set to confirm the ANN approximation error stays within acceptable bounds for downstream ranking quality.
-6. **Layer a deterministic change-detection signal (e.g., a hash or last-modified timestamp on the feature row) with a periodic full-rescore safety net** (e.g., every 7th run is a full rescore regardless of detected deltas) — this bounds the "staleness blast radius" of any change-detection miss to at most one safety-net cycle, rather than trusting delta detection indefinitely. Also instrument the delta-detector itself with a monitoring metric (% of population flagged as "changed" per run) — a sudden unexplained drop in that percentage is itself a signal the detector may be broken.
-7. **Most easily violated at the join between a "current" mutable-looking table and a historical feature table** — e.g., a well-meaning engineer joins today's churn-scoring job against a "current" customer-profile table instead of the point-in-time snapshot, accidentally leaking future information into a historical backfill. Caught via: (a) a lint/CI rule that flags any batch-job code reading a non-time-traveled table reference without an explicit `AS OF` clause, (b) a training/inference shared library that only exposes point-in-time-safe read APIs, making the unsafe pattern harder to write by default, not just harder to catch after the fact.
-8. **The global lineage/status aggregation view (Section 31) already avoids moving raw data cross-region, but even job-status metadata (job_id, row counts, timing) could arguably be considered sensitive/regulated in a stricter regime.** Redesign: keep the lineage/status store fully region-local too, and replace the "global view" with a federated query layer that fans out read-only queries to each region's local store at view-time rather than replicating/aggregating data into one global store — trades a bit of query latency and availability-during-regional-outage for zero cross-region data movement, even of metadata.
-9. **Treat it as a statistical/business-risk threshold set jointly with the model owner, not a fixed platform-wide constant.** Baseline default (0.5% expected background noise from malformed telemetry) hard-fails above 1% because that signals a systemic issue (schema drift, upstream pipeline break) rather than isolated bad rows; for safety-critical outputs (anti-cheat bans), the threshold is tightened further and paired with a requirement that failed rows are never silently treated as "no signal" — they're explicitly re-queued rather than dropped.
-10. **At 10x, keep the append-only pattern for correctness/safety but tighten the retention/compaction policy aggressively and treat storage lifecycle as a first-class scaling concern, not an afterthought.** Concretely: shorten TTLs further for high-cardinality outputs, introduce tiered storage (hot recent runs on standard S3, older-but-still-retained runs on Glacier-class storage for audit purposes only), and invest in proactive Iceberg manifest compaction to keep partition-planning fast — the correctness benefits of versioned/immutable output are worth preserving even at 10x; what changes is how aggressively "old" data is demoted rather than whether the pattern itself is abandoned.
+1. **Idempotent, versioned writes keyed by `(model_version, data_version, partition)` under an explicit `run_id`, plus an `idempotency_key` at the API layer.** A backfill sub-job always writes to the same deterministic `run_id`, so a replay either re-executes into the same atomically-overwritten partition or is short-circuited if the key matches an already-completed job. Consumers never see a half-written state because the "latest complete" pointer only advances after an all-or-nothing commit.
+2. **Spark's dynamic allocation degrades gracefully**: lost executors' in-flight tasks are rescheduled onto surviving/new nodes without restarting the whole job. Because the job is P0/SLA-tagged, on-demand fallback capacity is provisioned for the lost nodes and an SLA-breach-imminent alert (Section 23) fires early, giving on-call visibility before the deadline is missed.
+3. **The real cost is operational — two schedulers, two failure modes, two on-call runbooks.** It's justified because forcing GPU/DL workloads through Spark or ETL-heavy joins through Ray costs more in engineering time than maintaining both: Spark's optimizer/shuffle machinery wins for large joins, Ray's actor model wins for batched GPU inference. Below roughly 10% of job volume being GPU/DL work, Spark-on-GPU/RAPIDS may suffice instead.
+4. **Canary partition (Section 33) plus a hard gate before the lineage "production" pointer advances.** Run the new model version against a held-out slice of the same snapshot the incumbent scored, diff prediction distributions and DQ metrics, and gate promotion on that comparison. Batch outputs being append-only/versioned means a bad run is never visible to consumers unless explicitly promoted.
+5. **HNSW's build cost and memory scale roughly linearly with catalog size and stay tractable to a few million vectors, but recall/latency degrade past that.** At 5M items we'd move to IVF-PQ for memory efficiency and add a coarse pre-filter to shrink the search space, re-benchmarking recall@K against brute-force ground truth to confirm the approximation stays acceptable.
+6. **Layer a deterministic change-detection signal (hash/timestamp on the feature row) with a periodic full-rescore safety net** (e.g., every 7th run rescores everything regardless of detected deltas), bounding staleness blast radius to one cycle. Also monitor the % of population flagged "changed" per run — an unexplained drop signals the detector itself may be broken.
+7. **Most easily violated at the join between a "current" mutable table and a historical feature table** — e.g., joining today's churn job against a live customer-profile table instead of a point-in-time snapshot, leaking future information into a backfill. Caught via a CI lint rule flagging non-time-traveled reads without `AS OF`, and a shared library that only exposes point-in-time-safe read APIs by default.
+8. **The global lineage/status view (Section 31) avoids moving raw data cross-region, but job-status metadata could still count as sensitive in a stricter regime.** Redesign: keep the lineage/status store region-local too, replacing the global view with a federated query layer that fans out read-only queries at view-time — trading some query latency for zero cross-region data movement.
+9. **Treat it as a statistical/business-risk threshold set jointly with the model owner, not a fixed platform-wide constant.** A 0.5% baseline hard-fails above 1% because that signals a systemic issue rather than isolated bad rows; safety-critical outputs get a tighter threshold, and failed rows are always re-queued rather than silently dropped.
+10. **At 10x, keep the append-only pattern for correctness but tighten retention/compaction and treat storage lifecycle as a first-class scaling concern.** Shorten TTLs, add tiered storage (hot runs on standard storage, older runs on Glacier-class), and invest in proactive manifest compaction — what changes is how aggressively old data is demoted, not whether the pattern is abandoned.
 </content>

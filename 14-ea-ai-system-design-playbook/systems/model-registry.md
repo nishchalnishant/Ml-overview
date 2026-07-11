@@ -441,173 +441,9 @@ Not run by the registry itself (owned by a monitoring/observability system consu
 - **Retention policy enforcement (automated archival sweep, Section 20/23):** without automated enforcement, "keep everything forever out of caution" is the default failure mode of every registry — the nightly sweep job is explicitly a cost-control mechanism, not just hygiene.
 - **Right-sizing control-plane compute:** Registry API pods are CPU-only, small (2-4 vCPU) instances — no GPU spend on the control plane itself, a common anti-pattern being colocating eval-benchmark GPU workers with the general API service and over-provisioning GPUs that sit idle most of the day (Section 28's KEDA scale-to-zero avoids this).
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO (control plane / metadata store):** 15 minutes — automated Postgres failover to a standby replica in another AZ; the platform team's runbook targets sub-15-min recovery given this system gates every title's deploy/rollback capability.
-- **RPO (metadata store):** near-zero — synchronous replication to at least one standby within-region, async cross-region replica with < 5 min lag as a secondary safety net for full-region loss.
-- **RTO/RPO (artifact store):** RPO near-zero (object storage versioning + cross-region replication, typically sub-15-min replication lag for standard cloud object-store cross-region replication); RTO effectively the time to fail over DNS/routing to the replicated bucket region, target < 30 min.
-- **Backup strategy:** nightly full Postgres snapshot + continuous WAL archiving (point-in-time restore capability to any second in the last 30 days); audit log is inherently backup-equivalent given its WORM/immutable nature (no separate backup needed, it *is* the durable record).
-- **Runbook priority:** if the registry's metadata store is fully lost and even backups are unavailable (worst case), the system is **partially reconstructable** from CI/CD pipeline logs (training_job_id, commit SHA references exist in Jenkins/Argo history) and from the artifact store's own object metadata/tags — this reconstruction path is explicitly documented and drilled (game-day exercise) as the last-resort recovery, given the assumption (Section 5.10) that the registry should not be a true unrecoverable single point of failure for "what's currently in production," since serving fleets also cache their last-known-good pointer locally.
-
-## 31. Multi-Region Deployment
-
-**Topology: active-active for reads, active-passive-per-write-region for the metadata store's primary.**
-
-```
-   US-EAST (primary write region)          EU-WEST (read region)          AP-SOUTHEAST (read region)
- ┌───────────────────────────┐          ┌───────────────────────┐      ┌───────────────────────┐
- │ Registry API (read+write)  │          │ Registry API (read-   │      │ Registry API (read-   │
- │                            │          │ only + async-forward  │      │ only + async-forward  │
- │ Postgres PRIMARY           │──repl───▶│ writes to primary)    │      │ writes to primary)    │
- │                            │          │ Postgres READ REPLICA │      │ Postgres READ REPLICA │
- │ Artifact bucket (primary)  │──repl───▶│ Artifact bucket (repl)│──────▶│ Artifact bucket (repl)│
- │ CDN edge                   │          │ CDN edge               │      │ CDN edge               │
- └───────────────────────────┘          └───────────────────────┘      └───────────────────────┘
-        ▲                                        ▲                              ▲
-        │  GeoDNS / latency-based routing for read traffic                      │
-        └────────────────────────────────────────┴──────────────────────────────┘
-```
-
-- **Why active-passive for writes:** stage-transition writes require strong consistency (Section 3) — allowing concurrent writers in multiple regions to the same `stage_pointers` row risks split-brain ("prod is v47 in US, v46 in EU simultaneously"). A single write-primary with synchronous local replicas + async cross-region read replicas avoids this while still serving low-latency reads globally (the dominant traffic pattern per Section 6).
-- **Writes from non-primary regions:** forwarded transparently to the primary region by the regional API layer (adds one cross-region round-trip, acceptable given writes are low-QPS, Section 6).
-- **Artifact store:** naturally active-active-friendly since objects are immutable once written — replication is one-directional from the region of upload (usually co-located with the training cluster) fanned out to all serving regions, with CDN edges further reducing cross-region read latency for the hot (production-tagged) artifacts.
-- **Latency routing:** GeoDNS/Anycast routes each region's serving fleet and CI/CD to their nearest read-capable Registry API instance — matters for a title's serving fleet autoscaling event (Section 6's cold-start fetch path) not incurring cross-continent round-trips at pod-startup time.
-
-## 32. Blue/Green Deployment
-
-Applies at two layers:
-- **Registry service itself (the control plane):** standard blue/green for the Registry API pods — new API version deployed alongside old, traffic cut over via load balancer weight shift once health checks pass, old version kept warm for immediate rollback if the new API version regresses (e.g., a schema-migration-adjacent API change).
-- **Model version promotion as a blue/green pattern:** conceptually, "current production version" and "candidate version" are a blue/green pair at the model level — the registry's stage-pointer mechanism (Section 10) *is* the blue/green switch primitive for models: promoting `v48` to `@production` while `v47` remains fully intact and instantly re-promotable is exactly blue/green semantics applied to models instead of application code. The registry never deletes the "blue" (previous production) version automatically — it remains available for instant rollback (Section 34) until the retention policy (Section 20/29) archives it after the safety window passes.
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy (model-level canary, the registry's core promotion-workflow value-add):** a version promoted to `@canary` is served to a small percentage of traffic (e.g., 1-5% of matches for a matchmaking model, or a specific low-risk player cohort/region) by the serving layer, which reads the `@canary` pointer distinctly from `@production` and implements its own traffic-split logic (registry only supplies the pointer, not the split percentage — that's a serving-layer config, though the registry stores the intended canary config in `serving_config` metadata for auditability, per Section 14).
-- **Health-check gates specific to this system:** before a canary can be auto-promoted (or manually promoted) to full production, the Eval/Gate Service (Section 8) checks: (a) online proxy-metric parity vs. current production (e.g., canary's match-quality complaint rate not statistically worse), (b) latency/error-rate parity from the serving fleet's own telemetry (fed back to the registry via a `model.canary_health` internal signal), (c) no active drift/incident alert tagged to the canary version. Only if all three gates pass within a minimum bake time (e.g., 2 hours minimum, or a minimum sample size of matches scored) is full-production promotion permitted, whether automated or human-approved.
-- **Canary failure:** if any gate fails during the bake window, the registry auto-reverts the `@canary` pointer to the last-known-good version and emits a `model.stage_changed` event so the serving fleet immediately routes canary-cohort traffic back — this is functionally identical to the rollback mechanism (Section 34) but scoped to the canary cohort only, never touching the (already-safe) production cohort.
-
-## 34. Rollback Strategy
-
-- **Automated triggers:** (a) canary bake-window gate failure (Section 33) — automatic, no human in the loop, since blast radius is limited to the canary cohort; (b) production drift/incident alert (Section 21/23) crossing a severity threshold — triggers a *recommended* rollback (paged to on-call, one-click confirm) rather than fully automated for production-wide rollback, since an automated full-production revert carries its own risk (e.g., reverting during an unrelated infra incident could compound confusion) — human confirmation required for production-stage rollback, automated for canary-stage.
-- **Rollback mechanics:** `POST /models/{name}/versions/{version}/rollback` is an atomic transaction — within a single DB transaction, the target version's `stage_pointers` row for `production` is updated to point to the specified prior version, the previous production version's pointer entry is superseded (retained in history, not deleted), an audit record is written, and the `model.stage_changed` event is emitted synchronously as part of the same request's response path (not just eventually via async event processing) — this ensures the serving fleet's watchers receive the rollback signal with minimal added latency during an active incident, when every second counts.
-- **Rollback is never a "redeploy the old artifact"** operation in the sense of re-uploading bytes — it is purely a pointer change, since the prior version's immutable artifact never left storage (Section 32's blue/green framing) — this is what makes registry-mediated rollback fast (seconds, bounded by event propagation + serving fleet's poll/webhook latency) versus a full CI/CD redeploy pipeline (which could take many minutes to rebuild/repackage).
-
-## 35. Observability
-
-- **Tracing:** every Registry API request carries a distributed trace ID (W3C Trace Context / OpenTelemetry), propagated through to the Eval/Gate Service's async processing (trace context embedded in the Kafka event payload) so a single "promote v48 to production" action's full path — API call → DB write → event publish → Eval/Gate consumption → gate result write-back → downstream CI/CD trigger — is reconstructable as one trace across service and async boundaries.
-- **Metrics:** the three golden signals (latency, traffic, errors) per endpoint exported via Prometheus/OpenTelemetry metrics; plus registry-specific business metrics (Section 22) as custom Prometheus gauges/counters (`registry_promotions_total{model_name, stage}`, `registry_rollback_total`, `registry_dlq_depth`).
-- **Logs:** structured logs (Section 24) tagged with the same trace ID, enabling log-metric-trace correlation in a unified observability backend (e.g., Grafana + Tempo + Loki, or a vendor APM stack) — an on-call engineer paged on "DLQ depth > 0" (Section 23) can pivot directly from the alert to the specific trace of the stuck event, to the logs of the consumer that failed to process it, without manually correlating timestamps across three separate tools.
-- **Why this matters more here than in a typical CRUD service:** the registry's failure modes (Section 41) are often *silent* (a stage-transition event lost in Kafka, a stale cache serving an old pointer) rather than loud 500-errors — tracing/correlation is the primary tool for catching "the system reported success but downstream never actually updated," which is the most dangerous class of bug for a system whose entire job is being the single source of truth.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: model-registry-api
-  labels: {app: model-registry-api}
-spec:
-  replicas: 4
-  selector:
-    matchLabels: {app: model-registry-api}
-  template:
-    metadata:
-      labels: {app: model-registry-api}
-    spec:
-      containers:
-        - name: registry-api
-          image: registry.ea.internal/model-registry-api:1.14.2
-          ports: [{containerPort: 8080}]
-          env:
-            - name: DB_HOST
-              valueFrom: {secretKeyRef: {name: registry-db-creds, key: host}}
-            - name: KAFKA_BROKERS
-              value: "kafka-broker-0.internal:9092,kafka-broker-1.internal:9092"
-          resources:
-            requests: {cpu: "1", memory: "1Gi"}
-            limits:   {cpu: "2", memory: "2Gi"}
-          readinessProbe:
-            httpGet: {path: /healthz, port: 8080}
-            initialDelaySeconds: 5
-          livenessProbe:
-            httpGet: {path: /healthz, port: 8080}
-            initialDelaySeconds: 15
----
-apiVersion: v1
-kind: Service
-metadata: {name: model-registry-api}
-spec:
-  selector: {app: model-registry-api}
-  ports: [{port: 443, targetPort: 8080}]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: {name: model-registry-api-hpa}
-spec:
-  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: model-registry-api}
-  minReplicas: 4
-  maxReplicas: 20
-  metrics:
-    - type: Resource
-      resource: {name: cpu, target: {type: Utilization, averageUtilization: 60}}
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_s3_bucket" "model_artifacts" {
-  bucket = "ea-model-registry-artifacts-${var.region}"
-
-  versioning { enabled = true }
-
-  lifecycle_rule {
-    id      = "archive-cold-versions"
-    enabled = true
-    transition {
-      days          = 90
-      storage_class = "STANDARD_IA"
-    }
-    transition {
-      days          = 365
-      storage_class = "GLACIER"
-    }
-  }
-}
-
-resource "aws_s3_bucket_object_lock_configuration" "audit_log" {
-  bucket = aws_s3_bucket.audit_log.id
-  rule {
-    default_retention {
-      mode = "COMPLIANCE"
-      days = 2555   # 7 years
-    }
-  }
-}
-
-resource "aws_db_instance" "registry_metadata" {
-  identifier              = "model-registry-metadata"
-  engine                  = "postgres"
-  engine_version          = "15.4"
-  instance_class          = "db.r6g.xlarge"
-  allocated_storage       = 100
-  multi_az                = true
-  backup_retention_period = 30
-  storage_encrypted       = true
-  kms_key_id              = aws_kms_key.registry_db.arn
-}
-
-resource "aws_msk_cluster" "registry_events" {
-  cluster_name           = "model-registry-events"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 6
-  broker_node_group_info {
-    instance_type   = "kafka.m5.large"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 500 } }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -691,22 +527,22 @@ resource "aws_msk_cluster" "registry_events" {
 
 ## 46. Ideal Answers
 
-1. **Instant global takedown:** Don't rely solely on eventual event propagation. Maintain a small, globally-replicated "kill switch" table (or a dedicated fast-path, e.g., a globally-distributed low-latency config store like a CDN-edge key-value store) separate from the main stage-pointer mechanism, specifically for emergency de-activation — serving fleets check this kill-switch on every request (or every few seconds, cached briefly) in addition to their normal poll cycle. This trades a small amount of extra infra/complexity for a genuinely faster (seconds, not the normal ~60s poll interval) global stop capability, justified because legal/compliance takedowns are rare but must be near-instantaneous.
+1. **Instant global takedown:** Don't rely solely on eventual event propagation. Maintain a small, globally-replicated "kill switch" (a fast-path config store separate from the main stage-pointer mechanism) that serving fleets check every few seconds in addition to their normal poll cycle. This trades a bit of extra infra for a genuinely faster (seconds, not ~60s) global stop, justified because legal/compliance takedowns are rare but must be near-instant.
 
-2. **Incident response walkthrough:** Pull the production version's lineage (`GET /lineage/{version}`) to identify training data snapshot, code commit, and eval-gate results recorded at promotion time. Check `model.eval_completed` history to see exactly what the canary gates measured (were they measuring the right proxy metrics, or did they miss the failure mode now manifesting?). Cross-reference the drift-detection system's alerts tagged to this version. Execute rollback (Section 34) to the last-known-good version immediately as a mitigation in parallel with root-cause investigation — rollback and root-cause are not sequential, the registry's fast pointer-flip rollback is specifically designed to decouple "stop the bleeding" from "understand why," since the latter can take hours the former cannot afford.
+2. **Incident response walkthrough:** Pull the production version's lineage to check training data snapshot, code commit, and eval-gate results, and cross-reference drift-detection alerts tagged to that version. Execute rollback (Section 34) to the last-known-good version immediately in parallel with root-cause investigation, since the fast pointer-flip rollback exists specifically to decouple "stop the bleeding" from "understand why."
 
-3. **Race condition prevention:** The `stage_pointers` table's primary key is `(model_name, stage)` — a promotion is a single transactional UPDATE (or INSERT ON CONFLICT) on that row, so the database's own row-level locking serializes concurrent promotion attempts; the second writer's transaction either blocks briefly then applies cleanly (last-writer-wins, by design, since "production" is inherently a single mutable pointer) or the API layer can additionally enforce optimistic concurrency (a `version` counter on the pointer row, requiring the client's promotion request to specify what it expects the *current* pointer to be, rejecting with a conflict error if it's changed) — I'd add the optimistic-concurrency check specifically because "last write silently wins" is dangerous for a high-stakes action like production promotion; better to surface a conflict to the second engineer than silently discard their intent.
+3. **Race condition prevention:** The `stage_pointers` table's primary key is `(model_name, stage)`, so a promotion is a single transactional UPDATE and the database's row-level locking serializes concurrent attempts (last-writer-wins by default). I'd add optimistic concurrency (a version counter the client must match) on top, since silently discarding a conflicting promotion is too risky for a high-stakes action — better to surface a conflict than silently overwrite intent.
 
-4. **Bit-for-bit reproducibility:** Beyond lineage pointers, you'd need to pin and record exact library/framework versions (not just `xgboost==2.0.3` but a full frozen dependency lockfile hash), the exact random seeds used, the exact hardware/driver versions (CUDA version, GPU model — floating-point non-determinism varies across GPU generations), and ideally containerize the training environment itself (record the training container image digest, not just "the code," in the lineage record) so the entire environment — not just the code — is reproducible. This is meaningfully more expensive to maintain (container image storage, stricter environment pinning discipline) and I'd scope it only to models where reproducibility is a hard compliance requirement (e.g., models used in contexts with regulatory audit requirements), not apply it universally given the cost.
+4. **Bit-for-bit reproducibility:** Beyond lineage pointers, you'd need to pin exact library/dependency lockfile hashes, random seeds, and hardware/driver versions, and ideally record the training container image digest so the whole environment is reproducible. This is costly to maintain, so I'd scope it only to models with a hard regulatory reproducibility requirement, not apply it universally.
 
-5. **Feature schema/model version interaction:** The registry stores `feature_schema_version` at registration time as an immutable lineage fact — it does not automatically re-validate or re-register anything when the Feature Store's schema evolves later. This is intentional: a production model's behavior shouldn't silently change because an unrelated schema migration happened. The gap you're pointing at is real, though — the mitigation is the Feature Store publishing its own schema-change events, and a compatibility-check service (could live in the Eval/Gate Service) subscribing to those events, cross-referencing which production model versions reference the now-changed schema, and raising an alert ("model X's production version references a feature schema that's since evolved incompatibly — verify serving-time features still match what the model expects") rather than silently letting inference-time feature drift go unnoticed.
+5. **Feature schema/model version interaction:** The registry stores `feature_schema_version` at registration time as an immutable lineage fact and doesn't auto-revalidate when the Feature Store's schema evolves later, since a production model shouldn't silently change behavior from an unrelated migration. The gap is real, though — mitigate it with the Feature Store publishing schema-change events that a compatibility-check service cross-references against production model versions and alerts on.
 
-6. **In-flight requests during rollback:** The registry's rollback is a pointer flip, not a pod restart — in-flight inference requests already using the currently-loaded model in a pod's memory complete normally against whatever was loaded when they started; the pointer change only affects *future* pod behavior (new pods loading fresh, or existing pods on their next poll-triggered refresh reloading the new/reverted artifact). If a title's serving layer supports hot-swapping the in-memory model without a pod restart, there's a brief window where different in-flight requests within the same pod could be served by different model versions during the swap — this needs the serving layer's own request-draining/versioned-routing logic (out of registry's scope, but the registry's event payload should include enough context — old version, new version, timestamp — for the serving layer to implement a clean drain-and-swap if it chooses to).
+6. **In-flight requests during rollback:** Rollback is a pointer flip, not a pod restart — in-flight requests complete normally against whatever was loaded when they started, and only future pod behavior (new pods, or next poll-triggered refresh) picks up the change. If the serving layer hot-swaps models in-memory without a restart, that drain/versioned-routing logic is the serving layer's responsibility, not the registry's.
 
-7. **Multi-variant A/B testing:** Extend the stage-pointer concept from a single mutable pointer per stage to a **weighted set of pointers** for an "experiment" stage — e.g., `production: {v48: 80%, v49: 15%, v50: 5%}` — with the serving layer's traffic-splitter reading this weighted map instead of a single version. The registry's role stays the same (source of truth for the mapping, audit trail of experiment changes) but the schema (Section 10) needs a `stage_pointers` table redesign to support multiple concurrent (version, weight) rows per (model_name, stage) rather than a strict one-row primary key — a real schema evolution, and I'd version this as a v2 API capability rather than retrofitting the existing single-pointer semantics, to avoid breaking the simpler single-version consumers (most models don't need multi-variant experiments).
+7. **Multi-variant A/B testing:** Extend the stage-pointer concept from a single mutable pointer to a **weighted set of pointers** for an "experiment" stage (e.g., `production: {v48: 80%, v49: 15%, v50: 5%}`), with the serving layer's traffic-splitter reading the weighted map. This needs a real schema change to `stage_pointers` (Section 10) to support multiple concurrent rows per (model_name, stage), so I'd version it as a v2 capability rather than retrofit the simpler single-pointer semantics most models still rely on.
 
-8. **Postgres vs. distributed SQL:** Not under-engineering — right-sizing. EA's *player-facing* systems operate at global scale, but the registry's *own* write workload (Section 6: <1 QPS average writes, ~3-5GB total metadata at 3-year scale) is nowhere near the regime where a distributed SQL system's operational complexity (more moving parts, harder to reason about failure modes, often higher latency per-transaction due to consensus overhead) pays for itself. The read-heavy, geographically-distributed *read* traffic is handled by read replicas + caching (Sections 11, 31), which is a much simpler and cheaper way to get global read latency without paying the distributed-consensus tax on every write. I'd revisit this decision specifically if write QPS grew by 2-3 orders of magnitude or if true multi-region active-active write authority became a hard requirement (Section 42).
+8. **Postgres vs. distributed SQL:** Right-sizing, not under-engineering — the registry's own write workload (Section 6: <1 QPS average) is nowhere near the regime where distributed SQL's operational complexity pays for itself. Global read latency is handled more simply and cheaply via read replicas + caching (Sections 11, 31); I'd revisit only if write QPS grew by orders of magnitude or multi-region active-active writes became a hard requirement.
 
-9. **GDPR erasure vs. immutable lineage:** These are in real tension and need an explicit policy, not just an engineering fix. The pragmatic approach: the registry's lineage record stores a *pointer* (dataset snapshot ID) never the underlying player data itself — so an erasure request against the raw training data can be fulfilled at the data-lake/Feature-Store layer independent of the registry's lineage record, which continues to correctly state "this model was trained on snapshot X" (a historical fact) even after snapshot X's underlying data is later redacted/tombstoned for compliance. The registry doesn't need to (and shouldn't) forge history by deleting the lineage pointer — what it should support is a `compliance_hold`/`data_since_redacted` flag on the affected dataset-snapshot references, surfaced in lineage queries, so anyone auditing later sees "this model's training data has since been subject to erasure requests" as an explicit, honest annotation rather than either silently losing the lineage record or falsely pretending the original data is still intact.
+9. **GDPR erasure vs. immutable lineage:** These are in real tension and need an explicit policy. The lineage record stores a *pointer* (dataset snapshot ID), never the underlying player data, so erasure can be fulfilled at the data-lake layer while the lineage record still correctly states "trained on snapshot X" as historical fact — annotated with a `compliance_hold`/`data_since_redacted` flag rather than deleted or silently left misleading.
 
-10. **Third-party/licensed models:** Register them identically to internally-trained models but with lineage fields reflecting external provenance (`training_job_id` becomes a vendor contract/delivery reference rather than an internal Argo workflow ID, `code_commit_sha` may be N/A or replaced with a vendor model-card/version identifier). The bigger design consideration is trust/verification: a third-party artifact should go through the same checksum-verification and Eval/Gate Service benchmarking (Section 33) before promotion — arguably *more* scrutiny, since you don't control its training lineage the way you do internal models — and RBAC should distinguish "internal model, standard approval" from "external vendor model, requires additional security/legal sign-off gate" as a distinct approval-workflow branch (Section 8/25), not a bolt-on afterthought.
+10. **Third-party/licensed models:** Register them like internal models but with lineage fields reflecting external provenance (vendor contract reference instead of an internal training job ID, vendor model-card version instead of a commit SHA). They should go through the same (arguably stricter) checksum-verification and Eval/Gate Service benchmarking (Section 33) before promotion, with RBAC requiring an additional security/legal sign-off gate distinct from standard internal approval.

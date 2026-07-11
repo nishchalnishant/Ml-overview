@@ -409,196 +409,9 @@ t=+18min DGS → Match Assembly Svc: POST result (winner, roster, leave events)
 - **Off-peak region consolidation**: low-population regions (e.g., SEA at 3am) can shed dedicated shard capacity and merge into a shared low-traffic worker pool rather than holding reserved capacity 24/7.
 - **DGS pre-warming cost tradeoff**: balance warm-pool size (idle server cost) against match-assembly latency (cold-start cost) — tuned via observed CCU curve, not fixed.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Target | Value |
-|---|---|
-| RTO (Recovery Time Objective) | 5 minutes for ticket/matchmaking path (critical player-facing path) |
-| RPO (Recovery Point Objective) | Near-zero for in-flight tickets (Kafka WAL replay recovers any ticket accepted but not yet matched); ≤ 5 min for skill-rating store (async cross-region replication lag) |
-| Backup strategy | Skill profile store: continuous cross-region replication (DynamoDB Global Tables or equivalent) + daily snapshot to cold storage; Match history: daily incremental warehouse backup, 90-day point-in-time recovery |
-| Failover | Regional matchmaker outage → traffic reroutes to nearest healthy region with relaxed latency threshold (graceful degradation, not hard failure) — player sees longer wait, not an error |
-| Runbook | Automated: Kafka partition reassignment on broker loss; Manual: region failover DNS/traffic-manager cutover, rehearsed quarterly via game-day exercises |
-
-## 31. Multi-Region Deployment (Active-Active vs Active-Passive, Data Replication, Latency Routing)
-
-- **Topology: Active-active** across all 7 matchmaking regions — matchmaking is inherently regional (you match players near each other), so each region independently runs its own full stack (Ticket Service, Matchmaker Workers, Match Assembly) rather than one region serving all traffic.
-- **Latency routing**: client's edge/gateway connection routed to nearest region via GeoDNS/Anycast; ticket carries `region_pref` list (primary + fallback) for cases where local pool is too thin.
-- **Data replication**:
-  - Skill profile store: multi-region active-active replication (last-writer-wins with vector clock / version, since a player's rating updates originate from whichever region they last played in) — acceptable because same-player concurrent writes from two regions are effectively impossible (one active session at a time).
-  - Ticket/pool state: **not** replicated cross-region — intentionally region-local, since matching across 150ms+ links is a latency non-starter for a real-time competitive shooter.
-  - Match history/warehouse: async replicated to a central global warehouse for cross-region fairness analytics.
-
-```
-      NA-EAST                 EU-WEST                  APAC-SEA
-   ┌───────────┐           ┌───────────┐             ┌───────────┐
-   │ Ticket Svc │           │ Ticket Svc │             │ Ticket Svc │
-   │ Matchmaker │           │ Matchmaker │             │ Matchmaker │
-   │ Match Asm. │           │ Match Asm. │             │ Match Asm. │
-   │ DGS Fleet   │           │ DGS Fleet   │             │ DGS Fleet   │
-   └─────┬─────┘           └─────┬─────┘             └─────┬─────┘
-         │  async replicate         │                          │
-         └──────────────┬───────────┴──────────────┬──────────┘
-                         ▼                           ▼
-              ┌────────────────────┐     ┌────────────────────────┐
-              │ Global Skill Profile │     │ Global Warehouse         │
-              │ Store (multi-region   │     │ (match history, fairness)│
-              │ active-active KV)      │     └────────────────────────┘
-              └────────────────────┘
-```
-
-- Cross-region matching only invoked as a **last-resort relaxation** (Section 12/18) after local-region wait exceeds threshold, and only to regions within an acceptable added-ping budget (e.g., NA-East ↔ NA-West, not NA ↔ APAC).
-
-## 32. Blue/Green Deployment
-
-- Applies to **stateless services** (Ticket Service, Match-Status API, Match Assembly Svc): full duplicate environment (green) deployed alongside current (blue), smoke-tested against shadow traffic, then gateway cutover via load-balancer weight flip (100%→0% blue, 0%→100% green) — instant rollback by flipping back.
-- **Matchmaker Workers are NOT blue/green'd wholesale** — they own live in-memory pool state per shard; instead, use rolling shard-by-shard replacement: drain a shard (stop accepting new tickets, let in-flight tickets finish matching or migrate to sibling shard), replace pod, resume. Full blue/green would mean duplicating the *entire live queue state*, which is wasteful and risks split-brain pools.
-- Skill Rating Service (stateless compute over external KV) — standard blue/green, since it holds no in-memory session state.
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy**: new matchmaker build (e.g., updated match-quality model or pairing algorithm change) rolled to **1 shard in 1 low-risk region** (e.g., a mid-population region, not peak-traffic NA-East) at 5% of that region's shards first.
-- **Health-check gates specific to this system**:
-  - p50/p99 wait time on canary shard within 10% of control shards (not regressing player experience).
-  - Match-quality model calibration on canary matches within acceptable band vs baseline.
-  - No increase in double-booking / ticket-state-machine anomalies (correctness gate — hard stop if any occur).
-  - Fairness metric (skill-gap p95) not regressing.
-- Canary window: minimum 2 hours spanning at least one local peak-to-trough cycle before expanding to 25% → 50% → 100% of the region, then replicate rollout to next region.
-- Automatic rollback trigger if any correctness gate fails (Section 34) — canary is halted and reverted without waiting for human approval on P0-class signals.
-
-## 34. Rollback Strategy
-
-| Trigger | Mechanism |
-|---|---|
-| Correctness violation (double-booking, ticket stuck) | Automated instant rollback — canary/new version pool drained, traffic reverted to last-known-good version, P0 page fired |
-| Wait-time regression > 15% vs control | Automated rollback after 10-min sustained breach |
-| Model calibration regression | Automated model-artifact rollback to previous registry version (independent of service code rollback — models and code deploy separately) |
-| Manual | On-call can force rollback via deployment-tool one-command revert (previous Helm release / previous model version pointer) |
-| Rollback mechanics | Matchmaker: shard-by-shard drain-and-replace with prior image (same mechanism as forward deploy, reversed); Model: registry version pointer flip, hot-reloaded at next tick boundary (no pod restart needed) |
-
-## 35. Observability (Tracing, Metrics, Logs Correlation)
-
-- **Tracing**: distributed trace (OpenTelemetry) spans a ticket's full lifecycle — `SubmitTicket` span → `MatchmakerTickEvaluation` span → `AllocateMatch` span → `DGSHandoff` span, all sharing one `trace_id` propagated via ticket metadata; enables answering "why did this specific player wait 47s" by inspecting exactly which ticks considered and rejected them (e.g., failed skill-band overlap 6 times before match found).
-- **Metrics**: Section 22's metrics exported to a Prometheus-compatible backend, tagged with `region`, `playlist`, `shard_id` for slice-and-dice; RED metrics (Rate/Errors/Duration) standard on every service.
-- **Logs correlation**: every structured log line (Section 24) carries `trace_id` + `ticket_id`, enabling log-to-trace pivot in the observability UI — critical for debugging "player says they never got matched" support tickets.
-- **Correlation across the three pillars**: a wait-time-spike alert (metric) → drill into affected region-playlist traces (which ticks were slow / which constraint relaxations fired) → pull structured logs for a sample of affected tickets — standard triage flow.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: matchmaker-worker-na-east-ranked5v5
-  labels: { app: matchmaker-worker, region: na-east, playlist: ranked-5v5 }
-spec:
-  replicas: 10
-  selector:
-    matchLabels: { app: matchmaker-worker, region: na-east, playlist: ranked-5v5 }
-  template:
-    metadata:
-      labels: { app: matchmaker-worker, region: na-east, playlist: ranked-5v5 }
-    spec:
-      containers:
-        - name: matchmaker-worker
-          image: ea-registry/matchmaker-worker:1.42.0
-          resources:
-            requests: { cpu: "2", memory: "4Gi" }
-            limits: { cpu: "4", memory: "6Gi" }
-          env:
-            - name: SHARD_KEY
-              value: "na-east:ranked-5v5"
-            - name: KAFKA_BROKERS
-              valueFrom: { configMapKeyRef: { name: mm-config, key: kafka_brokers } }
-          readinessProbe:
-            httpGet: { path: /healthz/ready, port: 8080 }
-            periodSeconds: 5
-          livenessProbe:
-            httpGet: { path: /healthz/live, port: 8080 }
-            periodSeconds: 10
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: matchmaker-worker-na-east-ranked5v5-hpa
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: matchmaker-worker-na-east-ranked5v5 }
-  minReplicas: 6
-  maxReplicas: 40
-  metrics:
-    - type: External
-      external:
-        metric: { name: kafka_consumergroup_lag, selector: { matchLabels: { topic: matchmaking.tickets } } }
-        target: { type: AverageValue, averageValue: "5000" }
----
-apiVersion: v1
-kind: Service
-metadata: { name: matchmaker-worker-na-east-ranked5v5-svc }
-spec:
-  selector: { app: matchmaker-worker, region: na-east, playlist: ranked-5v5 }
-  ports: [{ port: 9090, targetPort: 9090 }]
-  clusterIP: None   # headless — workers own shard state, not load-balanced round-robin
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_elasticache_replication_group" "ticket_store_na_east" {
-  replication_group_id       = "mm-ticket-store-na-east"
-  description                 = "Matchmaking ticket store - NA-East shard"
-  node_type                   = "cache.r6g.xlarge"
-  num_node_groups              = 8
-  replicas_per_node_group      = 1
-  automatic_failover_enabled   = true
-  multi_az_enabled             = true
-  engine                       = "redis"
-  engine_version               = "7.1"
-  parameter_group_name         = "default.redis7.cluster.on"
-  at_rest_encryption_enabled   = true
-  transit_encryption_enabled   = true
-  tags = { system = "matchmaking", region = "na-east" }
-}
-
-resource "aws_msk_cluster" "matchmaking_events" {
-  cluster_name           = "matchmaking-events"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 9   # 3 per AZ x 3 AZ
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 500 } }
-  }
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS"; in_cluster = true }
-  }
-}
-
-resource "aws_dynamodb_table" "skill_profiles" {
-  name         = "mm-skill-profiles"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "player_id"
-  range_key    = "playlist"
-  attribute { name = "player_id"; type = "S" }
-  attribute { name = "playlist"; type = "S" }
-  replica { region_name = "eu-west-1" }
-  replica { region_name = "ap-southeast-1" }
-  point_in_time_recovery { enabled = true }
-  server_side_encryption { enabled = true }
-}
-
-resource "aws_autoscaling_policy" "matchmaker_spot_asg_policy" {
-  name                   = "mm-worker-spot-scale"
-  autoscaling_group_name = aws_autoscaling_group.matchmaker_worker_spot.name
-  policy_type            = "TargetTrackingScaling"
-  target_tracking_configuration {
-    target_value = 65.0
-    customized_metric_specification {
-      metric_name = "kafka_consumergroup_lag"
-      namespace   = "Matchmaking"
-      statistic   = "Average"
-    }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -690,22 +503,22 @@ resource "aws_autoscaling_policy" "matchmaker_spot_asg_policy" {
 
 ## 46. Ideal Answers
 
-1. **Party vs solo fairness**: Apply a party-strength adjustment — don't just average party mu; inflate the effective team rating estimate to account for coordination advantage (empirically calibrated multiplier from historical party-vs-solo win-rate deltas), and prefer matching parties against parties of similar size before falling back to mixed lobbies. Track party-vs-solo win-rate as an explicit fairness metric (Section 22) and adjust the multiplier via periodic offline calibration, not a one-time guess.
+1. **Party vs solo fairness**: Apply a party-strength adjustment — inflate the effective team rating estimate to account for coordination advantage, using an empirically calibrated multiplier from historical party-vs-solo win-rate deltas, and prefer matching parties against similarly-sized parties first. Track party-vs-solo win-rate as an explicit fairness metric (Section 22) and recalibrate periodically rather than guessing once.
 
-2. **Regional playstyle bias post-retrain**: This is exactly what the fairness-drift and calibration-drift monitors (Sections 21/22) are for — segment the calibration/Brier-score eval by region/cohort *before* rollout (not just aggregate), and gate canary promotion (Section 33) on per-cohort parity, not just global average. Catch it by making "per-segment fairness regression" a first-class canary health-check gate, not an afterthought.
+2. **Regional playstyle bias post-retrain**: Segment the calibration/Brier-score eval by region/cohort before rollout, and gate canary promotion (Section 33) on per-cohort parity, not just the global average. Make "per-segment fairness regression" a first-class canary gate rather than an afterthought.
 
-3. **TrueSkill vs Elo**: TrueSkill models rating as a distribution (mu, sigma) rather than a point estimate, so it natively expresses confidence/uncertainty — critical for new players (high sigma) converging faster, and it's designed for multi-player team games (factor-graph decomposes team outcome into per-player skill contribution), which vanilla Elo (pairwise, 1v1-native) doesn't handle without ad hoc hacks like team-average Elo.
+3. **TrueSkill vs Elo**: TrueSkill models rating as a distribution (mu, sigma) rather than a point estimate, so it natively expresses confidence — letting new players (high sigma) converge faster — and its factor-graph decomposes team outcomes into per-player contributions. Vanilla Elo is pairwise/1v1-native and can't handle team games without ad hoc hacks like team-average Elo.
 
-4. **Preventing double-booking**: Ticket state transitions must be atomic and single-writer — implemented via a Redis Lua script that does check-and-set (`SEARCHING → MATCHED`) as one atomic operation, so two shards racing to claim the same ticket can't both succeed; the loser's grouping attempt fails and re-evaluates without that ticket. This is a correctness invariant enforced at the data layer, not by application-level coordination (which would be slower and race-prone).
+4. **Preventing double-booking**: Ticket state transitions must be atomic and single-writer, implemented via a Redis Lua script that does check-and-set (`SEARCHING → MATCHED`) as one atomic operation, so racing shards can't both claim the same ticket. This is a correctness invariant enforced at the data layer, not via slower, race-prone application-level coordination.
 
-5. **Off-peak regional SLA breach**: First, confirm it's a supply problem (pool genuinely thin) via `queue.health`, not a system bug. Concrete levers, in order of preference: widen skill-band relaxation curve more aggressively for that region-hour combination (accept less-balanced matches over long waits); allow cross-region matching to the next-nearest region within acceptable added ping; as last resort, bot-fill under-populated matches with clear in-client messaging. Long-term: analyze whether that region's population justifies merging with a neighboring region's pool permanently during those hours, rather than reactively patching every night.
+5. **Off-peak regional SLA breach**: First confirm it's a genuine supply problem via `queue.health`, not a system bug. Then widen the skill-band relaxation curve for that region-hour, allow cross-region matching to the next-nearest region, or bot-fill as a last resort.
 
-6. **100-player battle royale**: Matching shifts from balanced-team pairing to **lobby-filling / bin-packing** — the goal is a lobby of 100 with reasonable skill spread (not tight pairwise balance), so the tick-loop algorithm changes from greedy-pair-and-balance to a fill-to-capacity approach with skill-tier stratification (e.g., ensure lobby isn't all top-1% players unless the whole regional pool skews that way). Wait-time dynamics change too — you need a much bigger simultaneous pool per tick, so pool-fill wait dominates even more, and partial-lobby timeouts (fill with bots at T-10s if under 100) become a standard mechanic.
+6. **100-player battle royale**: Matching shifts from balanced-team pairing to lobby-filling/bin-packing — the goal is a lobby of 100 with reasonable skill spread, not tight pairwise balance, so the algorithm changes from greedy-pair-and-balance to fill-to-capacity with skill-tier stratification. Pool-fill wait dominates even more at this scale, making partial-lobby bot-fill timeouts a standard mechanic.
 
-7. **Rating manipulation detection**: This is primarily an anti-cheat/trust-and-safety problem that matchmaking feeds signal into, not solves alone — look for statistical anomalies: repeated same-party win/loss patterns inconsistent with skill deltas, accounts with rating trajectories inconsistent with performance-metric telemetry (K/D, objective participation), and abnormal session-ending patterns (intentional early loss). Matchmaking's role: surface these signals via the `match_results` stream to a dedicated integrity pipeline, and support soft mitigations like rating-change dampening for flagged accounts pending review, without unilaterally banning from the matchmaking layer itself.
+7. **Rating manipulation detection**: This is primarily an anti-cheat/trust-and-safety problem that matchmaking feeds signal into rather than solves alone — look for statistical anomalies like repeated same-party win/loss patterns inconsistent with skill deltas or rating trajectories inconsistent with performance telemetry. Matchmaking's role is to surface these signals to a dedicated integrity pipeline and support soft mitigations (rating-change dampening) rather than unilaterally banning.
 
-8. **Cross-play PC + console**: Add input-method as an explicit matching dimension, either via input-based skill sub-pools (separate mu/sigma per input method, since aim-assist and mouse-precision produce different effective skill curves) or via a per-lobby input-composition constraint (e.g., "no more than 2 KBM in a controller-majority lobby" or full separation with an opt-in cross-play toggle). This is a fairness-vs-pool-size tradeoff exactly like region relaxation — smaller platform populations may need to accept mixed-input lobbies to keep wait times reasonable, so make it a configurable relaxation dimension in the same progressive-constraint framework already built for skill/region.
+8. **Cross-play PC + console**: Add input-method as an explicit matching dimension, either via separate mu/sigma sub-pools per input method or per-lobby input-composition constraints, since aim-assist and mouse-precision produce different effective skill curves. This is a fairness-vs-pool-size tradeoff like region relaxation, so it fits as a configurable dimension in the same progressive-constraint framework.
 
-9. **Validating the relaxation curve**: Don't guess-and-ship — run offline replay simulation against historical ticket-arrival logs with different candidate relaxation curves, measuring the resulting wait-time distribution and match-fairness distribution each curve would have produced. Then A/B test candidate curves live on a small shard split (Section 33's canary mechanism), gated on both wait-time and fairness metrics simultaneously, since optimizing one in isolation trivially degrades the other (instant matching with zero skill constraint "solves" wait-time while destroying fairness).
+9. **Validating the relaxation curve**: Run offline replay simulation against historical ticket-arrival logs with candidate relaxation curves, measuring the resulting wait-time and fairness distributions each would produce. Then A/B test candidates live via canary (Section 33), gated on both metrics simultaneously, since optimizing one alone trivially degrades the other.
 
-10. **Turn-based/async redesign**: Real-time constraints (sub-second tick loops, ping-aware region routing, live DGS allocation) disappear almost entirely — matching can run as a much slower batch process (e.g., every few minutes or hours), pool sizes can be enormous since there's no live-wait pressure, and region/ping stops being a matching constraint at all (only relevant for eventual move-notification delivery). The architecture would collapse Sections 7/12/13's real-time streaming backbone into a much simpler scheduled-batch-job design, trading the entire "low-latency queueing" pillar of this chapter away — proving that this specific architecture's complexity is a direct consequence of the real-time requirement, not incidental.
+10. **Turn-based/async redesign**: Real-time constraints (sub-second tick loops, ping-aware routing, live DGS allocation) largely disappear — matching can run as a slower batch process with much larger pools, and region/ping stops being a matching constraint. This would collapse the real-time streaming backbone into a simpler scheduled-batch-job design, showing this architecture's complexity is a direct consequence of the real-time requirement.

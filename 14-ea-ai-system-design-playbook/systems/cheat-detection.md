@@ -498,187 +498,9 @@ On-call routing: infra alerts → SRE rotation; model-quality/drift alerts → M
 - **Feature store TTLs**: aggressive Redis TTL tuned to session lifetime avoids paying for unbounded online-store growth.
 - **Right-sized GPU tier**: T4/A10 (inference-optimized, cheaper) for real-time path; reserve A100 spend only for the batch GNN job where throughput-per-dollar matters more than raw latency.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: 15 minutes for real-time scoring path (fails open to log-only mode automatically, so "recovery" here means restoring active enforcement, not restoring basic gameplay — gameplay is never blocked by an anti-cheat outage). 4 hours for batch ban-wave pipeline (non-player-facing, can slip a day without major harm).
-- **RPO**: Ban Store — near-zero (< 60s) via multi-region synchronous-enough replication (CockroachDB/Spanner-style consensus writes); telemetry lake — up to 5 minutes of data loss acceptable (Kafka retention + replayable from producers if consumers lag, not the ultimate source of truth for enforcement-critical decisions since server-authoritative validation and Ban Store are).
-- **Backup strategy**: Ban Store — continuous replication + daily full snapshot to cold storage (protects against logical corruption, not just node failure); Feature Store offline (S3/Delta) — versioned/immutable by design, no separate backup needed beyond S3 cross-region replication; Model Registry — versioned artifacts backed up to a secondary object store bucket in a different region.
-- **Runbook priorities during an incident**: (1) confirm fail-open behavior is active (no false kicks), (2) verify Ban Store replication health (security-critical), (3) restore scoring pipeline, (4) reconcile any telemetry gap via Kafka replay once ingestion resumes.
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active for the real-time path (each of NA/EU/APAC/SA runs its own full ingestion→scoring→decision stack, colocated with regional game servers to minimize latency) — active-active-with-single-source-of-truth-writer pattern for the Ban Store (all regions can read locally; ban issuance writes go through a consensus-replicated store like CockroachDB that handles multi-region writes with serializable consistency, or alternatively a single "home region" writer per player with async replication if stricter latency-vs-consistency tradeoffs are needed).
-- **Data replication**: Ban records replicate cross-region within the 60s consistency target (Section 3); telemetry/feature data stays regional (no cross-region replication needed — a player's session data is only relevant to the region they're playing in).
-- **Latency routing**: players routed to nearest region via anycast/GeoDNS at matchmaking time (existing game-server routing infra); anti-cheat stack piggybacks on the same regional placement — no additional latency-routing logic needed since it's colocated with the game server the player already connects to.
-
-```
-   NA Region                 EU Region                APAC Region             SA Region
- ┌───────────────┐        ┌───────────────┐        ┌───────────────┐      ┌───────────────┐
- │ Game Servers    │        │ Game Servers    │        │ Game Servers    │      │ Game Servers    │
- │ Ingestion+Kafka │        │ Ingestion+Kafka │        │ Ingestion+Kafka │      │ Ingestion+Kafka │
- │ Flink+Scoring   │        │ Flink+Scoring   │        │ Flink+Scoring   │      │ Flink+Scoring   │
- │ Decision Engine │        │ Decision Engine │        │ Decision Engine │      │ Decision Engine │
- │ Ban Store       │◄──────►│ Ban Store       │◄──────►│ Ban Store       │◄────►│ Ban Store       │
- │ (local replica) │  async │ (local replica) │  async │ (local replica) │async │ (local replica) │
- └───────┬─────────┘ <60s   └───────┬─────────┘ <60s   └───────┬─────────┘ <60s └───────┬─────────┘
-         │                          │                          │                        │
-         └──────────────┬───────────┴──────────────┬───────────┴────────────────────────┘
-                         ▼                          ▼
-              ┌───────────────────────────────────────────────┐
-              │   Central Batch Ban-Wave Pipeline (single        │
-              │   region, reads regional telemetry lake exports, │
-              │   writes back ban decisions to all Ban Stores)   │
-              └───────────────────────────────────────────────┘
-```
-
-## 32. Blue/Green Deployment
-
-- **Applies to**: Decision Engine, Ingestion Gateway, and the Ban Issuance Service — stateless/near-stateless components where a full traffic cutover is safe.
-- **Mechanics**: deploy "green" stack alongside live "blue," run synthetic + shadow traffic (mirrored real telemetry, non-authoritative) against green to validate parity on decision outputs, then cut over game-server traffic via load-balancer config switch; blue kept warm for immediate rollback for 1 hour post-cutover.
-- **Not used for**: the Real-Time Scoring Service model deployments — those go through canary (Section 33) instead of blue/green, because model behavior changes (unlike infra code changes) need gradual, metrics-gated exposure rather than an instant full switch, given the asymmetric cost of a bad model version (mass false-positive kicks).
-- **Ban Store**: blue/green not applicable — it's a stateful, continuously-replicated system; schema migrations there use expand/contract migration pattern instead.
-
-## 33. Canary Deployment
-
-- **Applies to**: every new model version (statistical threshold update, sequence model, GNN) before full production rollout.
-- **Traffic-split strategy**: new model version deployed to 2% of real-time scoring traffic (randomly assigned by `session_id` hash, sticky per session to avoid mid-session model-switch artifacts) for the first 2 hours, then 10% for 24 hours, then 50% for 24 hours, then 100% — each stage gated by health checks.
-- **Health-check gates specific to this system** (must all pass to progress to next stage):
-  - Ensemble score distribution for canary cohort within expected range vs. control cohort (no sudden mass-flagging spike — a common bug signature).
-  - Kick/flag rate for canary cohort within 1.5x of control cohort's historical rate (catches runaway false-positive regressions before real players are affected at scale).
-  - p99 inference latency within SLA on canary pods.
-  - Zero increase in appeal-eligible-ban rate attributable to canary cohort during the window (requires waiting for the human review step on a canary sub-sample before full progression — slower gate but necessary given ban stakes).
-- Automatic rollback if any gate fails (Section 34).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**:
-  - Canary health-check gate failure (Section 33) → auto-revert canary traffic split to 0%, previous model version restored as sole production version within minutes (Triton model-version swap is near-instant since old version stays loaded during canary window).
-  - Real-time p99 latency SLA breach post-full-rollout → automated rollback via deployment pipeline (Argo Rollouts-style automated analysis step) reverting to last-known-good model/service version.
-  - Spike in appeal-overturn rate within 48 hours of a model rollout → automatic pause of ban-wave auto-issuance for that model version's decisions pending manual investigation (does not necessarily roll back the model itself if root cause is unclear, but halts downstream harm immediately).
-- **Rollback mechanics**: Model Registry retains last 5 production versions "warm" (loaded/loadable within seconds) specifically to make rollback near-instant rather than a redeploy; infra (Decision Engine/Gateway) rollback via standard Kubernetes Deployment revision history (`kubectl rollout undo`) or GitOps revert commit (Argo CD).
-- **Manual override**: Trust & Safety lead + ML on-call jointly authorized to force full rollback regardless of automated gate status (e.g., in response to a PR/community-trust incident even if metrics look acceptable).
-
-## 35. Observability
-
-- **Metrics** (Prometheus + Grafana): the infra/model/business metrics cataloged in Section 22, scraped from all services, with model-version and region as standard label dimensions on every metric for slice-and-dice analysis.
-- **Logs** (structured JSON, aggregated to a log platform e.g. Elastic/Splunk for non-PII stream, restricted-access store for identity-linked stream): correlated via `trace_id`.
-- **Traces** (OpenTelemetry, e.g. backed by Jaeger/Tempo): a single player action is traced from client capture → game server validation → ingestion → Kafka produce → Flink window → scoring request → decision → enforcement RPC, with span tags for `model_version`, `session_id` (tokenized), `region` — critical for debugging the specific "why did/didn't this get flagged" question that reviewers and engineers both need answered, and for pinpointing which hop dominates latency during an SLA investigation.
-- **Correlation**: `trace_id` is propagated as a Kafka header (not just HTTP header) so the trace survives the async hop through the event bus — a common gap in naively-instrumented streaming systems that must be explicitly engineered here.
-- **Golden signals dashboard**: one per region showing latency/traffic/errors/saturation for the real-time path, plus a dedicated "trust & safety" dashboard blending model-quality and business metrics for non-engineering stakeholders.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: realtime-scoring-service
-  namespace: anticheat-na
-spec:
-  replicas: 6
-  selector:
-    matchLabels: {app: realtime-scoring}
-  template:
-    metadata:
-      labels: {app: realtime-scoring}
-    spec:
-      containers:
-        - name: triton-server
-          image: registry.ea.com/anticheat/triton-scoring:v14.3
-          resources:
-            requests: {cpu: "4", memory: "16Gi", nvidia.com/gpu: "1"}
-            limits:    {cpu: "8", memory: "24Gi", nvidia.com/gpu: "1"}
-          ports: [{containerPort: 8001, name: grpc}]
-          readinessProbe:
-            httpGet: {path: /v2/health/ready, port: 8000}
-            periodSeconds: 5
-          livenessProbe:
-            httpGet: {path: /v2/health/live, port: 8000}
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata: {name: realtime-scoring-svc, namespace: anticheat-na}
-spec:
-  selector: {app: realtime-scoring}
-  ports: [{port: 8001, targetPort: 8001, protocol: TCP}]
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata: {name: realtime-scoring-scaler, namespace: anticheat-na}
-spec:
-  scaleTargetRef: {name: realtime-scoring-service}
-  minReplicaCount: 4
-  maxReplicaCount: 30
-  triggers:
-    - type: kafka
-      metadata:
-        bootstrapServers: kafka-na.anticheat.svc:9092
-        consumerGroup: decision-engine-consumer
-        topic: cheat.flags
-        lagThreshold: "500"
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_msk_cluster" "telemetry_kafka" {
-  cluster_name           = "anticheat-telemetry-${var.region}"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 9
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info {
-      ebs_storage_info { volume_size = 2000 }
-    }
-  }
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS" }
-  }
-}
-
-resource "aws_eks_node_group" "gpu_scoring_pool" {
-  cluster_name    = aws_eks_cluster.anticheat.name
-  node_group_name = "gpu-scoring-${var.region}"
-  instance_types  = ["g5.2xlarge"]
-  scaling_config {
-    min_size     = 4
-    max_size     = 30
-    desired_size = 6
-  }
-  labels = { workload = "realtime-scoring" }
-  taint {
-    key    = "nvidia.com/gpu"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_eks_node_group" "gpu_batch_spot_pool" {
-  cluster_name    = aws_eks_cluster.anticheat.name
-  node_group_name = "gpu-batch-spot"
-  capacity_type   = "SPOT"
-  instance_types  = ["p3.8xlarge", "g5.12xlarge"]
-  scaling_config {
-    min_size     = 0
-    max_size     = 32
-    desired_size = 0
-  }
-  labels = { workload = "batch-ban-wave" }
-}
-
-resource "aws_db_instance" "ban_store_primary" {
-  # illustrative -- actual global consistency layer uses CockroachDB on EC2/EKS,
-  # shown here as a simplified managed-DB stand-in for the region-local read replica tier
-  identifier              = "ban-status-cache-${var.region}"
-  engine                  = "postgres"
-  instance_class          = "db.r6g.xlarge"
-  storage_encrypted       = true
-  backup_retention_period = 7
-  multi_az                = true
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -768,14 +590,14 @@ resource "aws_db_instance" "ban_store_primary" {
 
 ## 46. Ideal Answers
 
-1. **Novel cheat detection**: rely on the unsupervised anomaly detector (autoencoder/isolation forest over behavioral features) running independently of labeled classifiers — it flags statistical outliers in the feature space regardless of whether a label exists yet. Route high-volume unlabeled anomaly clusters to human review for rapid labeling, then fast-track a targeted retrain (Section 20 triggers). This is the core justification for keeping an unsupervised layer in the ensemble rather than relying solely on supervised models.
-2. **Oracle-proofing**: never expose raw scores or thresholds to any client-reachable surface (Section 25); rate-limit and monitor for statistically anomalous "boundary probing" behavior from single accounts; keep all scoring logic and feature computation server-side only, so the client has no code path to introspect; rotate/perturb exact thresholds periodically so even leaked historical data doesn't perfectly predict current boundaries.
-3. **Aim-assist confound**: train platform-aware models — segment features and potentially separate model calibration by input method (controller vs. mouse/KBM), since aim-assist produces a distinct, bounded statistical signature different from aimbot software (which tends to show impossibly fast/precise snaps beyond what any console aim-assist curve produces). Cross-platform drift monitoring (Section 21) specifically watches for score-distribution divergence between cohorts to catch miscalibration early.
-4. **Mass false-positive incident response**: immediately pause further auto-issuance from the implicated model version (Section 34 manual override), fast-track appeals for the affected cohort (temporary SLA reduction, e.g. 24h instead of 72h), root-cause via the canary health-check gates that should have caught it (postmortem: which gate was insufficient), proactively communicate with affected players/community rather than waiting for appeals to trickle in — trust repair is a product decision as much as a technical one.
-5. **Collusion/boosting extension**: this is precisely what the GNN component (Sections 17/19) is for — model player-interaction graphs (party composition, trade/match history) and detect anomalous subgraph patterns (e.g. a high-MMR account repeatedly carrying the same low-MMR account, a "boosting ring" of mutually-queueing accounts) that pure per-session behavioral features can't see, since collusion is inherently a multi-player, cross-session pattern.
-6. **Adversarial evasion / distribution mimicry**: this is the reason for the layered ensemble rather than a single model — even if a cheat is statistically tuned to mimic legitimate aim distributions, it's unlikely to simultaneously mimic legitimate distributions across *every* independent feature dimension (reaction time, movement, decision-making patterns) the ensemble checks; also lean on cross-session/recidivism signals and device-fingerprint/behavioral-embedding similarity clustering (Section 17) to catch "same underlying tool, evolving signature" patterns even as the exact statistical profile shifts.
-7. **Real-time/batch model drift-apart risk**: enforce shared feature-computation code (Section 15) between both paths to prevent train/serve-style skew from creeping in as two separately-evolving codebases; version and jointly evaluate both models against the same weekly sentinel labeled set so any divergence in what they consider "cheating" shows up immediately in the metrics rather than silently accumulating.
-8. **Kernel-level driver tradeoff**: kernel-level anti-cheat gives deeper visibility (can detect the cheat process/injection itself, not just its behavioral effects) but costs cross-platform/console parity (consoles don't allow arbitrary kernel drivers), raises legitimate privacy/security concerns (kernel-level access is a large attack surface if the anti-cheat driver itself has a vulnerability), and creates player trust friction (some players refuse to run kernel-level anti-cheat). The behavioral/telemetry-based approach here trades some detection power for broader platform support and lower trust/security risk — appropriate for a broad, cross-platform live-service catalog rather than a single hardcore-competitive PC title.
-9. **Mobile/untrusted-client adaptation**: shift even more weight onto server-authoritative validation and statistical/ML behavioral detection, since a jailbroken/rooted device fundamentally cannot be trusted to run any client-side agent honestly; increase reliance on server-side-only signals (network timing analysis, physics validation, cross-session behavioral consistency) and treat all client-reported telemetry as lower-trust corroborating evidence rather than ground truth, consistent with the general principle of never trusting the client for anything security-critical.
-10. **Measuring real effectiveness beyond ban counts**: track leading and cross-validating indicators — player-reported-cheater rate correlated against system-flagged rate (validates the system is catching what players actually perceive, not just gaming its own metrics), estimated cheater-playtime-prevented (session-time cut short), appeal-overturn rate (precision proxy), and sentinel-set recall (recall proxy) — because ban count alone can rise simply by lowering thresholds without any real improvement in catching genuine cheaters, so it must always be read alongside precision/recall and player-trust signals.
+1. **Novel cheat detection**: rely on the unsupervised anomaly detector (autoencoder/isolation forest over behavioral features) running independently of labeled classifiers, so it flags statistical outliers regardless of whether a label exists yet. Route high-volume unlabeled anomaly clusters to human review for rapid labeling, then fast-track a targeted retrain (Section 20).
+2. **Oracle-proofing**: never expose raw scores or thresholds to any client-reachable surface (Section 25), and keep scoring/feature logic server-side only so the client has no code path to introspect. Monitor for anomalous "boundary probing" from single accounts and periodically rotate thresholds so leaked data can't perfectly predict current boundaries.
+3. **Aim-assist confound**: train platform-aware models, segmenting features/calibration by input method (controller vs. mouse/KBM), since aim-assist has a distinct, bounded signature versus an aimbot's impossibly fast/precise snaps. Cross-platform drift monitoring (Section 21) watches for score-distribution divergence between cohorts to catch miscalibration early.
+4. **Mass false-positive incident response**: pause further auto-issuance from the implicated model version and fast-track appeals for the affected cohort. Root-cause which canary health-check gate should have caught it, and proactively communicate with affected players rather than waiting for appeals to trickle in.
+5. **Collusion/boosting extension**: this is what the GNN component (Sections 17/19) is for — model player-interaction graphs (party composition, trade/match history) to detect anomalous subgraph patterns (e.g. a boosting ring of mutually-queueing accounts) that per-session behavioral features can't see, since collusion is inherently a multi-player, cross-session pattern.
+6. **Adversarial evasion / distribution mimicry**: this is why a layered ensemble beats a single model — a cheat tuned to mimic legitimate distributions on one feature dimension is unlikely to mimic all of them simultaneously (reaction time, movement, decision-making). Cross-session recidivism and device/behavioral-embedding similarity clustering (Section 17) also catch "same tool, evolving signature" patterns.
+7. **Real-time/batch model drift-apart risk**: enforce shared feature-computation code (Section 15) between both paths to prevent train/serve skew from creeping in as separately-evolving codebases. Jointly evaluate both models against the same weekly sentinel labeled set so divergence shows up immediately.
+8. **Kernel-level driver tradeoff**: kernel-level anti-cheat gives deeper visibility (can see the cheat process itself, not just its effects) but costs console/cross-platform parity and adds attack surface and player trust friction. The behavioral/telemetry approach trades some detection power for broader platform support — appropriate for a cross-platform live-service catalog rather than one hardcore-competitive PC title.
+9. **Mobile/untrusted-client adaptation**: shift more weight onto server-authoritative validation and behavioral detection, since a jailbroken/rooted device can't be trusted to run any client-side agent honestly. Treat all client-reported telemetry as lower-trust corroborating evidence, not ground truth.
+10. **Measuring real effectiveness beyond ban counts**: track player-reported-cheater rate correlated against system-flagged rate, estimated cheater-playtime-prevented, appeal-overturn rate (precision proxy), and sentinel-set recall. Ban count alone can rise just by lowering thresholds, so it must be read alongside precision/recall and trust signals.
 

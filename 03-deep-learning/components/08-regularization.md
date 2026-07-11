@@ -33,7 +33,7 @@ $$w \leftarrow w - \eta(\nabla_w L_\text{task} + \lambda w) = w(1 - \eta\lambda)
 
 This is why L2 regularization is called weight decay — each step decays the weight by factor $(1 - \eta\lambda)$.
 
-**What breaks**: in Adam (not AdamW), the weight penalty $\lambda w$ is added to the gradient before adaptive scaling. The adaptive denominator scales down the penalty for parameters with large gradient history — weight decay is effectively weaker for those parameters. Use AdamW, which applies weight decay directly to the weights after the gradient update, decoupled from the adaptive scaling.
+**What breaks**: in Adam (not AdamW), the weight penalty $\lambda w$ is added to the gradient before adaptive scaling, so the adaptive denominator weakens the penalty for parameters with large gradient history. Full derivation of the decoupled fix: see [06-optimisers.md](06-optimisers.md#adamw).
 
 ---
 

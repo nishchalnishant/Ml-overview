@@ -557,207 +557,9 @@ Detection cadence: automated weekly batch job computing all metrics above, dashb
 - **Idle GPU reclaim**: off-peak (overnight per-region) autoscale-down of chat GPU pool to a minimal floor, since chat volume closely tracks working hours per region.
 - **Cost attribution & showback**: per-studio cost dashboards (Section 22 business metrics) create organic pressure against wasteful usage patterns (e.g., overly long chat context windows attached unnecessarily).
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RTO | RPO | Backup Strategy |
-|---|---|---|---|
-| Vector/symbol index | 1 hour | 15 min | Continuous incremental snapshots to object store; can rebuild from source repos as ultimate fallback (slower, hours, but zero data loss since source of truth is git) |
-| Chat transcript store | 4 hours | 5 min | Cross-region async replication + point-in-time backups |
-| Entitlements DB (Postgres) | 30 min | 1 min | Synchronous replica in-region + async cross-region replica, automated failover |
-| Model registry/artifacts | 2 hours | 0 (immutable artifacts) | Versioned object store with cross-region replication, model artifacts are immutable once published |
-| Telemetry/feature store (lake) | 8 hours | 1 hour | Object-store native durability (11 9's), cross-region replication for the lake itself |
-| Model serving fleet | 15 min (redeploy from registry to standby region capacity) | N/A (stateless) | Pre-provisioned standby capacity in secondary region, warm-start on failover |
-
-Since git (source of truth for code) already has its own robust DR outside this system's scope, the vector/symbol index has an unusually cheap ultimate fallback: full reindex from source — this materially relaxes RPO requirements for that component vs. a system where the index itself were the source of truth.
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active across NA and EU regions (both serve live traffic for their local studios); APAC studios route to NA with accepted higher latency (per Assumption 7) rather than standing up a third full region given lower current APAC headcount — revisit at 10x APAC growth.
-- **Data residency**: EU studios' repo indexes and chat transcripts stay EU-resident (data residency/legal requirement for some EU entities); NA/APAC data resident in NA.
-- **Routing**: GeoDNS + Anycast at the edge, client IDE plugin pinned to home region based on studio assignment (not just IP-geo, since VPN/remote work is common) — plugin config carries an explicit `home_region` claim from SSO.
-- **Cross-region replication**: model artifacts (registry) replicated to both regions asynchronously on publish; entitlements DB replicated near-real-time (needed for correctness — a user shouldn't get inconsistent access decisions cross-region); vector/symbol indexes are **not** cross-replicated (each repo's index lives in exactly one region matching its data-residency requirement — a France-resident repo's index only exists in EU).
-
-```
-        ┌───────────────────────┐              ┌───────────────────────┐
-        │     NA Region          │              │      EU Region         │
-        │  (Redwood, Vancouver)  │              │   (DICE, Romania)       │
-        │                        │◀── async ───▶│                        │
-        │  Full stack: gateway,  │  entitlements │  Full stack: gateway,  │
-        │  model serving, vector │  + registry    │  model serving, vector │
-        │  index (NA repos only) │  replication   │  index (EU repos only) │
-        └──────────┬─────────────┘              └───────────┬─────────────┘
-                   │                                          │
-           GeoDNS/Anycast edge routing based on SSO home_region claim
-                   │                                          │
-        ┌──────────┴─────────────┐              ┌────────────┴────────────┐
-        │ NA studio engineers +   │              │  EU studio engineers     │
-        │ APAC (routed here)      │              │                          │
-        └─────────────────────────┘              └──────────────────────────┘
-```
-
-## 32. Blue/Green Deployment
-
-- **Applies to**: model serving fleet (new model version) and gateway/orchestrator service code.
-- **Model version blue/green**: new model version ("green") deployed to a fully separate GPU pool alongside current ("blue"), pre-warmed (weights loaded, health-checked with synthetic completion requests) before any real traffic shifts — critical here because GPU model load/warm time (tens of seconds to minutes) makes in-place rolling updates riskier for latency SLOs than for a stateless CPU service.
-- **Cutover**: instantaneous traffic switch at the gateway's model-routing config once green passes automated health checks (latency, error rate on synthetic + shadow traffic) — blue kept warm for immediate rollback for a bake period (e.g., 2 hours) before decommission.
-- **Gateway/service code**: standard blue/green at the Kubernetes Service level (switch Service selector between two Deployment label sets), used for the stateless gateway/orchestrator tiers where rolling updates would otherwise briefly mix old/new API contract versions mid-request for streaming SSE sessions (safer to cut over cleanly between full generations of pods for connection-oriented streaming paths).
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy**: new model version receives 1% → 5% → 25% → 100% of traffic over a multi-hour/day progression, gated by automated health checks at each stage — **not** a fixed time-based promotion, promotion requires passing gates.
-- **Health-check gates specific to this system**:
-  - Latency: canary p99 within 10% of baseline (inline) / 15% (chat).
-  - Model-quality proxy: acceptance rate on canary cohort within 3pp of baseline over a minimum sample size (e.g., ≥5,000 completions) — too few samples and canary can't be evaluated on quality, only infra health.
-  - Safety: secret-scan trigger rate and security-flag rate on canary not elevated vs baseline.
-  - No increase in P0/P1 alerts attributable to canary pool.
-- **Cohort selection**: canary traffic sampled by `request_id` hash (consistent per-session assignment so a single chat session doesn't flip between model versions mid-conversation, which would confuse agentic multi-step reasoning) rather than pure random per-request sampling.
-- **Chat/agentic-specific nuance**: canary evaluation for agentic flows also tracks tool-call success rate and diff-apply rate specifically, since a model regression might not show up in raw latency/error rate but shows up as more failed/reverted agent actions.
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: any canary gate failure (Section 33) triggers automatic traffic rollback to 0% on the new version, no human approval needed for the automatic *canary* rollback step (full production rollback of an already-100%-promoted version does require human on-call sign-off, to avoid an automated system causing its own outage via flapping).
-- **Rollback mechanics (model)**: traffic-routing config flips back to prior model version's still-warm serving pool (kept warm during bake period per Section 32) — target rollback time ≤ 60 seconds from trigger to full traffic reversion.
-- **Rollback mechanics (service code)**: standard Kubernetes Deployment rollback (`kubectl rollout undo` equivalent via GitOps revert), target ≤ 5 minutes including health-check reverification.
-- **Data/schema rollback**: API versioning (Section 9) ensures a service code rollback never encounters a request schema it can't parse (backward-compatible additive changes only) — this is what makes fast service rollback safe.
-- **Post-rollback**: automatic incident ticket created, canary/rollout paused pending root-cause, telemetry from the failed canary window flagged/excluded from training data (avoid learning from a known-bad model's outputs if any got scraped into future fine-tune data).
-
-## 35. Observability
-
-- **Tracing**: distributed tracing (OpenTelemetry) spans the full request: IDE plugin → gateway → context retrieval → model serving → post-processor, with `request_id`/`session_id` as the trace correlation key propagated through every hop, including across the async telemetry emission (linked trace, not blocking).
-- **Metrics**: Prometheus-style metrics at every component (Section 22) with consistent labeling (`repo_id`-derived cardinality carefully bucketed/hashed, not raw high-cardinality repo names, to avoid metrics-cardinality blowups given hundreds of repos).
-- **Logs**: structured logs (Section 24) carry the same `request_id`/`session_id`/`trace_id` fields, enabling pivot from a trace span directly to its corresponding log lines in the central log store.
-- **Correlation in practice**: a P1 "inline p99 latency spike" alert (Section 23) → on-call opens the latency dashboard → drills into a sample of slow `trace_id`s from that window → trace shows time spent per hop (e.g., context retrieval took 80ms instead of usual 10ms) → pivots to context-retrieval logs for that `trace_id` → finds the failing vector-index shard/node → correlates with infra metrics (that shard's host CPU/memory) → root cause identified without needing to re-run or guess.
-- **Agentic-specific observability**: each agent step (plan/tool-call/observe) is its own child span under the session trace, so a slow/failed multi-step agentic session can be visually decomposed step-by-step (which tool call was slow, which retry happened).
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: inline-completion-gateway
-  namespace: ai-assist
-spec:
-  replicas: 12
-  selector:
-    matchLabels: { app: inline-gateway }
-  template:
-    metadata:
-      labels: { app: inline-gateway, version: stable }
-    spec:
-      containers:
-        - name: gateway
-          image: registry.ea.internal/ai-assist/inline-gateway:1.14.2
-          ports: [{ containerPort: 8080 }]
-          resources:
-            requests: { cpu: "500m", memory: "512Mi" }
-            limits:   { cpu: "1",    memory: "1Gi" }
-          readinessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            periodSeconds: 5
-          env:
-            - name: MODEL_ROUTE_CONFIG
-              valueFrom: { configMapKeyRef: { name: model-routing, key: current.yaml } }
----
-apiVersion: v1
-kind: Service
-metadata: { name: inline-gateway-svc, namespace: ai-assist }
-spec:
-  selector: { app: inline-gateway }
-  ports: [{ port: 443, targetPort: 8080 }]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: inline-gateway-hpa, namespace: ai-assist }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: inline-completion-gateway }
-  minReplicas: 12
-  maxReplicas: 80
-  metrics:
-    - type: Pods
-      pods:
-        metric: { name: gateway_p99_latency_ms }
-        target: { type: AverageValue, averageValue: "180" }
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
-  behavior:
-    scaleUp:   { stabilizationWindowSeconds: 30 }
-    scaleDown: { stabilizationWindowSeconds: 300 }
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_eks_node_group" "inline_model_serving_gpu" {
-  cluster_name    = aws_eks_cluster.ai_assist.name
-  node_group_name = "inline-serving-l4"
-  node_role_arn   = aws_iam_role.gpu_node_role.arn
-  subnet_ids      = module.vpc.private_subnet_ids
-
-  scaling_config {
-    desired_size = 8
-    min_size     = 6
-    max_size     = 24
-  }
-
-  instance_types = ["g5.2xlarge"]  # L4-class GPU
-  capacity_type  = "ON_DEMAND"     # serving fleet: no spot (latency SLO)
-
-  taint {
-    key    = "workload"
-    value  = "gpu-inline-serving"
-    effect = "NO_SCHEDULE"
-  }
-
-  labels = { pool = "inline-serving", model-class = "distilled-7b" }
-}
-
-resource "aws_eks_node_group" "training_gpu_spot" {
-  cluster_name    = aws_eks_cluster.ai_assist.name
-  node_group_name = "training-h100-spot"
-  node_role_arn   = aws_iam_role.gpu_node_role.arn
-  subnet_ids      = module.vpc.private_subnet_ids
-
-  scaling_config {
-    desired_size = 0
-    min_size     = 0
-    max_size     = 32
-  }
-
-  instance_types = ["p5.48xlarge"]
-  capacity_type  = "SPOT"
-
-  labels = { pool = "training", preemptible = "true" }
-}
-
-resource "aws_elasticache_replication_group" "entitlement_cache" {
-  replication_group_id = "ai-assist-entitlements"
-  description           = "cache-aside entitlement lookups"
-  node_type             = "cache.r6g.large"
-  num_cache_clusters     = 3
-  automatic_failover_enabled = true
-  multi_az_enabled          = true
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-}
-
-resource "aws_msk_cluster" "telemetry_kafka" {
-  cluster_name           = "ai-assist-telemetry"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 6
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = module.vpc.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 1000 } }
-  }
-
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS" }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -858,22 +660,22 @@ resource "aws_msk_cluster" "telemetry_kafka" {
 
 ## 46. Ideal Answers
 
-1. **Secrets/cross-repo leakage**: Structural isolation (per-repo shard, Section 16) prevents a *different* repo's chunks from ever being retrieved into another repo's context — that closes the retrieval-time vector. For the training-time vector (model weights memorizing a secret seen during fine-tuning), apply secret-scanning at data-curation time (never train on chunks flagged as containing credentials) plus output-time secret-scanning as a second independent layer (Section 25) — defense in depth because no single filter is perfect.
+1. **Secrets/cross-repo leakage**: Structural isolation (per-repo shard, Section 16) prevents a *different* repo's chunks from ever being retrieved into another repo's context, closing the retrieval-time vector. For the training-time vector, apply secret-scanning at data-curation time (never train on flagged chunks) plus output-time secret-scanning as a second independent layer (Section 25) — defense in depth.
 
-2. **Stale index impact**: A 10-minute-stale index means completions for very recently added/renamed symbols in that repo might miss the newest context — worst case, a suggestion references a function that was just renamed. This is bounded and acceptable (NFR states eventually-consistent context is fine) because the open-file content (always fresh, sent directly in the request) covers the most immediately relevant code; the index gap only affects *cross-file* freshness, which is a much smaller blast radius than it sounds.
+2. **Stale index impact**: A 10-minute-stale index means completions may miss very recently added/renamed symbols — worst case, a suggestion references a function that was just renamed. This is acceptable because the open-file content (always fresh, sent directly in the request) covers the most immediately relevant code, so the index gap only affects lower-stakes cross-file freshness.
 
-3. **Sandbox timeout recovery**: The tool-call result surfaces as an explicit typed error event (`tool_result: {"error": "timeout"}`), not silence or a fabricated success — the orchestrator's agent loop is prompted with that explicit failure so the model's next step reasons over a real failure signal ("execution timed out, here's what I can say without verified results") rather than inventing output. This is why tool-call results are structured/typed rather than free text — it prevents the model from misinterpreting an empty response as success.
+3. **Sandbox timeout recovery**: The tool-call result surfaces as an explicit typed error event (`tool_result: {"error": "timeout"}`), not silence or a fabricated success, so the model's next step reasons over a real failure signal instead of inventing output. This is why tool-call results are structured/typed rather than free text.
 
-4. **Routing cheap vs frontier model**: A lightweight classifier (or heuristic: query length, presence of multi-file/agentic keywords, attached-file count, historical session complexity) scores query complexity before model selection; simple explain/lookup queries route to mid-tier, multi-step/refactor/test-generation queries route to frontier — tuned and validated against a labeled eval set of query→ideal-model-tier pairs, with a bias toward frontier when classifier confidence is low (safer default, cost optimization is secondary to correctness).
+4. **Routing cheap vs frontier model**: A lightweight classifier (or heuristic: query length, multi-file/agentic keywords, attached-file count) scores query complexity before model selection — simple lookups route to mid-tier, multi-step/refactor tasks route to frontier. Bias toward frontier when classifier confidence is low, since cost optimization is secondary to correctness.
 
-5. **Concurrent conflicting diffs**: Diffs are proposed against a specific base commit/file-hash (embedded in the diff proposal), and `apply_diff` (Section 9) checks the current file hash matches the diff's base hash before applying — if another change landed first, the apply is rejected with a conflict signal back to the client (similar to optimistic concurrency control / CAS), forcing a re-generate against the new base rather than silently overwriting.
+5. **Concurrent conflicting diffs**: Diffs are proposed against a specific base file-hash, and `apply_diff` (Section 9) checks the current file hash matches before applying. If another change landed first, the apply is rejected with a conflict signal (optimistic concurrency control) rather than silently overwriting.
 
-6. **A/B testing without ground truth**: Use implicit behavioral signals as proxy labels — acceptance rate, edit-distance-after-accept (did the engineer immediately rewrite most of it, implying poor quality despite "accepting"), and downstream signal like whether accepted code survived to the next commit without reversion. Combine with periodic blind human preference evaluation (engineers rate anonymized A/B completions) as a calibration check against the behavioral proxies, since behavioral signals alone can be gamed by superficially-plausible-but-wrong code that still gets accepted reflexively.
+6. **A/B testing without ground truth**: Use implicit behavioral signals as proxy labels — acceptance rate, edit-distance-after-accept, and whether accepted code survived to the next commit without reversion. Combine with periodic blind human preference evaluation as a calibration check, since behavioral signals alone can be gamed by reflexively-accepted but wrong code.
 
-7. **Hosted provider policy change**: This is exactly why the architecture keeps a self-hosted mid-tier model as a standing fallback (not just a paper plan) and keeps the router (answer 4) provider-agnostic — cutover is a routing-config change (minutes), not a rearchitecture. For embargoed/unreleased-title studios, self-hosted is already the default per Assumption 4/Section 25, so exposure is already minimized; broader cutover for other studios is a matter of shifting routing weights and absorbing a temporary quality/cost delta while any longer-term contractual or self-hosting-capacity response plays out.
+7. **Hosted provider policy change**: The architecture keeps a self-hosted mid-tier model as a standing fallback and keeps the router (answer 4) provider-agnostic, so cutover is a routing-config change, not a rearchitecture. Embargoed/unreleased-title studios already default to self-hosted (Section 25), minimizing exposure.
 
-8. **Compromised/buggy indexer blast radius**: The indexer only has write access to its own pipeline's staging area, not directly to the live-serving vector index — embeddings are upserted through a validated path (schema/size/anomaly checks on incoming chunks, e.g., reject chunks that don't parse as valid AST for their declared language) before promotion to the serving index, and index updates are versioned/snapshotted so a bad batch can be rolled back to the last known-good snapshot (same mechanism as Section 30's DR snapshots) rather than requiring a full source reindex in the common case.
+8. **Compromised/buggy indexer blast radius**: The indexer only has write access to its own pipeline's staging area, not the live-serving vector index — embeddings pass schema/anomaly validation before promotion. Index updates are versioned/snapshotted so a bad batch can be rolled back to the last known-good snapshot (Section 30) instead of requiring a full reindex.
 
-9. **Mega-monorepo shard scaling limit**: Per-repo sharding stops scaling cleanly once a single repo's chunk count exceeds what one HNSW index can serve within the latency/recall target on reasonable hardware (roughly high-single-digit millions of chunks per shard in practice) — the concrete plan is sub-sharding by logical module/directory boundary within the mega-repo (each becomes its own ANN shard) plus a lightweight routing layer that first narrows to likely-relevant modules (via the symbol graph / directory-affinity of the open file) before fanning out ANN queries only to those sub-shards, rather than querying the entire monorepo's index on every request.
+9. **Mega-monorepo shard scaling limit**: Per-repo sharding stops scaling once a repo's chunk count exceeds what one HNSW index can serve within latency/recall targets. The fix is sub-sharding by logical module/directory boundary plus a routing layer that narrows to likely-relevant modules before fanning out ANN queries, rather than querying the whole monorepo index every request.
 
-10. **Detecting the assistant making engineers slower**: Track secondary signals beyond acceptance rate — review/PR cycle time trend for AI-assisted vs non-assisted commits, post-merge revert/bug-report rate correlated with AI-suggestion-heavy commits, and periodic qualitative survey/interview sampling (engineers self-report over-trust or fatigue). A rising acceptance rate paired with a rising post-merge defect rate on AI-touched code is the concrete red-flag pattern to monitor for, since it indicates reflexive acceptance rather than genuine productivity gain.
+10. **Detecting the assistant making engineers slower**: Track secondary signals beyond acceptance rate — review/PR cycle time trend and post-merge revert/bug-report rate on AI-touched commits. A rising acceptance rate paired with a rising post-merge defect rate is the key red-flag pattern, indicating reflexive acceptance rather than genuine productivity gain.

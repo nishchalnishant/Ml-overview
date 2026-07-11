@@ -119,17 +119,9 @@ rope_scaling = {
 
 ---
 
-## Method 4: LongRoPE
+## Method 4: LongRoPE (brief)
 
-**Problem with all above:** They use a single global scale factor. Optimal interpolation factor differs per attention head and per layer.
-
-**LongRoPE approach:** Evolutionary search to find per-dimension rescaling factors that minimize perplexity on long documents.
-
-Two-phase: 
-1. Extend to 2× target length (e.g., 512K) with non-uniform factors
-2. Fine-tune, then apply rescaled factors at inference for 256K
-
-**Result:** Achieves 2M token context with significantly less fine-tuning than YaRN.
+LongRoPE uses evolutionary search to find per-dimension (rather than one global) rescaling factors, achieving extreme context (millions of tokens) with less fine-tuning than YaRN. Research/Staff-depth topic — know it exists and why (single global scale factor is suboptimal per-head/per-layer), but implementation detail is out of scope here.
 
 ---
 
@@ -203,22 +195,9 @@ Performance
 
 ---
 
-## Qwen3 iRoPE
+## Qwen3 iRoPE (brief)
 
-**Innovation:** Every 4th layer in Qwen3 uses no positional encoding at all (position-agnostic attention).
-
-**Motivation:** Full attention layers can model global dependencies. With NoPE layers interspersed, the model learns position-agnostic representations for some transformations while maintaining positional grounding in other layers.
-
-**Result:** Enables extending to 10M+ context with minimal fine-tuning. The NoPE layers "reset" positional context, preventing position OOF issues from cascading through all layers.
-
-```
-Layer 0: RoPE (positional)
-Layer 1: RoPE (positional)
-Layer 2: RoPE (positional)
-Layer 3: NoPE (position-agnostic) ← every 4th
-Layer 4: RoPE (positional)
-...
-```
+Qwen3 interleaves layers with no positional encoding (NoPE) every 4th layer among standard RoPE layers, enabling extension to 10M+ context with minimal fine-tuning. Architecture-research-depth — worth knowing as an example of "not every layer needs explicit position info," not something an SDE2 needs to implement.
 
 ---
 
@@ -333,17 +312,9 @@ During fine-tuning: mask out the original prompt tokens; train the model to answ
 
 ---
 
-## State-Space Model Alternative: Mamba
+## State-Space Model Alternative: Mamba (brief)
 
-For sequences of millions of tokens, even O(n²/M) FlashAttention is prohibitive. SSMs offer O(n) training and O(1) inference.
-
-**Core mechanic**: discrete state-space recurrence — $h_t = \bar{A} h_{t-1} + \bar{B} x_t$, $y_t = C h_t$ — can be parallelized during training via parallel scan (not sequential recurrence). Inference: pure O(1) state update per token, constant KV memory regardless of sequence length.
-
-**Mamba's key innovation**: make $B$, $C$, and discretization step $\Delta$ input-dependent (selective SSM). The model learns *what to store* in state based on content, addressing the fixed-filter limitation of earlier SSMs (S4).
-
-**The tradeoff**: the fixed-size hidden state is a bottleneck. Transformers can do exact in-context lookup by attending to any token in history. Mamba must compress all history into a bounded state vector — facts processed thousands of tokens ago may not survive later state updates.
-
-**Practical status**: pure Mamba models slightly underperform transformers on in-context learning tasks that require exact retrieval. **Hybrid models** (alternating Mamba + attention layers, e.g., Jamba, Zamba) are the current practical compromise: Mamba layers handle the bulk of the sequence at O(n) cost; sparse attention layers provide precise retrieval when needed.
+Mamba is a selective state-space model offering O(n) training and O(1)-memory inference instead of attention's O(n²), by compressing history into a fixed-size recurrent state rather than attending to every past token. Tradeoff: exact long-range retrieval degrades since the state is bounded (vs. transformers' exact lookup). Hybrid Mamba+attention models (Jamba, Zamba) are the current practical compromise. Research/architecture-depth — good to know it exists as an alternative to RoPE scaling, not expected in SDE2-level depth.
 
 ---
 

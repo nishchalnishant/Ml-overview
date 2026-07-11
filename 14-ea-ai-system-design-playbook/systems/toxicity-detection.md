@@ -458,186 +458,9 @@ Total inline budget consumed: ~20-25ms typical, well inside p99 150ms target (he
 - **Tiered storage**: flagged content cold-archived after 30 days (object storage Glacier-class), voice clips similarly — cuts storage cost ~80% vs. keeping everything hot for the full 180-day retention.
 - **Reviewer cost**: prioritization/triage (section 12) keeps HITL volume within the fixed 500-reviewer capacity rather than linearly scaling headcount with traffic growth — model confidence thresholds are the lever, not headcount, for cost control.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO/RPO targets**:
-  | System | RTO | RPO |
-  |---|---|---|
-  | Inline moderation path (text) | 5 min (must fail open to fast-path-only mode, not fail closed and block all chat) | N/A (streaming, no data loss tolerance framing — degraded mode instead) |
-  | Enforcement store (Postgres) | 15 min | 1 min (synchronous replication within region, async cross-region) |
-  | Review queue | 10 min | 5 min (Kafka-backed, replayable) |
-  | Training/feature data lake | 4 hours | 24 hours (batch nature tolerates more loss) |
-- **Fail-open policy**: if the ML scoring path is unavailable (regional outage, fleet down), the system fails open to fast-path-word-list-only mode rather than blocking all chat — availability of core chat function takes precedence over moderation completeness for a bounded outage window (business decision, documented and reviewed with T&S leadership).
-- **Backup strategy**: Postgres (enforcement store) — continuous WAL archiving + daily full snapshot, cross-region replica; Kafka — replication factor 3 across AZs, topic retention itself acts as a short-term buffer/backup; data lake — versioned object storage with lifecycle policies; model registry — artifacts replicated to multi-region object storage, registry metadata backed up daily.
-- **DR drills**: quarterly game-day exercises simulating region loss, validating fail-open behavior and enforcement-store failover.
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active across 3-4 regions (US-East, US-West/EU, APAC) aligned with EA's existing game server regions — moderation must be co-located with chat traffic to hit latency SLA (cross-region round-trip would blow the 150ms p99 budget).
-- **Data replication**:
-  - Enforcement store: regionally-sharded by player home-region for writes (low-latency local writes), with async cross-region replication for global read-visibility (a player banned in one region must eventually be visible everywhere — target < 30s propagation) plus a synchronous "ban-critical" fast-path replication for severe enforcement (immediate global block) via a small, latency-tolerant broadcast (accept the higher write latency only for this rare, high-severity path).
-  - Model artifacts: replicated to all regions' model registries; inference fleets in each region pull independently, ensuring no region depends on cross-region reads for the hot path.
-  - Feature store: regional online stores (low-latency local), offline/training data lake is globally consolidated (single source of truth for training, built from all regions' events).
-- **Latency routing**: players routed to nearest region via existing platform GeoDNS/Anycast (same infra as game servers); toxicity service is deployed as a regional sidecar to the chat/voice gateway, not a separate global routing decision.
-- **Cross-region consistency tradeoff**: eventual consistency accepted for "player banned in region A, still allowed briefly in region B" (bounded by the ~30s propagation target) — an explicit business tradeoff, documented, because synchronous global consistency would violate the local latency SLA for the 99.99% of enforcement actions that are non-severe.
-
-```
-        US-East Region                    EU Region                      APAC Region
-   ┌────────────────────┐          ┌────────────────────┐         ┌────────────────────┐
-   │ Chat/Voice Gateway  │          │ Chat/Voice Gateway  │         │ Chat/Voice Gateway  │
-   │ Local Tox Fleet     │          │ Local Tox Fleet     │         │ Local Tox Fleet     │
-   │ Local Feature Store │          │ Local Feature Store │         │ Local Feature Store │
-   │ Regional Enforce DB │◄────┐    │ Regional Enforce DB │◄───┐    │ Regional Enforce DB │
-   └──────────┬──────────┘     │    └──────────┬──────────┘    │    └──────────┬──────────┘
-              │  async replication (≤30s)      │                       │
-              └────────────────────────────────┴───────────────────────┘
-                                     │  severe-enforcement fast broadcast (sync-ish, seconds)
-                                     ▼
-                     ┌───────────────────────────────────┐
-                     │  Global Training Data Lake +        │
-                     │  Model Registry (single source)     │
-                     └───────────────────────────────────┘
-```
-
-## 32. Blue/Green Deployment
-
-- Applies primarily to the **Decision Engine** and **API/gateway services** (stateless, versioned logic) — deploy green environment with new policy/decision logic fully provisioned, run smoke tests against shadow traffic, cut over via load balancer weight flip, keep blue warm for immediate rollback.
-- For **model serving fleet**: blue/green means running old-model-version pods and new-model-version pods simultaneously in Triton (multi-version support), with traffic routing controlled at the Decision Engine layer (not a full infra swap) — cheaper than full blue/green infra duplication for GPU fleets given cost.
-- **Enforcement store schema changes**: blue/green with expand-contract migration pattern (add new columns/tables, dual-write during transition, backfill, cut reads over, drop old schema) — avoids downtime on a strongly-consistent transactional store that cannot tolerate a hard cutover.
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy**: new model version starts at 0% inline traffic (100% shadow — scored in parallel, decision not applied, only logged for comparison) for 48-72h across a full weekly cycle (captures weekday/weekend behavior differences). Then ramps 1% → 5% → 25% → 100% inline, each stage held minimum 24h.
-- **Health-check gates specific to this system** (must pass before advancing each stage):
-  - Latency: canary p99 decision latency within 10% of baseline.
-  - False-positive proxy: overturn-rate-on-blocks for canary-scored messages (via shadow-then-live comparison) not worse than baseline + 1pp.
-  - Severe-category recall: sampled audit on canary decisions shows no regression vs. baseline on the adversarial eval set.
-  - Fairness gate: per-locale false-positive rate delta vs. baseline within tolerance (no new language disproportionately over-blocked).
-  - Business gate: no statistically significant uptick in player-reported "wrongly blocked" appeals correlated with canary cohort.
-- Automatic halt-and-rollback if any gate fails during ramp; gates evaluated by an automated pipeline (not manual judgment call) given the cadence of retrains (section 20).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: any canary health-check gate failure (section 33) triggers automatic traffic-weight reversion to previous model version within minutes (Decision Engine routes by version weight, no redeploy needed for model rollback — just weight change, which is why multi-version Triton hosting is worth the extra memory footprint).
-- **Policy/threshold rollback**: threshold changes are versioned config (section 11 cache), rollback is a config revert + cache invalidation push, effective within the 60s config TTL.
-- **Enforcement-store rollback**: schema rollbacks follow the reverse of expand-contract (never destructive drop until the old path is confirmed unused for a full retention-relevant window); data-level bad-enforcement-batch (e.g., a bug wrongly bans 10K players) has a dedicated "mass-reversal" runbook — enforcement actions are tagged with `decision_batch_id`/`model_version` specifically to make bulk reversal queryable and fast.
-- **Rollback SLA**: model/policy rollback target < 5 min from alert to reverted traffic; mass-enforcement-reversal target < 1 hour from confirmed bug to reversal job completion.
-
-## 35. Observability
-
-- **Tracing**: distributed tracing (OpenTelemetry) across the full inline path — Gateway → Kafka publish → Fast-path filter → Text model → Decision Engine — each message's `message_id` becomes the trace ID correlator, enabling per-message latency breakdown for debugging p99 outliers.
-- **Metrics**: golden signals (latency, traffic, errors, saturation) per service; ML-specific metrics (score distributions, batch sizes, GPU queue depth) exported to the same metrics backend (Prometheus/Thanos-style) as infra metrics, viewed on unified dashboards.
-- **Logs**: structured JSON, correlated via `message_id`/`trace_id` fields so a support engineer can pivot from "player complains about wrongly blocked message" → trace → logs → model scores → reviewer decision, all joined by the same ID.
-- **Correlation in practice**: a single Grafana dashboard view for a `message_id` surfaces: trace waterfall (where time was spent), decision engine log line (why it decided what it did, which thresholds applied), model version, and downstream enforcement/appeal status if any — critical for both on-call debugging and appeal investigations.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: tox-text-model-server
-  labels: { app: tox-text-model, tier: inference }
-spec:
-  replicas: 12
-  selector: { matchLabels: { app: tox-text-model } }
-  template:
-    metadata: { labels: { app: tox-text-model } }
-    spec:
-      containers:
-        - name: triton-server
-          image: registry.ea.internal/tox-text-triton:v14.2
-          resources:
-            requests: { cpu: "4", memory: "8Gi", nvidia.com/gpu: "1" }
-            limits:    { cpu: "8", memory: "16Gi", nvidia.com/gpu: "1" }
-          ports: [{ containerPort: 8001, name: grpc }]
-          readinessProbe:
-            httpGet: { path: /v2/health/ready, port: 8000 }
-            initialDelaySeconds: 20
-          livenessProbe:
-            httpGet: { path: /v2/health/live, port: 8000 }
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata: { name: tox-text-model-svc }
-spec:
-  selector: { app: tox-text-model }
-  ports: [{ port: 8001, targetPort: 8001 }]
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata: { name: tox-text-model-scaler }
-spec:
-  scaleTargetRef: { name: tox-text-model-server }
-  minReplicaCount: 12
-  maxReplicaCount: 90
-  triggers:
-    - type: kafka
-      metadata:
-        bootstrapServers: kafka.ea.internal:9092
-        consumerGroup: text-model-cg
-        topic: raw-chat-events
-        lagThreshold: "200"
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_eks_node_group" "tox_gpu_pool" {
-  cluster_name    = aws_eks_cluster.tox_platform.name
-  node_group_name = "tox-gpu-inference"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-
-  instance_types = ["g5.xlarge"]  # A10G-backed, text model + ASR
-
-  scaling_config {
-    desired_size = 20
-    min_size     = 12
-    max_size     = 100
-  }
-
-  labels = { workload = "tox-inference", gpu = "true" }
-  taint {
-    key    = "nvidia.com/gpu"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_msk_cluster" "tox_events" {
-  cluster_name           = "tox-detection-events"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 9
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 2000 } }
-  }
-}
-
-resource "aws_db_instance" "enforcement_store" {
-  identifier              = "tox-enforcement-pg"
-  engine                  = "postgres"
-  engine_version          = "16"
-  instance_class          = "db.r6g.2xlarge"
-  multi_az                = true
-  storage_encrypted       = true
-  backup_retention_period = 14
-  replicate_source_db     = null
-}
-
-resource "aws_elasticache_replication_group" "trust_score_cache" {
-  replication_group_id = "tox-trust-score-cache"
-  engine                = "redis"
-  node_type             = "cache.r6g.large"
-  num_cache_clusters    = 3
-  automatic_failover_enabled = true
-  at_rest_encryption_enabled = true
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -733,22 +556,22 @@ resource "aws_elasticache_replication_group" "trust_score_cache" {
 
 ## 46. Ideal Answers
 
-1. **New language, 6 weeks, no data**: Bootstrap with the multilingual base model's zero-shot cross-lingual transfer (models like XLM-R generalize reasonably across related languages/scripts). Stand up a curated word-list fast-path immediately (cheap, fast to build with native speakers). Route all traffic in that language through mandatory human review (100% escalation) for the first weeks rather than trusting the zero-shot model's thresholds, explicitly trading reviewer cost for safety during cold-start. Use those human labels to fine-tune within 2-3 weeks, narrowing the human-review percentage as confidence/audit metrics improve. Communicate to stakeholders that day-1 quality will be word-list + human-heavy, not model-heavy.
+1. **New language, 6 weeks, no data**: Bootstrap with the multilingual base model's zero-shot cross-lingual transfer plus a curated word-list fast-path, and route all traffic in that language through mandatory human review for the first weeks rather than trusting untuned thresholds. Use those human labels to fine-tune within 2-3 weeks, narrowing review percentage as confidence improves.
 
-2. **Viral wrongful-mute incident**: Pull the `message_id` trace immediately — full latency/score/decision breakdown (section 35 correlation). Check model version and whether this falls in a recent canary cohort. Check if it's a category calibration issue (e.g., competitive trash-talk misclassified as harassment) vs. an isolated policy misconfiguration for that title/locale. If systemic, expedite an overturn + public acknowledgment + threshold hotfix, and add the specific phrase pattern to the "benign banter" adversarial eval set so this exact regression class is gated against in future releases. Root-cause whether human review even saw this case or if it was auto-actioned — if auto-actioned, question whether the confidence threshold for that category is too aggressive.
+2. **Viral wrongful-mute incident**: Pull the `message_id` trace immediately for the full latency/score/decision breakdown, and check model version/canary cohort to see if it's a category calibration issue vs. an isolated policy misconfiguration. If systemic, expedite an overturn plus threshold hotfix and add the phrase pattern to the adversarial eval set so this regression class is gated in future releases.
 
-3. **Dialect/accent bias**: Monitor false-positive rate broken out by locale/dialect explicitly (section 22 fairness monitoring) rather than only in aggregate — aggregate metrics hide disparate impact. Curate adversarial eval sets per major dialect group specifically testing for over-flagging of in-group slang/reclaimed language. Ensure training data sourcing isn't skewed (e.g., over-representing moderation actions from one region's reviewer team whose cultural context differs from the speaker's). Use human review overturn patterns as a bias detector — a dialect with abnormally high overturn rate on blocks is a signal, not noise.
+3. **Dialect/accent bias**: Monitor false-positive rate broken out by locale/dialect explicitly rather than only in aggregate, since aggregate metrics hide disparate impact. Curate adversarial eval sets per dialect group for over-flagging of in-group slang, and use human-review overturn rate by dialect as a bias detector.
 
-4. **Review backlog triples overnight**: (1) Triage: temporarily tighten inline auto-decision thresholds to reduce the fraction of ambiguous cases routed to human review (accepting slightly more false positives short-term, explicitly time-boxed and communicated as a stopgap). (2) Check whether the spike is a genuine traffic/incident spike (new toxic trend, brigading event) vs. a pipeline bug over-escalating everything — check overturn rate on the queue itself; if overturn rate on escalated items is normal, it's real volume; if oddly low, something's mis-routing benign content to review. (3) Activate surge reviewer capacity (follow-the-sun overflow pool) and prioritize by severity tier so the worst cases still get fast attention even if low-severity backlog grows.
+4. **Review backlog triples overnight**: Temporarily tighten inline auto-decision thresholds to shrink the fraction routed to human review (a time-boxed stopgap), and check overturn rate on the queue to tell a genuine volume spike apart from a pipeline bug over-escalating benign content. Activate surge reviewer capacity and prioritize by severity tier so worst cases still get fast attention.
 
-5. **Real-time brigading detection**: Look at graph-level signals, not per-message signals — many distinct reporter accounts targeting one player within a short window, especially accounts with no shared match/session history with the target (a legitimate report usually comes from someone who actually played with/against the target). Combine with near-identical report timing/content patterns (coordinated scripts often produce very similar report text). Feed this as a real-time streaming aggregation (Flink-style windowed job) that raises a "coordinated-report cluster" signal to the Decision Engine, which then requires model-score corroboration before any auto-enforcement — reports alone should never trigger action without either overwhelming volume from clearly diverse sources or independent model/human confirmation.
+5. **Real-time brigading detection**: Look at graph-level signals rather than per-message signals — many distinct reporters targeting one player in a short window with no shared match history, especially with near-identical report timing/content. Feed this as a streaming windowed job that raises a "coordinated-report cluster" signal requiring model-score corroboration before any auto-enforcement.
 
-6. **Inline blocking → always async**: Latency SLA loosens dramatically (no longer need <150ms p99 since the message already went out) — this removes the biggest architectural constraint. The Decision Engine's role shifts from gatekeeper to a post-hoc classifier feeding retroactive enforcement (mute/ban) and content takedown/masking after the fact rather than before delivery. Kafka consumer lag tolerance can be relaxed, batch sizes can grow (better GPU utilization, lower cost), and the fast-path/GPU-tier split matters less since urgency drops. Tradeoff to flag explicitly: harmful content is seen by recipients before action, which may be unacceptable for severe categories (grooming, threats) — likely answer is a hybrid: severe categories stay inline-blocking, everything else moves async, which is close to a middle ground worth proposing rather than an all-or-nothing switch.
+6. **Inline blocking → always async**: The latency SLA loosens dramatically and the Decision Engine's role shifts from gatekeeper to a post-hoc classifier feeding retroactive enforcement. The key tradeoff is that harmful content reaches recipients before action, so the likely answer is a hybrid: severe categories (grooming, threats) stay inline-blocking, everything else moves async.
 
-7. **Minor accounts**: Stricter default thresholds (lower tolerance for borderline content), mandatory human review for a wider band of ambiguous cases rather than auto-allow, shorter data retention windows per regulatory requirements (COPPA-scoped titles), restricted access to any flagged content involving a minor (tighter RBAC than general reviewer access, often a specialized minor-safety reviewer pool), and additional proactive detection models specifically tuned for grooming/predatory-language patterns applied preferentially to conversations involving a minor account (using account age-band as a feature in the Decision Engine's policy layer, not just in training).
+7. **Minor accounts**: Stricter default thresholds, mandatory human review for a wider band of ambiguous cases, shorter retention windows per regulatory requirements, and tighter RBAC on flagged content involving minors. Use account age-band as a feature in the Decision Engine's policy layer, not just in training, to apply grooming-detection models preferentially.
 
-8. **Legal hold vs. retention policy conflict**: Retention policy needs a legal-hold override mechanism from day one, not bolted on — the Flagged Message Store's lifecycle/deletion jobs must check a hold-flag before any deletion runs, and a hold flag on a `player_id` or `message_id` suspends normal retention expiry indefinitely until released by legal. This is a design requirement I'd bake into the schema (a `legal_hold` boolean/table) rather than treat as an exception process, because retroactively excluding already-deleted data from a legal request is not fixable after the fact.
+8. **Legal hold vs. retention policy conflict**: Retention policy needs a legal-hold override built into the schema from day one — deletion jobs must check a hold-flag before running, and a hold on a `player_id`/`message_id` suspends normal expiry until released by legal. Treating this as an exception process instead is risky since already-deleted data can't be retroactively recovered for a legal request.
 
-9. **A/B testing stricter policy impact on retention**: Block-rate alone is a vanity/proxy metric — the real question is downstream player behavior. Design the experiment with cohorts on stricter vs. current thresholds, and measure session frequency, session length, and D7/D30 retention deltas between cohorts, plus a secondary read on appeal volume and CSAT. Guard against confounds: stricter moderation might reduce toxicity-driven churn (players leaving because they were harassed) while simultaneously increasing false-positive-driven churn (players leaving because they felt wrongly punished) — need both signals segmented (players who received an action vs. players who didn't) to see which effect dominates, since a net-neutral retention number could hide two large offsetting effects.
+9. **A/B testing stricter policy impact on retention**: Block-rate alone is a vanity metric; measure session frequency and D7/D30 retention deltas between cohorts on stricter vs. current thresholds. Segment by whether a player received an action, since stricter moderation can simultaneously reduce toxicity-driven churn and increase false-positive-driven churn, and a net-neutral number could hide two offsetting effects.
 
-10. **50% ASR cost cut mandate**: First lever is triage aggressiveness — push further toward "only run full ASR on reported players + escalating trust-score signals + a smaller random audit sample," explicitly quantifying the coverage reduction (e.g., "we drop proactive first-time-offender voice detection coverage from X% to Y% of sessions"). Second lever: swap to a smaller/faster ASR model for the broad tier and reserve the higher-accuracy model only for escalated/reported cases (tiered accuracy by risk). Present leadership with an explicit tradeoff table: cost saved vs. estimated increase in missed first-time voice-toxicity incidents (using the audit-sample false-negative baseline to project impact), and recommend which categories (e.g., keep full coverage for threat/grooming-signal detection, cut coverage for general profanity) rather than a uniform 50% cut — the point being that "cost cut" should be a risk-informed reallocation, not a blind percentage reduction.
+10. **50% ASR cost cut mandate**: First lever is tightening triage (full ASR only on reported/escalating-trust-score sessions plus a random audit sample); second lever is a smaller/faster ASR model for the broad tier, reserving the accurate model for escalated cases. Present leadership a tradeoff table of cost saved vs. estimated increase in missed incidents, recommending risk-informed category cuts rather than a uniform reduction.

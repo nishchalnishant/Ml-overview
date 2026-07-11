@@ -108,25 +108,9 @@ An embedding table of shape $[\text{max\_seq\_len}, d]$. Simple and effective wi
 
 **What breaks**: hard limit at training context length. Position 2049 has no embedding if training used 2048.
 
-### RoPE (Rotary Position Embedding)
+### RoPE and ALiBi
 
-**The problem**: absolute position encodings embed position as part of the token vector, so position information mixes with content information in ways that are hard to disentangle.
-
-**The core insight**: encode position by rotating the query and key vectors in attention. The dot product between two rotated vectors depends only on the relative offset between their positions, not their absolute positions.
-
-$$q'_m = q_m e^{im\theta}, \quad k'_n = k_n e^{in\theta}$$
-
-$$q'_m \cdot k'_n = \text{Re}\left[q_m k_n^* e^{i(m-n)\theta}\right]$$
-
-Relative position $(m-n)$ appears naturally in the attention score. Extrapolates better to longer sequences. Extended via YaRN and LongRoPE to $>100\text{k}$ tokens.
-
-Used in LLaMA, Mistral, GPT-NeoX.
-
-### ALiBi (Attention with Linear Biases)
-
-Add a linear penalty to attention scores based on distance: score $-= m \cdot (i - j)$ where $m$ is a per-head slope. No added parameters; forces the model to prefer nearby tokens unless attending far is worth the penalty. Strong length generalization.
-
-**What breaks**: the linear penalty may not match the actual distance dependency of all attention patterns, potentially harming tasks requiring very long-range dependencies.
+RoPE rotates query/key vectors by position so their dot product depends only on relative offset; ALiBi adds a linear distance penalty to attention scores instead of modifying vectors. Both extrapolate better to longer sequences than absolute/learned encodings. Full derivation, NTK/YaRN/LongRoPE scaling comparison: see [11-transformers.md](11-transformers.md#rope--rotary-position-embedding).
 
 ---
 
@@ -151,15 +135,7 @@ At long contexts (100k+ tokens), the cache dominates GPU memory. Solutions:
 
 ## Flash Attention
 
-**The problem**: standard attention materializes the full $n \times n$ attention matrix in GPU high-bandwidth memory (HBM). Reading and writing this matrix dominates runtime for long sequences — the bottleneck is memory bandwidth, not compute.
-
-**The core insight**: compute attention in tiles. Load small blocks of $Q$, $K$, $V$ into fast SRAM (on-chip), compute partial attention results, accumulate using the online softmax trick, and write only the final output back to HBM. Never materialize the full $n \times n$ matrix.
-
-**The mechanics**: IO-aware tiled computation. Same mathematical result as standard attention. Memory: $O(n)$ instead of $O(n^2)$. Wall-clock speed: 2–4x faster in practice on A100-class hardware.
-
-Available in PyTorch 2.0+ as `F.scaled_dot_product_attention` with Flash Attention enabled by default.
-
-**What breaks**: Flash Attention requires the full sequence to fit in a specific tiling pattern. Custom masking patterns (non-causal, non-rectangular) require careful implementation. Backward pass is also custom (recomputes attention on the fly to save memory).
+IO-aware tiled computation that never materializes the full $n \times n$ attention matrix in HBM — loads $Q$, $K$, $V$ blocks into SRAM, accumulates via online softmax. Same output as standard attention, $O(n)$ memory instead of $O(n^2)$. Full derivation, FA-1/2/3 comparison, and code: see [11-transformers.md](11-transformers.md#flash-attention--io-aware-attention).
 
 ---
 

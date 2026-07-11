@@ -523,193 +523,9 @@ spec:
 - **Right-sized online-store TTLs**: 6-hour TTL on inactive-player feature keys prevents unbounded memory growth charging for stale entities.
 - **Per-title autoscale floors tuned to actual traffic share** (Apex gets a higher min-replica floor than a lower-traffic title) rather than uniform floors across all 8 titles.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: 15 minutes for inference path (can fail over to secondary region or degrade to stale-feature/fallback-model mode faster than a full region rebuild). 4 hours for full Flink state rebuild from Kafka replay in a from-scratch DR region.
-- **RPO**: Near-zero for Kafka (replicated across 3 AZs synchronously within region; cross-region async replication with <60s lag target for the standby region). Feature store RPO ~2s (acceptable per freshness NFR — losing 2s of feature updates is tolerable, unlike losing a financial transaction).
-- **Backup strategy**:
-  - Kafka: cross-region MirrorMaker2 replication of all topics to a DR region, async.
-  - Flink: checkpoints to S3 (cross-region replicated bucket); a DR-region Flink cluster can resume from the latest checkpoint + replay Kafka from the checkpoint offset.
-  - Model Registry (Postgres): continuous WAL shipping to standby + daily snapshot; model artifacts already durably in cross-region-replicated blob storage.
-  - Online feature store: NOT backed up in the traditional sense (rebuild via Flink replay is faster and cheaper than snapshot/restore of a 7GB hot cache) — treated as a rebuildable cache, not a source of truth.
-- **Runbook**: DR drills quarterly — simulate region loss, verify Flink resumes from checkpoint + Kafka replay within RTO, verify inference fails over to DR region's model registry replica.
-
-## 31. Multi-Region Deployment
-
-- **Topology**: Active-active across 3 regions (US-East, EU-West, APAC), each region serving its local player population — chosen because inference is latency-critical (p99 100ms) and cross-region round-trips alone can exceed that budget.
-- **Data residency**: EU player telemetry/features/predictions stay in EU-West (GDPR) — enforced at the Edge Gateway via routing rules keyed on account region, not just network geo-IP (a player traveling shouldn't cause their persistent data to relocate).
-- **Replication**:
-  - Kafka: each region has its own independent cluster (no cross-region synchronous writes — would blow the latency budget); MirrorMaker2 async replication feeds a global aggregate topic (for cross-region model training on global patterns, e.g., global anti-cheat model trained nightly on unified nightly Iceberg data, with EU rows access-restricted per GDPR).
-  - Model Registry: Postgres primary in US-East with read replicas in EU-West/APAC; promotions replicate async (~1-5s lag) — a newly promoted model is visible platform-wide within seconds, acceptable since promotion is not a per-request hot path.
-  - Online feature store: independent per-region cluster, no cross-region replication (a player's session/features are region-local by construction since they connect to their nearest game server).
-- **Latency routing**: GeoDNS + Anycast routes game-server-to-ML-platform calls to the nearest healthy region; health-check-based failover reroutes a region's traffic to the next-nearest region if local inference SLA breaches for >2min (accepting a residency exception only for true DR failover, logged/flagged for compliance review).
-
-```
-        ┌─────────────┐        ┌─────────────┐        ┌─────────────┐
-        │  US-East     │        │  EU-West     │        │  APAC        │
-        │  (active)    │        │  (active)    │        │  (active)    │
-        │ Kafka+Flink  │        │ Kafka+Flink  │        │ Kafka+Flink  │
-        │ +Inference   │        │ +Inference   │        │ +Inference   │
-        └──────┬───────┘        └──────┬───────┘        └──────┬───────┘
-               │  async MirrorMaker2 replication (aggregate/global topics)
-               └────────────────────┴────────────────────────┘
-                                     │
-                         ┌───────────────────────┐
-                         │ Global Nightly Retrain  │
-                         │ (Spark, region-aware,   │
-                         │  GDPR row-level filter) │
-                         └───────────────────────┘
-      GeoDNS/Anycast routes each game-server to nearest healthy region;
-      failover reroutes on sustained SLA breach (>2min), logged for compliance.
-```
-
-## 32. Blue/Green Deployment
-
-- Applies primarily to the **Inference Service** and **Flink job graph** deployments (not the online-learning model versions, which use canary/shadow instead — see Section 33).
-- Inference Service: new code version (e.g., a serialization format change, a new feature-set schema support) deployed as a fully separate "green" fleet behind the same load balancer target group; traffic cut over via LB weight change from 100/0 to 0/100 once green passes smoke tests (schema compatibility, synthetic request replay); blue fleet kept warm for 30 min post-cutover for instant rollback.
-- Flink job graph changes (e.g., new window logic): blue/green via **parallel pipeline run** — green Flink job consumes the same Kafka topics from the current offset (not a fresh replay) in parallel with blue, writes to a separate `feature.updates.green` output/online-store namespace; once validated (feature values match expected sanity checks over a burn-in window), inference service's feature-set pointer is cut over to green's namespace, then blue job is cancelled.
-
-## 33. Canary Deployment
-
-- **Model canary** (distinct from code blue/green): every online-trainer-produced model version auto-enters `shadow` stage (0% live traffic, predictions logged not returned). After shadow burn-in (15 min, or a configurable N-labeled-events threshold), it's eligible for canary.
-- **Canary traffic split**: 5% of a title's inference traffic routed to the canary model version for 30 min, selected by consistent hashing on entity_id (same players stay on canary throughout the window, avoiding flip-flopping decisions for a given player mid-session).
-- **Health-check gates to progress canary → production**:
-  1. Error rate on canary path ≤ baseline + 0.1%.
-  2. Latency p99 on canary path within 10% of baseline.
-  3. Business-metric proxy (false-positive-flag rate for anti-cheat, or offer-conversion rate for pricing) not regressed beyond a pre-registered threshold (e.g., FP rate +0.5% absolute triggers auto-abort).
-  4. Drift/divergence check (Section 21's online-vs-offline divergence metric) within bounds.
-- On all gates passing, ramp 5% → 25% → 100% over the next hour; any gate failure at any ramp stage triggers automatic rollback to the prior production version (see Section 34).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**:
-  - Canary health-check gate failure (Section 33) → auto-rollback to last production model version, no human in the loop, completes within 1 model-registry-pointer-update propagation cycle (~5-10s to inference pods via `model.updates` topic).
-  - Inference Service error-rate/latency SLO breach post-code-deploy → automated rollback via deployment controller (Argo Rollouts) reverting to prior ReplicaSet.
-  - Concept-drift alarm (Section 21, P1) → automatic fallback to last-known-good model version pinned in registry as `stable`, bypassing the currently-promoted (possibly drifting) production version.
-- **Rollback mechanics**:
-  - Model rollback = pointer change in Model Registry (`production` stage tag moves back to prior version ID) + `model.updates` notification — no redeploy needed, inference pods hot-swap in-memory model within seconds.
-  - Code rollback = standard Kubernetes/Argo Rollouts revert to previous ReplicaSet revision.
-  - Flink job rollback = resume blue job graph from its last valid checkpoint (kept warm during green burn-in per Section 32), cancel green.
-- **Always keep N-1 model version warm/cached** in every inference pod (not just latest) specifically to make rollback a zero-fetch-latency operation.
-
-## 35. Observability
-
-- **Metrics** (Prometheus): infra (Kafka lag, Flink checkpoint duration, pod CPU/mem/QPS), model-quality (rolling AUC, calibration), business (FP rate, conversion) — all discussed in Section 22, surfaced with consistent `title`/`model_version`/`region` labels for slicing.
-- **Tracing** (OpenTelemetry, spans exported to Jaeger/Tempo): a single `trace_id` spans the full async chain — client request → Edge Gateway → Kafka produce span → Flink processing span (via trace-context propagation in Kafka headers) → feature-store write → inference request → feature-store read → model predict → response. This is the hardest part of observability here because the pipeline crosses sync/async boundaries; trace context is carried in Kafka message headers to stitch spans across the streaming hop.
-- **Logs**: correlated to traces via shared `trace_id` field (Section 24); log aggregation in Loki, queryable by trace_id to reconstruct exactly what features/model version produced a given decision — critical for anti-cheat appeal investigations ("why was this player flagged?").
-- **Three pillars tied together**: a drift alert (metric) links to a Grafana panel showing the affected `model_version`, which links to a saved trace query showing sample predictions from that window, which links to the structured log entries with full feature snapshots for those predictions — enabling a single on-call engineer to go from "AUC dropped" to "here's the specific feature that's out of distribution" in one investigation flow.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: inference-service-apex
-  namespace: ml-serving
-  labels: { app: inference-service, title: apex }
-spec:
-  replicas: 20
-  selector:
-    matchLabels: { app: inference-service, title: apex }
-  template:
-    metadata:
-      labels: { app: inference-service, title: apex }
-    spec:
-      containers:
-        - name: inference
-          image: registry.ea.internal/ml/inference-service:2026.07.08
-          resources:
-            requests: { cpu: "2", memory: "2Gi" }
-            limits:   { cpu: "4", memory: "4Gi" }
-          ports:
-            - containerPort: 8080
-          env:
-            - name: TITLE
-              value: "apex"
-            - name: FEATURE_STORE_ADDR
-              value: "redis-apex.ml-serving.svc.cluster.local:6379"
-            - name: MODEL_REGISTRY_ADDR
-              value: "model-registry.ml-platform.svc.cluster.local:9090"
-          readinessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            initialDelaySeconds: 5
-            periodSeconds: 5
-          livenessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            initialDelaySeconds: 15
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: inference-service-apex
-  namespace: ml-serving
-spec:
-  selector: { app: inference-service, title: apex }
-  ports:
-    - port: 443
-      targetPort: 8080
-  type: ClusterIP
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-# Kafka cluster (MSK-style managed Kafka) for the streaming ingest layer
-resource "aws_msk_cluster" "telemetry" {
-  cluster_name           = "ml-telemetry-us-east"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 36
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    security_groups = [aws_security_group.kafka.id]
-    storage_info {
-      ebs_storage_info { volume_size = 2000 }
-    }
-  }
-
-  encryption_info {
-    encryption_in_transit {
-      client_broker = "TLS"
-      in_cluster    = true
-    }
-  }
-
-  tags = { Environment = "prod", System = "streaming-ml-platform" }
-}
-
-# Redis (online feature store) - ElastiCache
-resource "aws_elasticache_replication_group" "feature_store" {
-  replication_group_id       = "ml-feature-store-apex"
-  description                = "Online feature store for Apex anti-cheat/matchmaking"
-  node_type                  = "cache.r6g.2xlarge"
-  num_node_groups            = 8
-  replicas_per_node_group    = 2
-  automatic_failover_enabled = true
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-  engine_version             = "7.1"
-}
-
-# EKS node group for Flink task managers, spot-provisioned
-resource "aws_eks_node_group" "flink_taskmanagers" {
-  cluster_name    = aws_eks_cluster.ml_platform.name
-  node_group_name = "flink-tm-spot"
-  node_role_arn   = aws_iam_role.flink_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-  capacity_type   = "SPOT"
-  instance_types  = ["m5.2xlarge", "m5a.2xlarge", "m5n.2xlarge"]
-
-  scaling_config {
-    desired_size = 40
-    min_size     = 20
-    max_size     = 100
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -800,22 +616,22 @@ resource "aws_eks_node_group" "flink_taskmanagers" {
 
 ## 46. Ideal Answers
 
-1. **Poisoning mitigation**: Cap any single entity_id's gradient/statistical influence on a micro-batch update (influence capping/clipping), run per-source anomaly detection on event volume and pattern *before* events enter the aggregation pipeline (e.g., z-score on events/sec per source), require signed producer credentials on the `labels.confirmed` topic so only the moderation service can assert ground truth, and rely on the shadow/canary gate to catch any resulting model-quality regression before it reaches production traffic — defense in depth rather than a single control.
+1. **Poisoning mitigation**: Cap any single entity_id's influence on a micro-batch update, run per-source anomaly detection on event volume/pattern before ingestion, and require signed producer credentials on the `labels.confirmed` topic. The shadow/canary gate is the final backstop, catching any resulting quality regression before it reaches production.
 
-2. **Point-in-time correctness**: Log the exact feature vector used at prediction time into `prediction_log.feature_snapshot`, keyed by `trace_id`. When a label arrives later (e.g., `labels.confirmed`), the label-join Flink job joins the label against that *logged snapshot*, not against a fresh query to the (by-then-mutated) online feature store. This guarantees the training example reflects what the model actually saw, avoiding future-information leakage that would inflate offline eval metrics relative to true production performance.
+2. **Point-in-time correctness**: Log the exact feature vector used at prediction time into `prediction_log.feature_snapshot`, keyed by `trace_id`. When a label arrives later, join it against that logged snapshot rather than a fresh feature-store query, so the training example reflects what the model actually saw and avoids future-information leakage.
 
-3. **Stale feature handling**: Every `GetFeatures` response includes a `freshness_ms` field. The inference service checks this against a per-feature-set staleness threshold; if breached, it either (a) falls back to a cached last-known-good value with a "degraded" flag propagated into the decision logic (e.g., anti-cheat defaults to "flag for human review" instead of "auto-kick" when features are stale), or (b) for use cases where stale features are unacceptable, returns a fail-open/fail-closed decision per business policy, logged distinctly from a normal-confidence prediction for later audit.
+3. **Stale feature handling**: Every `GetFeatures` response includes a `freshness_ms` field, checked against a per-feature-set staleness threshold. If breached, fall back to a cached last-known-good value with a "degraded" flag propagated into the decision logic (e.g., anti-cheat flags for human review instead of auto-kicking).
 
-4. **Micro-batch vs. per-event SGD**: Per-event updates are maximally reactive but fragile — a single noisy or adversarial label can swing model weights, and there's no natural unit of work to gate/canary (you'd be canarying every single update, operationally infeasible). Micro-batching gives a stable, gateable unit of change every 30-60s, which is fast enough for the product's actual reaction-time requirements (anti-cheat review, matchmaking rebalancing) while remaining operable. I'd reconsider per-event only for a very low-stakes, low-traffic signal where instant reactivity clearly dominates stability concerns (e.g., a single-player difficulty slider with no adversarial pressure).
+4. **Micro-batch vs. per-event SGD**: Per-event updates are maximally reactive but fragile — a single noisy or adversarial label can swing weights, and there's no natural unit to gate/canary. Micro-batching (30-60s) gives a stable, gateable unit of change that's still fast enough for the product's real reaction-time needs.
 
-5. **Online-vs-baseline divergence**: Track KL divergence (or simpler: prediction-distribution delta) between the currently-serving online-updated model and the last nightly full-retrain baseline, evaluated on a shared holdout set, computed hourly. A threshold breach (e.g., KL > 0.05) triggers an alert and can auto-force an early full retrain rather than waiting for the nightly cadence — this bounds how far "continuous learning drift" can accumulate before being corrected against ground truth.
+5. **Online-vs-baseline divergence**: Track KL divergence (or a simpler prediction-distribution delta) between the online-updated model and the last nightly baseline on a shared holdout set, computed hourly. A threshold breach triggers an alert and can force an early full retrain rather than waiting for the nightly cadence.
 
-6. **Checkpoint duration diagnosis**: Check for (a) state size growth — is a key's state unbounded due to a missing TTL/window-close bug; (b) key skew — one hot key (viral event) holding disproportionate state slowing the checkpoint barrier alignment; (c) backpressure from a slow sink (is the online-store write path itself degraded, causing the sink buffer to back up and delay checkpoint completion); (d) infra-level issues — spot node reclaims causing task-manager churn mid-checkpoint. Start with Flink's checkpoint UI (per-subtask duration breakdown) to localize to a specific operator/subtask before assuming a systemic cause.
+6. **Checkpoint duration diagnosis**: Check state size growth (missing TTL/window-close bug), key skew (a hot key holding disproportionate state), and sink backpressure (degraded online-store write path). Start with Flink's checkpoint UI to localize to a specific operator/subtask before assuming a systemic cause.
 
-7. **Adding embeddings**: Introduce an embedding-computation pipeline (e.g., a two-tower model producing player/match embeddings, retrained periodically) that writes embedding vectors as additional fields into the existing online feature store schema — no redesign of the streaming/serving core needed. If similarity search (not just embedding-as-feature) is required (e.g., "find players behaviorally similar to known cheaters"), add a vector DB (e.g., pgvector or a dedicated ANN index) as a new component alongside the feature store, with an ANN index (HNSW for accuracy/latency balance at this QPS scale) — additive, not a replacement of the streaming architecture.
+7. **Adding embeddings**: Introduce an embedding-computation pipeline (e.g., a two-tower model) that writes embedding vectors as additional fields into the existing online feature store — no redesign of the streaming core needed. If similarity search is required, add a vector DB/ANN index (Section 16/17) as a new component alongside it.
 
-8. **Canary statistical test**: Use a sequential testing approach (e.g., sequential probability ratio test or a Bayesian A/B framework) rather than a single fixed-sample t-test, since we want the option to abort early on clear regression without waiting the full 30 minutes, while controlling false-positive-abort rate given the noisy, non-stationary nature of live player behavior. Pre-register the minimum detectable effect size (e.g., 0.5% absolute FP-rate increase) and the alpha/power tradeoffs before the canary starts, to avoid post-hoc threshold shopping.
+8. **Canary statistical test**: Use a sequential testing approach (sequential probability ratio test or Bayesian A/B) rather than a fixed-sample t-test, so regressions can be aborted early without waiting the full window. Pre-register the minimum detectable effect size and alpha/power tradeoffs before the canary starts.
 
-9. **GDPR and multi-region training**: EU player data and models trained on it must stay within EU infrastructure boundaries; a "global" model can still be trained by aggregating *derived, non-PII statistics* (e.g., anonymized/aggregated feature distributions or model gradients, not raw event-level EU data) cross-region, or by training region-local models and only sharing model *parameters* (not underlying data) globally via a federated-learning-style pattern if a single global model is required. In practice for this system, the pragmatic choice is region-local models by default, with a global model only trained on non-EU data plus opt-in/anonymized EU aggregates, reviewed by legal/compliance before shipping.
+9. **GDPR and multi-region training**: EU player data and models trained on it must stay within EU infrastructure boundaries. The pragmatic default is region-local models, with any global model trained only on non-EU data plus opt-in/anonymized EU aggregates, reviewed by legal/compliance.
 
-10. **Partition over-provisioning tradeoff**: More partitions increase per-broker file-handle/memory overhead, increase end-to-end latency slightly (more replication fan-out), and slow down leader election/controller failover time (more metadata to shuffle) — so blindly over-provisioning for a hypothetical 10x isn't free. The better approach is provisioning partitions for a realistic 2-3x near-term growth target with a documented, tested repartitioning runbook (using a tool like Kafka's partition reassignment or Cruise Control) for the eventual larger jump, rather than either under-provisioning (causing a painful mid-life re-partition) or wildly over-provisioning (paying an ongoing tax for capacity you may never use).
+10. **Partition over-provisioning tradeoff**: More partitions increase per-broker overhead and slow leader-election/failover, so blindly over-provisioning isn't free. Better to provision for a realistic 2-3x near-term growth target with a tested repartitioning runbook for the larger jump later.

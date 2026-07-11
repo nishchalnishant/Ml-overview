@@ -125,17 +125,9 @@ model = xgb.XGBClassifier(
 )
 ```
 
-**SMOTE** generates synthetic minority examples by interpolating between existing minority examples in the original feature space:
-
-```python
-from imblearn.over_sampling import SMOTE
-sm = SMOTE(k_neighbors=5, random_state=42)
-X_res, y_res = sm.fit_resample(X_train, y_train)
-```
+**SMOTE** generates synthetic minority examples by interpolating between existing minority examples in feature space (mechanics, code, failure modes: see [11-imbalanced-data.md](11-imbalanced-data.md#smote--synthetic-minority-oversampling-technique)). Additional failure modes worth flagging for fraud specifically: multimodal minority classes (interpolation between clusters creates unrealistic synthetic points) and very small minority class (< 20 examples — synthetic points have high variance); cost-sensitive learning (class weights) is safer than synthetic oversampling in these cases.
 
 **Threshold moving**: the default 0.5 decision threshold is wrong for imbalanced problems. Sweep the precision-recall curve and select the threshold that achieves the target precision, target recall, or optimal F-beta.
-
-**What breaks**: SMOTE interpolates in feature space, assuming the minority class is convex. Failure modes: multimodal minority classes (interpolation between clusters creates unrealistic synthetic points); categorical features (interpolation doesn't make semantic sense; use SMOTE-NC instead); very small minority class (< 20 examples — synthetic points have high variance). In these cases, cost-sensitive learning (class weights) is safer than synthetic oversampling.
 
 ---
 

@@ -473,179 +473,9 @@ On-call routing: tiered — L1 platform/infra on-call (Kafka, Flink, storage), L
 - **Right-sizing partitions**: over-partitioned topics waste broker overhead; partition count tuned to actual throughput per event type rather than one-size-fits-all 300.
 - **Reserved capacity**: baseline (steady-state) Kafka/compute capacity covered by reserved instances/savings plans; only burst headroom relies on on-demand/spot.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Target | Value |
-|---|---|
-| RTO (ingest path) | 15 minutes (regional failover) |
-| RPO (hot tier) | Near-zero — Kafka replication factor 3 across AZs; cross-region async replication (MirrorMaker2) with < 60s lag target |
-| RPO (cold tier) | Zero — S3 cross-region replication (CRR), versioned buckets |
-| Backup strategy | Cold tier is itself the durable backup (11 nines); hot tier backed by cross-AZ replication + periodic snapshot of Druid segments to S3 |
-| DR drill cadence | Quarterly regional failover game-day; validates MirrorMaker2 failover + DNS/traffic cutover runbook |
-| Client-side resilience | SDK local buffering (up to 5 min) absorbs short outages without data loss, degrades gracefully beyond that (prioritized drop per §27) |
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active across 3 regions (US-East, EU-West, AP-Southeast) — each region has a full ingest + hot-tier stack; clients route to nearest region via GeoDNS/Anycast for latency.
-- **Data replication**: Kafka MirrorMaker2 replicates raw topics cross-region asynchronously (for global aggregate views and DR); cold tier uses S3 CRR into a single logical global lake (partitioned by region + title) for unified BI/ML training access.
-- **Consistency tradeoff**: per-region hot-tier aggregates are region-local and authoritative for that region's real-time consumers (anti-cheat, LiveOps) — no cross-region synchronous consistency requirement, since a player's session is pinned to one region. Global rollups (e.g., worldwide season leaderboard) are computed from the cold-tier unified lake with expected 15-min lag, not from real-time cross-region joins.
-
-```
-        US-East Region                EU-West Region              AP-SE Region
-   ┌─────────────────────┐       ┌─────────────────────┐     ┌─────────────────────┐
-   │ Gateway → Ingest →   │       │ Gateway → Ingest →   │     │ Gateway → Ingest →   │
-   │ Kafka → Flink → Hot  │◄─────►│ Kafka → Flink → Hot  │◄───►│ Kafka → Flink → Hot  │
-   │ (region-local, auth.)│ MM2   │ (region-local, auth.)│ MM2 │ (region-local, auth.)│
-   └──────────┬───────────┘       └──────────┬───────────┘     └──────────┬───────────┘
-              │  S3 CRR                       │ S3 CRR                     │ S3 CRR
-              └───────────────┬───────────────┴────────────────────────────┘
-                              ▼
-                 Global Unified Cold Lake (S3 + Iceberg)
-                 — single source for global BI/ML training —
-```
-
-- **Routing**: GeoDNS + latency-based Route53 policy; failover routing shifts a region's client traffic to nearest healthy region within RTO target if a region degrades.
-
-## 32. Blue/Green Deployment
-
-Applied primarily to the **stateless tiers**: Edge Gateway, Ingest Service, Query API.
-- Deploy green stack alongside blue with identical Kafka/Redis/Druid backends (shared state, no data migration needed since these tiers are stateless).
-- Shift traffic via load balancer weight from blue → green after smoke tests (schema-validation golden-event replay, synthetic canary traffic) pass on green.
-- Kafka/Flink jobs use a **rolling** strategy instead (not blue/green) since Flink jobs carry checkpointed state — a true blue/green would require dual-running and reconciling stateful aggregation, which isn't worth the complexity; instead Flink upgrades use savepoint-based restart (drain → snapshot → redeploy new job version from savepoint).
-- Rollback: instant traffic-weight revert to blue stack if green fails post-cutover health checks (< 2 min detection + revert).
-
-## 33. Canary Deployment
-
-Applies to: Flink job logic changes (enrichment rules, anti-cheat model version), Ingest Service schema-validation logic, Query API.
-
-- **Traffic split**: new Flink job version (with new anti-cheat model) deployed as a shadow consumer on a **duplicate consumer group**, reading the same topics in parallel, writing scores to a shadow topic (`flags.anti_cheat.canary`) — zero production impact.
-- Compare shadow scores vs. production scores on live traffic for 24-48h (precision/recall proxy via agreement rate + spot-check human review).
-- If shadow model's flag-agreement with production is within expected bounds and no regression in false-positive rate, promote: cut over consumer group to canary logic for 5% of titles first, then 25%, 50%, 100%, monitoring DLQ rate/latency/model precision at each step (health-check gates).
-- **Health-check gates specifically for this system**: DLQ rate must stay < 0.01%, p99 ingest-to-hot latency must stay < 2s, anti-cheat precision (sampled) must not regress > 2pts, before advancing to next traffic percentage.
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: any canary health-check gate breach (§33) auto-halts traffic-percentage advancement and reverts to prior consumer group/model version within one Flink checkpoint interval.
-- **Schema rollback**: Schema Registry enforces compatibility at registration time, so a "bad" schema can't break existing consumers — rollback here means simply not promoting the new schema version as default; old producers/consumers keep working against the last-good version.
-- **Flink job rollback**: restart from the last-known-good savepoint (pre-deploy snapshot), replaying only the delta since that checkpoint — bounded reprocessing window (minutes, not hours).
-- **Ingest Service/Query API rollback**: standard blue/green traffic-weight revert (§32), typically < 2 min to fully reverted state.
-- **Data correction rollback**: if a bad enrichment/aggregation logic wrote incorrect data to hot/cold tier before detection, trigger a backfill/replay job (§9 `/v2/replay`) to recompute affected partitions from raw topics (raw events are immutable source of truth, so derived-data rollback is always a replay, never a raw-data mutation).
-
-## 35. Observability
-
-- **Tracing**: every event carries a `trace_id` from client emission through Gateway → Ingest → Kafka → Flink → hot/cold sinks (OpenTelemetry, trace context propagated via Kafka headers). Enables answering "why did this specific event take 4s to reach the dashboard?" by walking the trace across hops.
-- **Metrics**: Prometheus/Cortex for infra + pipeline metrics (§22), federated across 3 regions into a global view; RED metrics (rate, errors, duration) per component.
-- **Logs**: correlated to traces via shared `trace_id`/`event_id` fields (§24), searchable in OpenSearch, linked bidirectionally from trace UI (Jaeger/Tempo) to log search.
-- **Correlation in practice**: an on-call engineer investigating a latency-SLA breach starts at the metrics dashboard (which stage's p99 spiked) → jumps to traces for representative slow events in that stage → jumps to logs for those specific `trace_id`s to see error details/enrichment failures — three pillars queried as one workflow, not three separate silos.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: ingest-service
-  namespace: telemetry
-spec:
-  replicas: 40
-  selector:
-    matchLabels: { app: ingest-service }
-  template:
-    metadata:
-      labels: { app: ingest-service }
-    spec:
-      containers:
-        - name: ingest-service
-          image: ea-registry/telemetry/ingest-service:1.42.0
-          resources:
-            requests: { cpu: "2", memory: "2Gi" }
-            limits: { cpu: "4", memory: "4Gi" }
-          ports: [{ containerPort: 8080 }]
-          env:
-            - name: SCHEMA_REGISTRY_URL
-              value: "http://schema-registry.telemetry.svc.cluster.local:8081"
-            - name: KAFKA_BOOTSTRAP
-              valueFrom: { secretKeyRef: { name: kafka-creds, key: bootstrap } }
-          livenessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata: { name: ingest-service, namespace: telemetry }
-spec:
-  selector: { app: ingest-service }
-  ports: [{ port: 443, targetPort: 8080 }]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: ingest-service-hpa, namespace: telemetry }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: ingest-service }
-  minReplicas: 20
-  maxReplicas: 400
-  metrics:
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
-    - type: Pods
-      pods:
-        metric: { name: kafka_producer_queue_depth }
-        target: { type: AverageValue, averageValue: "1000" }
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_msk_cluster" "telemetry" {
-  cluster_name           = "telemetry-kafka-${var.region}"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 16
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.4xlarge"
-    client_subnets  = var.private_subnet_ids
-    security_groups = [aws_security_group.msk.id]
-
-    storage_info {
-      ebs_storage_info { volume_size = 2000 } # GB per broker, tiered storage offloads rest
-    }
-  }
-
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS", in_cluster = true }
-    encryption_at_rest_kms_key_arn = aws_kms_key.telemetry.arn
-  }
-
-  configuration_info {
-    arn      = aws_msk_configuration.telemetry.arn
-    revision = 1
-  }
-}
-
-resource "aws_s3_bucket" "cold_lake" {
-  bucket = "ea-telemetry-cold-lake-${var.region}"
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "cold_lake_tiering" {
-  bucket = aws_s3_bucket.cold_lake.id
-  rule {
-    id     = "tier-down-old-telemetry"
-    status = "Enabled"
-    transition { days = 90  storage_class = "GLACIER_IR" }
-    transition { days = 365 storage_class = "DEEP_ARCHIVE" }
-  }
-}
-
-resource "aws_s3_bucket_replication_configuration" "cross_region" {
-  bucket = aws_s3_bucket.cold_lake.id
-  role   = aws_iam_role.replication.arn
-  rule {
-    id     = "global-replicate"
-    status = "Enabled"
-    destination { bucket = var.dr_region_bucket_arn storage_class = "STANDARD_IA" }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -738,22 +568,22 @@ resource "aws_s3_bucket_replication_configuration" "cross_region" {
 
 ## 46. Ideal Answers
 
-1. **Exactly-once everywhere**: Move idempotency-key deduplication (currently economy-only) to the Ingest Service for all event types, backed by a higher-throughput dedup store (sharded Redis with Bloom filter + DynamoDB fallback for exact checks) rather than DynamoDB alone at full volume — accept the added latency/cost (~5-10ms, notable DynamoDB WCU cost at 3M events/sec) as a deliberate tradeoff, and use Kafka transactional producers + `read_committed` consumers end-to-end to eliminate duplicate-on-retry at the transport layer too.
+1. **Exactly-once everywhere**: Move idempotency-key deduplication (currently economy-only) to the Ingest Service for all event types, backed by a higher-throughput dedup store (sharded Redis with Bloom filter + DynamoDB fallback) rather than DynamoDB alone at full volume. Also use Kafka transactional producers + `read_committed` consumers end-to-end to eliminate duplicate-on-retry at the transport layer.
 
-2. **80% single-title breakout**: Partition-level hot-spotting on that title's Kafka partitions and Druid segments becomes the first bottleneck — mitigate by dedicating partition/broker capacity per top-tier title (tenant isolation) rather than uniform sharing, and pre-provision a "breakout tier" fast-path (dedicated topic set, dedicated Flink job, dedicated hot-tier cluster) that a title can be promoted into within hours, not weeks.
+2. **80% single-title breakout**: Partition-level hot-spotting on that title's Kafka partitions and Druid segments becomes the first bottleneck. Mitigate with dedicated partition/broker capacity per top-tier title (tenant isolation) and a pre-provisioned "breakout tier" fast-path a title can be promoted into quickly.
 
-3. **Isolating a misbehaving title**: Per-title rate limits (§27) and per-title Kafka topic/partition isolation already contain blast radius at the transport layer; at the schema layer, Schema Registry's hard compatibility gate prevents a bad schema push from breaking other consumers since schemas are scoped per event_type (already namespaced per title), so worst case impacts only that title's own consumers, not the shared platform.
+3. **Isolating a misbehaving title**: Per-title rate limits (§27) and per-title Kafka topic/partition isolation already contain blast radius at the transport layer. At the schema layer, Schema Registry's compatibility gate is scoped per event_type, so a bad schema push only impacts that title's own consumers.
 
-4. **Anti-cheat false-positive spike**: Detection via the weekly human-audit precision metric (§21) is too slow for this — add a faster proxy signal (ban-appeal rate spike, sudden shift in flag-volume per title vs. baseline) as a real-time alert; rollback mechanics are already fast (savepoint restart to prior model version, §34, sub-checkpoint-interval) — the real fix is tightening the detection latency, likely via a lightweight real-time agreement-rate check between current and previous model versions run in shadow continuously, not just during canary windows.
+4. **Anti-cheat false-positive spike**: Detection via the weekly human-audit precision metric (§21) is too slow — add a faster proxy signal (ban-appeal rate spike, flag-volume shift vs. baseline) as a real-time alert. Rollback itself is already fast (savepoint restart to prior model version, §34); the real fix is tightening detection latency.
 
-5. **Sub-100ms freshness for one title's feature**: Bypass the Flink micro-batch window (the dominant p99 contributor per §43) for that specific event type/title — use per-event (not micro-batched) processing with a dedicated low-latency consumer group and direct write to Redis (skip Druid's segment-commit latency), accepting higher per-event compute cost for that narrow slice of traffic in exchange for the latency win.
+5. **Sub-100ms freshness for one title's feature**: Bypass the Flink micro-batch window (the dominant p99 contributor per §43) for that event type — use per-event processing with a dedicated low-latency consumer group and direct write to Redis, accepting higher per-event compute cost for that narrow slice of traffic.
 
-6. **Replay cost vs. 3-year retention**: Replay/reprocessing should default to scoped time-ranges and event-types (not full-history replays), and the cost concern is exactly why retention policy (§29/§44) should be tightened per event-type value rather than uniform 3-year retention — high-value event types (economy, match outcomes) justify the replay cost; low-value ones (movement heartbeats) shouldn't be retained raw for 3 years at all, sidestepping the problem at the policy level rather than only the engineering level.
+6. **Replay cost vs. 3-year retention**: Replay/reprocessing should default to scoped time-ranges and event-types, not full-history replays. This cost concern is also why retention policy (§29/§44) should be tightened per event-type value rather than uniform 3-year retention.
 
-7. **Data residency requirement**: This is where the region-local hot-tier design already pays off — extend it so a residency-constrained region's data is excluded from cross-region MirrorMaker2 replication and from the global unified cold lake (or replicated only in an anonymized/aggregated form), with region-scoped BI/training views instead of global ones for that player population; this is a policy flag per-title/per-region on the replication and ETL jobs, not a structural redesign.
+7. **Data residency requirement**: Extend the existing region-local hot-tier design so a residency-constrained region's data is excluded from cross-region MirrorMaker2 replication and the global cold lake, with region-scoped BI/training views instead. This is a policy flag per-title/per-region, not a structural redesign.
 
-8. **Testing schema evolution across independent teams**: Schema Registry enforces compatibility mechanically (BACKWARD checks) as a hard gate, but pair it with a shared contract-testing suite each team runs in CI — replaying a golden set of historical events against their new schema/consumer code before merge — plus a shadow-consumer canary (§33 pattern) reading real production traffic with the new schema in a sandboxed consumer group before the schema is marked "default" for new producers.
+8. **Testing schema evolution across independent teams**: Schema Registry enforces compatibility mechanically (BACKWARD checks) as a hard gate, paired with a shared contract-testing suite each team runs in CI against a golden set of historical events. Add a shadow-consumer canary (§33 pattern) on real production traffic before the schema is marked "default."
 
-9. **Viral spike vs. scheduled event capacity planning**: Scheduled events get pre-provisioned capacity (broker/partition headroom reserved in advance, verified via load test) since the timing and rough magnitude are known; viral/unpredictable spikes rely on the backpressure/shedding design (§12/§27) as the actual safety net plus fast-reacting autoscaling (KEDA on consumer lag) for the stateless tiers — the key admission is that Kafka broker capacity itself can't react in minutes, so the 10x burst-tolerance NFR (§3) is fundamentally what protects against the unscheduled case, not reactive scaling.
+9. **Viral spike vs. scheduled event capacity planning**: Scheduled events get pre-provisioned, load-tested capacity since timing and magnitude are known. Unpredictable viral spikes instead rely on the backpressure/shedding design (§12/§27) plus fast autoscaling (KEDA on consumer lag), since Kafka broker capacity itself can't react in minutes.
 
-10. **If most consumers only needed hourly batch freshness**: Drop the hot-tier OLAP layer (Druid/Redis aggregates) and inline Flink enrichment entirely — replace with simple Kafka Connect S3 sink + scheduled batch Spark jobs for enrichment/aggregation, cutting both infra cost and operational complexity substantially (no stateful stream processing to operate); this would only be safe if genuinely *no* consumer (anti-cheat, live dashboards) needed sub-minute freshness, which is why this platform explicitly serves the harder multi-SLA case in this chapter.
+10. **If most consumers only needed hourly batch freshness**: Drop the hot-tier OLAP layer (Druid/Redis) and inline Flink enrichment entirely, replacing them with a Kafka Connect S3 sink plus scheduled batch Spark jobs. This is only safe if no consumer (e.g., anti-cheat, live dashboards) needs sub-minute freshness.

@@ -469,180 +469,9 @@ On-call routing: SRE on-call owns infra/latency/availability pages; ML on-call o
 - **Right-sizing via VPA recommendations**: avoids chronic overprovisioning of the always-on serving fleet, which is the largest standing cost (360-720 vCPUs across regions).
 - **Reserved/committed-use for baseline serving fleet**: baseline 360 vCPUs (non-bursty portion) committed for 1-3yr terms at discount, burst capacity (up to 720) on-demand/spot-eligible where latency SLA allows brief spin-up.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: 15 minutes for the scoring path (fail-open to rules-only engine keeps the business running within seconds; full ML-scoring restoration target 15 min).
-- **RPO**: 0 for the decision audit log (every decision durably written to Kafka with `acks=all` + replication factor 3 before responding success internally); 5 minutes for online feature store (acceptable to lose the last few minutes of velocity-counter updates, rebuilt from the replayable event stream).
-- **Backup strategy**: 
-  - Model artifacts + registry: versioned in object storage with cross-region replication, immutable (no in-place overwrite).
-  - Offline feature store / audit log (Iceberg): daily snapshot exports to a secondary region, point-in-time recovery via Iceberg snapshot rollback.
-  - Redis online store: not backed up directly (ephemeral by design) — recoverable by replaying the last N hours from Kafka `feature.velocity.updates` topic.
-  - Transaction/label OLTP store: automated daily full + continuous WAL-based point-in-time recovery (5-min granularity).
-- **Runbook**: documented fail-open procedure (disable model-scoring dependency, rely on rules engine + conservative default thresholds) exercised via quarterly game-day drills.
-
-## 31. Multi-Region Deployment
-
-**Active-active** across US-East, EU-West, AP-Southeast — chosen over active-passive because payment/login traffic is latency-sensitive and geographically distributed; a passive standby would add cross-region latency for the majority of non-US-East traffic.
-
-```
-        ┌────────────────────┐        ┌────────────────────┐        ┌────────────────────┐
-        │   US-East Region   │        │   EU-West Region    │        │  AP-Southeast Region │
-        │ Scoring Gateway     │        │ Scoring Gateway      │        │ Scoring Gateway       │
-        │ Model Serving       │        │ Model Serving        │        │ Model Serving         │
-        │ Online Feature Store│◄──────►│ Online Feature Store │◄──────►│ Online Feature Store  │
-        │ (regional Redis)    │  async │ (regional Redis)     │  async │ (regional Redis)      │
-        └─────────┬───────────┘  repl  └─────────┬────────────┘  repl  └─────────┬─────────────┘
-                  │                              │                              │
-                  └──────────────┬───────────────┴──────────────┬───────────────┘
-                                  ▼                              ▼
-                     ┌─────────────────────────────────────────────────┐
-                     │   Global Kafka (multi-region cluster / MirrorMaker) │
-                     │   Global Offline Feature Store (Iceberg, single    │
-                     │   source of truth, cross-region replicated)         │
-                     │   Global Model Registry (single source, replicated │
-                     │   read-only copies per region)                     │
-                     └─────────────────────────────────────────────────┘
-```
-
-- **Latency routing**: GeoDNS/Anycast routes each client to nearest region; a player's scoring requests are served entirely within-region (feature reads, model inference) to hit the <150ms p99 budget — cross-region calls are avoided on the hot path.
-- **Data replication**: online feature store is regional (not globally synced live) — an account's velocity counters are primarily tracked per-region-of-activity with async cross-region replication (best-effort, ~seconds lag) so a ring operating across regions is still caught via the offline graph pipeline even if the sync path has a brief blind spot. Offline store and model registry are globally consistent (single logical source, replicated).
-- **Model consistency**: same model version promoted to all three regions near-simultaneously (within the `model.lifecycle` event's propagation, typically < 1 min) to avoid a player getting inconsistent risk treatment depending on which region serves them.
-
-## 32. Blue/Green Deployment
-
-- Applies primarily to the **Scoring Gateway / Model Serving service code** (not the model artifact itself, which uses canary — Section 33).
-- Two full environments (blue = current prod, green = new code version) behind the service mesh; green receives synthetic/shadow traffic first (replayed real requests, non-blocking), then a full cutover via load-balancer weight flip (100/0 → 0/100) once health checks pass for 15 min.
-- **Why blue/green here specifically**: scoring-path code changes (e.g., new feature-fetch logic, new gRPC schema handling) are risky to canary gradually because a bug could cause silent feature-mismatch errors across a subset of traffic that's hard to detect quickly — a clean, fast, fully-reversible cutover is preferred for code deploys, reserving gradual canary for model-quality changes specifically.
-- Rollback = instant LB weight flip back to blue (< 30s), no redeploy needed, since blue stays warm for a defined bake period (e.g., 2 hours) post-cutover.
-
-## 33. Canary Deployment
-
-- Applies to **model version promotion** specifically (distinct from code blue/green above).
-- Traffic split: new model version scores 1% of live traffic in **shadow mode** first (scored but decision not acted on, compared only) for 48 hours, then promoted to 5% **live** traffic (decision acted on) for 24 hours, then 25%, then 100% — each stage gated by health checks.
-- **Health-check gates specific to this system**:
-  - Latency: canary model's p99 inference latency within 10% of control.
-  - Decision-rate parity: canary's allow/challenge/deny distribution not more than 15% relatively different from control (large swings suggest miscalibration).
-  - No spike in immediate downstream failure signals (e.g., PSP-reported authorization errors correlated with `challenge` decisions).
-  - (Delayed gate, applied retroactively once labels arrive) precision@recall on canary-scored transactions must not regress vs. control on the overlapping cohort.
-- Because true fraud/legit labels lag 30-90 days, the **early gates are proxy metrics** (latency, decision-rate parity, shadow-mode agreement with control) — the system doesn't wait 90 days to reach 100% rollout, but does keep the promoted model reversible and continues retroactive validation after full rollout.
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: latency SLO breach attributable to new model/code (p99 > threshold sustained 5 min), error-rate spike, decision-rate parity breach beyond gate threshold during canary stages, shadow-model divergence alert.
-- **Mechanics for model rollback**: Model Registry keeps last 5 promoted versions "warm" (artifact cached on serving pods); rollback = publish a `model.lifecycle` "revert" event → serving pods hot-swap back to prior version in-memory within seconds, no pod restart, no redeploy.
-- **Mechanics for code rollback**: blue/green LB weight flip back to the previously-live environment (Section 32), near-instant.
-- **Mechanics for rules rollback**: rules config is versioned (Section 11); hot-patch revert is a config-service push, propagates via cache invalidation within the existing 30s-poll/push window.
-- **Post-rollback**: automatic incident ticket created, retroactive-analysis job scheduled once enough time passes to compare decision quality of the rolled-back version against its predecessor using delayed labels.
-
-## 35. Observability (Tracing, Metrics, Logs Correlation)
-
-- **Tracing**: every scoring request carries a `trace_id` (W3C Trace Context) propagated from Payment Gateway → Scoring Gateway → Rules Engine / Model Serving → Feature Store lookups → Decision Aggregator, visualized in a distributed tracing tool (e.g., Jaeger/Tempo) — critical for diagnosing which hop consumed the latency budget when p99 spikes.
-- **Metrics**: Prometheus-style time-series for every component (Section 22), with RED metrics (Rate/Errors/Duration) standardized across all services, plus fraud-domain-specific metrics (PSI, precision@recall, chargeback ratio) exported alongside infra metrics in the same dashboarding system for unified view.
-- **Logs**: structured logs (Section 24) carry the same `trace_id` and `decision_id`, enabling a single click from a trace span to its corresponding log lines and, further, to the full audit-log record — this three-way correlation (trace ↔ log ↔ decision-audit-record) is what lets an on-call engineer or T&S analyst go from "this specific transaction was blocked" to "here's exactly why, which service was slow, and what the model saw" in one workflow.
-- **SLO burn-rate alerting**: latency/availability SLOs (Section 3) tracked via multi-window burn-rate alerts (fast burn: 1hr window catches severe incidents; slow burn: 6hr window catches gradual degradation) rather than static thresholds alone.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: fraud-scoring-gateway
-  namespace: fraud-detection
-spec:
-  replicas: 15
-  selector:
-    matchLabels: {app: fraud-scoring-gateway}
-  template:
-    metadata:
-      labels: {app: fraud-scoring-gateway}
-    spec:
-      containers:
-      - name: scoring-gateway
-        image: registry.ea.internal/fraud/scoring-gateway:v2.14.3
-        resources:
-          requests: {cpu: "4", memory: "4Gi"}
-          limits: {cpu: "8", memory: "6Gi"}
-        readinessProbe:
-          httpGet: {path: /healthz/ready, port: 8080}
-          initialDelaySeconds: 5
-        livenessProbe:
-          httpGet: {path: /healthz/live, port: 8080}
-          periodSeconds: 10
-        ports: [{containerPort: 8080}, {containerPort: 9090, name: metrics}]
----
-apiVersion: v1
-kind: Service
-metadata: {name: fraud-scoring-gateway-svc, namespace: fraud-detection}
-spec:
-  selector: {app: fraud-scoring-gateway}
-  ports: [{port: 443, targetPort: 8080}]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: {name: fraud-scoring-gateway-hpa, namespace: fraud-detection}
-spec:
-  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: fraud-scoring-gateway}
-  minReplicas: 15
-  maxReplicas: 40
-  metrics:
-  - type: Pods
-    pods:
-      metric: {name: requests_per_second_per_pod}
-      target: {type: AverageValue, averageValue: "700"}
-  - type: Resource
-    resource: {name: cpu, target: {type: Utilization, averageUtilization: 60}}
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_msk_cluster" "fraud_events" {
-  cluster_name           = "fraud-detection-kafka"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 9
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 2000 } }
-  }
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS", in_cluster = true }
-  }
-}
-
-resource "aws_elasticache_replication_group" "online_feature_store" {
-  replication_group_id       = "fraud-feature-store"
-  description                = "Online feature store for fraud scoring"
-  node_type                  = "cache.r6g.xlarge"
-  num_node_groups            = 6
-  replicas_per_node_group    = 2
-  automatic_failover_enabled = true
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-}
-
-resource "aws_instance" "graph_embedding_training" {
-  count         = 4
-  instance_type = "p4d.24xlarge"
-  ami           = var.gpu_training_ami
-  spot_price    = "12.00"
-  instance_market_options {
-    market_type = "spot"
-    spot_options { spot_instance_type = "one-time" }
-  }
-  tags = { Name = "fraud-graph-embedding-training", Job = "weekly-graphsage" }
-}
-
-resource "aws_s3_bucket" "audit_log_archive" {
-  bucket = "ea-fraud-decision-audit-log"
-  lifecycle_rule {
-    enabled = true
-    transition { days = 90 storage_class = "GLACIER_IR" }
-    expiration { days = 2557 } # 7 years
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -735,22 +564,22 @@ resource "aws_s3_bucket" "audit_log_archive" {
 
 ## 46. Ideal Answers
 
-1. **Daily retrain value despite label lag**: Daily retrain isn't primarily about incorporating *new confirmed-fraud labels* daily (those do lag) — it's about incorporating (a) fast-arriving analyst-verdict labels (1-48hr turnaround) which cover a meaningful fraction of true fraud faster than chargebacks, (b) updated feature distributions/velocity patterns even before labels change, and (c) rules/threshold recalibration. The chargeback-labeled portion of training data is inherently always "30-90 days stale" regardless of retrain cadence — the daily cadence's real value is fast incorporation of analyst labels and fast reaction to distribution shifts, with a periodic (e.g., weekly) larger "full recalibration" once enough chargeback labels have accumulated to matter statistically.
+1. **Daily retrain value despite label lag**: Daily retrain isn't mainly about new confirmed-fraud labels (those lag 30-90 days) — its real value is fast incorporation of analyst-verdict labels (1-48hr turnaround) and quick reaction to shifting feature/velocity distributions. A periodic larger "full recalibration" still runs once enough chargeback labels accumulate.
 
-2. **Approaching chargeback threshold**: Immediately tighten `challenge`/`deny` thresholds specifically on the highest-risk-score decile (not globally, to limit false-positive blast radius), push an emergency rules hot-patch targeting the specific BIN ranges/device clusters driving the recent chargebacks (identified via the audit log's reason-code breakdown), increase manual-review sampling rate on borderline transactions, and escalate to finance/card-network relations team in parallel since threshold breaches have contractual implications beyond what engineering alone can fix.
+2. **Approaching chargeback threshold**: Tighten `challenge`/`deny` thresholds on the highest-risk-score decile only (to limit false-positive blast radius) and push an emergency rules hot-patch targeting the specific BIN ranges/device clusters driving the chargebacks. Escalate to finance/card-network relations in parallel, since threshold breaches carry contractual implications.
 
-3. **Model vs. rules independence**: Exclude rule-trigger flags as direct input features to avoid the model trivially learning "rule X fired → predict fraud" (circular). Instead, evaluate model lift specifically on the subset of transactions the rules engine passed as "clean" — if the model can't find additional fraud in that subset, it's not adding value. Track feature importance to confirm the model is weighting genuinely independent signals (velocity patterns, graph-embedding risk, behavioral features) rather than just re-deriving rule logic.
+3. **Model vs. rules independence**: Exclude rule-trigger flags as direct input features so the model can't just learn "rule X fired → fraud" (circular). Evaluate model lift specifically on transactions the rules engine passed as "clean" — if it finds no additional fraud there, it isn't adding value.
 
-4. **Device-rotation adaptation**: This is exactly why the architecture doesn't rely on device fingerprint alone — the graph-embedding/ring-detection layer looks at *shared* signals across many accounts (same card BIN, same IP/ASN, same behavioral timing patterns, same shipping/billing mismatch patterns) that persist even when device identity is rotated. Additionally, a sudden spike in "brand-new, never-seen device" reason-code frequency is itself a drift signal (Section 21) that triggers an emergency rules hot-patch (e.g., temporarily require step-up MFA for all new-device + high-value combos) while the graph model's inductive embeddings catch up on the new pattern within the next retrain cycle.
+4. **Device-rotation adaptation**: The graph-embedding/ring-detection layer looks at *shared* signals across accounts (same card BIN, IP/ASN, behavioral timing) that persist even when device identity is rotated, so it isn't fooled by fingerprint changes alone. A spike in "never-seen device" reason codes is itself a drift signal (Section 21) that can trigger a temporary MFA-step-up rule while the graph model's embeddings catch up.
 
-5. **Whale vs. fraud tradeoff**: This is a threshold/policy decision, not purely a modeling one — maintain a VIP/high-LTV allowlist tier with a higher `challenge` threshold (more tolerance) informed by lifetime-value data, route borderline high-LTV cases to `challenge`-with-step-up (3DS) rather than outright `deny` (preserves the sale while adding friction-based verification), and continuously measure the $-weighted cost of both error types (false-positive LTV impact vs. false-negative chargeback+goods cost) to justify where the threshold sits, revisited quarterly as fraud patterns and LTV data shift.
+5. **Whale vs. fraud tradeoff**: This is a threshold/policy decision, not purely a modeling one — maintain a VIP/high-LTV allowlist with a higher `challenge` threshold, and route borderline high-LTV cases to step-up verification (3DS) rather than outright `deny`. The threshold is justified by continuously comparing $-weighted cost of false positives (LTV impact) vs. false negatives (chargeback+goods cost).
 
-6. **Point-in-time correctness failure example**: If a feature like "lifetime chargeback count for this account" is computed using the *current* (query-time) count rather than the count *as of the transaction's original timestamp*, a training example from 6 months ago would incorrectly show a chargeback count that includes chargebacks confirmed *after* that transaction — leaking future information the model wouldn't have had at actual scoring time, producing inflated offline metrics that collapse in production. Correct implementation requires the feature store to track `feature_available_at` timestamps and join strictly on `feature_available_at <= transaction_timestamp`.
+6. **Point-in-time correctness failure example**: If "lifetime chargeback count" is computed using the *current* count rather than the count *as of the transaction's original timestamp*, older training examples leak future chargeback information the model wouldn't have had at scoring time, inflating offline metrics that then collapse in production. Fix requires the feature store to track `feature_available_at` and join strictly on `feature_available_at <= transaction_timestamp`.
 
-7. **GBM vs. neural net**: GBM chosen for CPU-only low-latency serving, strong performance on tabular+velocity features, and interpretability (feature importance / SHAP-style reason codes needed for analyst UI and adverse-action explanations). Would revisit if: (a) rich sequential/behavioral clickstream data proved to add significant incremental lift over aggregated velocity features, (b) latency budget relaxed (e.g., a fully async post-hoc scoring tier), or (c) serving infra investment in GPU inference became justified by fraud-loss-avoidance gains outweighing the added cost/complexity.
+7. **GBM vs. neural net**: GBM was chosen for CPU-only low-latency serving, strong tabular/velocity-feature performance, and interpretability (SHAP-style reason codes for analysts). Would revisit if rich sequential clickstream data showed strong incremental lift, or if latency/infra constraints relaxed enough to justify GPU inference.
 
-8. **New studio with different economy**: The core architecture (scoring gateway, feature store, rules+ML hybrid, event bus) is largely payment-model-agnostic, but the *feature set and label definition* would need rework — subscription fraud looks like different signals (account-sharing/credential-reselling, chargebacks on recurring billing, trial-abuse patterns) vs. microtransaction fraud (stolen-card burst-buying, refund abuse). Practically: stand up a per-title/per-studio model variant (already supported per FR5/Section 14's multi-model serving) trained on that studio's own label distribution, while reusing the shared graph/ring-detection layer across studios where legally/technically permissible (cross-studio device/card sharing is itself a strong fraud signal).
+8. **New studio with different economy**: The core architecture (scoring gateway, feature store, rules+ML hybrid) is largely payment-model-agnostic, but feature set and label definitions would need rework — subscription fraud (account-sharing, trial abuse) looks different from microtransaction fraud (stolen-card burst-buying). Practically, stand up a per-studio model variant on that studio's own labels while reusing the shared graph/ring-detection layer where permissible.
 
-9. **Online/offline feature drift**: Detected via the prediction-serving-skew monitor (Section 21) that samples live requests and compares the online-computed feature value against an offline recomputation of the same feature for the same event — alerting on divergence above ~5%. Root-caused typically to either (a) a bug in one of the two parallel implementations (mitigated architecturally by sharing the same UDF library between streaming and batch paths, Section 15) or (b) a timing/windowing definition mismatch (e.g., online counts a rolling 5-min window, offline recomputes a calendar-aligned window) — fixed by strict shared-schema definitions for every feature's exact computation window, versioned alongside the feature itself.
+9. **Online/offline feature drift**: Detected via a prediction-serving-skew monitor (Section 21) comparing online-computed feature values against an offline recomputation for the same event, alerting above ~5% divergence. Typically root-caused to either a bug in one of the two parallel implementations (mitigated by sharing a UDF library across streaming/batch) or a windowing definition mismatch.
 
-10. **Post-promotion false-positive spike**: This is a known, anticipated pattern, not a surprise — the monitoring stack should distinguish "new-account-high-value" *reason-code* frequency spikes that correlate with a known marketing-campaign event (join marketing calendar data as context) from spikes with no such correlation (which would indicate real attack activity). Practically: temporarily relax the "new-account-high-value" rule/feature weighting during known promo windows (a planned, pre-approved rule exception tied to the campaign's start/end dates), route affected transactions to `challenge` (step-up) rather than `deny` to preserve conversion while still gating risk, and retrain soon after incorporating the (now-labeled, mostly-legitimate) promo-period transactions so the model itself learns the pattern isn't inherently risky.
+10. **Post-promotion false-positive spike**: This is a known, anticipated pattern — the monitoring stack should distinguish "new-account-high-value" reason-code spikes correlated with a known marketing-campaign window from spikes with no such correlation (real attack signal). Practically, temporarily relax that rule during pre-approved promo windows, route affected transactions to `challenge`/step-up rather than `deny`, and retrain afterward so the model learns the pattern isn't inherently risky.

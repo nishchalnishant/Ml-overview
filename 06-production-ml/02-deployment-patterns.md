@@ -79,29 +79,7 @@ def route_request(request_id: str, canary_fraction: float = 0.05) -> str:
 
 **The problem**: you want to validate a new model on real traffic with zero risk of surfacing bad predictions to users. You need to know what the new model *would* predict on real inputs before you trust it with actual decisions.
 
-**The core insight**: run the new model in parallel with production, but discard its outputs. The user sees only the production model's result. You accumulate a ground truth comparison dataset for offline analysis.
-
-**The mechanics**: on every production request, fire the new model asynchronously. Never block the production path. Log both outputs. Analyze divergence offline.
-
-```python
-import asyncio
-import logging
-
-async def shadow_predict(production_model, shadow_model, features: dict) -> dict:
-    """Serve production response; fire shadow prediction without blocking."""
-    prod_result = production_model.predict(features)
-
-    async def _shadow():
-        try:
-            shadow_result = shadow_model.predict(features)
-            log_shadow_comparison(prod_result, shadow_result)
-        except Exception as e:
-            # Shadow failures must never affect the production path
-            logging.warning(f"Shadow prediction failed: {e}")
-
-    asyncio.create_task(_shadow())
-    return prod_result  # user sees only this
-```
+**The core insight**: run the new model in parallel with production, but discard its outputs — fire it asynchronously on every request, never block the production path, log both outputs and analyze divergence offline. Full implementation, agreement-rate/score-correlation metrics table, and shadow-to-live rollout steps: see [03-model-governance.md](03-model-governance.md#8-shadow-deployment-for-high-stakes-models).
 
 **What breaks**: shadow inference doubles serving cost. If the new model is slower than production, async shadow calls can stack up and exhaust resources under sustained load — run shadow on isolated compute. Shadow results reflect the production traffic distribution; rare inputs that break the new model are still invisible unless you specifically test for them.
 
@@ -297,36 +275,7 @@ torch.onnx.export(model, dummy_input, "model.onnx", opset_version=13)
 
 **The problem**: when training on a label that occurred at time `t`, the feature values used must be those that were available at time `t - epsilon`, never after. Using future feature values is data leakage — the model learns a mapping that cannot exist at inference time.
 
-**The mechanics**: for each training example, join the most recent feature row whose timestamp is strictly before the event's timestamp.
-
-```python
-import pandas as pd
-
-def point_in_time_join(
-    entity_df: pd.DataFrame,
-    feature_df: pd.DataFrame,
-    entity_timestamp_col: str = "event_timestamp",
-    feature_timestamp_col: str = "feature_timestamp"
-) -> pd.DataFrame:
-    """
-    For each entity row, join the most recent feature row
-    available BEFORE the entity's event timestamp.
-    """
-    result_rows = []
-    for _, entity_row in entity_df.iterrows():
-        event_time = entity_row[entity_timestamp_col]
-        entity_id = entity_row["entity_id"]
-
-        available_features = feature_df[
-            (feature_df["entity_id"] == entity_id) &
-            (feature_df[feature_timestamp_col] < event_time)
-        ]
-        if not available_features.empty:
-            latest_feature = available_features.sort_values(feature_timestamp_col).iloc[-1]
-            result_rows.append({**entity_row.to_dict(), **latest_feature.to_dict()})
-
-    return pd.DataFrame(result_rows)
-```
+**The mechanics**: for each training example, join the most recent feature row whose timestamp is strictly before the event's timestamp. Full implementation, complexity discussion, and sorted-merge/`AS OF` optimizations for production scale: see [system-design/08-feature-store-architecture.md](system-design/08-feature-store-architecture.md#point-in-time-correctness).
 
 **What breaks**: if the feature store's timestamp index is coarser than your event stream (daily snapshots for hourly events), point-in-time joins return features that are stale by up to 24 hours — creating a systematic bias in training that does not match how inference works.
 

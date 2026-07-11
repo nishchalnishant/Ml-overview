@@ -68,13 +68,7 @@ Memory drops from ~112 GB to ~6–16 GB for a 7B model. Forgetting risk drops be
 
 **The problem**: full fine-tuning a 70B parameter model requires as much GPU memory as pretraining it. For most adaptation tasks, you don't need to change all 70B parameters — the task adaptation is a relatively small "delta" on top of the pretrained knowledge.
 
-**The core insight**: the change to the weight matrix during fine-tuning has low intrinsic rank — it lives in a much smaller subspace than the full d×d weight matrix. Parameterize just that low-rank subspace.
-
-**The mechanics**: freeze W, add ΔW = BA where B is d×r and A is r×d, with r ≪ d. Only A and B are trained. Forward pass: y = Wx + (α/r)·BAx. B is initialized to zero (so the adapter starts as no-op); A is initialized with random Gaussian values.
-
-At inference, merge: W' = W + (α/r)·BA. No added latency — the adapter disappears into the base weight matrix. r=8 typically captures 80–90% of the fine-tuning benefit with ~0.1% of the parameters.
-
-LoRA is applied to specific weight projections — typically Q, K, V, O in attention, sometimes FFN projections. Applying to all projections vs. just Q and V is a hyperparameter choice; wider application with lower rank often beats narrow application with higher rank.
+**The core insight**: the change to the weight matrix during fine-tuning has low intrinsic rank — it lives in a much smaller subspace than the full d×d weight matrix. Parameterize just that low-rank subspace: freeze W, add ΔW = BA (B zero-init), merge at inference for zero added latency. Full math, parameter-count worked example, and code: see [06-fine-tuning-at-scale.md](../06-fine-tuning-at-scale.md#2-lora-low-rank-adaptation).
 
 **What breaks**: LoRA doesn't help with tasks requiring genuine new knowledge (the frozen W doesn't know it). Very low rank (r=1, 2) may miss complex task structure. The rank choice has no principled selection rule — it is tuned on validation performance. LoRA on the wrong target modules can underperform relative to full fine-tuning on tasks requiring deep representation changes.
 
@@ -88,15 +82,7 @@ LoRA is applied to specific weight projections — typically Q, K, V, O in atten
 
 **The problem**: LoRA reduces the number of trainable parameters, but the frozen base model still sits in GPU memory at full precision (fp16: 2 bytes/param). A 65B model at fp16 requires ~130 GB — still inaccessible to a single GPU.
 
-**The core insight**: if the base model weights are frozen during fine-tuning, they never need to be in full precision. They only need to be accurate enough for the forward pass. Quantize them aggressively, dequantize just-in-time during the forward pass, and keep only the LoRA adapters in full precision.
-
-**The mechanics** (Dettmers et al., 2023):
-
-1. **NF4 quantization** of the frozen base model weights: 4-bit Normal Float, a data type specifically designed for normally distributed neural network weights. Stores each weight in 4 bits (2× more compressed than fp16 = 8× more compressed than fp32).
-2. **Double quantization**: quantize the quantization constants themselves (the scale factors), saving another ~0.5 bits/parameter on average.
-3. **Paged optimizers**: use NVIDIA's unified memory to page optimizer states to CPU RAM during memory spikes, preventing OOM errors on long sequences.
-
-Result: a 65B model that previously required 8×80GB A100s can be fine-tuned on a single 48 GB GPU. The adapters themselves remain in bf16/fp16 — do not quantize them.
+**The core insight**: if the base model weights are frozen during fine-tuning, they never need to be in full precision — quantize them aggressively (NF4), dequantize just-in-time during the forward pass, and keep only the LoRA adapters and quantization constants (double quantization) at higher precision, with paged optimizers to absorb memory spikes. Result: a 65B model that needed 8×80GB A100s fits on a single 48GB GPU. Full mechanics, memory-breakdown table, and `BitsAndBytesConfig` code: see [06-fine-tuning-at-scale.md](../06-fine-tuning-at-scale.md#4-qlora).
 
 **What breaks**: 4-bit quantization introduces small precision loss in the base model forward pass — not training imprecision per se, but accumulated rounding errors. Always evaluate on your task; some domains (precision math, structured output) are more sensitive. Training is slightly slower than plain LoRA due to the dequantization step.
 
@@ -158,17 +144,7 @@ Critically: compute loss only on the response tokens, not the instruction tokens
 
 **The problem**: RLHF requires training and maintaining a separate reward model, then running a complex, unstable RL training loop (PPO). Three separate training phases, three separate model checkpoints, sensitive hyperparameters. For many teams, this is impractical.
 
-**The core insight**: the optimal policy under the RLHF objective can be expressed analytically as a function of the reward and the reference policy. This means the reward model is implicit — you can write a training objective directly in terms of the policy's probabilities, eliminating the need for a separate reward model.
-
-**The mechanics** (Rafailov et al., 2023):
-
-```
-L_DPO = -E[log σ(β · log(π_θ(y_w|x)/π_ref(y_w|x)) - β · log(π_θ(y_l|x)/π_ref(y_l|x)))]
-```
-
-where y_w is the preferred ("won") response and y_l is the rejected ("lost") response.
-
-Intuitively: increase the probability of the preferred response relative to the reference model, decrease the probability of the rejected response relative to the reference model. The β parameter controls how much the policy is allowed to deviate from the reference.
+**The core insight**: the optimal policy under the RLHF objective can be expressed analytically as a function of the reward and the reference policy. This means the reward model is implicit — you can write a training objective directly in terms of the policy's probabilities, eliminating the need for a separate reward model. Full derivation (the $Z(x)$-cancellation trick), loss formula, and `DPOTrainer` code: see [01-training-process.md](../01-training-process.md#8-dpo-cutting-the-reward-model-out-entirely).
 
 **What breaks**: DPO is still sensitive to the quality of the preference data — bad preference pairs teach wrong behavior just as surely as bad SFT data. DPO can suffer from "chosen token probability collapse" where the model learns to maximize the chosen/rejected log-ratio by reducing probability of rejected, without genuinely improving the preferred response. Some evidence suggests RLHF outperforms DPO on highly complex alignment tasks, though DPO is competitive on most.
 

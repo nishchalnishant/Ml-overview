@@ -504,197 +504,9 @@ Client ──▶ API Gateway (authn/authz, rate limit)
 - **Reserved capacity**: baseline GPU footprint (warm minimum pools) on reserved/committed-use pricing; only burst capacity on-demand/spot.
 - **Cold-tier storage**: archival/rarely-queried franchises' embeddings moved to IVF-PQ cold index rather than always-warm HNSW.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Target | Value |
-|---|---|
-| RTO (query path) | 30 min |
-| RPO (vector DB) | 1 hour (async snapshot + replay from `vector.upsert` topic since last snapshot) |
-| RTO (metadata/Postgres) | 15 min (multi-AZ standby, automated failover) |
-| RPO (metadata/Postgres) | < 5 min (synchronous replica within region, async cross-region) |
-
-- **Backup strategy**: vector DB snapshotted hourly to object storage; full rebuild-from-source is also possible (re-embed from canonical doc store) as a slower fallback (~6-8h for full corpus) — snapshots are the fast path, source-rebuild is the safety net of last resort.
-- Postgres: automated daily full + continuous WAL archiving, point-in-time recovery.
-- Kafka topics (`docs.raw`, `vector.upsert`) retained 7 days — allows replay to rebuild index state if a snapshot is corrupted/missing.
-- DR drills quarterly: simulate primary-region vector DB shard loss, validate failover to replica + snapshot restore within RTO.
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active for query/read path across US, EU, APAC; ingestion writes go to a **regional primary per source's data-residency requirement** (EU-sourced docs' canonical write path is EU, replicated async to US/APAC read replicas).
-- **Latency routing**: GeoDNS/Anycast routes client to nearest region's API Gateway; each region has a full read-replica stack (vector DB replica shards, Postgres read replica, warm LLM serving pool).
-- **Data replication**: vector DB shard replicas async-replicated cross-region (target replication lag < 60s); Postgres metadata uses logical replication cross-region.
-- **ACL consistency**: ACL changes propagate via the `acl.change` topic mirrored cross-region — a short window (seconds) of stale ACL is tolerated in non-primary regions, mitigated by post-filter ACL re-check hitting a regionally-local but frequently-refreshed cache.
-
-```
-                     ┌────────────────────┐
-                     │   GeoDNS / Anycast  │
-                     └─────────┬──────────┘
-              ┌─────────────────┼─────────────────┐
-              ▼                 ▼                 ▼
-        ┌───────────┐     ┌───────────┐     ┌───────────┐
-        │  US-EAST   │     │    EU     │     │   APAC    │
-        │ (primary   │     │ (primary  │     │ (read     │
-        │  for NA    │     │  for EU-  │     │  replica, │
-        │  docs)     │     │  residency│     │  low-QPS  │
-        │            │     │  docs)    │     │  region)  │
-        │ Full stack:│     │Full stack:│     │Full stack:│
-        │ query orch,│◄───►│query orch,│◄───►│query orch,│
-        │ vector DB  │ async│vector DB │async │vector DB │
-        │ replica,   │repl │ replica,  │repl │ replica,  │
-        │ LLM pool,  │     │ LLM pool, │     │ LLM pool  │
-        │ PG primary │     │ PG primary│     │ (smaller) │
-        │ (NA docs)  │     │ (EU docs) │     │           │
-        └───────────┘     └───────────┘     └───────────┘
-```
-
-- Player-facing EU traffic never round-trips to US for GDPR data-residency reasons on the query-log/PII path — EU query logs stay in EU region storage.
-
-## 32. Blue/Green Deployment
-
-- Applies most concretely to: (a) **vector index generation cutover** on embedding-model upgrade, (b) **LLM serving version upgrade**, (c) **query-orchestration service releases**.
-- **Vector index blue/green**: new embedding-version index ("green") built fully in parallel while "blue" (current) continues serving all live traffic; once green passes eval gate (recall@10, NDCG@8 vs golden set) and shadow-traffic comparison, traffic cutover is instant (config flip of active `embedding_version`), blue kept warm for immediate rollback for 48h.
-- **LLM serving blue/green**: new model version deployed to a fully separate replica pool; cutover via load-balancer weight flip (not in-place upgrade) to avoid mid-request model-version inconsistency; old pool kept warm 24h.
-- Rejected pure rolling-update for the LLM pool specifically because a 70B model swap mid-flight risks inconsistent context/response behavior within a single conversation session — blue/green gives a clean cutover boundary.
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy**: new model/prompt version gets 1% → 5% → 25% → 100% ramp, each stage held minimum 2 hours (or until N=2,000 sampled queries evaluated), gated by automated health checks before advancing.
-- **Health-check gates specific to this system**:
-  - Groundedness score on canary cohort ≥ baseline − 0.02 (small tolerance band).
-  - Citation-coverage % ≥ baseline − 2 points.
-  - p99 latency on canary ≤ 1.15x baseline.
-  - Thumbs-down rate on canary ≤ baseline + 2 points.
-  - No spike in Sev1/Sev2 alerts attributable to canary cohort.
-- Canary routing done at the Query Orchestration layer via a feature-flag/experiment framework, sticky by `session_id` (a user doesn't flip between old/new model mid-conversation).
-- Automatic rollback if any gate fails at any ramp stage (see §34).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: canary gate failure (§33), groundedness drop alert (§23), p99 latency breach attributable to new version, error-rate spike post-deploy.
-- **Rollback mechanics**:
-  - LLM/reranker/embedding model: flip traffic weight back to prior warm pool (blue/green — instant, no redeploy needed since old pool stayed warm).
-  - Query Orchestration service code: standard k8s Deployment rollback (`kubectl rollout undo`) to prior ReplicaSet, since it's stateless.
-  - Vector index: revert `active_embedding_version` config flag to prior generation (old index kept warm during the 48h post-cutover window specifically to make this possible).
-  - Prompt-template changes: versioned in config store (not code), rollback is a config revert, propagates via the same feature-flag mechanism as canary — sub-minute rollback.
-- All rollbacks logged with `previous_version`, `new_version`, `trigger_reason`, `triggered_by` (automated vs manual) for postmortem.
-
-## 35. Observability
-
-- **Tracing**: OpenTelemetry spans across the full request lifecycle (§18 steps 1-9) — one trace per query, span per stage (rewrite, embed, retrieve, rerank, generate, groundedness-check), exported to a trace backend (e.g., Tempo/Jaeger-class).
-- **Metrics**: Prometheus-style metrics per service (latency histograms, GPU util, cache hit rate, queue depth) scraped and aggregated; golden-signal dashboards (latency, traffic, errors, saturation) per service.
-- **Logs**: structured JSON logs (§24) with `trace_id` injected, shippable to a log aggregator (e.g., Loki/Elasticsearch-class), correlated to traces by `trace_id` and to metrics by shared labels (`service`, `model_version`, `region`).
-- **Correlation in practice**: an on-call engineer investigating a p99 latency alert pivots from the metric dashboard → filters traces for that time window with latency > threshold → drills into the specific slow span (e.g., reranker) → jumps to that span's logs via `trace_id` to see the exact request payload/error — all three pillars linked by common IDs and labels, not siloed tools.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: rag-query-orchestration
-  labels: { app: rag-query-orch }
-spec:
-  replicas: 6
-  selector:
-    matchLabels: { app: rag-query-orch }
-  template:
-    metadata:
-      labels: { app: rag-query-orch }
-    spec:
-      containers:
-        - name: query-orch
-          image: registry.ea.internal/rag/query-orch:v3.2.1
-          resources:
-            requests: { cpu: "1", memory: "2Gi" }
-            limits: { cpu: "2", memory: "4Gi" }
-          env:
-            - name: EMBEDDING_VERSION
-              value: "embed-v5"
-            - name: LLM_ENDPOINT
-              value: "http://rag-llm-serving.rag.svc.cluster.local:8000"
-          readinessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            initialDelaySeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: rag-query-orch
-spec:
-  selector: { app: rag-query-orch }
-  ports: [{ port: 8080, targetPort: 8080 }]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: rag-query-orch-hpa
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: rag-query-orchestration }
-  minReplicas: 6
-  maxReplicas: 60
-  metrics:
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
-```
-
-- LLM serving pool uses a separate `StatefulSet`-style GPU node pool with `nodeSelector: {gpu: a100-80gb}` and `nvidia.com/gpu: 4` resource requests per pod (tensor-parallel), managed via KEDA `ScaledObject` on custom queue-depth metrics rather than plain HPA.
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_eks_node_group" "rag_gpu_llm" {
-  cluster_name    = aws_eks_cluster.rag_platform.name
-  node_group_name = "rag-llm-a100"
-  node_role_arn   = aws_iam_role.eks_node.arn
-  subnet_ids      = var.private_subnet_ids
-  instance_types  = ["p4d.24xlarge"]
-
-  scaling_config {
-    desired_size = 4
-    min_size     = 4
-    max_size     = 12
-  }
-
-  taint {
-    key    = "workload"
-    value  = "llm-serving"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_opensearch_domain" "vector_metadata_audit" {
-  domain_name    = "rag-query-audit"
-  engine_version = "OpenSearch_2.11"
-
-  cluster_config {
-    instance_type  = "r6g.xlarge.search"
-    instance_count = 6
-  }
-}
-
-module "vector_db_cluster" {
-  source          = "./modules/vector-db"
-  shard_count     = 24
-  replica_factor  = 3
-  instance_type   = "r6g.2xlarge"
-  storage_gb_shard = 50
-  quantization    = "int8"
-}
-
-resource "aws_msk_cluster" "rag_kafka" {
-  cluster_name           = "rag-platform-kafka"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 6
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info {
-      ebs_storage_info { volume_size = 500 }
-    }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -779,22 +591,22 @@ resource "aws_msk_cluster" "rag_kafka" {
 
 ## 46. Ideal Answers
 
-1. **Hallucination detection at scale**: Combine (a) an automated citation-coverage check — verify every factual claim/sentence in the answer maps to a span in a retrieved, actually-cited chunk (NLI-style entailment model or LLM-judge scoring "is this claim supported by this context?"), producing a per-answer groundedness score; (b) sample 1-2% of live traffic for periodic human spot-check calibration against the automated score to catch drift in the automated judge itself; (c) a fixed golden eval set run nightly against the live pipeline for a stable trend line independent of live traffic noise. The automated groundedness score is the scalable signal; human eval is the calibration/audit layer, not the primary detector.
+1. **Hallucination detection at scale**: Run an automated citation-coverage check that verifies every claim in the answer maps to a span in a retrieved, cited chunk (NLI-style entailment or LLM-judge), producing a per-answer groundedness score. Use a small sample of human spot-checks and a nightly golden eval set only to calibrate/audit the automated judge, not as the primary detector.
 
-2. **Reranker outage degradation**: Query Orchestration treats the reranker as a soft dependency with a circuit breaker — on failure/timeout, it falls back to serving the raw ANN top-8 (skip the rerank re-ordering step) rather than failing the whole request. This degrades precision (worse ordering, possibly less relevant top-8) but keeps the system available. An alert fires immediately (reranker service down is Sev2), and the fallback path is itself monitored (track % of traffic served via fallback) so degraded-quality traffic is visible and time-bounded, not silently absorbed forever.
+2. **Reranker outage degradation**: The reranker is a soft dependency behind a circuit breaker — on failure it falls back to serving raw ANN top-8 unranked rather than failing the request, trading precision for availability. The fallback path is itself alerted and monitored so degraded traffic stays visible and time-bounded.
 
-3. **Prompt-injection containment**: Never treat retrieved document content as instructions — the prompt template hard-separates system instructions (fixed, not influenced by retrieved content) from "context" (retrieved chunks, explicitly marked as untrusted reference material the model should use for factual grounding only). Additionally, ACL filtering happens independently of the LLM's behavior — even if a malicious doc tried to instruct the model to "reveal confidential doc X," the model never had confidential doc X in its context window in the first place, because retrieval itself is ACL-scoped before generation ever runs. Defense is architectural (what's in context) plus procedural (flagging imperative-language patterns in ingested docs for review), not "hope the model refuses."
+3. **Prompt-injection containment**: The prompt template hard-separates fixed system instructions from retrieved "context," which is explicitly untrusted and used for grounding only, never as instructions. ACL filtering happens at retrieval time independent of the LLM, so a malicious doc can never leak confidential content it was never given in context.
 
-4. **Slow groundedness decay below alert thresholds**: This is why drift detection (§21) runs on a rolling trend, not just instantaneous thresholds — track a 7/14/30-day rolling mean of groundedness score and flag statistically significant negative slope (e.g., a simple trend test or comparing week-over-week deltas), not just absolute-value breaches. Pair this with a weekly "golden eval set" re-run that isolates model/pipeline effects from live-traffic-mix effects (a shift in what users are asking about can move the raw live-traffic average without the model itself getting worse) — the golden set catches true model/pipeline regression independent of query-mix drift.
+4. **Slow groundedness decay below alert thresholds**: Drift detection (§21) tracks a rolling 7/14/30-day trend in groundedness score and flags a statistically significant negative slope, not just absolute-threshold breaches. A weekly golden-eval-set re-run isolates true model/pipeline regression from query-mix shifts in live traffic.
 
-5. **Chunking redesign for code-heavy docs**: Move from a single generic chunker to content-type-aware chunking — detect code blocks/tables during parsing and treat them as atomic units (never split mid-function or mid-table), chunk surrounding prose normally with header-aware splitting, and consider a slightly larger chunk size or full-file inclusion for short engineering docs where code context matters more than in general prose. Also add a code-aware embedding model or at minimum evaluate whether the general bi-encoder captures code semantics well — may need a hybrid approach (separate embedding space or a metadata-boosted rerank signal for code-containing chunks).
+5. **Chunking redesign for code-heavy docs**: Use content-type-aware chunking that treats code blocks/tables as atomic units (never split mid-function) while prose keeps header-aware splitting. Evaluate whether the general embedding model captures code semantics well, since a hybrid or code-aware embedding approach may be needed.
 
-6. **Onboarding a new studio (5M docs)**: First bottleneck is ingestion connector build time (new source-system adapter) — treat this as a templated, config-driven connector framework rather than bespoke code per source to compress onboarding time. Second bottleneck is vector DB shard capacity — pre-provision additional shards ahead of the bulk backfill (not reactively), and run the initial embedding backfill as a rate-limited batch job on spot GPU capacity over days, not as a burst that competes with live query-path GPU pools. Query latency is protected because ingestion/embedding infra is fully decoupled from the query-serving path — the new studio's docs simply aren't searchable yet until backfill completes, with no impact on other studios' query latency in the interim.
+6. **Onboarding a new studio (5M docs)**: The first bottleneck is ingestion connector build time, best solved with a templated, config-driven connector framework rather than bespoke code. The second is vector DB shard capacity, so pre-provision shards and run the embedding backfill as a rate-limited batch job decoupled from the live query path, keeping other studios' latency unaffected.
 
-7. **Top-K and candidate-set tuning**: Top-K for initial ANN retrieval (candidates fed to reranker) is chosen to maximize the probability the true best answer is present in the candidate set (recall@K) while bounding reranker compute cost, since rerank cost scales linearly with candidate count. Empirically, recall@50 typically captures diminishing returns beyond it for most enterprise-doc corpora at this scale — pushing to top-100 marginally improves recall but roughly doubles reranker latency/cost for limited gain. Tune it against the offline eval set: plot recall@K vs K, pick the knee of the curve, then validate the resulting top-8 (post-rerank) precision meets the target NDCG.
+7. **Top-K and candidate-set tuning**: Top-K for ANN retrieval is chosen to maximize recall@K (probability the best answer is in the candidate set) while bounding reranker cost, which scales linearly with candidate count. Tune it against an offline eval set by plotting recall@K vs K and picking the knee of the curve.
 
-8. **A/B testing a new embedding model safely**: Never flip 100% traffic to a new embedding version directly. Build the new index fully in parallel (blue/green, §32/§17), validate against the golden eval set (recall@10, NDCG@8) and shadow-traffic comparison (replay live queries against both indexes, compare top-8 overlap and downstream groundedness with the same LLM) before any live traffic touches it. Then canary-ramp (§33) with automated gates comparing groundedness/thumbs-down/latency between control and treatment cohorts, with the old index kept warm for instant rollback throughout.
+8. **A/B testing a new embedding model safely**: Build the new index fully in parallel (blue/green, §32/§17) and validate with the golden eval set plus shadow-traffic replay comparing top-8 overlap and groundedness against the current index before any live traffic touches it. Then canary-ramp (§33) with automated quality/latency gates and the old index kept warm for instant rollback.
 
-9. **Persistent quality gap for a query category**: Don't just quietly route more traffic to Tier 2 — that's a cost-blind band-aid. Instead, root-cause: is it a retrieval problem (wrong chunks surfaced for that category), a context-window/prompt problem (insufficient context for complex multi-hop questions), or a genuine base-model capability gap? If it's retrieval, fix chunking/reranking for that doc category. If it's a genuine model capability gap for a bounded, identifiable query category (e.g., complex multi-step legal reasoning), then yes — permanently route that specific category to Tier 2 via the complexity classifier, but treat it as a deliberate, monitored, cost-bounded routing decision (with its own budget line), not an ad hoc drift.
+9. **Persistent quality gap for a query category**: Root-cause first — retrieval failure, prompt/context insufficiency, or genuine base-model capability gap — rather than quietly routing more traffic to Tier 2. Only if it's a real, bounded capability gap should that category be permanently routed to Tier 2 as a deliberate, cost-monitored decision.
 
-10. **GDPR right-to-erasure end-to-end**: Erasure must cascade through every layer that has a copy: (a) mark the source document deleted/tombstoned in the metadata store, (b) remove all associated chunks and embeddings from the vector DB (delete-by-doc_id, not just mark-inactive, given the ANN index may still surface tombstoned-but-present vectors), (c) purge or redact any cached full-answer entries that cited the doc (cache invalidation keyed by cited doc_id, not just TTL expiry), (d) redact the doc reference from historical query logs within the retention/redaction policy (or note in a compliance ledger that historical logs referencing it have been reviewed), and (e) exclude it from the next embedding backfill/index-rebuild permanently. This needs to be a defined, auditable runbook (not ad hoc), because "delete the source doc" alone leaves it discoverable via cached answers, logs, and a stale ANN index.
+10. **GDPR right-to-erasure end-to-end**: Erasure must cascade through every copy — tombstone the source doc, delete its chunks/embeddings from the vector DB (delete-by-doc_id, not mark-inactive), purge cached answers that cited it, and redact it from historical logs. This must be a defined, auditable runbook, since deleting the source doc alone leaves it discoverable via caches, logs, or a stale ANN index.

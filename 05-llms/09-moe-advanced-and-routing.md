@@ -192,22 +192,7 @@ def dispatch_with_capacity(tokens, expert_indices, n_experts, capacity_factor=1.
 
 ## 5. Expert Parallelism
 
-With N=64 experts across 64 GPUs, each GPU holds 1 expert. Routing requires:
-1. **All-to-All communication:** send each token to its assigned expert's GPU
-2. **Expert computation:** local FFN on each GPU
-3. **All-to-All communication:** return computed results to origin GPUs
-
-**Communication cost per MoE layer:**
-$$2 \times \text{all-to-all}(B \times S \times d_{model} \times \text{dtype\_bytes})$$
-
-This is the main overhead of MoE vs dense models in distributed training.
-
-**Expert parallelism + TP + DP:**
-```
-Expert parallel (EP=8): each group of 8 GPUs holds 1 expert per MoE layer
-Tensor parallel (TP=8): within each expert group, split expert FFN across 8 GPUs
-Data parallel (DP=N): multiple replicas
-```
+At scale, experts are sharded across GPUs (each GPU holds one or a few experts), and tokens are routed to their assigned expert's GPU via all-to-all communication, then results are gathered back. This all-to-all exchange is the main distributed-training overhead of MoE vs dense models, and in practice it's combined with tensor and data parallelism (EP+TP+DP) to scale to hundreds of experts.
 
 ---
 
@@ -264,20 +249,7 @@ Healthy MoE: routing entropy close to max_entropy (uniform). Expert collapse: en
 
 ## 8. iRoPE (Qwen3)
 
-Qwen3 introduces **iRoPE**: every 4th Transformer layer uses no positional encoding (NoPE).
-
-**Motivation for MoE context:** With many layers and large context, positional encoding can become a bottleneck for routing decisions — tokens at similar positions may be routed similarly. NoPE layers break this positional dependency, enabling position-agnostic routing that focuses on semantic content.
-
-```
-Layer 0: RoPE + MoE
-Layer 1: RoPE + MoE
-Layer 2: RoPE + MoE
-Layer 3: NoPE + MoE  ← position-agnostic attention
-Layer 4: RoPE + MoE
-...
-```
-
-**Result:** Better extrapolation to contexts beyond training length (enables 10M+ context).
+Qwen3 uses **iRoPE**: every 4th layer drops positional encoding (NoPE) instead of using RoPE, which reduces positional bias in routing/attention and improves extrapolation to very long contexts (10M+).
 
 ---
 

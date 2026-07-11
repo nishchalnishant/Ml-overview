@@ -449,168 +449,9 @@ Response to client                  [total server-side: ~25-30ms p50]
 - **Tiered storage**: hot online features in Redis (expensive/GB) limited to features with genuine <5s freshness need; everything else lives in cheaper offline columnar storage, synced down only what's needed.
 - **Feature reuse across teams**: shared feature store avoids duplicate feature engineering/compute pipelines across churn-prevention, matchmaking, and personalization teams — compute cost amortized.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: 15 minutes for the online serving path (personalization) — acceptable because fallback mode (non-personalized default content) can serve during recovery; **RPO**: 5 minutes for feature store (acceptable loss of most-recent real-time feature updates, batch features unaffected since offline store is source of truth).
-- **Backup strategy**: offline feature store (columnar warehouse) backed up via standard warehouse snapshotting (daily, cross-region replicated); online feature store (Redis) uses cross-AZ replica promotion for AZ failure, and periodic RDB/AOF snapshots to object storage for full-cluster-loss recovery; model registry artifacts stored in versioned, cross-region-replicated object storage (immutable, never deleted, only deprecated).
-- **Runbook**: on regional serving-path failure, DNS/traffic-manager fails over to nearest healthy region within RTO target; degraded mode (rule-based fallback content) auto-activates if feature store or model serving is unreachable, ensuring the game UI never blocks on personalization failure (fail-open, not fail-closed, since this is not a security-critical path).
-
-## 31. Multi-Region Deployment
-
-**Active-active** across 3 regions (US-East, EU-West, APAC) — chosen because personalization is latency-sensitive and player base is globally distributed; no single-region failover latency penalty acceptable for a real-time UI-blocking call.
-
-```
-        ┌────────────────────┐     ┌────────────────────┐     ┌────────────────────┐
-        │   US-East Region    │     │   EU-West Region    │     │   APAC Region       │
-        │  Full serving stack │     │  Full serving stack  │     │  Full serving stack │
-        │  (orchestrator,     │     │  (orchestrator,      │     │  (orchestrator,     │
-        │   feature store,    │     │   feature store,     │     │   feature store,    │
-        │   model serving,    │     │   model serving,     │     │   model serving,    │
-        │   vector DB replica)│     │   vector DB replica)  │     │   vector DB replica) │
-        └─────────┬──────────┘     └─────────┬──────────┘     └─────────┬──────────┘
-                  │                          │                          │
-                  └──────────────┬───────────┴───────────┬──────────────┘
-                                 ▼                        ▼
-                     ┌───────────────────────────────────────────┐
-                     │  Global Feature Data Plane (async replication│
-                     │  of offline feature store + model registry) │
-                     └───────────────────────────────────────────┘
-```
-
-- **Latency routing**: GeoDNS/Anycast + client-side region pinning at session start (player routed to nearest region based on game-server region assignment, kept sticky for session duration to avoid feature-store cross-region reads mid-session).
-- **Data replication**: offline feature store and model registry replicate cross-region asynchronously (batch sync, acceptable staleness since these aren't real-time paths); online feature store (Redis) is **regional, not globally replicated** — real-time features are regionally scoped since a player's session is pinned to one region anyway, avoiding cross-region write latency/conflict entirely.
-- **Experiment consistency**: experiment assignment must be globally consistent (a player shouldn't see different variants if they roam regions) — assignment determinism achieved via consistent hashing on `player_id + experiment_id` (stateless, computed identically regardless of region, no cross-region state needed).
-
-## 32. Blue/Green Deployment
-
-- Applies to **model rollout** and **service code deployment** separately.
-- **Model blue/green**: two model-version slots (blue=current champion, green=challenger) loaded simultaneously in the serving fleet; traffic router (orchestrator-level feature flag) shifts a defined % from blue to green; full cutover only after canary gate (Section 33) passes; instant rollback = flip router back to blue (no redeploy needed since both versions are already warm in memory).
-- **Service code blue/green**: new orchestrator version deployed to a parallel pod fleet (green), smoke-tested against synthetic traffic, then load balancer cutover; old fleet (blue) kept running for a rollback window (30 min) before decommission.
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy**: new model version starts at 1% of traffic (randomly assigned via consistent hashing, stratified to ensure representative player segments — not just one region/cohort), ramps 1% → 5% → 25% → 100% over 24-48 hours, gated at each step.
-- **Health-check gates specific to this system**: (1) latency p99 within 10% of baseline, (2) error rate <0.5%, (3) fallback-rate not elevated, (4) short-window online proxy metric (click-through/engagement on personalized slot) not regressed >2% vs. control, (5) no SRM alert from experimentation platform, (6) offer-conversion rate not regressed (critical business gate — a regression here blocks progression regardless of technical health).
-- **Automated gate evaluation**: canary analysis job runs every 2 hours during ramp, auto-halts progression (does not auto-rollback) on gate failure, pages ML on-call for manual decision if a business-metric gate fails (avoids autopilot rollback on noisy day-1 data).
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: p99 latency regression >20%, error rate >2%, fallback rate spike >15%, or a hard business-metric gate breach sustained over 3 consecutive evaluation windows → automatic rollback to last-known-good model version (instant, since blue/green keeps prior version warm).
-- **Rollback mechanics**: router-level flip back to prior model version slot (no redeploy); for service-code rollback, traffic shifted back to blue fleet via load balancer weight change; both complete in <60 seconds.
-- **Post-rollback**: incident auto-filed, exposure logs from the rolled-back window flagged/excluded from experiment analysis to avoid contaminating results with a known-bad model period.
-
-## 35. Observability
-
-- **Tracing**: distributed tracing (OpenTelemetry) across the full request lifecycle (gateway → orchestrator → feature store/experiment/candidate/model-serving fan-out) with `request_id` propagated as trace ID — enables pinpointing which fan-out call dominates p99 latency for a given slow request.
-- **Metrics**: Prometheus-style metrics per component (latency histograms, QPS, error rate, cache hit rate, drift metrics) scraped and visualized in Grafana; business metrics (conversion, retention lift) in a separate analytics dashboard fed by the offline warehouse.
-- **Logs**: structured logs (Section 24) correlated via `request_id` and `trace_id`, queryable in a centralized log platform (e.g., Datadog/ELK), linked directly from trace spans to corresponding log lines for one-click debugging.
-- **Correlation in practice**: an on-call engineer investigating a p99 latency alert opens the trace for a slow sample request, sees the vector-DB ANN query span took 40ms (vs. 8ms budget), pivots to vector-DB-specific metrics dashboard, finds a shard imbalance, cross-references logs for that shard's recent index-rebuild event — full pillar correlation in under 5 minutes.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: personalization-orchestrator
-  labels: { app: personalization-orchestrator }
-spec:
-  replicas: 13
-  selector:
-    matchLabels: { app: personalization-orchestrator }
-  template:
-    metadata:
-      labels: { app: personalization-orchestrator }
-    spec:
-      containers:
-        - name: orchestrator
-          image: registry.ea.internal/personalization/orchestrator:v14.2
-          resources:
-            requests: { cpu: "2", memory: "4Gi" }
-            limits: { cpu: "4", memory: "8Gi" }
-          ports: [{ containerPort: 8080 }]
-          readinessProbe:
-            httpGet: { path: /v2/health, port: 8080 }
-            periodSeconds: 5
-          env:
-            - name: FEATURE_STORE_ENDPOINT
-              value: redis-feature-store.svc.cluster.local:6379
----
-apiVersion: v1
-kind: Service
-metadata: { name: personalization-orchestrator-svc }
-spec:
-  selector: { app: personalization-orchestrator }
-  ports: [{ port: 443, targetPort: 8080 }]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: orchestrator-hpa }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: personalization-orchestrator }
-  minReplicas: 13
-  maxReplicas: 60
-  metrics:
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
-    - type: Pods
-      pods:
-        metric: { name: requests_per_second }
-        target: { type: AverageValue, averageValue: "2000" }
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_elasticache_replication_group" "feature_store" {
-  replication_group_id       = "personalization-online-features"
-  description                 = "Online feature store for personalization engine"
-  node_type                   = "cache.r6g.2xlarge"
-  num_node_groups              = 8
-  replicas_per_node_group       = 2
-  engine                       = "redis"
-  engine_version                = "7.1"
-  automatic_failover_enabled     = true
-  multi_az_enabled               = true
-  at_rest_encryption_enabled       = true
-  transit_encryption_enabled        = true
-}
-
-resource "aws_msk_cluster" "telemetry_bus" {
-  cluster_name           = "personalization-telemetry"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes    = 9
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets   = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 1000 } }
-  }
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS", in_cluster = true }
-  }
-}
-
-resource "aws_eks_node_group" "model_serving_cpu" {
-  cluster_name    = var.eks_cluster_name
-  node_group_name  = "model-serving-cpu"
-  instance_types    = ["c6i.xlarge"]
-  scaling_config {
-    min_size     = 13
-    max_size     = 60
-    desired_size  = 20
-  }
-  labels = { workload = "personalization-model-serving" }
-}
-
-resource "aws_instance" "embedding_training_gpu" {
-  count         = 8
-  instance_type  = "p4d.24xlarge"
-  ami            = var.gpu_training_ami
-  spot_price      = "12.00"
-  tags = { Name = "embedding-training-node", workload = "batch-training" }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -687,22 +528,22 @@ resource "aws_instance" "embedding_training_gpu" {
 
 ## 46. Ideal Answers
 
-1. **Training/serving skew**: Enforce a single feature registry as the source of truth for feature *definitions* (not just names) — both streaming and batch pipelines implement the same logical computation from a shared spec/config, ideally code-shared (e.g., same aggregation logic compiled to both a streaming operator and a batch SQL/Spark job). Additionally, log the actual feature values used at serving time (not recomputed) into the exposure log, so training can optionally use served-value replay instead of recomputing offline — this is the most robust skew-elimination technique, at the cost of extra log volume.
+1. **Training/serving skew**: Enforce a single feature registry as the source of truth for feature *definitions*, so streaming and batch pipelines compute features the same way, ideally via shared code. Logging actual served feature values into the exposure log (for served-value replay in training) is the most robust fix, at the cost of extra log volume.
 
-2. **SRM detection**: Run a chi-squared goodness-of-fit test daily comparing observed variant allocation counts to expected allocation ratios per experiment; alert if p < 0.001. Root-causes to check: caching/sticky-session bugs causing uneven bucketing, client-side retry logic double-counting one variant, or a fallback path that silently defaults everyone to control under partial outages (masquerading as an SRM). Fix by auditing the assignment determinism (hash function on player_id+experiment_id) and cross-checking exposure-log counts against gateway request counts.
+2. **SRM detection**: Run a daily chi-squared goodness-of-fit test comparing observed vs. expected variant allocation, alerting if p < 0.001. Common root causes are sticky-session bucketing bugs, client-side retry double-counting, or a fallback path silently defaulting everyone to control.
 
-3. **GBDT vs deep ranker**: LightGBM wins here because (a) feature set is primarily tabular/aggregate stats where tree splits capture interactions well, (b) inference cost/latency is far lower on CPU, (c) it's inherently more interpretable for feature-importance explainability required by live-ops/finance sign-off on pricing personalization, (d) training data volume per surface (tens of millions of rows) doesn't yet justify a deep model's higher data appetite. Would reconsider if: candidate pools grow to require learned dense retrieval at scale beyond what the two-tower model handles, or if sequential/session-level modeling (transformer-style next-item prediction) becomes the dominant driver of lift, justifying the added serving complexity.
+3. **GBDT vs deep ranker**: LightGBM wins here since the feature set is mostly tabular aggregates (trees capture interactions well), CPU inference is cheaper, and tree-based feature importance satisfies interpretability needs for pricing sign-off. Would reconsider if candidate pools or sequential/session modeling needs grew enough to justify a deep model's added complexity.
 
-4. **Point-in-time join**: For each labeled training example (player, exposure_time, outcome), query the offline feature store as of `exposure_time - buffer` (buffer accounts for ingestion lag, e.g., a few minutes) using either Iceberg/Delta time-travel snapshot queries or an explicit feature-versioning table with `valid_from/valid_to` ranges; join on `player_id` and the nearest valid feature snapshot strictly before `exposure_time`. Automated tests assert no feature's `valid_from` exceeds the label's exposure_time in the generated training set (a leakage linter run as part of the training DAG).
+4. **Point-in-time join**: For each training example, query the offline feature store as of `exposure_time - buffer` using time-travel snapshots or explicit `valid_from/valid_to` versioning, joining on the nearest valid snapshot strictly before exposure_time. An automated leakage linter in the training DAG asserts no feature's `valid_from` exceeds the label's exposure_time.
 
-5. **Vector DB p99 outlier mitigation without re-architecture**: (a) add more replica shards to spread query load, (b) tune HNSW `ef_search` parameter down slightly to trade a small recall loss for latency, (c) move the ANN query off the synchronous critical path for surfaces where it's not essential — pre-compute top-K candidates asynchronously per session-start rather than per-request, caching the result for the session duration, (d) add a request-level timeout with graceful fallback to rule-based candidates only if the ANN query exceeds budget.
+5. **Vector DB p99 outlier mitigation without re-architecture**: Add replica shards to spread load, tune HNSW `ef_search` down to trade a bit of recall for latency, and move the ANN query off the synchronous path where possible (pre-compute top-K per session-start, cached for the session) with a timeout fallback to rule-based candidates.
 
-6. **Cross-title personalization**: Requires a shared player-identity graph across titles (linked EA accounts) and a shared feature namespace with title-agnostic features (e.g., "genre affinity," "spend tier across portfolio") alongside title-specific ones; the two-tower embedding approach extends naturally — item tower can include a cross-title catalog, player tower already ingests portfolio-wide behavioral aggregates. Main challenge is governance: cross-title data sharing requires explicit consent modeling and careful handling of titles with different regulatory audiences (e.g., youth-rated titles).
+6. **Cross-title personalization**: Requires a shared player-identity graph across titles and a shared feature namespace mixing title-agnostic (e.g., genre affinity) and title-specific features; the two-tower model extends naturally since the player tower already ingests portfolio-wide behavior. Main challenge is governance — consent modeling and handling titles with different regulatory audiences (e.g., youth-rated).
 
-7. **Experiment interaction/confounding**: Use orthogonal randomization (independent hash seeds per experiment layer, "universe" splitting a la classic multi-layer experimentation frameworks) so experiments in *different* layers are statistically independent; for experiments in the *same* layer (e.g., two offer-ranking experiments), mutual exclusion is enforced at the assignment layer. Always run interaction checks post-hoc when two live experiments touch overlapping metrics — flag if effect sizes change significantly when segmenting by the other experiment's variant.
+7. **Experiment interaction/confounding**: Use orthogonal randomization (independent hash seeds per experiment layer) so experiments in different layers are statistically independent, with mutual exclusion enforced within the same layer. Run post-hoc interaction checks flagging when effect sizes shift significantly when segmented by another live experiment's variant.
 
-8. **Same-session reactivity to large purchase**: Yes — the `telemetry.purchase` event flows through the streaming feature-ingestion consumer within seconds, updating `rt:currency_balance` and a `recent_purchase_flag` in the online feature store; the next personalization call in the same session (e.g., opening the shop again) reads the updated feature immediately. Business rules also react directly (not just via the model) — e.g., suppress showing the same bundle just purchased, enforce a cooldown before showing another high-value offer to avoid fatigue/manipulation appearance.
+8. **Same-session reactivity to large purchase**: Yes — the `telemetry.purchase` event flows through the streaming feature-ingestion consumer within seconds, updating online features like `recent_purchase_flag` before the next personalization call in-session. Business rules also react directly, e.g., suppressing the just-purchased bundle and enforcing a cooldown on further high-value offers.
 
-9. **Fairness/manipulation concerns with high-spend targeting**: Explicitly monitor and cap "offer-intensity" or "spend-pressure" exposure per player per day (business rule ceiling, not left purely to model optimization) regardless of predicted propensity; exclude or down-weight training signals that would let the model over-index on compulsive-spending patterns (e.g., cap the LTV-segment feature's influence, monitor for feedback loops where the model learns to target players showing addictive engagement patterns); maintain a live-ops/compliance review process for any surface tied to monetary offers, and support fast manual override/kill-switch per segment. This is as much a policy/process control as a modeling one — the architecture must expose the override and monitoring hooks (Section 4 FR7, Section 22) precisely to support this.
+9. **Fairness/manipulation concerns with high-spend targeting**: Cap "offer-intensity" exposure per player per day as a hard business rule regardless of predicted propensity, and down-weight training signals that would let the model over-index on compulsive-spending patterns. This is as much a policy/process control as a modeling one — the architecture must expose override and monitoring hooks (Section 22) to support it.
 
-10. **5ms budget instead of 30ms**: Would require moving from a synchronous fan-out-per-request model to a **pre-computation** model — compute personalization results asynchronously at session-start (or even predictively pre-fetch for likely-next-surfaces) and serve from a session-scoped cache with a <5ms lookup, since no combination of network fan-out (feature store + experiment + candidate + vector DB, each with irreducible network RTT) can reliably fit in 5ms p99 across regions. This trades some freshness (can't react to same-second events) for latency, and pushes real-time reactivity (Section 18) to a "next surface load" cadence instead of true per-request freshness.
+10. **5ms budget instead of 30ms**: Would require moving from synchronous per-request fan-out to a pre-computation model — compute personalization at session-start and serve from a session-scoped cache with <5ms lookup, since network RTT across feature store/experiment/vector DB calls can't reliably fit in 5ms p99. This trades same-second freshness for latency.

@@ -461,201 +461,9 @@ On-call routing: two-tier — platform infra on-call owns control plane/schedule
 - **Right-sizing via VPA**: (Section 28) prevents over-requesting CPU/memory for training jobs, improving bin-packing density on shared nodes.
 - **Reserved capacity for baseline**: on-prem GPU fleet sized to steady-state median load (not peak) with cloud burst absorbing spikes — avoids paying cloud on-demand rates for baseline, EA-owned capacity is cheaper amortized.
 
-## 30. Disaster Recovery (RTO/RPO targets, backup strategy)
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RTO | RPO | Backup strategy |
-|---|---|---|---|
-| Model registry metadata (Postgres) | 15 min | 5 min | Multi-AZ synchronous replica + continuous WAL archiving to object storage |
-| Model artifacts (object store) | 1 hr | 0 (versioned, immutable) | Cross-region replication (US-East → US-West), versioning enabled, no in-place overwrite |
-| Online feature store (Redis/DynamoDB) | 30 min | 1 min | DynamoDB point-in-time recovery; Redis replicated with AOF persistence + cross-region replica |
-| Offline feature store (Iceberg/S3) | 4 hr | 0 (immutable snapshots) | Cross-region S3 replication; Iceberg snapshot retention allows rollback to any prior table state |
-| Compute scheduler/K8s control plane | 1 hr | N/A (stateless jobs re-submitted) | etcd backup every 5 min; multi-master control plane; jobs are re-triggerable from orchestration DAG state |
-| Serving fleet | 5 min | N/A | Multi-region active-active (Section 31); regional failure fails over via global LB |
-
-Overall platform RTO target: 1 hour for full control-plane recovery from a regional disaster; serving continuity maintained via multi-region active-active with near-zero RTO for the *serving* path specifically (the highest player-facing-impact component).
-
-## 31. Multi-Region Deployment (active-active vs active-passive, data replication, latency routing)
-
-- Topology: **active-active** for model serving (US-East, US-West, EU-Dublin) — inference must be low-latency and regionally resilient since it's on the critical path for live gameplay (matchmaking, anti-cheat). **Active-passive** for control plane (registry, orchestration) — US-East primary, US-West warm standby, since control-plane operations (deploy, train) are not latency-critical and consistency is easier to reason about with a single write region.
-- Data replication: model artifacts replicated async cross-region (eventual consistency acceptable — a just-registered model propagates to serving regions within ~60s); online feature store uses regional replicas with regional-write for latency-sensitive features (e.g., EU player features written/read in EU) and async cross-region replication for globally-shared features.
-- Data residency constraint: EU player telemetry/features must not leave EU region (GDPR) — feature store enforces regional partitioning at the schema level, not just replication config, to hard-prevent cross-region reads of EU player data.
-- Latency routing: GeoDNS/Anycast + global load balancer routes inference requests to nearest healthy region; health-check-based failover removes a region from rotation within 30s of failing health checks.
-
-```
-        ┌───────────────┐        ┌───────────────┐        ┌───────────────┐
-        │   US-East       │        │   US-West       │        │  EU-Dublin      │
-        │ (Control Plane  │        │ (Warm Standby   │        │ (Serving only + │
-        │  PRIMARY +      │◄──────►│  Control Plane +│◄──────►│  EU feature     │
-        │  Serving)       │  async │  Serving)       │  async │  store, GDPR)   │
-        └───────┬─────────┘  repl  └───────┬─────────┘  repl  └───────┬─────────┘
-                │                          │                          │
-                └────────────┬─────────────┴────────────┬─────────────┘
-                             ▼                            ▼
-                   ┌───────────────────┐        ┌────────────────────┐
-                   │  Global Anycast LB  │        │ Cross-region model  │
-                   │  (latency routing,  │        │ artifact replication │
-                   │   health-check based│        │ (async, ~60s lag)    │
-                   │   failover)         │        └────────────────────┘
-                   └───────────────────┘
-```
-
-## 32. Blue/Green Deployment (how it applies to this system specifically)
-
-- Applies at the **model-serving deployment** level: a new model version is deployed as a fully separate "green" fleet (own replica set, own resource allocation) alongside the existing "blue" (current production) fleet.
-- Cutover: traffic switched atomically (or near-atomically) from blue to green via the deployment controller updating the service's endpoint selector / load-balancer target group — not a gradual ramp (that's canary, Section 33).
-- Use case fit: best for **breaking changes** — e.g., a new feature schema requiring simultaneous model + feature-pipeline version bump, where a gradual canary would create inconsistent feature/model version pairing mid-rollout. Also used for **platform infra upgrades** (e.g., Triton server version bump) where the whole serving stack changes, not just model weights.
-- Rollback: trivial and instant — flip traffic back to blue fleet (which is kept warm, not torn down, for a bake period of typically 2 hours post-cutover).
-- Cost tradeoff: requires 2x resource allocation during the cutover window — acceptable for infrequent, high-risk changes; not used for routine model version bumps (canary is cheaper and preferred there).
-
-## 33. Canary Deployment (traffic-split strategy, health-check gates specific to this system)
-
-- Default strategy for routine model version promotions: new version receives 1% → 5% → 25% → 50% → 100% traffic, each stage gated by automated health checks over a bake period (default 15 min per stage, longer for high-risk tier-1 models).
-- Health-check gates (must all pass to auto-advance to next stage):
-  - Error rate of new version within 1.5x of baseline (current stable version).
-  - p99 latency within 1.2x of baseline.
-  - Model quality proxy metric (e.g., prediction distribution KS-test vs. baseline) within acceptable drift bound — catches a bad model version (not just an infra regression) before it reaches 100% of traffic.
-  - No spike in downstream business-metric guardrails where available synchronously (e.g., match-quality score for matchmaking models) — for models with delayed labels (churn), this gate is skipped in favor of longer bake + offline backtesting before full rollout.
-- Traffic-split implementation: at the model-serving layer via weighted routing (Istio/Envoy-style traffic splitting) or Triton's ensemble/routing config; the deployment controller (Section 8) owns advancing/halting stages.
-- Failure at any stage: auto-halt and roll back to 0% for the canary (Section 34), alert model owner with the specific failed gate metric.
-
-## 34. Rollback Strategy (automated triggers, rollback mechanics)
-
-- Automated triggers: any canary gate failure (Section 33); post-100%-rollout regression detected within the bake window (error rate/latency/drift threshold breach); manual trigger via API/UI.
-- Mechanics: deployment controller reverts the `ModelDeployment` CRD's active version pointer to the last-known-good version (tracked automatically per deployment); traffic-split reset to 100% previous version, 0% new — typically completes within 30-60s (just a routing config change, not a redeploy, since the previous version's fleet is kept warm during the canary bake period).
-- Data-plane state: no rollback of feature-store data needed (features are shared across model versions, not model-specific state) — simplifies rollback compared to systems with per-version data migrations.
-- Post-rollback: automatic incident ticket created with the triggering metric/threshold, canary analysis snapshot attached, model owner paged if tier-1, otherwise Slack-notified for tier-2/3.
-- Registry state: rolled-back version marked `REJECTED` in registry with reason code, preventing accidental re-promotion without explicit review.
-
-## 35. Observability (tracing, metrics, logs correlation — the three pillars applied here)
-
-- **Tracing**: distributed tracing (OpenTelemetry → Jaeger) with a `trace_id` propagated from game-server request through API gateway → feature store → model server → response; enables pinpointing which hop dominates a slow p99 request (e.g., is 40ms of a 50ms budget spent in feature fetch vs. model inference).
-- **Metrics**: Prometheus scrapes per-component (gateway, scheduler, feature store, serving fleet), federated into long-term store (Thanos) for historical trend analysis (e.g., GPU utilization trend over quarters to inform capacity planning, Section 6).
-- **Logs**: structured logs (Section 24) correlated via `trace_id` and `request_id`, searchable in Loki/ELK; a single dashboard click on an anomalous trace jumps to the corresponding structured logs across all hops.
-- Correlation in practice: an alert fires on p99 latency breach (metric) → on-call pulls example slow `trace_id`s from the metric exemplar → inspects trace to find the slow span (e.g., feature store) → jumps to structured logs for that span/pod to find root cause (e.g., a hot partition key on a specific popular game's entity IDs).
-- Per-tenant observability: each tenant gets a scoped view (their models/deployments only) via label-based access control on the shared Grafana/Jaeger backend — avoids building N separate observability stacks.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: fifa-churn-predictor-v3
-  namespace: tenant-fifa-liveops
-  labels:
-    model: fifa-churn-predictor
-    version: "2026.07.08-1"
-spec:
-  replicas: 4
-  selector:
-    matchLabels:
-      model: fifa-churn-predictor
-  template:
-    metadata:
-      labels:
-        model: fifa-churn-predictor
-        version: "2026.07.08-1"
-    spec:
-      containers:
-        - name: mlserver
-          image: ml-platform-registry.ea.com/mlserver:xgboost-1.4
-          resources:
-            requests: {cpu: "2", memory: "4Gi"}
-            limits: {cpu: "2", memory: "4Gi"}
-          env:
-            - name: MODEL_URI
-              value: "s3://ml-platform-registry/fifa-churn/2026.07.08-1/model.tar.gz"
-          readinessProbe:
-            httpGet: {path: /v2/health/ready, port: 8080}
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: fifa-churn-predictor
-  namespace: tenant-fifa-liveops
-spec:
-  selector: {model: fifa-churn-predictor}
-  ports: [{port: 80, targetPort: 8080}]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: fifa-churn-predictor-hpa
-  namespace: tenant-fifa-liveops
-spec:
-  scaleTargetRef: {apiVersion: apps/v1, kind: Deployment, name: fifa-churn-predictor-v3}
-  minReplicas: 4
-  maxReplicas: 40
-  metrics:
-    - type: Pods
-      pods:
-        metric: {name: inference_queue_depth}
-        target: {type: AverageValue, averageValue: "20"}
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_eks_node_group" "gpu_training_spot" {
-  cluster_name    = aws_eks_cluster.ml_platform.name
-  node_group_name = "gpu-training-spot"
-  node_role_arn   = aws_iam_role.gpu_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-  capacity_type   = "SPOT"
-  instance_types  = ["p4d.24xlarge", "p3.16xlarge"]
-
-  scaling_config {
-    min_size     = 0
-    max_size     = 128
-    desired_size = 8
-  }
-
-  taint {
-    key    = "workload"
-    value  = "training-spot"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_s3_bucket" "model_registry_artifacts" {
-  bucket = "ml-platform-registry-artifacts-${var.region}"
-}
-
-resource "aws_s3_bucket_versioning" "model_registry_versioning" {
-  bucket = aws_s3_bucket.model_registry_artifacts.id
-  versioning_configuration { status = "Enabled" }
-}
-
-resource "aws_s3_bucket_replication_configuration" "cross_region_dr" {
-  bucket = aws_s3_bucket.model_registry_artifacts.id
-  role   = aws_iam_role.replication_role.arn
-
-  rule {
-    id     = "cross-region-artifact-dr"
-    status = "Enabled"
-    destination {
-      bucket        = aws_s3_bucket.model_registry_artifacts_dr.arn
-      storage_class = "STANDARD_IA"
-    }
-  }
-}
-
-resource "aws_dynamodb_table" "online_feature_store" {
-  name         = "online-features"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "entity_id"
-
-  attribute {
-    name = "entity_id"
-    type = "S"
-  }
-
-  point_in_time_recovery { enabled = true }
-  replica { region_name = "us-west-2" }
-  replica { region_name = "eu-west-1" }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -747,22 +555,22 @@ Where time is actually spent at p99: the feature-store cache-miss tail and the D
 
 ## 46. Ideal Answers
 
-1. **Runaway job isolation**: Enforce hard per-tenant ResourceQuota at the namespace level (not just soft fair-share) so no tenant can exceed its allocated GPU-hour ceiling regardless of demand. Additionally, maintain a reserved priority-tier capacity pool (e.g., 15% of fleet) that only tier-1 model retrain jobs can schedule into, with preemption rights over lower-priority jobs — implemented via Kubernetes PriorityClasses plus Volcano's queue-based reservation, so a tier-1 retrain always has capacity to preempt into even under full fleet contention.
+1. **Runaway job isolation**: Enforce hard per-tenant ResourceQuota at the namespace level so no tenant can exceed its GPU-hour ceiling. Also reserve a priority-tier capacity pool with preemption rights for tier-1 retrain jobs, so critical work always has capacity even under full fleet contention.
 
-2. **Point-in-time correctness**: Every training example carries an `event_timestamp` (the label event time). The offline feature join uses Iceberg's time-travel/snapshot capability to query feature tables *as they existed* at that timestamp, not the current/latest feature values — implemented as an `AS OF` join in Spark. This structurally prevents leakage because it's impossible to accidentally join against a feature value computed after the label event; the join engine simply has no access to future snapshots at query time.
+2. **Point-in-time correctness**: Every training example carries an `event_timestamp`, and the offline feature join uses time-travel/snapshot queries (an `AS OF` join) to fetch feature values as they existed at that timestamp, not the latest values. This structurally prevents leakage since the join engine has no access to future snapshots.
 
-3. **Distinguishing real drift from detector bug**: Check correlation — if 50 unrelated models across different tenants/feature sets all show drift simultaneously, the prior shifts heavily toward "shared upstream dependency broke" (e.g., a common feature pipeline, a shared telemetry schema change) rather than 50 independent real behavior shifts. Response: auto-pause mass-retraining triggers via a circuit breaker (rate-limit on concurrent auto-triggered retrains platform-wide), page platform on-call to investigate the shared upstream dependency first, and only allow individual model owners to manually override the pause if they've confirmed their specific drift is legitimate.
+3. **Distinguishing real drift from detector bug**: If many unrelated models across tenants show drift simultaneously, the prior shifts toward a shared upstream dependency breaking rather than independent real shifts. Auto-pause mass-retraining via a circuit breaker and page platform on-call to check the shared dependency first.
 
-4. **Active-active registry**: Move from single-writer Postgres to a multi-region-aware design — e.g., partition writes by tenant-to-home-region mapping (each tenant's registry writes go to their home region, avoiding cross-region write conflicts for the common case), with conflict-free replication (CRDTs or last-writer-wins with vector clocks) only needed for the rare cross-region operations (e.g., global model promotion visible everywhere). Accept eventual consistency for metadata reads in non-home regions, with explicit read-your-writes guarantees for the home region.
+4. **Active-active registry**: Move from single-writer Postgres to partitioning writes by tenant-to-home-region, avoiding cross-region conflicts for the common case, with conflict-free replication only needed for rare cross-region operations like global model promotion. Accept eventual consistency for non-home-region reads, with read-your-writes guaranteed at home.
 
-5. **Heterogeneous latency needs**: Don't force one SLA tier — the platform exposes deployment *profiles* (e.g., "real-time" profile with dedicated capacity, aggressive autoscaling, strict p99 gates vs. "batch" profile with spot-eligible, best-effort scheduling) selected declaratively at deployment time. The common case (majority of models are moderate-latency) gets sensible defaults; tier-1 low-latency needs opt into a more expensive, more operationally-attended profile rather than making every model pay for that complexity.
+5. **Heterogeneous latency needs**: Expose deployment profiles (e.g., "real-time" with dedicated capacity and strict p99 gates vs. "batch" with spot-eligible best-effort scheduling) selected declaratively at deployment time. Most models get sensible defaults; only tier-1 low-latency needs opt into the costlier profile.
 
-6. **Compliance violation in trained model**: Immediately quarantine the model (deregister/block promotion), trace lineage (Section 8/19) to identify exactly which training run and data snapshot included the violating data, and identify every downstream model/deployment that consumed that same tainted snapshot via the lineage graph. Retrain from a corrected snapshot excluding the offending data, and treat this as a P1 compliance incident with legal/privacy team involvement — this is precisely why lineage tracking isn't optional tooling, it's the only way to bound the blast radius of this exact scenario.
+6. **Compliance violation in trained model**: Immediately quarantine the model and trace lineage (Section 8/19) to find the tainted training run/data snapshot and every downstream model that consumed it. Retrain from a corrected snapshot and treat it as a P1 compliance incident — lineage tracking is what bounds the blast radius here.
 
-7. **Canary bake-period override**: Provide a documented "expedited canary" path with a shorter, but not zero, bake period (e.g., 5 min per stage instead of 15) available for low-risk model classes (no tier-1 designation) with explicit acknowledgment/audit trail of the override, rather than allowing an unaudited bypass entirely. Tier-1 models are never allowed to skip gates regardless of urgency — a bad matchmaking model shipped fast is worse than a slightly-delayed fix.
+7. **Canary bake-period override**: Offer a documented "expedited canary" path with a shorter (not zero) bake period for low-risk, non-tier-1 model classes, with an audit trail for the override. Tier-1 models never skip gates regardless of urgency.
 
-8. **Fair GPU cost attribution under multi-model sharing**: Meter at the request level, not the pod/GPU level — each inference request is tagged with `tenant_id` and `model_id`, and the Cost/Quota Service aggregates actual compute-time consumed per request (via Triton's per-model execution metrics) to attribute a fraction of the shared GPU's cost proportional to actual utilization, not just wall-clock hosting time. This avoids the unfair outcome of splitting cost evenly when one model on a shared GPU is doing 10x the work of another.
+8. **Fair GPU cost attribution under multi-model sharing**: Meter at the request level, tagging each inference request with `tenant_id`/`model_id` and attributing cost proportional to actual compute-time consumed, not wall-clock hosting time. This avoids unfairly splitting cost evenly when one model does far more work than another on a shared GPU.
 
-9. **Zero-drop blue/green cutover**: Use connection draining — the load balancer stops sending *new* requests to the blue fleet at cutover time but lets in-flight requests complete against blue before those pods terminate (grace period, e.g., 30s, matched to the p99 request duration so no request in flight gets killed mid-response). Green fleet is already warm and health-check-passing before any traffic shifts, so there's no cold-start gap either.
+9. **Zero-drop blue/green cutover**: Use connection draining — the load balancer stops sending new requests to blue at cutover but lets in-flight requests finish (grace period matched to p99 request duration). Green is already warm and health-check-passing before traffic shifts, so there's no cold-start gap.
 
-10. **Acquired studio with separate stack**: Treat it like any external-but-trusted tenant onboarding — stand up the acquired studio in its own namespace with standard multi-tenant isolation, but relax the "must use platform-standard pipelines" requirement temporarily via an adapter layer (e.g., a thin registry-API shim that lets their existing tooling push model artifacts into the platform's registry format without fully replatforming immediately). This gets them under central governance/cost-visibility fast (the highest-value, lowest-effort win) while giving them a longer runway to migrate onto the full self-service pipeline tooling.
+10. **Acquired studio with separate stack**: Treat it like external-but-trusted tenant onboarding — its own namespace with standard isolation, but relax the platform-pipeline requirement via a thin adapter/shim so their existing tooling can push into the registry format. This gets them under central governance fast while giving a longer runway to fully migrate.

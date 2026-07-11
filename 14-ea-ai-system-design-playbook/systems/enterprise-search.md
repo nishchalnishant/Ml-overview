@@ -483,218 +483,9 @@ Zero-result-rate and "reformulation rate" (user immediately re-searches with dif
 - **Tiered storage**: cold/rarely-accessed doc chunks (e.g., archived tickets >2 years old) can drop from the hot vector index to a cheaper "search on demand" cold path (re-embed on first query, cache result) rather than keeping all 15M vectors hot forever.
 - **Right-sizing GPU class**: L4/A10G for embedding (cheaper, sufficient for small models) vs. reserving A100/H100 exclusively for the RAG LLM where VRAM actually requires it.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: 1 hour for search API (index is a derived artifact — can be rebuilt, but restoring from snapshot is far faster than full re-crawl); 15 min for ACL KV store (security-critical path, kept multi-AZ with fast failover).
-- **RPO**: 5 min for content index (acceptable to lose up to 5 min of the newest edits, they'll re-flow through Kafka replay); near-zero (< 1 min) for ACL data — Kafka `acl.changed` topic retained with long retention (7 days) specifically to allow full ACL-state replay if the ACL KV store is corrupted.
-- **Backup strategy**:
-  - OpenSearch: nightly snapshot to blob storage + continuous translog shipping.
-  - Vector DB: nightly full snapshot; since vectors are derived from source content + model version, worst-case recovery = full re-embed from Postgres metadata + source systems (slower, ~hours, used only if snapshot restore also fails).
-  - Postgres metadata: continuous WAL archiving + point-in-time restore capability.
-  - Kafka: replicated (3x) across AZs; topics central to recovery (`content.changed`, `acl.changed`) retained long enough to fully replay index state from scratch if needed.
-- **Runbook priority order on full regional outage**: ACL KV store and gateway auth path restored first (fail closed — no search results served if ACL correctness can't be guaranteed), then lexical index (cheapest/fastest to restore, provides degraded-but-functional search), then vector DB/semantic (slower to restore), then RAG (lowest priority, non-critical path).
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active across 2 primary regions (e.g., us-east, eu-west) matching EA's studio geographic distribution, with a 3rd region as cold-standby/DR only.
-- **Data replication**: Kafka topics mirrored cross-region (e.g., MirrorMaker2-style) so each region's indexing pipeline can independently build a full local index — avoids cross-region synchronous writes on the hot indexing path. OpenSearch/vector DB indexes are **independently built per region from the same replicated event stream**, not synchronously replicated at the storage layer — cheaper and avoids cross-region write latency, at the cost of small (~seconds) inter-region freshness skew, which is acceptable given the 5-min freshness SLA is already generous relative to that skew.
-- **ACL data is the exception**: `acl.changed` topic replication is prioritized/fast-tracked (dedicated higher-throughput mirroring path) because ACL propagation SLA (2 min) is tighter than content freshness SLA and any regional skew here is a security concern, not just a UX one.
-- **Latency routing**: GeoDNS/Anycast routes users to nearest healthy region by studio location; failover to secondary region on regional health-check failure, with session-continuity handled by stateless JWT (no region-pinned session state to migrate).
-- **Multi-region topology diagram**:
-
-```
-        us-east-1 (primary)                         eu-west-1 (primary)
-   ┌───────────────────────────┐               ┌───────────────────────────┐
-   │  Gateway + Orchestrator    │               │  Gateway + Orchestrator    │
-   │  OpenSearch (local index)  │               │  OpenSearch (local index)  │
-   │  Vector DB (local index)   │◀──Kafka───────▶│  Vector DB (local index)   │
-   │  ACL KV (fast-mirrored)    │  mirroring     │  ACL KV (fast-mirrored)    │
-   └─────────────┬─────────────┘               └─────────────┬─────────────┘
-                 │                                             │
-                 └───────────────┬─────────────────────────────┘
-                                  ▼
-                       ┌────────────────────┐
-                       │  GeoDNS / Global LB  │
-                       └──────────┬──────────┘
-                                  │
-                                  ▼
-                            end users (routed to
-                            nearest healthy region)
-
-                    (ap-southeast-1: cold-standby DR,
-                     receives async Kafka mirror, index
-                     rebuild-on-activation)
-```
-
-## 32. Blue/Green Deployment
-
-Applies most concretely to **embedding model version upgrades and vector index cutovers**, since old and new embeddings are incompatible in the same ANN space:
-1. Deploy new embedding model (v4) alongside existing (v3) — both live in Embedding Service as separate Triton model versions.
-2. Build a full "green" vector index using v4 embeddings, re-embedding the entire corpus (batch job, GPU-hours as estimated in §6).
-3. Green index validated offline (recall/NDCG comparison against golden query set) before any live traffic.
-4. Cut over: Search Orchestrator's vector-DB client config flips from "blue" (v3 index) to "green" (v4 index) — atomic config flag flip, not a gradual drain, because mixing v3/v4 candidates in one ranked list would produce incomparable similarity scores.
-5. Blue index kept warm for a rollback window (e.g., 48h) before decommission.
-
-Also applies to the LTR ranking model and RAG LLM service deployments (standard blue/green pod-set swap behind the Ranking Service / RAG Service internal load balancer), though those don't have the same "incompatible vector space" constraint forcing atomic all-or-nothing cutover.
-
-## 33. Canary Deployment
-
-- **Ranking model canary**: new LTR model version receives 5% of traffic (randomly bucketed by `hash(user_id) % 100 < 5`), shadow-scored against control for 48h. Health-check gates before ramp-up: NDCG@10 on live-labeled subset within 2% of control, p99 scoring latency within 10% of control, no error-rate increase.
-- **Embedding model canary**: harder to do a true live traffic-split canary given the atomic-cutover constraint (§32) — instead, canary is done **offline against a frozen golden query set and a shadow green index**, not live production traffic split; only after offline gates pass does the blue/green atomic cutover happen (so "canary" here means "shadow evaluation," not "partial live traffic").
-- **RAG LLM canary**: new model version gets 10% of RAG-eligible requests, gated on: citation-accuracy rate (automated overlap check) within 3% of control, generation latency p99 within budget, no increase in flagged/unsafe-output rate (safety classifier on outputs).
-- **Ramp schedule**: 5% → 25% → 50% → 100% over ~4 days, with automated halt-and-rollback if any gate metric regresses beyond threshold at any stage.
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: error-rate spike >2% above baseline, p99 latency regression >20%, NDCG@10 drop >5% on shadow eval, security-canary-doc leak test failure (any leak = instant automatic rollback, no human-in-the-loop delay given severity).
-- **Mechanics**:
-  - Ranking/RAG model rollback: traffic-split config reverts to 100% control version — near-instant (config change, not redeploy) since old version's pods/weights stay warm during canary window.
-  - Embedding/vector-index rollback: flip the atomic blue/green flag back to blue index (kept warm per §32) — also near-instant, avoids re-running the expensive re-embed job under time pressure.
-  - Connector/pipeline rollback: replay from Kafka offset checkpoint prior to the bad deploy, reprocessing content with the previous-version normalizer/chunker logic (requires previous version's container image retained in registry).
-- **Post-rollback**: automatic incident ticket creation with the triggering metric snapshot attached; canary gate thresholds reviewed if rollback was a false-positive (metric noise) to avoid alert fatigue.
-
-## 35. Observability
-
-- **Tracing**: OpenTelemetry spans across the full fan-out (Gateway → Orchestrator → Lexical/Semantic parallel legs → ACL Filter → Ranking → Assembly), `trace_id` propagated end-to-end including into the async RAG path (`query_id` links the sync search trace to the async summarize job's trace).
-- **Metrics**: Prometheus-style time series for every stage latency, GPU utilization, Kafka lag, cache hit rates — all taggable by region, model_version, studio (for drill-down without needing full trace replay for aggregate questions).
-- **Logs**: structured JSON (§24), correlated via `trace_id`/`query_id` so a single Grafana/Kibana-style dashboard can pivot from "this query was slow" (metric) → "here's the trace showing ACL filter stage took 400ms" (trace) → "here's the log line showing ACL KV store had a cache miss storm" (log) in one investigation flow.
-- **Golden signals dashboard** (per component): latency, traffic, errors, saturation — standard four-signal view for each of Gateway/Orchestrator/Lexical/Semantic/Ranking/RAG.
-- **Synthetic canary queries**: scheduled synthetic searches (including ACL-boundary test queries using dedicated test accounts with known restricted access) run every 1 min against production to catch silent regressions (including security regressions) faster than organic traffic-based alerting would.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: search-orchestrator
-  labels: { app: search-orchestrator }
-spec:
-  replicas: 12
-  selector: { matchLabels: { app: search-orchestrator } }
-  template:
-    metadata: { labels: { app: search-orchestrator } }
-    spec:
-      containers:
-        - name: orchestrator
-          image: registry.ea.internal/enterprise-search/orchestrator:1.42.0
-          resources:
-            requests: { cpu: "1", memory: "1Gi" }
-            limits: { cpu: "2", memory: "2Gi" }
-          ports: [{ containerPort: 8080 }]
-          env:
-            - { name: LEXICAL_ENDPOINT, value: "opensearch.search-ns.svc:9200" }
-            - { name: VECTOR_ENDPOINT, value: "vector-db.search-ns.svc:19530" }
-          readinessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata: { name: search-orchestrator }
-spec:
-  selector: { app: search-orchestrator }
-  ports: [{ port: 80, targetPort: 8080 }]
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: search-orchestrator-hpa }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: search-orchestrator }
-  minReplicas: 12
-  maxReplicas: 60
-  metrics:
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
-    - type: Pods
-      pods:
-        metric: { name: inflight_requests_per_pod }
-        target: { type: AverageValue, averageValue: "40" }
----
-# GPU embedding service, KEDA-scaled
-apiVersion: apps/v1
-kind: Deployment
-metadata: { name: embedding-service }
-spec:
-  replicas: 2
-  template:
-    spec:
-      nodeSelector: { "gpu-type": "l4" }
-      containers:
-        - name: triton
-          image: registry.ea.internal/enterprise-search/embed-triton:2.1.0
-          resources:
-            limits: { nvidia.com/gpu: 1 }
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-# Vector DB cluster (self-hosted on EKS-style nodes with NVMe-backed instances)
-resource "aws_eks_node_group" "vector_db_nodes" {
-  cluster_name    = var.eks_cluster_name
-  node_group_name = "vector-db-nvme"
-  node_role_arn   = aws_iam_role.vector_db_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-  instance_types  = ["r6gd.2xlarge"]        # NVMe local storage for HNSW index
-  scaling_config {
-    desired_size = 6
-    min_size     = 4
-    max_size     = 12
-  }
-  labels = { workload = "vector-db" }
-}
-
-# GPU node pool for embedding + RAG serving
-resource "aws_eks_node_group" "gpu_inference_nodes" {
-  cluster_name    = var.eks_cluster_name
-  node_group_name = "gpu-inference"
-  node_role_arn   = aws_iam_role.gpu_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-  instance_types  = ["g5.2xlarge"]          # L4/A10G-class
-  capacity_type   = "SPOT"                   # ingest-time batch workers only; RAG pool overridden below
-  scaling_config {
-    desired_size = 3
-    min_size     = 1
-    max_size     = 10
-  }
-  taint {
-    key    = "nvidia.com/gpu"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-# ACL KV store (ElastiCache Redis, multi-AZ, fast failover for security SLA)
-resource "aws_elasticache_replication_group" "acl_kv" {
-  replication_group_id       = "acl-kv-store"
-  description                 = "ACL principal/doc mapping - security critical, low TTL"
-  node_type                   = "cache.r6g.large"
-  num_cache_clusters           = 3
-  automatic_failover_enabled   = true
-  multi_az_enabled             = true
-  at_rest_encryption_enabled   = true
-  transit_encryption_enabled   = true
-  snapshot_retention_limit     = 5
-}
-
-# Kafka (MSK) for ingestion/event backbone
-resource "aws_msk_cluster" "ingestion_bus" {
-  cluster_name           = "enterprise-search-events"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 6
-  broker_node_group_info {
-    instance_type   = "kafka.m5.xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info {
-      ebs_storage_info { volume_size = 500 }
-    }
-  }
-  encryption_info {
-    encryption_in_transit { client_broker = "TLS" }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -788,22 +579,22 @@ resource "aws_msk_cluster" "ingestion_bus" {
 
 ## 46. Ideal Answers
 
-1. **Timing side-channel**: normalize response latency for the ACL filter stage regardless of outcome (constant-time-ish filtering — always perform the same KV batch-lookup pattern whether 0 or 200 candidates get dropped), and never surface differential error messages (e.g., never return "403 doc exists but you can't see it" — a filtered-out doc is simply indistinguishable from a nonexistent one in every observable dimension including latency and error codes).
+1. **Timing side-channel**: normalize response latency for the ACL filter stage regardless of outcome, and never surface differential error messages. A filtered-out doc should be indistinguishable from a nonexistent one in every observable dimension, including latency and error codes.
 
-2. **Session ACL revocation trace**: (a) IdP group change fires webhook → ACL Sync Service consumes `acl.changed` (ordered per principal via partition key) → (b) publishes invalidation event → all Redis-backed principal-group caches evict the affected key within ~seconds → (c) query-result cache's 60s TTL naturally expires any pre-revocation cached responses within 60s worst case → (d) user's existing JWT (up to 15-min lifetime) still claims old group membership if group claims are embedded in the token itself — this is the actual gap; mitigate by NOT embedding group claims in the long-lived JWT at all, instead having the Gateway do a live (cached, short-TTL) group-membership check per request against the IdP-backed cache rather than trusting token claims for authorization-relevant groups.
+2. **Session ACL revocation trace**: an IdP group change triggers an ACL Sync Service event that evicts the affected principal's cache entry within seconds, and the query-result cache's 60s TTL bounds staleness for cached responses. The real gap is a long-lived JWT with embedded group claims; mitigate by not embedding authorization-relevant groups in the token and instead having the Gateway do a live, short-TTL cached check against the IdP.
 
-3. **Why not fold ACL into vector DB pre-filter entirely**: partially do this already (metadata pre-filter, §16) for efficiency, but keep a second independent check as defense-in-depth — pre-filter bitmaps can go stale between ACL change and index metadata update propagation; a second, more-current check against the ACL KV store (updated on a tighter SLA than full vector index metadata) catches that gap. Also keeps the security-critical logic in one auditable, independently-testable service rather than smeared across every retrieval backend's own filtering mechanism, which would need to be re-verified per backend.
+3. **Why not fold ACL into vector DB pre-filter entirely**: metadata pre-filtering (§16) is used for efficiency, but a second independent check against the ACL KV store is kept as defense-in-depth since pre-filter bitmaps can go stale before index metadata propagates. It also keeps security-critical logic in one auditable service rather than duplicated per retrieval backend.
 
-4. **Evaluating/tuning fusion**: offline, run interleaving experiments (Team-Draft Interleaving) between hybrid vs. lexical-only vs. semantic-only on live traffic samples to get an unbiased preference signal cheaply; online, A/B test fusion weight variants gated on NDCG@10 and CTR@3; tune fusion weights via the LTR model itself treating `bm25_score` and `cosine_sim` as two of several input features rather than hand-tuning a static linear weight — lets the model learn interaction effects (e.g., trust semantic score more for long natural-language queries, lexical more for short code-symbol queries) rather than a single global weight.
+4. **Evaluating/tuning fusion**: offline, run interleaving experiments (Team-Draft Interleaving) between hybrid/lexical/semantic to get an unbiased preference signal; online, A/B test fusion weight variants gated on NDCG@10 and CTR@3. Prefer tuning weights via the LTR model itself (treating `bm25_score` and `cosine_sim` as features) so it can learn interaction effects rather than a single hand-tuned global weight.
 
-5. **Catching bad RAG citations**: per-response, run an automated overlap/entailment check (does the passage text entail the generated claim — lightweight NLI model or embedding-similarity-of-claim-to-cited-span) before returning the answer; below a confidence threshold, either drop that specific claim or append a "low confidence" flag. In aggregate, sample a percentage of RAG responses for human eval weekly, track a "citation faithfulness rate" metric in the model-quality monitoring dashboard (§22), and treat sustained degradation as a retraining/prompt-engineering trigger.
+5. **Catching bad RAG citations**: per-response, run an automated entailment/overlap check between the cited passage and generated claim before returning the answer, dropping or flagging low-confidence claims. In aggregate, sample responses for weekly human eval and track a "citation faithfulness rate" metric (§22) as a retraining trigger.
 
-6. **Zero-downtime re-embedding**: build the full new-model-version ("green") vector index as a side-by-side artifact while the "blue" index continues serving 100% of live traffic; validate green offline against golden query set; atomically flip the Search Orchestrator's vector-DB client pointer from blue to green (a config change, not a data migration on the hot path) so there's no window where queries mix v3/v4 vectors; keep blue warm for a rollback window before decommissioning. The multi-hour re-embed compute happens entirely off the critical path.
+6. **Zero-downtime re-embedding**: build the new-model-version ("green") vector index side-by-side while "blue" keeps serving all traffic, validate green offline, then atomically flip the client pointer from blue to green so no query ever mixes vector versions. The multi-hour re-embed compute stays entirely off the critical path.
 
-7. **Dominant large repo**: shard that repo's code index separately from the rest (dedicated shard/partition sized to it) so its churn/size doesn't distort sharding balance for everything else; consider a tighter freshness SLA exception or relaxed one specifically for that repo if its commit velocity is unusually high; ensure ranking/authority features don't let sheer volume from one repo drown out relevance for smaller repos (normalize authority scores within-source rather than globally).
+7. **Dominant large repo**: shard that repo's code index separately (dedicated partition) so its churn/size doesn't distort sharding balance for everything else, and normalize authority/ranking scores within-source rather than globally so its volume doesn't drown out smaller repos.
 
-8. **Partial-access query spanning linked content**: treat each object (ticket, doc) as independently ACL-checked — a user sees the ticket they're authorized for, and the response can note "1 linked reference not shown" without revealing the linked doc's title/content/existence details beyond a generic placeholder; never let RAG synthesis silently pull content from a doc the user can't see into a summary they can see (the RAG service must apply the same ACL filter to its retrieved context set before generation, not just to the final displayed results) — this is a common and dangerous class of bug in naive RAG-over-restricted-corpora implementations.
+8. **Partial-access query spanning linked content**: treat each object as independently ACL-checked, so a response can note "1 linked reference not shown" without revealing its content. Critically, the RAG service must apply the same ACL filter to its retrieved context before generation, not just to final displayed results — otherwise summaries can leak content the user can't see.
 
-9. **Cold-start relevance evaluation**: build a golden query set via human labeling (SMEs from a few representative teams label relevance for ~200-500 representative queries against candidate docs) to compute offline NDCG before any click data exists; bootstrap the LTR model with heuristic features only (BM25 score, cosine similarity, recency, title-match) rather than CTR-dependent features; run initial ranking as a simpler weighted-sum rule rather than a learned model until enough click data accumulates (typically a few weeks at EA's query volume) to train a real LTR model without overfitting to sparse/noisy early signal.
+9. **Cold-start relevance evaluation**: build a golden query set via human labeling (~200-500 queries) to compute offline NDCG before click data exists, and bootstrap the LTR model with heuristic-only features (BM25, cosine similarity, recency, title-match). Run a simpler weighted-sum rule until enough click data accumulates to train a real model without overfitting to sparse early signal.
 
-10. **5-second freshness SLA**: this changes the architecture materially — batch-ish Kafka-consumer-driven indexing (even at "near-real-time" 5-min granularity) can't hit 5s reliably at tail; would need synchronous or near-synchronous write-path indexing (index update completes as part of the source-system save operation's acknowledged path, or a much tighter streaming pipeline with dedicated low-latency partitions), likely sacrificing some throughput/batching efficiency in the Normalizer/Embedding stages (can no longer batch-embed efficiently, must do small/single-item low-latency embedding calls, raising GPU cost per item significantly) — a concrete illustration of the freshness-vs-cost-efficiency tradeoff discussed in §29.
+10. **5-second freshness SLA**: this requires synchronous or near-synchronous write-path indexing rather than batch-ish Kafka-consumer indexing, since even 5-min near-real-time can't hit 5s at tail. It sacrifices batching efficiency in the embedding stage (small/single-item low-latency calls instead), raising GPU cost per item — illustrating the freshness-vs-cost tradeoff from §29.

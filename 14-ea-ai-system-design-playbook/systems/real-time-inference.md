@@ -515,184 +515,9 @@ On-call routing: platform infra issues → Inference Platform SRE rotation; mode
 - **Cache hit reduction of redundant inference:** last-known-good cache (Section 11) also functions as a cost lever — repeated identical requests within TTL window (e.g., rapid retries) avoid redundant GPU compute.
 - **Log/storage tiering:** prediction logs move hot→cold storage aggressively (7-day hot window instead of full 30-day hot) to cut columnar storage cost, since drift jobs mostly need recent data with occasional cold-storage backfill queries.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Target | Value |
-|---|---|
-| RTO (platform-wide outage) | 15 minutes (fail over to secondary region) |
-| RTO (single model version bad deploy) | 5 minutes (auto-rollback) |
-| RPO (prediction logs) | ≤ 1 minute (Kafka replication lag tolerance) |
-| RPO (model registry state) | 0 (synchronous multi-AZ Postgres replication) |
-| RPO (online feature store) | ≤ 5 seconds (async cross-region replication, acceptable given feature staleness tolerance) |
-
-- **Backup strategy:** Registry DB — continuous WAL archiving + daily snapshot, cross-region replica. Model artifacts — versioned, immutable in object storage with cross-region replication (artifacts never deleted, only marked retired). Prediction logs — Kafka topic replicated across 3 brokers min, sink checkpoints allow replay from last committed offset on sink failure.
-- **Runbook triggers:** region-level health-check failure → traffic-manager reroutes to healthy regions (Section 31) automatically within RTO target; region rejoin requires manual verification before receiving traffic again (avoid flapping into a still-degraded region).
-
-## 31. Multi-Region Deployment
-
-**Topology: Active-active** across US-East, US-West, EU-West.
-
-- Player traffic routed to nearest healthy region via latency-based DNS/Anycast + Gateway-level health checks; EU traffic pinned to EU-West by default for residency, with documented consent-based fallback only in a full EU-region outage (rare, policy-gated).
-- Each region runs a **full independent serving stack** (Router, Model Servers, Feature Store replica, local Kafka cluster) — no cross-region synchronous calls in the hot path (would blow the latency budget).
-- **Data replication:** Model Registry — single global source of truth (US-East primary) with async read replicas in each region; deployments propagate to all regions' local config within ~5s via the config-push mechanism (Section 11). Online Feature Store — per-region local store populated by region-local streaming pipelines reading from a globally-replicated raw event stream (each region computes its own online features locally to avoid cross-region read latency; only the upstream raw event topic is globally replicated, not the derived KV store).
-- **Failure isolation:** a region losing its feature-store or model-server pool degrades to fallback/default scores locally (Section 12/18) rather than cross-region calling (cross-region call would add 80-150ms round trip, violating p99 budget outright).
-
-```
-        US-West Region              US-East Region             EU-West Region
-     ┌───────────────────┐      ┌───────────────────┐      ┌───────────────────┐
-     │ Gateway/Router     │      │ Gateway/Router     │      │ Gateway/Router     │
-     │ GPU/CPU pools       │      │ GPU/CPU pools       │      │ GPU/CPU pools       │
-     │ Local Feature Store │      │ Local Feature Store │      │ Local Feature Store │
-     │ Local Kafka         │      │ Local Kafka         │      │ Local Kafka (EU-res)│
-     │ Registry read-replica│     │ Registry PRIMARY     │      │ Registry read-replica│
-     └─────────┬───────────┘      └─────────┬───────────┘      └─────────┬───────────┘
-               │                            │                            │
-               └──────────── async replication / config push ────────────┘
-                         (registry writes, raw event stream for
-                          per-region feature computation, drift
-                          metric rollups only — no hot-path calls)
-```
-
-## 32. Blue/Green Deployment
-
-Applies primarily at the **serving infrastructure/runtime** level (Triton version upgrades, base image/dependency changes, K8s node-pool migrations) rather than per-model-version rollout (that's canary, Section 33):
-
-- Stand up a full parallel "green" fleet (new Triton version / new node pool AMI) alongside "blue" (current), both loaded with the same set of active model versions.
-- Shift a small % of infra-level traffic (via Gateway routing weight, not model traffic-split) to green, validate infra-level health metrics (pod stability, latency parity, no memory leaks under multi-model load) over a soak period (e.g., 2-4 hours).
-- Full cutover once green matches blue on latency/error parity; blue kept warm for immediate rollback for 24h before decommission.
-- Used specifically for platform-level changes (serving runtime upgrade) because a bad runtime upgrade could silently corrupt *all* models simultaneously — too risky for a gradual canary-only approach at the infra layer.
-
-## 33. Canary Deployment
-
-Applies at the **per-model-version** level — the routine deployment path for ML teams shipping new model versions:
-
-- New version registered as `staged` → promoted to `canary` with initial traffic weight (e.g., 1-5%), configurable via `PATCH /v2/registry/models/{name}/traffic`.
-- **Health-check gates** (automated, must pass before auto-increment to next traffic step):
-  - Latency parity: canary p99 within 10% of champion p99.
-  - Error rate: canary error rate not exceeding champion by more than 0.5 percentage points.
-  - Prediction-distribution sanity: canary output distribution not wildly divergent from champion (KL divergence below a guard threshold) — catches gross bugs (e.g., wrong feature ordering) before business-metric-level canary analysis even begins.
-  - Business-metric guard (where available in near-real-time, e.g., a fast-feedback proxy): no significant regression over a minimum soak window (e.g., 2 hours at each traffic step).
-- Traffic ramp: 1% → 5% → 25% → 50% → 100%, each step gated by the above, with a minimum soak time per step (auto-advance disabled by default for high-stakes models like fraud/anti-cheat — requires human sign-off at each gate for those).
-- Shadow-mode option (FR5): new version receives mirrored real traffic with **no impact on served response** (response from champion still returned to caller) purely for offline comparison before even entering canary — used for the riskiest model classes.
-
-## 34. Rollback Strategy
-
-- **Automated triggers:** any canary health-check gate failure (Section 33) → automatic traffic weight reset to 0% for the canary version, alert deploying engineer, no human action required to *stop* the bleeding (human required to diagnose/re-attempt).
-- **SLO-breach auto-rollback:** if a **champion** version itself starts breaching platform SLOs post-full-rollout (detected within the first 30 minutes post-100%-cutover window especially) — Deployment Orchestrator auto-reverts traffic to the immediately prior champion version (kept warm, not decommissioned, for 24h post-promotion specifically to enable this).
-- **Rollback mechanics:** traffic-split is purely a config change (weights in `traffic_splits` table, pushed to routers) — no redeploy/rebuild needed, so rollback is a config-propagation-speed operation (~seconds to low single-digit minutes for full propagation), not an infra operation. This is the core reason model artifacts for the prior version are kept loaded/warm rather than evicted immediately on promotion.
-- **Manual rollback:** available at any time via the same traffic-split API, used for slow-burn quality regressions caught by drift/business-metric monitoring (not fast enough for automated triggers, but still needing before the next scheduled retrain).
-
-## 35. Observability
-
-- **Tracing:** distributed tracing (OpenTelemetry) spans the full request lifecycle — Gateway → Router → Feature Store call → Batching wait → Model Server → Response Assembler — with `request_id` as the trace correlation key propagated via headers/metadata at every hop. Critical for diagnosing *where* in an 11ms request the time actually went (Section 43) without guessing.
-- **Metrics:** RED metrics (Rate, Errors, Duration) per component + USE metrics (Utilization, Saturation, Errors) per GPU/CPU resource pool, all in a time-series store (Prometheus-compatible) with per-model-version labels for canary comparison dashboards.
-- **Logs:** structured logs (Section 24) tagged with the same `request_id`/`trace_id`, shippable to a log-aggregation backend, correlatable with traces via that shared ID — enables "show me the full trace + logs for this one failed request" workflows during incident response.
-- **Correlation in practice:** an alert fires on p99 breach (metrics) → on-call pulls the trace waterfall for a sample of slow `request_id`s in that window (traces) → cross-references structured error logs for those same IDs (logs) to find e.g. "batching queue depth spiked because one GPU node was OOM-killed" — the three pillars used together, not in isolation.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: triton-gpu-pool-matchmaking
-  labels: {app: triton-server, hardware: gpu, model-tier: champion}
-spec:
-  replicas: 6
-  selector:
-    matchLabels: {app: triton-server, pool: matchmaking-gpu}
-  template:
-    metadata:
-      labels: {app: triton-server, pool: matchmaking-gpu}
-    spec:
-      nodeSelector: {accelerator: nvidia-a10g}
-      containers:
-        - name: triton
-          image: registry.ea.internal/triton-server:24.05-multimodel
-          resources:
-            requests: {cpu: "4", memory: "16Gi", nvidia.com/gpu: "1"}
-            limits:   {cpu: "8", memory: "24Gi", nvidia.com/gpu: "1"}
-          args: ["--model-repository=s3://model-artifacts/matchmaking",
-                  "--dynamic-batching", "--max-queue-delay-microseconds=8000"]
-          readinessProbe:
-            httpGet: {path: /v2/health/ready, port: 8000}
-            periodSeconds: 5
----
-apiVersion: v1
-kind: Service
-metadata: {name: triton-matchmaking-svc}
-spec:
-  selector: {pool: matchmaking-gpu}
-  ports: [{port: 8001, targetPort: 8001, name: grpc}]
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata: {name: triton-matchmaking-scaler}
-spec:
-  scaleTargetRef: {name: triton-gpu-pool-matchmaking}
-  minReplicaCount: 6
-  maxReplicaCount: 40
-  cooldownPeriod: 600
-  triggers:
-    - type: prometheus
-      metadata:
-        query: avg(triton_batch_queue_depth{pool="matchmaking-gpu"})
-        threshold: "50"
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "google_container_node_pool" "gpu_inference_pool" {
-  name       = "inference-gpu-a10g"
-  cluster    = google_container_cluster.inference_platform.name
-  location   = var.region
-  node_count = 3
-
-  autoscaling {
-    min_node_count = 3
-    max_node_count = 20
-  }
-
-  node_config {
-    machine_type = "g2-standard-8"
-    guest_accelerator {
-      type  = "nvidia-l4"
-      count = 1
-    }
-    labels = { pool = "gpu-inference", tier = "champion" }
-    taint {
-      key    = "nvidia.com/gpu"
-      value  = "present"
-      effect = "NO_SCHEDULE"
-    }
-  }
-}
-
-resource "aws_elasticache_replication_group" "feature_store_online" {
-  replication_group_id       = "feature-store-${var.region}"
-  description                = "Online feature store - low latency KV"
-  node_type                  = "cache.r6g.xlarge"
-  num_node_groups            = 8
-  replicas_per_node_group    = 2
-  automatic_failover_enabled = true
-  multi_az_enabled           = true
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-}
-
-resource "aws_msk_cluster" "inference_events" {
-  cluster_name           = "inference-predictions-${var.region}"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 6
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 2000 } }
-  }
-  encryption_info { encryption_in_transit { client_broker = "TLS" } }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -792,22 +617,22 @@ resource "aws_msk_cluster" "inference_events" {
 
 ## 46. Ideal Answers
 
-1. **10ms p99 instead of 60ms:** Eliminate the batching window almost entirely (accept lower GPU utilization, more replicas) or restrict to CPU-only/small-model tier where compute itself is sub-ms; move feature fetch to be pre-fetched/pushed proactively (e.g., feature store streams updates directly into a request-scoped cache ahead of time via session-start hydration) rather than fetched synchronously per request; likely requires co-locating feature store and model server on the same node/rack to cut network hops; accept meaningfully higher GPU-hour cost as the direct tradeoff (Section 43's batching-window lever pushed to near-zero).
+1. **10ms p99 instead of 60ms:** Eliminate the batching window almost entirely and pre-fetch/push features into a request-scoped cache instead of fetching synchronously per request, likely co-locating the feature store and model server to cut network hops. This trades meaningfully higher GPU-hour cost for the tighter latency budget (Section 43's batching-window lever pushed to near-zero).
 
-2. **Redis failover mid-request:** Router's feature-fetch call times out against its configured budget (small, e.g. 5-8ms) → circuit breaker (if recent failure rate is high) or per-request timeout triggers fallback path → Router checks in-process/Redis-backed last-known-good cache for that entity+model → if hit, returns cached prediction tagged `degraded:true`; if miss, returns static default, still `degraded:true`. Caller's request is never blocked waiting for Redis's actual failover to complete (seconds), it fails fast into the fallback path within single-digit ms.
+2. **Redis failover mid-request:** The Router's feature-fetch call times out against a small configured budget, and a circuit breaker/per-request timeout routes it to a last-known-good cache (returns `degraded:true`) or a static default if that's also a miss. The request fails fast into the fallback path within single-digit ms rather than blocking on Redis's actual failover.
 
-3. **Dedicated vs. shared GPU capacity:** Primarily a function of (a) QPS — models above a throughput threshold (e.g., top-20 by traffic, ~80% of total QPS) get dedicated/reserved replica pools to guarantee isolation and predictable autoscaling behavior; (b) latency sensitivity/business criticality — even a lower-QPS model gets dedicated capacity if it's high-stakes (fraud/anti-cheat) and can't tolerate noisy-neighbor variance; (c) memory footprint — very large models that would dominate a shared pool's memory budget get dedicated placement regardless of QPS. Everything else defaults to shared multi-model pools, bin-packed by expected QPS × memory footprint.
+3. **Dedicated vs. shared GPU capacity:** Driven mainly by QPS (top models by traffic get dedicated/reserved pools for isolation and predictable autoscaling) and by latency sensitivity/business criticality (a high-stakes model like fraud detection gets dedicated capacity even at lower QPS to avoid noisy-neighbor variance). Everything else defaults to shared multi-model pools, bin-packed by expected QPS × memory footprint.
 
-4. **3am drift alert on low-traffic model:** No, shouldn't page — route to a non-urgent notification (Slack/ticket to model-owner team) reviewed next business day, because (a) low-traffic models have inherently noisier drift statistics (small sample size → PSI naturally more volatile) and (b) the blast radius of a stale low-traffic model is small. Reserve paging for top-20-by-traffic models or any model in a "high-stakes" tier (fraud/anti-cheat/safety) regardless of traffic — severity should be a function of both statistical confidence and business blast radius, not just threshold breach.
+4. **3am drift alert on low-traffic model:** No, shouldn't page — route to a non-urgent notification reviewed next business day, since low-traffic models have inherently noisier drift statistics and the blast radius of a stale low-traffic model is small. Reserve paging for top-traffic or high-stakes-tier models; severity should be a function of both statistical confidence and business blast radius, not just threshold breach.
 
-5. **Adding real-time voice/audio moderation:** The core router/batching/multi-model-serving/autoscaling infra is modality-agnostic and reusable as-is; what's new is (a) a much larger payload size (audio chunks vs. small feature vectors) — likely needs streaming/chunked gRPC rather than single-request/response, and possibly a dedicated ingest path bypassing the generic feature-store-fetch step entirely since audio is the direct input; (b) GPU sizing assumptions change (audio models often larger/more compute-heavy per inference than tabular models) — capacity estimation (Section 6) needs redoing for this modality specifically, not extrapolated from existing numbers; (c) likely needs its own hardware_class tier and possibly dedicated node pools given different memory/compute profile. Core control plane (Registry, canary, rollback, drift) extends unchanged.
+5. **Adding real-time voice/audio moderation:** The core router/batching/multi-model-serving/autoscaling infra is modality-agnostic and reusable as-is. What's new is the much larger payload size (likely needing streaming/chunked gRPC and a dedicated ingest path) and different GPU sizing assumptions, since audio models are often heavier per inference than tabular models. Core control plane (Registry, canary, rollback, drift) extends unchanged.
 
-6. **Incompatible feature schemas across versions during canary:** The Router's model-input-assembly step must be version-aware — resolve feature_set requirements per specific model_version (not per model_name), meaning the feature store lookup step also needs to know which feature_set_ref to request based on the resolved version, and the registry must track feature-schema dependencies per version explicitly. During the canary window, both schemas' required features must be simultaneously computable/available online (a coordination requirement with the upstream feature pipeline team — the new schema's features must already be backfilled/live in the online store *before* the model version enters canary, not simultaneously).
+6. **Incompatible feature schemas across versions during canary:** The Router's model-input-assembly step must be version-aware, resolving feature_set requirements per specific model_version rather than per model_name, with the registry tracking feature-schema dependencies per version explicitly. During the canary window, both schemas' required features must already be backfilled/live in the online store before the new version enters canary.
 
-7. **Registry as a deploy-velocity bottleneck:** Keep the Registry itself simple/low-write-volume (metadata + pointers only, never model weights or high-frequency data) so its own scaling ceiling stays far above realistic deploy frequency; make it read-replica-heavy since reads (routers checking config) vastly outnumber writes (deploys); ensure routers cache config locally and only need the Registry for periodic refresh/push-based updates, not per-request lookups — this decouples request-path availability from Registry availability entirely, so even a full Registry outage only blocks *new deployments*, not existing traffic serving.
+7. **Registry as a deploy-velocity bottleneck:** Keep the Registry itself simple and low-write-volume (metadata + pointers only, never model weights), read-replica-heavy since reads vastly outnumber writes. Routers cache config locally and only need periodic refresh from the Registry, decoupling request-path availability from Registry availability, so a Registry outage only blocks new deployments, not existing serving.
 
-8. **Cut GPU cost 40% with no traffic reduction:** First lever — audit and tighten multi-model bin-packing (likely the single biggest low-effort win if any dedicated-but-low-QPS models exist that could move to shared pools). Second — push distillation/quantization on the largest few models (biggest GPU-hour consumers by model, not by count, given the power-law — a handful of high-QPS deep models likely account for a disproportionate share of GPU-hours). Third — increase spot-instance mix for anything not in the "champion always-on-demand" tier, and re-tune batching windows toward higher throughput wherever there's unused latency budget headroom (Section 43 tradeoff pushed the other direction from Q1).
+8. **Cut GPU cost 40% with no traffic reduction:** First lever is tightening multi-model bin-packing (move any dedicated-but-low-QPS models to shared pools). Second is distillation/quantization on the handful of highest-QPS models that dominate GPU-hours given the power-law distribution, plus increasing spot-instance mix and re-tuning batching windows toward throughput wherever there's latency headroom.
 
-9. **Acquired studio with existing inference stack:** Treat it as a migration, not a merge-in-place — run the acquired stack as-is initially (avoid forced-rewrite risk to a live game), onboard it to the shared Model Registry as a control-plane-only integration first (visibility/governance without touching their serving path), then incrementally migrate individual models onto the shared Triton/K8s serving layer model-by-model via the normal canary process, prioritized by which of their models would benefit most from shared multi-model bin-packing (their highest-cost, lowest-traffic long-tail models first) — avoid a single big-bang cutover given it's a live-service game with real players.
+9. **Acquired studio with existing inference stack:** Treat it as a migration, not a merge-in-place — run the acquired stack as-is initially, onboard it to the shared Model Registry as a control-plane-only integration first, then incrementally migrate models onto the shared serving layer via the normal canary process. Avoid a single big-bang cutover given it's a live-service game with real players.
 
-10. **Automated rollback mechanism and its own failure modes:** Mechanism: health-check gate (latency/error/distribution) evaluated continuously during canary ramp and for a post-100%-cutover soak window → breach triggers Deployment Orchestrator to zero-out the new version's traffic weight via the same config-push path used for normal traffic-split changes → routers pick up the reverted config within the standard propagation window (seconds). What could go wrong with the automation itself: (a) the automated gate's own metrics pipeline could be lagging/broken, causing either false-negative (bad version never caught) or false-positive (good version wrongly rolled back) — mitigated by monitoring the *health-check pipeline's own freshness* as a meta-metric; (b) rollback config-push itself could fail to propagate to one region (the exact failure mode in Section 41's cross-region propagation-lag scenario) — mitigated by an explicit propagation-confirmation step before considering rollback "complete," with escalation if any region doesn't ack within an SLA.
+10. **Automated rollback mechanism and its own failure modes:** A health-check gate (latency/error/distribution) evaluated during canary ramp and post-cutover soak triggers the Deployment Orchestrator to zero-out the new version's traffic weight via the standard config-push path. The main risk is the automation itself: the health-check pipeline's metrics could be lagging or broken, causing false negatives/positives, so its own freshness is monitored as a meta-metric.

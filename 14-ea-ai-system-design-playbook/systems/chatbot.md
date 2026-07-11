@@ -466,186 +466,9 @@ Total P50 ≈ 500ms to first token, P99 full-turn ≈ 4.5s (incl. 1-2 tool calls
 - **Right-sizing vector DB / embedding infra:** corpus is small (Section 6) — deliberately avoid over-provisioned distributed vector DB clusters sized for hundreds of millions of vectors when tens of millions suffice.
 - **Reserved capacity vs on-demand:** baseline steady-state GPU replica reserved/committed-use discounted; burst capacity on-demand/spot.
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO (Recovery Time Objective):** 15 minutes for chat service (can degrade to "KB search only, no LLM" mode faster than full recovery); 1 hour for full LLM-inference restoration in a region.
-- **RPO (Recovery Point Objective):** 5 minutes for session state (acceptable loss of very recent in-flight conversations, users can resume); 0 for audit/refund logs (synchronous replication or WAL-shipped, zero tolerance for financial-audit data loss).
-- **Backup strategy:**
-  - Postgres: continuous WAL archiving + daily full snapshot, cross-region replicated.
-  - Redis (session state): treated as ephemeral/rebuildable — no backup, acceptable to lose on failure (graceful degradation: user re-authenticates, conversation resumes from last persisted turn in Postgres).
-  - Vector DB: nightly snapshot + rebuildable from source-of-truth KB CMS (embeddings can be regenerated, so backup is a speed optimization, not a hard requirement).
-  - Model weights: versioned in an artifact registry (immutable, multi-region replicated) — trivially "restorable" by redeploying the last-known-good version.
-- **Degraded-mode fallback:** if LLM inference layer is fully down, chat surface falls back to KB-search-only (traditional search UI) + immediate escalation-to-human option — never a hard outage of the support surface itself, only degradation of the AI layer.
-
-## 31. Multi-Region Deployment
-
-- **Topology:** active-active across 3 regions (US-East, EU-West, APAC-Southeast) — chosen because support traffic is inherently regional/latency-sensitive (players want fast responses, and GDPR requires EU player data to stay in EU).
-- **Routing:** GeoDNS/Anycast routes user to nearest healthy region; session affinity maintained via session token carrying region-of-origin, so mid-conversation failover is possible but normal traffic stays sticky to origin region for consistency.
-- **Data replication:**
-  - Transcripts/audit logs: region-local primary (data residency compliance), async cross-region replication to a compliance-approved aggregate store for global analytics (with EU data specifically excluded/anonymized per GDPR from cross-border aggregate if required).
-  - KB content: replicated to all regions (not sensitive, benefits from being everywhere for latency).
-  - Model weights: replicated to all regions' GPU pools (identical model version everywhere, no data sensitivity issue).
-  - Long-term user memory: region-local, keyed by home region — cross-region access (rare, e.g., traveling player) triggers a lookup proxy rather than replicating everything everywhere.
-
-```
-        ┌─────────────────────┐        ┌─────────────────────┐        ┌─────────────────────┐
-        │   US-East Region     │        │   EU-West Region      │        │  APAC-SE Region       │
-        │  Full stack (GW,     │        │  Full stack           │        │  Full stack           │
-        │  Orchestrator, LLM,  │◄──────►│  (GDPR-compliant       │◄──────►│  (data residency for  │
-        │  Vector DB, Redis)   │  async │   data residency)      │  async │   JP/KR/AU players)   │
-        └──────────┬───────────┘ replic └──────────┬─────────────┘ replic └──────────┬─────────────┘
-                   │  region-local writes           │                                │
-                   ▼                                ▼                                ▼
-        Postgres (US, primary)         Postgres (EU, primary)            Postgres (APAC, primary)
-                   \_______________________________|________________________________/
-                                                    ▼
-                                    Global aggregate analytics store
-                                (anonymized/aggregated cross-region view,
-                                 EU player-level data excluded per GDPR)
-```
-
-- **Failover:** if a region's inference pool degrades, GeoDNS reroutes new sessions to next-nearest healthy region within ~30-60s (health-check-driven); in-flight conversations may see a brief reconnect, session resumes from last-persisted-turn in that user's home-region Postgres (accepted RPO loss window, Section 30).
-
-## 32. Blue/Green Deployment
-
-- **Applies to:** the LLM inference layer and the orchestrator service — two full parallel environments ("blue" = current prod, "green" = new version) with the load balancer/orchestrator's model-router switching traffic atomically.
-- **Chatbot-specific nuance:** model weight swaps are the highest-risk deploys (unlike a stateless microservice, a "bad" model version doesn't crash — it silently gives worse answers), so blue/green here always includes a mandatory shadow-traffic soak (Section 19/33) before the traffic switch, not just an instant cutover.
-- **Mechanics:** green environment fully warmed (GPU pool pre-loaded with new model weights) and validated against the offline eval suite + a smoke-test conversation set before any live traffic switch; switch is instantaneous at the router level (feature-flag style), rollback is equally instantaneous (flip back to blue) since blue stays warm and running for a defined bake period (e.g., 2 hours) post-cutover before decommission.
-
-## 33. Canary Deployment
-
-- **Traffic-split strategy:** new model version starts at 1% of traffic (routed only to non-critical intents initially — e.g., FAQ/status queries, excluded from refund/ban-appeal flows until proven), ramping 1% → 5% → 25% → 50% → 100% over 3-5 days, gated at each step.
-- **Health-check gates specific to this system** (must all pass before ramping further):
-  - Escalation rate for canary cohort not worse than control by >10% relative.
-  - Thumbs-down/CSAT rate not worse than control by statistically significant margin (min sample size enforced before gate check).
-  - Tool-call schema-validation error rate ≤ control.
-  - Zero confirmed safety-filter bypasses in canary cohort.
-  - P99 latency within SLA for canary cohort.
-- **Segmentation:** canary initially restricted to lower-risk title_contexts/locales (e.g., English-language FAQ traffic) before expanding to high-stakes flows (refunds, ban appeals) — risk-tiered canary, not just a flat traffic percentage.
-
-## 34. Rollback Strategy
-
-- **Automated triggers:** any canary health-check gate (Section 33) breached → automatic halt of ramp + auto-revert to previous model version for that cohort, no human approval needed for the *halt* (human approval required to resume ramping after investigation).
-- **Rollback mechanics:** router-level instantaneous traffic flip back to last-known-good model version (blue environment kept warm during bake period specifically to make this a <30s operation, not a redeploy).
-- **Data-layer rollback:** schema migrations (Postgres) use expand-contract pattern (add-nullable-column → dual-write → backfill → cutover reads → drop-old-column) specifically so a code rollback never requires a matching destructive schema rollback.
-- **Post-rollback:** automatic incident ticket created, offending model version quarantined (not deletable, kept for post-mortem eval-diffing against what changed).
-
-## 35. Observability (Tracing, Metrics, Logs Correlation)
-
-- **Tracing:** distributed tracing (OpenTelemetry) with a single `trace_id` propagated from gateway → orchestrator → safety filters → RAG retrieval → LLM inference → tool-calling → backend services → response — critical here because a single user turn fans out into 5-8 downstream calls, and P99 latency debugging requires seeing exactly which hop was slow (was it the entitlement service, or GPU queueing?).
-- **Metrics:** RED metrics (Rate/Errors/Duration) per service hop, plus AI-specific metrics (tokens/sec, batch size, confidence score distribution, tool-call success rate) tagged with the same `trace_id`/`conversation_id` for cross-cutting queries.
-- **Logs correlation:** every structured log line (Section 24) carries `trace_id` + `conversation_id` + `turn_id`, enabling "show me everything that happened for this exact conversation" as a single query across logs/traces/metrics in the observability backend (e.g., Datadog/Honeycomb) — essential for debugging a specific bad customer interaction escalated by a support-org VP.
-- **Model-specific observability:** prompt/response pairs (redacted) linked to trace for any conversation flagged by safety filter or thumbs-down, so ML engineers can reproduce and eval-set-mine specific failures without re-querying the user.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: chat-orchestrator
-  labels: { app: chat-orchestrator }
-spec:
-  replicas: 6
-  selector: { matchLabels: { app: chat-orchestrator } }
-  template:
-    metadata: { labels: { app: chat-orchestrator } }
-    spec:
-      containers:
-        - name: orchestrator
-          image: ea-registry/chat-orchestrator:1.42.0
-          resources:
-            requests: { cpu: "500m", memory: "512Mi" }
-            limits: { cpu: "1", memory: "1Gi" }
-          ports: [{ containerPort: 8080 }]
-          env:
-            - name: REDIS_ENDPOINT
-              valueFrom: { secretKeyRef: { name: session-store, key: endpoint } }
-          readinessProbe: { httpGet: { path: /healthz, port: 8080 }, periodSeconds: 5 }
----
-apiVersion: v1
-kind: Service
-metadata: { name: chat-orchestrator-svc }
-spec:
-  selector: { app: chat-orchestrator }
-  ports: [{ port: 80, targetPort: 8080 }]
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata: { name: llm-inference-scaler }
-spec:
-  scaleTargetRef: { name: llm-inference-tier1 }
-  minReplicaCount: 1
-  maxReplicaCount: 6
-  triggers:
-    - type: prometheus
-      metadata:
-        serverAddress: http://prometheus.monitoring:9090
-        metricName: inference_queue_depth
-        threshold: "20"
-        query: avg(inference_queue_depth{deployment="llm-inference-tier1"})
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_eks_node_group" "gpu_inference_pool" {
-  cluster_name    = aws_eks_cluster.chatbot.name
-  node_group_name = "gpu-inference-tier1"
-  node_role_arn   = aws_iam_role.eks_gpu_node.arn
-  subnet_ids      = var.private_subnet_ids
-
-  instance_types = ["g5.2xlarge"]  # L4/A10G-class for 8B model tier
-  capacity_type  = "ON_DEMAND"
-
-  scaling_config {
-    min_size     = 1
-    max_size     = 6
-    desired_size = 1
-  }
-
-  labels = { workload = "llm-inference", tier = "tier1" }
-  taint {
-    key    = "nvidia.com/gpu"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_elasticache_replication_group" "session_store" {
-  replication_group_id = "chatbot-session-redis"
-  description           = "Hot session/context store for chat orchestrator"
-  node_type             = "cache.r6g.large"
-  num_cache_clusters     = 3
-  automatic_failover_enabled = true
-  engine                = "redis"
-  engine_version        = "7.1"
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-}
-
-resource "aws_rds_cluster" "transcripts" {
-  cluster_identifier      = "chatbot-transcripts"
-  engine                  = "aurora-postgresql"
-  engine_version          = "15.4"
-  master_username         = var.db_master_username
-  master_password         = var.db_master_password
-  storage_encrypted       = true
-  backup_retention_period = 35
-  preferred_backup_window = "03:00-04:00"
-}
-
-resource "aws_msk_cluster" "chat_events" {
-  cluster_name           = "chatbot-turn-events"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 6
-  broker_node_group_info {
-    instance_type   = "kafka.m5.large"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 500 } }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -740,22 +563,22 @@ resource "aws_msk_cluster" "chat_events" {
 
 ## 46. Ideal Answers
 
-1. **Router signal:** A lightweight classifier (or the Tier 1 model's own output confidence/logit entropy) trained on labeled examples of "resolved well by small model" vs. "needed escalation/large model," combined with rule-based overrides (any refund >$X, any detected high-negative-sentiment, any repeat-conversation-on-same-issue always routes to Tier 2 or straight to human) — pure model confidence alone is insufficient because small models can be confidently wrong, so calibration against held-out labeled data matters more than raw logit values.
+1. **Router signal:** A lightweight classifier (or the Tier 1 model's own confidence/logit entropy) trained on "resolved well by small model" vs. "needed escalation" labels, plus rule-based overrides (refund >$X, high-negative-sentiment, repeat-conversation always escalate). Pure model confidence alone is insufficient since small models can be confidently wrong, so calibration against held-out data matters more than raw logits.
 
-2. **Hallucinated refund amount:** The tool-call is validated against a JSON schema (correct types/fields) but critically the *authorization* is never trusted from the model — the refund service independently re-derives eligibility and amount caps from its own source-of-truth (order history, refund policy), and the $50 auto-approval cap (Assumption 7) is enforced server-side regardless of what the model requested. The model's tool call is treated as a proposed action, not an authorized one; anything above the auto-approval threshold always lands in a human review queue.
+2. **Hallucinated refund amount:** The tool-call is schema-validated but the *authorization* is never trusted from the model — the refund service independently re-derives eligibility and amount caps from its own source-of-truth, with the $50 auto-approval cap enforced server-side. The model's tool call is a proposed action, not an authorized one; anything above threshold lands in human review.
 
-3. **Gaming the escalation trigger:** Rate-limit/anomaly-detect on escalation-request frequency per user; track and flag patterns where phrase-triggered escalations correlate with no genuine account issue (cross-reference against account state/entitlement); ultimately accept some gaming is possible (as with any queue system) but bound its impact by capacity-based fair queuing across users, not purely trusting the trigger signal.
+3. **Gaming the escalation trigger:** Rate-limit/anomaly-detect on escalation-request frequency per user and cross-reference phrase-triggered escalations against actual account state/entitlement. Accept some gaming is possible but bound its impact via capacity-based fair queuing rather than purely trusting the trigger signal.
 
-4. **Drift-to-fix path:** Unsupervised clustering flags an unmatched query cluster (Section 21) → content/support team reviews sample queries in that cluster → determines if it's a genuine new issue (e.g., new patch bug) → KB article authored/updated → `kb.article.updated` event fires → RAG index incrementally updated within minutes → if volume is high enough to warrant it, queued for the next scheduled SFT refresh (Section 20) to bake the pattern into the base model's tool-calling/response behavior, not just RAG-patched.
+4. **Drift-to-fix path:** Unsupervised clustering flags an unmatched query cluster (Section 21) → support team reviews and authors/updates a KB article → RAG index updates within minutes → if volume warrants it, queued for the next SFT refresh (Section 20) to bake the pattern into the base model, not just RAG-patch it.
 
-5. **Data-sovereign deployment with no cloud region:** Architecture already assumes regional data residency (Section 31) — extending to on-prem means containerizing the same stack (K8s-portable by design) and standing up a smaller-scale single-region deployment with local GPU inference (potentially smaller/quantized model given likely limited GPU procurement on-prem) and a local Postgres/vector-DB instance; cross-region features (global aggregate analytics) simply exclude that region's data or ingest only pre-anonymized aggregates, same pattern already used for GDPR/EU exclusion.
+5. **Data-sovereign deployment with no cloud region:** Architecture already assumes regional data residency (Section 31), so extending to on-prem means containerizing the same K8s-portable stack with local GPU inference (possibly a smaller/quantized model) and a local Postgres/vector-DB instance. Cross-region features simply exclude that region's data, the same pattern already used for GDPR/EU exclusion.
 
-6. **Frontier-vendor outage fallback:** LLM router (Section 14) treats the frontier tier as a call with its own circuit breaker — on sustained failure, automatically routes all traffic that would've gone to Tier 2 down to Tier 1 with a lower-confidence disclaimer and a more aggressive escalation threshold (accept worse self-serve quality temporarily over a hard failure), while alerting on-call; this is strictly better than the alternative of blocking the whole system on a single vendor's availability.
+6. **Frontier-vendor outage fallback:** The LLM router (Section 14) treats the frontier tier as a call with its own circuit breaker — on sustained failure it routes Tier 2 traffic down to Tier 1 with a lower-confidence disclaimer and more aggressive escalation threshold, while alerting on-call. Degraded self-serve quality beats a hard failure blocked on one vendor's availability.
 
-7. **Model promotion evaluation:** A held-out golden eval set (curated by a mix of ML engineers + support-domain SMEs, refreshed each cycle to include recent real incidents) scored on task-completion correctness, escalation-judgment correctness (did it escalate when it should have, and only then), and a separate safety/red-team suite — combined with the shadow-traffic soak (mirrored real production requests, response withheld from user) comparing new vs. current model on live traffic distribution, not just the static eval set, because static evals alone miss distribution shift.
+7. **Model promotion evaluation:** A held-out golden eval set (curated by ML engineers + support SMEs, refreshed each cycle) scored on task-completion correctness, escalation-judgment correctness, and a safety/red-team suite. This is combined with a shadow-traffic soak comparing new vs. current model on live traffic, since static evals alone miss distribution shift.
 
-8. **Point-in-time correctness example:** Suppose we're training the escalation-decision classifier and one feature is `user_lifetime_tickets`. If in the offline training set we compute that feature using its *current* (today's) value for a conversation that happened 3 months ago, we've leaked future information — the model would learn from a feature value that didn't exist yet at decision time. Correct approach: join `user_lifetime_tickets` as of *that conversation's own timestamp*, mirroring exactly what the online feature store would have returned in real time back then — otherwise offline accuracy looks artificially inflated and the model underperforms in production (train/serve skew).
+8. **Point-in-time correctness example:** If training the escalation classifier with a feature like `user_lifetime_tickets`, computing it using *today's* value for a conversation from 3 months ago leaks future information the model wouldn't have had at decision time. The correct approach joins the feature as of that conversation's own timestamp, mirroring what the online feature store would have returned then — otherwise offline accuracy is inflated and production underperforms (train/serve skew).
 
-9. **Ticketing vendor swap:** The Escalation Service (Section 8) is deliberately the seam — it exposes an internal, vendor-agnostic ticket-creation interface (`create_ticket(conversation_id, summary, queue, priority)`) and translates to Salesforce-specific calls internally; swapping to Zendesk means rewriting only that adapter, not touching the orchestrator, safety filters, or LLM layer. What's tightly coupled today (and would need work) is any Salesforce-specific field mapping baked into escalation-decision logic (e.g., queue names) — worth auditing and abstracting further before a real migration.
+9. **Ticketing vendor swap:** The Escalation Service (Section 8) is the deliberate seam — an internal, vendor-agnostic `create_ticket(...)` interface translates to Salesforce internally, so swapping to Zendesk means rewriting only that adapter. What's tightly coupled today is any Salesforce-specific field mapping baked into escalation logic, worth auditing before a real migration.
 
-10. **PII-leak jailbreak disclosure — incident response:** (1) Immediately verify and reproduce the exploit in an isolated environment; (2) pull the affected model version from production traffic (instant rollback per Section 34, since blue/green keeps prior version warm); (3) assess blast radius via audit logs (Section 24) — which conversations/users were exposed; (4) notify security/legal/privacy teams per breach-disclosure policy (may trigger regulatory notification obligations under GDPR if EU users affected); (5) patch — add the specific jailbreak pattern to the safety-filter training/rule set and red-team regression suite so it's caught pre-deploy going forward; (6) post-mortem with timeline, root cause, and process fix (e.g., was this pattern in our red-team suite already and missed, or genuinely novel).
+10. **PII-leak jailbreak disclosure — incident response:** Immediately reproduce the exploit in isolation and roll back the affected model version from production (Section 34 blue/green keeps the prior version warm). Then assess blast radius via audit logs (Section 24), notify security/legal/privacy per breach-disclosure policy, and add the jailbreak pattern to the safety-filter and red-team regression suite.

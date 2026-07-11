@@ -389,161 +389,9 @@ Paging Service (PagerDuty/Slack) → on-call engineer
 - Kafka topic retention tuned per topic criticality (7 days for replay-critical topics, 24h for high-volume low-value telemetry like UI-interaction pings).
 - Right-size anomaly detection compute — it's CPU-trivial (§6), avoid over-provisioning GPU infra "just in case."
 
-## 30. Disaster Recovery
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-- **RTO**: ingestion path 15 min (failover to standby region gateway + Kafka MirrorMaker target), OLAP query path 30 min (promote read-replica cluster in secondary region), dashboard availability 30 min.
-- **RPO**: ingestion ≤ 1 min (Kafka replication across AZs, cross-region MirrorMaker lag target < 60s); OLAP store ≤ 15 min (async replication/backup cadence); metadata store (Postgres) ≤ 5 min (synchronous replica).
-- **Backup strategy**: Kafka — replication factor 3 across AZs, cross-region async mirror for DR; OLAP — nightly full snapshot + continuous replication to standby cluster; object storage — cross-region replication enabled natively; Postgres metadata — WAL-based continuous backup + PITR.
-- **Runbook**: quarterly DR drill — simulate primary-region Kafka outage, validate failover to secondary region within RTO, validate no silent event loss via checksum reconciliation.
-
-## 31. Multi-Region Deployment
-
-- **Topology**: active-active for ingestion (clients route to nearest region gateway via GeoDNS/Anycast — minimizes ingest latency for a globally distributed player base); active-passive for OLAP analytical store (single source-of-truth region for query consistency, replicated async to standby for DR, not for load-splitting, to avoid analytical query result skew across regions).
-- **Data replication**: Kafka MirrorMaker2 replicates regional topics into a central aggregation region for global rollups (e.g., worldwide CCU); each region also retains local topics for region-scoped dashboards with lower latency.
-- **Latency routing**: GeoDNS + Anycast for ingestion gateway; dashboard/Query API served from the primary analytical region (acceptable since dashboard consumers are internal staff, not latency-sensitive end users).
-
-```
-   US-West Region                 EU-West Region              APAC Region
- ┌─────────────────┐          ┌─────────────────┐        ┌─────────────────┐
- │ Ingestion GW      │        │ Ingestion GW      │       │ Ingestion GW      │
- │ Local Kafka        │        │ Local Kafka        │       │ Local Kafka        │
- └────────┬──────────┘        └────────┬──────────┘       └────────┬──────────┘
-          │  MirrorMaker2 (async)      │                            │
-          └─────────────┬──────────────┴────────────┬───────────────┘
-                        ▼                            
-              ┌───────────────────────┐              
-              │  Central Region        │             
-              │  Aggregated Kafka       │            
-              │  Flink Global Aggregates│
-              │  OLAP Store (primary)   │
-              │  Query API + Dashboards │
-              └───────────┬────────────┘
-                          ▼
-                 Standby OLAP (DR, async replica, different region)
-```
-
-## 32. Blue/Green Deployment
-
-- Applies to: Query API/BFF, dashboard frontend, anomaly detection service — all stateless.
-- Mechanics: deploy green stack fully (new Query API version) alongside blue, run smoke tests against green using shadow traffic (mirrored read queries) before cutover; switch load balancer/Ingress weight 100% to green once health checks pass; keep blue warm for 30 min post-cutover for instant rollback.
-- Flink jobs use a variant: deploy new job version, run in parallel consuming from same topic with a separate consumer group ("shadow"), compare output aggregates against production job for a validation window before promoting (swapping which job writes to the serving cache) and decommissioning old job with a savepoint for safety.
-
-## 33. Canary Deployment
-
-- **Traffic-split**: new ingestion gateway version gets 1% → 5% → 25% → 100% of traffic over ~2 hours, split by consistent hashing on `title_id` (so a whole title's traffic is canaried together, avoiding split-brain metric weirdness for a single title's dashboard).
-- **Health-check gates**: ingestion error rate < 0.1% delta vs baseline, p99 ingestion latency within 10% of baseline, no increase in DLQ rate — automated gate via Argo Rollouts/Flagger analysis template querying Prometheus.
-- **Anomaly detection service canary**: additionally gated on alert-parity check — canary must produce the same alert decisions as production on a replayed historical incident window before receiving live traffic.
-
-## 34. Rollback Strategy
-
-- **Automated triggers**: canary analysis failure (error rate/latency regression breaches gate) auto-aborts rollout via Argo Rollouts, traffic reverts to stable ReplicaSet within 1-2 min.
-- **Mechanics**: Kubernetes-native rollback (`kubectl rollout undo` / Argo Rollouts abort) for stateless services; for Flink, rollback = restart previous job version from last known-good savepoint (not the failed version's checkpoint, to avoid replaying a bad state); for OLAP schema changes, rollback via reversible migrations only (additive columns, no destructive drops in the same release).
-- **Data-plane rollback**: if a bad event schema was accepted and polluted aggregates, replay affected time window from Kafka (within retention) or cold Parquet archive through a corrected pipeline version to recompute aggregates — this is why replay/backfill (FR6) is a first-class capability, not an afterthought.
-
-## 35. Observability
-
-- **Traces**: `trace_id` generated at ingestion gateway, propagated through Kafka message headers, through Flink processing (logged at window-close), through cache write, through alert emission — enables full "why did this alert fire" reconstruction via distributed tracing (OpenTelemetry + Jaeger/Tempo).
-- **Metrics**: Prometheus scraping all services (RED metrics: rate, errors, duration) + pipeline-specific gauges (consumer lag, freshness lag, alert counts) exported to Grafana.
-- **Logs**: structured JSON, correlated by `trace_id`, centralized in Loki/ELK; log-to-trace and log-to-metric pivoting supported in Grafana via shared `trace_id`/`title_id` labels.
-- **Unified view**: a live-ops engineer investigating a paged alert can pivot from the alert (metric) → the relevant trace (which pipeline stage lagged) → the raw logs (what events caused the aggregate shift) in under 3 clicks — this cross-pillar correlation is the actual point of instrumenting all three consistently.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: telemetry-ingestion-gateway
-  namespace: live-analytics
-spec:
-  replicas: 20
-  selector:
-    matchLabels: { app: ingestion-gateway }
-  template:
-    metadata:
-      labels: { app: ingestion-gateway }
-    spec:
-      containers:
-        - name: gateway
-          image: registry.ea.com/live-analytics/ingestion-gateway:1.42.0
-          resources:
-            requests: { cpu: "1", memory: "1Gi" }
-            limits: { cpu: "2", memory: "2Gi" }
-          ports: [{ containerPort: 8443 }]
-          env:
-            - name: KAFKA_BROKERS
-              valueFrom: { configMapKeyRef: { name: kafka-config, key: brokers } }
----
-apiVersion: v1
-kind: Service
-metadata: { name: ingestion-gateway-svc, namespace: live-analytics }
-spec:
-  selector: { app: ingestion-gateway }
-  ports: [{ port: 443, targetPort: 8443 }]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: ingestion-gateway-hpa, namespace: live-analytics }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: telemetry-ingestion-gateway }
-  minReplicas: 10
-  maxReplicas: 200
-  metrics:
-    - type: Resource
-      resource: { name: cpu, target: { type: Utilization, averageUtilization: 60 } }
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-resource "aws_msk_cluster" "telemetry_backbone" {
-  cluster_name           = "live-analytics-kafka"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 45
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.4xlarge"
-    client_subnets  = var.private_subnet_ids
-    security_groups = [aws_security_group.kafka_sg.id]
-    storage_info {
-      ebs_storage_info { volume_size = 4000 }
-    }
-  }
-
-  encryption_info {
-    encryption_at_rest_kms_key_arn = aws_kms_key.telemetry.arn
-    encryption_in_transit {
-      client_broker = "TLS"
-      in_cluster    = true
-    }
-  }
-}
-
-resource "aws_eks_node_group" "flink_workers" {
-  cluster_name    = aws_eks_cluster.analytics.name
-  node_group_name = "flink-taskmanagers"
-  instance_types  = ["m5.2xlarge"]
-  capacity_type   = "SPOT"
-
-  scaling_config {
-    min_size     = 20
-    max_size     = 90
-    desired_size = 30
-  }
-
-  labels = { workload = "stream-processing" }
-}
-
-resource "aws_s3_bucket" "cold_archive" {
-  bucket = "ea-live-analytics-cold-archive"
-  lifecycle_rule {
-    enabled = true
-    transition { days = 90  storage_class = "STANDARD_IA" }
-    transition { days = 365 storage_class = "GLACIER" }
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -637,22 +485,22 @@ End-to-end p50/p99 budget, event emission → dashboard visible:
 
 ## 46. Ideal Answers
 
-1. **Hot title / noisy neighbor**: Partition Kafka topics and OLAP shards by `title_id` so one title's volume doesn't share partitions/shards with others; apply per-title quotas at the gateway (token bucket scoped per title, not just per player) so one title's burst can't starve broker bandwidth for others; give large titles dedicated Flink job clusters and dedicated ClickHouse shard groups rather than a shared pool, effectively treating "very large title" as its own tenant tier with dedicated capacity, while smaller titles share a multi-tenant pool.
+1. **Hot title / noisy neighbor**: Partition Kafka topics and OLAP shards by `title_id` so one title's volume can't starve others, and apply per-title quotas at the gateway. Give very large titles dedicated Flink clusters and ClickHouse shard groups as their own tenant tier, while smaller titles share a multi-tenant pool.
 
-2. **Anomaly detection service down for an hour**: Detection is decoupled from ingestion/aggregation — no data loss, KPIs keep flowing into the serving cache and OLAP store normally; the gap is purely in *alerting*. Mitigate with a watchdog: if the detection service's heartbeat stops, fire a meta-alert ("anomaly detection degraded") to on-call so they know to manually watch dashboards; on recovery, run detection against the missed window from the serving cache/TSDB history (it's retained) to backfill any alerts that should have fired, clearly labeled as late.
+2. **Anomaly detection service down for an hour**: Detection is decoupled from ingestion/aggregation, so no data loss occurs — the gap is purely in alerting. A watchdog fires a meta-alert if detection's heartbeat stops, and on recovery it re-runs detection against the retained history to backfill any missed alerts, labeled as late.
 
-3. **Bad client SDK corrupting aggregates**: Schema validation at the edge gateway rejects/quarantines events that don't match the registered Avro/Protobuf schema — they never reach the aggregation topics, they go to a DLQ instead. Layer on sanity-range checks (e.g., match duration can't be negative or > 4 hours) as a second validation tier. Monitor DLQ rate and per-field value-distribution drift (a new SDK version suddenly sending `duration_s` in ms instead of seconds would show up as a 1000x mean shift) — catch it via automated distribution checks before a human notices a weird dashboard.
+3. **Bad client SDK corrupting aggregates**: Schema validation at the edge gateway rejects/quarantines events that don't match the registered schema, routing them to a DLQ instead of the aggregation topics, with sanity-range checks as a second tier. Monitor DLQ rate and per-field value-distribution drift to catch issues (e.g., a units bug) automatically before a human notices a weird dashboard.
 
-4. **Statistical vs learned anomaly detection**: Statistical models are chosen because live-ops KPIs are well-understood, seasonal univariate/low-dimensional signals where EWMA/seasonal-ESD gives interpretable, fast-to-retrain, low-latency detection with no training infra needed. I'd move to a learned multivariate model if: (a) univariate thresholds produce too many false positives because KPIs are correlated and a joint anomaly model would suppress redundant alerts, or (b) we need to catch anomalies that only show up in combinations of KPIs (e.g., CCU normal + revenue normal but purchase-to-crash correlation spiking) that no single-KPI threshold would catch.
+4. **Statistical vs learned anomaly detection**: Statistical models are chosen because live-ops KPIs are well-understood, seasonal, low-dimensional signals where EWMA/seasonal-ESD gives interpretable, fast, low-latency detection with no training infra needed. Move to a learned multivariate model if univariate thresholds create too many correlated false positives, or if anomalies only show up in combinations of KPIs that no single threshold would catch.
 
-5. **Self-service custom metrics**: Expose a metric-definition API/UI (`POST /v1/metric-definitions`) backed by a template system — a live-ops engineer defines a metric as a SQL-like expression over existing event fields, validated and dry-run against a small time slice for sanity/cost estimation, then automatically compiled into a new Flink aggregation rule (for streaming) or registered as an OLAP view (for ad-hoc), deployed via the same CI/CD pipeline the platform team uses, gated by automated validation rather than a manual review queue — turns a ticket-cycle wait into a self-service, same-hour flow while keeping cost/correctness guardrails.
+5. **Self-service custom metrics**: Expose a metric-definition API/UI where a live-ops engineer defines a metric as a SQL-like expression, validated and dry-run for sanity/cost, then automatically compiled into a Flink aggregation rule or OLAP view via the same CI/CD pipeline. This turns a ticket-cycle wait into a self-service, same-hour flow while keeping automated correctness guardrails.
 
-6. **Flink job upgrade — exactly-once vs at-least-once**: Deploy the new job version consuming from the same topic under a new consumer group ("shadow"), letting it build up state from a fresh start or from a restored savepoint of the old job. Validate its output against the old job's live output for a window. Cut over by pointing the serving-cache writer at the new job's output and stopping the old job with a final savepoint (not just killing it) so no in-flight window is lost. Because Flink's checkpointing (RocksDB + barrier-based snapshots) gives exactly-once *processing* semantics within the job, and the sink (serving cache write) is idempotent by key, the net effect across the cutover is exactly-once at the aggregate level, even though Kafka delivery itself is only at-least-once.
+6. **Flink job upgrade — exactly-once vs at-least-once**: Deploy the new job version under a shadow consumer group, validate its output against the old job's live output for a window, then cut the serving-cache writer over and stop the old job with a final savepoint so no in-flight window is lost. Flink's checkpointing plus an idempotent sink gives exactly-once at the aggregate level even though Kafka delivery itself is only at-least-once.
 
-7. **Portfolio-wide exec dashboards without violating isolation**: Keep per-title raw data and detailed OLAP tables isolated (title-scoped RBAC, per-title shards), but build a separate, deliberately coarse-grained aggregation layer (e.g., "daily revenue by title," "portfolio CCU") that only exposes pre-approved, already-aggregated metrics cross-title — never raw or per-player data. This aggregation layer has its own RBAC tier (exec-only) and is populated by a controlled ETL step that titles opt into, rather than exec dashboards querying raw per-title tables directly.
+7. **Portfolio-wide exec dashboards without violating isolation**: Keep per-title raw data and detailed OLAP tables isolated with title-scoped RBAC, but build a separate, deliberately coarse-grained aggregation layer (e.g., "daily revenue by title") that only exposes pre-approved, already-aggregated cross-title metrics. This layer has its own exec-only RBAC tier and is populated via a controlled ETL step titles opt into, rather than exec dashboards querying raw tables directly.
 
-8. **Where ML fits**: The natural insertion point is the anomaly detection stage — replacing/augmenting the univariate statistical model with a lightweight multivariate model (e.g., isolation forest or small autoencoder) whose input is the per-tick vector of ~200 normalized KPI values (not raw telemetry) and whose output is an anomaly score per tick plus optionally a per-KPI contribution/attribution score (for explainability, since on-call needs to know *which* KPI drove the alert). This keeps the input/output contract simple and keeps the heavy telemetry pipeline unchanged — ML sits downstream of aggregation, not upstream.
+8. **Where ML fits**: The natural insertion point is anomaly detection — replacing the univariate statistical model with a lightweight multivariate model (e.g., isolation forest) whose input is the per-tick vector of normalized KPI values and whose output is an anomaly score plus a per-KPI attribution score for explainability. This keeps the heavy telemetry pipeline unchanged — ML sits downstream of aggregation, not upstream.
 
-9. **Validating backfill/replay correctness**: Never overwrite historical reported numbers silently. Write corrected aggregates to a new versioned table/partition (`metric_version=2`), run the corrected pipeline in parallel with the original for a validation window, produce a diff report (what changed, by how much, for which titles/dates) reviewed by the data-platform team and the affected game team before promoting, and retain the old version for audit — any dashboard showing a "corrected" number carries a visible annotation with a link to the diff/reason, so leadership isn't surprised by silently-shifted historicals.
+9. **Validating backfill/replay correctness**: Never overwrite historical reported numbers silently — write corrected aggregates to a new versioned table/partition, run the corrected pipeline in parallel for a validation window, and produce a diff report reviewed before promoting. Any dashboard showing a "corrected" number carries a visible annotation linking to the diff/reason.
 
-10. **Testing streaming aggregation correctness**: Unit tests for individual window/aggregation functions against known input/output fixtures; integration tests replaying a recorded, hand-verified production event sample through the actual Flink job and diffing against expected aggregates; shadow-mode validation (new job version vs. old, side-by-side, per §33/§6) before any promotion; and a continuous "canary metric" — a synthetic, known-cadence test event stream injected into production that produces a predictable aggregate value, so if the pipeline's actual output for that synthetic stream ever deviates from the known-correct value, it's an automatic, always-on correctness check independent of real traffic.
+10. **Testing streaming aggregation correctness**: Unit tests for individual window/aggregation functions, integration tests replaying a hand-verified production sample through the actual Flink job and diffing against expected output, and shadow-mode validation before promotion. A continuous "canary metric" — a synthetic event stream with a known-correct aggregate — gives an always-on correctness check independent of real traffic.

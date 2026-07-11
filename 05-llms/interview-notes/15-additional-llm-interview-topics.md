@@ -20,19 +20,7 @@ Concrete failures first, then derived solutions. Each concept: problem → core 
 
 **The core insight.** Loss is a smooth, predictable function of model size N, dataset size D, and compute C. These relationships follow power laws. Crucially, there is a compute-optimal frontier: for a given FLOPs budget, there exists a specific (N, D) pairing that minimizes validation loss. Kaplan et al. (2020) suggested scaling N faster than D; Hoffmann et al. (2022, "Chinchilla") showed that was wrong — many models were dramatically undertrained because D was held too small relative to N.
 
-**The mechanics.**
-
-```text
-FLOPs ≈ 6ND  (decoder-only, forward+backward rough estimate)
-
-Chinchilla finding:
-  optimal D ≈ 20 × N  (approximate; varies with data quality)
-  i.e., for a 70B-parameter model, ~1.4T tokens is compute-optimal
-
-IsoFLOP curve: fix FLOPs = C, vary (N, D) with N×D ≈ C/6, find N* minimizing loss
-```
-
-Key distinction: training-optimal ≠ inference-optimal. A smaller Chinchilla-optimal model with the same training compute as a larger undertrained model achieves lower loss and is cheaper to serve.
+**The mechanics.** FLOPs ≈ 6ND, and the compute-optimal ratio is ~20 tokens per parameter (e.g. 70B params → ~1.4T tokens). Full derivation, IsoFLOP curves, and the training-optimal vs. inference-optimal distinction: see [02-scaling-and-data.md](../02-scaling-and-data.md).
 
 **What breaks.**
 - Data quality dominates at scale. Chinchilla ratios assume high-quality text; noisy data shifts the optimal frontier.

@@ -501,220 +501,9 @@ Total budget target: step 2-11 within 5 minutes p99 (dominated by Kafka consumer
 - **Storage tiering**: offline feature store older than 90 days moved to cold/archive storage tier (data lake lifecycle policy); score history beyond 1 year compressed further and moved off primary lake storage class.
 - **Right-sizing via VPA recommendations** (Section 28) to avoid over-provisioned memory on serving pods.
 
-## 30. Disaster Recovery (RTO/RPO targets, backup strategy)
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RTO | RPO | Backup Strategy |
-|---|---|---|---|
-| Score Store (Cassandra/DynamoDB) | 1 hour | 15 min | Multi-AZ replication (RF=3), point-in-time backup snapshots every 15 min |
-| Offline Feature Store (data lake) | 4 hours | 24 hours | Versioned object storage (immutable, append-only Delta Lake), cross-region replication |
-| Model Registry (Postgres) | 1 hour | 5 min | Continuous WAL streaming to standby + daily full snapshot |
-| Online Feature Store (Redis) | 30 min | Best-effort (rebuildable) | Not backed up directly — rebuildable from offline store + recent streaming replay within ~10-15 min; treated as a rebuildable cache, not source of truth |
-| Kafka topics | 30 min | Near-zero (replicated) | Multi-broker replication factor 3, cross-AZ |
-
-- Overall system RTO target: 4 hours to full batch-path recovery (worst case), near-real-time path degrades gracefully to "batch-only scoring" during an outage rather than being a hard dependency for player-facing systems.
-- Runbook: on Score Store outage, Score Read API falls back to last-cached value + serves a `stale=true` flag rather than hard-failing, so CRM/live-ops consumers degrade gracefully instead of erroring.
-
-## 31. Multi-Region Deployment (active-active vs active-passive, data replication, latency routing)
-
-- **Topology**: active-active across 2-3 regions (e.g., US-East, EU-West, matching EA's player base geography) for the near-real-time serving path — players routed to nearest region for lowest latency; each region has its own model-server replica set and online feature store shard.
-- **Data replication**: score store and online feature store use region-local writes with async cross-region replication (eventual consistency acceptable given staleness tolerance in NFRs) rather than synchronous multi-region writes (would blow the latency budget).
-- **Offline feature store / training**: centralized in a single primary region (training doesn't need multi-region — it's not latency-sensitive) with cross-region read replicas/backups for DR only.
-- **Latency routing**: GeoDNS or global load balancer (e.g., latency-based routing policy) directs telemetry/scoring requests to nearest healthy region; failover to next-nearest region on regional health-check failure.
-
-```
-                     ┌─────────────────────────┐
-                     │   Global LB / GeoDNS      │
-                     └───────────┬───────────────┘
-              ┌───────────────────┼───────────────────┐
-              ▼                   ▼                   ▼
-     ┌─────────────────┐ ┌─────────────────┐ ┌─────────────────┐
-     │  US-East Region   │ │  EU-West Region   │ │  APAC Region      │
-     │  - Model servers   │ │  - Model servers   │ │  - Model servers   │
-     │  - Online feat.     │ │  - Online feat.     │ │  - Online feat.     │
-     │    store (local)    │ │    store (local)    │ │    store (local)    │
-     │  - Score store      │ │  - Score store      │ │  - Score store      │
-     │    (region-local)   │ │    (region-local)   │ │    (region-local)   │
-     └─────────┬───────────┘ └─────────┬───────────┘ └─────────┬───────────┘
-               │  async cross-region replication (scores, features)         │
-               └──────────────────────────┴──────────────────────────────────┘
-                                           │
-                                           ▼
-                          ┌───────────────────────────────┐
-                          │  Central: Offline Feature Store, │
-                          │  Training Pipeline, Model Registry│
-                          │  (single primary region)          │
-                          └───────────────────────────────┘
-```
-
-## 32. Blue/Green Deployment (how it applies to this system specifically)
-
-- Applies primarily to the **model-server deployment** and the **Decision Engine** service code (not the model itself, which uses canary — Section 33).
-- Blue/Green for infra/code changes: new version of the serving container (e.g., upgraded Treelite runtime, new feature-fetch client) deployed as a fully separate "green" pod fleet alongside "blue" (current production); traffic switched via load-balancer target group swap once green passes smoke tests (health checks, synthetic scoring requests against known test players with expected score ranges).
-- Rollback = instant traffic swap back to blue fleet (no redeploy needed) — critical for a system where a bad deploy mid-way through the nightly batch SLA window could cause an SLA miss; blue/green avoids the extended rollback time of a rolling update.
-- Database schema changes (e.g., adding a field to the score store) done as expand-contract migrations compatible with both blue and green code paths during the transition window.
-
-## 33. Canary Deployment (traffic-split strategy, health-check gates specific to this system)
-
-- Applies to **new model versions** specifically (distinct from Blue/Green which is for service code).
-- New model version (e.g., `fc25-churn-v15`) deployed alongside current production (`v14`) in the same serving fleet; traffic split starts at 5% of near-real-time scoring requests routed to v15, remainder to v14.
-- **Health-check gates** before ramping traffic (5% → 25% → 50% → 100% over ~1 week):
-  - Infra health: latency/error rate parity with v14 (no regression).
-  - Model quality: rolling AUC-PR on matured labels for the canary slice must be >= v14's, calibration (Brier score) within tolerance.
-  - Business guardrail: intervention volume triggered by v15 must not deviate > 20% from v14 baseline (catches a miscalibrated model that suddenly flags everyone as high-risk).
-  - No fairness regression across cohort slices (spend tier, tenure) vs. v14.
-- Batch scoring path also runs shadow scoring with the canary model (compute both v14 and v15 scores nightly, only v14 drives interventions) before the canary is trusted enough to influence real batch decisions — cheap to do since batch inference cost is low.
-
-## 34. Rollback Strategy (automated triggers, rollback mechanics)
-
-- **Automated rollback triggers**:
-  - Model server error rate > 5% for 5 min sustained during canary ramp → auto-revert traffic split to 0% on canary.
-  - Canary AUC-PR drop > 5% relative vs. production on rolling labeled window → auto-halt ramp, alert model owner, do not auto-promote further.
-  - Intervention volume guardrail breach (Section 33) → auto-halt ramp.
-- **Mechanics**: traffic-split config (canary weight) stored in a feature-flag/config service; rollback = config change (weight → 0), no redeploy required, takes effect within seconds at the router level.
-- **Model registry rollback**: `status` field (Section 10 schema) flips previous production version back to `production`, current bad version marked `retired`; model server picks up registry change via polling/webhook within ~1 min.
-- **Batch path rollback**: if a bad batch scoring run is detected post-hoc (e.g., anomalous score distribution caught by drift monitor after the fact), a "replay" job re-runs the prior night's model version against the same feature snapshot and overwrites the score store — mitigates having sent a night's worth of bad interventions before detection; combined with the intervention volume alert (Section 23) to catch this fast.
-
-## 35. Observability (tracing, metrics, logs correlation — the three pillars applied here)
-
-- **Tracing**: distributed trace (OpenTelemetry) with a `trace_id` propagated from the originating telemetry event through streaming consumer → feature fetch → model inference → decision engine → intervention call — lets an engineer answer "why did/didn't player X get an offer" end-to-end across ~6 services.
-- **Metrics**: Prometheus-scraped metrics from every component (Section 22) feeding Grafana dashboards: golden signals (latency, traffic, errors, saturation) per service + ML-specific metrics (drift scores, AUC-PR trend, score distribution histograms).
-- **Logs**: structured JSON logs (Section 24) correlated via `trace_id` so a single dashboard/query (e.g., in a log platform like Elastic/Loki) can pull the full request path's log lines alongside its trace.
-- **Correlation in practice**: a support engineer investigating "player complained they got a churn offer despite being an active player" pulls up `trace_id` from the intervention log → sees the trace spanning feature-fetch (what features were used) → model server (what score, what model version) → decision engine (why threshold triggered) → cross-references drift dashboard for that day (was there a feature pipeline bug that day?).
-
-## 36. Kubernetes Deployment (a concrete manifest sketch or Deployment/Service/HPA YAML snippet relevant to this system)
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: churn-model-server
-  labels:
-    app: churn-model-server
-spec:
-  replicas: 8
-  selector:
-    matchLabels:
-      app: churn-model-server
-  template:
-    metadata:
-      labels:
-        app: churn-model-server
-    spec:
-      containers:
-        - name: model-server
-          image: registry.ea.internal/churn-model-server:v14
-          resources:
-            requests: { cpu: "2", memory: "4Gi" }
-            limits: { cpu: "4", memory: "8Gi" }
-          ports:
-            - containerPort: 8080
-          readinessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            initialDelaySeconds: 5
-          env:
-            - name: MODEL_REGISTRY_URL
-              value: "http://model-registry.ml-platform.svc.cluster.local"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: churn-model-server-svc
-spec:
-  selector:
-    app: churn-model-server
-  ports:
-    - port: 80
-      targetPort: 8080
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata:
-  name: churn-model-server-hpa
-spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: churn-model-server
-  minReplicas: 8
-  maxReplicas: 40
-  metrics:
-    - type: Pods
-      pods:
-        metric:
-          name: p99_inference_latency_ms
-        target:
-          type: AverageValue
-          averageValue: "50"
-```
-
-## 37. Terraform Infrastructure (a concrete Terraform snippet sketch for the core infra of this system)
-
-```hcl
-resource "aws_msk_cluster" "telemetry_bus" {
-  cluster_name           = "churn-telemetry-bus"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 6
-
-  broker_node_group_info {
-    instance_type   = "kafka.m5.xlarge"
-    ebs_volume_size = 500
-    client_subnets  = var.private_subnet_ids
-    security_groups = [aws_security_group.kafka_sg.id]
-  }
-
-  encryption_info {
-    encryption_in_transit {
-      client_broker = "TLS"
-    }
-  }
-}
-
-resource "aws_dynamodb_table" "churn_scores" {
-  name         = "churn-scores"
-  billing_mode = "PAY_PER_REQUEST"
-  hash_key     = "title_id"
-  range_key    = "player_id"
-
-  attribute {
-    name = "title_id"
-    type = "S"
-  }
-  attribute {
-    name = "player_id"
-    type = "S"
-  }
-
-  replica {
-    region_name = "eu-west-1"
-  }
-  replica {
-    region_name = "ap-southeast-1"
-  }
-
-  point_in_time_recovery {
-    enabled = true
-  }
-}
-
-resource "aws_emr_cluster" "batch_scoring" {
-  name          = "churn-batch-scoring"
-  release_label = "emr-6.15.0"
-  applications  = ["Spark"]
-
-  master_instance_group {
-    instance_type = "m5.xlarge"
-  }
-  core_instance_group {
-    instance_type  = "m5.2xlarge"
-    instance_count = 64
-    bid_price      = "0.30" # spot pricing for cost optimization
-  }
-
-  auto_termination_policy {
-    idle_timeout = 300
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture (justification)
 
@@ -816,23 +605,23 @@ resource "aws_emr_cluster" "batch_scoring" {
 
 ## 46. Ideal Answers
 
-1. **Label validation**: Run a retrospective cohort study comparing "14-day inactive" players against longer windows (60/90-day) to measure what fraction genuinely never return (true churn) vs. return later (false churn signal, e.g., vacation/seasonal). Use survival analysis (Kaplan-Meier curves) to understand the actual return-time distribution and pick a horizon where the false-churn rate is acceptably low; validate against known seasonal patterns (holiday breaks, title-specific season cadences) and exclude/flag known false-positive segments (e.g., players who churn every summer and return every fall) rather than treating the label as ground truth.
+1. **Label validation**: Run a retrospective cohort study comparing "14-day inactive" against longer windows (60/90-day) to measure what fraction genuinely never return vs. come back later (false churn, e.g., seasonal). Use survival analysis to pick a horizon with acceptable false-churn rate, and flag known seasonal false-positive segments rather than treating the label as ground truth.
 
-2. **Trigger completeness**: Instrument a periodic "shadow" analysis: score a random sample of all events (not just curated triggers) against the model and measure how often high-score-worthy moments occur outside the curated trigger set (i.e., compare against what nightly batch would have caught). If a meaningful fraction of eventual churners had a detectable near-real-time signal that wasn't in the curated trigger list, add it — but gate the addition behind a cost/benefit estimate (expected QPS increase × serving cost vs. expected incremental retention value from catching it sooner), and roll out the new trigger itself behind a canary/percentage ramp to bound blast radius.
+2. **Trigger completeness**: Periodically score a random sample of all events (not just curated triggers) and measure how often high-score-worthy moments fall outside the curated trigger set. Add missing triggers only if the cost/benefit (serving cost vs. incremental retention value) justifies it, rolled out via canary.
 
-3. **Train/serve skew prevention**: Enforce a single shared feature-transformation library (same code, ideally same language/runtime, e.g., compiled UDFs) invoked by both the Spark batch job and the Flink streaming job rather than reimplementing logic twice. Add automated parity tests that periodically compute the same feature via both pipelines for a sample of players and assert numerical equality within tolerance; alert on divergence. Additionally, validate skew empirically by comparing the online-store feature snapshot against the offline store's corresponding date partition and tracking a "feature parity drift" metric as a first-class monitored signal, not just a one-time test.
+3. **Train/serve skew prevention**: Enforce a single shared feature-transformation library used by both the batch (Spark) and streaming (Flink) jobs instead of reimplementing logic twice. Add automated parity tests comparing online-store vs. offline-store feature values and alert on divergence.
 
-4. **Measuring incrementality**: Never trust "high score + redeemed offer" as proof of causal impact — always compare against a randomized holdout/control group that receives no intervention (or a placebo). Compute incremental retention lift = retention(treated) − retention(holdout) within the same predicted-high-risk score band, and incremental revenue/cost-per-incremental-retained-player. Use this, not raw redemption rate, as the north-star metric reported to the business; also watch for cannibalization by segmenting lift by score band (offers to very-low-score players should show near-zero incremental lift — if they don't, something's confounded).
+4. **Measuring incrementality**: Never trust "high score + redeemed offer" as causal proof — always compare against a randomized holdout/control group. Compute incremental lift = retention(treated) − retention(holdout) within the same score band, and use that (not raw redemption rate) as the north-star metric.
 
-5. **Offline-online metric mismatch debugging**: Check, in order: (a) train/serve feature skew (Section/Q3) — most common root cause; (b) whether the offline eval set's label distribution matches the live population being targeted (e.g., offline eval on all players but live campaign only targets a specific segment); (c) whether the "high-risk" score threshold used to select the campaign audience is actually where AUC-PR gains manifest (a model can improve AUC-PR globally while providing no improvement in the specific score range used for targeting); (d) confirm the A/B test itself has enough statistical power (sample size, effect size assumptions) — a real lift might exist but be underpowered to detect; (e) verify the intervention mechanism (push/offer) itself didn't change concurrently, confounding attribution.
+5. **Offline-online metric mismatch debugging**: Check, in order: (a) train/serve feature skew (§3) — most common root cause; (b) whether the offline eval population matches the live targeted segment; (c) whether AUC-PR gains actually manifest in the score range used for targeting; (d) whether the A/B test has enough statistical power to detect the effect.
 
-6. **Cross-title signal sharing**: Introduce a lightweight cross-title feature layer (e.g., "days since last session on any EA title," "total portfolio spend across titles") computed centrally and made available as optional additional features to each title's otherwise-independent model, rather than merging into one monolithic cross-title model. This preserves per-title model independence/ownership (different teams, different retrain cadences) while allowing titles to opt into cross-title signal as just another feature column — bounded coupling via a well-versioned shared feature contract, not a shared model or pipeline.
+6. **Cross-title signal sharing**: Introduce a lightweight cross-title feature layer (e.g., "days since last session on any EA title") computed centrally and offered as optional features to each title's otherwise-independent model, rather than merging into one monolithic model. This preserves per-title ownership while allowing opt-in cross-title signal via a shared feature contract.
 
-7. **5-second SLA**: Would require moving from a queue-mediated pipeline to a synchronous, in-request-path computation — likely embedding feature computation directly into the game session/event-handling service (or a sidecar) rather than round-tripping through Kafka + separate consumers, since consumer lag is the dominant tail latency cost (Section 43) at 5-minute SLA. Would also need to pre-compute/cache more aggressively (features updated synchronously on write, not batched), accept a much smaller feature set (skip any feature requiring heavy joins), and likely co-locate model server with the game backend/edge to cut network hops — fundamentally a different, tighter-coupled architecture, justified only if the business case for sub-5-second intervention (vs. current 5-minute) is very strong, since it multiplies infra cost and operational complexity.
+7. **5-second SLA**: Would require moving from queue-mediated to synchronous, in-request-path feature computation (e.g., embedded in the game session service) since consumer lag dominates tail latency at 5-minute SLA. Justified only if the business case for sub-5-second intervention is strong, since it materially increases infra cost and coupling.
 
-8. **Adverse selection guard**: Explicitly monitor and report model performance/offer-effectiveness segmented by prior discount-seeking behavior and price sensitivity signals; if the model or the intervention-decision logic implicitly favors discount-responsive players, incremental lift analysis (Q4) segmented by this cohort will reveal it (discount-seekers show high redemption but low true incremental retention, since they'd have used a discount anyway or churn regardless). Mitigate by excluding pure price/discount-usage features from the churn model itself when possible (keep the model focused on engagement/behavioral signals) and by having the Decision Engine's offer-selection logic (separate from the churn model) apply its own incrementality-aware targeting rather than naively targeting by churn score alone.
+8. **Adverse selection guard**: Monitor model/offer performance segmented by prior discount-seeking behavior — discount-seekers often show high redemption but low true incremental retention. Mitigate by excluding pure discount-usage features from the churn model and having the Decision Engine apply its own incrementality-aware offer targeting.
 
-9. **Holdout sizing**: Size the holdout using standard A/B power analysis — given the expected baseline retention rate, minimum detectable effect size the business cares about (e.g., 1-2pp lift), and desired statistical power (80-90%) and significance level (95%), compute required sample size per arm; typically a holdout of 5-10% of the eligible high-risk population is enough at EA's scale (millions of players) to detect meaningful effects while keeping the "opportunity cost" of untreated at-risk players small in absolute terms. Justify the cost explicitly to stakeholders as the price of measurement — without a holdout, the business cannot distinguish real intervention value from noise, risking much larger misallocated spend long-term.
+9. **Holdout sizing**: Size the holdout using standard A/B power analysis (baseline retention, minimum detectable effect, desired power/significance); typically 5-10% of the eligible high-risk population suffices at EA's scale. Frame the cost to stakeholders as the price of measurement — without it, real lift can't be distinguished from noise.
 
-10. **Feedback loop detection**: Explicitly track whether "received intervention in the past N days" is (accidentally or intentionally) leaking into current features, since a player who got an offer and stayed will look like a "low-risk" player in ways caused by the intervention itself, not by their underlying propensity — creating a self-reinforcing loop that degrades signal over time. Mitigate by either explicitly excluding recent-intervention-exposure from features, or if included, treating it as a controlled variable and monitoring model performance separately on intervention-naive vs. intervention-exposed populations; periodically retrain/validate using only a "clean" (holdout, never-intervened) population's outcomes as the true label source to check whether the production model's apparent performance is inflated by the feedback loop.
+10. **Feedback loop detection**: Watch for "received intervention recently" leaking into features, since a retained treated player looks artificially low-risk, creating a self-reinforcing loop that degrades signal. Mitigate by excluding recent-intervention-exposure from features or periodically validating against a clean, never-intervened holdout population.
 </content>

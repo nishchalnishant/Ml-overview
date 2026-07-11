@@ -81,7 +81,7 @@ Static batching waits until *all* sequences in a batch finish before admitting n
 Prefix caching stores the KV cache for a shared prompt prefix across multiple requests, avoiding prefill recomputation. It wins big when many requests share a long identical prefix (system prompt, RAG context). Gotcha: it only helps for exact token-for-token matches up to the point of divergence, so prompt engineering means putting *stable* content first and *variable* content last.
 
 ### Q: State the Chinchilla scaling law and compute the compute-optimal model size for a 1e24 FLOPs budget.
-Chinchilla found that parameter count and token count should be scaled equally for compute-optimal training. Rule of thumb: **~20 training tokens per parameter**. For C = 1e24 (and C ≈ 6ND): `6N(20N) = 1e24` → `120N² = 1e24` → N ≈ 91B parameters, D ≈ 1.8T tokens. Note: this is *training* compute-optimal, not deployment-optimal (Llama 3 was trained far past Chinchilla-optimal to make inference cheaper).
+Rule of thumb: **~20 training tokens per parameter**, from C ≈ 6ND. For C = 1e24: `120N² = 1e24` → N ≈ 91B parameters, D ≈ 1.8T tokens. Background and training- vs inference-optimal distinction: see [02-scaling-and-data.md](02-scaling-and-data.md).
 
 ### Q: Explain test-time compute scaling (e.g., OpenAI o1) and its trade-offs.
 Test-time compute scaling spends more FLOPs *per query at inference* (via chain-of-thought, best-of-N, or tree search) rather than during training. Trade-off: pretraining compute is a sunk cost amortized over all queries; test-time compute is a recurring marginal cost per query. It's best for high-value, hard reasoning queries (math, coding).
@@ -146,55 +146,3 @@ Dense (BGE, OpenAI) captures semantic meaning/synonyms well. Sparse (BM25, SPLAD
 
 ### Q: What is embedding drift and how do you catch it?
 Drift happens when corpus terminology evolves away from the embedding model's training distribution, or the model version was silently upgraded. Catch it by monitoring retrieval-quality proxy metrics on a fixed eval query set over time, and tracking embedding model version checksums.
-
----
-
-## Hard
-
-> Staff-level and Research Engineer depth — derivations, distributed training internals, quantization theory, transformer scaling.
-
-### Q: Derive why scaled dot-product attention divides by √d_k.
-If Q and K entries are i.i.d. with mean 0, variance 1, the dot product over d_k terms has variance `d_k`. As d_k grows, the raw dot-product magnitude grows as `√d_k`, pushing pre-softmax logits to large magnitudes. Softmax saturates for large inputs, causing vanishing gradients. Dividing by `√d_k` renormalizes the variance back to 1, keeping gradients informative.
-
-### Q: In a top-2 MoE with 8 experts (Mixtral 8×7B), why is inference compute closer to a 12B dense model rather than 56B?
-Total parameters (47B) dictate VRAM footprint. But *active* compute per token only touches the router plus the 2 selected experts. Since each expert is roughly the size of the FFN in a 7B dense model, and only 2 of 8 are used, the active FFN compute is 25% of a full 8×7B model, plus the shared dense components (attention). MoE buys capacity scaling without the full compute cost per token.
-
-### Q: Kaplan (2020) vs. Chinchilla (2022) scaling laws — what did Kaplan get wrong?
-Kaplan found model size mattered much more than data size. The error: Kaplan used a fixed learning rate schedule not re-tuned per model size, biasing the fit toward parameters. Chinchilla used properly cosine-annealed LR schedules for every config and found the true optimum is equal scaling of parameters and tokens.
-
-### Q: Are "emergent abilities" of LLMs a real phase transition?
-Substantially a measurement artifact. Abilities that look like sudden jumps on discontinuous metrics (exact-match accuracy) often appear as smooth, predictable improvements on continuous metrics (token log-likelihood or edit distance).
-
-### Q: Derive the total KV cache memory for serving LLaMA-3 8B at batch size 32, sequence length 8192, in BF16.
-LLaMA 3 8B: 32 layers, GQA with 8 KV heads, head dim 128, BF16 (2 bytes).
-`2 (K,V) × 32 (layers) × 8 (heads) × 128 (dim) × 8192 (seq) × 32 (batch) × 2 (bytes)`.
-`2 × 32 × 8 × 128 = 65,536` bytes per token.
-`65,536 × 8192 = 536 MB` per sequence.
-`536 MB × 32 = ~17.1 GB` total KV cache memory.
-
-### Q: What is Multi-Head Latent Attention (MLA) in DeepSeek V2/V3?
-MLA compresses K and V into a shared low-rank latent vector before caching, instead of caching separate per-head tensors. At attention time, it up-projects back to per-head K and V. The up-projection folds into the query/output projections, adding zero FLOPs. Yields 5–13× KV cache reduction beyond GQA, enabling massive effective batch sizes.
-
-### Q: Explain the expert-collapse failure mode in MoE and the fix.
-A MoE router tends to converge to routing most tokens to a few experts (rich-get-richer), wasting the rest of the capacity. Fix: an auxiliary load-balancing loss `L_balance = α · N · Σ f_i P_i`, where `f_i` is the actual fraction of tokens and `P_i` is the mean router probability. This nudges routing toward uniformity.
-
-### Q: Why does RoPE fail to extrapolate beyond its training length, and how does linear interpolation fix it?
-RoPE rotates Q/K by an angle proportional to absolute position `m`. Positions beyond training length `L_train` produce unseen rotation angles, causing attention scores to degrade. Linear interpolation rescales the position index `m → m/s` (where `s = L_target/L_train`), compressing the target range back into the trained angular range. Quality holds up to ~2× extension before degrading.
-
-### Q: NTK-aware scaling vs YaRN for RoPE extrapolation?
-Linear interpolation uniformly compresses all frequencies, hurting high-frequency (short-range) resolution. **NTK-aware scaling** scales the RoPE base frequency, stretching low-frequency dimensions much more than high-frequency ones, preserving short-range precision. **YaRN** applies non-uniform per-dimension scaling plus a softmax temperature correction, achieving reliable 16-32× context extension.
-
-### Q: How does StreamingLLM enable "infinite" generation with a fixed-size KV cache?
-It observed "attention sinks" — early tokens get disproportionate attention mass regardless of semantic content because softmax needs to dump excess attention somewhere. Naively evicting early tokens from a sliding window destabilizes generation. StreamingLLM always keeps the first ~4 "sink tokens" permanently in the KV cache, preventing perplexity spikes during unbounded streaming generation.
-
-### Q: DPO vs PPO-based RLHF — what's the mathematical trick?
-DPO eliminates the reward model and RL loop entirely. The trick: the optimal policy under the RLHF objective has a closed-form relationship to the reward function. Substituting this into the Bradley-Terry preference model allows rewriting the objective directly in terms of the policy's log-probabilities. It trains directly on `(chosen, rejected)` pairs via supervised gradient descent.
-
-### Q: What's the difference between reward hacking and KL explosion in RLHF?
-Reward hacking is exploiting the proxy reward model without improving true quality. KL explosion is a mechanical failure where the policy drifts arbitrarily far from the SFT reference distribution (because the KL penalty is too weak), entering regions where the reward model is uncalibrated, causing generation collapse.
-
-### Q: Distinguish alignment tax, reward hacking, and mode collapse.
-**Alignment tax**: accepted capability drop (e.g., in reasoning) caused by safety alignment pulling behavior toward a cautious distribution. **Reward hacking**: objective misalignment (optimizing proxy over true). **Mode collapse (in DPO)**: converging to a narrow, low-diversity output distribution because DPO lacks an exploration mechanism (entropy bonus) and over-optimizes toward narrow response patterns that reliably beat rejected examples.
-
-### Q: How do you scale vector search to billions of vectors?
-When a full HNSW graph exceeds single-machine RAM: (1) **Sharding**: partition the index across multiple machines and merge top-k results. (2) **Quantization**: product quantization splits and quantizes sub-vectors, shrinking memory 10×+. (3) **DiskANN**: keeps a compact navigational structure in RAM while bulk vector data lives on fast SSDs.

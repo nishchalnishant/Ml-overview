@@ -480,165 +480,9 @@ spec:
 - **Reserved capacity + Savings Plans** for baseline steady-state serving fleet (the ~2,780 QPS average load), with autoscaling/spot handling burst above baseline.
 - **Storage lifecycle**: raw event logs moved to S3 Glacier after 90 days; Iceberg table compaction reduces small-file overhead and query cost.
 
-## 30. Disaster Recovery (RTO/RPO targets, backup strategy)
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RTO | RPO | Backup Strategy |
-|---|---|---|---|
-| Online feature store (Redis) | 5 min | 5 min | Multi-AZ replication, automated failover; snapshot every 5 min to S3 |
-| Entitlement DB (Postgres) | 15 min | < 1 min | Synchronous replica in secondary AZ, PITR via WAL archiving |
-| Vector index (ANN) | 30 min | 24 hr (rebuildable) | Nightly snapshot to S3; can rebuild from item embedding table if snapshot lost |
-| Model artifacts | 10 min | 0 (versioned, immutable) | Model registry backed by S3 with versioning + cross-region replication |
-| Event lake (S3/Iceberg) | N/A (durable) | Near-zero | S3 cross-region replication, versioning enabled |
-| Full regional outage | 15 min (failover to secondary region) | < 5 min (async replication lag) | Multi-region active-active (Section 31) — traffic reroutes via global LB |
-
-- **DR drills**: quarterly game-day exercises simulating regional failover and Redis cluster loss, validated against RTO/RPO targets.
-
-## 31. Multi-Region Deployment (active-active vs active-passive, data replication, latency routing)
-
-```
-                         ┌─────────────────────────┐
-                         │   Global DNS / Anycast   │
-                         │   Latency-based routing  │
-                         └───────┬─────────┬────────┘
-                 ┌───────────────┘         └───────────────┐
-                 ▼                                          ▼
-      ┌─────────────────────┐                    ┌─────────────────────┐
-      │  Region: US-East     │                    │  Region: EU-West     │
-      │  (active)            │◄──async replicate──►│  (active)            │
-      │  - Full reco stack   │                    │  - Full reco stack    │
-      │  - Redis cluster     │                    │  - Redis cluster      │
-      │  - ANN index replica │                    │  - ANN index replica  │
-      │  - Ranking GPUs      │                    │  - Ranking GPUs       │
-      └──────────┬───────────┘                    └──────────┬────────────┘
-                 │                                            │
-                 └───────────► Global Feature/Event Lake ◄─────┘
-                              (S3 cross-region replicated,
-                               Kafka MirrorMaker2 for event bus)
-```
-
-- **Topology**: active-active across 4 regions (US-East, US-West, EU-West, AP-Southeast) — recommendation serving is stateless-ish per-region (features replicated), so active-active is feasible and maximizes latency benefit for a global player base.
-- **Data replication**: entitlement DB (Postgres) uses regional read-replicas with a single write-primary (in user's home region) + async replication to other regions for read-serving of ownership checks — write path (purchases) always routes to home region to avoid conflict resolution complexity.
-- **Event bus**: Kafka MirrorMaker2 replicates `player-events` cross-region so training pipelines see global data.
-- **Latency routing**: GeoDNS/Anycast + latency-based routing policy (e.g., Route53 latency records) directs client to nearest healthy region; health-check-based failover removes unhealthy region from rotation within ~30s.
-- **Conflict handling**: since ownership writes are single-region-primary, no multi-master write conflicts for the correctness-critical path; feature store writes are region-local and don't require cross-region consistency (personalization data, not authoritative).
-
-## 32. Blue/Green Deployment (how it applies to this system specifically)
-
-- Applied primarily to the **Recommendation Orchestrator** and **Ranking Service** deployments.
-- Green environment stood up with new model version + new service code, receiving zero production traffic initially; smoke-tested via shadow traffic (mirrored real requests, responses discarded) to validate latency/error-rate parity.
-- Cutover: load balancer switches 100% traffic from blue to green atomically once shadow validation passes (latency p99 within 10% of blue, error rate < 0.1% delta).
-- Blue environment kept warm for 1 hour post-cutover as instant-rollback target (just flip LB back) before decommissioning.
-- Feature store and vector index are **not** blue/green'd (shared stateful backends) — only the versioned model artifacts and serving code follow blue/green; this avoids the complexity of dual-writing to two feature store copies.
-
-## 33. Canary Deployment (traffic-split strategy, health-check gates specific to this system)
-
-- New ranking model version deployed alongside stable version in Triton (multi-model serving); orchestrator routes a **small traffic slice** (1% → 5% → 25% → 100%) over a staged rollout window (e.g., 1% for 2 hrs, 5% for 6 hrs, 25% for 24 hrs, then full).
-- **Health-check gates** at each stage (must pass to proceed):
-  - p99 latency within 10% of control.
-  - Error rate not exceeding control + 0.2 absolute.
-  - Online NDCG@10 (computed from live click-through, near-real-time) not regressed > 2% vs control.
-  - No spike in "degraded-fallback" rate.
-  - CTR/CVR from experiment exposure log not significantly negative (statistical guardrail metric check).
-- Automatic rollback triggers if any gate fails during a stage; a human approval gate required before the 25%→100% final promotion (Principal-level sign-off for revenue-impacting changes).
-- Canary specifically isolates **model version** changes; infra/code changes canaried separately via standard rolling deployment with readiness probes.
-
-## 34. Rollback Strategy (automated triggers, rollback mechanics)
-
-- **Automated triggers**: any canary health-check gate failure (Section 33) triggers automatic traffic reversion to stable model version within 1 minute (orchestrator flips routing weight to 0% for canary).
-- **Rollback mechanics**: since both model versions are hot in Triton simultaneously during canary, rollback is a **routing change**, not a redeploy — near-instant (<10s propagation via config push/service mesh).
-- **Post-rollback**: incident automatically opened, canary model marked "failed" in model registry (blocks re-promotion without manual review), on-call ML engineer paged for RCA.
-- **Data-pipeline rollback**: if a bad feature pipeline deploy corrupts online features, rollback = revert feature-computation code + replay last-known-good feature snapshot from offline store into Redis (bounded by point-in-time correctness of the offline store).
-- **Full service rollback** (non-model code): standard Kubernetes rollout undo (`kubectl rollout undo`) for orchestrator/API layer, gated by readiness probes before traffic shifts back.
-
-## 35. Observability (tracing, metrics, logs correlation — the three pillars applied here)
-
-- **Tracing**: OpenTelemetry distributed tracing across orchestrator → feature store → candidate gen → ranking service, propagated via `X-Correlation-ID`/trace-context headers; traces exported to Jaeger/Tempo, enabling per-request latency breakdown (identify whether a slow request was ANN lookup, feature fetch, or GPU batching queue delay).
-- **Metrics**: Prometheus scrapes per-service latency histograms, error counters, GPU utilization (DCGM exporter), cache hit ratios, queue depths; aggregated in Grafana with per-surface and per-region breakdowns.
-- **Logs**: structured JSON logs (Section 24) correlated via `request_id`/trace ID, shipped to OpenSearch; enables jumping from a slow trace span directly to the corresponding log lines and, from there, to the model version and feature snapshot used for that request.
-- **Correlation in practice**: a single `request_id` ties together the API access log, the trace spans, the ranking service's model-version log field, and the experiment exposure log entry — enabling full request reconstruction for debugging a specific bad recommendation.
-- **SLO dashboards**: burn-rate alerting on the 99.95% availability SLO (fast-burn and slow-burn multi-window alerts) layered on top of raw metrics.
-
-## 36. Kubernetes Deployment (a concrete manifest sketch or Deployment/Service/HPA YAML snippet relevant to this system)
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: reco-orchestrator
-  labels: { app: reco-orchestrator }
-spec:
-  replicas: 12
-  selector:
-    matchLabels: { app: reco-orchestrator }
-  template:
-    metadata:
-      labels: { app: reco-orchestrator }
-    spec:
-      containers:
-        - name: orchestrator
-          image: ea-registry/reco-orchestrator:2026.07.01
-          resources:
-            requests: { cpu: "1", memory: "1Gi" }
-            limits: { cpu: "2", memory: "2Gi" }
-          ports: [{ containerPort: 8080 }]
-          readinessProbe:
-            httpGet: { path: /healthz, port: 8080 }
-            initialDelaySeconds: 5
-            periodSeconds: 10
-          env:
-            - name: FEATURE_STORE_ADDR
-              value: "redis-cluster.reco.svc.cluster.local:6379"
----
-apiVersion: v1
-kind: Service
-metadata:
-  name: reco-orchestrator-svc
-spec:
-  selector: { app: reco-orchestrator }
-  ports: [{ port: 80, targetPort: 8080 }]
-  type: ClusterIP
-```
-(HPA for this deployment shown in Section 28.)
-
-## 37. Terraform Infrastructure (a concrete Terraform snippet sketch for the core infra of this system)
-
-```hcl
-resource "aws_eks_node_group" "ranking_gpu_pool" {
-  cluster_name    = aws_eks_cluster.reco_cluster.name
-  node_group_name = "ranking-gpu-a10g"
-  node_role_arn   = aws_iam_role.eks_node_role.arn
-  subnet_ids      = var.private_subnet_ids
-
-  instance_types = ["g5.xlarge"]
-  capacity_type  = "ON_DEMAND"
-
-  scaling_config {
-    desired_size = 14
-    min_size     = 8
-    max_size     = 60
-  }
-
-  labels = { workload = "gpu-ranking" }
-  taint {
-    key    = "nvidia.com/gpu"
-    value  = "true"
-    effect = "NO_SCHEDULE"
-  }
-}
-
-resource "aws_elasticache_replication_group" "feature_store" {
-  replication_group_id       = "reco-feature-store"
-  description                 = "Online feature store for recommendation engine"
-  node_type                   = "cache.r6g.xlarge"
-  num_node_groups             = 6
-  replicas_per_node_group     = 2
-  automatic_failover_enabled  = true
-  at_rest_encryption_enabled  = true
-  transit_encryption_enabled  = true
-  engine                      = "redis"
-  engine_version               = "7.1"
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture (justification)
 
@@ -734,22 +578,22 @@ resource "aws_elasticache_replication_group" "feature_store" {
 
 ## 46. Ideal Answers
 
-1. **Cold-start for new title launch**: No collaborative signal exists yet. Rely on content-based candidate generation (item-tower embedding from metadata/description alone, no interaction history needed) blended with editorial/merchandising-curated candidates and cross-title similarity (players who liked similar genre/franchise titles). Ranking falls back to a simpler model weighted toward content features and demographic priors rather than user-history features (which are null). Increase exploration weight temporarily (bandit-style) to gather interaction data fast, and shrink the real-time feature window's reliance since there's no session history yet. Monitor cold-start-specific conversion metrics separately from steady-state metrics.
+1. **Cold-start for new title launch**: No collaborative signal exists yet, so rely on content-based candidate generation (item-tower embedding from metadata alone) blended with editorial-curated candidates, with ranking falling back to content/demographic features instead of user-history features. Increase exploration weight temporarily to gather interaction data fast.
 
-2. **Offline-online metric mismatch after rollout**: First check for train/serve skew — feature store version mismatch, or a feature computed differently online vs. in the training pipeline (most common root cause). Check calibration on live traffic specifically (not just offline holdout) — offline eval may not reflect current live distribution due to lag between training data cutoff and rollout. Check for confounds: did the canary rollout coincide with a promo/pricing change, seasonal shift, or an unrelated infra issue (elevated latency causing timeout-fallback to popularity-only for a subset of traffic)? Use the exposure log to segment the regression by surface/region/segment to localize it before assuming the model itself is at fault.
+2. **Offline-online metric mismatch after rollout**: First check for train/serve skew — a feature store version mismatch or a feature computed differently online vs. in training is the most common root cause. Also check for confounds (promo/pricing change, latency-driven fallback) using the exposure log to segment the regression by surface/region before blaming the model itself.
 
-3. **Filter-bubble/popularity-collapse mitigation**: Monitor candidate coverage/concentration metrics (Section 21) explicitly. Use diversity-aware re-ranking (MMR) rather than pure score-ranking. Correct for popularity bias in training (logQ correction in the two-tower softmax loss) so the retrieval model doesn't just learn "popular items get more interactions." Maintain an exploration budget (small % of slots reserved for under-exposed but relevant long-tail items) and track long-tail item exposure as a first-class metric, not just CTR/CVR.
+3. **Filter-bubble/popularity-collapse mitigation**: Monitor candidate coverage/concentration metrics explicitly and use diversity-aware re-ranking (MMR) rather than pure score-ranking. Correct for popularity bias in training (logQ correction in the two-tower softmax loss) and maintain an exploration budget for under-exposed long-tail items.
 
-4. **Regional ANN outage during peak sale**: Orchestrator's circuit breaker detects elevated ANN latency/errors within its timeout budget (~10ms) and falls back to popularity/trending candidate list (precomputed, cached, doesn't depend on ANN). Ranking still runs normally on the popularity-sourced candidates, so users still get *a* ranked list, just without the personalized-embedding-similarity candidates — degraded personalization, not a hard outage. Simultaneously, alerting fires (Section 23), on-call investigates; if regional, global LB can reduce traffic weight to the affected region temporarily while ANN service recovers (redeploy from S3 snapshot).
+4. **Regional ANN outage during peak sale**: The orchestrator's circuit breaker detects elevated ANN latency within its timeout budget (~10ms) and falls back to a precomputed popularity/trending candidate list, so ranking still runs and users get a degraded-personalization (not hard-outage) result. Alerting fires and traffic can be shifted away from the affected region while ANN recovers.
 
-5. **Cross-title recommendations**: Requires a shared embedding space across titles — either a single global two-tower model trained on cross-title interaction data (if a user's Battlefield behavior should inform a FIFA recommendation, need shared user representation), or title-specific embeddings mapped into a common space via a learned projection. Also requires unified entitlement/catalog data across titles (already assumed via central data platform) and business-rule considerations (does merchandising want cross-title promotion, franchise-exclusive placement rules, etc.). Start with a simpler heuristic bridge (genre/franchise affinity rules) before investing in a full joint embedding model, and A/B test incrementally.
+5. **Cross-title recommendations**: Requires a shared embedding space across titles — a global two-tower model trained on cross-title interaction data, or title-specific embeddings mapped into a common space via learned projection. Start with a simpler genre/franchise affinity heuristic before investing in a full joint embedding model.
 
-6. **Offline model evaluation before full rollout**: Combine offline metrics (Recall@K, NDCG, calibration) with counterfactual/off-policy evaluation — e.g., Inverse Propensity Scoring (IPS) or doubly-robust estimators using logged exposure + propensity (which the experimentation service already logs) to estimate what the new model's online CTR/CVR *would have been* had it served the logged traffic, without needing a live test first. This de-risks the canary's starting traffic allocation and gives an early go/no-go signal before spending real production traffic on the staged rollout.
+6. **Offline model evaluation before full rollout**: Combine offline metrics (Recall@K, NDCG, calibration) with counterfactual/off-policy evaluation — e.g., Inverse Propensity Scoring using logged exposure + propensity — to estimate the new model's online CTR/CVR without needing a live test first. This de-risks the canary's starting traffic allocation.
 
-7. **Exploration vs. exploitation**: Treat it as a contextual bandit problem layered on top of the ranking output — reserve a small percentage of impression slots (e.g., 5-10%) for exploration candidates selected via Thompson sampling or epsilon-greedy over under-explored items, log propensities for later off-policy evaluation, and tune the exploration rate per-surface (more exploration tolerance on lower-stakes surfaces like a "discover" rail, less on high-conversion-critical surfaces like the primary store front where revenue predictability matters more).
+7. **Exploration vs. exploitation**: Treat it as a contextual bandit layered on the ranking output — reserve a small percentage of impression slots for exploration candidates via Thompson sampling or epsilon-greedy, logging propensities for off-policy evaluation. Tune the exploration rate per-surface (more tolerance on low-stakes rails, less on revenue-critical surfaces).
 
-8. **Bot-driven engagement manipulation**: Layer defenses: (a) ingestion-time anomaly detection (event velocity per user/IP/device fingerprint far exceeding human-plausible rates), (b) downstream training-data filtering that down-weights or excludes flagged accounts before they influence model training, (c) monitoring for suspicious concentration of engagement on specific items (a sudden anomalous CTR spike on one obscure item is a red flag), (d) rate limiting (Section 27) catching high-frequency abuse at the edge before it even reaches the event pipeline, (e) periodic retroactive audits comparing engagement patterns against known bot-behavior signatures from other EA anti-cheat/fraud systems (shared threat intel across EA's trust & safety platform).
+8. **Bot-driven engagement manipulation**: Layer ingestion-time anomaly detection (event velocity per user/IP/device far exceeding human-plausible rates) with downstream training-data filtering that down-weights or excludes flagged accounts before they influence the model. Rate limiting at the edge and monitoring for suspicious concentration on specific items catch the rest.
 
-9. **Entitlement write-primary outage (US-East)**: Blast radius is scoped to new purchase writes and any read-path relying on the freshest ownership data being routed to the down primary — reads from other regions' async replicas continue serving (slightly stale, e.g., a purchase made seconds before the outage might not reflect immediately elsewhere), but the system fails closed on uncertainty (Section 41) — if freshness can't be verified, conservatively excludes ambiguous items rather than risk showing owned content as unowned/recommendable. Purchase flow itself (not this system, but upstream commerce) would need its own regional failover runbook; the recommendation engine's mitigation is entirely about defensive filtering during the uncertainty window, not attempting to fix the write path itself.
+9. **Entitlement write-primary outage (US-East)**: Blast radius is scoped to new purchase writes and reads dependent on the down primary; other regions' async replicas keep serving (slightly stale). The system fails closed on uncertainty — if freshness can't be verified it conservatively excludes ambiguous items rather than risk showing owned content as unowned.
 
-10. **Catalog growth to 50M items (full UGC marketplace)**: In-memory full-copy HNSW per replica stops working (50M x 512 bytes ≈ 25GB just for vectors, plus graph overhead — still theoretically fittable on a large-memory node but replication cost balloons). Shift to a sharded ANN architecture (partition by category/creator-tier/recency) with scatter-gather querying, or move to a disk-backed ANN system (e.g., DiskANN) to control memory cost. Candidate generation would also need a stronger pre-filtering stage (e.g., coarse category/tag-based filtering before ANN) to keep the search space tractable. Feature store and training data volume also scale roughly 100x, pushing toward more aggressive downsampling/negative-sampling strategies in training and likely a re-architecture of the offline feature pipeline for cost reasons (Section 44 storage/compute bottlenecks compound significantly).
+10. **Catalog growth to 50M items (full UGC marketplace)**: In-memory full-copy HNSW per replica stops scaling cost-effectively, so shift to a sharded ANN architecture (partition by category/creator-tier/recency) or a disk-backed ANN system like DiskANN. Candidate generation also needs a stronger pre-filtering stage (coarse category/tag filtering) to keep the search space tractable.

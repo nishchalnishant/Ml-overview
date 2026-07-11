@@ -495,163 +495,9 @@ Online Feature API Gateway (gRPC)
 - **Right-sized Redis tier**: given the ~216GB replicated online footprint fits comfortably in memory, avoid over-provisioning — use reserved instances for the steady-state 75-shard baseline, burst capacity only for known event spikes (live-ops calendar-driven pre-scaling rather than always-on peak capacity).
 - **Feature deprecation lifecycle**: auto-flag feature_views with zero consumers (via lineage graph) for 90+ days → archive/delete, reducing both storage and streaming-compute waste (a stale Flink job still consuming Kafka for an unused feature is pure cost).
 
-## 30. Disaster Recovery (RTO/RPO targets, backup strategy)
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Component | RTO | RPO | Backup Strategy |
-|---|---|---|---|
-| Online store (Redis) | 5 min | 60s (acceptable — rehydrate from streaming replay) | Multi-AZ replicas + periodic RDB snapshots every 15 min; on total loss, replay last 10 min of Kafka to rehydrate hot data |
-| Offline store (Delta/S3) | 1 hr | 0 (durable object storage, versioned) | S3 versioning + cross-region replication (CRR) to a DR region |
-| Metadata store (Postgres) | 15 min | 5 min | Continuous WAL archiving + automated snapshots every 5 min, PITR-capable |
-| Kafka | 30 min | near-0 (replication factor 3, ack=all for feature-critical topics) | Multi-broker replication; MirrorMaker2 cross-region for DR |
-| Feature Registry (git) | near-0 | 0 | Git itself is the durable source of truth; compiled artifacts rebuildable from source |
-
-- **Full-region failure drill**: quarterly game-day exercise validating that online store can be cold-started in a secondary region from (a) Delta Lake offline snapshots + (b) replayed Kafka backlog, meeting the 5min/60s RTO/RPO for the hottest feature_views first (prioritized rehydration order defined per feature_view criticality tier).
-
-## 31. Multi-Region Deployment (active-active vs active-passive, replication, latency routing)
-
-- **Topology**: **active-active** across 3 regions (US-East, EU-West, APAC-Southeast) matching EA's existing game server regions — feature store must be co-located with matchmaking/inference to hit the 10ms online SLA (cross-region round trip alone would blow the budget).
-- **Online store**: per-region independent Redis Cluster, **not** synchronously replicated cross-region (would violate latency SLA) — each region's online store is fed by a **regional** Flink consumer group reading from a **globally-replicated** Kafka topic (via Kafka MirrorMaker2 / Confluent Cluster Linking), so all regions converge to the same feature values within the 60s staleness bound, independently.
-- **Offline store**: single logical store, physically replicated cross-region via S3 CRR — training jobs can run in any region against a consistent (eventually, within minutes) copy.
-- **Latency routing**: clients (matchmaking/inference services) call their **local region's** Online Feature API via regional service discovery / GeoDNS — no cross-region online reads in the steady state.
-
-```
-   US-East                      EU-West                     APAC-SE
- ┌─────────────┐             ┌─────────────┐             ┌─────────────┐
- │ Flink (region)│            │ Flink (region)│            │ Flink (region)│
- │ Redis (region)│            │ Redis (region)│            │ Redis (region)│
- │ Gateway (region)│          │ Gateway (region)│          │ Gateway (region)│
- └──────┬───────┘             └──────┬───────┘             └──────┬───────┘
-        │  reads/writes local          │                           │
-        ▼                              ▼                           ▼
- ┌───────────────────── Kafka (globally mirrored via MM2) ─────────────────────┐
- └───────────────────────────────────────────────────────────────────────────┘
-        │                              │                           │
-        ▼                              ▼                           ▼
-        └────────────── Offline Store (S3 CRR, eventually consistent global copy) ──────────────┘
-```
-
-- **Failure isolation benefit**: a regional Redis outage in APAC does not affect US-East/EU-West serving — degrades only that region (falls back to a "safe default feature" mode, see Failure Modes).
-
-## 32. Blue/Green Deployment (how it applies here)
-
-- **Feature Registry compiled artifacts** (Spark UDFs, Flink operators generated from the DSL) are blue/green deployed: new compiled version deployed alongside old, streaming jobs for a feature_view are cut over via a coordinated stop-the-old/start-the-new with Flink savepoint restore (state migrated from old operator's savepoint into the new job graph) — avoids reprocessing full history.
-- **Online Feature API Gateway**: standard blue/green at the Kubernetes Service level — new gateway version deployed to a parallel Deployment, traffic cut over via Service selector swap once smoke tests (synthetic `get_online_features` calls against known entities with expected values) pass.
-- **Rollback**: because feature_view versions are immutable and additive (v5 doesn't overwrite v4), rolling back a gateway or compute-engine deployment does not risk data corruption — worst case is briefly serving from a slightly older compiled transform, not data loss.
-
-## 33. Canary Deployment (traffic-split strategy, health-check gates)
-
-- **New feature_view version rollout** (e.g., `purchase_features:v6` replacing v5): canary at the **consumer** level, not infra level — a model/service can opt into v6 for 5% of traffic while 95% still reads v5, comparing downstream model metrics (conversion rate, prediction distribution) before full cutover. This is a feature-store-specific canary pattern distinct from typical infra canaries.
-- **Gateway code canary**: 5% of gateway pods run the new build, traffic-split via Kubernetes Service with weighted routing (Istio/Linkerd), health-gated on: p99 latency delta < 10% vs baseline, error rate < 0.1%, skew-alert rate unchanged.
-- **Streaming compute canary**: new Flink operator version processes a shadow copy of the Kafka topic (separate consumer group, writes to a shadow Redis namespace) — compared against production online values for 24h before promotion, catching subtle logic bugs before they touch real serving traffic.
-
-## 34. Rollback Strategy (automated triggers, mechanics)
-
-- **Automated triggers**: canary health-check gate failure (Section 33) → auto-abort canary, Argo Rollouts (or similar) reverts Service weights to 100% previous version within 60s.
-- **Feature-version rollback**: because versions are immutable, "rollback" = repointing consumers' pinned `feature_view:version` back to the prior version via the registry (a metadata change, not a data migration) — takes effect on next model/config reload, typically < 5 min.
-- **Streaming job rollback**: Flink savepoint taken immediately before any operator upgrade; rollback = restore prior job graph from that savepoint, resuming from the exact offset — no data loss, no reprocessing.
-- **Offline backfill rollback**: backfill jobs write to a **new** Delta table version (Delta Lake's built-in time travel) — a bad backfill is rolled back via `RESTORE TABLE ... TO VERSION AS OF n`, not a destructive overwrite-undo.
-
-## 35. Observability (tracing, metrics, logs correlation)
-
-- **Tracing**: every `get_online_features` / `get_historical_features` call carries a `trace_id` (OpenTelemetry) propagated from the calling inference service, through the gateway, into Redis calls and on-demand UDF execution — enables end-to-end trace from "matchmaking requested a match" → "feature fetch" → "model inference" → "match formed", critical for diagnosing which layer contributed to a latency spike.
-- **Metrics**: Prometheus-scraped, feature-store-specific metrics (Section 22) correlated with standard RED metrics (Rate/Errors/Duration) per component, visualized in Grafana with trace-exemplar links (click a p99 latency spike → jump to a representative trace).
-- **Logs correlation**: structured logs (Section 24) include `trace_id`, enabling log-to-trace pivoting in the observability backend (e.g., Grafana Tempo + Loki, or Datadog APM) — a skew alert can be traced back to the exact batch job run + streaming operator version that produced the divergent values.
-- **Feature-specific observability artifact**: a per-feature_view "health scorecard" combining trace-derived latency, drift metrics, and skew rate into one view — the primary debugging entry point for on-call.
-
-## 36. Kubernetes Deployment (manifest sketch)
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: online-feature-gateway
-  namespace: feature-store
-spec:
-  replicas: 20
-  selector:
-    matchLabels: { app: online-feature-gateway }
-  template:
-    metadata:
-      labels: { app: online-feature-gateway }
-    spec:
-      containers:
-        - name: gateway
-          image: ea-registry/feature-gateway:v42
-          resources:
-            requests: { cpu: "1", memory: "1Gi" }
-            limits:   { cpu: "2", memory: "2Gi" }
-          ports: [{ containerPort: 8080 }]
-          env:
-            - name: REDIS_CLUSTER_ENDPOINT
-              valueFrom: { configMapKeyRef: { name: fs-config, key: redis_endpoint } }
----
-apiVersion: v1
-kind: Service
-metadata: { name: online-feature-gateway, namespace: feature-store }
-spec:
-  selector: { app: online-feature-gateway }
-  ports: [{ port: 443, targetPort: 8080 }]
-  type: ClusterIP
----
-apiVersion: autoscaling/v2
-kind: HorizontalPodAutoscaler
-metadata: { name: online-feature-gateway-hpa, namespace: feature-store }
-spec:
-  scaleTargetRef: { apiVersion: apps/v1, kind: Deployment, name: online-feature-gateway }
-  minReplicas: 20
-  maxReplicas: 300
-  metrics:
-    - type: Pods
-      pods:
-        metric: { name: requests_per_second_per_pod }
-        target: { type: AverageValue, averageValue: "8000" }
-  behavior:
-    scaleUp:   { stabilizationWindowSeconds: 30 }
-    scaleDown: { stabilizationWindowSeconds: 300 }
-```
-
-## 37. Terraform Infrastructure (core infra snippet)
-
-```hcl
-resource "aws_elasticache_replication_group" "feature_store_online" {
-  replication_group_id       = "fs-online-us-east"
-  description                = "Online feature store - Redis Cluster mode"
-  engine                     = "redis"
-  engine_version             = "7.1"
-  node_type                  = "cache.r7g.xlarge"
-  num_node_groups            = 75           # shards, per capacity estimate
-  replicas_per_node_group    = 2            # 3-way replication
-  automatic_failover_enabled = true
-  multi_az_enabled           = true
-  at_rest_encryption_enabled = true
-  transit_encryption_enabled = true
-  parameter_group_name       = "default.redis7.cluster.on"
-}
-
-resource "aws_s3_bucket" "feature_store_offline" {
-  bucket = "ea-feature-store-offline-us-east"
-}
-
-resource "aws_s3_bucket_lifecycle_configuration" "offline_tiering" {
-  bucket = aws_s3_bucket.feature_store_offline.id
-  rule {
-    id     = "event-grain-tiering"
-    status = "Enabled"
-    transition { days = 30  storage_class = "STANDARD_IA" }
-    transition { days = 180 storage_class = "DEEP_ARCHIVE" }
-  }
-}
-
-resource "aws_msk_cluster" "telemetry_backbone" {
-  cluster_name           = "ea-telemetry-kafka"
-  kafka_version          = "3.6.0"
-  number_of_broker_nodes = 24
-  broker_node_group_info {
-    instance_type   = "kafka.m5.2xlarge"
-    ebs_volume_size = 2000
-  }
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -738,22 +584,22 @@ resource "aws_msk_cluster" "telemetry_backbone" {
 
 ## 46. Ideal Answers
 
-1. **PIT correctness under asynchronous schedules**: correctness is enforced by anchoring every feature write to an explicit **event_timestamp** (when the underlying fact became true), never wall-clock/ingestion time. The PIT join engine filters strictly on `feature.event_timestamp <= label.event_timestamp` regardless of when either was actually computed or landed — a feature computed today with event_timestamp of three weeks ago is joined as if it were three weeks old. Lateness only affects *availability* of a feature value at join time (if the batch job hasn't run yet, that feature value simply isn't there yet), never *correctness* of values that are present.
+1. **PIT correctness under asynchronous schedules**: correctness is enforced by anchoring every feature write to an explicit **event_timestamp** (when the fact became true), never wall-clock/ingestion time. The PIT join engine filters strictly on `feature.event_timestamp <= label.event_timestamp` regardless of when either landed, so lateness affects only *availability* of a value at join time, never the *correctness* of values present.
 
-2. **Streaming-only bug containment**: the skew monitor's continuous sampling would surface a divergence between the online (buggy) and offline (correct) values for affected entities within one monitoring cycle (~5 min); this triggers a P2 skew alert routed to the owning team via the feature_view's registered owner. Blast radius containment: the canary/shadow-deployment process (Section 33) is designed to catch this *before* full production rollout by comparing shadow Flink output against production for 24h; if it still slips through, the fix is to roll back via Flink savepoint restore to the pre-bug operator version, and mark the affected time window's online values as suspect in the audit log for any model that consumed them during that window (enabling downstream teams to assess retraining need).
+2. **Streaming-only bug containment**: the skew monitor's continuous sampling surfaces divergence between online (buggy) and offline (correct) values within one monitoring cycle (~5 min), paging the owning team. The canary/shadow-deployment process (Section 33) is meant to catch this before full rollout; if it slips through, roll back via Flink savepoint restore and mark the affected window's online values as suspect in the audit log.
 
-3. **Why not one unified store**: a single store optimized for sub-10ms point lookups at 1M+ QPS (row/KV-oriented, in-memory-tier) is structurally unsuited to efficient large-range analytical scans over petabytes of historical data (columnar, compression, partition pruning) needed for PIT joins — and vice versa, a columnar analytical store cannot hit single-digit-millisecond point-lookup SLAs at that throughput. Distributed SQL databases (Spanner-class) narrow this gap but still generally underperform a purpose-built KV cache on raw point-lookup latency at this scale, and would cost significantly more to run at the required QPS. The two-store split is a direct consequence of genuinely different, non-overlapping performance requirements — not just habit.
+3. **Why not one unified store**: a store optimized for sub-10ms point lookups at 1M+ QPS (row/KV, in-memory) is structurally unsuited to large-range analytical scans over petabytes of history (columnar, partition pruning) needed for PIT joins, and vice versa. Distributed SQL (Spanner-class) narrows the gap but still underperforms a purpose-built KV cache on point-lookup latency at this scale — the two-store split follows from genuinely non-overlapping performance requirements, not habit.
 
-4. **90-day rolling window feature**: for the streaming path, maintain incremental windowed state in Flink (e.g., a mergeable sketch or exact sliding-window aggregate keyed by entity_id) rather than recomputing from scratch each event — Flink's built-in windowing with RocksDB state backend handles this at the required scale, checkpointed for fault tolerance. For the batch path, the same 90-day window is computed via a Spark job reading the appropriate partition range, using the *same compiled aggregation logic* from the shared IR to guarantee identical semantics (e.g., identical handling of window boundary inclusivity) between the two paths — this is exactly the class of feature the shared-IR compiler is designed to keep consistent.
+4. **90-day rolling window feature**: for the streaming path, maintain incremental windowed state in Flink (RocksDB-backed sliding-window aggregate keyed by entity_id) rather than recomputing from scratch each event. For the batch path, the same window is computed via Spark using the *same compiled aggregation logic* from the shared IR, guaranteeing identical semantics between the two paths.
 
-5. **Resharding and in-flight requests**: Redis Cluster resharding moves hash slots gradually with `ASK`/`MOVED` redirection semantics — in-flight requests to a slot being migrated get a redirect response, and a well-behaved client (or a smart proxy layer) transparently follows the redirect, adding a few hundred microseconds of extra latency during the migration window rather than failing. Resharding is scheduled during low-traffic windows and executed gradually (small batches of slots at a time) specifically to bound this latency impact, monitored against the same p99 SLA dashboards to auto-pause if impact exceeds budget.
+5. **Resharding and in-flight requests**: Redis Cluster resharding moves hash slots gradually with `ASK`/`MOVED` redirection — in-flight requests to a migrating slot get transparently redirected, adding microseconds of latency rather than failing. Resharding is scheduled during low-traffic windows in small batches to bound this impact.
 
-6. **Noisy-tenant isolation**: per-consumer token-bucket rate limiting (Section 27) is the first line of defense, but the more robust mitigation is **physical resource isolation** for the largest tenants — dedicating specific Redis shards / hash-slot ranges to the highest-volume studios rather than fully sharing a pooled cluster, so a traffic spike from one studio's live event can only exhaust its own reserved capacity, not a shared pool. Smaller/lower-volume tenants share a common pool with fair-share quotas.
+6. **Noisy-tenant isolation**: per-consumer token-bucket rate limiting (Section 27) is the first line of defense, but the more robust mitigation is **physical resource isolation** — dedicating specific Redis shards to the highest-volume tenants so a traffic spike can only exhaust its own reserved capacity, not a shared pool.
 
-7. **Monitoring the monitor**: the skew monitor itself emits a basic heartbeat/liveness metric (last successful comparison run timestamp, sample count processed) independent of whether it *finds* skew — a missing heartbeat for >15 min pages on-call directly, distinct from a skew-content alert. This dead-man's-switch pattern ensures silent monitor failure is caught within minutes, not discovered retroactively during a data-quality incident review. Additionally, periodic synthetic injection (deliberately writing a known-divergent test value) validates the detector's sensitivity end-to-end.
+7. **Monitoring the monitor**: the skew monitor emits a heartbeat/liveness metric independent of whether it *finds* skew — a missing heartbeat for >15 min pages on-call directly, distinct from a skew-content alert. This dead-man's-switch pattern catches silent monitor failure within minutes rather than during a later incident review.
 
-8. **Gradual version migration**: because feature_view versions are immutable and additive, v5 and v6 coexist indefinitely — a model's manifest simply pins whichever version it was trained against. Migration is consumer-driven: a team updates their model's feature references to `v6`, retrains/validates against it (potentially via the canary pattern in Section 33, comparing v5-served vs v6-served production metrics), and cuts over independently of any other consumer still on v5. The registry's lineage graph tracks exactly which consumers reference which versions, so a version can only be deprecated/deleted once its last consumer has migrated — preventing accidental breakage.
+8. **Gradual version migration**: because feature_view versions are immutable and additive, v5 and v6 coexist indefinitely — a model's manifest pins whichever version it trained against. Migration is consumer-driven (teams cut over independently via the canary pattern), and the registry's lineage graph prevents a version from being deprecated until its last consumer has migrated.
 
-9. **Sub-second freshness exception**: the 60s staleness bound is a platform *default*, not a hard universal ceiling — for a feature_view with a genuinely tighter freshness requirement (e.g., a live in-match anti-cheat signal), the platform supports a lower-latency tier: smaller Flink micro-batch/window-emit intervals (e.g., 1-2s) and a tighter online-store TTL/staleness monitoring threshold, at the cost of higher streaming-compute overhead (more frequent state checkpoints, higher write amplification to the online store) — this is registered per-feature_view as an SLA override, and the skew/staleness alerting thresholds are correspondingly tightened just for that feature_view rather than loosened platform-wide.
+9. **Sub-second freshness exception**: the 60s staleness bound is a platform default, not a hard ceiling — a feature_view needing tighter freshness (e.g., a live anti-cheat signal) can register a lower-latency tier with smaller Flink micro-batch intervals and a tighter staleness threshold, at the cost of higher streaming-compute overhead. This is a per-feature_view SLA override, not a platform-wide change.
 
-10. **Recompute vs. store tradeoff**: this is fundamentally a storage-cost vs. compute-cost curve — storing more precomputed history reduces repeated computation (good when many models/teams reuse the same historical features for different training windows) but grows the 1.3PB-class storage footprint linearly; recomputing on-demand from raw data saves storage but multiplies compute cost with every training run that touches that feature, and risks reproducibility drift if the recompute logic changes between runs. The chosen middle ground: precompute and store daily/hourly rollups (cheap relative to raw event grain) for anything with multiple consumers or reuse across training runs, but keep only short-retention raw event-grain data and rely on recompute-from-source (accepting the compute cost) for rarely-accessed, single-consumer, exploratory feature definitions — governed by an access-frequency-driven lifecycle policy rather than a blanket rule.
+10. **Recompute vs. store tradeoff**: this is a storage-cost vs. compute-cost curve — precomputed history avoids repeated computation but grows storage linearly, while recompute-on-demand saves storage but multiplies compute cost per training run and risks reproducibility drift. The chosen middle ground: precompute and store rollups for features with multiple consumers/reuse, and recompute-from-source for rarely-accessed, single-consumer exploratory features.

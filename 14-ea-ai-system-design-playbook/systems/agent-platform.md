@@ -493,190 +493,9 @@ Scale-down guards: orchestrator pods drain in-flight runs (no forced kill mid-ru
 - **Idle sandbox pool right-sizing**: warm-pool held at rate matching *actual* diurnal pattern (live-service traffic has known day/night and weekend live-ops peaks) rather than flat provisioning — KEDA scaling (§28) plus scheduled pre-warming ahead of known event windows (patch launches).
 - **Cost attribution/chargeback** (§10 ClickHouse) surfaced per-team — visibility itself is a lever; teams optimize their own agent specs once they see their bill.
 
-## 30. Disaster Recovery (RTO/RPO targets, backup strategy)
+## 30. Operational Concerns (Deployment, Reliability, Infra)
 
-| Data/component | RPO | RTO | Backup strategy |
-|---|---|---|---|
-| Agent definitions (Postgres + Git) | 0 (Git is source of truth, fully versioned) | 15 min | Git repo mirrored across regions; Postgres cache rebuildable from Git |
-| Run metadata (Postgres) | 5 min | 1 hr | Continuous WAL archiving + daily snapshot, cross-region replica |
-| Long-term memory (vector DB) | 15 min | 2 hr | Snapshot every 15 min, cross-region async replica; acceptable to lose last 15 min of memory writes (re-derivable from source runs if needed since trace store retains raw data longer) |
-| Trace store (ClickHouse) | 1 hr | 4 hr | Object-storage-backed tiered storage; less urgent — historical analytics, not operational-critical path |
-| Guardrail counters (Redis) | Best-effort (can be near-0 loss via AOF) | 5 min | AOF persistence + cross-AZ replica; on total loss, fail *safe* — treat unknown counters as "at quota" (deny by default) rather than reset-to-zero (avoid accidental quota bypass) |
-| Kafka | Replicated (RF=3) within region, MirrorMaker2 cross-region for DR | 30 min | N/A (in-region replication is primary durability mechanism) |
-
-Full platform DR drill (game-day) quarterly: simulate primary region loss, validate control plane comes up in secondary region within RTO, validate no mutating action can double-execute during failover (idempotency keys + approval audit log cross-checked).
-
-## 31. Multi-Region Deployment (active-active vs active-passive, data replication, latency routing)
-
-- **Active-active** for control plane API + orchestrator fleet across 2-3 regions (e.g., us-east, us-west, eu-west) — stateless compute, no reason to leave capacity idle.
-- **Data layer**: Postgres — primary in one region (us-east) with read replicas in others (writes for run-creation/approval need strong consistency, routed to primary; reads for dashboards served locally). Vector DB — sharded by tenant_id with tenant's home-region assignment (data residency: EU player data stays in eu-west collections for GDPR); cross-region replication only for DR, not active-active serving, to avoid consistency complexity. Kafka — regional clusters with MirrorMaker2 replication for DR, not a single global cluster (latency).
-- **Latency-based routing**: global load balancer (e.g., Route53/Cloud LB latency routing or Anycast) routes client requests to nearest healthy region; run execution stays within that region end-to-end (orchestrator, sandbox, LLM Gateway call) to avoid cross-region hops mid-run inflating the step latency budget.
-- **Data residency driver**: EU tenant/player data (GDPR) pinned to eu-west; this is as much a compliance requirement as a latency optimization.
-
-```
-        ┌───────────────┐        ┌───────────────┐        ┌───────────────┐
-        │   us-east      │        │   us-west      │        │   eu-west      │
-        │ (Postgres      │◀──────▶│ (read replica  │        │ (read replica  │
-        │  primary,      │  repl  │  + full active │        │  + full active │
-        │  active CP)    │        │  CP+orchestr.) │        │  CP+orchestr., │
-        │                │        │                │        │  EU data       │
-        │                │        │                │        │  residency)    │
-        └───────┬────────┘        └───────┬────────┘        └───────┬────────┘
-                │                          │                          │
-                └──────────── Global Latency-Based LB ────────────────┘
-                                        ▲
-                                        │
-                                 Client requests
-                     (routed to nearest region; run stays in-region)
-```
-
-## 32. Blue/Green Deployment
-
-- Applies to: **orchestrator fleet** and **control plane API** binaries (the code, not the agent specs — those have their own versioning in §9/§34).
-- Green environment stood up alongside blue (full parallel fleet, same Kafka consumer group configured to NOT consume until cutover — avoid double-processing).
-- Cutover: shift Kafka consumer group assignment + LB traffic to green atomically after smoke tests pass (synthetic run execution against green, validating guardrail engine, tool sandbox connectivity, LLM Gateway connectivity).
-- Blue kept warm for 30 min post-cutover for instant rollback (just flip consumer group/LB back) — no data migration needed since Postgres/Kafka/Redis are shared, not duplicated, between blue/green (only compute layer is blue/green'd).
-- Database schema changes handled separately (expand/contract migration pattern, §34) — never gated behind blue/green alone.
-
-## 33. Canary Deployment (traffic-split strategy, health-check gates specific to this system)
-
-- New orchestrator version: canary at 5% of run traffic (via weighted Kafka consumer group partition assignment or a feature-flagged run-routing layer) for 30 min, then 25% for 30 min, then 100%.
-- Health-check gates specific to this system (beyond generic error-rate/latency):
-  - **Guardrail trip-rate parity**: canary's loop-detection/cost-cap trip rate must be within 1.5x of baseline fleet's rate — a canary that's *not* tripping guardrails when it should (regression in guardrail logic) is as dangerous as one that's over-tripping.
-  - **Mutating-action approval-request rate parity**: canary shouldn't show a spike or drop in how often it requests human approval vs. baseline (either direction signals a policy-enforcement bug).
-  - **Cost/run parity**: canary avg cost/run within 20% of baseline (catches routing regressions sending everything to frontier models).
-  - **Tool success rate parity**: per-tool success rate on canary within 2 percentage points of baseline.
-- Auto-rollback if any gate breached for >5 min sustained during canary window; canary analysis automated (not just manual dashboard-watching) given the safety-critical nature of guardrail behavior.
-
-## 34. Rollback Strategy (automated triggers, rollback mechanics)
-
-- **Orchestrator/control-plane code rollback**: automated trigger on canary gate breach (§33) or post-100%-rollout error-rate spike (>3x baseline sustained 5 min) → automatic revert to prior blue/green environment or prior canary-stable image via CD pipeline (no manual approval needed for *code* rollback given guardrail-safety framing — speed matters more than caution here since staying on a broken guardrail engine is the bigger risk).
-- **Agent spec rollback**: each agent has versioned specs (§9); rollback = repoint `current_version` to prior version, effective immediately for new runs (in-flight runs complete on their pinned version — runs always execute against the version active at creation time, never mid-flight-upgraded).
-- **Model routing policy rollback**: hot-reloaded config, versioned in Git, rollback = revert commit + config-service picks it up within the 60s refresh cycle (§11).
-- **Automated rollback triggers**: canary gate breach (§33), guardrail-violation-rate spike alert (§23), LLM Gateway fallback-chain activation rate spike (indicates a routing bug sending traffic to a broken provider path).
-- Rollback mechanics never touch in-flight mutating actions already approved/executing — rollback only affects *new* run/step decisions; audit log (§24) makes any rollback-period behavior fully reconstructable.
-
-## 35. Observability (tracing, metrics, logs correlation — the three pillars applied here)
-
-- **Tracing**: every run gets a `trace_id` (OpenTelemetry), propagated through every step, tool call, LLM Gateway call, downstream API call — full distributed trace reconstructable end-to-end, critical for debugging *why* an agent made a decision (span attributes include prompt hash, model used, tool args).
-- **Metrics**: Prometheus-style metrics from every component (§22) scraped/pushed to a central TSDB (e.g., Mimir/Thanos), Grafana dashboards per persona (SRE, agent-owning team, cost/finance).
-- **Logs**: structured (§24), correlated via `trace_id`/`run_id` present in every log line — enables jumping from a metric anomaly (e.g., cost spike) to the trace to the exact logs for the offending run.
-- **Correlation in practice**: on-call engineer sees alert "guardrail violation spike for tenant X" (metric) → drills into `agent.guardrail.violations` events for that window (trace/event) → pulls `run_id`s → fetches full run trace (steps, prompts, tool calls) → cross-references structured logs for that `run_id` for any error stack traces → root-causes within the observability store without needing to reproduce.
-- Replay tooling: given a `run_id`, a debug UI can replay the exact prompt/context sent at each step (from stored trace payloads) — essential for agent debugging where "why did it call this tool" isn't answerable from metrics alone.
-
-## 36. Kubernetes Deployment
-
-```yaml
-apiVersion: apps/v1
-kind: Deployment
-metadata:
-  name: agent-orchestrator
-  labels: { app: agent-orchestrator }
-spec:
-  replicas: 20
-  selector: { matchLabels: { app: agent-orchestrator } }
-  template:
-    metadata: { labels: { app: agent-orchestrator } }
-    spec:
-      terminationGracePeriodSeconds: 120
-      containers:
-        - name: orchestrator
-          image: ea-registry/agent-orchestrator:1.42.0
-          resources:
-            requests: { cpu: "500m", memory: "512Mi" }
-            limits:   { cpu: "1",    memory: "1Gi" }
-          env:
-            - { name: KAFKA_CONSUMER_GROUP, value: "orchestrator-fleet" }
-            - { name: LLM_GATEWAY_URL, valueFrom: { configMapKeyRef: { name: agent-platform-cfg, key: llm_gateway_url } } }
-          readinessProbe:
-            httpGet: { path: /healthz/ready, port: 8080 }
-            periodSeconds: 5
-          livenessProbe:
-            httpGet: { path: /healthz/live, port: 8080 }
-            periodSeconds: 10
----
-apiVersion: v1
-kind: Service
-metadata: { name: agent-orchestrator-svc }
-spec:
-  selector: { app: agent-orchestrator }
-  ports: [{ port: 8080, targetPort: 8080 }]
----
-apiVersion: keda.sh/v1alpha1
-kind: ScaledObject
-metadata: { name: agent-orchestrator-scaler }
-spec:
-  scaleTargetRef: { name: agent-orchestrator }
-  minReplicaCount: 20
-  maxReplicaCount: 400
-  triggers:
-    - type: kafka
-      metadata:
-        bootstrapServers: kafka-broker.agent-platform.svc:9092
-        consumerGroup: orchestrator-fleet
-        topic: agent.runs.requested
-        lagThreshold: "500"
-```
-
-## 37. Terraform Infrastructure
-
-```hcl
-module "agent_orchestrator_eks" {
-  source          = "./modules/eks-node-group"
-  cluster_name    = "agent-platform-prod"
-  node_group_name = "orchestrator-fleet"
-  instance_types  = ["m6i.large"]
-  capacity_type   = "ON_DEMAND"   # baseline fleet, non-spot for availability floor
-  min_size        = 20
-  max_size        = 400
-  desired_size    = 20
-  labels          = { workload = "agent-orchestrator" }
-}
-
-module "sandbox_gpu_and_microvm_pool" {
-  source          = "./modules/eks-node-group"
-  cluster_name    = "agent-platform-prod"
-  node_group_name = "tool-sandbox-firecracker"
-  instance_types  = ["c6a.xlarge"]
-  capacity_type   = "SPOT"        # ephemeral, preemption-tolerant
-  min_size        = 50
-  max_size        = 800
-  labels          = { workload = "tool-sandbox" }
-}
-
-resource "aws_msk_cluster" "agent_platform_kafka" {
-  cluster_name           = "agent-platform-kafka"
-  kafka_version           = "3.6.0"
-  number_of_broker_nodes  = 9
-  broker_node_group_info {
-    instance_type   = "kafka.m5.xlarge"
-    client_subnets  = var.private_subnet_ids
-    storage_info { ebs_storage_info { volume_size = 500 } }
-  }
-  encryption_info { encryption_in_transit { client_broker = "TLS" } }
-}
-
-resource "aws_db_instance" "agent_platform_postgres" {
-  identifier              = "agent-platform-pg"
-  engine                  = "postgres"
-  engine_version          = "16.2"
-  instance_class          = "db.r6g.xlarge"
-  allocated_storage       = 500
-  multi_az                = true
-  storage_encrypted       = true
-  backup_retention_period = 14
-  replicate_source_db     = null
-}
-
-resource "aws_elasticache_replication_group" "agent_memory_redis" {
-  replication_group_id = "agent-platform-redis"
-  engine                = "redis"
-  node_type             = "cache.r6g.large"
-  num_cache_clusters    = 3
-  automatic_failover_enabled = true
-  at_rest_encryption_enabled = true
-}
-```
+At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
 
 ## 38. Why This Architecture
 
@@ -770,22 +589,22 @@ p50/p99 budget breakdown for a typical interactive run (excluding any human-appr
 
 ## 46. Ideal Answers
 
-1. **Loop prevention**: combine a hard step-count/wallclock/cost ceiling (absolute backstop, cheap to enforce) with semantic loop detection — hash a canonicalized representation of (plan intent + tool called + key result) per step and flag when the same signature repeats N times (e.g., 3) without net progress (progress defined via the reflect step's own self-assessment or a monotonic task-state field the agent must update). Legitimate long-running tasks differ because each step changes observable state (new data retrieved, new sub-goal); a genuine long batch job (e.g., an economy agent scanning many game titles) is modeled as multiple bounded sub-runs feeding a parent aggregation step, not one unbounded loop — the platform pushes agent authors toward decomposition rather than trying to perfectly distinguish "good" from "bad" long loops after the fact.
+1. **Loop prevention**: combine a hard step-count/wallclock/cost ceiling with semantic loop detection — hash (plan intent + tool called + key result) per step and flag repeats without net progress. Genuine long-running work is modeled as bounded sub-runs feeding a parent aggregation step, not one unbounded loop.
 
-2. **Gateway outage mid-run with partial state**: the run is already at `status=awaiting_approval` or `in_progress` with the last successful step persisted in Postgres (not just in-memory) — nothing is lost. The next step's LLM call fails, fallback chain attempts secondary provider; if that also fails, the run transitions to `status=failed, reason=upstream_unavailable` with all prior successful steps (including the partial refund *draft*, which by design has NOT executed yet — only approved actions execute) intact in the trace. Because mutating actions require approval before execution, "partial refund issued" specifically shouldn't be possible mid-plan; if a tool call *was* dispatched and the failure happens after dispatch but before confirmation, the tool call's own idempotency key ensures a retry (whenever the run resumes or is manually retried) doesn't double-execute — the sandbox/downstream API is the source of truth on whether the action actually happened, not the orchestrator's optimistic belief.
+2. **Gateway outage mid-run with partial state**: the last successful step is already persisted in Postgres, so nothing is lost — the failed LLM call triggers a fallback provider, and if that fails too the run transitions to `status=failed` with all prior steps intact. Because mutating actions require approval before execution, a "partial refund issued" mid-plan shouldn't be possible; any dispatched tool call is protected by its own idempotency key against double-execution on retry.
 
-3. **Millions-of-events memory redesign**: shift from "store every fact as a vector" to a tiered approach — raw events stay in the existing telemetry/analytics warehouse (already built for this scale), and the agent's long-term memory store holds *compacted summaries* (periodic rollups: "player's last 90 days of purchase behavior," refreshed on a schedule) plus pointers/query capability back to the warehouse for on-demand deep lookups via a dedicated tool rather than pre-embedding everything. This avoids linear vector-store growth with event volume and keeps retrieval fast (searching thousands of summaries, not millions of raw events) while preserving access to full fidelity when actually needed.
+3. **Millions-of-events memory redesign**: shift from "store every fact as a vector" to a tiered approach — raw events stay in the existing telemetry warehouse, while long-term memory holds compacted periodic summaries plus a tool for on-demand deep lookups. This avoids linear vector-store growth and keeps retrieval fast.
 
-4. **Prompt injection defense for money-moving tools**: never let the LLM's stated intent be the sole authority for executing a mutating action — the guardrail layer re-validates every proposed mutating action against hard-coded, non-LLM business rules (refund amount ceilings, per-player daily limits, tool-specific allowlists) before dispatch, and any tool output or user-submitted text is wrapped/tagged as untrusted data in the prompt (never concatenated as if it were system instruction). Additionally, sensitive tools require human approval by default (§25), which is itself a check specifically against injection succeeding silently — a human reviewing "refund $10,000 because the ticket text says so" catches what a purely automated pipeline might not.
+4. **Prompt injection defense for money-moving tools**: never let the LLM's stated intent be the sole authority for a mutating action — the guardrail layer re-validates every proposed action against hard-coded, non-LLM business rules (limits, allowlists) before dispatch, and tool/user text is tagged as untrusted data, never concatenated as system instruction. Sensitive tools also require human approval by default (§25) as a backstop against injection succeeding silently.
 
-5. **Approval-bottleneck scaling strategy**: don't try to scale human reviewer headcount linearly with run volume — invest in the risk classifier's precision/recall (§19/§20) so a growing fraction of low-risk, well-understood action types graduate to auto-approve (with continuous monitoring of override rate as the safety signal, §21), while reserving human review capacity for genuinely novel or high-blast-radius cases. Also consider tiering approval SLAs and routing by risk score so reviewers triage the highest-risk items first rather than FIFO.
+5. **Approval-bottleneck scaling strategy**: don't scale reviewer headcount linearly with run volume — invest in the risk classifier's precision/recall (§19/§20) so more low-risk action types graduate to auto-approve, monitoring override rate as the safety signal (§21). Reserve human review capacity for novel or high-blast-radius cases, triaged by risk score rather than FIFO.
 
-6. **Multi-agent composition without breaking guardrails**: model a "parent" agent's call to a "child" agent as just another tool call from the guardrail engine's perspective — the child run gets its own run_id, but its cost and step count roll up into the parent run's budget (nested cost/step accounting, not independent budgets, otherwise a parent could fan out unboundedly by spawning children each with a "fresh" budget). Loop detection must also consider cross-run cycles (parent calls child calls parent) — the run graph itself needs cycle detection at the DAG level, not just within a single run's step sequence.
+6. **Multi-agent composition without breaking guardrails**: a parent agent's call to a child agent is just another tool call to the guardrail engine — the child gets its own run_id, but its cost and step count roll up into the parent's budget (nested, not independent, accounting). Loop detection must also cover cross-run cycles (parent calls child calls parent), not just within a single run.
 
-7. **Model routing validation**: routing decisions are policy-driven by step *type* tags declared in the agent spec (plan/classify/extract/summarize), not a runtime judgment call — this makes routing deterministic and testable. Validation happens via offline eval sets per step type (does the cheap model match frontier-model output quality within tolerance on a held-out benchmark) before a routing policy change ships, plus online guardrails: the approval-override-rate and quality self-eval-score drift metrics (§21) act as a production tripwire — if routing a step type to a cheaper model correlates with a rise in human overrides or quality-score drops, that's caught by existing drift monitoring rather than requiring bespoke routing-specific alerting.
+7. **Model routing validation**: routing is policy-driven by step *type* tags declared in the agent spec, not a runtime judgment call, which keeps it deterministic and testable. Validation happens via offline per-step-type eval sets before a policy change ships, plus the existing override-rate/quality-drift metrics (§21) act as an online tripwire.
 
-8. **2am drift incident path**: PagerDuty alert (cost-drift or guardrail-violation-spike, §23) pages platform on-call → on-call pulls the per-tenant cost/usage dashboard and drills into recent trace events for that tenant → checks whether it correlates with a recent agent-spec version change (rollback candidate, §34) or an actual traffic pattern change (e.g., a live-service incident driving legitimate higher support-agent volume) → if spec-related, roll back to prior version immediately (fast, low-risk action); if traffic-related, verify guardrails are functioning as designed (i.e., it's expensive but *safe*, not runaway) and let it ride or temporarily tighten that tenant's quota if spend is genuinely out of policy → postmortem next business day regardless of resolution path.
+8. **2am drift incident path**: a cost-drift/guardrail-spike page (§23) leads on-call to check whether it correlates with a recent agent-spec version change or a legitimate traffic spike. If spec-related, roll back immediately (§34); if traffic-related, confirm guardrails are working as designed and let it ride or tighten quota if truly out of policy.
 
-9. **Player-facing NPC agent changes**: this shifts several assumptions — approval gates become infeasible at player-interaction latency (can't pause for human review mid-conversation), so the safety model shifts from "human approval before action" to "tightly scoped, non-mutating tool access only" for player-facing agents (an NPC companion shouldn't have any tool that can mutate real economic/account state — read-only lore/quest-state tools only), plus mandatory content-safety/toxicity filtering on both agent input and output (COPPA considerations for younger players), and likely a much stricter latency budget (game-frame-adjacent interactions may need sub-second response, pushing toward smaller/faster models or heavier prompt-caching, possibly even on-device/edge inference for latency-critical titles) — architecturally this probably becomes a distinct deployment tier of the same platform with a different (stricter, faster, non-mutating) tool-scope policy rather than a fully separate system.
+9. **Player-facing NPC agent changes**: approval gates become infeasible at conversational latency, so safety shifts from "human approval before action" to "tightly scoped, non-mutating tool access only" (read-only lore/quest-state tools, no economy-mutating tools). This also requires mandatory content-safety/toxicity filtering and a much stricter latency budget, likely making it a distinct deployment tier of the same platform rather than a separate system.
 
-10. **Biggest architectural risk**: the human-approval gate is simultaneously the platform's core safety mechanism *and* its biggest scaling constraint (§42) — if the risk classifier that's supposed to relieve that bottleneck over time doesn't reach sufficient precision, the platform either stays throughput-capped by reviewer bandwidth or organizations route around the safety gate under business pressure (worse outcome). Validate early by building the risk-classifier training/eval loop from day one (not as a phase-2 afterthought) and instrumenting override-rate as a first-class metric from the very first production agent, so there's real data to judge classifier readiness against before any pressure to loosen the gate arrives.
+10. **Biggest architectural risk**: the human-approval gate is simultaneously the platform's core safety mechanism *and* its biggest scaling constraint (§42) — if the risk classifier meant to relieve that bottleneck doesn't reach sufficient precision, the platform stays throughput-capped or orgs route around the safety gate under pressure. Mitigate by building the risk-classifier training/eval loop and override-rate instrumentation from day one, not as a phase-2 afterthought.

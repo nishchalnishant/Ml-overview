@@ -78,104 +78,7 @@ For multi-GPU inference: NVLink (~600 GB/s) vs PCIe (~64 GB/s) determines whethe
 
 ---
 
-## Q3: Data parallelism vs model parallelism — why the distinction matters
-
-**The problem:** Your model is 70B parameters. An A100 80GB holds 35 GB of INT4 weights. After KV cache, you have no room for activations. You can't fit even one replica on one GPU. Data parallelism — which assumes each worker holds a complete model — is not an option.
-
-**The core insight:** Data parallelism (DP) copies the model to every device and splits data. It only works when one device can hold the full model. Model parallelism splits the model itself across devices — required when the model is too large for any single device.
-
-**The mechanics:**
-
-Data parallelism:
-- Each GPU holds identical full model weights
-- Each GPU processes a different batch of data
-- Gradients are all-reduced (averaged) across replicas
-- Memory per GPU = full model weights + activations for local batch
-
-Model parallelism — two forms:
-- **Tensor parallelism (TP):** Split individual weight matrices across GPUs. GPU 0 holds columns 0..d/2, GPU 1 holds columns d/2..d. AllReduce after each layer.
-- **Pipeline parallelism (PP):** Assign consecutive layers to different GPUs. GPU 0 does layers 0–19, GPU 1 does layers 20–39. Activations pass between stages.
-
-Production LLMs: DP × TP × PP ("3D parallelism"). Example: 8-node cluster, each node has 8 GPUs — TP=8 within a node, DP×PP across nodes.
-
-**What breaks:**
-- TP communication dominates at small batch sizes (AllReduce per layer adds latency)
-- PP creates pipeline bubbles — GPU 0 is idle while downstream GPUs process
-- Combining both naively leads to communication storms on slow interconnects
-
-**What the interviewer is testing:** That you understand when each strategy is appropriate and that production systems combine them.
-
-**Common traps:**
-- Using "model parallelism" to mean only TP (PP is also model parallel)
-- Assuming TP always helps — at TP degree > 8 on NVLink, communication often hurts
-- Forgetting that DP requires each device to hold a complete model replica
-
----
-
-## Q4: Tensor parallelism — splitting within a layer
-
-**The problem:** A single attention layer in a 70B model has QKV projection matrices of shape [8192 × 8192]. In FP16, that's 128 MB per matrix. With 80 such layers, just the QKV projections are 10 GB. This must fit on one GPU before you've counted anything else.
-
-**The core insight:** Matrix multiplication is splittable. If W = [W₁ | W₂], then XW = [XW₁ | XW₂]. GPU 0 can hold W₁ and compute XW₁; GPU 1 holds W₂ and computes XW₂. The results are concatenated via AllReduce. Each GPU does half the work and holds half the memory.
-
-**The mechanics (Megatron-style):**
-
-For a linear layer Y = XW:
-- Column-split: GPU i holds W[:, i*k:(i+1)*k]. Compute local XWᵢ. AllGather outputs.
-- Row-split: GPU i holds W[i*k:(i+1)*k, :]. Compute local XᵢW. AllReduce sums.
-
-For attention heads: distribute heads across GPUs. GPU 0 computes heads 0–15, GPU 1 computes heads 16–31. No communication until after head concatenation.
-
-Communication cost: one AllReduce per Transformer block (2 total: after attention and after MLP). At TP=8 with NVLink, this is ~1–2ms per layer. On PCIe: 8–15ms — often slower than sequential execution.
-
-**What breaks:**
-- TP=8 on PCIe is usually slower than TP=2 due to communication overhead
-- TP requires all GPUs to participate in every forward pass — one slow GPU stalls the rest
-- Higher TP degrees reduce per-GPU memory but increase communication frequency
-
-**What the interviewer is testing:** The communication-memory trade-off. Why TP is only practical with high-bandwidth interconnects (NVLink 600 GB/s vs PCIe 64 GB/s).
-
-**Common traps:**
-- Claiming TP always speeds up inference
-- Confusing TP (splits tensors within a layer) with PP (splits layers)
-- Not knowing the AllReduce cost at different batch sizes
-
----
-
-## Q5: Pipeline parallelism — splitting across layers
-
-**The problem:** Your model has 80 layers but you have 4 GPUs. TP would require splitting every matrix by 4×, with 4× AllReduce communication overhead per layer. An alternative: assign layers 0–19 to GPU 0, layers 20–39 to GPU 1, etc. Each GPU holds 25% of the model parameters and does 25% of the computation. No communication within a layer — only activations pass between stages.
-
-**The core insight:** Depth is independent. The output of layer 19 is just a tensor — it can be passed from GPU 0 to GPU 1 as a memory copy. This enables much lower communication bandwidth requirements than TP, at the cost of pipeline bubbles.
-
-**The mechanics:**
-
-Forward pass:
-```
-GPU 0: process layers 0–19 → send activation to GPU 1
-GPU 1: process layers 20–39 → send activation to GPU 2
-...
-```
-
-The bubble problem: while GPU 1 is processing, GPU 0 is idle. With 4 stages, the bubble fraction is approximately (P-1)/P = 75% idle for a single microbatch.
-
-GPipe/PipeDream fix: microbatching. Split the batch into M microbatches. While GPU 1 processes microbatch 1, GPU 0 processes microbatch 2. Bubble fraction becomes (P-1)/(M+P-1), which approaches 0 as M increases.
-
-**What breaks:**
-- Small batch sizes amplify bubble time — PP is much less efficient at low concurrency
-- More stages = more pipeline latency even when GPUs are busy
-- Load imbalance: if layer 40 is twice as expensive as layer 20, GPU 2 becomes the bottleneck
-
-**What the interviewer is testing:** Bubble awareness. That you know PP reduces memory per device but adds latency and requires careful scheduling.
-
-**Common traps:**
-- Claiming PP always reduces latency — it often increases it for single requests
-- Confusing PP (splits by layer depth) with TP (splits tensor width)
-- Not mentioning microbatching as the mitigation for bubbles
-
----
-
-## Q6: Continuous batching — why static batching leaves GPUs idle
+## Q3: Continuous batching — why static batching leaves GPUs idle
 
 **The problem:** In the 10,000-concurrent-users scenario, requests have wildly different lengths. Request A generates 10 tokens. Request B generates 500. Static batching waits for all requests in a batch to finish before admitting new ones. When Request A finishes at step 10, its GPU slot sits empty until Request B finishes at step 500. For 490 steps, you're using 1/batch_size of your GPU capacity.
 
@@ -209,7 +112,7 @@ Throughput improvement over static batching: 5–10× for typical chat workloads
 
 ---
 
-## Q7: Speculative decoding — parallelizing the sequential bottleneck
+## Q4: Speculative decoding — parallelizing the sequential bottleneck
 
 **The problem:** Autoregressive decoding is fundamentally sequential. Token N cannot be generated until token N-1 is complete. Each step requires a full forward pass through the 70B model. For long outputs, this is the dominant cost. You cannot simply "run it in parallel" — each token depends on the last.
 
@@ -242,7 +145,7 @@ Speedup depends on acceptance rate α. With α ≈ 0.8 and γ = 4, expected acce
 
 ---
 
-## Q8: KV cache — why you can't regenerate past context every step
+## Q5: KV cache — why you can't regenerate past context every step
 
 **The problem:** At decode step N, the model needs to compute attention between the new token (query) and every previous token (keys and values). Recomputing K and V for all previous tokens at every step costs O(N²) time per request. With sequence length 4096, that's 16M operations per step, repeated 4096 times — 64B total operations just for attention.
 
@@ -283,7 +186,7 @@ Management strategies:
 
 ---
 
-## Q9: PagedAttention and vLLM — virtual memory for KV cache
+## Q6: PagedAttention and vLLM — virtual memory for KV cache
 
 **The problem:** Naive KV cache pre-allocates a contiguous block of memory for each request sized at max_seq_len. If max_seq_len = 8192, you reserve 8192-token worth of KV memory even for a request that generates 50 tokens. For a batch of 64 requests, 60–80% of KV memory is wasted. This fragmentation is the primary reason throughput collapses at scale.
 
@@ -321,7 +224,7 @@ vLLM combines PagedAttention + continuous batching + an OpenAI-compatible API se
 
 ---
 
-## Q10: Edge and mobile deployment — everything changes at the constraint boundary
+## Q7: Edge and mobile deployment — everything changes at the constraint boundary
 
 **The problem:** Your serving infrastructure assumes 80GB VRAM, NVLink, and 2TB/s memory bandwidth. A phone has 6–12GB unified memory, a Neural Engine with 2–4 TOPS, and needs to complete inference in under 200ms before the user notices. The entire serving stack is irrelevant. You need a different model and a different execution path.
 
@@ -351,7 +254,7 @@ Privacy benefit: on-device inference means user data never leaves the device. Fo
 
 ---
 
-## Q11: Quantization — trading precision for memory and speed
+## Q8: Quantization — trading precision for memory and speed
 
 **The problem:** LLaMA 3 70B in FP16 requires 140 GB — two A100 80GB GPUs just for weights. INT4 quantization reduces this to 35 GB, fitting on one GPU with room for KV cache. But you're now representing each weight with 4 bits instead of 16. When does that cause accuracy problems, and when is it acceptable?
 
@@ -392,7 +295,7 @@ Quality vs memory trade-off:
 
 ---
 
-## Q12: Auto-scaling for AI workloads — GPUs are not CPUs
+## Q9: Auto-scaling for AI workloads — GPUs are not CPUs
 
 **The problem:** Standard CPU autoscaling triggers on CPU utilization. GPU workloads have different saturation signals. A GPU can be 90% utilized while requests queue at 10× the acceptable latency. Or it can show 50% "utilization" while a memory allocation failure serializes everything. CPU-based autoscaling will under-scale until the system is already in trouble.
 
@@ -426,7 +329,7 @@ Scale-down hysteresis: don't scale down immediately when load drops. LLM serving
 
 ---
 
-## Q13: Load balancing for AI serving — request-aware routing
+## Q10: Load balancing for AI serving — request-aware routing
 
 **The problem:** Round-robin load balancing sends request #1 to server A, #2 to B, #3 to C. Request #1 has a 10,000-token prompt. Requests #2 and #3 have 50-token prompts. Server A is pinned for 10 seconds processing the long prompt while B and C are idle after 200ms. Naive round-robin creates systematic imbalance for variable-length LLM requests.
 
@@ -456,7 +359,7 @@ Gateway responsibilities: health checks (not just TCP — test generation endpoi
 
 ---
 
-## Q14: GPU memory management for multiple models
+## Q11: GPU memory management for multiple models
 
 **The problem:** You have 5 fine-tuned models for different use cases and 4 GPUs. All 5 models don't fit simultaneously. If you load/unload models per request, each swap costs 30–60 seconds for a 7B model over NVMe. The system becomes unusable.
 
@@ -486,7 +389,7 @@ Routing must know which model is loaded: gateway tracks model placement and rout
 
 ---
 
-## Q15: Model sharding — when and which kind
+## Q12: Model sharding — when and which kind
 
 **The problem:** Training a new 100B model. Adam optimizer stores 2 copies of gradients and 2 of optimizer states for every parameter. A 100B model at FP32 = 400 GB just for weights. Add optimizer states: 1.6 TB. No single GPU cluster node has this. You need to distribute not just parameters but the entire training state.
 
@@ -506,7 +409,7 @@ DeepSpeed ZeRO (Zero Redundancy Optimizer):
 - Stage 3: + shard parameters (equivalent to FSDP). Minimum memory.
 - ZeRO-Infinity: offload to CPU/NVMe for extreme scale.
 
-For inference: TP/PP as described in Q4/Q5. FSDP and ZeRO are primarily training strategies.
+For inference: TP/PP (tensor and pipeline parallelism) split the model across devices for serving huge models. FSDP and ZeRO are primarily training strategies.
 
 ```
 Choosing shard topology:
@@ -530,7 +433,7 @@ Choosing shard topology:
 
 ---
 
-## Q16: Request queuing and priority scheduling
+## Q13: Request queuing and priority scheduling
 
 **The problem:** You have 10,000 concurrent users but can only process 50 requests at a time. 9,950 requests must queue. A FIFO queue means a 100-token "what's the weather?" request waits behind a 10,000-token document analysis job. That user's experience is terrible. Meanwhile your paid enterprise customer is waiting behind free-tier batch jobs.
 
@@ -568,7 +471,7 @@ Scheduling within a priority class:
 
 ---
 
-## Q17: Self-hosted vs API — the TCO decision
+## Q14: Self-hosted vs API — the TCO decision
 
 **The problem:** You're spending $50K/month on OpenAI API calls. A colleague says "we could run this ourselves for $20K/month in GPU costs." Is that true? What did they miss?
 
@@ -611,7 +514,7 @@ Decision framework:
 
 ---
 
-## Q18: Cold start latency in serverless AI
+## Q15: Cold start latency in serverless AI
 
 **The problem:** Serverless scales to zero when idle, then spins up instances on demand. For a web server, cold start is 100–500ms (container start + process init). For an LLM serving node, cold start is 3–10 minutes: provision GPU instance + pull container image (10+ GB) + load model weights (35–140 GB from NVMe/network) + compile CUDA kernels. This is completely incompatible with interactive latency SLOs.
 
@@ -650,7 +553,7 @@ Mitigation strategies:
 
 ---
 
-## Q19: Model caching to eliminate redundant computation
+## Q16: Model caching to eliminate redundant computation
 
 **The problem:** 80% of your requests start with the same 2000-token system prompt. You're running a 70B model and the prefill cost for 2000 tokens is significant. At 1000 requests/hour, you're computing the same KV tensors 1000 times/hour. That's pure waste.
 
@@ -684,7 +587,7 @@ Privacy: never cache PII in shared caches. Use per-user partitioning or encrypt 
 
 ---
 
-## Q20: Synchronous vs asynchronous inference
+## Q17: Synchronous vs asynchronous inference
 
 **The problem:** Your LLM generates long documents — 2000–5000 tokens. At 50 tokens/second, that's 40–100 seconds of generation. HTTP timeouts at gateways and clients are typically 30–60 seconds. Synchronous serving for long jobs breaks before they complete.
 
@@ -725,44 +628,7 @@ Or webhook: POST /jobs → 202; POST to callback_url when complete.
 
 ---
 
-## Q21: FSDP vs DeepSpeed ZeRO — the training memory optimizers
-
-**The problem:** Training a 70B model. Adam optimizer requires 4× model size for optimizer states (FP32 master weights + momentum + variance). That's 4 × 280 GB = 1.12 TB of optimizer state alone. This must be distributed across GPUs. DP doesn't help — each replica would need the full 1.12 TB. You need to shard the optimizer state.
-
-**The core insight:** ZeRO (Zero Redundancy Optimizer) eliminates the memory redundancy of data parallelism by sharding optimizer state, gradients, and parameters across data-parallel ranks. Each GPU holds 1/N of the total state. FSDP is PyTorch's native implementation of the same idea.
-
-**The mechanics:**
-
-ZeRO stages:
-- Stage 1: shard optimizer states across DP ranks. Each GPU holds full weights and gradients, but only 1/N of optimizer state. Memory: ~60% of full DP.
-- Stage 2: + shard gradients. Memory: ~33% of full DP.
-- Stage 3: + shard parameters (equivalent to FSDP). Memory: O(1/N) per GPU.
-
-Communication pattern for ZeRO-3 / FSDP:
-- Forward pass: AllGather parameters before each layer, free after layer completes
-- Backward pass: ReduceScatter gradients after each layer
-- Optimizer step: each rank updates its local shard; AllGather to reconstruct for next forward pass
-
-FSDP vs DeepSpeed ZeRO-3:
-- FSDP: native PyTorch 2.0+, tight integration with `torch.compile`, better for HuggingFace-based training
-- DeepSpeed ZeRO-3: more features (CPU/NVMe offload, ZeRO-Infinity), custom launcher, more configuration options
-- Both achieve similar memory reduction at equivalent sharding levels
-
-**What breaks:**
-- High ZeRO/FSDP sharding with slow interconnect: AllGather for each layer dominates training time
-- ZeRO-3 with PyTorch compile: extra work needed for compatibility
-- Not using activation checkpointing alongside sharding: activations can still be a memory bottleneck
-
-**What the interviewer is testing:** The staged sharding concept, which state is sharded at each stage, and practical ecosystem tradeoffs.
-
-**Common traps:**
-- Saying FSDP is not related to ZeRO (FSDP ≈ ZeRO-3)
-- Not knowing CPU offload exists (ZeRO-Infinity)
-- Conflating training sharding with inference serving strategies
-
----
-
-## Q22: Monitoring and profiling LLM inference — separating the phases
+## Q18: Monitoring and profiling LLM inference — separating the phases
 
 **The problem:** Your p95 latency is 4 seconds. Without knowing where time is spent, you don't know what to fix. Is it queue wait? Prefill? Decode? KV memory pressure? Each has a different solution. Profiling total latency obscures the bottleneck.
 
@@ -814,7 +680,7 @@ Dashboard targets:
 
 ---
 
-## Q23: Model routing at the infrastructure level
+## Q19: Model routing at the infrastructure level
 
 **The problem:** You have a single endpoint that routes everything to your most capable (and expensive) model. 40% of requests are simple one-turn factual lookups. 30% are complex multi-step reasoning. 20% are code generation. 10% are safety-critical compliance checks. Routing everything to the large model costs 3× what it needs to, and the simple factual lookups are competing for capacity with the complex tasks.
 

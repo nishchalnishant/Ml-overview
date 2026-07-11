@@ -23,24 +23,7 @@ The root issue is that autoregressive generation is inherently sequential. Each 
 
 **The problem:** in a naive implementation, every new decoding step recomputes the Key and Value matrices for every token in the current sequence — including all previously generated tokens. For a sequence of length n after generating t tokens, that is O((n+t)²) attention computation at each new step. As the sequence grows, each step becomes more expensive.
 
-**The core insight:** the Key and Value matrices for any token depend only on that token's embedding and its position, which are fixed once generated. They do not change when new tokens are appended. There is no reason to recompute them.
-
-**The mechanics:** store K and V for every layer and every previously generated token. On the next step, compute K and V only for the new token, append them to the cache, and compute attention using all cached K/V pairs. Cost per step drops from O(n²) to O(n) — but this introduces a memory cost.
-
-**KV cache memory footprint:**
-```
-per request = 2 × num_layers × num_heads × head_dim × sequence_length × bytes_per_element
-
-For a 7B model (32 layers, 32 heads, 128 head_dim, fp16):
-2 × 32 × 32 × 128 × S × 2 bytes = 0.5 MB per token
-
-At 4096 tokens: ~2 GB per request
-At batch of 16: ~32 GB — fills a full A100
-```
-
-The KV cache is the primary reason batching LLM inference is hard: the GPU runs out of KV cache memory before it runs out of compute.
-
-**What breaks:** KV cache memory scales linearly with sequence length and batch size. Long context or large batches cause out-of-memory errors. Naive memory allocation wastes GPU RAM through fragmentation — pre-allocating maximum sequence length per request leaves most of the allocation empty until tokens are generated.
+**The core insight:** the Key and Value matrices for any token depend only on that token's embedding and its position, which are fixed once generated. Cache them once; cost per step drops from O(n²) to O(n), at the price of memory that grows linearly with sequence length and batch size. The GPU runs out of KV cache memory before it runs out of compute — the primary reason batching LLM inference is hard. Concrete LLaMA-2-70B memory numbers, GQA reduction, and the fragmentation problem: see [components/18-llm-serving.md](../../03-deep-learning/components/18-llm-serving.md#2-the-kv-cache-problem).
 
 ---
 
@@ -48,11 +31,7 @@ The KV cache is the primary reason batching LLM inference is hard: the GPU runs 
 
 **The problem:** naive KV cache allocation gives each request a contiguous pre-allocated block sized to its maximum possible sequence length. On a busy server with hundreds of concurrent requests of varying lengths, most of each block is empty. This internal fragmentation wastes 50–80% of GPU memory and severely limits how many requests can be served simultaneously.
 
-**The core insight:** operating systems solved this problem for RAM decades ago with virtual memory and paging. Apply the same idea to the KV cache. Instead of one contiguous block per request, divide the KV cache into fixed-size "pages" and allocate them on demand as tokens are actually generated. Map pages non-contiguously through a page table — exactly as OS virtual memory works.
-
-**The mechanics:** each block holds the KV entries for a fixed number of tokens (e.g., 16). Requests start with no allocated blocks. As each token is generated, the system allocates the next block only when the current one is full. The attention kernel uses the page table to find where each block lives in physical memory.
-
-**What breaks:** the indirection through a page table adds a small overhead to the attention kernel. More complex memory management code. Requires a serving framework that implements PagedAttention — vLLM pioneered this; it is now standard in most production LLM servers.
+**The core insight:** operating systems solved this problem for RAM decades ago with virtual memory and paging. Apply the same idea to the KV cache — divide it into fixed-size blocks, allocate on demand as tokens are generated, and map blocks non-contiguously through a block table, exactly as OS virtual memory works. Pioneered by vLLM; now standard in production LLM servers. ASCII diagram, copy-on-write sharing, and throughput comparison data: see [components/18-llm-serving.md](../../03-deep-learning/components/18-llm-serving.md#3-vllm-and-pagedattention).
 
 ---
 

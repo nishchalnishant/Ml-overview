@@ -25,15 +25,7 @@ Whether you can extract the practical engineering implication from the research 
 
 **First-principles reasoning structure**:
 
-Start from the question the paper answered: "Given a fixed compute budget (measured in FLOPs), how should you split it between model size and training tokens?"
-
-Prior practice (GPT-3 era): researchers assumed "bigger model = better." They trained very large models on relatively small amounts of data. GPT-3 (175B parameters) was trained on ~300B tokens.
-
-The Chinchilla finding: the optimal allocation is approximately equal scaling between parameters and training tokens. For every parameter, you should train on roughly 20 tokens. GPT-3-scale compute would be better spent on a 70B-parameter model trained on 1.4T tokens rather than a 175B model trained on 300B tokens.
-
-The practical implication: most pre-Chinchilla models were *overtrained in size and undertrained in data*. Chinchilla (70B parameters, 1.4T tokens) outperformed GPT-3 (175B, 300B tokens) at the same compute cost.
-
-The follow-on implication: Llama 2 (7B, 2T tokens) outperforms much larger models on many benchmarks because it was trained on far more data than Chinchilla-optimal. Trading model size for inference efficiency: a smaller model trained on more data is faster at inference and easier to deploy than a larger model trained on less data with equivalent capability.
+Start from the question the paper answered: "Given a fixed compute budget (measured in FLOPs), how should you split it between model size and training tokens?" The answer — equal scaling, ~20 tokens/parameter, and why GPT-3 was overtrained in size relative to data — is worked through in full in [02-scaling-and-data.md](../02-scaling-and-data.md). The follow-on implication worth adding here: Llama 2 (7B, 2T tokens) outperforms much larger models on many benchmarks precisely because it was trained on far more data than Chinchilla-optimal — smaller-trained-longer wins on inference economics too.
 
 **Common traps**:
 - Treating the "20 tokens per parameter" ratio as a hard law rather than an approximation from a specific compute range. It may not hold at extreme scales.

@@ -162,17 +162,13 @@ Does the model fit on one GPU?
 ├── YES → Single GPU training is simplest. Start here.
 └── NO →
     ├── Model fits if batch is smaller? → Gradient Accumulation.
-    ├── Model weights don't fit? → Model Parallelism (split layers across GPUs).
-    │   └── Use: Tensor Parallelism (Megatron-LM), Pipeline Parallelism.
+    ├── Model weights don't fit? → Model Parallelism (split layers across GPUs), e.g. Tensor Parallelism (Megatron-LM) or Pipeline Parallelism.
     └── Data is too large? → Data Parallelism (PyTorch DDP, Horovod).
         └── AllReduce gradients across GPUs after each backward pass.
 ```
 
 ### ZeRO Optimizer (DeepSpeed)
-For LLM training, ZeRO shards model states (params, gradients, optimizer states) across GPUs.
-- **ZeRO Stage 1:** Shard optimizer states.
-- **ZeRO Stage 2:** Shard + optimizer states.
-- **ZeRO Stage 3:** Shard params + gradients + optimizer states (full model parallelism).
+For LLM training, ZeRO (DeepSpeed) progressively shards optimizer states, gradients, and params across GPUs (Stages 1-3) to cut memory usage at the cost of more communication.
 
 ---
 
