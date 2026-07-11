@@ -12,7 +12,6 @@ tags: [productionml, ml, interview-questions, revision]
 **Difficulty guide:**
 - **Easy** → Round 1 basics: definitions, standard MLOps concepts, deployment strategies, and basic feature store mechanics. Know these cold.
 - **Medium** → Round 2 depth: applied debugging, architectural tradeoffs (streaming vs batch, Lambda vs Kappa), evaluation gotchas, LLM serving optimizations, and monitoring strategies.
-- **Hard** → Staff/Research depth: distributed training internals (ZeRO, 3D parallelism), complex system design (low latency, high throughput), advanced experimentation (CUPED, IPS), and deep incident response.
 
 ---
 

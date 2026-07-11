@@ -194,7 +194,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Data Preprocessing & Feature Engineering](07-interview-prep/ml/09-data-preprocessing-and-feature-engineering.md)
   * [Probability & Statistics](07-interview-prep/ml/10-probability-and-statistics.md)
   * [Canonical Stats Questions](07-interview-prep/ml/11-canonical-stats-questions.md)
-  * [Probabilistic Graphical Models](07-interview-prep/ml/12-probabilistic-graphical-models.md)
   * [NLP](07-interview-prep/ml/13-nlp.md)
   * [Computer Vision](07-interview-prep/ml/14-computer-vision.md)
   * [Coding](07-interview-prep/ml/15-coding.md)

@@ -681,30 +681,6 @@ output. Without scaling, dot products grow with $d_k$ (variance $\propto d_k$ fo
 vectors), pushing softmax into a saturated regime with near-zero gradients almost everywhere.
 Dividing by $\sqrt{d_k}$ keeps the pre-softmax variance at ~1, keeping gradients healthy.
 
-#### Q: What's the core difference between a Bayesian Network and a Markov Random Field? [Probabilistic Graphical Models]
-Bayesian Networks are **directed** acyclic graphs encoding causal/conditional dependencies —
-joint factorizes as $P(x) = \prod_i P(x_i|\text{parents}(x_i))$. Markov Random Fields are
-**undirected**, encoding symmetric dependency (no causal direction) — joint factorizes over
-clique potentials $P(x) = \frac{1}{Z}\prod_c \psi_c(x_c)$ with an intractable normalizing
-constant $Z$. Use BNs when there's a natural causal/generative story; MRFs when relationships are
-symmetric (e.g., pixel-neighbor consistency in image segmentation).
-
-#### Q: Hidden Markov Models — what are the three canonical problems and their algorithms? [Probabilistic Graphical Models]
-(1) **Evaluation** — likelihood of an observation sequence given the model: forward algorithm.
-(2) **Decoding** — most likely hidden state sequence given observations: Viterbi algorithm
-(dynamic programming over state transitions). (3) **Learning** — estimate transition/emission
-probabilities from data: Baum-Welch (an EM instantiation). HMMs assume a first-order Markov
-property on the (unobserved) state sequence.
-
-#### Q: Why is exact inference intractable in general graphical models, and what do variational inference and MCMC each trade off? [Probabilistic Graphical Models]
-Exact inference (computing the true posterior) requires summing/integrating over exponentially
-many configurations in general graphs (NP-hard beyond trees). **MCMC** (Gibbs sampling,
-Metropolis-Hastings) draws samples from the true posterior asymptotically — exact in the limit
-but can be slow to converge/mix, and diagnosing convergence is hard. **Variational Inference**
-approximates the posterior with a simpler tractable family and optimizes it to be as close as
-possible (minimize KL divergence) — fast and scalable but introduces approximation bias since
-the true posterior may not lie in the chosen family.
-
 #### Q: Derive the gradient of cross-entropy loss with a sigmoid output. [Math Derivations]
 $L=-[y\log\hat y+(1-y)\log(1-\hat y)]$, $\hat y=\sigma(z)$. Using
 $\sigma'(z)=\sigma(z)(1-\sigma(z))$, the chain rule collapses to the remarkably clean:

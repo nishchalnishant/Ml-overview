@@ -78,7 +78,6 @@ That set gives you:
 | `10-probability-and-statistics.md` | Interview math without the pain. |
 | `11-canonical-stats-questions.md` | Extra drill-down on statistics and probability edge cases. |
 | `04-optimization-theory.md` | Deeper optimization intuition and derivations. |
-| `12-probabilistic-graphical-models.md` | Structured probability, graphical models, and inference. |
 | `13-nlp.md` | Classical NLP to Transformers. |
 | `14-computer-vision.md` | Detection, segmentation, OCR, ViTs. |
 | `15-coding.md` | Implementations plus what to say while coding. |

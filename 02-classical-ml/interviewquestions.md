@@ -12,7 +12,6 @@ tags: [classicalml, ml, interview-questions]
 **Difficulty guide:**
 - **Easy** → Round 1 basics: definitions, intuition, "explain like you're talking to an engineer." Expect these cold in a first technical round.
 - **Medium** → Round 2 depth: connecting concepts, debugging scenarios, trade-off reasoning, applied system design.
-- **Hard** → Staff/Research depth: full derivations, theoretical proofs, senior judgment questions.
 
 ---
 

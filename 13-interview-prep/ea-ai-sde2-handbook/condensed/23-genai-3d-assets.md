@@ -23,7 +23,7 @@ Grey-box mesh + prompt → depth map render
 
 ## Talking Points That Signal Seniority
 - Explicitly rules out NeRFs/Gaussian Splatting as final output — great for rendering, unusable for rigging/animation/standard lighting pipelines.
-- Names the "Janus Problem" (duplicate/hallucinated faces on unseen backside) unprompted as the classic Text-to-3D failure mode, and proposes multi-view diffusion (MVDream/SyncDreamer) as the fix.
+- Names duplicate/hallucinated faces on the unseen backside unprompted as the classic Text-to-3D failure mode, and proposes multi-view diffusion as the fix.
 - Flags that raw marching-cubes output is unusable without decimation + UV unwrap — treats mesh post-processing as mandatory, not optional polish.
 - Proactively raises PBR material generation (normal/roughness/metallic maps), not just an albedo texture, since flat color textures look wrong under game engine lighting.
 - Mentions floating/disconnected geometry as an artifact and proposes keeping only the largest connected component.
@@ -33,15 +33,15 @@ Grey-box mesh + prompt → depth map render
 
 ## Top 3 Tradeoffs
 - **NeRF/Gaussian Splat vs polygonal mesh** — NeRFs look photoreal instantly but can't be rigged, animated, or lit by standard game engines; must commit to explicit polygons via marching cubes despite uglier raw output.
-- **SDS optimization (DreamFusion) vs feed-forward (TripoSR)** — SDS gives high detail but takes 1-2 hours/asset; feed-forward takes seconds with less detail. For an interactive artist tool, feed-forward wins decisively.
+- **Optimization-based vs feed-forward (TripoSR)** — optimization-based generation gives high detail but takes 1-2 hours/asset; feed-forward takes seconds with less detail. For an interactive artist tool, feed-forward wins decisively.
 - **Full generative pipeline vs procedural/texture-only** — Houdini+LLM-driven procedural generation guarantees perfect topology but limits creativity; a texture-only pipeline (paint onto pre-made meshes) eliminates topology risk entirely but caps geometric novelty.
 
 ## Toughest Follow-ups
 **Q: Marching cubes gives jagged triangles causing bad shadows — how do you get clean quads?**
-Use an auto-retopology algorithm (QuadriFlow or Instant Meshes): align a vector field to the mesh's principal curvatures, then extract a clean low-poly quad mesh from that field. This is a distinct post-processing step from decimation.
+Run an off-the-shelf auto-retopology tool as a post-process step: it aligns to the mesh's curvature and extracts a clean low-poly quad mesh. This is a distinct step from decimation, and existing mesh-processing libraries handle it — no need to build it in-house.
 
 **Q: A generated "Human Soldier" can't move — no skeletal rig. How do you automate rigging?**
-Run pose estimation (MediaPipe-style) to find joint locations on the mesh, align a standard humanoid skeleton to those joints, then compute skinning weights via heat diffusion / geodesic voxel binding so the mesh deforms smoothly.
+Use an existing auto-rigging pipeline (like Mixamo): run pose estimation to find joint locations on the mesh, align a standard humanoid skeleton to those joints, then use the auto-rigger's built-in skinning to compute bone weights so the mesh deforms smoothly.
 
 **Q: Need 10,000 unique trees; pipeline takes 15s/asset — how do you scale?**
 Generative AI is the wrong tool here — too slow and prone to hallucinated topology. Use procedural L-systems or SpeedTree for geometry (milliseconds each), and reserve the ML pipeline only for generating a texture atlas (bark/leaf textures) applied across all procedural instances.

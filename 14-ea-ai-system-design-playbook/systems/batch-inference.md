@@ -590,7 +590,7 @@ At SDE2 scope, treat this as a checklist rather than a design exercise: **backup
 - **#3 driver: on-demand fallback spend** during spot-capacity shortages for SLA-critical (P0) jobs — if spot availability degrades in a region (e.g., broad demand spike from other tenants on the same cloud), the automatic on-demand fallback (Section 6/33) can spike cost sharply for those windows; worth budgeting an explicit "on-demand fallback cost cap" alert (Section 23) distinct from the general cost-anomaly alert.
 - **#4 driver: redundant/duplicate scoring from lack of incremental/delta scoring** on slowly-changing subpopulations — teams that skip FR8 (delta scoring) and always full-rescore pay for re-computing predictions on entities whose features haven't changed since the last run, a pure waste multiplier proportional to population "staleness" rate.
 
-## 45. Interview Follow-Up Questions (at least 8, the kind a Principal-level interviewer would ask to probe depth)
+## 45. Interview Follow-Up Questions (at least 8, the kind an interviewer would ask to probe depth)
 
 1. How do you guarantee a backfill replaying the same date range twice doesn't double-write or corrupt downstream consumers reading mid-replay?
 2. Walk me through what happens if a 400-node Spark job loses 150 spot nodes simultaneously at minute 60 of a 90-minute SLA-critical job.

@@ -12,7 +12,6 @@ tags: [deep-learning, interview-questions, revision]
 **Difficulty guide:**
 - **Easy** → Round 1 basics: definitions, intuition, "explain the training loop," standard architectural choices. Know these cold.
 - **Medium** → Round 2 depth: applied debugging, trade-off reasoning, architecture design choices, NLP/CV applied concepts.
-- **Hard** → Staff/Research depth: derivations, distributed training internals, quantization, transformer-scale system design.
 
 ---
 

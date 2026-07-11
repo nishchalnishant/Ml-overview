@@ -324,8 +324,7 @@ def test_env_action_handling():
 > *Interviewer asks these after the initial solution is presented.*
 
 1. **"Our game has 10 different maps. If we train the agent on Map A, it acts like a genius. If we drop it into Map B, it acts like a toddler. How do we make it generalize?"**
-2. **"To make the agent more 'human-like', you decide to use Imitation Learning combined with RL. Describe the architecture combining these two."**
-3. **"The agent keeps getting stuck oscillating between two states (e.g., walking left for 1 frame, then right for 1 frame) because both paths seem equally good to the Value network. How do you break this oscillation?"**
+2. **"The agent keeps getting stuck oscillating between two states (e.g., walking left for 1 frame, then right for 1 frame) because both paths seem equally good to the Value network. How do you break this oscillation?"**
 
 ---
 
@@ -334,10 +333,7 @@ def test_env_action_handling():
 **Q1 (Generalization / Overfitting):**
 > "The agent overfit to the exact geometry of Map A. We must use **Domain Randomization**. During training, we randomly shuffle the map geometry, wall colors, player spawn points, and lighting every episode. The agent learns the *concept* of navigation rather than memorizing the pathing of Map A. Alternatively, we use a recurrent network (LSTM/GRU) so the agent can build a persistent internal map of a new area over time."
 
-**Q2 (Imitation + RL):**
-> "We use **Generative Adversarial Imitation Learning (GAIL)** or **RL from Human Feedback (RLHF)**. We first pre-train the actor network using standard Behavioral Cloning on human telemetry (Supervised Learning). Then, we use PPO to fine-tune it. To keep it 'human-like', we add a penalty to the PPO reward function (KL Divergence) if the agent's actions deviate too far from the human baseline policy."
-
-**Q3 (Oscillation / Frame Flickering):**
+**Q2 (Oscillation / Frame Flickering):**
 > "This is a lack of temporal persistence. 
 > 1. We can implement **Action Smoothing** (Action $A_t = 0.8 * A_{t-1} + 0.2 * ModelOutput$).
 > 2. We can use **Frame Skipping** (Agent only decides a new action every 4 frames, forcing it to commit to a direction). 

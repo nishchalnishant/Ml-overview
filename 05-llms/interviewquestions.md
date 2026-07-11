@@ -12,7 +12,6 @@ tags: [llms, interview-questions, revision]
 **Difficulty guide:**
 - **Easy** → Round 1 basics: definitions, intuition, tokenization basics, RAG pipeline, prompting techniques. Know these cold.
 - **Medium** → Round 2 depth: applied debugging, serving optimizations (PagedAttention, continuous batching), RAG evaluation, RLHF/SFT trade-offs, agent architectures.
-- **Hard** → Staff/Research depth: derivations, RoPE extrapolation, distributed serving (MLA, KV Cache math), DPO math, multi-billion vector search.
 
 ---
 

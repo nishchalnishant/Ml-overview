@@ -241,8 +241,8 @@ def test_mesh_poly_count_limit():
 
 | Axis | Strategy |
 |------|----------|
-| **Multi-view Consistency** | Generating 3D from a single 2D image leaves the "backside" of the object completely unobserved (the model has to guess what the back of the crate looks like). To fix this, use a multi-view generation model (like MVDream or SyncDreamer) that takes the text prompt and generates 4 orthogonal views simultaneously, ensuring global consistency before creating the 3D mesh. |
-| **Material Generation (PBR)** | A simple Albedo (color) texture looks flat in a game engine. We need Normal, Roughness, and Metallic maps. After generating the base texture, pass it through an Image-to-Image model (like MaterialX or a specialized Unet) to estimate the physical material properties. |
+| **Multi-view Consistency** | Generating 3D from a single 2D image leaves the "backside" of the object completely unobserved (the model has to guess what the back of the crate looks like). To fix this, use a multi-view generation model that takes the text prompt and generates several orthogonal views simultaneously, ensuring global consistency before creating the 3D mesh. |
+| **Material Generation (PBR)** | A simple Albedo (color) texture looks flat in a game engine. We need Normal, Roughness, and Metallic maps. After generating the base texture, pass it through an Image-to-Image model to estimate the physical material properties. |
 
 ---
 
@@ -251,7 +251,7 @@ def test_mesh_poly_count_limit():
 | Decision | Tradeoff |
 |----------|----------|
 | NeRFs vs Polygonal Meshes | NeRFs (Neural Radiance Fields) produce photorealistic 3D renders almost instantly. But they cannot be animated, rigged, or easily placed into standard game lighting engines. We must bite the bullet and use Marching Cubes to generate explicit Polygonal meshes, even though the raw ML output is uglier. |
-| SDS (Score Distillation) vs Feed-Forward | SDS (e.g., DreamFusion) slowly optimizes a 3D mesh using 2D Stable Diffusion over 10,000 iterations. It takes 1-2 hours per asset but has extreme detail. Feed-Forward models (TripoSR) take 2 seconds, but lack fine details. For a fast artist tool, Feed-Forward is strictly better. |
+| Optimization-Based vs Feed-Forward | Optimization-based 3D generation slowly refines a mesh against a 2D diffusion model over thousands of iterations. It takes 1-2 hours per asset but has extreme detail. Feed-Forward models (TripoSR) take 2 seconds, but lack fine details. For a fast artist tool, Feed-Forward is strictly better. |
 
 ---
 
@@ -266,7 +266,7 @@ def test_mesh_poly_count_limit():
 
 | Failure | Impact | Mitigation |
 |---------|--------|-----------|
-| The Janus Problem (Multiple Faces) | The model guesses the backside of a character and accidentally draws a second face on the back of their head. | This is the most common bug in Text-to-3D. Use specialized multi-view diffusion models (MVDream) that are explicitly trained to understand 3D camera projections, preventing duplicate features. |
+| Duplicate Features on Unseen Views | The model guesses the backside of a character and accidentally draws a second face on the back of their head. | This is the most common bug in Text-to-3D. Use multi-view diffusion models that are explicitly trained to understand 3D camera projections, preventing duplicate features. |
 | Floating Geometry | The ML model generates random floating triangles disconnected from the main crate. | Apply a post-processing script: Find all disconnected mesh components. Keep only the largest component (volume), and delete all smaller floating artifacts. |
 
 ---
@@ -312,13 +312,13 @@ def test_mesh_poly_count_limit():
 ## Part 19 — Ideal Answers
 
 **Q1 (Retopology / Quads):**
-> "Marching cubes natively produces triangles. To get clean quads, we must use an auto-retopology algorithm like **QuadriFlow** or **Instant Meshes**. We pass the raw high-poly triangulated mesh into the algorithm, which aligns a vector field to the principal curvatures of the object, and extracts a clean, low-poly quad mesh that reacts perfectly to game lighting."
+> "Marching cubes natively produces triangles. To get clean quads, we run an off-the-shelf auto-retopology tool as a post-process step on the raw high-poly triangulated mesh — it aligns to the surface's curvature and extracts a clean, low-poly quad mesh that reacts perfectly to game lighting. We don't need to build this ourselves; existing mesh-processing libraries handle it."
 
 **Q2 (Auto-Rigging):**
-> "For bipedal humanoids, we can use an ML Auto-Rigger (like Mixamo's backend algorithms). 
-> 1. We use a pose-estimation model (like MediaPipe) to detect the joints (elbows, knees) on the 3D mesh.
-> 2. We align a standard Humanoid Skeleton to those joints.
-> 3. We calculate the bone weights (Skinning) using heat diffusion (Geodesic Voxel Binding) so the mesh deforms smoothly when the skeleton moves."
+> "For bipedal humanoids, we use an existing auto-rigging pipeline (like Mixamo).
+> 1. Run a pose-estimation model to detect the joints (elbows, knees) on the 3D mesh.
+> 2. Align a standard humanoid skeleton to those joints.
+> 3. Use the auto-rigger's built-in skinning to calculate bone weights so the mesh deforms smoothly when the skeleton moves."
 
 **Q3 (Massive Scale / Trees):**
 > "Generative AI is the wrong tool for generating 10,000 trees. AI is slow and produces hallucinated topology. We should use **Procedural L-Systems** (fractal math) or SpeedTree to generate the geometry in milliseconds. We only use AI for the *Texture Atlas* (generating one high-quality leaf and bark texture), and apply it to all 10,000 procedurally generated trees."
@@ -329,7 +329,7 @@ def test_mesh_poly_count_limit():
 
 ### Strong Hire
 - Clearly distinguishes between NeRFs (unusable for standard games) and Polygonal Meshes (required).
-- Identifies the "Janus Problem" (multiple faces) as a key failure state.
+- Identifies duplicate-face generation on unseen views as a key failure state.
 - Solves the artist-control problem using ControlNet (Depth/Canny).
 - Understands the absolute necessity of UV unwrapping and decimation post-processing.
 

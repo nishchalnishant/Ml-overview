@@ -37,9 +37,6 @@ Design + train a Deep RL agent to control a 1v1 shooter NPC (navigate/aim/shoot)
 **Q: Agent is a genius on Map A, a toddler on Map B — how do you generalize?**
 Use Domain Randomization: shuffle map geometry, spawn points, lighting every episode so the agent learns the concept of navigation, not Map A's memorized layout. Optionally add an LSTM/GRU so the agent builds a persistent internal map on the fly for unseen layouts.
 
-**Q: Combine Imitation Learning with RL for "human-like" play — describe the architecture.**
-Pre-train the actor via Behavioral Cloning on human telemetry (supervised), then fine-tune with PPO. Add a KL-divergence penalty in the PPO reward that punishes the policy for drifting too far from the human baseline, keeping style human-like while still allowing improvement.
-
 **Q: Agent oscillates between two equally-valued actions (flickers left/right every frame) — how do you break it?**
 This is missing temporal persistence, not a value-function bug. Fix with action smoothing (exponential blend of current and previous action), frame skipping (commit to an action for N frames), and/or an LSTM cell so the agent remembers recent intent and biases toward continuing it.
 
