@@ -31,37 +31,17 @@ $$\hat{y}_t = W_y h_t + b_y$$
 - $x_t \in \mathbb{R}^{d_x}$: input at time $t$
 - $W_h \in \mathbb{R}^{d_h \times d_h}$, $W_x \in \mathbb{R}^{d_h \times d_x}$: shared across all timesteps
 
-**Unrolling**: mentally copy the RNN cell once per timestep and stack them left to right. Each copy shares the same weights. Backpropagation traverses this unrolled graph back through all timesteps — hence BPTT.
+**Unrolling**: mentally copy the RNN cell once per timestep and stack them left to right. Each copy shares the same weights. Backpropagation traverses this unrolled graph back through all timesteps — this is Backpropagation Through Time (BPTT).
 
-**Parameter count**: $d_h \times d_h + d_h \times d_x + d_h$ (bias). For $d_h = 256$, $d_x = 128$: $256^2 + 256 \times 128 + 256 = 98,560$. Weight sharing is the key: the same $W_h$ is reused at every timestep regardless of sequence length.
+**What breaks**: gradients vanish or explode as they propagate backward through many timesteps, because the gradient from step $T$ back to step $t$ is a product of $(T-t)$ Jacobians involving $W_h$. Useful memory effectively spans only ~10–20 steps for a standard RNN.
 
-**What breaks**: gradients either vanish or explode as they propagate backward through many timesteps. Useful memory effectively spans only ~10–20 steps for a standard RNN.
-
----
-
-## Backpropagation Through Time (BPTT)
-
-**The problem**: computing gradients in an unrolled RNN requires propagating errors back through every timestep — a chain of multiplications across potentially hundreds of steps.
-
-**The mechanics**: the loss at the final step $T$ depends on $h_T$, which depends on $h_{T-1}$, ..., which depends on $h_1$. By the chain rule:
-
-$$\frac{\partial L}{\partial h_t} = \frac{\partial L}{\partial h_T} \prod_{k=t+1}^{T} \frac{\partial h_k}{\partial h_{k-1}}$$
-
-Each Jacobian factor is:
-
-$$\frac{\partial h_k}{\partial h_{k-1}} = \text{diag}(\tanh'(z_k)) \cdot W_h$$
-
-where $z_k = W_h h_{k-1} + W_x x_k + b$.
-
-**The gradient product**: the gradient from timestep $T$ back to timestep $t$ involves the product of $(T - t)$ matrices. For sequences of length 100, this is a product of 100 matrices — which either collapses to zero or diverges.
-
-**Truncated BPTT**: in practice, gradients are only propagated back $k$ steps (typically 20–50). Hidden states are carried forward without gradients beyond the truncation window. This is the default in most RNN training code.
+**Truncated BPTT**: in practice, gradients are only propagated back $k$ steps (typically 20–50); hidden states carry forward without gradients beyond that window. This is the default in most RNN training code.
 
 ---
 
 ## Vanishing and Exploding Gradients
 
-**The mathematical cause**: consider the simplified case where $\tanh' \approx 1$ (near-linear regime). The gradient product becomes $W_h^{T-t}$. The behavior is governed by the eigenvalues of $W_h$:
+**The mathematical cause**: the repeated gradient product is governed by the eigenvalues of $W_h$:
 
 - If $|\lambda_{\max}| < 1$: gradients shrink geometrically — **vanishing gradients**. Early timesteps receive near-zero gradient signal, so the model cannot learn long-range dependencies.
 - If $|\lambda_{\max}| > 1$: gradients grow geometrically — **exploding gradients**. Training becomes numerically unstable, with loss spiking to NaN.

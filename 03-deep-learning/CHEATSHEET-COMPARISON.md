@@ -336,5 +336,3 @@ Rapid pre-interview reference. Every entry: what it is / pros / cons / when to p
 - **Tensor Parallelism**: shard individual weight matrices across GPUs (splits matmuls). Pick when a single layer doesn't fit in one GPU's memory.
 - **Pipeline Parallelism**: shard layers across GPUs, pipeline micro-batches through stages. Pick when the whole model doesn't fit but individual layers do.
 - **ZeRO / FSDP**: shard optimizer states/gradients/parameters across data-parallel workers — removes the redundancy of full replication. Pick to fit larger models without full tensor/pipeline parallelism complexity.
-
-*(See `components/13-distributed-training-and-parallelism.md` for full derivations and code.)*

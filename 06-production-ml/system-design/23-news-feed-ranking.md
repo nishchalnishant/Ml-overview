@@ -7,9 +7,9 @@ tags: [productionml, ml, system-design-news-feed-rankin]
 ---
 # News Feed Ranking System Design
 
-End-to-end ML system for ranking a personalized social media feed. Canonical system design question at Meta, LinkedIn, Twitter/X, TikTok, and YouTube.
+End-to-end ML system for ranking a personalized social feed. Canonical system design question at Meta, LinkedIn, Twitter/X, TikTok, YouTube.
 
-**Scale:** 3B users, personalized feed refreshed in <200ms end-to-end, 100B+ candidate posts/day, 10M+ QPS at peak.
+**Scale:** 3B users, feed refreshed in <200ms end-to-end, 100B+ candidate posts/day, 10M+ QPS at peak.
 
 ---
 
@@ -17,48 +17,37 @@ End-to-end ML system for ranking a personalized social media feed. Canonical sys
 
 ### Clarifying Questions
 
-- **Consumption model: push vs pull?** Facebook/Instagram are pull (user opens app → feed constructed on-demand). Twitter historically used push (precompute fan-out to followers). Pull is harder to serve fast but more personalized; push is cheaper at read time but expensive for celebrities with 50M followers (fan-out problem).
-- **What signals define "good"?** Engagement (likes, comments, shares) vs time-spent vs meaningful interactions vs self-reported satisfaction. These diverge — outrage content maximizes engagement, wellness content maximizes satisfaction.
-- **Ads integration?** Are ads ranked inline with organic content or separately budgeted? Inline ranking creates a single auction but risks ad-organic quality conflation.
-- **Objective hierarchy?** Is wellbeing a hard constraint (floor) or a soft objective in the optimization? Meta's 2018 "meaningful social interaction" pivot was a policy decision to re-weight creator/page content down and friends content up — not purely ML.
-- **Creator vs social graph content?** LinkedIn is mostly creator content (articles, posts from strangers); Facebook is mostly social graph (friends, family). This determines candidate retrieval strategy.
-- **New user cold start threshold?** How many interactions before the personalization kicks in? What's the fallback: trending content, demographic-based priors, onboarding interest selection?
-- **Real-time vs near-real-time?** Should posts published 10 seconds ago appear in the feed immediately (requires real-time indexing) or is 1–5 minute lag acceptable?
+- **Push vs pull?** Facebook/Instagram are pull (feed built on-demand when app opens). Twitter historically used push (precompute fan-out to followers). Pull is harder to serve fast but more personalized; push is cheap at read time but expensive for celebrities with 50M followers (fan-out problem).
+- **What signals define "good"?** Engagement (likes/comments/shares) vs time-spent vs meaningful interactions vs self-reported satisfaction. These diverge — outrage content maximizes engagement, wellness content maximizes satisfaction.
+- **Ads integration?** Ranked inline with organic content, or separately budgeted? Inline creates a single auction but risks conflating ad and organic quality.
+- **Objective hierarchy?** Is wellbeing a hard floor or a soft objective? Meta's 2018 "meaningful social interaction" pivot re-weighted creator/page content down and friends content up — a policy decision, not purely ML.
+- **Creator vs social graph content?** LinkedIn is mostly creator content (articles, strangers' posts); Facebook is mostly social graph (friends, family). This shapes candidate retrieval.
+- **Cold start threshold?** How many interactions before personalization kicks in? Fallback: trending content, demographic priors, onboarding interest selection.
+- **Real-time vs near-real-time?** Must a post from 10 seconds ago appear immediately (real-time indexing), or is 1-5 min lag fine?
 
 ### Metric Trade-offs
 
-**Business metrics (north star):**
+**Business metrics:**
 
 | Metric | Why it matters | Risk |
 |---|---|---|
-| DAU / MAU ratio | Stickiness; people returning daily | Maximizing it via outrage |
-| Time-on-platform | Revenue proxy (more ads shown) | Filter bubbles, addiction |
-| Meaningful interactions | Comments and shares > passive likes | Hard to measure "meaningful" |
+| DAU/MAU ratio | Stickiness | Can be gamed via outrage |
+| Time-on-platform | Revenue proxy | Filter bubbles, addiction |
+| Meaningful interactions | Comments/shares > passive likes | Hard to define "meaningful" |
 | Creator retention | Healthy supply side | Suppressing small creators |
 
 **ML metrics:**
 
 | Metric | What it measures | Limitation |
 |---|---|---|
-| AUC-ROC per action type | Like/comment/share prediction quality | Doesn't reflect multi-objective tension |
-| NDCG@k | Ranked list quality | Requires relevance labels, hard to define |
-| Online CTR / engagement rate | Proxy for ranking quality | Optimizes for clickbait |
-| Hold-out group wellbeing surveys | User-reported satisfaction | Expensive, slow signal |
+| AUC-ROC per action type | Like/comment/share prediction quality | Ignores multi-objective tension |
+| NDCG@k | Ranked list quality | Needs relevance labels, hard to define |
+| Online CTR/engagement rate | Proxy for ranking quality | Optimizes for clickbait |
+| Wellbeing surveys (holdout) | Self-reported satisfaction | Expensive, slow signal |
 
-**The multi-objective tension:**
+**The multi-objective tension:** optimizing engagement alone (likes, comments, shares) drives outrage content and addiction loops, at odds with user wellbeing and creator monetization.
 
-```
-engagement (likes, comments, shares)
-        ↑
-        │  ← optimizing this alone → outrage content, addiction loops
-        │
-user wellbeing ──────────────────────── creator monetization
-        ↑                                        ↑
- (minimizing regret,              (reach for pages, ad revenue)
-  screen time, outrage)
-```
-
-Meta's 2018 insight: passive consumption of viral video content increased engagement metrics but decreased self-reported wellbeing. The MSI (meaningful social interaction) pivot re-weighted content that generated replies and comments over content that generated passive views — accepting a 5–10% reduction in time-on-platform to improve wellbeing metrics. This is a canonical example of constrained multi-objective optimization under policy pressure.
+Meta's 2018 insight: passive consumption of viral video raised engagement but lowered self-reported wellbeing. The MSI pivot re-weighted replies/comments over passive views, accepting a 5-10% drop in time-on-platform to improve wellbeing — a canonical example of constrained multi-objective optimization under policy pressure.
 
 ---
 
@@ -68,11 +57,11 @@ Meta's 2018 insight: passive consumption of viral video content increased engage
 |---|---|
 | Monthly active users | 3B |
 | Daily active users | ~2B |
-| Feed requests/day | ~10B (user opens app ~5x/day) |
+| Feed requests/day | ~10B (~5 app opens/user/day) |
 | Peak QPS | ~10M |
-| Posts published/day | 500M+ (friends posts, pages, ads) |
-| Candidate posts per feed request | 1,000–10,000 after retrieval |
-| Scored posts per request | 500 (lightweight) → 100 (heavy ranker) |
+| Posts published/day | 500M+ |
+| Candidates per feed request | 1,000-10,000 after retrieval |
+| Scored posts per request | 500 (light ranker) -> 100 (heavy ranker) |
 | P99 latency budget | <200ms end-to-end |
 | ML scoring budget | <50ms for heavy ranker |
 
@@ -86,81 +75,39 @@ User Opens App
       ▼
 ┌─────────────────────────────────────────────────────────────┐
 │                    CANDIDATE GENERATION                      │
-│                                                             │
-│  ┌─────────────────┐  ┌──────────────┐  ┌───────────────┐  │
-│  │  Social Graph   │  │  Interest    │  │  Ads          │  │
-│  │  Retrieval      │  │  Retrieval   │  │  Auction      │  │
-│  │  (friends,      │  │  (ANN on     │  │  (targeting   │  │
-│  │   groups,       │  │   user       │  │   + budget    │  │
-│  │   pages)        │  │   embedding) │  │   pacing)     │  │
-│  └────────┬────────┘  └──────┬───────┘  └───────┬───────┘  │
-│           └──────────────────┴──────────────────┘           │
-│                              │                              │
-│                    ~5,000 candidates                        │
+│  Social Graph Retrieval | Interest Retrieval (ANN) | Ads     │
+│                    ~5,000 candidates                          │
 └──────────────────────────────┬──────────────────────────────┘
-                               │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│               STAGE 2: LIGHTWEIGHT RANKER                    │
-│                                                             │
-│  Logistic regression / linear model on sparse features      │
-│  <1ms per post, score all 5,000 candidates                  │
-│  Select top 500 for heavy ranker                            │
+│  STAGE 2: LIGHTWEIGHT RANKER                                  │
+│  Logistic regression on sparse features, <1ms/post            │
+│  Scores all 5,000, selects top 500                            │
 └──────────────────────────────┬──────────────────────────────┘
-                               │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                STAGE 3: HEAVY RANKER                         │
-│                                                             │
-│  Deep neural network (MLP + attention on embeddings)        │
-│  Full feature set: post + user + social context features    │
-│  Multi-task: predict like, comment, share, time-spent,      │
-│              hide, unfollow, report simultaneously          │
-│  ~50ms for 500 posts (batched GPU inference)                │
-│  Select top 150 by composite score                          │
+│  STAGE 3: HEAVY RANKER                                        │
+│  Deep multi-task NN (MLP + attention), full feature set       │
+│  Predicts like/comment/share/time-spent/hide/unfollow         │
+│  ~50ms for 500 posts (batched GPU), selects top 150            │
 └──────────────────────────────┬──────────────────────────────┘
-                               │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│               STAGE 4: POLICY & DIVERSITY LAYER             │
-│                                                             │
-│  ┌────────────────┐  ┌────────────────┐  ┌──────────────┐  │
-│  │  Wellbeing     │  │  Diversity     │  │  Integrity   │  │
-│  │  Guardrails    │  │  Injection     │  │  Filters     │  │
-│  │  (cap          │  │  (DPP or       │  │  (misinfo,   │  │
-│  │   outrage,     │  │  greedy MMR)   │  │   CSAM,      │  │
-│  │   hate speech  │  │               │  │   spam)      │  │
-│  │   demotion)    │  │               │  │              │  │
-│  └────────────────┘  └────────────────┘  └──────────────┘  │
+│  STAGE 4: POLICY & DIVERSITY LAYER                             │
+│  Wellbeing guardrails | Diversity injection (MMR/DPP) | Integrity filters │
 └──────────────────────────────┬──────────────────────────────┘
-                               │
                                ▼
 ┌─────────────────────────────────────────────────────────────┐
-│                      FEED ASSEMBLY                           │
-│                                                             │
-│  Interleave organic + ads by insertion rules                │
-│  Inject "new content" slots (posts < 2 hours old)           │
-│  Apply user-specific settings (following-only mode, etc.)   │
-│  Serialize to client response                               │
+│  FEED ASSEMBLY                                                 │
+│  Interleave organic + ads, inject freshness slots, serialize   │
 └─────────────────────────────────────────────────────────────┘
-                               │
                                ▼
                         User's Feed (~50 posts)
 
-
 Supporting Infrastructure:
-┌──────────────────────────────────────────────────────────┐
-│  Feature Store (Redis/Memcached)                          │
-│  ├── User features: interest embeddings, engagement hist │
-│  ├── Post features: engagement counts, age, embeddings   │
-│  └── Social context: mutual engagement signals           │
-├──────────────────────────────────────────────────────────┤
-│  Offline Training Pipeline                                │
-│  ├── Log collection (Kafka → data lake)                  │
-│  ├── Label generation (delayed feedback joins)           │
-│  ├── Feature computation (Spark batch + streaming)       │
-│  └── Model training + evaluation → model registry        │
-└──────────────────────────────────────────────────────────┘
+- Feature Store (Redis/Memcached): user embeddings, post features, social context
+- Offline Pipeline: Kafka log collection -> delayed label joins -> Spark feature
+  computation -> training/eval -> model registry
 ```
 
 ---
@@ -171,87 +118,54 @@ Supporting Infrastructure:
 
 **Goal:** Reduce 500M daily posts to ~5,000 candidates in <10ms.
 
-**Social graph traversal:**
-- Fetch all friends (avg ~300 on Facebook) + followed pages/groups
-- For each source, retrieve last N posts (N=5–10)
-- Implementation: graph database (TAO at Meta) → per-user adjacency list cached in RAM → O(1) lookup
+**Social graph traversal:** fetch friends (avg ~300) + followed pages/groups, retrieve last N posts (5-10) per source. Implementation: graph database (TAO at Meta) with per-user adjacency list cached in RAM for O(1) lookup.
 
-**Interest-based retrieval (ANN search):**
-- User has a learned interest embedding (128-dim, updated daily)
-- Posts are embedded at publish time (CLIP for images, BERT for text)
-- FAISS / ScaNN index on post embeddings → ANN search returns top-K semantically similar posts from non-friends
-- This is how Instagram's "suggested posts" and LinkedIn's "posts you might like" work
+**Interest-based retrieval (ANN):** user has a learned interest embedding (128-dim, updated daily); posts are embedded at publish time (CLIP for images, BERT for text). FAISS/ScaNN ANN search returns top-K semantically similar posts from non-friends. This is how Instagram's "suggested posts" work.
 
-**Recall target:** The top-50 posts in the final feed should be in the top-5,000 candidates at least 95% of the time. Measure this with "oracle recall" using an offline evaluation set.
+**Recall target:** top-50 final posts should be in the top-5,000 candidates 95%+ of the time ("oracle recall," measured offline).
 
-```
-ANN Retrieval Tradeoff:
-┌────────────┬──────────────┬──────────────┬──────────────┐
-│ Index type │ Build time   │ QPS          │ Recall@100   │
-├────────────┼──────────────┼──────────────┼──────────────┤
-│ Exact      │ O(N×d)       │ low          │ 100%         │
-│ HNSW       │ hours        │ very high    │ 95–99%       │
-│ IVF-PQ     │ moderate     │ high         │ 85–95%       │
-└────────────┴──────────────┴──────────────┴──────────────┘
-```
+| Index type | Build time | QPS | Recall@100 |
+|---|---|---|---|
+| Exact | O(N×d) | Low | 100% |
+| HNSW | Hours | Very high | 95-99% |
+| IVF-PQ | Moderate | High | 85-95% |
 
 ### Stage 2: Lightweight Ranker
 
-**Goal:** Score 5,000 candidates to select top 500 in <5ms total.
+**Goal:** Score 5,000 candidates, select top 500, <5ms total.
 
-- Logistic regression or shallow MLP (10–20 features)
-- Features: post age (log-scaled), source affinity score (precomputed), post engagement rate (likes+comments / impressions), media type (video > image > text in most feeds), user's historical interaction rate with this source
-- Trained on same labels as heavy ranker but must be maximally fast
-- At Meta scale: LR inference on 5,000 posts ≈ 1ms on CPU
+- Logistic regression or shallow MLP, 10-20 features: post age (log-scaled), source affinity, engagement rate, media type, user's historical interaction rate with the source.
+- Same labels as heavy ranker but must be fast — LR inference on 5,000 posts is ~1ms on CPU.
 
-**Facebook's EdgeRank (historical reference):**
-EdgeRank was Meta's first generation feed ranking formula (pre-deep learning):
+**EdgeRank (historical reference):** Meta's original pre-deep-learning formula:
 ```
 EdgeRank = Σ (affinity_score × edge_weight × time_decay)
 ```
-- `affinity_score`: how often the user interacted with this edge (person/page)
-- `edge_weight`: type of interaction (comment > like > view)
-- `time_decay`: recency factor — older content ranked lower
-
-Modern systems replaced EdgeRank with learned models, but the intuitions survive as feature groups.
+Replaced by learned models, but the feature groups (affinity, interaction type, recency) still exist.
 
 ### Stage 3: Heavy Ranker
 
-**Goal:** Score top 500 posts with full feature set, multi-task predictions.
-
-**Architecture: Multi-task neural network**
+**Goal:** Score top 500 posts with full features, multi-task predictions.
 
 ```
 Input Features (post + user + social context)
          │
-         ▼
-┌────────────────────────────────────────────┐
-│         Shared Bottom Layers               │
-│   Dense(512) → BN → ReLU                  │
-│   Dense(256) → BN → ReLU                  │
-│   + Attention over user history embeddings │
-└──────────────────┬─────────────────────────┘
-                   │
-       ┌───────────┼───────────┐
-       │           │           │
-       ▼           ▼           ▼
-  [Like head] [Comment  ] [Share head]
-              [head     ]
-       ▼           ▼           ▼
-  [Time-spent] [Hide head] [Unfollow ]
-  [head      ]             [head     ]
+Shared Bottom: Dense(512)->BN->ReLU -> Dense(256)->BN->ReLU
+         + Attention over user history embeddings
+         │
+  ┌──────┼──────┬─────────┬──────────┐
+[Like] [Comment] [Share] [Time-spent] [Hide/Unfollow]
 ```
 
-**Multi-task learning motivation:** Training separate models per action leads to overfitting on sparse actions (shares are ~10× rarer than likes). Shared bottom layers allow the model to share representations across tasks; task-specific tower heads capture differences.
+**Why multi-task:** separate models per action overfit sparse actions (shares are ~10x rarer than likes). Shared bottom layers share representations; task-specific heads capture differences.
 
-**Training:**
 ```python
 total_loss = (
-    w_like    * bce(pred_like,    label_like)    +
+    w_like * bce(pred_like, label_like) +
     w_comment * bce(pred_comment, label_comment) +
-    w_share   * bce(pred_share,   label_share)   +
-    w_time    * mse(pred_time,    label_time)     +
-    w_hide    * bce(pred_hide,    label_hide)     +
+    w_share * bce(pred_share, label_share) +
+    w_time * mse(pred_time, label_time) +
+    w_hide * bce(pred_hide, label_hide) +
     w_unfollow * bce(pred_unfollow, label_unfollow)
 )
 ```
@@ -259,26 +173,21 @@ total_loss = (
 **Composite score:**
 ```python
 score = (
-    +3.0 * p_comment
-    +2.0 * p_share
-    +1.0 * p_like
+    +3.0 * p_comment + 2.0 * p_share + 1.0 * p_like
     +0.5 * p_time_spent_percentile
-    -2.0 * p_hide
-    -3.0 * p_unfollow
-    -5.0 * p_report
+    -2.0 * p_hide - 3.0 * p_unfollow - 5.0 * p_report
 )
 ```
-
-Weights are tuned via online experimentation; negative signals (hide, unfollow) carry heavy penalty because they signal regret rather than passive disengagement.
+Weights tuned via online experimentation. Negative signals (hide, unfollow) carry heavy penalties — they signal regret, not passive disengagement.
 
 ### Stage 4: Policy and Diversity Layer
 
-Applied post-ranking, these are rule-based and non-ML adjustments:
+Rule-based, non-ML adjustments applied post-ranking:
 
-- **Wellbeing guardrails:** Cap consecutive video posts at 3 (reduce passive scroll). Demote posts flagged as "emotionally negative" by a classifier. Enforce cross-session limits on content categories associated with low self-reported satisfaction.
-- **Diversity injection:** No more than 2 consecutive posts from the same creator. Ensure at least 3 different topic clusters in top-10. See Section 8.
-- **Integrity filters:** Posts under manual review for misinformation → score penalty or removal. CSAM, hate speech → hard remove. Spam accounts → demotion.
-- **Boost rules:** "New content" freshness boost for posts under 2 hours (prevents feed staleness). Occasional "time capsule" post from 1 year ago (on this day features).
+- **Wellbeing guardrails:** cap consecutive video posts (e.g., 3), demote "emotionally negative"-flagged posts.
+- **Diversity injection:** no more than 2 consecutive posts from one creator, at least 3 topic clusters in top-10 (see Section 8).
+- **Integrity filters:** misinformation under review -> penalty/removal; CSAM/hate speech -> hard remove; spam -> demotion.
+- **Boost rules:** freshness boost for posts <2 hours old; occasional "on this day" nostalgia posts.
 
 ---
 
@@ -286,56 +195,53 @@ Applied post-ranking, these are rule-based and non-ML adjustments:
 
 ### Post Features
 
-| Feature | Description | Update frequency |
+| Feature | Description | Update freq |
 |---|---|---|
 | `post_age_log` | log(seconds since publish) | Per request |
-| `media_type` | Video / image / link / text (1-hot) | At publish |
-| `engagement_rate_1h` | (likes+comments) / impressions in 1h | Streaming |
-| `engagement_velocity` | d(engagements)/dt — accelerating or slowing | Streaming |
-| `content_embedding` | 128-dim embedding (CLIP for image, BERT for text) | At publish |
-| `text_sentiment` | Positive / neutral / negative / outrage | At publish |
-| `is_reshare` | Original vs reshared content | At publish |
-| `hashtag_trending` | Is any hashtag trending in last hour? | Hourly |
+| `media_type` | Video/image/link/text | At publish |
+| `engagement_rate_1h` | (likes+comments)/impressions | Streaming |
+| `engagement_velocity` | rate of change of engagement | Streaming |
+| `content_embedding` | 128-dim (CLIP/BERT) | At publish |
+| `text_sentiment` | Positive/neutral/negative/outrage | At publish |
+| `is_reshare` | Original vs reshared | At publish |
+| `hashtag_trending` | Trending in last hour? | Hourly |
 | `creator_follower_count_log` | log(followers) | Daily |
-| `creator_avg_engagement_rate_7d` | Historical engagement rate | Daily |
+| `creator_avg_engagement_rate_7d` | Historical engagement | Daily |
 
-**Temporal decay** is critical. Facebook's original EdgeRank used exponential decay; modern systems learn the decay function:
-
+Temporal decay is learned, not hardcoded:
 ```python
-# Learned temporal decay (not hardcoded)
 age_hours = (now - post_timestamp) / 3600
-decay_feature = np.log1p(age_hours)  # feed into model as input, let model learn weighting
+decay_feature = np.log1p(age_hours)  # model learns the weighting
 ```
 
 ### User Features
 
-| Feature | Description | Update frequency |
+| Feature | Description | Update freq |
 |---|---|---|
-| `user_interest_embedding` | 128-dim learned interest vector | Daily |
-| `user_engagement_rate_7d` | User's average engagement rate | Daily |
-| `session_length_so_far` | Posts already scrolled in this session | Per request |
-| `time_of_day_bucket` | Morning / afternoon / evening / night | Per request |
-| `device_type` | Mobile / tablet / desktop | Per session |
-| `social_graph_centrality` | User's influence in social graph | Weekly |
-| `content_format_preference` | Fraction of video vs image vs text engaged | Daily |
-| `following_count_log` | log(following count) — sparse graph vs dense | Daily |
+| `user_interest_embedding` | 128-dim learned vector | Daily |
+| `user_engagement_rate_7d` | Avg engagement rate | Daily |
+| `session_length_so_far` | Posts scrolled this session | Per request |
+| `time_of_day_bucket` | Morning/afternoon/evening/night | Per request |
+| `device_type` | Mobile/tablet/desktop | Per session |
+| `social_graph_centrality` | Influence in social graph | Weekly |
+| `content_format_preference` | Video/image/text engagement mix | Daily |
+| `following_count_log` | log(following count) | Daily |
 
 ### Social Context Features
 
-These are among the strongest signals because they encode implicit social proof:
+Among the strongest signals — encode implicit social proof:
 
 | Feature | Description |
 |---|---|
-| `mutual_friends_engaged` | Count of mutual friends who liked/commented |
-| `creator_affinity_score` | Learned score for user-creator pair (historical interactions) |
-| `close_friend_engaged` | Did a "close friend" (heavily interacted with) engage? |
-| `group_membership_relevance` | Is this post from a group the user is active in? |
-| `viewer_to_creator_distance` | Social graph hops between viewer and creator |
+| `mutual_friends_engaged` | Count of mutual friends who engaged |
+| `creator_affinity_score` | Learned user-creator pair score |
+| `close_friend_engaged` | Did a close friend engage? |
+| `group_membership_relevance` | Post from an active group? |
+| `viewer_to_creator_distance` | Social graph hops |
 
-**Creator affinity score** is a key feature: a collaborative-filtering-style embedding trained on user-creator interaction history. Users who interact heavily with a creator get high affinity scores even for that creator's new posts with zero engagement.
+**Creator affinity** is key: a collaborative-filtering-style embedding trained on user-creator interaction history, so users get high affinity even for a creator's brand-new, zero-engagement posts.
 
 ```python
-# Approximate creator affinity: dot product of user and creator embeddings
 affinity = np.dot(user_embedding, creator_embedding) / (
     np.linalg.norm(user_embedding) * np.linalg.norm(creator_embedding)
 )
@@ -347,101 +253,70 @@ affinity = np.dot(user_embedding, creator_embedding) / (
 
 ### Why Single-Objective Fails
 
-Training on likes alone: clickbait, outrage, and low-effort memes dominate because they maximize short-term engagement.
-Training on time-spent alone: passive scroll-traps (infinite compilation videos) dominate.
-Training on comments alone: controversial/political content dominates because it generates debate.
+Likes alone -> clickbait/outrage/low-effort memes win. Time-spent alone -> passive scroll-traps win. Comments alone -> controversial/political content wins.
 
 ### Combining Signals
 
-**Weighted linear combination** (baseline):
-```
-score = Σ wᵢ × pᵢ
-```
-Weights set by product policy, tuned by A/B test on long-horizon metrics.
+**Weighted linear combination** (baseline): `score = Σ wᵢ × pᵢ`, weights set by product policy and tuned via A/B test on long-horizon metrics.
 
-**Pareto optimization** (advanced):
-Find the Pareto frontier across objectives (engagement, wellbeing, creator reach). Any point on the frontier is non-dominated — improving one objective requires sacrificing another. The policy team chooses an operating point on this frontier.
+**Pareto optimization** (advanced): find the non-dominated frontier across objectives (engagement, wellbeing, creator reach); policy chooses the operating point.
 
 **Constrained optimization with wellbeing floor:**
 ```
 maximize: engagement_score(post)
-subject to: wellbeing_score(feed) ≥ θ
-            creator_diversity(feed) ≥ δ
+subject to: wellbeing_score(feed) ≥ θ,  creator_diversity(feed) ≥ δ
 ```
+Implemented as a post-ranking adjustment: if top-K posts push predicted wellbeing below θ, swap outrage posts for wellbeing-friendly ones.
 
-This is implemented as a post-ranking adjustment: if the top-K posts push the predicted wellbeing score below threshold θ, swap out outrage posts for the next-best wellbeing-friendly posts.
+### Meta's MSI Pivot (2018)
 
-### Meta's Meaningful Social Interaction (MSI) Pivot
-
-In 2018, Zuckerberg announced the feed would prioritize "meaningful social interactions" — posts that spark genuine conversation — over passive content. Implementation:
-
-- Comments and shares re-weighted 5–10× relative to likes
-- Content from friends/family boosted relative to pages and creators
-- Video content (associated with passive consumption) specifically penalized
-- "Meaningful" classifier trained on user surveys about whether a post "was worth their time"
-
-The tradeoff was explicit: time-on-platform dropped ~5%, but engagement-per-minute increased, and user satisfaction surveys improved.
+Prioritized "meaningful social interactions" over passive content: comments/shares re-weighted 5-10x vs likes, friends/family boosted over pages/creators, video specifically penalized, with a "meaningful" classifier trained on user surveys. Result: time-on-platform dropped ~5%, but engagement-per-minute and satisfaction improved.
 
 ### Inverse Signals (Negative Feedback)
 
-| Signal | Weight | What it indicates |
+| Signal | Weight | Indicates |
 |---|---|---|
-| Hide post | -2× | Post was unwanted |
-| Snooze user 30 days | -3× | User fatigue with source |
-| Unfollow | -5× | Permanent rejection |
-| Report | -10× | Policy violation or severe dislike |
-| Survey: "not worth time" | -3× | Regret signal |
+| Hide post | -2x | Unwanted |
+| Snooze 30 days | -3x | Source fatigue |
+| Unfollow | -5x | Permanent rejection |
+| Report | -10x | Policy violation |
+| Survey "not worth time" | -3x | Regret |
 
-Negative signals are sparse but high-value. A post that 1% of viewers hide should be treated very differently from a post no one hides, even if both have the same like rate.
+Negative signals are sparse but high-value: a post 1% of viewers hide should be treated very differently from one no one hides, even at equal like rate.
 
 ---
 
 ## 7. Creator Ecosystem
 
-### Friends vs Creator Content Ranking Tension
+### Friends vs Creator Content
 
-Social feeds contain two fundamentally different content types:
-1. **Friends/family posts:** High personal relevance, low production quality
-2. **Creator/page posts:** Low personal relevance, high production quality
-
-Friends content typically wins on relevance but loses on engagement rate (a friend's vacation photo gets fewer likes than a viral meme). Naively ranking by engagement rate systematically suppresses friends content. Meta addresses this with separate ranking tracks that are blended at feed assembly time.
+Two content types: friends/family (high personal relevance, low production quality) vs creator/page (low relevance, high quality). Friends content typically loses on raw engagement rate, so naive engagement ranking suppresses it. Meta uses separate ranking tracks blended at assembly time:
 
 ```
 Feed composition target (example):
-  - 60% social graph content (friends, family)
-  - 20% creator/page content user follows
-  - 15% suggested content (interest-based, ANN retrieval)
-  - 5% ads
+  60% social graph | 20% followed creators | 15% suggested (ANN) | 5% ads
 ```
-
 These percentages are policy parameters, not ML outputs.
 
 ### Creator Reach Fairness
 
-Without correction, reach is highly concentrated: top 0.1% of creators get 50%+ of impressions. This creates a flywheel where large creators get more data to optimize content, further increasing their reach advantage.
+Without correction, top 0.1% of creators get 50%+ of impressions, creating a flywheel that entrenches their advantage.
 
-**Mitigation approaches:**
-- Creator diversity constraint: cap any single creator at N% of a user's feed slots per day
-- Exploration budget: reserve 10–15% of feed slots for creators the user hasn't interacted with (discovery)
-- Small creator boost: apply a mild multiplicative boost to posts from creators with <10K followers who have strong engagement relative to their size
+**Mitigations:**
+- Cap any single creator at N% of a user's daily feed slots
+- Exploration budget: 10-15% of slots reserved for creators the user hasn't interacted with
+- Small-creator boost for accounts <10K followers with strong relative engagement
 
 ### Virality Prediction
 
-A post going viral in the next 2 hours is highly valuable to surface early. Virality prediction uses:
-- Engagement velocity: rate of change of engagement rate (2nd derivative)
-- Cross-network spread: is this being shared across different social clusters?
-- Early commenter diversity: high-diversity early engagers → organic virality vs. coordinated behavior
+Surfacing a soon-to-be-viral post early is valuable. Signals: engagement velocity, cross-network spread, early commenter diversity (diverse engagers suggest organic virality vs. coordinated behavior).
 
 ```python
 def virality_score(post_id, window_minutes=30):
-    early_engagements = get_engagements(post_id, minutes=window_minutes)
-    velocity = len(early_engagements) / window_minutes
-    
-    # Engagement diversity: are engagers from different communities?
-    community_ids = [user_community[u] for u in early_engagements]
-    diversity = len(set(community_ids)) / len(community_ids)
-    
-    return velocity * diversity  # high velocity + high diversity = genuine viral
+    early = get_engagements(post_id, minutes=window_minutes)
+    velocity = len(early) / window_minutes
+    diversity = len(set(user_community[u] for u in early)) / len(early)
+    return velocity * diversity
 ```
 
 ---
@@ -450,63 +325,35 @@ def virality_score(post_id, window_minutes=30):
 
 ### Intra-List Diversity
 
-A feed of 50 posts that are all about the same topic is worse than a feed with varied topics, even if each individual post is highly relevant. Diversity objectives:
+A feed of 50 same-topic posts is worse than a varied one, even if each post is individually relevant: topic diversity (K clusters in top-N), creator diversity (no more than M consecutive from one creator), format diversity (video/image/text mix).
 
-**Topic diversity:** Ensure at least K distinct topic clusters in top-N posts.
-**Creator diversity:** No more than M consecutive posts from the same creator.
-**Format diversity:** Mix of video, images, and text in the feed.
+### DPP / Greedy MMR
 
-### Determinantal Point Processes (DPP) for Diverse Selection
+DPPs trade off quality vs diversity: `P(S) ∝ det(L_S)`, where L encodes both quality and similarity — high-quality, dissimilar sets score highest.
 
-DPP provides a principled way to trade off quality vs diversity. The probability of selecting a subset S is:
-
-```
-P(S) ∝ det(L_S)
-```
-
-where L is the kernel matrix encoding both quality and similarity. High-quality, dissimilar items have high det(L_S).
-
-**Practical approximation (Greedy MMR — Maximal Marginal Relevance):**
+Practical approximation, Greedy MMR:
 ```python
 def greedy_mmr(candidates, lambda_param=0.5, k=50):
-    """
-    candidates: list of (post_id, score, embedding)
-    lambda_param: tradeoff between relevance and diversity (0=diversity, 1=relevance)
-    """
-    selected = []
-    remaining = candidates.copy()
-    
-    # First item: highest score
-    best = max(remaining, key=lambda x: x[1])
-    selected.append(best)
-    remaining.remove(best)
-    
+    # candidates: (post_id, score, embedding); lambda: relevance vs diversity tradeoff
+    selected = [max(candidates, key=lambda x: x[1])]
+    remaining = [c for c in candidates if c not in selected]
     while len(selected) < k and remaining:
-        def mmr_score(candidate):
-            relevance = candidate[1]
-            max_sim = max(
-                cosine_similarity(candidate[2], s[2])
-                for s in selected
-            )
-            return lambda_param * relevance - (1 - lambda_param) * max_sim
-        
+        def mmr_score(c):
+            max_sim = max(cosine_similarity(c[2], s[2]) for s in selected)
+            return lambda_param * c[1] - (1 - lambda_param) * max_sim
         next_item = max(remaining, key=mmr_score)
         selected.append(next_item)
         remaining.remove(next_item)
-    
     return selected
 ```
 
 ### Breaking Filter Bubbles
 
-Pure relevance ranking creates filter bubbles: users who engage with content X get more X, which reinforces their engagement with X. Research shows this can drive political polarization and extremism pathways.
+Pure relevance ranking reinforces engagement with existing interests, contributing to polarization.
 
-**Interventions:**
-- **Exploration budget:** Reserve N% of feed slots for content outside the user's historical interest clusters. LinkedIn calls this "feed diversification."
-- **Cross-partisan exposure:** On political content, deliberately mix content from different viewpoints (Meta's Civic Feed integrity work).
-- **Interest graph perturbation:** Periodically add random walks from the user's interest graph to expose to adjacent topics.
+**Interventions:** exploration budget (reserve slots outside historical interest clusters), cross-partisan exposure on political content, periodic interest-graph perturbation.
 
-**Measurement tension:** Breaking filter bubbles often reduces short-term engagement (users are less interested in content outside their bubble). You need long-horizon metrics (wellbeing surveys, diversity satisfaction surveys) to measure benefit — standard A/B tests show only the engagement cost, not the benefit.
+**Measurement tension:** breaking filter bubbles often costs short-term engagement. Standard A/B tests capture that cost but not the wellbeing/diversity benefit — need long-horizon surveys.
 
 ---
 
@@ -514,36 +361,23 @@ Pure relevance ranking creates filter bubbles: users who engage with content X g
 
 ### Popularity Bias Amplification
 
-Highly-ranked posts get more impressions → more engagement → even higher ranking in future. This creates a rich-get-richer dynamic that concentrates engagement on a few posts and suppresses equal-quality content that received fewer early impressions.
+Highly-ranked posts get more impressions -> more engagement -> higher future ranking, a rich-get-richer dynamic.
 
-**Correction:** Inverse propensity scoring (IPS) during training. A post shown to 1M users and getting 1% engagement should be treated differently from a post shown to 1K users getting 1% engagement — the second is a stronger signal because it wasn't boosted by the ranking system.
-
+**Correction — inverse propensity scoring (IPS):** weight training examples by inverse show-probability, so a post shown to 1M users at 1% engagement isn't over-trusted relative to one shown to 1K users at the same rate.
 ```python
-# IPS-corrected training loss
 loss = bce(pred, label) / propensity_score  # propensity = P(item shown | features)
 ```
 
-### Echo Chambers and Radicalization Pathways
+### Echo Chambers and Radicalization
 
-Engagement optimization can create radicalization pathways: users who engage with mildly extreme content are shown more extreme content, which they also engage with, leading to progressively more extreme content in the feed. YouTube's 2019 algorithm changes specifically addressed this.
+Engagement optimization can push users toward progressively more extreme content (YouTube's 2019 changes addressed this directly).
 
-**Detection:**
-- Track "content trajectory" per user: is the average extremism score of consumed content increasing over time?
-- Flag users whose content trajectory shows consistent drift toward high-extremism content
+**Detection:** track per-user "content trajectory" (is avg extremism score rising?); flag consistent drift.
+**Mitigation:** hard score penalty above an extremism threshold; "rabbit hole" detection injects diverse content after N consecutive same-topic posts.
 
-**Mitigation:**
-- Hard cap on extremism score: posts above a threshold get a large score penalty regardless of engagement prediction
-- "Rabbit hole" detection: if a user has consumed N consecutive posts on the same high-risk topic, inject diverse content
+### Engagement-Wellbeing Divergence
 
-### Engagement-Wellbeing Divergence Measurement
-
-The fundamental challenge: engagement metrics (clicks, likes) are available instantly, but wellbeing metrics (self-reported satisfaction, regret) require surveys with multi-week delays.
-
-**Proxy signals for wellbeing:**
-- Return rate after session: did the user come back tomorrow?
-- Session end behavior: did the user close the app or did the app expire in background?
-- Post-session survey (shown to random sample): "Was this time on [app] worth it?"
-- Passive consumption ratio: high ratio of scroll-without-engagement may indicate addiction vs. satisfaction
+Engagement metrics are instant; wellbeing metrics need multi-week surveys. Proxy signals: next-day return rate, session-end behavior, post-session "was this worth it?" surveys, passive-consumption ratio.
 
 ---
 
@@ -551,49 +385,28 @@ The fundamental challenge: engagement metrics (clicks, likes) are available inst
 
 ### A/B Testing Feed Ranking
 
-**Randomization unit:** User (not session or post). Feed ranking changes affect all sessions for a user, so user-level randomization is required to avoid cross-contamination.
+**Randomization unit:** user (feed changes affect all of a user's sessions).
 
-**Key challenge: Social network interference.** User A and User B are in different experiment arms. User B creates a post. User A's ranking of that post may be affected by B's arm (e.g., if B's arm reduces engagement with posts, the post gets fewer early engagements, which feeds back into A's ranking). This violates the Stable Unit Treatment Value Assumption (SUTVA).
+**Social network interference:** User A's ranking can be affected by User B's experiment arm through B's posts and engagement — violates SUTVA.
 
-**Mitigation:**
-- **Ego-cluster randomization:** Assign entire social neighborhoods to the same arm. Reduces power but reduces interference.
-- **Two-sided marketplaces:** Treat feed separately from distribution — randomize at creator level for distribution experiments.
+**Mitigation:** ego-cluster randomization (assign whole social neighborhoods to one arm — reduces power but reduces interference); for distribution experiments, randomize at the creator level instead.
 
 ### Long-Term vs Short-Term Effects
 
-Short-term A/B tests (1–2 weeks) capture engagement changes. They miss:
-- **Novelty effects:** New features boost engagement initially, then fade
-- **Content ecosystem effects:** If a ranking change reduces reach for creators, creators may post less (takes months to detect)
-- **User behavior adaptation:** Users learn the new feed ordering and adapt their behavior
+Short A/B tests (1-2 weeks) miss: novelty effects (fade over time), content ecosystem effects (creators post less if reach drops — takes months to show), and user behavior adaptation.
 
-**Holdout groups (long-horizon measurement):**
-Keep 1% of users in the old ranking model permanently. Compare long-term metrics (content diversity consumed, wellbeing surveys, churn rate) after 3–6 months. This is expensive but necessary for detecting slow-moving changes.
+**Holdout groups:** keep ~1% of users on the old model for 3-6 months to catch slow-moving effects on diversity, wellbeing, and churn.
 
 ### Ad Interference in Organic Experiments
 
-Ads are ranked inline with organic content. An organic ranking experiment changes which organic posts are shown → changes which ad slots are seen → changes ad revenue. This confounds the organic experiment.
+Organic ranking changes shift which ad slots are seen, confounding ad revenue. Mitigations: run organic/ads experiments on disjoint user sets, treat ad metrics as guardrails in organic experiments, use revenue-neutral ad insertion.
 
-**Solutions:**
-- Run organic and ads experiments on disjoint user sets
-- Measure ad metrics as secondary guardrail metrics in organic experiments
-- Use revenue-neutral ad insertion (adjust ad count dynamically to maintain revenue parity across arms)
-
-### Metric Hierarchy for Feed Experiments
+### Metric Hierarchy
 
 ```
-Guardrail metrics (experiment invalid if these degrade):
-  - Feed load latency P99
-  - App crash rate
-  - Ad revenue per DAU
-
-Primary metrics (experiment decision):
-  - Meaningful interactions rate (comments + shares per session)
-  - 7-day return rate
-
-Secondary metrics (directional signal):
-  - Likes per session (lower weight)
-  - Time-on-platform (controversial — can be good or bad)
-  - Negative feedback rate (hide / unfollow / report)
+Guardrails (invalidate experiment if degraded): feed latency P99, crash rate, ad revenue/DAU
+Primary: meaningful interactions rate, 7-day return rate
+Secondary: likes/session, time-on-platform, negative feedback rate
 ```
 
 ---
@@ -602,272 +415,55 @@ Secondary metrics (directional signal):
 
 ### Misinformation Amplification
 
-**Mechanism:** False or misleading posts often generate high engagement (outrage, debate) in the short term. Without intervention, the ranking system surfaces them widely before fact-checkers can label them.
-
-**Failure signature:** Viral posts with high engagement velocity but high report rate from a subset of users.
-
-**Mitigation:** Real-time misinformation classifier (trained on fact-check labels); posts flagged as "likely false" receive a large score penalty. Third-party fact-checking labels (Meta's IFCN partners) feed back as strong negative labels within hours. "Reduced distribution" (not removed, but not amplified) is the policy lever.
+**Mechanism:** false/misleading posts often drive high short-term engagement (outrage, debate) and spread before fact-checkers act.
+**Signature:** high engagement velocity + high report rate from a subset of users.
+**Mitigation:** real-time misinformation classifier trained on fact-check labels; flagged posts get reduced distribution (not necessarily removal).
 
 ### Outrage Optimization
 
-**Mechanism:** Comments and shares (weighted heavily as "meaningful interactions") are disproportionately driven by angry reactions and controversy. A ranking system that maximizes comments is implicitly maximizing outrage.
+**Mechanism:** comments/shares (weighted as "meaningful") are disproportionately driven by anger and controversy.
+**Signature:** top posts trend political/provocative over time; satisfaction declines while engagement rises.
+**Mitigation:** sentiment-aware re-weighting — discount comment value by an anger-fraction classifier.
 
-**Failure signature:** Top posts in the feed are increasingly political, controversial, or emotionally provocative over time. User self-reported satisfaction declines while engagement metrics improve.
+### Creator Cold Start
 
-**Mitigation:** Sentiment-aware re-weighting: a "comment driven by anger" should be worth less than a "comment driven by interest." Train a comment sentiment classifier. Apply sentiment discount to engagement weights: comment_value = base_weight × (1 - anger_fraction).
+**Mechanism:** no engagement history -> low affinity -> low ranking -> no data -> perpetual cold start.
+**Signature:** new creator cohorts get near-zero reach even with quality content.
+**Mitigation:** exploration budget (show new-creator posts to a small random sample to gather signal); bootstrap creator embeddings from content embeddings.
 
-### Creator Suppression (Cold Start for Creators)
+### New User Cold Start
 
-**Mechanism:** New creators have no engagement history → low affinity scores → low ranking → low impressions → no engagement data → perpetual cold start. The system amplifies existing inequality.
-
-**Failure signature:** New creator cohort show near-zero reach even for high-quality content.
-
-**Mitigation:** Creator "exploration" budget: new posts from new creators are shown to a random 0.1% sample to gather initial engagement signal before ranking takes over. Bootstrap creator embeddings from content embeddings (even without engagement history, a creator's post can be matched to users who have interacted with similar content).
-
-### Cold Start for New Users
-
-**Mechanism:** New users have no engagement history, no interest embeddings, no affinity scores. Personalization defaults to trending/popular content, which may not match the user and drives early churn.
-
-**Failure signature:** Day-7 retention for new users significantly lower than for users with 30+ days of history.
-
-**Mitigation:** Onboarding interest selection (explicitly ask users what they care about on signup). Demographic priors (age group, country). Rapid cold start via first-session engagement: within the first session, each interaction updates the interest embedding in near-real-time. Use a "new user" ranker that upweights diversity and content quality signals and downweights personalization signals until sufficient history is accumulated (typically 50+ interactions).
+**Mechanism:** no history, no interest embedding -> defaults to generic trending content -> poor match, early churn.
+**Signature:** Day-7 retention much lower for new users than tenured ones.
+**Mitigation:** onboarding interest selection, demographic priors, near-real-time embedding updates from first-session interactions, a "new user" ranker that upweights diversity/quality over personalization until ~50+ interactions accumulate.
 
 ### Model Feedback Loop Collapse
 
-**Mechanism:** Model trained on logged engagement → model changes what's shown → engagement data shifts → next model trained on biased data. Over time, the model converges to a degenerate state (only ever showing a narrow set of content).
-
-**Failure signature:** Content diversity in served feeds decreases over time. Feature distributions drift from training distribution (covariate shift).
-
-**Mitigation:** Counterfactual logging (log model scores for items not shown); use importance-weighted training. Exploration policy: randomly serve non-top-ranked items to a small fraction of requests. Periodically retrain from scratch on a dataset that includes exploration data.
+**Mechanism:** model shapes what's shown -> engagement data shifts -> next model trains on biased data -> converges to a narrow content set.
+**Signature:** served content diversity drops over time; feature distributions drift from training (covariate shift).
+**Mitigation:** counterfactual logging + importance-weighted training; exploration policy serving some non-top items; periodic retraining including exploration data.
 
 ---
 
 ## Canonical Interview Q&As
 
-**Q: How do you handle the fact that optimizing for engagement often conflicts with user wellbeing?**
+**Q: Engagement optimization often conflicts with user wellbeing — how do you handle it?**
+A: Constrained multi-objective optimization: treat wellbeing as a floor constraint, not something to maximize. Compute a predicted wellbeing score (proxy signals: satisfaction surveys, hide/unfollow regret signals, long-term return rate) and require it stay above threshold θ while maximizing engagement within that constraint. Since wellbeing labels lag (survey-based, weeks) while engagement is instant, use long-horizon holdout groups (~1% permanently in control) to catch slow wellbeing effects short A/B tests miss. Meta's 2018 MSI pivot was effectively moving that constraint boundary — accepting lower engagement for a higher wellbeing floor.
 
-A: This is the central product and ML problem in feed ranking. The technical approach is constrained multi-objective optimization: set wellbeing metrics as floor constraints rather than objectives to maximize. Concretely: compute a predicted wellbeing score for the feed (using proxy signals like self-reported satisfaction labels, regret signals like "hide" and "unfollow," and long-term return rate). Require this score to stay above a threshold θ. Within that constraint, maximize engagement. The challenge is that wellbeing labels are slow (survey-based, 2-4 week lag) while engagement labels are instant. You need long-horizon holdout groups (1% of users permanently in control) to detect slow wellbeing effects that short A/B tests miss. Meta's 2018 MSI pivot was essentially moving the constraint boundary: they accepted lower engagement to achieve higher wellbeing floor.
-
-**Q: How would you design the candidate retrieval stage to handle a user with 5,000 friends and 2,000 followed pages — in under 10ms?**
-
-A: Parallelize retrieval across sources. Social graph retrieval is a fan-out operation: given user U's adjacency list (friends + pages), fetch the latest N posts per source. For 5,000 friends × 5 posts each = 25,000 posts, this requires the adjacency list and post indexes to be in memory (TAO/Redis). Run ANN retrieval for interest-based candidates in parallel with graph traversal. Use approximate graph traversal: for users with very large social graphs (5K+ friends), only retrieve from "active" connections (those who posted in last 7 days) rather than all friends. Pre-compute per-user candidate sets during off-peak hours and cache them, then do lightweight freshness updates on top. The 10ms budget is for cache hits; cache misses (new users, cold start) have a separate slower path.
+**Q: How do you design candidate retrieval for a user with 5,000 friends and 2,000 followed pages in under 10ms?**
+A: Parallelize retrieval across sources — graph traversal and ANN interest retrieval run concurrently. Keep adjacency lists and post indexes in memory (TAO/Redis) for fast fan-out. For very large graphs, only pull from "active" connections (posted in the last 7 days) instead of the full friend list. Pre-compute candidate sets off-peak and cache them, applying lightweight freshness updates on read. The 10ms budget covers cache hits; cache misses (new/cold-start users) use a separate slower path.
 
 **Q: How do you detect and prevent popularity bias in training data?**
+A: Items shown more often accumulate more engagement data, which makes the model favor them further — a feedback loop. Fix with inverse propensity scoring: weight training examples by the inverse probability of being shown, so frequently-shown items don't dominate the gradient. This requires logging the score/rank at impression time. Also maintain an exploration budget (ε-greedy or Thompson sampling) to gather unbiased signal on rarely-shown items.
 
-A: Popularity bias occurs because items shown more often get more engagement data, making them appear better to the model, leading to even more exposure. The fix is inverse propensity scoring (IPS): weight each training example by the inverse of its probability of being shown, so frequently-shown items don't dominate the gradient. Propensity scores are estimated from the logging policy (the ranking model that generated the training data). This requires careful logging: you must record the score and rank at the time of impression, not reconstruct them later. Additionally, maintain an exploration budget (ε-greedy or Thompson sampling) to gather unbiased training signal from items that wouldn't normally be shown. LinkedIn's feed ranking paper describes a similar debiasing approach using counterfactual estimators.
+**Q: A competitor launches and engagement drops 15%. Model problem or product problem?**
+A: Decompose the drop. Is it uniform across segments, or concentrated (competitive threats usually hit specific demographics/power users first, model regressions are more uniform)? Check engagement rate per session (model quality) vs. session frequency/length (product/competitive). Replay the model on historical data to check for input feature drift. Check content supply (are creators posting less) vs. demand (same posts getting less engagement). Check negative signals: rising hide/unfollow/report suggests a model issue; flat negative signals with lower impressions suggests a retention/acquisition issue.
 
-**Q: A new competitor launches. Suddenly users are spending less time on your platform. Your engagement metrics drop 15%. How do you investigate whether this is a model problem or a product problem?**
+**Q: How does ads ranking interact with the organic feed ranker, and what can go wrong?**
+A: Two models: unified auction (organic and ads get one quality score; combined score = predicted_value × bid, ad wins only if revenue exceeds organic opportunity cost) or fixed insertion (ads at every Nth slot regardless of organic quality). Unified is more efficient but complex. Failure modes: better organic ranking raises the opportunity cost of ad slots, so fewer ads clear the auction and revenue drops unexpectedly (track revenue as a guardrail in organic experiments); shared features between ad and organic models mean retraining one can silently shift the other; heavy ad density causes banner blindness that biases organic engagement labels too.
 
-A: First, decompose the drop. Check segment-level metrics: is the drop uniform across age groups, geographies, and user tenure, or concentrated in a specific segment? A model regression would affect users more uniformly; a competitive threat would first affect specific demographics or power users. Second, check whether the engagement rate per session changed (model quality) vs. whether session frequency or session length changed (product/competitive). Third, run the ranking model on historical data and check if predicted engagement scores degraded (distribution shift in input features). Fourth, check content supply: did creators post less (supply problem) or did the same posts get lower engagement (demand problem)? Finally, look at negative signals: if hide/unfollow/report rates increased, it may be a model quality issue; if they're flat but impressions decreased, it's retention/acquisition.
+**Q: How would you measure filter bubble effects in the feed?**
+A: Content-side: topic diversity index (avg pairwise embedding distance of weekly consumption), source diversity (distinct creators consumed), viewpoint diversity on political content. Trajectory: is a user's average content extremism/partisanship score drifting over time? Survey: periodic "did you see content that challenged your views this week?" Counterfactual: compare actual feed diversity to a diversity-maximizing baseline. Content diversity responds to MMR/DPP reranking (5-10% engagement cost); viewpoint diversity needs explicit cross-partisan injection with user consent.
 
-**Q: How does the ads system interact with the organic feed ranker, and what could go wrong?**
-
-A: Ads compete for the same feed slots as organic content. There are two models: (1) Unified auction: organic posts and ads receive a single quality score, then ads also have a bid, and the combined score = predicted_value × bid. An ad wins a slot only if its revenue value exceeds the organic opportunity cost. (2) Fixed insertion: ads are inserted at every Nth position regardless of organic ranking quality. Unified auction is more efficient but complex. What can go wrong: (a) If organic ranking improves (users see better posts), the opportunity cost of showing an ad increases, so fewer ads clear the auction → revenue falls unexpectedly. You need to run organic experiments with revenue as a guardrail metric. (b) If the ad quality classifier shares features with the organic ranker, a model retrain can unexpectedly shift ad performance. (c) Ads create position effects — users in ad-heavy feeds develop "banner blindness" and skip early organic posts too, biasing engagement labels for organic posts.
-
-**Q: How would you measure and quantify filter bubble effects in the feed?**
-
-A: Filter bubble intensity is multi-dimensional. Content-side metrics: topic diversity index of content consumed per user per week (using topic embeddings, compute average pairwise distance — higher = more diverse); source diversity (distinct creator count in weekly consumption); partisan/viewpoint diversity on political content. Trajectory metrics: track whether the average extremism or partisanship score of content consumed is drifting over time for users. Survey metrics: periodically ask "did you see content that challenged your views this week?" (self-reported perspective diversity). Counterfactual metrics: compare feed diversity to a diversity-maximizing baseline — what would the user have seen if the feed was diversified? These require different interventions: content diversity can be increased via MMR/DPP reranking (with 5–10% engagement cost), viewpoint diversity on political content requires explicit cross-partisan injection with user consent UI.
-
-**Q: Walk me through how you would design a fair ranking system for creators — ensuring small creators can get discovered, not just large ones.**
-
-A: The core problem is a self-reinforcing rich-get-richer dynamic: large creators have engagement history → high affinity scores → high ranking → more impressions → more engagement. Four interventions: (1) Exploration budget: reserve 10–15% of feed slots for content from creators the user has not interacted with (discovery bucket). Within this bucket, rank by engagement relative to peer creators (same follower tier, same content category) to give small creators fair competitive standing. (2) Propensity correction in training: a post from a creator with 100M followers that gets 1% engagement is shown to vastly more users than a post from a creator with 10K followers getting 1% engagement. Correct for this in training so both receive equal credit for the same relative engagement quality. (3) Audience saturation correction: a creator's posts reaching the same users repeatedly are less valuable than posts reaching new users. Penalize repeated delivery of the same creator to the same user. (4) Early signal bootstrapping: use content embeddings (CLIP, BERT) to match new creator content to users who have engaged with similar content, bypassing the cold start problem for new creators entirely. LinkedIn's "creator mode" and Instagram's "Reels ranking" both describe variants of this approach.
-
-## Flashcards
-
-**Consumption model?** #flashcard
-push vs pull? Facebook/Instagram are pull (user opens app → feed constructed on-demand). Twitter historically used push (precompute fan-out to followers). Pull is harder to serve fast but more personalized; push is cheaper at read time but expensive for celebrities with 50M followers (fan-out problem).
-
-**What signals define "good"? Engagement (likes, comments, shares) vs time-spent vs meaningful interactions vs self-reported satisfaction. These diverge?** #flashcard
-outrage content maximizes engagement, wellness content maximizes satisfaction.
-
-**Ads integration? Are ads ranked inline with organic content or separately budgeted? Inline ranking creates a single auction but risks ad-organic quality conflation.?** #flashcard
-Ads integration? Are ads ranked inline with organic content or separately budgeted? Inline ranking creates a single auction but risks ad-organic quality conflation.
-
-**Objective hierarchy? Is wellbeing a hard constraint (floor) or a soft objective in the optimization? Meta's 2018 "meaningful social interaction" pivot was a policy decision to re-weight creator/page content down and friends content up?** #flashcard
-not purely ML.
-
-**Creator vs social graph content? LinkedIn is mostly creator content (articles, posts from strangers); Facebook is mostly social graph (friends, family). This determines candidate retrieval strategy.?** #flashcard
-Creator vs social graph content? LinkedIn is mostly creator content (articles, posts from strangers); Facebook is mostly social graph (friends, family). This determines candidate retrieval strategy.
-
-**New user cold start threshold? How many interactions before the personalization kicks in? What's the fallback?** #flashcard
-trending content, demographic-based priors, onboarding interest selection?
-
-**Real-time vs near-real-time? Should posts published 10 seconds ago appear in the feed immediately (requires real-time indexing) or is 1–5 minute lag acceptable?** #flashcard
-Real-time vs near-real-time? Should posts published 10 seconds ago appear in the feed immediately (requires real-time indexing) or is 1–5 minute lag acceptable?
-
-**Fetch all friends (avg ~300 on Facebook) + followed pages/groups?** #flashcard
-Fetch all friends (avg ~300 on Facebook) + followed pages/groups
-
-**For each source, retrieve last N posts (N=5–10)?** #flashcard
-For each source, retrieve last N posts (N=5–10)
-
-**Implementation?** #flashcard
-graph database (TAO at Meta) → per-user adjacency list cached in RAM → O(1) lookup
-
-**User has a learned interest embedding (128-dim, updated daily)?** #flashcard
-User has a learned interest embedding (128-dim, updated daily)
-
-**Posts are embedded at publish time (CLIP for images, BERT for text)?** #flashcard
-Posts are embedded at publish time (CLIP for images, BERT for text)
-
-**FAISS / ScaNN index on post embeddings → ANN search returns top-K semantically similar posts from non-friends?** #flashcard
-FAISS / ScaNN index on post embeddings → ANN search returns top-K semantically similar posts from non-friends
-
-**This is how Instagram's "suggested posts" and LinkedIn's "posts you might like" work?** #flashcard
-This is how Instagram's "suggested posts" and LinkedIn's "posts you might like" work
-
-**Logistic regression or shallow MLP (10–20 features)?** #flashcard
-Logistic regression or shallow MLP (10–20 features)
-
-**Features?** #flashcard
-post age (log-scaled), source affinity score (precomputed), post engagement rate (likes+comments / impressions), media type (video > image > text in most feeds), user's historical interaction rate with this source
-
-**Trained on same labels as heavy ranker but must be maximally fast?** #flashcard
-Trained on same labels as heavy ranker but must be maximally fast
-
-**At Meta scale?** #flashcard
-LR inference on 5,000 posts ≈ 1ms on CPU
-
-**affinity_score?** #flashcard
-how often the user interacted with this edge (person/page)
-
-**edge_weight?** #flashcard
-type of interaction (comment > like > view)
-
-**time_decay: recency factor?** #flashcard
-older content ranked lower
-
-**Wellbeing guardrails?** #flashcard
-Cap consecutive video posts at 3 (reduce passive scroll). Demote posts flagged as "emotionally negative" by a classifier. Enforce cross-session limits on content categories associated with low self-reported satisfaction.
-
-**Diversity injection?** #flashcard
-No more than 2 consecutive posts from the same creator. Ensure at least 3 different topic clusters in top-10. See Section 8.
-
-**Integrity filters?** #flashcard
-Posts under manual review for misinformation → score penalty or removal. CSAM, hate speech → hard remove. Spam accounts → demotion.
-
-**Boost rules?** #flashcard
-"New content" freshness boost for posts under 2 hours (prevents feed staleness). Occasional "time capsule" post from 1 year ago (on this day features).
-
-**Comments and shares re-weighted 5–10× relative to likes?** #flashcard
-Comments and shares re-weighted 5–10× relative to likes
-
-**Content from friends/family boosted relative to pages and creators?** #flashcard
-Content from friends/family boosted relative to pages and creators
-
-**Video content (associated with passive consumption) specifically penalized?** #flashcard
-Video content (associated with passive consumption) specifically penalized
-
-**"Meaningful" classifier trained on user surveys about whether a post "was worth their time"?** #flashcard
-"Meaningful" classifier trained on user surveys about whether a post "was worth their time"
-
-**60% social graph content (friends, family)?** #flashcard
-60% social graph content (friends, family)
-
-**20% creator/page content user follows?** #flashcard
-20% creator/page content user follows
-
-**15% suggested content (interest-based, ANN retrieval)?** #flashcard
-15% suggested content (interest-based, ANN retrieval)
-
-**5% ads?** #flashcard
-5% ads
-
-**Creator diversity constraint?** #flashcard
-cap any single creator at N% of a user's feed slots per day
-
-**Exploration budget?** #flashcard
-reserve 10–15% of feed slots for creators the user hasn't interacted with (discovery)
-
-**Small creator boost?** #flashcard
-apply a mild multiplicative boost to posts from creators with <10K followers who have strong engagement relative to their size
-
-**Engagement velocity?** #flashcard
-rate of change of engagement rate (2nd derivative)
-
-**Cross-network spread?** #flashcard
-is this being shared across different social clusters?
-
-**Early commenter diversity?** #flashcard
-high-diversity early engagers → organic virality vs. coordinated behavior
-
-**Exploration budget?** #flashcard
-Reserve N% of feed slots for content outside the user's historical interest clusters. LinkedIn calls this "feed diversification."
-
-**Cross-partisan exposure?** #flashcard
-On political content, deliberately mix content from different viewpoints (Meta's Civic Feed integrity work).
-
-**Interest graph perturbation?** #flashcard
-Periodically add random walks from the user's interest graph to expose to adjacent topics.
-
-**Track "content trajectory" per user?** #flashcard
-is the average extremism score of consumed content increasing over time?
-
-**Flag users whose content trajectory shows consistent drift toward high-extremism content?** #flashcard
-Flag users whose content trajectory shows consistent drift toward high-extremism content
-
-**Hard cap on extremism score?** #flashcard
-posts above a threshold get a large score penalty regardless of engagement prediction
-
-**"Rabbit hole" detection?** #flashcard
-if a user has consumed N consecutive posts on the same high-risk topic, inject diverse content
-
-**Return rate after session?** #flashcard
-did the user come back tomorrow?
-
-**Session end behavior?** #flashcard
-did the user close the app or did the app expire in background?
-
-**Post-session survey (shown to random sample)?** #flashcard
-"Was this time on [app] worth it?"
-
-**Passive consumption ratio?** #flashcard
-high ratio of scroll-without-engagement may indicate addiction vs. satisfaction
-
-**Ego-cluster randomization?** #flashcard
-Assign entire social neighborhoods to the same arm. Reduces power but reduces interference.
-
-**Two-sided marketplaces: Treat feed separately from distribution?** #flashcard
-randomize at creator level for distribution experiments.
-
-**Novelty effects?** #flashcard
-New features boost engagement initially, then fade
-
-**Content ecosystem effects?** #flashcard
-If a ranking change reduces reach for creators, creators may post less (takes months to detect)
-
-**User behavior adaptation?** #flashcard
-Users learn the new feed ordering and adapt their behavior
-
-**Run organic and ads experiments on disjoint user sets?** #flashcard
-Run organic and ads experiments on disjoint user sets
-
-**Measure ad metrics as secondary guardrail metrics in organic experiments?** #flashcard
-Measure ad metrics as secondary guardrail metrics in organic experiments
-
-**Use revenue-neutral ad insertion (adjust ad count dynamically to maintain revenue parity across arms)?** #flashcard
-Use revenue-neutral ad insertion (adjust ad count dynamically to maintain revenue parity across arms)
-
-**Feed load latency P99?** #flashcard
-Feed load latency P99
-
-**App crash rate?** #flashcard
-App crash rate
-
-**Ad revenue per DAU?** #flashcard
-Ad revenue per DAU
-
-**Meaningful interactions rate (comments + shares per session)?** #flashcard
-Meaningful interactions rate (comments + shares per session)
-
-**7-day return rate?** #flashcard
-7-day return rate
-
-**Likes per session (lower weight)?** #flashcard
-Likes per session (lower weight)
-
-**Time-on-platform (controversial?** #flashcard
-can be good or bad)
-
-**Negative feedback rate (hide / unfollow / report)?** #flashcard
-Negative feedback rate (hide / unfollow / report)
+**Q: Design fair ranking so small creators can get discovered, not just large ones.**
+A: The core problem is a rich-get-richer loop: history -> affinity -> ranking -> impressions -> more history. Four levers: (1) exploration budget — reserve 10-15% of slots for creators the user hasn't interacted with, ranked within-bucket by engagement relative to peer creators of similar size; (2) propensity correction in training so a 10K-follower creator's 1% engagement counts equally to a 100M-follower creator's 1% engagement; (3) audience saturation penalty for repeatedly showing the same creator to the same user; (4) bootstrap new creators via content embeddings (CLIP/BERT) matched to users who engaged with similar content, sidestepping cold start entirely.

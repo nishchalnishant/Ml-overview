@@ -671,7 +671,7 @@ and Brier score, not just AUC.
 
 ## Hard
 
-Deep reasoning, multi-step derivations, subtle edge cases, or senior/staff-level judgment calls.
+Deep reasoning, multi-step tradeoffs, and subtle edge cases.
 
 #### Q: Explain the Transformer's self-attention mechanism and why the $\sqrt{d_k}$ scaling exists. [LLMs]
 $$\text{Attention}(Q,K,V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
@@ -681,42 +681,19 @@ output. Without scaling, dot products grow with $d_k$ (variance $\propto d_k$ fo
 vectors), pushing softmax into a saturated regime with near-zero gradients almost everywhere.
 Dividing by $\sqrt{d_k}$ keeps the pre-softmax variance at ~1, keeping gradients healthy.
 
-#### Q: Derive the gradient of cross-entropy loss with a sigmoid output. [Math Derivations]
+#### Q: Derive the gradient of cross-entropy loss with a sigmoid output. [Math]
 $L=-[y\log\hat y+(1-y)\log(1-\hat y)]$, $\hat y=\sigma(z)$. Using
-$\sigma'(z)=\sigma(z)(1-\sigma(z))$, the chain rule collapses to the remarkably clean:
+$\sigma'(z)=\sigma(z)(1-\sigma(z))$, the chain rule collapses to:
 $$\frac{\partial L}{\partial z} = \hat y - y$$
 This is why cross-entropy + sigmoid/softmax is the default pairing — contrast with MSE + sigmoid,
-whose gradient $\propto (\hat y-y)\hat y(1-\hat y)$ vanishes when $\hat y$ saturates near 0/1 even
-if the prediction is very wrong, causing slow learning on confidently-wrong examples.
+whose gradient vanishes when $\hat y$ saturates near 0/1 even if the prediction is very wrong.
 
-#### Q: Derive why $\sqrt{d_k}$ scaling keeps attention gradients healthy. [Math Derivations]
-For random $q,k$ with independent unit-variance components, $q\cdot k = \sum_{i=1}^{d_k} q_ik_i$
-has variance $d_k$ (sum of $d_k$ i.i.d. terms). As $d_k$ grows, raw dot products grow in
-magnitude, pushing softmax inputs to extremes where its gradient $\to 0$ almost everywhere.
-Dividing by $\sqrt{d_k}$ rescales variance back to 1 regardless of dimension, keeping the softmax
-in its well-behaved gradient regime.
-
-#### Q: Derive Adam's bias correction terms. [Math Derivations]
-Adam's raw moment estimates $m_t=\beta_1 m_{t-1}+(1-\beta_1)g_t$, $v_t=\beta_2
-v_{t-1}+(1-\beta_2)g_t^2$ start at 0, biasing early estimates toward zero (especially with
-$\beta_1,\beta_2$ close to 1). Taking the expectation shows $\mathbb E[m_t] = (1-\beta_1^t)\mathbb
-E[g]$, so dividing by $(1-\beta_1^t)$ corrects the bias: $\hat m_t = m_t/(1-\beta_1^t)$,
-$\hat v_t = v_t/(1-\beta_2^t)$ — without this, early updates would be artificially tiny.
-
-#### Q: Derive the KL divergence and its relationship to cross-entropy. [Math Derivations]
+#### Q: What does KL divergence measure and how does it relate to cross-entropy? [Math]
 $$D_{KL}(P\|Q) = \sum_x P(x)\log\frac{P(x)}{Q(x)} = H(P,Q) - H(P)$$
-where $H(P,Q)=-\sum P(x)\log Q(x)$ is cross-entropy and $H(P)$ is $P$'s own entropy. Since $H(P)$
-is fixed (doesn't depend on the model $Q$), minimizing cross-entropy loss during training is
-exactly equivalent to minimizing $D_{KL}(P\|Q)$ — pushing the model's distribution $Q$ toward the
-true label distribution $P$.
-
-#### Q: Why is $D_{KL}$ asymmetric and what practical consequence does that have? [Math Derivations]
-$D_{KL}(P\|Q) \ne D_{KL}(Q\|P)$ in general because the expectation is taken under $P$ in one
-case and $Q$ in the other. Forward KL $D_{KL}(P\|Q)$ (used in standard MLE training) heavily
-penalizes $Q$ putting low probability where $P$ has mass — encourages $Q$ to be "mean-seeking" /
-cover all of $P$'s support. Reverse KL $D_{KL}(Q\|P)$ (used in some variational inference
-settings) penalizes $Q$ putting mass where $P$ has none — encourages "mode-seeking" behavior,
-often collapsing onto a single mode of a multimodal $P$.
+$H(P,Q)$ is cross-entropy, $H(P)$ is $P$'s own entropy and is fixed (doesn't depend on the model
+$Q$) — so minimizing cross-entropy during training is equivalent to minimizing $D_{KL}(P\|Q)$,
+pushing $Q$ toward the true label distribution $P$. KL is asymmetric: $D_{KL}(P\|Q) \ne
+D_{KL}(Q\|P)$, which is why forward vs. reverse KL give different behavior in things like VAEs.
 
 #### Q: Why does KV-caching make autoregressive LLM decoding tractable, and what is its memory cost as context grows? [LLMs]
 Without caching, generating token $t$ recomputes $K,V$ for all $1..t$ from scratch — $O(T^2)$

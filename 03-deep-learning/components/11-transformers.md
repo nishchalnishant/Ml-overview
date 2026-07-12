@@ -293,4 +293,3 @@ No positional encoding. Subtract a linear penalty: score_ij = q_i·k_j − m_h·
 - **Attention mechanics, KV cache, MQA, GQA** → [attention.md](./10-attention.md)
 - **Full LLM architecture from first principles** → [05-llms/03-architecture-deep-dive.md](../../05-llms/03-architecture-deep-dive.md)
 - **Production serving: vLLM, PagedAttention** → [llm-serving.md](./18-llm-serving.md)
-- **Distributed training** → [distributed-training-and-parallelism.md](./13-distributed-training-and-parallelism.md)

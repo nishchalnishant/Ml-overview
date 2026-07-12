@@ -28,7 +28,6 @@ These are the core concepts every serious deep-learning conversation keeps comin
 | [attention.md](10-attention.md) | Scaled dot-product attention, multi-head attention, why it replaced RNNs |
 | [autoencoders.md](12-autoencoders.md) | Encoder-decoder structure, latent space, VAEs, reconstruction loss |
 | [backpropagation.md](01-backpropagation.md) | Chain rule, gradient flow, vanishing/exploding gradients, gradient clipping |
-| [distributed-training-and-parallelism.md](13-distributed-training-and-parallelism.md) | Data/tensor/pipeline parallelism, ZeRO, sharding strategies |
 | [hidden-layers.md](04-hidden-layers.md) | Layer types, depth vs width, capacity tradeoffs |
 | [loss-functions.md](05-loss-functions.md) | MSE, cross-entropy, focal loss, contrastive, triplet — when each applies |
 | [model-compression.md](16-model-compression.md) | Compression landscape overview: quantization, distillation, pruning, low-rank factorization, speculative decoding, combination pipelines — read this first |

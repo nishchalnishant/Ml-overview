@@ -7,27 +7,14 @@ tags: [llms, ml, llm-applications]
 ---
 # LLM Applications
 
-This folder is where LLM theory stops posing for LinkedIn and starts shipping features.
+An LLM app is rarely "just a model" — it's usually a stack of retrieval, orchestration, tool calling, validation, and monitoring. That's why LLM engineering feels close to platform engineering.
 
-If Azure DevOps is your comfort zone, this whole folder will click faster if you use one simple mental model:
-
+Mental model:
 - **base model** = the shared platform image
 - **prompt** = runtime configuration
 - **RAG** = dependency injection for knowledge at runtime
 - **fine-tuning** = building a customized artifact
 - **agent workflow** = an orchestrated multi-step pipeline with retries, tools, and guardrails
-
-In short: an LLM app is rarely "just a model."
-
-It is usually a stack of:
-
-- retrieval
-- orchestration
-- tool calling
-- validation
-- monitoring
-
-That is why good LLM engineering feels surprisingly close to platform engineering.
 
 ## Start Here
 
@@ -83,44 +70,8 @@ That journey gives you the clean progression:
 - `12-mcp.md`
   Understand the Model Context Protocol — the standard interface that makes tools reusable across agent frameworks.
 
-## Azure / DevOps Bridge
+## Debugging Mental Model
 
-Here is the fastest translation layer:
+Chatbot gives a wrong answer about company policy — where do you look first: prompt, retrieval, document freshness, model choice, or post-processing guardrails?
 
-- **training** is like building a heavy artifact in a costly pipeline
-- **inference** is the runtime service path where latency matters
-- **evaluation** is your release gate
-- **guardrails** are policy checks and runtime protections
-- **model registry** is your artifact registry
-- **prompt versioning** is config versioning with real production impact
-
-Once you see that, LLM applications stop feeling mystical and start feeling operational.
-
-## Fashion Analogy
-
-A base model is like a beautifully stitched couture jacket off the runway.
-
-Useful? Yes.
-
-Ready for your exact event, climate, styling goal, and audience? Not always.
-
-RAG is the styling layer that brings in the right scarf, shoes, and accessories for tonight.
-Fine-tuning is tailoring the jacket itself.
-
-Both matter. They solve different problems.
-
-## Quick Thought Experiment
-
-Your chatbot gives the wrong answer about a company policy.
-
-Where do you inspect first?
-
-- the prompt?
-- retrieval?
-- document freshness?
-- model choice?
-- post-processing guardrails?
-
-Best answer: **the whole chain**.
-
-That is how strong LLM engineers think.
+Answer: **the whole chain**. Treat it as a pipeline, not a single black box, and inspect each stage.

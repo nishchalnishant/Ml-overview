@@ -266,6 +266,8 @@ dpo_trainer = DPOTrainer(
 
 ## 8.5 ORPO: Preference Alignment Without a Reference Model
 
+*(niche — a secondary DPO variant; know it exists and the one-line pitch, the mechanics below are reference depth)*
+
 **The problem with DPO**: DPO still requires a frozen reference model (the SFT copy) loaded in memory during training. This doubles GPU memory consumption and introduces a hyperparameter ($\beta$) that controls how tightly the policy stays near the reference. ORPO (Odds Ratio Preference Optimization, Hong et al., 2024) eliminates the reference model entirely.
 
 **Core insight**: the SFT cross-entropy loss already teaches the model to generate good responses. Rather than computing a KL-divergence against a frozen reference, ORPO adds a penalty term based on the *odds ratio* between the model's own probability of the chosen vs. rejected response. No external reference is needed — the model's current parameters serve as both the training target and the implicit "reference."

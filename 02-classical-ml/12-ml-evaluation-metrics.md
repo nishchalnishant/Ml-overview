@@ -245,19 +245,11 @@ $$\text{Serendipity} = \frac{1}{|U|} \sum_{u} \frac{|\text{relevant} \cap \text{
 
 Unexpected = not in what a naive baseline (e.g., popularity model) would recommend.
 
-### Intent-Aware Metrics
+### Intent-Aware Metrics and Exposure Fairness *(niche — specialized ranking/fairness roles only)*
 
-When a query has multiple interpretations (e.g., "jaguar" = car or animal), standard NDCG rewards systems that cover only one intent. Intent-aware NDCG (IA-NDCG) weights each result by the probability of its subtopic and penalizes redundancy within each subtopic.
+**Intent-aware NDCG**: when a query has multiple interpretations (e.g., "jaguar" = car or animal), standard NDCG rewards systems that cover only one intent. IA-NDCG weights each result by subtopic probability and penalizes redundancy within a subtopic.
 
-### Exposure Fairness
-
-**Equal opportunity in ranking**: Protected groups should receive proportional exposure in top-$k$ results relative to their relevance in the corpus.
-
-$$\text{Exposure}(G) = \sum_{i \in G} \frac{1}{\log_2(\text{rank}(i) + 1)}$$
-
-**Fairness constraint**: $\text{Exposure}(G_1) / \text{Relevance}(G_1) \approx \text{Exposure}(G_2) / \text{Relevance}(G_2)$.
-
-Used in hiring platforms, lending, and content recommendation to prevent systematic suppression of minority groups.
+**Exposure fairness**: protected groups should receive proportional ranking exposure relative to their relevance in the corpus — used in hiring/lending/content platforms to prevent systematic suppression of minority groups.
 
 ---
 

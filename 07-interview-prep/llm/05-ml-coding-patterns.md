@@ -7,7 +7,7 @@ tags: [interviewprep, ml, llm-ml-coding-patterns]
 ---
 # ML Coding Patterns — First-Principles Interview Reference
 
-Each pattern starts with what breaks in the naive version, then derives why the pattern exists. The insight should make the pattern obvious in retrospect.
+Each pattern starts with what breaks in the naive version, then shows the fix.
 
 ---
 
@@ -26,10 +26,7 @@ Test with `x = [1000, 999]`: `np.exp(1000)` overflows to `inf`. `inf / (inf + in
 
 ### Why the pattern exists
 
-Softmax is invariant to adding a constant: $\text{softmax}(x_i) = \text{softmax}(x_i - c)$ for any constant $c$. Proof:
-$$\frac{e^{x_i - c}}{\sum_j e^{x_j - c}} = \frac{e^{x_i} \cdot e^{-c}}{\sum_j e^{x_j} \cdot e^{-c}} = \frac{e^{x_i}}{\sum_j e^{x_j}}$$
-
-Choosing $c = \max(x)$ ensures the maximum exponent is $e^0 = 1$ — the largest value never overflows.
+Softmax is invariant to adding a constant: $\text{softmax}(x_i) = \text{softmax}(x_i - c)$ for any constant $c$, since the $e^{-c}$ factor cancels between numerator and denominator. Choosing $c = \max(x)$ makes the largest exponent $e^0 = 1$, so nothing overflows.
 
 ```python
 def softmax(x: np.ndarray) -> np.ndarray:
@@ -59,11 +56,11 @@ X_scaled = scaler.fit_transform(X)   # fitted on ALL data including test
 X_train, X_test = train_test_split(X_scaled, ...)
 ```
 
-The scaler's mean and standard deviation are computed on the full dataset, including test examples. The model has seen the test distribution during "training." This produces optimistic evaluation metrics that won't hold in production — where the scaler will be fit only on historical data.
+The scaler's mean/std are computed on the full dataset, including test examples — the model has effectively seen the test distribution. This produces optimistic metrics that won't hold in production, where the scaler is fit only on historical data.
 
 ### Why the pattern exists
 
-The fundamental rule: **any statistics used to transform data must be computed only on training data.** This mirrors what happens in production: you fit preprocessing on historical data, then apply those fixed statistics to new data.
+Rule: **any statistics used to transform data must be computed only on training data.** This mirrors production: fit preprocessing on historical data, apply those fixed statistics to new data.
 
 ```python
 from sklearn.pipeline import Pipeline

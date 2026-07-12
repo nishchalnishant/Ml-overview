@@ -9,7 +9,7 @@ tags: [productionml, ml, ml-system-design]
 
 The gap between "model works in a notebook" and "model works in production" is where most ML interviews actually test you.
 
-This section covers the engineering discipline of building ML systems that are reliable, scalable, maintainable, and measurable — treating ML like a product, not a science project.
+This section covers building ML systems that are reliable, scalable, maintainable, and measurable — treating ML like a product, not a science project.
 
 ---
 
@@ -97,7 +97,7 @@ The most common production failure in ML.
 
 **What it is:** Model trained on historical data; serving pipeline computes features differently or with a time lag.
 
-**Classic example:** Training uses `user_30day_spend` computed in a batch job. Serving uses a real-time feature computed with slightly different logic. The model sees a different distribution than it was trained on.
+**Example:** Training uses `user_30day_spend` computed in a batch job. Serving computes it in real time with slightly different logic. The model sees a different distribution than it was trained on.
 
 **Prevention:**
 - Feature store with a single computation path for both training and serving

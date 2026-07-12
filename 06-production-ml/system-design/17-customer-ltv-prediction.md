@@ -7,9 +7,9 @@ tags: [productionml, ml, system-design-customer-ltv-pre]
 ---
 # Customer Lifetime Value (LTV) Prediction System Design
 
-End-to-end ML system for predicting customer lifetime value at e-commerce, subscription, and fintech scale. Canonical system design question at companies running performance marketing, CRM, and growth programs (Shopify, Airbnb, DoorDash, Stripe, Netflix).
+End-to-end ML system for predicting customer lifetime value at e-commerce, subscription, and fintech scale. Common system design question at companies running performance marketing, CRM, and growth programs (Shopify, Airbnb, DoorDash, Stripe, Netflix).
 
-**Scale:** 100M+ customers, daily batch scoring, real-time scoring for new users at acquisition, LTV predictions feeding $10M+/day in paid acquisition bidding.
+**Scale:** 100M+ customers, daily batch scoring, real-time scoring for new users at acquisition, LTV predictions feeding paid acquisition bidding.
 
 ---
 
@@ -17,161 +17,101 @@ End-to-end ML system for predicting customer lifetime value at e-commerce, subsc
 
 ### Clarifying Questions
 
-- **Business model?** Subscription (contractual) vs e-commerce/marketplace (non-contractual) — fundamentally different statistical models apply
-- **Prediction horizon?** 90-day LTV (tactical, for acquisition bidding) vs 1-year LTV (strategic, for cohort planning) vs lifetime (theoretical)
-- **Customer population?** New users at acquisition (cold start) vs existing customers (full history available)
+- **Business model?** Subscription (contractual) vs e-commerce/marketplace (non-contractual) — different statistical models apply.
+- **Prediction horizon?** 90-day LTV (tactical, acquisition bidding) vs 1-year LTV (strategic, cohort planning) vs lifetime (theoretical).
+- **Customer population?** New users at acquisition (cold start) vs existing customers (full history).
 - **Primary use case?**
   - Acquisition bidding: bid = predicted LTV × margin − CAC → needs calibrated expected value
   - Retention/churn: who to target with discount/win-back → needs relative ranking
   - Upsell/pricing: what offer to show → needs segment-level calibration
   - Financial planning: cohort revenue forecasting → needs aggregate accuracy, not individual
-- **Revenue definition?** Gross revenue, net revenue (after refunds), contribution margin, gross profit?
-- **Discount rate?** For DCF-based LTV, what WACC or hurdle rate to use?
-- **Latency requirement?** Acquisition bidding needs <200ms; CRM batch jobs can run nightly
-- **Feedback delay?** How long before we observe realized revenue for a prediction? (weeks to years)
+- **Revenue definition?** Gross, net (after refunds), or contribution margin?
+- **Latency requirement?** Acquisition bidding needs <200ms; CRM batch jobs can run nightly.
+- **Feedback delay?** How long before realized revenue is observed (weeks to years)?
 
 ### Metric Trade-offs
-
-**Individual vs aggregate accuracy:**
 
 | Metric | What it measures | Use case |
 |---|---|---|
 | MAE / RMSE on individual predictions | Point accuracy | Not recommended — LTV is inherently uncertain |
 | Calibration (expected = actual) at segment level | Bid accuracy | Acquisition bidding — undercalibrated → overbid |
-| Spearman rank correlation | Ranking quality | Retention targeting — who to contact |
+| Spearman rank correlation | Ranking quality | Retention targeting |
 | MAPE at cohort level | Aggregate accuracy | Financial planning |
 | Gini / AUC of cumulative revenue | Top-decile concentration | "Top 20% of customers generate 80% of revenue" |
 
-**The calibration imperative for bidding:**
-
-If predicted LTV = $120 but actual LTV = $80, you systematically overbid by 50%, eroding all margin. Aggregate calibration at the channel × cohort level matters more than individual RMSE.
+**Calibration matters more than RMSE for bidding.** If predicted LTV = $120 but actual = $80, you overbid by 50% and erode margin. Aggregate calibration at the channel × cohort level matters more than individual accuracy.
 
 ```
-Optimal CPA bid = E[LTV | channel, device, cohort] × gross_margin_rate
-                                                     − target_ROAS_floor
+Optimal CPA bid = E[LTV | channel, device, cohort] × gross_margin_rate − target_ROAS_floor
 ```
 
-**Why not optimize RMSE?** LTV distributions are heavily right-skewed (Pareto-like). RMSE is dominated by the top 1% of customers. A model that predicts the mean for everyone scores well on RMSE but provides zero discriminative signal.
+LTV distributions are heavily right-skewed (Pareto-like), so RMSE is dominated by the top 1% of customers — a model predicting the mean for everyone scores well on RMSE but has zero discriminative value.
 
 ---
 
-## 2. LTV Definitions and Formulations
+## 2. LTV Definitions
 
-### Historical LTV (realized)
+**Historical LTV (realized):** `Σ revenue(t_i)` for all transactions up to time t. Simple, used as training labels, but not predictive on its own.
 
-```
-historical_LTV(customer, t) = Σ revenue(t_i) for all transactions t_i ≤ t
-```
-
-Simple but not predictive. Used as training labels.
-
-### Predicted LTV (discounted future revenue)
+**Predicted LTV (discounted future revenue):**
 
 ```
 predicted_LTV(customer, t, horizon) = E[ Σ_{τ=t}^{t+horizon} r_τ × (1+d)^{-(τ-t)} ]
 ```
 
-where r_τ is revenue at time τ and d is the periodic discount rate. The expectation is over the joint distribution of purchase occurrence and purchase amount.
+Expectation is over the joint distribution of purchase occurrence and purchase amount.
 
-### Contractual vs Non-Contractual Settings
+### Contractual vs Non-Contractual
 
-| Setting | Definition of "active" | Examples | Model |
+| Setting | "Active" defined by | Examples | Model |
 |---|---|---|---|
-| Contractual | Customer explicitly churns (cancels) | SaaS, subscription boxes, insurance | Survival analysis, DCF on MRR |
-| Non-contractual | Churn is latent — customer just stops buying | E-commerce, ride-share, food delivery | BG/NBD, probabilistic models |
+| Contractual | Explicit cancellation | SaaS, subscription boxes, insurance | Survival analysis, DCF on MRR |
+| Non-contractual | Latent — customer just stops buying | E-commerce, ride-share, delivery | BG/NBD, probabilistic models |
 
-In non-contractual settings, you never observe "the last purchase." A customer who bought 6 months ago might be churned or just in a long inter-purchase interval. This is the central modeling challenge.
+In non-contractual settings you never observe "the last purchase" — a customer who bought 6 months ago might be churned or just in a long gap. This is the central modeling challenge.
 
 ### The Censoring Problem
 
-Training data for LTV is right-censored: customers acquired recently have short observation windows. A customer acquired 30 days ago has by definition less observed revenue than a customer acquired 2 years ago, regardless of their true LTV.
+Training data is right-censored: customers acquired recently have shorter observation windows and thus less observed revenue, regardless of true LTV.
 
-**Naive approach (wrong):** Train on historical_LTV directly. Model learns that new customers have low LTV. Prediction for new acquisition = underestimate.
+**Naive (wrong):** train directly on historical_LTV → model learns "new = low LTV" → underestimates new acquisitions.
 
-**Correct approach:** Model the generative process — purchase probability × purchase value × repeat purchase rate — then integrate over the prediction horizon with survival/hazard functions.
+**Correct:** model the generative process (purchase probability × purchase value × repeat rate), then integrate over the horizon using survival/hazard functions.
 
 ---
 
 ## 3. System Architecture
 
 ```
-Customer Touch-points
-  │  Purchases, sessions, support tickets, app opens
+Customer Touch-points (purchases, sessions, support, app opens)
   │
   ▼
-┌─────────────────────────────────────────────────────┐
-│              Event Stream (Kafka / Kinesis)          │
-│   purchase_events, session_events, return_events     │
-└───────────────────┬─────────────────────────────────┘
-                    │
-          ┌─────────┴──────────┐
-          │                    │
-          ▼                    ▼
-  ┌──────────────┐    ┌──────────────────┐
-  │  Real-time   │    │  Batch Feature   │
-  │  Feature     │    │  Engineering     │
-  │  Computation │    │  (Spark / dbt)   │
-  │  (Flink)     │    │  daily refresh   │
-  └──────┬───────┘    └────────┬─────────┘
-         │                     │
-         └──────────┬──────────┘
-                    │
-                    ▼
-          ┌─────────────────┐
-          │  Feature Store  │◄──── Cold-start priors
-          │  (Redis / Feast)│       (channel, device, geo)
-          └────────┬────────┘
-                   │
-         ┌─────────┴──────────┐
-         │                    │
-         ▼                    ▼
- ┌───────────────┐   ┌────────────────┐
- │  Probabilistic│   │  ML Model      │
- │  Model        │   │  (GBM/LSTM/    │
- │  (BG/NBD +    │   │   Multi-task)  │
- │   Gamma-Gamma)│   │                │
- └───────┬───────┘   └───────┬────────┘
-         │                   │
-         └──────────┬─────────┘
-                    │
-                    ▼
-          ┌─────────────────┐
-          │  Ensemble /     │
-          │  Calibration    │◄──── Segment-level isotonic regression
-          │  Layer          │
-          └────────┬────────┘
-                   │
-         ┌─────────┴────────────────────────────────┐
-         │                                           │
-         ▼                                           ▼
-┌─────────────────┐                     ┌────────────────────┐
-│  Real-time API  │                     │  Batch Scoring     │
-│  (<200ms)       │                     │  (existing users,  │
-│  New user at    │                     │   nightly)         │
-│  acquisition    │                     └──────────┬─────────┘
-└────────┬────────┘                                │
-         │                                         │
-         ▼                                         ▼
-┌─────────────────────────────────────────────────────────────┐
-│                   Downstream Consumers                       │
-│                                                              │
-│  ┌───────────────┐  ┌───────────────┐  ┌─────────────────┐  │
-│  │ Value-Based   │  │  CRM /        │  │  Dynamic        │  │
-│  │ Bidding       │  │  Retention    │  │  Pricing /      │  │
-│  │ (Google/Meta) │  │  Campaigns    │  │  Offer Engine   │  │
-│  └───────────────┘  └───────────────┘  └─────────────────┘  │
-│                                                              │
-│  ┌───────────────┐  ┌───────────────┐                        │
-│  │  Financial    │  │  Cohort       │                        │
-│  │  Planning     │  │  Analytics    │                        │
-│  └───────────────┘  └───────────────┘                        │
-└─────────────────────────────────────────────────────────────┘
-         │
-         ▼
-┌─────────────────┐
-│  Monitoring /   │◄──── Actual revenue labels (delayed)
-│  Feedback Loop  │      Cohort calibration dashboards
-└─────────────────┘
+Event Stream (Kafka / Kinesis)
+  │
+  ├──► Real-time Feature Computation (Flink)
+  └──► Batch Feature Engineering (Spark/dbt, daily)
+          │
+          ▼
+     Feature Store (Redis / Feast) ◄── cold-start priors (channel, device, geo)
+          │
+          ├──► Probabilistic Model (BG/NBD + Gamma-Gamma)
+          └──► ML Model (GBM / sequence / multi-task)
+                  │
+                  ▼
+          Ensemble / Calibration Layer ◄── segment-level isotonic regression
+                  │
+          ┌───────┴────────┐
+          ▼                ▼
+   Real-time API      Batch Scoring
+   (<200ms, new       (existing users,
+   user acquisition)   nightly)
+          │                │
+          ▼                ▼
+   Downstream consumers: value-based bidding, CRM/retention,
+   dynamic pricing, financial planning, cohort analytics
+          │
+          ▼
+   Monitoring / Feedback Loop ◄── delayed actual revenue labels
 ```
 
 ---
@@ -180,59 +120,42 @@ Customer Touch-points
 
 ### Why Probabilistic Models for Sparse Data
 
-For customers with only 1–3 purchases, gradient boosting overfits to idiosyncratic noise. Probabilistic models impose strong structural priors derived from observed population behavior:
+For customers with only 1–3 purchases, gradient boosting overfits to noise. Probabilistic models impose structural priors from population behavior:
 
-- **Sparse data advantage:** BG/NBD makes principled predictions from a single purchase event
-- **Uncertainty quantification:** Returns a distribution over future purchases, not just a point estimate
-- **Interpretability:** Model parameters (β, r, α, a, b) have business-meaningful interpretations
-- **No feature engineering required:** Model inputs are just recency, frequency, tenure (T)
+- Make principled predictions from a single purchase event
+- Return a distribution over future purchases, not just a point estimate
+- Parameters (β, r, α, a, b) are business-interpretable
+- Need only recency, frequency, tenure — no feature engineering
 
-### BG/NBD Model (Fader, Hardie, and Lee, 2005)
+### BG/NBD Model (Fader, Hardie, Lee, 2005)
 
-The Buy-Till-You-Die model for non-contractual settings. Two latent processes:
+The "Buy-Till-You-Die" model for non-contractual settings. Two latent processes:
 
-**1. Purchase process (while active):** Customer makes purchases following a Poisson process with individual rate λ. The population distribution of λ follows a Gamma(r, α).
-
-**2. Dropout process:** After each purchase (or at any time), the customer "dies" (churns) with probability p. The population distribution of p follows a Beta(a, b).
-
-**Key equations:**
+1. **Purchase process (while active):** Poisson process with individual rate λ; population λ ~ Gamma(r, α).
+2. **Dropout process:** after each purchase, customer "dies" with probability p; population p ~ Beta(a, b).
 
 ```
 P(alive | x, t_x, T) = P(alive) / [P(alive) + P(died after last purchase)]
 
-E[X(t) | x, t_x, T] = (r + x) × (α + T) / (α + T + t) × P(alive | ...)
-                       × [conditional expected transactions if alive]
+E[X(t) | x, t_x, T] = (r + x)(α + T) / (α + T + t) × P(alive | ...) × [conditional expected transactions if alive]
 ```
 
-where:
-- `x` = number of observed transactions in `[0, T]`
-- `t_x` = recency (time of last transaction)
-- `T` = customer age (time since acquisition)
-
-**Fitting BG/NBD:**
+where `x` = observed transactions in `[0,T]`, `t_x` = recency, `T` = customer age.
 
 ```python
 from lifetimes import BetaGeoFitter
 
 bgf = BetaGeoFitter(penalizer_coef=0.01)
-bgf.fit(
-    frequency=df['frequency'],    # number of repeat purchases
-    recency=df['recency'],        # weeks since last purchase
-    T=df['T']                     # weeks since acquisition
-)
+bgf.fit(frequency=df['frequency'], recency=df['recency'], T=df['T'])
 
-# Predict expected purchases in next 52 weeks
 df['predicted_purchases'] = bgf.conditional_expected_number_of_purchases_up_to_time(
-    t=52,
-    frequency=df['frequency'],
-    recency=df['recency'],
-    T=df['T']
+    t=52, frequency=df['frequency'], recency=df['recency'], T=df['T']
 )
 ```
 
 ### Gamma-Gamma Model for Monetary Value
 
-Assumes average transaction value is independent of purchase frequency (empirically valid). Individual mean transaction value follows a Gamma distribution; population of mean values follows another Gamma.
+Assumes average transaction value is independent of purchase frequency (empirically valid). Models the population distribution of mean transaction value.
 
 ```python
 from lifetimes import GammaGammaFitter
@@ -240,21 +163,13 @@ from lifetimes import GammaGammaFitter
 ggf = GammaGammaFitter(penalizer_coef=0.001)
 ggf.fit(df['frequency'], df['avg_monetary_value'])
 
-# Compute LTV
 ltv = ggf.customer_lifetime_value(
-    bgf,
-    df['frequency'],
-    df['recency'],
-    df['T'],
-    df['avg_monetary_value'],
-    time=12,          # 12 months
-    discount_rate=0.01  # monthly discount rate
+    bgf, df['frequency'], df['recency'], df['T'], df['avg_monetary_value'],
+    time=12, discount_rate=0.01
 )
 ```
 
-### Pareto/NBD
-
-Predecessor to BG/NBD. Dropout can occur at any time (not just post-purchase). Mathematically equivalent in many settings but computationally more expensive. BG/NBD is preferred in practice.
+**Pareto/NBD** is BG/NBD's predecessor — dropout can occur any time, not just post-purchase. Roughly equivalent results but costlier to compute; BG/NBD is preferred in practice.
 
 ### When to Use Probabilistic vs ML Models
 
@@ -264,7 +179,7 @@ Predecessor to BG/NBD. Dropout can occur at any time (not just post-purchase). M
 | Feature richness | Only RFM available | Rich behavioral/contextual features |
 | Population size | Small (1K–100K) | Large (1M+) |
 | Interpretability requirement | High | Flexible |
-| Cold start (new customer) | BG/NBD with priors | Not applicable |
+| Cold start | BG/NBD with priors | Not applicable |
 | Macro covariates (seasonality) | Limited | Strong |
 
 ---
@@ -273,48 +188,29 @@ Predecessor to BG/NBD. Dropout can occur at any time (not just post-purchase). M
 
 ### 5.1 Gradient Boosting on RFM Features
 
-Most practical approach for e-commerce with >1M customers and rich feature sets.
-
-**Target variable construction:**
+Most practical approach for e-commerce with >1M customers and rich features.
 
 ```python
-# Regression on log(1 + LTV) to handle right-skewed distribution
-# LTV_90d = sum of purchases in 90 days after a fixed cutoff date
-# Use customers with >= 12 months of history so 90-day label is fully observed
+# Regress on log(1 + LTV) to handle the right-skewed distribution.
+# Label = revenue in 90 days after a fixed cutoff, using customers
+# with >=12 months history so the label is fully observed.
 
 df['ltv_90d'] = df['revenue_post_cutoff'].clip(upper=percentile_99)
 df['log_ltv'] = np.log1p(df['ltv_90d'])
 
-# Train XGBoost / LightGBM
 model = LGBMRegressor(
-    objective='regression',
-    n_estimators=500,
-    learning_rate=0.05,
-    subsample=0.8,
-    colsample_bytree=0.8,
-    min_child_samples=50
+    objective='regression', n_estimators=500, learning_rate=0.05,
+    subsample=0.8, colsample_bytree=0.8, min_child_samples=50
 )
 model.fit(X_train, y_train['log_ltv'])
 predictions = np.expm1(model.predict(X_test))
 ```
 
-**Handling the skewed distribution:** Alternatives to log-transform:
-
-- Tweedie regression (compound Poisson-Gamma) — models zero-inflation natively
-- Two-stage: classify purchasers vs non-purchasers, then regress on purchaser LTV
-- Quantile regression — predict median LTV rather than mean
+Alternatives to log-transform for skew: Tweedie regression (models zero-inflation natively), two-stage classify-then-regress, or quantile regression for median LTV.
 
 ### 5.2 Sequence Models on Purchase History
 
-For customers with rich transaction sequences, LSTM or Transformer over the ordered purchase history captures temporal dependencies that RFM aggregations miss.
-
-```
-Input sequence: [purchase_1, purchase_2, ..., purchase_n]
-Each token: (amount, category, channel, days_since_prev, session_context)
-Output: predicted LTV over next 90 days
-```
-
-**Architecture:**
+For customers with rich transaction sequences, an LSTM/Transformer over ordered purchases captures temporal patterns that RFM aggregates miss. Input: sequence of (amount, category, channel, days_since_prev); output: predicted LTV over next 90 days.
 
 ```python
 class LTVTransformer(nn.Module):
@@ -325,89 +221,60 @@ class LTVTransformer(nn.Module):
         self.time_embed = nn.Linear(1, d_model)
         encoder_layer = nn.TransformerEncoderLayer(d_model, nhead, dim_feedforward=256)
         self.transformer = nn.TransformerEncoder(encoder_layer, num_layers)
-        self.head = nn.Sequential(
-            nn.Linear(d_model, 64),
-            nn.ReLU(),
-            nn.Linear(64, 1)
-        )
+        self.head = nn.Sequential(nn.Linear(d_model, 64), nn.ReLU(), nn.Linear(64, 1))
 
     def forward(self, token_ids, amounts, time_gaps, mask):
         x = self.item_embed(token_ids) + self.amount_proj(amounts) + self.time_embed(time_gaps)
         x = self.transformer(x, src_key_padding_mask=mask)
-        x = x[:, -1, :]  # last token representation
-        return self.head(x)
+        return self.head(x[:, -1, :])
 ```
 
-**Practical limitation:** Sequence models require substantial history (>5 events) and are expensive to serve. Use for high-value customer segments; fall back to GBM for sparse users.
+Requires >5 events of history and is more expensive to serve — use for high-value segments, fall back to GBM for sparse users.
 
 ### 5.3 Survival Analysis
 
-Frames churn prediction as a time-to-event problem. Natural for the non-contractual setting.
+Frames churn as time-to-event, natural for non-contractual settings.
 
-**Cox Proportional Hazards:**
+**Cox Proportional Hazards:** `h(t|x) = h_0(t) × exp(β^T x)` — gives hazard ratio, not directly usable for LTV without integrating the survival function.
 
-```
-h(t | x) = h_0(t) × exp(β^T x)
-```
-
-where h_0(t) is the baseline hazard. Predicts hazard ratio, not directly usable for LTV without integrating over the survival function.
-
-**Weibull Accelerated Failure Time (AFT):**
-
-```
-log(T) = β^T x + σε,   ε ~ extreme value
-```
-
-More interpretable: features directly scale time-to-churn. Better for business communication.
-
-**Integration for LTV:**
+**Weibull AFT:** `log(T) = β^T x + σε` — more interpretable, features directly scale time-to-churn.
 
 ```python
-# LTV = integral of E[revenue per unit time] × S(t) dt over horizon
-# S(t) = survival probability = P(customer still active at time t)
-
 from lifelines import WeibullAFTFitter
 
 aft = WeibullAFTFitter()
 aft.fit(df, duration_col='days_to_churn', event_col='churned')
 
-# Probability customer is still active at day 90
 survival_prob_90 = aft.predict_survival_function(df).loc[90]
-
-# Expected revenue = avg_daily_revenue × integral_0_90 S(t) dt
 expected_revenue = df['avg_daily_revenue'] * aft.predict_expectation(df).clip(upper=90)
 ```
 
 ### 5.4 Multi-Task Learning
 
-Predict multiple correlated outputs jointly: churn probability, purchase frequency, and average order value. Shared representations improve sample efficiency, especially for sparse customers.
+Predict churn probability, purchase frequency, and average order value jointly. Shared representations improve sample efficiency for sparse customers.
 
 ```python
 class MultiTaskLTV(nn.Module):
     def __init__(self):
         super().__init__()
-        self.shared = nn.Sequential(
-            nn.Linear(input_dim, 256), nn.ReLU(),
-            nn.Linear(256, 128), nn.ReLU()
-        )
-        self.churn_head    = nn.Linear(128, 1)   # binary, sigmoid
-        self.frequency_head = nn.Linear(128, 1)  # Poisson rate, softplus
-        self.aov_head      = nn.Linear(128, 1)   # log-normal mean
+        self.shared = nn.Sequential(nn.Linear(input_dim, 256), nn.ReLU(), nn.Linear(256, 128), nn.ReLU())
+        self.churn_head = nn.Linear(128, 1)
+        self.frequency_head = nn.Linear(128, 1)
+        self.aov_head = nn.Linear(128, 1)
 
     def forward(self, x):
         shared = self.shared(x)
         return {
-            'churn_prob':  torch.sigmoid(self.churn_head(shared)),
-            'frequency':   F.softplus(self.frequency_head(shared)),
-            'log_aov':     self.aov_head(shared)
+            'churn_prob': torch.sigmoid(self.churn_head(shared)),
+            'frequency': F.softplus(self.frequency_head(shared)),
+            'log_aov': self.aov_head(shared)
         }
 
     def predict_ltv(self, x, horizon_days):
         out = self.forward(x)
         p_active = 1 - out['churn_prob']
         expected_purchases = out['frequency'] * horizon_days / 30 * p_active
-        expected_aov = torch.exp(out['log_aov'])
-        return expected_purchases * expected_aov
+        return expected_purchases * torch.exp(out['log_aov'])
 ```
 
 ---
@@ -419,166 +286,93 @@ class MultiTaskLTV(nn.Module):
 | Feature | Definition | Notes |
 |---|---|---|
 | `recency_days` | Days since last purchase | Log-transform; non-linear effect |
-| `frequency` | Number of distinct purchase days | Not total orders (avoids multi-item order inflation) |
+| `frequency` | Distinct purchase days | Avoids multi-item order inflation |
 | `monetary_total` | Cumulative net revenue | Use net (after returns) |
-| `monetary_avg` | Average order value | Clip outliers at 99th percentile |
-| `frequency_30d` / `90d` / `365d` | Multi-window purchase counts | Captures acceleration/deceleration |
+| `monetary_avg` | Average order value | Clip at 99th percentile |
+| `frequency_30d/90d/365d` | Multi-window purchase counts | Captures acceleration/deceleration |
 | `recency_trend` | frequency_30d / frequency_90d | Increasing engagement = positive signal |
-| `days_since_first_purchase` | Customer age | Longer-tenured customers are more predictable |
+| `days_since_first_purchase` | Customer age | Longer tenure = more predictable |
 
-### Behavioral Sequence Features
-
-| Feature | Signal |
-|---|---|
-| Browse-to-purchase ratio | High browse without purchase = lower intent |
-| Cart abandonment rate | Strong indicator of price sensitivity |
-| Category breadth | Multi-category customers have higher retention |
-| Return rate | High returns negatively predict net LTV |
-| Support ticket frequency | Predictor of churn, not LTV itself |
-| App vs web ratio | App users typically have higher LTV |
-| Session frequency / length | Engagement proxy |
-
-### Product and Payment Features
+### Behavioral and Product Features
 
 | Feature | Signal |
 |---|---|
-| Primary category | Commodity categories (grocery) churn less but lower AOV |
-| Brand affinity score | Preference for premium brands → higher AOV |
-| Subscription upgrade flag | Strong positive LTV signal |
-| Payment method | Credit card users have higher LTV than BNPL in e-commerce |
-| Coupon / discount dependency | Discount-only purchasers have lower organic LTV |
+| Browse-to-purchase ratio | High browse, no purchase = lower intent |
+| Cart abandonment rate | Price sensitivity |
+| Category breadth | Multi-category = higher retention |
+| Return rate | Negatively predicts net LTV |
+| App vs web ratio | App users typically higher LTV |
+| Subscription upgrade flag | Strong positive signal |
+| Payment method | Credit card users often higher LTV than BNPL |
+| Coupon dependency | Discount-only purchasers have lower organic LTV |
 
-### Cohort-Level Features
+### Cohort and Channel Features
 
-Individual-level models miss cohort effects. Add cohort features to control for:
+Individual-level models miss cohort effects — add cohort-level features (cohort avg LTV, cohort retention rate, channel LTV index) to control for them.
 
-```python
-# Cohort-level features joined to individual records
-cohort_features = {
-    'cohort_month_avg_ltv_90d': cohort_ltv_lookup[customer.cohort_month],
-    'cohort_retention_rate_90d': cohort_retention[customer.cohort_month],
-    'acquisition_channel_ltv_index': channel_ltv_index[customer.channel],
-    'macro_consumer_confidence_at_acquisition': macro_data[customer.acquisition_date],
-}
-```
-
-### Channel Attribution Features
-
-For acquisition bidding, the LTV model must condition on channel since acquired customers from different channels have systematically different LTV:
-
-| Channel | Typical LTV index (relative to direct) |
-|---|---|
-| Organic search | 1.3× |
-| Paid search (branded) | 1.1× |
-| Paid social (prospecting) | 0.7× |
-| Influencer / affiliate | 0.6× |
-| Email re-engagement | 1.5× (existing) |
-| Referral | 1.4× |
+For acquisition bidding, LTV must condition on channel since acquisition source correlates strongly with eventual value (e.g., organic search and referral customers often outperform paid prospecting).
 
 ---
 
 ## 7. Handling Censoring
 
-### The Right-Censoring Problem
+Customers acquired recently are right-censored — we only observe LTV up to the present.
 
-Customers acquired recently are right-censored: we only observe their LTV up to the present, not their eventual lifetime LTV.
+**Naive (wrong):** label = total revenue to date → model learns "time since acquisition" as the dominant feature → all new customers predicted low LTV.
 
-**Naive training (wrong):**
-
-```
-Label = total revenue to date
-→ Customers acquired 3 months ago always have less revenue than those acquired 3 years ago
-→ Model learns "time since acquisition" as the dominant feature
-→ All new customers predicted to have low LTV
-```
-
-**Correct approach — time-conditioned prediction:**
-
-Define the label as "revenue over a fixed future window from a fixed cutoff date":
+**Correct — time-conditioned labels:** revenue over a fixed future window from a fixed cutoff date.
 
 ```python
 CUTOFF_DATE = "2024-01-01"
 HORIZON_DAYS = 90
 
-# Only use customers who:
-# 1. Were acquired at least (HORIZON_DAYS) before cutoff (so label is fully observed)
-# 2. Had at least one purchase before cutoff (otherwise trivially zero)
-
+# Keep only customers acquired >= HORIZON_DAYS before cutoff (label fully observed)
+# and with a purchase before cutoff (avoid trivial zeros).
 df_train = df[
     (df['acquisition_date'] <= CUTOFF_DATE - timedelta(days=HORIZON_DAYS)) &
     (df['first_purchase_date'] < CUTOFF_DATE)
 ].copy()
-
 df_train['ltv_label'] = df_train['revenue_cutoff_to_cutoff_plus_90d']
 ```
 
-**Multiple cutoff dates:** Use several historical cutoffs to increase training data and reduce temporal overfitting:
+Use several historical cutoff dates and pool cohorts to increase training data and reduce temporal overfitting.
 
-```python
-cutoffs = ["2023-01-01", "2023-04-01", "2023-07-01", "2023-10-01"]
-# Sample customers from each cutoff
-# Compute features as of cutoff date, label as revenue in next 90 days
-# Combine all cutoff cohorts for training
-```
-
-### Survival Analysis Framing for Censored Data
-
-Survival models handle censoring natively by treating "customer still active at last observation" as a censored event rather than a churn event. This avoids the selection bias of only including churned customers with complete LTV observations.
+**Survival framing** handles censoring natively — "still active at last observation" is treated as censored, not churned, avoiding selection bias toward only fully-observed (churned) customers.
 
 ```python
 from lifelines import KaplanMeierFitter
 
 kmf = KaplanMeierFitter()
-kmf.fit(
-    durations=df['tenure_days'],
-    event_observed=df['has_churned']  # 0 = censored (still active)
-)
-
-# Expected remaining tenure conditional on being active for T days
+kmf.fit(durations=df['tenure_days'], event_observed=df['has_churned'])
 expected_remaining = kmf.median_survival_time_ - T
 ```
 
-### Time-Conditioned Predictions at Serving
-
-At serving time, for an existing customer active for T days with x purchases:
+At serving time, condition the prediction on being active:
 
 ```
-LTV(t, t + horizon | active at t) = E[revenue | x purchases, recency, T] × P(active through t+horizon | x, T)
+LTV(t, t+horizon | active at t) = E[revenue | x, recency, T] × P(active through t+horizon | x, T)
 ```
-
-This conditions out customers already churned and avoids predicting LTV for dead customers.
 
 ---
 
 ## 8. Segment-Level Calibration
 
-### Why Individual Calibration Is Insufficient
-
-A model can be well-calibrated in aggregate (mean prediction = mean actual) but badly calibrated within segments. For acquisition bidding, you bid on channels and audiences — if the model overestimates LTV for Facebook prospecting audiences by 40%, you overbid systematically on that channel.
-
-### Calibration Framework
-
-**Step 1: Train base model** (GBM or BG/NBD).
-
-**Step 2: Compute calibration errors by segment:**
+A model can be well-calibrated in aggregate but badly calibrated within segments. For acquisition bidding you bid per channel/audience — if LTV is overestimated 40% for one channel, you overbid systematically there.
 
 ```python
+# Step 1: train base model (GBM or BG/NBD)
+# Step 2: compute calibration error by segment
 segments = ['channel', 'device', 'acquisition_cohort_month', 'geo_tier']
-
 for segment_col in segments:
     for segment_val in df[segment_col].unique():
         mask = df[segment_col] == segment_val
-        pred_mean = df.loc[mask, 'predicted_ltv'].mean()
-        actual_mean = df.loc[mask, 'actual_ltv_90d'].mean()
-        calibration_error[segment_col][segment_val] = actual_mean / pred_mean
-```
+        calibration_error[segment_col][segment_val] = (
+            df.loc[mask, 'actual_ltv_90d'].mean() / df.loc[mask, 'predicted_ltv'].mean()
+        )
 
-**Step 3: Apply isotonic regression calibrator per segment:**
-
-```python
+# Step 3: fit isotonic regression per segment
 from sklearn.isotonic import IsotonicRegression
 
-# Fit isotonic regression on validation set per channel
 calibrators = {}
 for channel in channels:
     mask = val_df['channel'] == channel
@@ -586,59 +380,28 @@ for channel in channels:
     ir.fit(val_df.loc[mask, 'predicted_ltv'], val_df.loc[mask, 'actual_ltv_90d'])
     calibrators[channel] = ir
 
-# Apply at serving time
 def calibrated_ltv(raw_pred, channel):
     return calibrators.get(channel, default_calibrator).predict([raw_pred])[0]
 ```
 
-### Acquisition Bidding Integration (Value-Based Bidding)
+### Acquisition Bidding Integration
 
-**Google Ads / Meta Conversions API:**
+LTV prediction feeds ad platforms (Google/Meta value-based bidding) as the conversion value:
 
 ```python
-# Send LTV prediction as the "conversion value" at the time of acquisition
-# Google's tROAS bidding then optimizes CPA bids based on expected value
-
 def on_new_acquisition(user_id, channel, device, features):
     ltv_pred = ltv_model.predict(features)
     calibrated = calibrated_ltv(ltv_pred, channel)
-    
-    # Send to Google Ads
-    send_conversion_event(
-        user_id=user_id,
-        conversion_value=calibrated * GROSS_MARGIN_RATE,
-        currency='USD'
-    )
+    send_conversion_event(user_id=user_id, conversion_value=calibrated * GROSS_MARGIN_RATE, currency='USD')
 ```
-
-**Bid formula:**
 
 ```
 Max CPA = E[LTV | channel, device, audience] × margin_rate / target_ROAS
 
-Example:
-  E[LTV | FB prospecting] = $45
-  margin_rate = 0.35
-  target_ROAS = 2.0
-  Max CPA = $45 × 0.35 / 2.0 = $7.88
+Example: E[LTV|FB prospecting]=$45, margin=0.35, target_ROAS=2.0 → Max CPA = $7.88
 ```
 
-### Shapley-Based Channel Attribution
-
-When a customer has been touched by multiple channels before conversion, LTV credit attribution uses Shapley values to fairly attribute LTV to each channel.
-
-```python
-import shap
-
-explainer = shap.TreeExplainer(ltv_model)
-shap_values = explainer.shap_values(X_customer)
-
-# Channel attribution = SHAP value for channel features
-channel_ltv_attribution = {
-    'paid_social_shap': shap_values[channel_feature_indices].sum(),
-    'email_shap': shap_values[email_feature_indices].sum()
-}
-```
+When a customer touches multiple channels before converting, SHAP values on the LTV model can attribute LTV credit across channels for multi-touch attribution.
 
 ---
 
@@ -646,90 +409,62 @@ channel_ltv_attribution = {
 
 ### Real-Time Scoring: New Users at Acquisition
 
-**Challenge:** New user has no purchase history. Must predict LTV from:
-- Acquisition channel and campaign
-- Device type, operating system, browser
-- Geographic location (city, DMA)
-- Landing page / product viewed
-- Time of day and day of week
-- Referrer / UTM parameters
-
-**Cold-start model:**
+New users have no purchase history — predict from channel/campaign, device, geo, landing page, referrer/UTM, time of day.
 
 ```python
-# Separate "acquisition-time LTV model" trained only on features available at signup
-# Features: channel, device, geo, utm_source, utm_medium, utm_campaign, landing_page
-# Label: LTV over next 90 days (from historical cohorts)
-
+# Separate "acquisition-time" model trained only on signup-available features
 acquisition_model = LGBMRegressor(...)
 acquisition_model.fit(X_acquisition_features, y_ltv_90d)
-
-# Served as low-latency API called during acquisition pixel fire
-# P99 latency target: 50ms
+# Served via low-latency API on the acquisition pixel fire, P99 target ~50ms
 ```
 
-**Serving infrastructure:**
-
 ```
-New visit → tracking pixel → Lambda/Cloud Run function
+New visit → tracking pixel → serverless function
     → feature lookup from Redis (channel/geo priors)
     → model inference (pre-loaded in memory)
-    → LTV score → conversion event payload
-    → Google/Meta Ads API
+    → LTV score → conversion event → Google/Meta Ads API
 ```
 
 ### Batch Scoring: Existing Customers
 
-Nightly batch job scoring all active customers:
-
 ```
-Spark job → pull customer features from data warehouse
-          → apply BG/NBD + Gamma-Gamma (or GBM)
-          → write LTV scores to feature store
-          → downstream consumers read from feature store
+Nightly Spark job → pull features from warehouse
+    → apply BG/NBD + Gamma-Gamma (or GBM) → write scores to feature store
+    → downstream consumers read from feature store
 ```
 
-### Downstream Consumer Integration
+### Downstream Consumers
 
 | Consumer | LTV Usage | Update Frequency |
 |---|---|---|
-| CRM / Marketing Cloud | Segment customers by LTV tier for campaign targeting | Daily |
-| Retention team | Flag high-LTV customers showing churn signals | Daily |
-| Pricing engine | Offer dynamic discounts inversely proportional to LTV | Real-time |
-| Customer success | Prioritize support queues by LTV | Real-time |
-| Finance / planning | Cohort LTV curves for revenue forecasting | Weekly |
-| Product | A/B test measurement using LTV as primary metric | Per-experiment |
+| CRM / Marketing | Segment by LTV tier for targeting | Daily |
+| Retention team | Flag high-LTV customers with churn signals | Daily |
+| Pricing engine | Discounts inversely proportional to LTV | Real-time |
+| Customer success | Prioritize support queues | Real-time |
+| Finance | Cohort LTV curves for forecasting | Weekly |
+| Product | A/B test measurement | Per-experiment |
 
 ---
 
 ## 10. Model Monitoring and Feedback Loop
 
-### Metrics to Monitor
-
-**Prediction quality (lagged — observable after horizon):**
+**Prediction quality (lagged, observable after horizon):**
 
 ```python
-# Compare predictions made 90 days ago against realized revenue
 monitoring_df = predictions_made_90d_ago.merge(realized_revenue, on='customer_id')
 
 metrics = {
     'overall_calibration': monitoring_df['actual_ltv'].mean() / monitoring_df['predicted_ltv'].mean(),
     'channel_calibration': monitoring_df.groupby('channel').apply(
-        lambda g: g['actual_ltv'].mean() / g['predicted_ltv'].mean()
-    ),
+        lambda g: g['actual_ltv'].mean() / g['predicted_ltv'].mean()),
     'spearman_rank_corr': monitoring_df[['predicted_ltv', 'actual_ltv']].corr('spearman').iloc[0, 1],
     'top_decile_capture': (
         monitoring_df.nlargest(n // 10, 'predicted_ltv')['actual_ltv'].sum() /
-        monitoring_df.nlargest(n // 10, 'actual_ltv')['actual_ltv'].sum()
-    )
+        monitoring_df.nlargest(n // 10, 'actual_ltv')['actual_ltv'].sum())
 }
 ```
 
-**Distributional drift (observable immediately):**
-
-- KS-test on prediction distribution vs 30-day rolling baseline
-- Feature drift detection on RFM features (population shift in new cohorts)
-- Cohort-level purchase rate changes
+**Distributional drift (observable immediately):** KS-test on prediction distribution vs rolling baseline, RFM feature drift, cohort purchase-rate changes.
 
 **Retraining triggers:**
 
@@ -737,85 +472,33 @@ metrics = {
 |---|---|
 | Channel calibration error > 15% | Retrain calibration layer on recent cohorts |
 | Feature drift p-value < 0.01 | Full model retrain |
-| Major macro event (economic shock) | Emergency reweighting of recent cohorts |
+| Major macro event | Emergency reweighting of recent cohorts |
 | Seasonal product mix shift | Add seasonal features, retrain |
 
 ---
 
 ## 11. Failure Modes
 
-### Selection Bias in Training Data
-
-**Problem:** Model trained on customers who made at least one purchase. Customers who signed up but never purchased are excluded. At acquisition scoring time, model is applied to all new users including those who will never purchase.
-
-**Mitigation:** Two-stage model — first predict P(makes first purchase), then predict LTV conditional on purchasing. Multiply for expected LTV.
+**Selection bias in training data.** Model trained only on customers who purchased at least once, but scored on all new signups, many of whom never convert. Fix: two-stage model — P(converts) × LTV(if converts).
 
 ```python
-p_convert = conversion_model.predict_proba(X)[:, 1]
-ltv_if_convert = ltv_model.predict(X)
-expected_ltv = p_convert * ltv_if_convert
+expected_ltv = conversion_model.predict_proba(X)[:, 1] * ltv_model.predict(X)
 ```
 
-### Simpson's Paradox Across Cohorts
+**Simpson's paradox across cohorts.** Newer cohorts show lower observed LTV purely from censoring, which can look like "LTV is declining." Fix: always include `tenure_at_prediction_time` as a feature, and use multiple historical cutoffs so the model doesn't learn cohort recency as a proxy for maturity.
 
-**Problem:** Newer cohorts have lower observed LTV (censoring). A naive model trained on all cohorts appears to show "LTV is declining over time" — actually just a cohort maturity effect.
+**Overfitting to historical regimes.** Model trained on a bull-market period mis-predicts after conditions normalize. Fix: include macro signals, time-decay weight recent cohorts, monitor cohort calibration continuously.
 
-**Detection:**
+**Macro shocks (COVID, recession).** Pre-shock models mis-predict badly post-shock. Fix: maintain models trained on different time windows, fall back to short-window behavior during detected shocks, add macro index features that can shift predictions without full retraining.
 
-```python
-# Plot median predicted_ltv vs acquisition_month for cohorts at same tenure
-# Should be flat if model is well-specified
-cohort_calibration = df.groupby(['acquisition_cohort', 'tenure_bucket']).apply(
-    lambda g: g['actual_ltv'].mean() / g['predicted_ltv'].mean()
-)
-```
+**Customer gaming.** High-value customers may deliberately reduce engagement to appear low-value and receive win-back offers. Fix: don't expose LTV tiers to customers; use LTV for external bidding rather than as the sole driver of internal discount logic; watch for anomalous engagement drop patterns.
 
-**Mitigation:** Always control for `tenure_at_prediction_time` as a feature. Use multiple historical cutoff dates to prevent model from learning recency of cohort as a proxy for maturity.
-
-### Overfitting to Historical Purchase Patterns
-
-**Problem:** Model learns from bull-market e-commerce years (2020–2021). Post-pandemic normalization looks like "LTV decline" but is actually mean reversion.
-
-**Mitigation:**
-- Include macroeconomic signals (consumer confidence, unemployment) as features
-- Weight recent cohorts more heavily in training (time-decay weighting)
-- Monitor cohort-level calibration continuously
-
-### Macro Shocks (COVID, Recession)
-
-**Problem:** LTV models trained pre-shock dramatically mis-predict post-shock. March 2020: e-commerce LTV spiked; travel LTV went to zero.
-
-**Mitigation:**
-- Maintain ensemble of models trained on different time windows
-- During shock detection, fall back to short-window (30-day) behavior model
-- Add macro index features that can shift predictions without full retraining
-
-```python
-# Macro-adjusted prediction
-macro_adjustment = macro_model.predict(current_macro_features) / macro_model.predict(baseline_macro)
-adjusted_ltv = base_ltv_prediction * macro_adjustment
-```
-
-### Customer Gaming
-
-**Problem:** High-value customers learn that high LTV leads to fewer discounts. Customers deliberately reduce purchase frequency to appear low-value and receive win-back offers.
-
-**Mitigation:**
-- Do not expose LTV tiers directly to customers
-- Use LTV for CPA bidding (external — customers can't observe), not for internal discount logic alone
-- Add anomaly detection for "strategically reduced engagement" patterns
-
-### Cold-Start Overconfidence
-
-**Problem:** Acquisition-time model has high uncertainty but outputs point predictions. Bidding on point predictions leads to systematic overbidding for low-data segments.
-
-**Mitigation:** Output prediction intervals. For acquisition bidding, bid on a conservative percentile (e.g., 25th percentile) rather than the mean when segment sample size is small.
+**Cold-start overconfidence.** Acquisition-time predictions have high uncertainty but are often served as point estimates, causing systematic overbidding on low-data segments. Fix: output prediction intervals and bid on a conservative percentile when segment sample size is small.
 
 ```python
 def bid_ltv(predicted_ltv, prediction_std, segment_n):
     confidence_discount = max(0.7, 1 - 2 / np.sqrt(segment_n))
-    conservative_ltv = predicted_ltv - 0.5 * prediction_std * (1 - confidence_discount)
-    return conservative_ltv
+    return predicted_ltv - 0.5 * prediction_std * (1 - confidence_discount)
 ```
 
 ---
@@ -824,61 +507,31 @@ def bid_ltv(predicted_ltv, prediction_std, segment_n):
 
 **Q1: Why not just use historical average LTV as the prediction?**
 
-Historical average LTV has severe censoring bias: customers who churned early have low historical LTV, but customers currently active are right-censored. Using the average ignores that your best customers are still actively adding revenue. The historical average systematically underestimates true expected LTV for active customers. You need a model that conditions on current engagement signals and projects forward.
+Historical LTV is censored — churned customers have low historical LTV, while active customers are right-censored and still adding revenue. Using the raw average systematically underestimates true expected LTV for active customers. You need a model that conditions on current engagement and projects forward.
 
----
+**Q2: BG/NBD assumes purchase rate and churn are independent. Is that realistic?**
 
-**Q2: BG/NBD assumes purchase rate and churn are independent. Is that a realistic assumption?**
+Frequently violated — customers who buy more often tend to be more engaged and less likely to churn. Options: (1) accept the approximation, since BG/NBD is empirically fairly robust; (2) use a correlated latent variable model; (3) layer ML features (session depth, support tickets) on top to capture engagement signal BG/NBD misses.
 
-Frequently violated. Customers who buy more often tend to be more engaged and less likely to churn — a positive correlation between λ (purchase rate) and p (survival probability). The original BG/NBD model ignores this. In practice, you can: (1) accept the approximation — BG/NBD is still remarkably robust in practice (Fader et al. validate on multiple datasets); (2) use a correlated latent variable model; (3) layer on ML features that capture engagement beyond frequency (session depth, support tickets) to capture what BG/NBD misses.
+**Q3: LTV predictions used for bidding create a feedback loop — how do you handle it?**
 
----
+Bidding more on high-predicted-LTV customers changes who gets acquired, which shifts training data distribution and can compound model bias. Mitigations: exploration (occasionally bid regardless of prediction to keep an unbiased sample), channel-level holdouts for causal identification, and doubly-robust estimators to correct for acquisition propensity.
 
-**Q3: How do you handle the fact that LTV predictions used for bidding create a feedback loop?**
+**Q4: Product wants LTV as the primary A/B test metric. Concerns?**
 
-If you bid more for high-predicted-LTV customers, you acquire more of them. If the model is right, great. If the model has systematic bias for a segment, you either over-acquire or under-acquire that segment, which shifts your training data distribution. In the next training cycle, the model learns from a biased sample.
+(1) **Label delay** — LTV takes 90+ days to realize, slowing iteration; use validated 30-day surrogate metrics instead. (2) **Variance** — LTV is Pareto-distributed, so tests need far more samples than conversion-rate tests. (3) **Model dependence** — the LTV model was trained on pre-change behavior and may not generalize to a new experience. Prefer realized revenue when timelines allow.
 
-Mitigation: (1) Exploration — occasionally bid on random samples regardless of LTV prediction to maintain an unbiased observational study. (2) Causal identification — use holdout groups at the channel level. (3) Counterfactual correction — use doubly-robust estimators that correct for propensity to acquire different segments.
+**Q5: How does LTV prediction differ for subscription vs e-commerce?**
 
----
-
-**Q4: Product asks to use LTV as the primary metric for A/B tests. What are the concerns?**
-
-Three main issues: (1) **Label delay** — LTV takes 90+ days to realize. Running experiments for 90 days to measure LTV significantly increases cost and slows iteration. Use surrogate metrics (30-day engagement) that are validated as proxies for 90-day LTV. (2) **Variance** — LTV has very high variance (Pareto distribution). Power calculations for LTV-based experiments require 5–10× more samples than conversion-rate experiments. (3) **Model dependence** — if you A/B test changes to the product, the LTV model was trained on pre-change behavior. The model itself may not generalize to the new user experience. Prefer realized revenue over prediction horizons when resources allow.
-
----
-
-**Q5: How does LTV prediction differ for a subscription business vs e-commerce?**
-
-In subscriptions (contractual): churn is observed explicitly (cancellation event). You can model monthly churn rate directly and compute LTV as MRR / churn_rate for a simple estimate, or use survival analysis for more precision. The hard part is predicting upgrade/downgrade, not churn.
-
-In non-contractual e-commerce: churn is latent — you never see "the last purchase." A customer who bought 4 months ago may be churned or just in a long inter-purchase interval. BG/NBD and survival analysis are designed for this. The hard part is estimating "are they still alive?" without explicit signal.
-
-A hybrid SaaS + marketplace (e.g., Shopify merchants) requires separate models per customer type or a unified model with a contractual indicator feature.
-
----
+Subscriptions (contractual): churn is an explicit event, so LTV ≈ MRR / churn_rate, or survival analysis for more precision — the hard part is predicting upgrades/downgrades. E-commerce (non-contractual): churn is latent, so BG/NBD or survival analysis is needed to estimate "are they still active?" A hybrid business needs separate models or a contractual-indicator feature.
 
 **Q6: How would you detect that your LTV model has gone stale?**
 
-Three signals:
+(1) Cohort calibration drift — compare 90-day-old predictions to realized revenue; retrain if actual/predicted drifts outside ~0.9–1.1, tracked per channel. (2) Feature distribution shift — weekly KS-tests on RFM inputs. (3) Rank stability — a drop in top-decile capture rate signals lost discriminative power even with stable mean calibration. Trigger full retraining if at least two signals fire together.
 
-1. **Cohort calibration drift:** Compare predictions made 90 days ago against realized revenue. If overall_calibration = actual/predicted drifts outside 0.9–1.1, retrain. Track this separately per channel.
+**Q7: What have companies like Shopify and Airbnb found that differs from textbook approaches?**
 
-2. **Feature distribution shift:** Run KS-tests on input feature distributions weekly. RFM distribution shifts signal population changes (new acquisition channels, macroeconomic effects).
-
-3. **Rank stability:** If top-decile capture rate (fraction of actual top-10% LTV customers correctly ranked in predicted top 10%) drops sharply, the model has lost discriminative power even if mean calibration is stable.
-
-Trigger full retraining if any two of these three signals fire simultaneously.
-
----
-
-**Q7: Shopify and Airbnb have published LTV work. What did they find that differs from textbook approaches?**
-
-**Shopify (Harper and Mustanir, 2020):** Found that BG/NBD performs surprisingly well for merchant LTV prediction even with sparse history. The key practical finding: aggregate calibration at the cohort level matters far more than individual-level accuracy for financial planning use cases. They also found strong cohort effects — the "vintage" of when a merchant was acquired predicts LTV almost as much as behavioral features.
-
-**Airbnb (Weakliem et al., 2020):** Hosts and guests have bidirectional LTV (a host's LTV depends on guest quality and vice versa). They use multi-task learning to jointly predict both. Also found that the prediction horizon matters enormously: 1-year LTV models trained naively on historical data had large cohort-maturity bias; they addressed this with a propensity-weighted approach to correct for observational censoring.
-
-Both companies emphasize that LTV models are only as good as their downstream use cases. A highly accurate model used for a wrong decision (e.g., using LTV rank for discount allocation when LTV-sensitive customers are price-inelastic) generates zero business value.
+Shopify found BG/NBD performs well even on sparse merchant history, and that cohort-level calibration matters more than individual accuracy for planning use cases; cohort "vintage" predicts LTV almost as strongly as behavioral features. Airbnb models bidirectional host/guest LTV jointly via multi-task learning, and found naive long-horizon (1-year) models suffer badly from cohort-maturity bias, addressed with propensity-weighted correction. Both emphasize that an accurate model applied to the wrong decision produces no business value.
 
 ---
 
@@ -886,132 +539,41 @@ Both companies emphasize that LTV models are only as good as their downstream us
 
 | Reference | Key Contribution |
 |---|---|
-| Fader, Hardie, Lee (2005) — "Counting Your Customers the Easy Way" | BG/NBD model; foundational paper for non-contractual LTV |
-| Fader, Hardie (2013) — "The Gamma-Gamma Model of Monetary Value" | Gamma-Gamma model for AOV component of LTV |
-| Schweidel, Knox (2013) — "Incorporating Direct Marketing Activity into Latent Attrition Models" | Extension of BG/NBD with marketing interventions |
+| Fader, Hardie, Lee (2005) — "Counting Your Customers the Easy Way" | BG/NBD model; foundational for non-contractual LTV |
+| Fader, Hardie (2013) — "The Gamma-Gamma Model of Monetary Value" | Gamma-Gamma model for the AOV component |
+| Schweidel, Knox (2013) | Extension of BG/NBD with marketing interventions |
 | Airbnb Engineering Blog (2019) — "Estimating and Combining LTV" | Multi-task LTV at marketplace scale |
 | Shopify Engineering Blog (2020) — "Predicting Customer Lifetime Value" | Practical BG/NBD deployment at e-commerce scale |
-| Rudolph et al. (2022) — "Survival Analysis Meets NLP" | Sequence model + survival analysis hybrid |
 | Lifetimes Python library | Open-source BG/NBD and Gamma-Gamma implementations |
 
 ## Flashcards
 
-**Business model? Subscription (contractual) vs e-commerce/marketplace (non-contractual)?** #flashcard
-fundamentally different statistical models apply
+**Contractual vs non-contractual LTV — key difference?** #flashcard
+Contractual: churn is an explicit event (cancellation). Non-contractual: churn is latent — you never observe "the last purchase."
 
-**Prediction horizon? 90-day LTV (tactical, for acquisition bidding) vs 1-year LTV (strategic, for cohort planning) vs lifetime (theoretical)?** #flashcard
-Prediction horizon? 90-day LTV (tactical, for acquisition bidding) vs 1-year LTV (strategic, for cohort planning) vs lifetime (theoretical)
+**Why is training on raw historical LTV wrong?** #flashcard
+It's right-censored — recently acquired customers have less observed revenue regardless of true LTV, so the model learns to underpredict new customers.
 
-**Customer population? New users at acquisition (cold start) vs existing customers (full history available)?** #flashcard
-Customer population? New users at acquisition (cold start) vs existing customers (full history available)
+**BG/NBD — what are the two latent processes?** #flashcard
+Purchase process (Poisson rate λ ~ Gamma(r,α)) and dropout process (probability p ~ Beta(a,b)) after each purchase.
 
-**Primary use case?** #flashcard
-Primary use case?
+**Gamma-Gamma model — what does it add to BG/NBD?** #flashcard
+Models average monetary value per transaction, assumed independent of purchase frequency, to convert purchase counts into revenue.
 
-**Acquisition bidding?** #flashcard
-bid = predicted LTV × margin − CAC → needs calibrated expected value
+**When to prefer probabilistic (BG/NBD) over ML models?** #flashcard
+Sparse history (<5 purchases), only RFM features available, small population, high interpretability need.
 
-**Retention/churn?** #flashcard
-who to target with discount/win-back → needs relative ranking
+**Why optimize calibration over RMSE for LTV used in bidding?** #flashcard
+LTV is Pareto-distributed; RMSE is dominated by top 1% of customers. Segment-level calibration (predicted vs actual mean) directly drives correct bid amounts.
 
-**Upsell/pricing?** #flashcard
-what offer to show → needs segment-level calibration
+**How do you correctly construct LTV training labels to avoid censoring bias?** #flashcard
+Use a fixed cutoff date and fixed-length horizon (e.g. 90 days), keep only customers acquired well before the cutoff so the label is fully observed, and pool multiple historical cutoffs.
 
-**Financial planning?** #flashcard
-cohort revenue forecasting → needs aggregate accuracy, not individual
+**Two-stage model for LTV — why needed?** #flashcard
+Training data only has purchasers, but scoring happens on all new signups (including non-purchasers). Fix: multiply P(converts) x LTV(if converts).
 
-**Revenue definition? Gross revenue, net revenue (after refunds), contribution margin, gross profit?** #flashcard
-Revenue definition? Gross revenue, net revenue (after refunds), contribution margin, gross profit?
+**Simpson's paradox risk in LTV modeling?** #flashcard
+Newer cohorts appear lower-LTV purely due to censoring, which can look like a declining trend. Fix by including tenure as a feature and using multiple cutoffs.
 
-**Discount rate? For DCF-based LTV, what WACC or hurdle rate to use?** #flashcard
-Discount rate? For DCF-based LTV, what WACC or hurdle rate to use?
-
-**Latency requirement? Acquisition bidding needs <200ms; CRM batch jobs can run nightly?** #flashcard
-Latency requirement? Acquisition bidding needs <200ms; CRM batch jobs can run nightly
-
-**Feedback delay? How long before we observe realized revenue for a prediction? (weeks to years)?** #flashcard
-Feedback delay? How long before we observe realized revenue for a prediction? (weeks to years)
-
-**Sparse data advantage?** #flashcard
-BG/NBD makes principled predictions from a single purchase event
-
-**Uncertainty quantification?** #flashcard
-Returns a distribution over future purchases, not just a point estimate
-
-**Interpretability?** #flashcard
-Model parameters (β, r, α, a, b) have business-meaningful interpretations
-
-**No feature engineering required?** #flashcard
-Model inputs are just recency, frequency, tenure (T)
-
-**x = number of observed transactions in [0, T]?** #flashcard
-x = number of observed transactions in [0, T]
-
-**t_x = recency (time of last transaction)?** #flashcard
-t_x = recency (time of last transaction)
-
-**T = customer age (time since acquisition)?** #flashcard
-T = customer age (time since acquisition)
-
-**Tweedie regression (compound Poisson-Gamma)?** #flashcard
-models zero-inflation natively
-
-**Two-stage?** #flashcard
-classify purchasers vs non-purchasers, then regress on purchaser LTV
-
-**Quantile regression?** #flashcard
-predict median LTV rather than mean
-
-**Acquisition channel and campaign?** #flashcard
-Acquisition channel and campaign
-
-**Device type, operating system, browser?** #flashcard
-Device type, operating system, browser
-
-**Geographic location (city, DMA)?** #flashcard
-Geographic location (city, DMA)
-
-**Landing page / product viewed?** #flashcard
-Landing page / product viewed
-
-**Time of day and day of week?** #flashcard
-Time of day and day of week
-
-**Referrer / UTM parameters?** #flashcard
-Referrer / UTM parameters
-
-**KS-test on prediction distribution vs 30-day rolling baseline?** #flashcard
-KS-test on prediction distribution vs 30-day rolling baseline
-
-**Feature drift detection on RFM features (population shift in new cohorts)?** #flashcard
-Feature drift detection on RFM features (population shift in new cohorts)
-
-**Cohort-level purchase rate changes?** #flashcard
-Cohort-level purchase rate changes
-
-**Include macroeconomic signals (consumer confidence, unemployment) as features?** #flashcard
-Include macroeconomic signals (consumer confidence, unemployment) as features
-
-**Weight recent cohorts more heavily in training (time-decay weighting)?** #flashcard
-Weight recent cohorts more heavily in training (time-decay weighting)
-
-**Monitor cohort-level calibration continuously?** #flashcard
-Monitor cohort-level calibration continuously
-
-**Maintain ensemble of models trained on different time windows?** #flashcard
-Maintain ensemble of models trained on different time windows
-
-**During shock detection, fall back to short-window (30-day) behavior model?** #flashcard
-During shock detection, fall back to short-window (30-day) behavior model
-
-**Add macro index features that can shift predictions without full retraining?** #flashcard
-Add macro index features that can shift predictions without full retraining
-
-**Do not expose LTV tiers directly to customers?** #flashcard
-Do not expose LTV tiers directly to customers
-
-**Use LTV for CPA bidding (external?** #flashcard
-customers can't observe), not for internal discount logic alone
-
-**Add anomaly detection for "strategically reduced engagement" patterns?** #flashcard
-Add anomaly detection for "strategically reduced engagement" patterns
+**Main LTV monitoring signals?** #flashcard
+Cohort calibration drift (actual/predicted over time), feature distribution drift (KS-test), and rank stability (top-decile capture rate).

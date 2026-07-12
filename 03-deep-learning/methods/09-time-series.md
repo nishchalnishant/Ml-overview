@@ -1277,6 +1277,8 @@ The M4 competition winner combined LSTM outputs with Holt-Winters exponential sm
 
 ## 13. Foundation Models for Time Series
 
+*(niche — most applied interviews stop at "know these exist and when you'd reach for one"; deep API/architecture detail below is for time-series-specialist roles only)*
+
 ### 13.1 Motivation
 
 **The problem**: every time series forecasting project starts from scratch. You collect data, engineer features, train an ARIMA or LSTM, tune hyperparameters, and validate. For a company with 50,000 SKUs or 10,000 sensors, this is infeasible. And for a new series with 30 observations, there is not enough data to train anything.
@@ -1333,44 +1335,16 @@ forecast = pipeline.predict(
 
 ---
 
-### 13.4 Lag-Llama (2024)
+### 13.4 Other Foundation Models (Lag-Llama, Moirai, TimesFM)
 
-Llama-style decoder-only transformer adapted for time series. Key design:
-- **Patch tokenization**: patches of consecutive timesteps as tokens
-- **Distributional output**: Student-t distribution over future values
-- **Trained on**: large Chronos/Lotsa dataset collection
-
-Zero-shot performance competitive with dataset-specific models on held-out benchmarks.
-
-```python
-from lag_llama.gluon.estimator import LagLlamaEstimator
-
-estimator = LagLlamaEstimator(
-    ckpt_path="lag-llama.ckpt",
-    prediction_length=24,
-    context_length=32,
-    n_layer=32,
-    n_embd_per_head=32,
-    n_head=16,
-    num_parallel_samples=100
-)
-```
+Same idea as Chronos, different implementation details — worth recognizing the names, not memorizing internals:
+- **Lag-Llama** (2024): Llama-style decoder-only transformer, patch tokenization, Student-t distributional output.
+- **Moirai** (Salesforce, 2024): masked encoder handling variable context/prediction lengths and any number of variables.
+- **TimesFM** (Google, 2024): decoder-only, 200M params, trained on 100B real points, autoregressive patching.
 
 ---
 
-### 13.5 Moirai (Salesforce, 2024)
-
-"Universal" forecasting model using masked encoder. Designed to handle variable context lengths, variable prediction lengths, multiple frequencies, and any number of variables at inference. Uses patch-based tokenization with frequency-specific patch sizes.
-
----
-
-### 13.6 TimesFM (Google, 2024)
-
-Decoder-only foundation model (200M parameters) trained on 100 billion real-world time points. Autoregressive patching approach. Zero-shot performance reportedly better than many task-specific models on standard benchmarks.
-
----
-
-### 13.7 When to Use Foundation Models
+### 13.5 When to Use Foundation Models
 
 | Situation | Recommendation |
 |---|---|

@@ -1,589 +1,391 @@
 # Real-Time Telemetry Platform
 
-## 1. Problem Framing & Requirement Gathering
+## 1. Problem Framing
 
-Design a platform that ingests, transports, stores, and serves game telemetry (player actions, match events, economy transactions, crash/perf signals, matchmaking outcomes) at EA scale, in near-real-time, feeding both operational dashboards and downstream ML systems (churn models, LiveOps balancing, anti-cheat, personalization, recommendation).
+Design a platform that ingests, transports, stores, and serves game telemetry (player actions, match events, economy transactions, crash/perf signals, matchmaking outcomes) at EA scale, near-real-time, feeding operational dashboards and downstream ML (churn, LiveOps balancing, anti-cheat, personalization).
 
-Key framing questions to settle with interviewer up front:
-- Is this ingestion-only, or does it own the serving path for downstream consumers (feature store, dashboards, model training)?
-- Which titles/franchises? A single flagship live-service shooter (Apex-scale) vs. a shared platform across 20+ studios with heterogeneous schemas.
-- Is this a build vs. extend problem (EA already runs Kafka-based pipelines) or greenfield?
-- SLA owner: is telemetry loss tolerable (analytics use case) or does it feed real-time anti-cheat / matchmaking (loss-intolerant, latency-critical)?
+Clarify up front:
+- Ingestion-only, or does it own serving (feature store, dashboards, training data)?
+- Single flagship title vs. shared platform across 20+ studios with heterogeneous schemas?
+- Build vs. extend existing Kafka pipelines?
+- Loss-tolerant (analytics) vs. loss-intolerant/latency-critical (anti-cheat, matchmaking)?
 
-This chapter treats it as a **shared, multi-title, multi-tenant platform** — the hardest and most representative version of the problem at EA.
+Treat this as a **shared, multi-title, multi-tenant platform** — the hardest, most representative version.
 
 ## 2. Functional Requirements
 
-- FR1: Ingest structured/semi-structured events from clients (console, PC, mobile) and backend services (matchmaking, economy, chat) via SDK.
-- FR2: Validate, deduplicate, and enrich events (geo, session, device, build version) in-flight.
-- FR3: Support schema evolution per event type without breaking producers or consumers.
-- FR4: Route events to hot storage (sub-second to seconds freshness) for real-time dashboards, anti-cheat, and live ops triggers.
-- FR5: Route events to cold storage (data lake) for batch analytics, BI, and ML training data.
-- FR6: Expose a query/subscription API for downstream services to consume specific event streams or aggregates.
-- FR7: Support backfill/replay of historical event streams for reprocessing (new model versions, bug fixes).
-- FR8: Provide per-title, per-event-type retention and PII redaction policies.
-- FR9: Support real-time aggregation windows (e.g., "kills per minute per match") for anti-cheat and matchmaking feedback loops.
-- FR10: Provide a self-service schema registry and event catalog for game teams.
+- FR1: Ingest events from clients (console/PC/mobile) and backend services via SDK.
+- FR2: Validate, dedupe, enrich events (geo, session, device, build) in-flight.
+- FR3: Support schema evolution per event type without breaking producers/consumers.
+- FR4: Route to hot storage (sub-2s freshness) for dashboards, anti-cheat, LiveOps triggers.
+- FR5: Route to cold storage (data lake) for batch analytics and ML training.
+- FR6: Query/subscription API for downstream consumers.
+- FR7: Backfill/replay of historical streams for reprocessing.
+- FR8: Per-title, per-event-type retention and PII redaction policies.
+- FR9: Real-time aggregation windows (e.g., kills/min/match) for anti-cheat/matchmaking.
+- FR10: Self-service schema registry and event catalog.
 
-## 3. Non-Functional Requirements (latency, availability, throughput, consistency, cost)
+## 3. Non-Functional Requirements
 
 | Dimension | Target |
 |---|---|
-| Ingestion throughput | 3M events/sec sustained peak (season launch), 800K events/sec steady-state |
-| Ingest-to-hot-storage latency (p99) | < 2 s |
-| Ingest-to-cold-storage latency (p99) | < 15 min |
-| Availability (ingest path) | 99.95% (≈4.4 hrs downtime/year) |
-| Durability | 99.999999999% (11 nines) for cold tier (object storage), no acknowledged event lost |
-| Consistency | At-least-once delivery guaranteed; exactly-once for billing/economy-critical event types via idempotency keys |
-| Schema evolution | Zero-downtime, backward + forward compatible changes only |
-| Cost ceiling | < $0.08 per million events fully loaded (ingest + storage + compute) |
-| Backpressure tolerance | Must absorb 10x burst for 5 minutes without data loss (patch-day / esports-event spikes) |
+| Ingestion throughput | 3M events/sec peak (season launch), 800K/sec steady |
+| Ingest→hot latency (p99) | < 2s |
+| Ingest→cold latency (p99) | < 15 min |
+| Availability (ingest) | 99.95% |
+| Durability (cold tier) | 11 nines, no acknowledged event lost |
+| Consistency | At-least-once default; exactly-once for economy/billing events via idempotency keys |
+| Schema evolution | Zero-downtime, backward+forward compatible only |
+| Cost ceiling | < $0.08 per million events fully loaded |
+| Backpressure | Absorb 10x burst for 5 min without data loss |
 
-## 4. Clarifying Questions an Interviewer Would Expect
+## 4. Clarifying Questions
 
-1. Is exactly-once semantics required for *all* events or only monetization/economy events?
-2. What's the fan-out — how many distinct downstream consumers (anti-cheat, churn model, BI) read the same stream?
-3. Do we need cross-title unified schemas, or is per-title schema autonomy acceptable?
-4. What's acceptable data loss during a regional outage — do we fail open (drop) or fail closed (buffer client-side)?
-5. Are clients trusted (dedicated servers) or untrusted (player consoles, spoofable telemetry)?
-6. Is there a regulatory constraint (GDPR/COPPA) affecting minors' telemetry retention or fields collected?
-7. What's the existing infra — Kafka on-prem, MSK, Kinesis, or greenfield choice?
-8. Do downstream ML systems need point-in-time-correct joins (feature store), or just aggregate features?
-9. What is the burst shape — sudden (patch drop, new season) vs. gradual (player growth)?
+1. Exactly-once for all events, or only monetization?
+2. How many distinct downstream consumers read the same stream?
+3. Cross-title unified schemas, or per-title autonomy?
+4. Fail open (drop) or fail closed (buffer client-side) during regional outage?
+5. Are clients trusted (dedicated servers) or untrusted (consoles, spoofable)?
+6. GDPR/COPPA constraints on minors' telemetry?
+7. Existing infra (Kafka on-prem, MSK, Kinesis) or greenfield?
+8. Do ML consumers need point-in-time-correct joins, or just aggregates?
+9. Burst shape: sudden (patch drop) vs. gradual (player growth)?
 
 ## 5. Assumptions
 
-1. 70M monthly active users (MAU) across the platform's title portfolio; 9M concurrent peak (CCU) during a global season launch.
-2. Average active player generates 45 events/minute during active play (movement snapshots throttled client-side, combat/economy events sent as discrete).
-3. Steady state: 9M CCU × 45 events/min / 60 ≈ 6.75M events/sec is the *client-side generation ceiling*; SDK-side sampling/batching reduces wire traffic to ~800K events/sec steady-state, 3M events/sec peak (batched envelopes, not raw events, hit Kafka).
-4. Average event size (post-compression, protobuf): 350 bytes.
-5. Hot tier retention: 7 days. Cold tier retention: 3 years (BI/model training), with PII fields redacted after 90 days.
-6. 20 game titles onboarded, ~150 distinct event schemas, growing 10/month.
-7. Anti-cheat and matchmaking consumers require < 2s freshness; BI/ML training consumers tolerate 15 min–24 hr freshness.
-8. Infra runs primarily on AWS (Kinesis/MSK options both viable) with on-prem overflow capacity at 2 EA data centers for cost reasons on baseline load.
+1. 70M MAU, 9M CCU peak during a global season launch.
+2. ~45 events/min per active player (movement throttled, combat/economy discrete).
+3. SDK-side batching/sampling reduces wire traffic to ~800K events/sec steady, 3M/sec peak.
+4. Average event size (compressed protobuf): 350 bytes.
+5. Hot tier retention: 7 days. Cold tier: 3 years, PII redacted after 90 days.
+6. 20 titles, ~150 event schemas, growing 10/month.
+7. Anti-cheat/matchmaking need < 2s freshness; BI/ML tolerate 15 min–24 hr.
+8. AWS-primary (Kinesis/MSK both viable), on-prem overflow for baseline-load cost savings.
 
 ## 6. Capacity Estimation
 
-**Throughput**
-- Steady state: 800,000 events/sec × 350 B = 280 MB/s ingress.
-- Peak (season launch, 10x burst tolerance target): 3,000,000 events/sec × 350 B = 1.05 GB/s ingress.
-- Daily event volume: 800K/s × 86,400 s ≈ **69.1 billion events/day** steady-state (matches "billions/day" scope; peaks push this to ~150B on launch days).
+**Throughput**: steady 800K/s × 350B = 280 MB/s; peak 3M/s × 350B ≈ 1.05 GB/s. Daily volume ≈ **69B events/day** steady (up to ~150B on launch days).
 
-**Kafka/Kinesis sizing**
-- Assume Kafka (MSK) with 3x replication.
-- Partition throughput budget: 10 MB/s/partition (conservative, compressed protobuf).
-- Peak partitions needed: 1.05 GB/s ÷ 10 MB/s = **105 partitions minimum**; provision 300 partitions per top-level topic for headroom + consumer parallelism.
-- Broker sizing: each broker (d3.2xlarge equivalent, 25 Gbps NIC, NVMe) sustains ~500 MB/s network with replication overhead → peak 1.05 GB/s × 3 (replication) = 3.15 GB/s cluster network → **~8 brokers** minimum, provision 16 for N+1 and rolling upgrades.
-- Local retention (7-day hot tier) storage on brokers/tiered storage: 69.1B events/day × 350 B × 7 days ≈ **169 TB/week** hot; with tiered storage (KIP-405 / Kinesis long-term retention offload), broker-local disk only holds ~24h buffer ≈ 24.2 TB, rest offloaded to S3-backed tiered storage.
+**Kafka sizing**: 3x replication. At ~10MB/s/partition, peak needs ~105 partitions minimum; provision 300/topic for headroom. Cluster network at peak ≈ 3.15 GB/s (with replication) → ~8 brokers minimum, provision 16 for N+1. Hot tier (7-day) ≈ 169 TB/week; tiered storage keeps only ~24h on broker-local disk, rest offloaded to S3.
 
-**Cold storage (data lake)**
-- 3-year retention: 69.1B events/day × 350 B × 365 × 3 ≈ **26.5 PB** raw. With columnar compression (Parquet + zstd, ~5:1 typical for repetitive telemetry) → **~5.3 PB** effective.
-- S3 cost @ ~$0.021/GB/month (Glacier Instant/Infrequent tiers blended) → 5.3M GB × $0.021 ≈ **$111K/month** storage cost at steady state (before lifecycle tiering discounts kick in further at year 2-3).
+**Cold storage**: 3-year retention ≈ 26.5 PB raw, ~5.3 PB after Parquet+zstd compression (~5:1). At ~$0.021/GB/month blended → ~$111K/month storage.
 
-**Compute for stream processing (Flink/Kafka Streams enrichment + aggregation layer)**
-- Assume enrichment job needs ~1 vCPU per 8,000 events/sec (protobuf decode, validation, geo-IP enrich, dedupe check against Redis/Bloom filter).
-- Peak: 3,000,000 / 8,000 ≈ **375 vCPUs**, provisioned as ~48 x 8-vCPU task managers with autoscaling headroom to 600 vCPUs.
+**Stream processing (Flink)**: ~1 vCPU per 8K events/sec (decode, validate, enrich, dedupe). Peak ≈ 375 vCPUs, provisioned with autoscaling headroom to ~600.
 
-**GPU/CPU for downstream ML (feature computation + drift jobs, not raw ingest)**
-- Streaming feature aggregation (windowed counts, rates) is CPU-only (no GPU needed at ingest layer).
-- Drift-detection jobs (batch, hourly) run on a shared 16-node CPU Spark cluster (32 vCPU/node) — no GPU requirement; this system does not serve DL inference itself (see §14 for how it's consumed by model-serving systems).
+**ML compute**: streaming feature aggregation is CPU-only; drift jobs run batch/hourly on a small CPU Spark cluster. No GPU needed at ingest — this system doesn't serve DL inference itself.
 
-**API/query layer QPS**
-- Downstream consumers (dashboards, anti-cheat, feature store hydration): estimate 50,000 read QPS against hot tier aggregates, p99 < 50ms — served via a caching + materialized-view layer, not raw Kafka reads.
+**Query layer**: ~50K read QPS against hot-tier aggregates, p99 < 50ms, served via caching + materialized views (not raw Kafka reads).
 
 ## 7. High-Level Architecture
 
 ```
-                         ┌─────────────────────────────────────────────────────┐
-                         │                  Game Clients / Servers               │
-                         │  (Console, PC, Mobile SDK, Dedicated Game Servers)    │
-                         └───────────────┬───────────────────────────────────────┘
-                                         │ batched, compressed event envelopes (HTTPS/gRPC)
-                                         ▼
-                         ┌───────────────────────────────┐
-                         │   Edge Ingest Gateway (Envoy   │
-                         │   + regional PoPs, authN,      │
-                         │   client rate limiting)        │
-                         └───────────────┬────────────────┘
-                                         ▼
-                         ┌───────────────────────────────┐
-                         │  Ingest Service (stateless,    │
-                         │  schema validation via Schema  │
-                         │  Registry, idempotency keys)   │
-                         └───────────────┬────────────────┘
-                                         ▼
-                 ┌───────────────────────────────────────────────┐
-                 │        Kafka / Kinesis Streams (raw topics)     │
-                 │   per-event-type topics, 300 partitions each,   │
-                 │   tiered storage (hot: brokers, warm: S3)       │
-                 └───────┬───────────────────────┬─────────────────┘
-                         ▼                       ▼
-        ┌───────────────────────────┐  ┌───────────────────────────────┐
-        │  Stream Processing (Flink)│  │  Sink Connectors (Kafka Connect│
-        │  - dedupe (Bloom/Redis)   │  │  / Firehose) → Cold Lake       │
-        │  - enrichment (geo, sess) │  │                                │
-        │  - windowed aggregation   │  └───────────────┬────────────────┘
-        │  - DLQ routing on failure │                  ▼
-        └───────┬───────────────────┘      ┌────────────────────────────┐
-                ▼                          │  Data Lake (S3, Parquet,   │
-   ┌─────────────────────────────┐         │  partitioned by title/date)│
-   │  Hot Store (Redis / Druid /  │         │  + Glue Catalog / Iceberg  │
-   │  ClickHouse real-time OLAP)  │         └───────────────┬────────────┘
-   └───────┬───────────────────────┘                        ▼
-           ▼                                    ┌────────────────────────────┐
-┌────────────────────────────┐                  │  Batch ETL / Spark jobs →   │
-│  Query/Serving API (gRPC/   │                  │  Feature Store (offline),  │
-│  REST) → Dashboards,        │                  │  Training datasets, BI     │
-│  Anti-Cheat, LiveOps,       │                  └────────────────────────────┘
-│  Feature Store (online)     │
-└────────────────────────────┘
+Game Clients/Servers (console, PC, mobile, dedicated servers)
+        │ batched, compressed event envelopes (HTTPS/gRPC)
+        ▼
+Edge Ingest Gateway (authN, regional PoPs, rate limiting)
+        ▼
+Ingest Service (stateless, schema validation, idempotency keys)
+        ▼
+Kafka/Kinesis (raw topics, 300 partitions each, tiered hot/warm storage)
+   │                                   │
+   ▼                                   ▼
+Stream Processing (Flink)      Sink Connectors → Cold Lake
+ - dedupe (Bloom/Redis)                │
+ - enrichment (geo, session)           ▼
+ - windowed aggregation        Data Lake (S3, Parquet, Iceberg, partitioned by title/date)
+ - DLQ routing                         │
+   │                                   ▼
+   ▼                          Batch ETL/Spark → Feature Store (offline), training data, BI
+Hot Store (Redis/Druid/ClickHouse)
+   │
+   ▼
+Query/Serving API (gRPC/REST) → Dashboards, Anti-Cheat, LiveOps, Feature Store (online)
 
-   Cross-cutting: Schema Registry | Monitoring/Tracing | Alerting | IAM/AuthZ
+Cross-cutting: Schema Registry | Monitoring/Tracing | Alerting | IAM/AuthZ
 ```
 
 ## 8. Low-Level Components
 
-| Component | Responsibility | Interface | Scaling Unit |
-|---|---|---|---|
-| Edge Ingest Gateway | TLS termination, client authN, regional routing, coarse rate limiting | HTTPS/gRPC, batched envelope | Horizontal pods behind regional LB, scales with CCU per region |
-| Ingest Service | Schema validation (against registry), envelope decompression, idempotency-key assignment, publish to Kafka | Internal gRPC from gateway | Stateless; scales on CPU + Kafka producer backpressure |
-| Schema Registry | Stores versioned Avro/Protobuf schemas per event type, enforces compatibility rules | REST API (Confluent Schema Registry compatible) | Small, HA 3-node cluster; read-heavy, cached client-side |
-| Kafka/Kinesis Cluster | Durable, ordered (per-key) buffer between producers and consumers | Kafka protocol / Kinesis PutRecords | Brokers/shards scale with partition count & throughput |
-| Stream Processing (Flink) | Dedupe, enrichment, windowed aggregation, routing to hot/cold sinks, DLQ on poison messages | Consumes Kafka, emits to Kafka/Redis/S3 | Task managers scale with partition count / backpressure lag |
-| Hot Store (real-time OLAP: Druid/ClickHouse + Redis for point lookups) | Serve sub-2s-fresh aggregates and recent raw events | SQL-like query API, Redis GET/MGET | Scales with query QPS + ingestion rate; sharded by title |
-| Cold Lake (S3 + Iceberg/Glue) | Long-term columnar storage for BI/ML training | S3 API, Athena/Presto/Spark SQL | Effectively infinite; cost-scaled, not compute-scaled |
-| Sink Connectors | Reliable delivery from Kafka to S3 with exactly-once semantics (Kafka Connect S3 sink / Firehose) | Kafka Connect REST API | Scales with topic partition count |
-| Query/Serving API | Unified read API for dashboards, anti-cheat, LiveOps, feature store hydration | gRPC/REST, GraphQL for BI | Stateless, scales with consumer QPS |
-| DLQ Processor | Reprocess/quarantine malformed or schema-violating events | Consumes DLQ topic, alerts + manual/automated replay | Scales with DLQ volume (should be near-zero) |
-| Feature Store connector | Materializes streaming aggregates into online feature store (Redis/DynamoDB) and offline (S3/Parquet) | Write path from Flink, read path via Feature Store API | See §15 |
+| Component | Responsibility | Scaling Unit |
+|---|---|---|
+| Edge Ingest Gateway | TLS termination, authN, regional routing, coarse rate limiting | Horizontal pods per region, scales with CCU |
+| Ingest Service | Schema validation, decompression, idempotency-key assignment, publish to Kafka | Stateless, scales on CPU + producer backpressure |
+| Schema Registry | Versioned Avro/Protobuf schemas, compatibility enforcement | Small HA 3-node cluster, cached client-side |
+| Kafka/Kinesis Cluster | Durable, per-key-ordered buffer | Brokers/shards scale with partitions & throughput |
+| Stream Processing (Flink) | Dedupe, enrichment, windowed aggregation, DLQ routing | Task managers scale with partition count/lag |
+| Hot Store (Druid/ClickHouse + Redis) | Serve sub-2s aggregates and recent events | Scales with query QPS + ingest rate, sharded by title |
+| Cold Lake (S3 + Iceberg/Glue) | Long-term columnar storage for BI/ML | Cost-scaled, effectively infinite |
+| Sink Connectors | Reliable Kafka→S3 delivery, exactly-once | Scales with topic partition count |
+| Query/Serving API | Unified read API for all consumers | Stateless, scales with consumer QPS |
+| DLQ Processor | Reprocess/quarantine malformed events | Scales with DLQ volume (should be ~zero) |
+| Feature Store connector | Materializes streaming aggregates online (Redis/DynamoDB) and offline (S3) | See §15 |
 
 ## 9. API Design
 
-**Ingest API** (client/server → Ingest Service)
-
+**Ingest API**
 ```
 POST /v2/events:batch
 Headers: Authorization: Bearer <service-jwt>, X-Idempotency-Key: <uuid>
-Body:
-{
-  "title_id": "apex-legends",
-  "schema_version": "player_action.v3",
-  "events": [
-    {
-      "event_id": "b3f1...",
-      "event_type": "player_kill",
-      "occurred_at": "2026-07-08T12:34:56.123Z",
-      "session_id": "sess_9182",
-      "player_id": "p_44821",
-      "payload": { "weapon": "r99", "victim_id": "p_11029", "distance_m": 14.2 }
-    }
-  ]
-}
-
-Response 202 Accepted:
-{ "accepted": 128, "rejected": 2, "rejections": [ { "event_id": "...", "reason": "SCHEMA_VALIDATION_FAILED" } ] }
+Body: { "title_id", "schema_version", "events": [{ "event_id", "event_type", "occurred_at", "session_id", "player_id", "payload" }] }
+Response 202: { "accepted": 128, "rejected": 2, "rejections": [...] }
 ```
 
-**Query/Serving API** (downstream consumers)
-
+**Query/Serving API**
 ```
 GET /v2/aggregates/{title_id}/{metric}?window=1m&group_by=match_id&since=<ts>
-Response 200:
-{ "metric": "kills_per_minute", "window": "1m", "series": [ {"match_id": "m_1", "value": 12, "ts": "..."} ] }
-
-GET /v2/events/{title_id}/{event_type}:stream   (gRPC server-streaming, for real-time anti-cheat subscription)
-
-POST /v2/replay
-{ "title_id": "apex-legends", "event_type": "player_kill", "from": "2026-06-01T00:00:00Z", "to": "2026-06-02T00:00:00Z", "sink": "kafka-topic:replay-out" }
+GET /v2/events/{title_id}/{event_type}:stream   (gRPC server-streaming, for anti-cheat subscription)
+POST /v2/replay { title_id, event_type, from, to, sink }
 ```
 
 **Schema Registry API**
-
 ```
-POST /schemas/{event_type}/versions   — register new schema (compatibility check enforced: BACKWARD)
+POST /schemas/{event_type}/versions   — register (compatibility check: BACKWARD)
 GET  /schemas/{event_type}/versions/latest
 ```
 
-**Versioning strategy**: URI-versioned (`/v2/`) for the API surface; payload schema versioned independently via `schema_version` field + Schema Registry compatibility gate (no API version bump needed for additive fields).
+**Versioning**: URI-versioned (`/v2/`) for API surface; payload schema versioned independently via `schema_version` + Schema Registry compatibility gate — additive fields don't need an API bump.
 
 | Endpoint | Method | SLA (p99) | AuthN |
 |---|---|---|---|
 | `/v2/events:batch` | POST | < 200ms | Service JWT / device-attested token |
 | `/v2/aggregates/*` | GET | < 50ms | OAuth2 client-credentials |
-| `/v2/events/*:stream` | gRPC stream | < 2s freshness | mTLS (internal services only) |
-| `/v2/replay` | POST | async (job-based) | Internal RBAC (data-eng role) |
+| `/v2/events/*:stream` | gRPC stream | < 2s freshness | mTLS (internal only) |
+| `/v2/replay` | POST | async | Internal RBAC (data-eng) |
 
 ## 10. Database Design
 
-| Store | Type | Used For | Partition/Shard Key | Why |
+| Store | Type | Used For | Partition Key | Why |
 |---|---|---|---|---|
-| Kafka/Kinesis | Log (append-only) | Transport buffer | `title_id + player_id` (or `match_id` for match events) | Ordering within a player/match session, even partition distribution |
-| Redis Cluster | KV, in-memory | Dedupe bloom filters, session state, point lookups (online feature store) | `player_id` hash slot | Sub-ms latency, TTL-based eviction |
-| Druid / ClickHouse | Columnar, real-time OLAP | Hot-tier aggregates, dashboards, anti-cheat windows | `title_id` + time-based segment | Optimized for time-windowed rollups at sub-second query latency |
-| S3 + Apache Iceberg | Columnar (Parquet), object store | Cold tier, ML training data, BI | Partitioned by `title_id/event_type/dt=YYYY-MM-DD/hour=HH` | Cheapest durable storage; Iceberg gives schema evolution + time travel for reproducible training sets |
-| DynamoDB | NoSQL KV | Idempotency-key ledger (dedupe for exactly-once economy events) | `idempotency_key` | Single-digit ms writes, TTL auto-expiry |
-| Postgres (small) | Relational | Schema Registry metadata, event catalog, DLQ audit log | N/A (small dataset) | Strong consistency for config-plane metadata |
+| Kafka/Kinesis | Log | Transport buffer | `title_id + player_id`/`match_id` | Ordering within session, even distribution |
+| Redis Cluster | KV, in-memory | Dedupe filters, session state, online features | `player_id` | Sub-ms latency, TTL eviction |
+| Druid/ClickHouse | Columnar OLAP | Hot-tier aggregates, dashboards, anti-cheat windows | `title_id` + time segment | Sub-second time-windowed rollups |
+| S3 + Iceberg | Columnar (Parquet) | Cold tier, ML training, BI | `title_id/event_type/dt/hour` | Cheap durable storage; schema evolution + time travel |
+| DynamoDB | NoSQL KV | Idempotency ledger (exactly-once economy events) | `idempotency_key` | Single-digit ms writes, TTL expiry |
+| Postgres (small) | Relational | Schema Registry metadata, event catalog, DLQ audit | N/A | Strong consistency for config-plane |
 
-Schema sketch (Iceberg table, `player_action` event type):
+Iceberg table sketch (`player_action`): `event_id, title_id, event_type, occurred_at, ingested_at, session_id, player_id (pseudonymized after 90d), payload STRUCT, schema_version`, partitioned by `(title_id, days(occurred_at))`.
 
-```
-player_action (
-  event_id STRING,
-  title_id STRING,
-  event_type STRING,
-  occurred_at TIMESTAMP,
-  ingested_at TIMESTAMP,
-  session_id STRING,
-  player_id STRING,          -- pseudonymized after 90 days
-  payload STRUCT<...>,       -- schema-evolved per event_type
-  schema_version STRING
-)
-PARTITIONED BY (title_id, days(occurred_at))
-```
-
-Why columnar for cold tier: analytics/ML training queries scan specific columns (e.g., `weapon`, `distance_m`) across billions of rows — columnar + predicate pushdown cuts scan cost 10-20x vs. row-oriented JSON.
+Columnar cold tier lets analytics/ML queries scan specific columns across billions of rows with predicate pushdown — 10-20x cheaper than row-oriented JSON scans.
 
 ## 11. Caching
 
 | Cache | What's Cached | Strategy | Invalidation |
 |---|---|---|---|
-| Schema Registry client cache | Latest schema per event_type | Cache-aside, in-process | TTL 60s + push invalidation via registry webhook |
-| Redis dedupe filter | Recent `event_id`/idempotency keys (Bloom filter + exact-match fallback) | Write-through on ingest | TTL matches dedupe window (24h) |
-| Hot-tier aggregate cache | Pre-computed 1m/5m/1h rollups for dashboards | Write-through from Flink job directly into Druid/Redis | Rolling window eviction (7-day hot retention) |
-| Query API response cache | Frequently-hit aggregate queries (e.g., "current season KPIs") | Cache-aside, short TTL (5-10s) | TTL-based; explicit purge on backfill/replay completion |
-| Online feature store cache | Latest feature vector per player | Write-through from streaming aggregation job | Overwritten on each new event; TTL as staleness ceiling (e.g., 1h) |
+| Schema Registry client cache | Latest schema per event_type | Cache-aside, in-process | TTL 60s + webhook push |
+| Redis dedupe filter | Recent event_id/idempotency keys | Write-through on ingest | TTL = dedupe window (24h) |
+| Hot-tier aggregate cache | Pre-computed rollups (1m/5m/1h) | Write-through from Flink | Rolling 7-day eviction |
+| Query API response cache | Frequently-hit aggregates | Cache-aside, short TTL (5-10s) | TTL + explicit purge on replay |
+| Online feature store cache | Latest feature vector per player | Write-through from streaming job | Overwritten per event; TTL staleness ceiling |
 
-Cache-aside is default (simpler, resilient to cache node loss); write-through used specifically where staleness directly harms anti-cheat/LiveOps decisions (hot aggregates, online features) since those consumers cannot tolerate the cache-aside "first read is slow/stale" gap.
+Cache-aside is default (simpler, resilient); write-through used where staleness would directly harm anti-cheat/LiveOps decisions.
 
 ## 12. Queues & Async Processing
 
-- **Ingest → Kafka**: at-least-once from client SDK (client retries on non-2xx with exponential backoff + local disk buffer up to 5 min of events during connectivity loss).
-- **Exactly-once path**: economy/monetization events carry client-generated `idempotency_key`; Ingest Service checks DynamoDB ledger before producing to Kafka (conditional write) — guarantees exactly-once *effect* even though transport is at-least-once.
-- **DLQ**: any event failing schema validation, or Flink job hitting a poison-pill deserialization error, routes to `*.dlq` topic with error metadata (`reason`, `raw_bytes`, `schema_version_attempted`). DLQ Processor alerts if DLQ rate > 0.01% of traffic for 5 min; supports manual replay after schema/producer fix.
-- **Backpressure handling**:
-  - Client SDK: local ring buffer + sampling degradation (drop low-priority telemetry like cosmetic-movement pings first, never drop economy/anti-cheat events) when server signals `429`/backoff.
-  - Ingest Service: sheds load via token-bucket rate limiter per `title_id`/`api_key` before it reaches Kafka producer.
-  - Kafka: partition-level producer backpressure via `linger.ms`/`batch.size` tuning; consumer lag monitored, triggers Flink autoscaling before lag exceeds hot-tier freshness SLA.
-  - Circuit breaker: if Kafka cluster is saturated, Ingest Service fails over to a regional overflow topic (lower replication factor, best-effort) rather than rejecting client writes outright, favoring availability over strict ordering during extreme bursts.
+- **Ingest→Kafka**: at-least-once; client retries with backoff + local disk buffer (up to 5 min) during connectivity loss.
+- **Exactly-once path**: economy events carry a client idempotency key; Ingest Service checks DynamoDB ledger (conditional write) before producing — exactly-once *effect* over at-least-once transport.
+- **DLQ**: schema-validation failures or Flink deserialization errors route to `*.dlq` with error metadata. Alerts if DLQ rate > 0.01% for 5 min; supports manual replay.
+- **Backpressure**: client SDK sheds low-priority telemetry first (never economy/anti-cheat) on `429`; Ingest Service token-bucket limits per title/api_key; Kafka producer/consumer lag triggers Flink autoscaling; circuit breaker fails over to a lower-replication overflow topic rather than rejecting writes outright during extreme bursts.
 
 ## 13. Streaming & Event-Driven Architecture
 
-**Topics** (examples, per title, ~150 total event types across 20 titles):
-- `raw.{title_id}.player_action.v3`
-- `raw.{title_id}.economy_transaction.v2`
-- `raw.{title_id}.match_lifecycle.v1`
-- `enriched.{title_id}.player_action` (post-Flink enrichment)
-- `agg.{title_id}.kills_per_minute` (windowed aggregates)
-- `dlq.{title_id}.{event_type}`
+**Topics** (examples, ~150 event types across 20 titles): `raw.{title}.player_action.v3`, `raw.{title}.economy_transaction.v2`, `raw.{title}.match_lifecycle.v1`, `enriched.{title}.player_action`, `agg.{title}.kills_per_minute`, `dlq.{title}.{event_type}`.
 
-**Event schema** (Protobuf, versioned):
+**Event schema** (Protobuf, versioned): `event_id, title_id, schema_version, occurred_at, session_id, player_id, ActionPayload (oneof, evolves per action type)`.
 
-```protobuf
-message PlayerActionEvent {
-  string event_id = 1;
-  string title_id = 2;
-  string schema_version = 3;
-  google.protobuf.Timestamp occurred_at = 4;
-  string session_id = 5;
-  string player_id = 6;
-  ActionPayload payload = 7; // oneof, evolves per action type
-}
-```
+**Consumer groups**: `anti-cheat-realtime` (low-latency, small window), `liveops-dashboards` (reads agg.*), `cold-sink-connectors` (writes S3), `feature-store-hydration` (writes online store) — each scales independently, capped by partition count.
 
-**Consumer groups**:
-- `anti-cheat-realtime` (reads `enriched.*`, low-latency, small window)
-- `liveops-dashboards` (reads `agg.*`)
-- `cold-sink-connectors` (reads `raw.*`, writes S3)
-- `feature-store-hydration` (reads `enriched.*`, writes online store)
-- Each consumer group scales independently; partition count (300/topic) sets max parallelism ceiling.
-
-**Ordering guarantee**: per-key (`player_id` or `match_id`) ordering only — no global ordering, which is acceptable since downstream aggregations are commutative/associative (counts, sums) or explicitly session-scoped.
+**Ordering**: per-key only (`player_id`/`match_id`) — no global ordering, acceptable since downstream aggregations are commutative/associative or session-scoped.
 
 ## 14. Model Serving
 
-This system is primarily a *data plane*, not a model-serving system — but it hosts two lightweight inference paths inline:
+Primarily a *data plane*, not a model-serving system, but hosts two lightweight inline inference paths:
 
-| Use case | Model | Where it runs | Why here vs. separate service |
+| Use case | Model | Where | Why here |
 |---|---|---|---|
-| Real-time anti-cheat heuristic scoring | Gradient-boosted tree (small, < 5MB) | Embedded in Flink job (per-event scoring) | Sub-2s SLA requires inline scoring, not a network hop to a separate serving cluster |
-| Event-quality/anomaly flagging | Lightweight isolation forest | Sidecar in Ingest Service | Cheap enough (µs-level) to run inline; avoids adding a network hop on the hot path |
+| Anti-cheat heuristic scoring | GBT (< 5MB) | Embedded in Flink job | Sub-2s SLA rules out a network hop to a separate serving cluster |
+| Event-quality/anomaly flagging | Isolation forest | Sidecar in Ingest Service | µs-level, avoids adding a hop on the hot path |
 
-Heavier models (churn prediction, matchmaking skill rating updates, recommendation) are **out of scope** for this chapter — they are separate serving systems (see companion chapters) that *consume* this platform's feature store and event streams as input, typically via batch or async request (not embedded here). Serving framework for those: Triton/TorchServe behind the platform's Query API — not detailed further to keep scope on telemetry.
-
-Batching: inline anti-cheat scorer batches per Flink micro-batch (typically 200-500 events/window) rather than per-event RPC, keeping GPU/CPU idle time low without adding latency (windowing already exists for aggregation).
-
-Hardware: CPU-only for both inline models (tree ensembles, isolation forest) — no GPU needed in the ingest/streaming path.
+Heavier models (churn, matchmaking skill rating, recommendation) are out of scope — separate serving systems that *consume* this platform's feature store/streams. Inline scorer batches per Flink micro-batch (200-500 events/window); CPU-only, no GPU needed.
 
 ## 15. Feature Store
 
-- **Online store**: Redis/DynamoDB, hydrated directly from the Flink enrichment job — e.g., `player:{id}:kills_last_5m`, `player:{id}:session_kd_ratio`. Read latency target < 5ms p99 for anti-cheat/matchmaking consumers.
-- **Offline store**: Iceberg tables in S3, same feature definitions computed in batch (Spark) for training-set generation — guarantees the same feature logic (shared feature-definition library) runs in both streaming and batch paths to avoid train/serve skew.
-- **Point-in-time correctness**: every feature row carries `event_time` and `ingested_at`; offline training joins use `event_time`-based as-of joins (not `ingested_at`) so a churn model trained on "features as of day N" never leaks future information from late-arriving events. Late data (arriving > 24h after `event_time`) triggers backfill correction jobs that recompute affected feature partitions, versioned so in-flight training runs aren't silently mutated.
-- **Feature freshness SLA**: online features refreshed within the same 2s hot-tier SLA; offline features refreshed on the 15-min cold-tier landing cadence, with a daily full-recompute reconciliation job.
+- **Online**: Redis/DynamoDB, hydrated from Flink enrichment (e.g., `player:{id}:kills_last_5m`). Read latency < 5ms p99.
+- **Offline**: Iceberg tables in S3, same feature definitions computed in batch (shared feature-definition library avoids train/serve skew).
+- **Point-in-time correctness**: every row carries `event_time` and `ingested_at`; training joins are `event_time`-based as-of joins so no future leakage. Late data (>24h) triggers versioned backfill jobs so in-flight training runs aren't silently mutated.
+- **Freshness SLA**: online features match the 2s hot-tier SLA; offline features on the 15-min cadence with daily full reconciliation.
 
 ## 16. Vector Database
 
-**N/A for this system.** The telemetry platform transports and stores structured/semi-structured events (typed payloads, numeric/categorical fields) — there are no embeddings generated or queried in the ingestion/storage path itself. Titles that need similarity search (e.g., matchmaking-by-playstyle-embedding, content recommendation) consume this platform's event streams as *input* to their own embedding pipelines and vector stores, which are out of scope here (see Feature Store / Recommendation System chapters).
+**N/A.** This platform transports structured/semi-structured events — no embeddings generated or queried in the ingest/storage path. Titles needing similarity search consume this platform's streams as input to their own embedding pipelines (out of scope here).
 
 ## 17. Embedding Pipelines
 
-**N/A for this system**, for the same reason as §16 — this platform is upstream of any embedding generation. If a downstream consumer (e.g., a playstyle-clustering model) needs embeddings, it subscribes to `enriched.*` topics or reads the offline feature store and runs its own embedding pipeline; embedding computation is not a responsibility of the telemetry platform to keep this system's blast radius and on-call surface bounded to transport/storage/serving of raw and aggregated events.
+**N/A**, same reason as §16 — this platform is upstream of embedding generation. Downstream consumers run their own embedding pipelines off `enriched.*` topics or the offline feature store, keeping this system's on-call surface bounded to transport/storage/serving.
 
 ## 18. Inference Pipelines
 
-End-to-end request lifecycle for the one true "inference" this system performs inline — real-time anti-cheat scoring:
+Request lifecycle for the one inline inference — real-time anti-cheat scoring:
 
 ```
 Client emits player_action event
-        │
-        ▼
-Edge Gateway (authN, ~2ms)
-        │
-        ▼
-Ingest Service (schema validate, idempotency check, ~5ms)
-        │
-        ▼
-Kafka produce (raw.title.player_action) — ack after ISR write, ~10-20ms
-        │
-        ▼
-Flink job consumes (micro-batch window, 200-500 events, ~200ms window trigger)
-        │
-        ├─► Enrichment (geo, session join via Redis lookup, ~3ms)
-        │
-        ├─► Anti-cheat scorer (GBT model, in-process, ~1ms/event, batched)
-        │         │
-        │         ▼
-        │   score > threshold? ─── yes ──► emit to `flags.anti_cheat` topic ──► real-time review queue
-        │         │
-        │         no
-        │         ▼
-        └─► Emit to `enriched.*` topic + windowed aggregate update (Druid write, ~10ms)
-                    │
-                    ▼
-        Query API serves aggregate to LiveOps dashboard / matchmaking service (< 50ms read)
+  → Edge Gateway (authN, ~2ms)
+  → Ingest Service (validate, idempotency check, ~5ms)
+  → Kafka produce (ack after ISR write, ~10-20ms)
+  → Flink micro-batch (200-500 events, ~200ms window trigger)
+      → Enrichment (geo, session join via Redis, ~3ms)
+      → Anti-cheat scorer (GBT, in-process, batched, ~1ms/event)
+          → score > threshold? → emit to flags.anti_cheat → review queue
+          → else → emit to enriched.* + windowed aggregate update (Druid, ~10ms)
+  → Query API serves aggregate to LiveOps/matchmaking (< 50ms read)
 
-Total ingest→hot-tier-visible p99 budget: ~250-300ms typical, bounded by 2s SLA including window-trigger worst case.
+Total ingest→hot-tier-visible p99: ~250-300ms typical, bounded by 2s SLA under worst-case windowing.
 ```
 
 ## 19. Training Pipelines
 
-The platform itself trains only its two small inline models (anti-cheat GBT, anomaly isolation forest); it also *produces* the training data other systems consume.
+Trains only the two small inline models; also *produces* training data other systems consume.
 
-- **Data prep**: batch Spark job reads Iceberg cold tier, joins `player_action` + `flags.anti_cheat` labeled outcomes (human-reviewed ground truth) → produces labeled training set, feature-parity enforced via shared feature-definition library (§15).
-- **Training orchestration**: Airflow DAG — extract → feature-join (point-in-time correct) → train (single-node XGBoost, small enough to not need distributed training) → validate (holdout + backtested precision/recall on known cheat cases) → register in model registry (MLflow) → canary deploy into Flink job (see §33).
-- **Distributed training**: not required for these lightweight models (< 10M rows, < 5MB model). If this platform later hosts heavier inline models, distributed training would move to a separate training-infra chapter — flagged here as an explicit non-goal to keep this system's scope bounded.
-- **Cadence**: full retrain weekly; the retrain job itself runs on shared batch compute (not provisioned specifically for this system) to keep this platform's dedicated cost footprint focused on ingest/storage/serving.
+- **Data prep**: batch Spark job joins `player_action` + human-reviewed `flags.anti_cheat` outcomes from cold tier, using the shared feature-definition library for parity.
+- **Orchestration**: Airflow DAG — extract → point-in-time feature-join → train (single-node XGBoost, no distributed training needed) → validate (holdout + backtest) → register in MLflow → canary deploy into Flink (§20).
+- **Cadence**: full retrain weekly, on shared batch compute (not dedicated to this system).
 
-## 20. Retraining Strategy
+## 20. Retraining & Drift
 
-| Trigger type | Condition | Action |
+| Trigger | Condition | Action |
 |---|---|---|
-| Scheduled | Weekly | Full retrain on trailing 90 days of labeled data |
-| Drift-triggered | Feature drift PSI > 0.2 on top-10 features (see §21) | Ad-hoc retrain within 24h |
-| Performance-triggered | Anti-cheat precision drops > 5 points vs. baseline (measured via human-review sampling) | Immediate retrain + rollback to previous model version pending investigation |
-| Schema-change-triggered | New/changed event schema affecting model input fields | Re-validate feature pipeline compatibility before next scheduled retrain; block deploy if breaking |
-| New title onboarding | New game added to platform with different cheat patterns | Cold-start with cross-title baseline model, dedicated retrain after 30 days of title-specific labeled data |
-
-## 21. Drift Detection
+| Scheduled | Weekly | Full retrain on trailing 90 days |
+| Drift-triggered | Feature PSI > 0.2 on top-10 features | Ad-hoc retrain within 24h |
+| Performance-triggered | Anti-cheat precision drops > 5pts vs. baseline | Immediate retrain + rollback pending investigation |
+| Schema-change-triggered | New/changed schema affecting model inputs | Re-validate pipeline compatibility, block deploy if breaking |
+| New title onboarding | Different cheat patterns | Cold-start with cross-title baseline, dedicated retrain after 30 days |
 
 | Drift type | Metric | Threshold | Action |
 |---|---|---|---|
-| Data drift (event volume/shape) | Per-event-type volume vs. 7-day rolling baseline (z-score) | \|z\| > 3 for 15 min | Page on-call; check for client bug, bot traffic, or upstream schema break |
-| Data drift (feature distribution) | Population Stability Index (PSI) on key anti-cheat features (kill rate, headshot %, reaction time) | PSI > 0.2 = investigate, > 0.3 = auto-flag for retrain | Feed into retraining trigger (§20) |
-| Concept drift (label shift) | Rolling precision/recall of anti-cheat model against human-reviewed sample (weekly audit set) | Precision drop > 5pts absolute | Retrain + shadow-deploy challenger before promoting |
-| Schema drift | Schema Registry compatibility check failures | Any BACKWARD-incompatible change proposed | Hard block at registry (fail the schema registration, not silent) |
-| Pipeline drift (null/missing rate) | % events with null/default enrichment fields (e.g., geo-IP lookup failure rate) | > 1% for 10 min | Page data-eng on-call, check enrichment dependency health |
+| Data drift (volume/shape) | Per-event-type volume z-score vs. 7-day baseline | \|z\|>3 for 15 min | Page on-call — client bug, bot traffic, or schema break |
+| Data drift (feature dist.) | PSI on key anti-cheat features | >0.2 investigate, >0.3 auto-flag | Feeds retraining trigger |
+| Concept drift | Rolling precision/recall vs. weekly audit set | Precision drop >5pts | Retrain + shadow-deploy challenger |
+| Schema drift | Registry compatibility failures | Any BACKWARD-incompatible change | Hard block at registry |
+| Pipeline drift | % events with null enrichment fields | >1% for 10 min | Page data-eng, check enrichment dependency |
 
-## 22. Monitoring
+## 21. Monitoring & Alerting
 
 | Layer | Metrics |
 |---|---|
-| Infra | Kafka broker CPU/disk/network, partition consumer lag (per consumer group), Flink checkpoint duration/failure rate, Redis hit rate & memory, S3 PUT/GET error rate |
-| Pipeline health | Events/sec in vs. out per stage, DLQ rate, schema-validation-failure rate, end-to-end latency percentiles (ingest → hot, ingest → cold) |
-| Model quality | Anti-cheat precision/recall (weekly human-audit sample), score distribution drift, false-positive ban-appeal rate |
-| Business | Events/day per title, active event schemas per title, cost per million events, onboarding lead time for new event types |
-| SLA | % of events meeting 2s hot-tier freshness SLA, % meeting 15-min cold-tier SLA, availability of ingest path (synthetic canary events every 10s per region) |
+| Infra | Broker CPU/disk/network, consumer lag, Flink checkpoint duration/failures, Redis hit rate, S3 error rate |
+| Pipeline health | Events/sec in vs. out per stage, DLQ rate, schema-failure rate, end-to-end latency percentiles |
+| Model quality | Anti-cheat precision/recall (weekly audit), score drift, false-positive ban-appeal rate |
+| Business | Events/day per title, active schemas, cost per million events, onboarding lead time |
+| SLA | % events meeting hot/cold freshness SLAs, ingest availability (synthetic canaries every 10s/region) |
 
-## 23. Alerting
-
-| Alert | Condition | Severity | Routing |
-|---|---|---|---|
-| Ingest availability | Synthetic canary event fails 3 consecutive checks (30s) in any region | P1 | Page primary on-call (platform team), auto-page secondary if unacked in 5 min |
-| Consumer lag breach | Any consumer group lag > 2x the freshness SLA window sustained 5 min | P1 | Page data-eng on-call |
-| DLQ spike | DLQ rate > 0.01% of traffic for 5 min | P2 | Slack + ticket, page if > 0.1% |
-| Broker disk pressure | Any broker > 85% disk utilization | P2 | Page infra on-call |
-| Schema registry compatibility break attempt | Any rejected registration | P3 | Slack notify submitting team, no page |
-| Model precision degradation | Weekly audit shows > 5pt precision drop | P2 | Notify ML on-call, triggers retrain workflow |
-| Cost anomaly | Daily spend > 20% above 7-day rolling average | P3 | Slack notify platform + finance partner |
-
-On-call routing: tiered — L1 platform/infra on-call (Kafka, Flink, storage), L2 ML on-call (model quality, drift), L3 data-eng on-call (schema, pipeline correctness) — paged based on alert category tag.
-
-## 24. Logging
-
-- **Structured logging**: JSON logs at every hop (Gateway, Ingest Service, Flink) with correlation fields: `trace_id`, `event_id`, `title_id`, `stage`. Emitted to a centralized log pipeline (itself a smaller instance of this same architecture — logs-as-events).
-- **PII handling**: `player_id` is pseudonymized at the log layer (never raw account ID in logs); raw PII (IP address, device ID) is redacted from logs entirely, retained only in the primary event payload under stricter access control and shorter retention (90-day auto-purge per §5).
-- **Retention**: operational logs 30 days (hot, searchable via OpenSearch); archived to cold storage (S3, compressed) for 1 year for incident forensics; event-payload PII fields purged/pseudonymized at 90 days regardless of log retention tier, per privacy policy.
-- **Audit logging**: separate immutable audit trail (who registered/changed a schema, who triggered a replay, who accessed raw PII fields) retained 3 years for compliance.
-
-## 25. Security
-
-**Threat model specific to this system**:
-- Spoofed/malicious client telemetry (cheaters sending fabricated events to poison anti-cheat training data or hide cheat signals).
-- Compromised game-server credentials used to inject fraudulent economy events (currency duplication via replayed transactions).
-- PII exfiltration risk from cold-tier data lake (broad analyst/BI access to raw player data).
-- DLQ/replay endpoints as a privilege-escalation vector (replaying old events to trigger stale side effects).
-- Denial-of-service via client flood (either malicious or buggy client build) exhausting ingest capacity.
-
-**Mitigations**:
-- Mutual TLS + device/build attestation for client SDK connections where platform supports it (console SDKs); server-side plausibility checks (physically impossible action rates/positions) flag suspicious event streams for anti-cheat review rather than trusting client data blindly.
-- Idempotency-key ledger (DynamoDB, §12) prevents economy event replay/duplication.
-- Data lake access via row/column-level policies (Lake Formation or equivalent) — PII columns masked by default, unmasked access requires elevated, time-boxed, audited grants.
-- Replay API (`/v2/replay`) restricted to internal RBAC role, all invocations audit-logged, output routed to isolated topics (never directly overwrites production hot tier).
-- Encryption at rest (S3 SSE-KMS, Kafka disk encryption) and in transit (TLS 1.3 everywhere).
-
-## 26. Authentication
-
-- **Client → Edge Gateway**: per-title API key + device/build attestation token (console platforms provide first-party attestation; PC/mobile use a lighter integrity check), short-lived signed JWT issued after initial handshake.
-- **Service → Service** (Ingest Service → Kafka, Flink → Redis/Druid, Query API → downstream): mTLS via service mesh (Istio/Linkerd), SPIFFE identities per service.
-- **End-user (dashboard/BI) → Query API**: OAuth2 (corporate SSO), scoped to title/role via RBAC (LiveOps analyst vs. data-eng vs. anti-cheat reviewer scopes differ).
-- **Internal replay/admin APIs**: OAuth2 client-credentials + RBAC role check + audit log entry mandatory.
-
-## 27. Rate Limiting
-
-- **Algorithm**: token bucket per `(title_id, api_key)` pair at the Edge Gateway — allows short bursts (season launch spikes) while capping sustained abuse.
-- **Per-client limits**: default 500 events/sec per device/session (well above legitimate single-player telemetry rate; catches buggy/malicious clients), configurable per title.
-- **Per-tenant (title) limits**: soft cap at provisioned capacity share (e.g., a mid-size title gets a 50K events/sec ceiling before triggering priority-based shedding), hard cap with graceful 429 + `Retry-After` beyond that.
-- **Priority shedding**: under global backpressure, low-priority event types (cosmetic telemetry, movement heartbeats) are throttled before high-priority types (economy, anti-cheat, crash reports) — implemented as a priority queue at the Ingest Service, not a blind global limiter.
-
-## 28. Autoscaling
-
-- **Ingest Service / Edge Gateway**: HPA on CPU (target 60%) + custom metric on request queue depth; scales 20-400 pods per region.
-- **Flink task managers**: KEDA-based autoscaling on Kafka consumer lag metric — scale out when lag > 30s-worth of events, scale in after lag drains and stays low for 10 min (avoid flapping).
-- **Kafka brokers**: not autoscaled dynamically (stateful, rebalance-expensive); capacity-planned quarterly with headroom, burst absorbed via tiered storage + backpressure controls rather than broker autoscaling.
-- **Hot-tier OLAP (Druid) query nodes**: HPA on query QPS + p99 latency SLO breach.
-- **Cold-tier (S3)**: no scaling needed (object storage is inherently elastic); Spark ETL clusters autoscale via EMR/Databricks managed autoscaling on job queue depth.
-
-## 29. Cost Optimization
-
-- **Spot instances**: Flink task managers and Spark ETL workers run on spot/preemptible capacity (stateless-recoverable via checkpointing) — ~60-70% cost reduction vs. on-demand for these tiers.
-- **Tiered storage**: Kafka tiered storage (hot on broker NVMe, warm on S3) avoids over-provisioning broker disk for the full 7-day hot retention.
-- **Data lake lifecycle policies**: S3 Intelligent-Tiering / explicit lifecycle to Glacier Instant Retrieval after 90 days, Glacier Deep Archive after 1 year for compliance-only retention.
-- **Compression**: protobuf + zstd on wire (vs. JSON) cuts payload size ~4-6x, directly reducing both network and storage cost.
-- **Sampling for low-value telemetry**: cosmetic/movement-heartbeat events sampled at ingestion (e.g., 1-in-10) rather than fully retained, with sampling rate stored as metadata for unbiased downstream reconstruction.
-- **Right-sizing partitions**: over-partitioned topics waste broker overhead; partition count tuned to actual throughput per event type rather than one-size-fits-all 300.
-- **Reserved capacity**: baseline (steady-state) Kafka/compute capacity covered by reserved instances/savings plans; only burst headroom relies on on-demand/spot.
-
-## 30. Operational Concerns (Deployment, Reliability, Infra)
-
-At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
-
-## 38. Why This Architecture
-
-- Kafka/Kinesis as the durable buffer decouples highly variable client-ingest rates from downstream processing rates — essential given 10x burst tolerance requirement (season launches) without over-provisioning every downstream consumer for peak.
-- Separate hot (Druid/Redis) and cold (S3/Iceberg) tiers match genuinely different access patterns: sub-second point/window queries vs. petabyte-scale scan-heavy analytics — a single store optimized for one would badly serve the other.
-- Schema Registry with enforced compatibility rules is the only way to let 20+ independent game teams evolve ~150 event schemas without a central team becoming a bottleneck or breaking consumers.
-- Inline lightweight scoring (anti-cheat) avoids an extra network hop that would blow the 2s freshness SLA; heavier ML stays out of this system's blast radius by design (§14/§16/§17).
-- Multi-region active-active with region-local hot tiers respects the reality that a player's session/match doesn't need cross-region consistency, while cold-tier global replication serves the genuinely global consumers (BI, training).
-
-## 39. Alternative Architectures
-
-| Alternative | Description | Why Rejected / When Preferred |
+| Alert | Condition | Severity |
 |---|---|---|
-| Single global Kafka cluster (no regional sharding) | One cluster, all regions produce/consume cross-region | Rejected: cross-region producer latency directly hits ingest p99 SLA; only viable for a much smaller-scale, single-region title |
-| Lambda architecture (separate batch + speed layers with full logic duplication) | Fully independent batch recomputation path in addition to streaming | Rejected in favor of Kappa-style (single streaming pipeline, batch reprocessing via replay of the same log) — reduces logic duplication/drift between batch and streaming aggregation code; would reconsider Lambda only if streaming reprocessing cost at 3-year retention became prohibitive |
-| Managed serverless ingestion (Kinesis Firehose + Lambda only, no Flink) | Simpler ops, less infra to run | Preferred for a smaller title/lower event-type complexity (e.g., a single mobile title with < 10K events/sec) — rejected here because windowed aggregation, dedupe, and inline scoring at this scale/complexity need Flink's stateful processing model, not Lambda's stateless-per-invocation model |
-| Direct client-to-datalake writes (skip streaming tier entirely, batch upload only) | Clients batch-upload files periodically (hourly) directly to S3 | Rejected: fails the < 2s anti-cheat/LiveOps freshness requirement entirely; would only suit a pure offline-analytics-only scope (explicitly out of scope per FR9/FR4) |
+| Ingest availability | Canary fails 3 consecutive checks in a region | P1, page primary on-call |
+| Consumer lag breach | Lag > 2x freshness SLA for 5 min | P1, page data-eng |
+| DLQ spike | > 0.01% traffic for 5 min | P2 (page if > 0.1%) |
+| Broker disk pressure | > 85% utilization | P2, page infra |
+| Schema compatibility break attempt | Any rejected registration | P3, Slack notify only |
+| Model precision degradation | Weekly audit shows > 5pt drop | P2, notify ML on-call, triggers retrain |
+| Cost anomaly | Daily spend > 20% above 7-day average | P3, Slack |
 
-## 40. Tradeoffs
+On-call is tiered: L1 platform/infra (Kafka, Flink, storage), L2 ML (model quality, drift), L3 data-eng (schema, pipeline correctness).
+
+## 22. Logging & Security
+
+- **Structured logs** (JSON) at every hop with `trace_id, event_id, title_id, stage`; `player_id` pseudonymized in logs, raw PII never logged. Operational logs 30 days hot, 1 year cold archive; event PII purged at 90 days regardless. Immutable audit trail (schema changes, replays, PII access) retained 3 years.
+
+**Threats**: spoofed client telemetry (poisoning anti-cheat data), compromised server credentials (economy event replay/duplication), PII exfiltration from the data lake, DLQ/replay endpoints as a replay-attack vector, client-flood DoS.
+
+**Mitigations**: mTLS + device/build attestation for clients; server-side plausibility checks flag suspicious streams rather than trusting client data; idempotency-key ledger prevents economy replay; row/column-level access policies on the lake with masked PII by default; replay API restricted to RBAC + fully audited; encryption at rest (S3 SSE-KMS, Kafka disk) and in transit (TLS 1.3).
+
+**AuthN**: client→gateway via per-title API key + device attestation + short-lived JWT; service→service via mTLS/SPIFFE; dashboard/BI→API via OAuth2 SSO + RBAC; admin/replay APIs via OAuth2 client-credentials + RBAC + mandatory audit log.
+
+## 23. Rate Limiting & Autoscaling
+
+- **Rate limiting**: token bucket per `(title_id, api_key)` at the gateway. Default 500 events/sec/device. Per-title soft cap at provisioned share, hard cap with `429`+`Retry-After` beyond that. Priority shedding throttles cosmetic/heartbeat telemetry before economy/anti-cheat/crash events.
+- **Autoscaling**: Ingest Service/Gateway via HPA (CPU + queue depth). Flink task managers via KEDA on consumer lag (scale out > 30s lag, scale in after 10 min stable). Kafka brokers capacity-planned quarterly, not dynamically autoscaled (stateful, rebalance-expensive) — burst absorbed via tiered storage/backpressure instead. Druid query nodes via HPA on QPS/p99. S3 is inherently elastic; Spark ETL autoscales on job queue depth.
+
+## 24. Cost Optimization
+
+- Spot/preemptible instances for Flink and Spark workers (checkpoint-recoverable) — ~60-70% savings.
+- Kafka tiered storage (hot NVMe + warm S3) avoids over-provisioning broker disk.
+- S3 lifecycle policies to Glacier tiers after 90 days / 1 year.
+- Protobuf + zstd cuts payload size 4-6x vs. JSON.
+- Sampling low-value telemetry (e.g., movement heartbeats at 1-in-10) with sampling rate stored as metadata.
+- Partition counts right-sized per event type rather than uniform 300.
+- Reserved capacity for steady-state baseline; on-demand/spot only for burst headroom.
+
+## 25. Operational Concerns
+
+At SDE2 scope, this is a checklist: **backups** (automated snapshots of model registry/feature store with tested restore), **rollback** (one-command revert to last-known-good), **canary/blue-green rollout** (shift small traffic %, watch error rate + key model metrics, then ramp), **basic observability** (dashboards/alerts on latency, error rate, top model-quality signals, wired to on-call). Kubernetes/Terraform manifests and multi-region active-active topology are Staff/Principal-level — know they exist, don't rehearse the details.
+
+## 26. Why This Architecture
+
+- Kafka/Kinesis as durable buffer decouples variable client-ingest rates from downstream processing — essential given the 10x burst requirement without over-provisioning every consumer for peak.
+- Separate hot (Druid/Redis) and cold (S3/Iceberg) tiers match different access patterns: sub-second window queries vs. petabyte scan-heavy analytics.
+- Schema Registry with enforced compatibility lets 20+ independent teams evolve ~150 schemas without a central bottleneck.
+- Inline lightweight scoring avoids a network hop that would blow the 2s SLA; heavier ML stays out of this system's blast radius by design.
+- Region-local hot tiers respect that a player session doesn't need cross-region consistency, while cold-tier replication serves genuinely global consumers (BI, training).
+
+## 27. Alternative Architectures
+
+| Alternative | Why Rejected / When Preferred |
+|---|---|
+| Single global Kafka cluster (no regional sharding) | Cross-region producer latency hits ingest SLA; only viable for a much smaller, single-region title |
+| Lambda architecture (separate batch + speed layers) | Rejected for Kappa-style (single streaming pipeline + replay) to avoid batch/streaming logic drift; reconsider only if streaming reprocessing cost becomes prohibitive |
+| Managed serverless (Firehose+Lambda, no Flink) | Preferred for a smaller/simpler title (< 10K events/sec); rejected here since windowed aggregation, dedupe, inline scoring need Flink's stateful model |
+| Direct client-to-datalake batch upload (no streaming tier) | Fails the < 2s freshness requirement; only suits pure offline-analytics scope |
+
+## 28. Tradeoffs
 
 | Decision | Pro | Con |
 |---|---|---|
-| At-least-once transport + idempotency-key exactly-once for critical events | Simple, resilient default; strict guarantee only where it matters | Non-critical event types can still double-count in rare edge cases (acceptable per NFR) |
-| Kappa architecture (single streaming pipeline + replay) over Lambda | Less logic duplication, single source of truth | Backfill/replay at 3-year cold-tier scale is compute-expensive if triggered broadly |
-| Inline lightweight models vs. dedicated serving cluster | Meets 2s SLA, no extra hop | Limits model complexity/size that can run inline; heavier models must live elsewhere |
-| Region-local hot tier (no cross-region sync consistency) | Meets latency SLA, avoids CAP-theorem pain | Global real-time rollups (worldwide leaderboards) aren't truly real-time — 15 min lag via cold lake |
-| Tiered Kafka storage (hot broker + S3 warm) | Big broker-disk cost savings | Slightly higher read latency for "recent but not hottest" data (rarely hit in practice) |
-| Schema Registry hard-blocking incompatible changes | Prevents consumer breakage at the source | Adds friction/lead time for game teams needing a "breaking" change (requires new event_type/version instead) |
+| At-least-once + idempotency-key exactly-once for critical events | Simple default, strict guarantee where it matters | Non-critical events can rarely double-count (acceptable) |
+| Kappa over Lambda | Single source of truth, less logic duplication | Broad backfill/replay at 3-year scale is compute-expensive |
+| Inline lightweight models vs. dedicated serving cluster | Meets 2s SLA, no extra hop | Caps model complexity/size runnable inline |
+| Region-local hot tier | Meets latency SLA, avoids CAP-theorem pain | Global real-time rollups lag ~15 min via cold lake |
+| Tiered Kafka storage (hot broker + S3 warm) | Big disk cost savings | Slightly higher latency for "recent but not hottest" reads |
+| Schema Registry hard-blocks incompatible changes | Prevents consumer breakage | Adds friction for teams needing breaking changes (must version instead) |
 
-## 41. Failure Modes
+## 29. Failure Modes
 
 | Scenario | Impact | Mitigation |
 |---|---|---|
-| Kafka broker AZ outage | Partition leader elections, brief producer stalls | RF=3 across AZs, min.insync.replicas=2, automatic leader re-election, client retry with backoff |
-| Flink job crash-loop (bad enrichment code deploy) | Consumer lag grows, hot-tier freshness SLA breach | Canary/shadow deploy (§33) catches before full rollout; savepoint restart on crash; alert on lag breach |
-| Schema Registry outage | New event registrations blocked; existing validated schemas still cached client-side, ingest continues | Registry is HA 3-node; client-side schema cache means brief registry outage doesn't stop ingest of already-known event types |
-| Regional network partition | Region isolated from MirrorMaker2 replication target | Region continues operating fully (active-active, region-local authoritative hot tier); replication catches up post-partition, cold-tier global view has temporary gap flagged in metadata |
-| Massive burst beyond 10x provisioned headroom (viral event, esports final) | Backpressure triggers priority shedding, low-priority telemetry dropped | Graceful degradation per §12/§27 — economy/anti-cheat events protected, cosmetic telemetry sampled down first |
-| Poison-pill malformed event (producer bug) | Could crash naive consumer / block partition processing | DLQ routing isolates bad events per-message, not per-partition; Flink job continues past them |
-| DynamoDB idempotency-ledger throttling | Exactly-once economy event path could fail-open to at-least-once temporarily | Provisioned autoscaling + on-demand capacity mode; fail-safe is to log + alert rather than silently drop the idempotency check |
+| Kafka broker AZ outage | Leader elections, brief producer stalls | RF=3 across AZs, min.insync.replicas=2, client retry |
+| Flink crash-loop (bad deploy) | Consumer lag grows, freshness SLA breach | Canary/shadow deploy, savepoint restart, lag alerting |
+| Schema Registry outage | New registrations blocked | HA 3-node; client-side cache keeps ingest running for known types |
+| Regional network partition | Region isolated from replication target | Active-active continues locally; replication catches up post-partition |
+| Burst beyond provisioned headroom | Priority shedding, low-priority telemetry dropped | Economy/anti-cheat protected, cosmetic telemetry sampled down first |
+| Poison-pill malformed event | Could block naive consumer | Per-message DLQ isolation, Flink continues past it |
+| DynamoDB idempotency-ledger throttling | Exactly-once path could fail open | Autoscaling/on-demand capacity; fail-safe logs + alerts rather than silently dropping the check |
 
-## 42. Scaling Bottlenecks
+## 30. Bottlenecks
 
-**At 10x scale (30M events/sec sustained)**:
-- Kafka partition count (currently 300/topic) becomes the ceiling on consumer parallelism — would need re-partitioning (operationally disruptive) or moving to per-title topic sharding at a finer grain.
-- Hot-tier OLAP (Druid) ingestion rate per historical node becomes a bottleneck; requires horizontal segment sharding redesign, not just adding nodes.
-- Redis dedupe filter memory footprint (Bloom filter false-positive rate degrades as key cardinality grows) needs re-sizing or moving to a probabilistic structure with better scaling (e.g., Cuckoo filter) or sharded Redis Cluster expansion.
+- **Scaling (10x, 30M events/sec)**: Kafka partition count (300/topic) becomes the parallelism ceiling — needs re-partitioning or finer per-title sharding. Druid ingestion-per-node becomes a bottleneck requiring segment-sharding redesign. Redis dedupe filter needs re-sizing as cardinality grows.
+- **Latency (2s SLA budget)**: dominant p99 contributor is the Flink micro-batch window trigger (up to ~400ms), especially during lag catch-up — first place to check on an SLA breach. Cold-tier 15-min SLA is dominated by deliberate sink-connector batching, not per-event latency.
+- **Cost**: cross-AZ/cross-region replication (RF=3 + MirrorMaker2) is the largest "hidden" volume-proportional cost. Cold-tier 3-year retention (~$111K/month) grows as titles onboard — biggest lever is tightening retention per event-type value and sampling low-value events earlier. Provisioning for 10x burst year-round leaves capacity idle ~95% of the time; Kafka brokers can't spot/scale as easily as Flink/Spark.
 
-**At 100x scale (300M events/sec)**:
-- Single-region active-active model breaks down — would need finer geo-sharding (per-metro edge ingestion, not just per-continent region) to keep client RTT low and avoid backbone network saturation.
-- Schema Registry, while not throughput-bound today, becomes a coordination bottleneck if event-type count grows proportionally (thousands of titles) — would need federated/sharded registries per business unit.
-- Cold-tier ETL/Spark batch jobs for retraining/BI at 26.5 PB × 100 ≈ 2.65 exabytes/3yr retention would force much more aggressive sampling/summarization strategies rather than retaining raw events at that scale — likely requires tiered raw-event sampling (retain 100% for N days, then downsample) baked into policy, not just storage-class tiering.
+## 31. Interview Follow-Ups
 
-## 43. Latency Bottlenecks
+1. How would the design change to guarantee exactly-once for *all* event types, not just economy?
+2. What breaks first if one title suddenly represents 80% of platform traffic?
+3. How do you prevent one misbehaving title's schema changes from destabilizing the shared platform?
+4. Anti-cheat false-positive rate spikes and starts banning legit players — how fast can you detect and roll back?
+5. How do you support a title needing sub-100ms (not sub-2s) freshness?
+6. How do you reconcile replay-based correction with 3-year retention and reprocessing cost at scale?
+7. What changes if data residency rules require a country's player data never leave its region?
+8. How do you test schema evolution before it hits production across 20+ independently-deploying teams?
+9. Capacity planning for an unpredictable viral spike vs. a known scheduled event?
+10. If most consumers only needed hourly-batch freshness, what would you simplify or remove?
 
-**p50/p99 budget breakdown (ingest → hot-tier-visible, 2s SLA)**:
+## 32. Ideal Answers
 
-| Stage | p50 | p99 |
-|---|---|---|
-| Client → Edge Gateway (network + TLS) | 20ms | 80ms |
-| Edge Gateway → Ingest Service (authN, validate) | 5ms | 25ms |
-| Ingest Service → Kafka produce (ack after ISR write) | 10ms | 60ms |
-| Kafka → Flink consume lag (steady state) | 20ms | 400ms (dominated by micro-batch window trigger) |
-| Flink enrichment + scoring | 5ms | 30ms |
-| Flink → Hot store write (Druid/Redis) | 10ms | 50ms |
-| **Total** | **~70ms** | **~645ms typical, up to 2s under backpressure** |
-
-- **Biggest p99 contributor**: Flink micro-batch window trigger latency — during consumer-lag events (post-deploy catch-up, burst absorption) this is where the SLA budget gets consumed; this is the first place to look when investigating a freshness SLA breach.
-- Cold-tier 15-min SLA is dominated by sink-connector batch/flush interval (deliberately batched for S3 write efficiency, not a per-event latency concern).
-
-## 44. Cost Bottlenecks
-
-- **Cross-AZ/cross-region data transfer**: Kafka replication (RF=3, cross-AZ) and MirrorMaker2 cross-region replication are recurring, volume-proportional costs that scale linearly with ingest volume — the single largest "hidden" cost line beyond raw compute/storage.
-- **Broker compute for replication overhead**: 3x replication means every byte ingested is effectively 3x'd in cluster network/disk I/o before even reaching sinks.
-- **Cold-tier storage at 3-year retention**: even compressed (~5.3 PB effective), this is a steady, large monthly bill (~$111K/month estimated in §6) that only grows as more titles onboard — the biggest lever here is retention-policy tightening (do all event types truly need 3 years?) and more aggressive sampling of low-value event types before they ever reach cold storage.
-- **Over-provisioned partition/broker headroom for burst tolerance**: provisioning for 10x burst (season launches) year-round, rather than dynamically, means steady-state days pay for capacity that's idle 95% of the time — mitigated partially by spot-based Flink/Spark tiers, but Kafka brokers themselves (stateful) can't easily follow the same pattern.
-
-## 45. Interview Follow-Up Questions
-
-1. How would you change the design if the platform needed to guarantee exactly-once semantics for *all* event types, not just economy events?
-2. Walk me through what breaks first if one game title suddenly represents 80% of total platform traffic (a breakout hit).
-3. How do you prevent a single misbehaving title's schema changes from destabilizing the shared platform?
-4. What's your strategy if the anti-cheat model's false-positive rate spikes and starts banning legitimate players — how fast can you detect and roll back?
-5. How would you support a title that needs sub-100ms (not sub-2s) freshness for a real-time competitive feature?
-6. How do you reconcile "replay from raw events" as your correction mechanism with a 3-year cold-tier retention and the cost of reprocessing at that scale?
-7. What changes in your multi-region strategy if regulatory requirements (e.g., data residency for a specific country) mandate that certain players' data never leaves their home region?
-8. How do you test schema evolution changes before they hit production across 20+ independently-deploying game teams?
-9. What's your approach to capacity planning for an unpredictable viral spike (a title suddenly trending) versus a known scheduled event (season launch)?
-10. How would the design differ if most consumers only needed hourly-batch freshness — what would you simplify or remove?
-
-## 46. Ideal Answers
-
-1. **Exactly-once everywhere**: Move idempotency-key deduplication (currently economy-only) to the Ingest Service for all event types, backed by a higher-throughput dedup store (sharded Redis with Bloom filter + DynamoDB fallback) rather than DynamoDB alone at full volume. Also use Kafka transactional producers + `read_committed` consumers end-to-end to eliminate duplicate-on-retry at the transport layer.
-
-2. **80% single-title breakout**: Partition-level hot-spotting on that title's Kafka partitions and Druid segments becomes the first bottleneck. Mitigate with dedicated partition/broker capacity per top-tier title (tenant isolation) and a pre-provisioned "breakout tier" fast-path a title can be promoted into quickly.
-
-3. **Isolating a misbehaving title**: Per-title rate limits (§27) and per-title Kafka topic/partition isolation already contain blast radius at the transport layer. At the schema layer, Schema Registry's compatibility gate is scoped per event_type, so a bad schema push only impacts that title's own consumers.
-
-4. **Anti-cheat false-positive spike**: Detection via the weekly human-audit precision metric (§21) is too slow — add a faster proxy signal (ban-appeal rate spike, flag-volume shift vs. baseline) as a real-time alert. Rollback itself is already fast (savepoint restart to prior model version, §34); the real fix is tightening detection latency.
-
-5. **Sub-100ms freshness for one title's feature**: Bypass the Flink micro-batch window (the dominant p99 contributor per §43) for that event type — use per-event processing with a dedicated low-latency consumer group and direct write to Redis, accepting higher per-event compute cost for that narrow slice of traffic.
-
-6. **Replay cost vs. 3-year retention**: Replay/reprocessing should default to scoped time-ranges and event-types, not full-history replays. This cost concern is also why retention policy (§29/§44) should be tightened per event-type value rather than uniform 3-year retention.
-
-7. **Data residency requirement**: Extend the existing region-local hot-tier design so a residency-constrained region's data is excluded from cross-region MirrorMaker2 replication and the global cold lake, with region-scoped BI/training views instead. This is a policy flag per-title/per-region, not a structural redesign.
-
-8. **Testing schema evolution across independent teams**: Schema Registry enforces compatibility mechanically (BACKWARD checks) as a hard gate, paired with a shared contract-testing suite each team runs in CI against a golden set of historical events. Add a shadow-consumer canary (§33 pattern) on real production traffic before the schema is marked "default."
-
-9. **Viral spike vs. scheduled event capacity planning**: Scheduled events get pre-provisioned, load-tested capacity since timing and magnitude are known. Unpredictable viral spikes instead rely on the backpressure/shedding design (§12/§27) plus fast autoscaling (KEDA on consumer lag), since Kafka broker capacity itself can't react in minutes.
-
-10. **If most consumers only needed hourly batch freshness**: Drop the hot-tier OLAP layer (Druid/Redis) and inline Flink enrichment entirely, replacing them with a Kafka Connect S3 sink plus scheduled batch Spark jobs. This is only safe if no consumer (e.g., anti-cheat, live dashboards) needs sub-minute freshness.
+1. **Exactly-once everywhere**: extend idempotency-key dedup (currently economy-only) to all events via a higher-throughput dedup store (sharded Redis + DynamoDB fallback); use Kafka transactional producers + `read_committed` consumers end-to-end.
+2. **80% single-title breakout**: partition/segment hot-spotting is the first bottleneck. Mitigate with dedicated per-title capacity (tenant isolation) and a pre-provisioned fast-path tier a title can be promoted into.
+3. **Isolating a misbehaving title**: per-title rate limits and topic/partition isolation already contain blast radius at transport; Schema Registry compatibility gates are scoped per event_type, so a bad push only affects that title's consumers.
+4. **Anti-cheat false-positive spike**: weekly audit detection is too slow — add a faster proxy signal (ban-appeal rate spike vs. baseline) as a real-time alert. Rollback is already fast (savepoint restart to prior model); the fix is tightening detection latency.
+5. **Sub-100ms for one title**: bypass the Flink micro-batch window (the dominant p99 contributor) for that event type — dedicated low-latency consumer group with direct Redis writes, accepting higher per-event compute cost for that narrow slice.
+6. **Replay cost vs. retention**: default replay to scoped time-ranges/event-types, not full history; also tighten retention per event-type value rather than uniform 3 years.
+7. **Data residency**: extend the region-local hot-tier design to exclude a residency-constrained region's data from cross-region replication and the global cold lake, with region-scoped BI views — a policy flag, not a structural redesign.
+8. **Testing schema evolution across teams**: Registry enforces BACKWARD compatibility as a hard gate; pair with shared contract tests against golden historical events and a shadow-consumer canary before marking a schema default.
+9. **Viral spike vs. scheduled event**: scheduled events get pre-provisioned, load-tested capacity; unpredictable spikes rely on backpressure/shedding plus fast KEDA autoscaling, since Kafka broker capacity can't react in minutes.
+10. **Hourly-batch-only consumers**: drop the hot-tier OLAP layer and inline Flink enrichment, replace with Kafka Connect S3 sink + scheduled Spark batch jobs — safe only if no consumer needs sub-minute freshness.

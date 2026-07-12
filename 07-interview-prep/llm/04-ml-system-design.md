@@ -11,7 +11,7 @@ tags: [interviewprep, ml, llm-ml-system-design]
 
 ## 1. The Universal Framework
 
-Every ML system design interview failure follows one of two patterns: starting with model choice before clarifying requirements, or leaving out monitoring and rollback. Use this sequence without exception:
+Most ML system design failures come from one of two mistakes: picking a model before clarifying requirements, or skipping monitoring and rollback. Use this sequence:
 
 ```
 Step 1: Clarify the product goal
@@ -61,11 +61,11 @@ Step 10: Monitoring
 
 ## 2. Batch vs Real-Time Serving
 
-### The failure mode this decision prevents
+### Why this choice matters
 
-Getting this wrong in the wrong direction has two costs:
-- **Real-time when batch would do:** you've built a 100ms serving pipeline for decisions that could be pre-computed. Latency budget wasted, complexity increased.
-- **Batch when real-time needed:** your fraud system scores transactions from yesterday. Every real fraud during the gap goes undetected.
+Getting it wrong costs you either way:
+- **Real-time when batch would do:** wasted complexity building a low-latency pipeline for decisions that could be pre-computed.
+- **Batch when real-time needed:** e.g. a fraud system scoring yesterday's transactions — every fraud during the gap goes undetected.
 
 | Dimension | Batch | Real-Time |
 | :--- | :--- | :--- |
@@ -82,9 +82,9 @@ Getting this wrong in the wrong direction has two costs:
 
 ## 3. Two-Stage Retrieval + Ranking
 
-### The failure mode this architecture prevents
+### Why not rank everything directly
 
-Running a full neural ranker against 10M items on every query. At 10ms per model inference and 10M items: 27 hours per request. The two-stage pattern was invented because heavy models cannot brute-force large corpora.
+Running a full neural ranker against 10M items per query is infeasible: at 10ms per inference, that's 27 hours per request. Two-stage retrieval exists because heavy models can't brute-force large corpora.
 
 ```
 All items (millions)
@@ -124,9 +124,9 @@ All items (millions)
 ### Problem
 Recommend items from a catalog of 10M products to 100M users in < 50ms.
 
-### What breaks without cold start handling
+### Why cold start handling is required
 
-Matrix factorization requires at least one interaction to produce a latent vector. New items have no interactions. In a catalog expansion, new items never appear in recommendations — they never get interactions — they stay new forever. This is the feedback loop that kills recommendation quality in growing catalogs.
+Matrix factorization needs at least one interaction to produce a latent vector. New items have none, so they never surface, never get interactions, and stay "new" forever — a feedback loop that kills recommendation quality in growing catalogs.
 
 **Feature categories and their source:**
 
@@ -172,9 +172,9 @@ Matrix factorization requires at least one interaction to produce a latent vecto
 
 ## 5. Fraud Detection System Design
 
-### The failure modes that shaped this architecture
+### Why this architecture
 
-Early fraud detection systems used static rule engines. Fraudsters learned the rules within days. Models that only retrained weekly got gamed within 24 hours of deployment. Real-time velocity features were missed because no one computed them fast enough. The architecture reflects burns from each of these:
+Static rule engines get learned and gamed by fraudsters within days. Weekly retraining is too slow — models get gamed within 24 hours. Velocity features must be computed in real time or they're useless. The architecture below addresses each of these:
 
 ```
 Transaction event
@@ -215,9 +215,9 @@ Where $C_{FP}$ = cost of blocking a legitimate transaction (customer churn, supp
 
 ## 6. Search Ranking Design
 
-### The failure mode that motivated LambdaMART
+### Why pairwise/listwise losses exist
 
-Pointwise models treat each document independently — they can't optimize for the final ranked list. A pointwise model might score document A at 0.8 and document B at 0.75, but if B should be ranked first for this query, a pointwise loss can't express that. Pairwise and listwise losses were invented because ranking metrics (NDCG) cannot be directly optimized with simple regression.
+Pointwise models score each document independently and can't optimize for the final ranked list — e.g. scoring A=0.8, B=0.75 when B should rank first. Pairwise and listwise losses exist because ranking metrics (NDCG) can't be optimized directly with simple regression.
 
 **Pipeline:**
 
@@ -269,9 +269,9 @@ $$s_{\text{final}} = \alpha \cdot s_{\text{relevance}} + (1-\alpha) \cdot s_{\te
 ### Problem
 Serve a 70B LLM at 100 QPS with P90 time-to-first-token < 2s.
 
-### The failure mode that motivated KV caching
+### Why KV caching is essential
 
-Without KV caching, every token generation step requires recomputing all attention keys and values for the entire prefix. For a 1000-token prompt: 1000 attention computations per generated token. With KV caching: compute prefix keys and values once, cache them, reuse for every generation step. This single optimization enables practical LLM serving.
+Without it, every generated token requires recomputing attention keys/values for the entire prefix — for a 1000-token prompt, that's 1000 recomputations per generated token. KV caching computes prefix keys/values once and reuses them, making LLM serving practical.
 
 ```
 User request

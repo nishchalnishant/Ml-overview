@@ -293,59 +293,23 @@ class CausalConv1d(nn.Module):
         return self.conv(x)
 ```
 
-### Transformer for Time Series
+### Transformer for Time Series *(niche — specialized forecasting roles only)*
 
-**PatchTST (2023):** Split time series into patches (subseries), treat as tokens.
-- Patch size 16, no overlap
-- Channel independence: each variate processed separately with shared weights
-- Linear complexity in sequence length for long-horizon forecasting
+**PatchTST (2023):** splits the series into patches (subseries) treated as tokens, with channel independence (each variate processed separately, shared weights) — linear complexity in sequence length. **Informer** and **Autoformer** are other long-horizon variants (sparse attention / auto-correlation instead of standard attention).
 
-**Informer:** Sparse self-attention via ProbSparse (O(L log L) instead of O(L²)).
-
-**Autoformer:** Auto-correlation mechanism as substitute for attention.
-
-### N-BEATS / N-HiTS
-
-Pure MLP architecture with basis function expansion:
-
-$$\hat{y} = \sum_k \theta_k^f \phi_k(t), \quad \hat{x} = \sum_k \theta_k^b \phi_k(t)$$
-
-Interpretable: separate stacks for trend, seasonality. Outperforms many Transformer variants on univariate forecasting (M4 competition).
+**N-BEATS / N-HiTS:** pure MLP architecture with basis function expansion ($\hat{y} = \sum_k \theta_k^f \phi_k(t)$), interpretable via separate trend/seasonality stacks, competitive with Transformer variants on the M4 benchmark.
 
 ---
 
-## 8. Foundation Models for Time Series
+## 8. Foundation Models for Time Series *(niche — specialized forecasting roles only)*
 
-### Chronos (Amazon, 2024)
-
-- Tokenizes time series values (quantization into bins)
-- Uses T5 language model architecture
-- Trained on 100K+ time series datasets
-- Zero-shot forecasting without task-specific fine-tuning
+Zero-shot forecasters pretrained on large time-series corpora: **Chronos** (Amazon, tokenizes values, T5 architecture), **Moirai** (Salesforce, universal/any-frequency, patch-based), **TimesFM** (Google, 200M params). Useful for cold-start forecasting with no historical data; classical/tree methods still win when you have domain history.
 
 ```python
 from chronos import ChronosPipeline
-
 pipeline = ChronosPipeline.from_pretrained("amazon/chronos-t5-small")
-forecast = pipeline.predict(
-    context=torch.tensor(train_values).unsqueeze(0),
-    prediction_length=12,
-    num_samples=100  # probabilistic forecast
-)
+forecast = pipeline.predict(context=torch.tensor(train_values).unsqueeze(0), prediction_length=12, num_samples=100)
 ```
-
-### Moirai (Salesforce, 2024)
-
-- Universal forecasting model
-- Any frequency, any prediction length
-- Patch-based tokenization (like PatchTST)
-- Handles multivariate series with mixed frequencies
-
-### TimesFM (Google, 2024)
-
-- 200M parameter foundation model
-- Trained on 100B time points (Google Trends, Wikipedia, etc.)
-- Competitive zero-shot performance on standard benchmarks
 
 **When to use foundation models vs classical:**
 | Scenario | Use |

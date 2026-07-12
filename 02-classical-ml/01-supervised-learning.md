@@ -51,29 +51,29 @@ tags: [classicalml, ml, supervised-learning]
 
 ## Linear Regression
 
-**The problem**: you have a target variable and a set of inputs, and you want the simplest possible model that explains the relationship. Without any structure imposed, fitting any arbitrary curve to your data would perfectly memorize it and predict nothing on new inputs.
+**The problem**: find the simplest model that explains a continuous target from inputs, without memorizing the training data.
 
-**The core insight**: if you assume the relationship is linear and penalize the model by how far its predictions are from the truth, the optimal line is the one that minimizes the total squared error. Squared (not absolute) error because it is differentiable everywhere and assigns disproportionately more penalty to large mistakes.
+**The core insight**: assume the relationship is linear and minimize squared error. Squared (not absolute) error is differentiable everywhere and penalizes large mistakes more.
 
 **The mechanics**: minimize the sum of squared residuals (OLS):
 
 $$J(w) = \frac{1}{2m} \sum_{i=1}^{m} (\hat{y}^{(i)} - y^{(i)})^2$$
 
-This has a closed-form solution because $J$ is a convex quadratic in $w$:
+Closed-form solution (convex quadratic in $w$):
 
 $$w = (X^T X)^{-1} X^T y$$
 
 Use gradient descent when $n$ (features) is large — matrix inversion is $O(n^3)$.
 
-**What breaks**: linearity, homoscedasticity, no multicollinearity, i.i.d. errors. When these fail: transform features (log, polynomial), add regularization (Ridge/Lasso).
+**What breaks**: linearity, homoscedasticity, no multicollinearity, i.i.d. errors. Fix: transform features (log, polynomial), add regularization (Ridge/Lasso).
 
 ---
 
 ## Logistic Regression
 
-**The problem**: linear regression can output any real number, but probabilities must lie in $[0, 1]$. Worse, using MSE as the loss for classification produces a non-convex surface with many local minima — gradient descent gets stuck.
+**The problem**: linear regression outputs any real number, but probabilities must lie in $[0, 1]$. Using MSE for classification also gives a non-convex loss surface.
 
-**The core insight**: squash the linear output through a sigmoid to get probabilities, then define a loss that is convex in the weights. Log-Loss (cross-entropy) is that loss: it is convex and also penalizes confident-but-wrong predictions exponentially harder than uncertain ones.
+**The core insight**: squash the linear output through a sigmoid to get probabilities, then use log-loss (cross-entropy), which is convex and penalizes confident-but-wrong predictions much harder than uncertain ones.
 
 **The mechanics**:
 
@@ -92,15 +92,15 @@ model.fit(X_train, y_train)
 probs = model.predict_proba(X_test)[:, 1]
 ```
 
-**What breaks**: when the decision boundary is non-linear (features need polynomial expansion or a different model), when classes are severely imbalanced (use class weights or PR-AUC), when features are on very different scales without normalization.
+**What breaks**: non-linear decision boundaries (need polynomial features or a different model), severe class imbalance (use class weights or PR-AUC), unscaled features.
 
 ---
 
 ## Support Vector Machines (SVM)
 
-**The problem**: many classifiers find *a* boundary that separates classes, but there are infinitely many such boundaries. Which one generalizes best to unseen data? A boundary that barely clears training points is fragile — small perturbations in new inputs will cross it.
+**The problem**: many boundaries can separate two classes. Which generalizes best? A boundary that barely clears training points is fragile.
 
-**The core insight**: the boundary with the largest gap (margin) between itself and the nearest training points from each class is the most robust. Maximizing this margin is equivalent to minimizing $\|w\|$, which constrains model complexity independently of the number of features — this is why SVMs work well in high dimensions.
+**The core insight**: the boundary with the largest margin to the nearest points from each class is most robust. Maximizing the margin is equivalent to minimizing $\|w\|$, which is why SVMs work well in high dimensions.
 
 **The mechanics**:
 
@@ -110,7 +110,7 @@ $$y^{(i)}(w^T x^{(i)} + b) \geq 1 \quad \forall i$$
 Soft-margin (practical) — introduce slack $\xi_i \geq 0$ to allow some misclassification:
 $$\min_{w,b,\xi} \frac{1}{2}\|w\|^2 + C \sum_i \xi_i$$
 
-Kernel trick: when classes are not linearly separable, map inputs to a higher-dimensional space where they are. The kernel $K(x_i, x_j) = \phi(x_i)^T \phi(x_j)$ computes this inner product without ever constructing $\phi(x)$ explicitly — the optimization only needs dot products, not the mapped coordinates.
+Kernel trick: when classes aren't linearly separable, map inputs to a higher-dimensional space where they are. The kernel $K(x_i, x_j) = \phi(x_i)^T \phi(x_j)$ computes this inner product without ever constructing $\phi(x)$ explicitly.
 
 | Kernel | Formula | Use case |
 | :--- | :--- | :--- |
@@ -129,15 +129,15 @@ grid = GridSearchCV(svm, {'C': [0.1, 1, 10], 'gamma': ['scale', 'auto']}, cv=5)
 grid.fit(X_train, y_train)
 ```
 
-**What breaks**: SVMs do not scale — training is $O(n^2)$ to $O(n^3)$ in the number of samples, and prediction requires evaluating kernels against all support vectors. They also have no native probability output (sigmoid calibration is needed). When `C` is too large, you overfit; when `gamma` is too large with RBF, each training point becomes its own island.
+**What breaks**: SVMs don't scale — training is $O(n^2)$ to $O(n^3)$, and prediction evaluates kernels against all support vectors. No native probability output (needs sigmoid calibration). Large `C` overfits; large `gamma` with RBF makes each point its own island.
 
 ---
 
 ## Decision Trees
 
-**The problem**: linear models cannot capture thresholds — if a patient's blood pressure is dangerous above a certain value, no linear combination of features will cleanly express that. You need a model that can partition the input space into arbitrary rectangular regions.
+**The problem**: linear models can't capture thresholds — e.g., a value that's dangerous only above a cutoff. You need a model that partitions the input space into regions.
 
-**The core insight**: recursively split the data on the single feature and threshold that most reduces the uncertainty (impurity) of the resulting groups. Uncertainty is measured by how mixed the class labels are within each resulting partition.
+**The core insight**: recursively split on the feature and threshold that most reduces impurity (how mixed the class labels are) in the resulting groups.
 
 **The mechanics**:
 

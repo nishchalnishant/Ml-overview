@@ -7,6 +7,8 @@ tags: [llms, ml, applications-model-merging]
 ---
 # Model Merging
 
+*(niche — mostly relevant to model-lab/fine-tuning specialist roles; rarely central in a general applied ML/AI-engineer interview, but "what is a task vector / TIES / SLERP" can come up as a trivia check. Know the core idea and one or two methods by name; the full mechanics below are reference depth.)*
+
 ---
 
 ## The Core Problem

@@ -50,29 +50,15 @@ The gradient for $w_1$ has already been multiplied by two sigmoid derivatives. T
 
 ## Matrix Form of Backpropagation
 
-The scalar chain rule generalizes to matrices via Jacobians. For a batch of $N$ examples through a linear layer:
+For a batch of $N$ examples through a linear layer $z = xW + b$, given the upstream gradient $\delta = \partial L / \partial z$:
 
-$$z = xW + b, \quad x \in \mathbb{R}^{N \times d_{in}}, \quad W \in \mathbb{R}^{d_{in} \times d_{out}}, \quad z \in \mathbb{R}^{N \times d_{out}}$$
+$$\frac{\partial L}{\partial W} = x^\top \delta \qquad \frac{\partial L}{\partial b} = \mathbf{1}^\top \delta \qquad \frac{\partial L}{\partial x} = \delta W^\top$$
 
-Given $\delta = \partial L / \partial z \in \mathbb{R}^{N \times d_{out}}$ (the upstream gradient), the three gradients are:
+**Why this matters**: every autodiff framework implements exactly these three operations for every linear layer. Backprop through a matmul costs the same as the forward pass — one matrix multiply.
 
-$$\frac{\partial L}{\partial W} = x^\top \delta \in \mathbb{R}^{d_{in} \times d_{out}}$$
-
-$$\frac{\partial L}{\partial b} = \mathbf{1}^\top \delta \in \mathbb{R}^{1 \times d_{out}} \quad \text{(sum over batch)}$$
-
-$$\frac{\partial L}{\partial x} = \delta W^\top \in \mathbb{R}^{N \times d_{in}} \quad \text{(passed to layer below)}$$
-
-The shapes work out because of transpositions that match dimensions. A common mnemonic: the gradient with respect to a weight is (input) × (upstream gradient)ᵀ; the gradient passed downstream is (upstream gradient) × (weight)ᵀ.
-
-**Why this matters**: every automatic differentiation framework implements exactly these three operations for every linear layer. The Jacobian-vector product structure is why backprop through a matrix multiplication costs the same as the forward pass — both require one matrix multiply.
-
-**For convolutions**: the backward pass w.r.t. the input is a transposed convolution (deconvolution); the backward pass w.r.t. the filter is a correlation between the input and the upstream gradient. Same structure, different geometry.
-
-**Activation layers**: for an element-wise activation $a = f(z)$, the Jacobian $\partial a / \partial z$ is a diagonal matrix with entries $f'(z_i)$. The vector-Jacobian product simplifies to element-wise multiplication:
+**Activation layers**: for an element-wise activation $a = f(z)$, the vector-Jacobian product is just element-wise multiplication:
 
 $$\delta_\text{prev} = \delta \odot f'(z)$$
-
-This is the "Hadamard product" gradient rule that appears in all activation backprop implementations.
 
 ---
 
@@ -157,11 +143,11 @@ If an early layer's weights are barely changing:
 
 ## Canonical Interview Q&As
 
-**Q: Derive the backprop update for a single linear layer and explain what vanishing gradients mean geometrically.**  
-A: For layer output h = Wx + b, loss L, the gradient is ∂L/∂W = (∂L/∂h) · xᵀ and ∂L/∂x = Wᵀ · (∂L/∂h). When stacking N layers, ∂L/∂x_1 = W_N^T · W_{N-1}^T · ... · W_1^T · ∂L/∂h_N. Each matrix multiplication can scale the gradient by the dominant singular value of each W. If all singular values < 1, repeated multiplication causes exponential decay — gradient signal at layer 1 is O(σ^N) of the output gradient. Geometrically: the gradient vector collapses toward zero in the directions that the weight matrices shrink. The early layers receive nearly zero gradient, so their weights don't update — the model effectively becomes shallow. This was the key obstacle to deep networks before ReLUs (ReLU doesn't saturate in the positive region), BatchNorm (normalizes activations), and residual connections (bypass the chain of multiplications).
+**Q: Explain what vanishing gradients mean and why they happen.**  
+A: For stacked layers, ∂L/∂x₁ = W_N^T · W_{N-1}^T · ... · W_1^T · ∂L/∂h_N (plus activation derivatives at each step). If the weight matrices/activation derivatives consistently scale the gradient by less than 1, repeated multiplication causes exponential decay — early layers receive a near-zero gradient and stop learning. This was the key obstacle to deep networks before ReLU (doesn't saturate for positive inputs), normalization layers, and residual connections.
 
 **Q: How do residual connections solve the vanishing gradient problem?**  
-A: ResNet defines each block as F(x) = x + G(x) instead of F(x) = G(x). The gradient at the input is: ∂L/∂x = ∂L/∂F · (1 + ∂G/∂x). The "+1" term means gradients always have a direct path back through the identity shortcut, regardless of how small ∂G/∂x becomes. Even if the learned transformation G contributes zero gradient, the gradient flows through unchanged. For a network of N residual blocks, the gradient at the first layer is a sum of 2^N terms (all possible paths through/around each block), rather than a single product of N matrices — exponential growth in paths rather than exponential decay in magnitude. Practically: this is why 152-layer ResNets can be trained from scratch but 152-layer plain networks cannot. In transformers, the same principle applies — each attention and FFN block is wrapped in a residual connection.
+A: ResNet defines each block as F(x) = x + G(x) instead of F(x) = G(x). The gradient at the input is ∂L/∂x = ∂L/∂F · (1 + ∂G/∂x). The "+1" term gives gradients a direct path back through the identity shortcut, regardless of how small ∂G/∂x becomes — even if G contributes zero gradient, signal still flows through unchanged. This is why 152-layer ResNets train from scratch while equally deep plain networks don't. Transformers use the same trick: every attention and FFN block is wrapped in a residual connection.
 
 **Q: What is gradient checkpointing and when would you use it?**  
-A: In standard backprop, all intermediate activations from the forward pass are cached for use in the backward pass — memory scales with model depth × batch size × sequence length. Gradient checkpointing trades compute for memory: only activations at "checkpoint" boundaries are saved; intermediate activations between checkpoints are recomputed during backward pass. For a model with N layers and checkpoints every k layers, memory reduces from O(N) to O(√N) activations (with optimal checkpoint spacing). The tradeoff is ~33% more FLOPs (each layer forward-pass runs ~1.33× on average). Use it when: (1) fine-tuning large models that don't fit in GPU memory, (2) training with very long sequences (activation memory grows with sequence length), (3) training with large batch sizes. For a 70B model fine-tuned on 4K sequences, activations alone can be 50–100GB without checkpointing; with checkpointing, this drops to ~5–10GB.
+A: Standard backprop caches every intermediate activation from the forward pass for reuse in the backward pass — memory scales with depth × batch size × sequence length. Gradient checkpointing trades compute for memory: only activations at checkpoint boundaries are saved, and the rest are recomputed during the backward pass. This cuts activation memory substantially at the cost of roughly 30% more compute. Use it when fine-tuning large models that don't fit in GPU memory, or training with long sequences/large batches where activation memory dominates.

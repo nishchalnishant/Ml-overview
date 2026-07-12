@@ -52,7 +52,6 @@ Deep learning is just software delivery with:
 | [components/08-regularization.md](components/08-regularization.md) | Dropout, batch norm, weight decay, early stopping |
 | [components/03-weight-initialization.md](components/03-weight-initialization.md) | Xavier, He, why bad init breaks deep nets |
 | [components/11-transformers.md](components/11-transformers.md) | Transformer architecture end to end, incl. MoE FFN |
-| [components/13-distributed-training-and-parallelism.md](components/13-distributed-training-and-parallelism.md) | Data/tensor/pipeline parallelism, ZeRO |
 | [components/18-llm-serving.md](components/18-llm-serving.md) | LLM inference serving, batching, KV cache |
 | [methods/](methods/) | Application areas: NLP, CV, time series |
 | [methods/03-computer-vision.md](methods/03-computer-vision.md) | CNNs, ViTs, object detection |

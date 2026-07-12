@@ -11,11 +11,11 @@ tags: [deeplearning, ml, components-model-compression]
 
 ## The Deployment Gap
 
-**The problem**: a model is trained on a cluster of GPUs with hundreds of gigabytes of memory. It needs to run on a smartphone, inside a browser, or with a 20ms latency budget. A 70B parameter model at float32 is 280GB — it cannot even load on a single server GPU, let alone a phone.
+**The problem**: a model trained on a GPU cluster with hundreds of GB of memory must run on a phone, in a browser, or under a 20ms latency budget. A 70B model at float32 is 280GB — too big for a single server GPU, let alone a phone.
 
-**The core insight**: trained models are massively over-specified for inference. During training, high numerical precision prevents gradient noise from accumulating over millions of updates. During inference, you forward-pass once — small precision errors have minimal compound effect. Similarly, not all weights matter equally; many can be removed or replaced with cheaper approximations without significantly changing outputs.
+**The core insight**: trained models are over-specified for inference. Training needs high precision so gradient noise doesn't accumulate over millions of updates; inference is a single forward pass, so small precision errors barely compound. Likewise, not all weights matter equally — many can be removed or approximated with little effect on output.
 
-Model compression is the engineering problem of finding the minimum representation that preserves task-critical behavior.
+Model compression finds the minimum representation that preserves task-critical behavior.
 
 ---
 

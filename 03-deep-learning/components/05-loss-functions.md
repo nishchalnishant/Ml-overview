@@ -11,23 +11,23 @@ tags: [deeplearning, ml, components-loss-functions]
 
 ## Why the Loss Function Choice Matters
 
-**The problem**: gradient descent can only optimize what the loss measures. If the loss is a poor proxy for what you actually care about (correct predictions, calibrated probabilities, robust embeddings), the model optimizes hard for the wrong thing. A well-trained model on the wrong loss is a well-trained failure.
+**The problem**: gradient descent only optimizes what the loss measures. If the loss is a poor proxy for what you actually care about, the model optimizes hard for the wrong thing.
 
-**The core insight**: pick the loss that encodes the probabilistic model you actually want. For binary classification you want calibrated probabilities — cross-entropy is the log-likelihood of a Bernoulli model. For regression you want to minimize squared residuals — MSE is the negative log-likelihood of a Gaussian. The loss is not arbitrary arithmetic; it encodes your beliefs about the data-generating process.
+**The core insight**: pick the loss that encodes the probabilistic model you want. For binary classification you want calibrated probabilities — cross-entropy is the log-likelihood of a Bernoulli model. For regression you want to minimize squared residuals — MSE is the negative log-likelihood of a Gaussian. The loss encodes your beliefs about the data-generating process, not arbitrary arithmetic.
 
 ---
 
 ## Binary Cross-Entropy (BCE)
 
-**The problem**: for binary classification, you need the model to output a probability $\hat{y} \in (0,1)$ and you need a loss that penalizes wrong confident predictions harshly.
+**The problem**: for binary classification, the model outputs a probability $\hat{y} \in (0,1)$ and the loss must penalize confident wrong predictions harshly.
 
-**The core insight**: use log-likelihood. The model asserts $P(y=1) = \hat{y}$. The log-probability of the observed label under this model is $y \log \hat{y} + (1-y) \log(1-\hat{y})$. Maximizing this (minimizing its negation) is maximum likelihood estimation for a Bernoulli model.
+**The core insight**: use log-likelihood. The model asserts $P(y=1) = \hat{y}$. Maximizing the log-probability of the observed label (minimizing its negation) is maximum likelihood estimation for a Bernoulli model.
 
 **The mechanics**:
 
 $$L = -\frac{1}{m} \sum_{i=1}^{m} \left[ y_i \log(\hat{y}_i) + (1-y_i) \log(1-\hat{y}_i) \right]$$
 
-When the model predicts $\hat{y} \approx 0$ for a true label of 1, $\log(\hat{y}) \to -\infty$. The loss is unbounded for confident wrong predictions. This strong penalty drives the model away from confident errors.
+When the model predicts $\hat{y} \approx 0$ for a true label of 1, $\log(\hat{y}) \to -\infty$ — the loss is unbounded for confident wrong predictions.
 
 **What breaks**: if you compute `log(sigmoid(logits))` directly, numerical underflow occurs when logits are very negative. Use `BCEWithLogitsLoss`, which combines sigmoid and log in a numerically stable form:
 
@@ -40,9 +40,9 @@ F.binary_cross_entropy(torch.sigmoid(logits), targets)  # unstable at extremes
 
 ## Multiclass Cross-Entropy
 
-**The problem**: multiple mutually exclusive classes. The model outputs one probability per class; they must sum to 1. You need a loss that penalizes assigning low probability to the correct class.
+**The problem**: multiple mutually exclusive classes. The model outputs one probability per class, summing to 1, and the loss must penalize low probability on the correct class.
 
-**The core insight**: same maximum likelihood idea. The model asserts a categorical distribution over $K$ classes. The log-likelihood of the correct class under this distribution is $\log \hat{y}_k$ where $k$ is the true class. Minimize the negative.
+**The core insight**: same maximum likelihood idea, now with a categorical distribution over $K$ classes. The log-likelihood of the correct class is $\log \hat{y}_k$ where $k$ is the true class. Minimize the negative.
 
 **The mechanics**:
 
@@ -63,31 +63,29 @@ loss = ce(logits, targets)  # targets are class indices, NOT one-hot, NOT softma
 
 ## Weighted Cross-Entropy and Focal Loss
 
-**The problem**: class imbalance. If 95% of examples are class 0, the model minimizes loss by predicting class 0 for everything. The 5% minority class is ignored.
+**The problem**: class imbalance. If 95% of examples are class 0, the model minimizes loss by predicting class 0 for everything, and the minority class is ignored.
 
 **Weighted cross-entropy**: assign higher loss weight to underrepresented classes:
 
 $$L = -\frac{1}{m} \sum_{i} w_{k_i} \log \hat{y}_{i,k_i}, \quad w_c = \frac{N}{K \cdot N_c}$$
 
-Scales each example's contribution inversely with class frequency. Easy examples (majority class) and hard examples (minority class) get re-weighted at the class level.
+Scales each example's contribution inversely with class frequency, but corrects for label frequency, not prediction difficulty — easy majority-class examples the model already predicts correctly still contribute loss.
 
-**What breaks**: class weights correct for label frequency but not for prediction difficulty. Easy majority-class examples that the model already predicts correctly still contribute loss.
-
-**Focal Loss**: addresses this — down-weights easy examples regardless of class, up-weights hard ones:
+**Focal Loss**: down-weights easy examples regardless of class, up-weights hard ones:
 
 $$L_\text{focal} = -\frac{1}{m} \sum_i \alpha_t (1 - p_t)^\gamma \log(p_t)$$
 
 where $p_t = \hat{y}$ if $y=1$, else $1-\hat{y}$. The factor $(1-p_t)^\gamma$ is near zero when $p_t$ is high (easy, already correct) and near one when $p_t$ is low (hard, wrong). $\gamma = 2$ is typical.
 
-**What breaks**: focal loss requires tuning $\gamma$. Too high and the model ignores well-classified examples entirely, potentially harming calibration. It also makes training noisier because confident-wrong hard examples dominate gradients.
+**What breaks**: requires tuning $\gamma$. Too high and the model ignores well-classified examples, harming calibration, and training gets noisier as confident-wrong hard examples dominate gradients.
 
 ---
 
 ## Label Smoothing
 
-**The problem**: a model trained with hard one-hot labels is incentivized to push logits to $\pm\infty$ — the correct class's logit should be as large as possible. This produces overconfident models that generalize poorly and are badly calibrated.
+**The problem**: a model trained with hard one-hot labels is incentivized to push logits to $\pm\infty$, producing overconfident, badly calibrated models.
 
-**The core insight**: soften the target distribution slightly. Instead of 100% probability on the correct class, assign $1-\epsilon$ to the correct class and $\epsilon/K$ to every other class. The model can never fully satisfy the target, preventing overconfidence.
+**The core insight**: soften the target distribution. Instead of 100% probability on the correct class, assign $1-\epsilon$ to the correct class and $\epsilon/K$ to every other class, so the model can never fully satisfy the target.
 
 **The mechanics**:
 
@@ -105,9 +103,9 @@ ce = nn.CrossEntropyLoss(label_smoothing=0.1)
 
 ## MSE
 
-**The problem**: for regression, you want to penalize predictions that are far from the true value. The loss should be zero when prediction is exact and grow as prediction moves away.
+**The problem**: for regression, the loss should be zero at an exact prediction and grow as the prediction moves away.
 
-**The core insight**: squared error is the negative log-likelihood of a Gaussian noise model. If you believe the true value is your prediction plus Gaussian noise, MSE is the principled loss.
+**The core insight**: squared error is the negative log-likelihood of a Gaussian noise model — the principled loss if you believe true value = prediction + Gaussian noise.
 
 **The mechanics**:
 
@@ -115,7 +113,7 @@ $$L = \frac{1}{m} \sum_i (y_i - \hat{y}_i)^2$$
 
 Gradient scales linearly with error: $\partial L / \partial \hat{y}_i = -2(y_i - \hat{y}_i)$. Large errors produce large gradients — the optimizer works hardest on the worst predictions.
 
-**What breaks**: large errors produce quadratically large loss. A single outlier with $|y - \hat{y}| = 10$ contributes 100 to the loss — potentially dominating the entire batch. If your data has heavy-tailed noise or outliers, MSE trains a model that fits outliers at the expense of typical examples.
+**What breaks**: large errors produce quadratically large loss. A single outlier with $|y - \hat{y}| = 10$ contributes 100 to the loss, potentially dominating the batch and pulling the model to fit outliers over typical examples.
 
 ---
 
@@ -123,13 +121,13 @@ Gradient scales linearly with error: $\partial L / \partial \hat{y}_i = -2(y_i -
 
 **The problem**: MSE is too sensitive to outliers — a few bad examples dominate training.
 
-**The core insight**: use absolute error. Linear penalty is robust to large errors — a $10\times$ larger error contributes only $10\times$ more loss, not $100\times$.
+**The core insight**: use absolute error. A linear penalty is robust to large errors — a $10\times$ larger error contributes only $10\times$ more loss, not $100\times$.
 
 **The mechanics**:
 
 $$L = \frac{1}{m} \sum_i |y_i - \hat{y}_i|$$
 
-**What breaks**: the gradient of MAE is constant ($\pm 1$) regardless of error magnitude. Near the optimum, where errors are small, the gradient never shrinks — updates remain large even when the model is nearly correct. This causes oscillation near convergence and slow final-stage training.
+**What breaks**: the gradient of MAE is constant ($\pm 1$) regardless of error magnitude. Near the optimum the gradient never shrinks, so updates stay large even when the model is nearly correct — causing oscillation near convergence.
 
 ---
 
@@ -145,7 +143,7 @@ $$L_\delta = \begin{cases} \frac{1}{2}(y - \hat{y})^2 & |y - \hat{y}| \leq \delt
 
 Smooth at the transition point $\delta$. Default $\delta = 1$.
 
-**What breaks**: $\delta$ must be tuned to match the scale of your residuals. If $\delta$ is too small relative to typical errors, Huber behaves like MAE everywhere. If too large, it behaves like MSE and inherits its outlier sensitivity.
+**What breaks**: $\delta$ must match the scale of your residuals. Too small and Huber behaves like MAE everywhere; too large and it behaves like MSE, inheriting its outlier sensitivity.
 
 | Loss | Gradient | Outlier sensitivity | Best use |
 | :--- | :--- | :--- | :--- |
@@ -157,33 +155,33 @@ Smooth at the transition point $\delta$. Default $\delta = 1$.
 
 ## Triplet Loss
 
-**The problem**: for metric learning (face recognition, image retrieval, search ranking), you want embeddings where similar items are close and dissimilar items are far apart. Classification losses cannot express this because they only care about discrete class membership, not the geometry of the embedding space.
+**The problem**: for metric learning (face recognition, image retrieval, search ranking), you want embeddings where similar items are close and dissimilar items are far apart. Classification losses can't express this — they only care about discrete class membership, not embedding geometry.
 
-**The core insight**: for each training example (anchor $a$), pick a similar example (positive $p$, same identity) and a dissimilar one (negative $n$, different identity). Require the anchor-positive distance to be smaller than the anchor-negative distance by at least a margin.
+**The core insight**: for each anchor $a$, pick a similar example (positive $p$) and a dissimilar one (negative $n$). Require the anchor-positive distance to be smaller than the anchor-negative distance by at least a margin.
 
 **The mechanics**:
 
 $$L = \max(0, \; d(a, p) - d(a, n) + \text{margin})$$
 
-Loss is zero when the positive is already close enough relative to the negative. The margin prevents trivial satisfaction where $d(a,p) \approx d(a,n) \approx 0$.
+Loss is zero once the positive is close enough relative to the negative. The margin prevents trivial satisfaction where $d(a,p) \approx d(a,n) \approx 0$.
 
-**What breaks**: with random triplet selection, most triplets become easy (the negative is already far enough) after a few epochs, and the loss is zero — no gradient flows and training stalls. Hard negative mining selects the closest negatives, providing maximum learning signal, but very hard negatives can be mislabeled outliers that corrupt training. Semi-hard negatives (farther than positive but within margin) are more stable.
+**What breaks**: with random triplet selection, most triplets become easy after a few epochs and the loss goes to zero — no gradient flows and training stalls. Hard negative mining (closest negatives) fixes this but can surface mislabeled outliers. Semi-hard negatives (farther than positive but within margin) are more stable.
 
 ---
 
 ## Contrastive Loss (InfoNCE / SimCLR)
 
-**The problem**: triplet loss requires explicit positive/negative pairs, which must be curated. In self-supervised learning, you want to learn representations without labels.
+**The problem**: triplet loss needs curated positive/negative pairs. In self-supervised learning you want representations without labels.
 
-**The core insight**: create two augmented views of the same input; they should be similar. All other examples in the batch are negatives. Maximize similarity between the two views of the same input while minimizing similarity to all others.
+**The core insight**: create two augmented views of the same input; they should be similar, while all other examples in the batch act as negatives.
 
 **The mechanics**:
 
 $$L = -\log \frac{\exp(\text{sim}(z_i, z_j) / \tau)}{\sum_{k \neq i} \exp(\text{sim}(z_i, z_k) / \tau)}$$
 
-Temperature $\tau$ controls sharpness. Low $\tau$ makes the distribution peaked (hard comparisons); high $\tau$ flattens it (soft comparisons).
+Temperature $\tau$ controls sharpness: low $\tau$ makes comparisons harder (peaked distribution), high $\tau$ softens them.
 
-**What breaks**: requires a large batch to have enough negatives. With a small batch, the model can learn trivial solutions (e.g., mapping all inputs to the same point). Larger batches are essential or you need memory banks of past embeddings.
+**What breaks**: needs a large batch for enough negatives — with a small batch the model can learn trivial solutions (mapping all inputs to the same point).
 
 ---
 
@@ -202,7 +200,7 @@ Used in:
 - Knowledge distillation: train student to match teacher's output distribution
 - RLHF: KL penalty keeping policy close to reference model
 
-**What breaks**: $D_{KL}(P \| Q) \to \infty$ if $Q(x) = 0$ for some $x$ where $P(x) > 0$. The $Q$ distribution must have support wherever $P$ does, or the divergence is undefined. In practice, add small $\epsilon$ to avoid log(0).
+**What breaks**: $D_{KL}(P \| Q) \to \infty$ if $Q(x) = 0$ for some $x$ where $P(x) > 0$. In practice, add a small $\epsilon$ to avoid log(0).
 
 ---
 

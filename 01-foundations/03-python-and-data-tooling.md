@@ -166,32 +166,11 @@ df.loc[df.revenue > 0, "flag"] = 1
 
 ## 3. Polars: Fast DataFrames for the Modern ML Stack
 
-Polars is a DataFrame library written in Rust with a **lazy, query-optimizing execution engine**. The API looks Pandas-like, but execution is closer to a SQL query planner with automatic multi-threading, Apache Arrow memory layout, and predicate/projection pushdown.
+Polars is a DataFrame library written in Rust with a **lazy, query-optimizing execution engine**. The API looks Pandas-like, but execution is closer to a SQL query planner: automatic multi-threading, Apache Arrow memory layout, and predicate/projection pushdown.
 
-### 3.1 Eager vs. Lazy Execution
+**Eager vs. lazy** is the core distinction interviewers probe: `pl.read_csv` runs immediately like Pandas. `pl.scan_csv(...).filter(...).select(...).collect()` instead builds a query plan first — Polars can push filters into the file scan and skip unused columns before reading anything, which is why it beats Pandas on large aggregations (often 5-10x on multi-GB groupbys).
 
 ```python
-import polars as pl
-
-# ── Eager API (runs immediately, like Pandas) ──────────────────────────────
-df = pl.read_csv("data.csv")
-
-result = (
-    df
-    .filter(pl.col("revenue") > 0)
-    .group_by("segment")
-    .agg([
-        pl.col("revenue").sum().alias("total_revenue"),
-        pl.col("revenue").mean().alias("avg_revenue"),
-        pl.len().alias("count"),
-    ])
-    .sort("total_revenue", descending=True)
-)
-
-# ── Lazy API (builds a query plan, optimize, then run) ────────────────────
-# The lazy API is the key differentiator: Polars optimizes the entire query
-# before executing — it can reorder filters, push predicates into the scan,
-# and avoid loading columns that aren't needed.
 result = (
     pl.scan_csv("data.csv")           # LazyFrame, nothing read yet
     .filter(pl.col("revenue") > 0)    # predicate pushdown → skips rows at read time
@@ -200,105 +179,11 @@ result = (
     .agg(pl.col("revenue").sum())
     .collect()                        # NOW executes the optimized query
 )
-
-# To see the optimized plan before executing
-print(result.explain(optimized=True))
 ```
 
-### 3.2 Expression API — The Core Mental Model
+For data that doesn't fit in RAM, `collect(streaming=True)` processes in chunks at constant memory instead of materializing the full result.
 
-Polars uses **expressions** that describe transformations on columns — they compose, parallelize, and optimize automatically:
-
-```python
-import polars as pl
-
-df = pl.DataFrame({
-    "name": ["Alice", "Bob", "Carol", "Dave"],
-    "score": [85, 72, 91, 68],
-    "grade": ["B", "C", "A", "D"],
-})
-
-# Multiple column transformations in a single pass (parallelized)
-result = df.with_columns([
-    pl.col("score").rank(descending=True).alias("rank"),
-    (pl.col("score") - pl.col("score").mean()) / pl.col("score").std()
-        .alias("z_score"),
-    pl.col("grade").is_in(["A", "B"]).alias("passing"),
-])
-
-# Conditional column (like np.where)
-df = df.with_columns(
-    pl.when(pl.col("score") >= 90)
-    .then(pl.lit("excellent"))
-    .when(pl.col("score") >= 70)
-    .then(pl.lit("good"))
-    .otherwise(pl.lit("needs_work"))
-    .alias("tier")
-)
-
-# Window functions (like SQL OVER)
-df = df.with_columns(
-    pl.col("score").rank().over("grade").alias("rank_within_grade")
-)
-```
-
-### 3.3 Out-of-Core Processing with Streaming
-
-For datasets that don't fit in RAM, use `scan_*` with `streaming=True`:
-
-```python
-# Process a 50GB CSV without loading it all into memory
-result = (
-    pl.scan_csv("/data/huge_events.csv")
-    .filter(pl.col("event_type") == "purchase")
-    .group_by("user_id")
-    .agg(pl.col("amount").sum())
-    .collect(streaming=True)   # processes in chunks, constant memory
-)
-
-# Scan Parquet (even faster — native column pruning + row group skipping)
-result = (
-    pl.scan_parquet("/data/events/*.parquet")
-    .filter(pl.col("date") >= "2024-01-01")
-    .select(["user_id", "amount"])
-    .collect()
-)
-```
-
-### 3.4 Polars vs. Pandas Performance Comparison
-
-```python
-import pandas as pd
-import polars as pl
-import numpy as np
-import time
-
-# Generate 5M row dataset
-n = 5_000_000
-data = {
-    "user_id": np.random.randint(0, 100_000, n),
-    "value": np.random.randn(n),
-    "category": np.random.choice(["A", "B", "C", "D"], n),
-}
-
-# Pandas groupby
-df_pd = pd.DataFrame(data)
-t0 = time.time()
-r_pd = df_pd.groupby(["user_id", "category"])["value"].agg(["mean", "sum", "count"])
-print(f"Pandas: {time.time()-t0:.2f}s")  # ~2-4s
-
-# Polars groupby (same operation)
-df_pl = pl.DataFrame(data)
-t0 = time.time()
-r_pl = df_pl.group_by(["user_id", "category"]).agg([
-    pl.col("value").mean().alias("mean"),
-    pl.col("value").sum().alias("sum"),
-    pl.len().alias("count"),
-])
-print(f"Polars: {time.time()-t0:.2f}s")  # ~0.2-0.5s — 5-10x faster
-```
-
-### 3.5 When to Use Which
+### When to Use Which
 
 | Situation | Use |
 |---|---|
@@ -308,10 +193,6 @@ print(f"Polars: {time.time()-t0:.2f}s")  # ~0.2-0.5s — 5-10x faster
 | PyTorch DataLoader | **NumPy arrays** or **PyTorch tensors** |
 | SQL-like heavy aggregations | **Polars** — query optimizer wins big |
 | Data doesn't fit in RAM | **Polars streaming** or **Dask** |
-
----
-
-## 4. SciPy: The Numerical Toolkit Above NumPy
 
 ---
 

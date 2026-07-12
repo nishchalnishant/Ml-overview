@@ -1,599 +1,489 @@
 # Recommendation Engine
 
-## 1. Problem Framing & Requirement Gathering
+## 1. Problem Framing
 
-Design a recommendation engine for EA's game store / in-game content surfaces (e.g., EA App storefront, in-game item shop, "recommended for you" rails, next-game-to-play carousels across Battlefield, The Sims, FIFA/EA FC franchises).
+Design a recommendation engine for EA's game store / in-game content surfaces (EA App storefront, item shop, "recommended for you" rails, next-game carousels across Battlefield, Sims, FIFA/EA FC).
 
-- **Business goal**: increase conversion (purchase/install/engagement), increase session length, surface long-tail content (DLC, cosmetics, indie titles) that organic browsing misses.
-- **Core ML problem**: given a player (user), context (surface, time, device), and a catalog of items (games, DLC, bundles, cosmetic items, battle-pass content), return a ranked list of items to display.
-- **Two-stage system**: candidate generation (retrieval) narrows millions of items to hundreds, ranking scores/orders those to a final top-K (typically 10-50 shown).
-- **Cross-cutting concerns**: cold-start (new players, new items/DLC drops), real-time personalization (react to last 5 minutes of play/purchase behavior), freshness (new content must surface within minutes of catalog publish), fairness/diversity (don't just recommend the same AAA titles to everyone).
+- **Goal**: increase conversion, session length, and surface long-tail content (DLC, cosmetics) that organic browsing misses.
+- **Core problem**: given a player, context (surface, time, device), and catalog (games, DLC, bundles, cosmetics), return a ranked list of items.
+- **Two-stage system**: candidate generation (retrieval) narrows millions of items to hundreds; ranking scores/orders those to a top-K (10-50 shown).
+- **Cross-cutting concerns**: cold-start (new players/items), real-time personalization (react to last 5 min of behavior), freshness (new content surfaces within minutes), diversity (avoid recommending the same AAA titles to everyone).
 
 ## 2. Functional Requirements
 
-- FR1: Return personalized ranked item list for a given `(user_id, surface, context)` in real time.
-- FR2: Support multiple surfaces: store homepage, item shop, post-game-end carousel, email/push batch recommendations.
-- FR3: Support candidate generation via multiple retrieval sources (two-tower embedding ANN, popularity/trending, collaborative filtering, editorial/merchandising overrides).
-- FR4: Rank blended candidates with a unified ranking model incorporating pointwise CTR/CVR prediction.
-- FR5: Handle cold-start for new users (no history) and new items (no interactions) via content-based fallback.
-- FR6: Incorporate real-time signals (last N minutes of clicks/purchases/game sessions) into personalization within the same session.
-- FR7: Support exclusion rules (already-owned items, region-locked content, age-rating filters, parental controls).
-- FR8: Support experimentation — every recommendation response is tied to an experiment/variant ID for A/B analysis.
-- FR9: Provide explainability metadata for merchandising/business teams (why was this item recommended).
-- FR10: Batch recommendation generation for offline channels (push notifications, email digests) at scale.
+- FR1: Personalized ranked item list for `(user_id, surface, context)` in real time.
+- FR2: Multiple surfaces — store homepage, item shop, post-game carousel, email/push batch.
+- FR3: Multi-source candidate generation — two-tower ANN, popularity/trending, collaborative filtering, editorial overrides.
+- FR4: Unified ranking model with pointwise CTR/CVR prediction.
+- FR5: Cold-start handling for new users/items via content-based fallback.
+- FR6: Real-time signals (last N minutes of clicks/purchases) folded into personalization within-session.
+- FR7: Exclusion rules — owned items, region-locked content, age ratings, parental controls.
+- FR8: Every response tagged with an experiment/variant ID for A/B analysis.
+- FR9: Explainability metadata for merchandising (why an item was recommended).
+- FR10: Batch generation for offline channels (push, email) at scale.
 
-## 3. Non-Functional Requirements (latency, availability, throughput, consistency, cost)
+## 3. Non-Functional Requirements
 
 | Dimension | Target |
 |---|---|
-| Latency (p50) | 40 ms end-to-end (retrieval + ranking + filtering) |
-| Latency (p99) | 150 ms end-to-end |
-| Availability | 99.95% (store-facing; revenue-impacting) |
-| Throughput | 60K QPS peak (global, across surfaces) |
-| Consistency | Eventual consistency acceptable for features (seconds-minutes staleness); strong consistency required for "already owned" exclusion (must never recommend owned item) |
-| Cost ceiling | Serving cost target < $0.0004 per recommendation request (blended CPU+GPU+cache) |
-| Freshness | New catalog items discoverable in ranking within 15 minutes of publish |
-| Data durability | Feature store & training data: 99.999999999% (11 nines, object storage) |
+| Latency (p50 / p99) | 40 ms / 150 ms end-to-end |
+| Availability | 99.95% (revenue-impacting) |
+| Throughput | 60K QPS peak, global |
+| Consistency | Eventual for features (secs-min staleness); strong for "already owned" exclusion |
+| Cost ceiling | < $0.0004 per recommendation request |
+| Freshness | New catalog items rankable within 15 min of publish |
+| Data durability | Feature store & training data: 11 nines (object storage) |
 
-## 4. Clarifying Questions an interviewer would expect you to ask
+## 4. Clarifying Questions
 
 1. Which surfaces are in scope — store front page only, or also in-game overlays and push/email?
-2. What's the catalog size — thousands (full games) or millions (cosmetic items, bundles, UGC)?
-3. Is this single-title (e.g., only FIFA Ultimate Team) or cross-title (recommend across EA's whole portfolio)?
-4. What's the business objective to optimize — purchase conversion, revenue, engagement/retention, or a blended objective?
-5. Do we need real-time in-session adaptation (react to last click) or is daily-batch personalization sufficient?
-6. Are there legal/compliance constraints — loot box regulations, age-based content filtering, regional purchase restrictions?
-7. Is there an existing feature store / data platform to integrate with, or greenfield?
-8. What's acceptable staleness for "already purchased" exclusion — can we tolerate a stale cache for a few seconds?
-9. Do we need to support cold-start for brand-new game launches with zero interaction history?
-10. What's the traffic shape — is there a known peak (game launch day, holiday sale) we must provision for?
+2. Catalog size — thousands (full games) or millions (cosmetics, bundles, UGC)?
+3. Single-title or cross-title (recommend across EA's whole portfolio)?
+4. Business objective — conversion, revenue, engagement/retention, or blended?
+5. Real-time in-session adaptation required, or is daily-batch sufficient?
+6. Compliance constraints — loot box regulations, age filtering, regional restrictions?
+7. Existing feature store/data platform to integrate with, or greenfield?
+8. Acceptable staleness for "already purchased" exclusion?
+9. Cold-start support needed for brand-new game launches with zero history?
+10. Known traffic peaks (launch day, holiday sale) to provision for?
 
 ## 5. Assumptions
 
-1. 40M MAU across EA App storefront + top 5 live-service titles' in-game shops.
-2. Catalog: 500K sellable items (base games, DLC, bundles, cosmetics) + 50K "content" recommendable objects (game modes, event pages).
-3. Average user generates 25 interaction events/day (view, click, purchase, session-start).
-4. Peak QPS is 5x average due to regional daytime overlap + promotional events (holiday sale, new title launch).
-5. Two-tower retrieval model: user tower + item tower, 128-dim embeddings.
-6. Ranking model: gradient-boosted trees (GBDT) baseline, migrating to deep ranking (DLRM-style) for mature surfaces.
-7. Real-time personalization window: last 30 minutes of session behavior, sourced from streaming feature aggregation.
-8. Cold-start new items: ~2,000 new SKUs/week (cosmetics, weekly drops); new user cold-start: ~150K new accounts/day.
-9. Infra: multi-region (US-East, US-West, EU-West, AP-Southeast) to meet latency SLAs for global player base.
-10. Existing EA data platform provides Kafka-based event bus and an offline data lake (S3/Parquet) — reused, not rebuilt.
+1. 40M MAU across EA App + top 5 live-service titles' in-game shops.
+2. Catalog: 500K sellable items + 50K recommendable content objects.
+3. Avg user generates 25 interaction events/day.
+4. Peak QPS is 5x average (regional overlap + promo events).
+5. Two-tower retrieval: user tower + item tower, 128-dim embeddings.
+6. Ranking: GBDT baseline, migrating to deep ranking (DLRM-style) for mature surfaces.
+7. Real-time personalization window: last 30 min of session behavior.
+8. ~2,000 new SKUs/week; ~150K new accounts/day.
+9. Multi-region (US-East, US-West, EU-West, AP-Southeast) for global latency SLAs.
+10. Existing EA data platform (Kafka + S3/Parquet lake) is reused, not rebuilt.
 
-## 6. Capacity Estimation (QPS, storage, model size, GPU/CPU counts, back-of-envelope math shown)
+## 6. Capacity Estimation
 
-**Traffic**
-- 40M MAU, avg 6 recommendation-surface views/day/user → 240M requests/day.
-- Avg QPS = 240M / 86,400s ≈ 2,780 QPS.
-- Peak QPS (5x avg, holiday sale + launch day) ≈ **14,000 QPS**; provision headroom to **20,000 QPS** burst.
-- Batch (push/email) recommendation generation: 40M users x 1/day = 40M inferences, run as offline batch over ~2 hrs window → 40M/7200s ≈ 5,500 QPS-equivalent batch throughput (separate pipeline, not p99-sensitive).
+**Traffic**: 40M MAU x 6 views/day → 240M requests/day → avg ≈ 2,780 QPS. Peak (5x) ≈ **14,000 QPS**, provision to 20,000 QPS burst. Batch channel: 40M users/day over a 2hr window ≈ 5,500 QPS-equivalent (separate, non-p99-sensitive pipeline).
 
-**Candidate generation (retrieval) cost**
-- Catalog embeddings: 550K items x 128 dims x 4 bytes (fp32) = 550,000 x 512 bytes ≈ 282 MB — fits comfortably in-memory per ANN shard.
-- User embedding computed online per request (two-tower user side): small MLP, ~200K params, inference < 2 ms on CPU.
-- ANN index (HNSW): with 550K vectors, memory ≈ 282 MB (vectors) + graph overhead (~1.5-2x) ≈ 550-650 MB per replica. Fits on a single node; replicate 6x per region for redundancy + throughput.
+**Retrieval**: catalog embeddings 550K x 128-dim x 4B ≈ 282 MB, fits in memory per shard. User embedding computed online (~200K param MLP, <2ms CPU). HNSW index ≈ 550-650 MB/replica; replicate 6x per region.
 
-**Ranking model**
-- Blended candidate set per request: ~300 candidates (200 ANN + 50 popularity/trending + 50 collaborative filtering) after de-dup.
-- GBDT ranking: ~500 trees, depth 6 → scoring 300 candidates x 500 trees ≈ 150K tree traversals/request; CPU inference ≈ 8-12 ms/request (batched).
-- Deep ranking (DLRM) variant: ~15M parameters (dense + embedding tables for categorical features), fp16 ≈ 30 MB — fits on single GPU (T4/A10) with room for batching; GPU inference batched (32-64 requests/batch) ≈ 6-10 ms/batch at p99.
+**Ranking**: ~300 blended candidates/request (200 ANN + 50 popularity + 50 CF). GBDT (~500 trees) ≈ 8-12ms/request CPU. DLRM (~15M params, fp16 ≈ 30MB) fits one GPU; batched inference (32-64/batch) ≈ 6-10ms/batch p99.
 
-**GPU/CPU footprint (per region, at peak 20K QPS burst)**
-- Ranking (GPU path): assume GPU node handles ~1,500 QPS at batch size 32, ~10ms/batch → 20,000/1,500 ≈ **14 GPU nodes** (A10G class) per region, x4 regions ≈ 56 GPU nodes globally + 30% headroom ≈ **~75 GPU nodes**.
-- Retrieval (CPU/ANN path): each ANN shard handles ~3,000 QPS → 20,000/3,000 ≈ 7 nodes/region x 4 regions ≈ **28 CPU nodes** (16 vCPU each).
-- Feature store online lookups: Redis cluster, ~20K QPS x ~3 feature lookups/request = 60K ops/sec → single Redis cluster (6 shards, replicated) handles this comfortably (Redis does 100K+ ops/sec/shard).
+**Fleet (per region, 20K QPS burst)**: ranking GPU ≈ 14 nodes/region x 4 + 30% headroom ≈ **~75 GPU nodes** globally. Retrieval CPU/ANN ≈ 7 nodes/region x 4 ≈ **28 CPU nodes**. Feature store: Redis cluster easily absorbs ~60K ops/sec.
 
-**Storage**
-- Offline training data: 240M events/day x 500 bytes/event (avg, Parquet compressed) ≈ 120 GB/day raw → ~43 TB/year (pre-compaction); with columnar compression (~4x) ≈ 11 TB/year effective.
-- Feature store offline (point-in-time tables): ~2 TB (rolling 90-day window of user/item features).
-- Online feature store (Redis/DynamoDB): 40M users x ~2 KB/user feature vector = 80 GB; 550K items x ~1 KB = 0.55 GB. Total online footprint ≈ **~85 GB**, trivially fits in-memory cluster.
-- Model artifacts: two-tower (~50 MB), GBDT (~20 MB), DLRM (~30 MB) — negligible storage, but versioned (100s of versions/year) ≈ low GB scale.
+**Storage**: training data ≈ 120GB/day raw → ~11TB/year compressed. Offline feature store ≈ 2TB (90-day window). Online feature store (Redis/DynamoDB) ≈ 85GB total. Model artifacts negligible (tens of MB, versioned).
 
-## 7. High-Level Architecture (with an ASCII diagram showing all major components and data flow)
+## 7. High-Level Architecture
 
 ```
-                                   ┌─────────────────────────┐
-                                   │   Client / Game Client   │
-                                   │ (Store UI, in-game shop) │
-                                   └────────────┬─────────────┘
-                                                │ HTTPS/gRPC
-                                                ▼
-                                   ┌─────────────────────────┐
-                                   │   API Gateway / Edge     │
-                                   │ (authn, rate limit, LB)  │
-                                   └────────────┬─────────────┘
-                                                ▼
-                                   ┌─────────────────────────┐
-                                   │  Recommendation Service  │
-                                   │  (orchestrator, gRPC)    │
-                                   └──┬───────┬────────┬──────┘
-                    ┌─────────────────┘       │        └───────────────────┐
-                    ▼                         ▼                            ▼
-         ┌────────────────────┐   ┌─────────────────────┐     ┌────────────────────┐
-         │ Candidate Gen Svc  │   │  Feature Store       │     │ Business Rules /   │
-         │ - Two-tower ANN    │◄──┤  (Online: Redis)     │     │ Exclusion Filter   │
-         │ - Popularity/Trend │   │  (Offline: Parquet)  │     │ (owned items, geo, │
-         │ - Collaborative FN │   └──────────┬───────────┘     │  age rating)       │
-         └─────────┬──────────┘              │                └─────────┬──────────┘
-                   │ candidates (~300)        │ features                 │
-                   ▼                          ▼                          ▼
-         ┌─────────────────────────────────────────────────────────────────┐
-         │                     Ranking Service (GBDT / DLRM)                │
-         │              scores candidates, applies diversity/MMR           │
-         └───────────────────────────────┬───────────────────────────────┘
-                                          ▼
-                                ┌───────────────────┐
-                                │  Response Assembly │
-                                │  (top-K, metadata, │
-                                │   experiment tag)  │
-                                └─────────┬──────────┘
-                                          ▼
-                                   back to Client
+Client (Store UI / in-game shop)
+        │ HTTPS/gRPC
+        ▼
+API Gateway (authn, rate limit, LB)
+        ▼
+Recommendation Orchestrator ──┬─────────────┬───────────────┐
+        │                     ▼             ▼               ▼
+        │          Candidate Gen Svc   Feature Store   Business Rules /
+        │          (two-tower ANN,     (Redis online,  Exclusion Filter
+        │           popularity, CF)     Parquet offline) (owned/geo/age)
+        │                     │             │               │
+        └────────────► Ranking Service (GBDT / DLRM) ◄──────┘
+                        scores + diversity (MMR)
+                              │
+                     Response Assembly (top-K,
+                     metadata, experiment tag)
+                              │
+                        back to Client
 
-   ── Offline / Async plane ──
-   Kafka (player events: view/click/purchase/session) ──► Stream Processing (Flink)
-        │                                                        │
-        ▼                                                        ▼
-   Data Lake (S3/Parquet, event log)                    Real-time Feature Aggregator
-        │                                                        │
-        ▼                                                        ▼
-   Training Pipelines (two-tower, ranking model)          Online Feature Store (Redis)
-        │
-        ▼
-   Model Registry ──► Model Serving (rolled out via canary)
-        │
-        ▼
-   Vector Index Builder (nightly + incremental) ──► ANN Index (per region)
+── Offline / async plane ──
+Kafka (player events) → Flink stream processing → Real-time Feature Aggregator → Online Feature Store
+Kafka → Data Lake (S3/Parquet) → Training Pipelines (two-tower, ranker) → Model Registry → canary rollout
+                                                                        → Vector Index Builder → ANN Index (per region)
 ```
 
-## 8. Low-Level Components (each major service/component explained: responsibility, interface, scaling unit)
+## 8. Low-Level Components
 
-| Component | Responsibility | Interface | Scaling Unit |
-|---|---|---|---|
-| API Gateway | AuthN, rate limiting, TLS termination, request routing | REST/gRPC over HTTPS | Horizontal, stateless pods behind L7 LB |
-| Recommendation Orchestrator | Fan-out to candidate gen + feature store + rules, calls ranker, assembles response | gRPC (`GetRecommendations`) | Stateless, scales on QPS via HPA |
-| Candidate Generation Service | Runs ANN lookup (two-tower), popularity list merge, CF lookup; returns ~300 deduped candidates | Internal gRPC | Scales with ANN index replicas (CPU-bound) |
-| Feature Store (Online) | Low-latency key-value lookup of user/item/context features | Redis/DynamoDB client, gRPC facade | Scales via cluster sharding (consistent hashing) |
-| Feature Store (Offline) | Point-in-time correct historical features for training | Parquet on S3, queried via Spark/Trino | Scales via storage partitioning |
-| Business Rules Engine | Filters owned items, applies region/age restrictions, merchandising overrides | Internal library/service, rule DSL | Stateless, scales with orchestrator |
-| Ranking Service | Scores candidates (GBDT/DLRM), applies diversity re-ranking (MMR) | gRPC, batched requests | GPU-backed for DLRM, autoscales on batch queue depth |
-| Vector Index / ANN Service | Serves nearest-neighbor lookups against item embeddings | gRPC wrapper over HNSW/FAISS index | Replicated per-region, rebuilt incrementally |
-| Stream Processor (Flink) | Aggregates real-time features (last 30 min clicks/purchases) | Kafka consumer → Redis writer | Scales via parallelism/task slots |
-| Training Orchestrator | Schedules/executes distributed training jobs | Airflow/Kubeflow DAGs | Scales via job-level GPU cluster provisioning |
-| Model Registry | Versions models, tracks lineage, gates promotion | REST API (MLflow-like) | Low-throughput, single cluster |
-| Experimentation Service | Assigns variant, logs exposure | gRPC + event log | Stateless, scales with orchestrator |
+| Component | Responsibility | Scaling Unit |
+|---|---|---|
+| API Gateway | AuthN, rate limiting, TLS, routing | Stateless, horizontal via L7 LB |
+| Recommendation Orchestrator | Fan-out to candidate gen/feature store/rules, calls ranker, assembles response | Stateless, HPA on QPS |
+| Candidate Generation Service | ANN lookup, popularity merge, CF lookup → ~300 deduped candidates | Scales with ANN replicas (CPU-bound) |
+| Feature Store (Online) | Low-latency KV lookup of user/item/context features | Sharded via consistent hashing |
+| Feature Store (Offline) | Point-in-time correct historical features for training | Storage partitioning |
+| Business Rules Engine | Owned-item filter, region/age restrictions, merchandising overrides | Stateless, scales with orchestrator |
+| Ranking Service | Scores candidates (GBDT/DLRM), diversity re-ranking (MMR) | GPU-backed for DLRM, autoscale on batch queue depth |
+| Vector Index / ANN Service | Nearest-neighbor lookups against item embeddings | Replicated per-region |
+| Stream Processor (Flink) | Real-time feature aggregation (last 30 min) | Scales via parallelism/task slots |
+| Training Orchestrator | Schedules distributed training jobs | Job-level GPU cluster provisioning |
+| Model Registry | Versions models, tracks lineage, gates promotion | Low-throughput, single cluster |
+| Experimentation Service | Assigns variant, logs exposure | Stateless |
 
-## 9. API Design (concrete endpoint signatures, request/response schemas, versioning)
+## 9. API Design
 
 ```
 POST /v2/recommendations
-Headers: Authorization: Bearer <JWT>, X-Correlation-ID
-Request:
 {
   "user_id": "u_9f3a2c",
-  "surface": "STORE_HOMEPAGE",       // enum: STORE_HOMEPAGE | IN_GAME_SHOP | POST_MATCH_CAROUSEL | EMAIL_DIGEST
-  "context": {
-    "platform": "PS5",
-    "region": "US-East",
-    "session_id": "s_88213",
-    "current_game_id": "fifa25"
-  },
-  "num_results": 20,
-  "experiment_overrides": { "variant": "control" }   // optional, for QA/testing
+  "surface": "STORE_HOMEPAGE",   // STORE_HOMEPAGE | IN_GAME_SHOP | POST_MATCH_CAROUSEL | EMAIL_DIGEST
+  "context": { "platform": "PS5", "region": "US-East", "session_id": "s_88213", "current_game_id": "fifa25" },
+  "num_results": 20
 }
 
 Response: 200 OK
 {
   "request_id": "req_7788",
   "results": [
-    {
-      "item_id": "dlc_ea_fc25_ultimate_pack",
-      "rank": 1,
-      "score": 0.9123,
-      "reason_code": "SIMILAR_TO_RECENT_PURCHASE",
-      "model_version": "ranker-dlrm-v14"
-    }
+    { "item_id": "dlc_ea_fc25_ultimate_pack", "rank": 1, "score": 0.9123,
+      "reason_code": "SIMILAR_TO_RECENT_PURCHASE", "model_version": "ranker-dlrm-v14" }
   ],
-  "experiment_id": "exp_reco_diversity_v3",
-  "variant": "treatment_b",
-  "served_at_ms": 1720440000123
+  "experiment_id": "exp_reco_diversity_v3", "variant": "treatment_b"
 }
 
-Errors:
-400 INVALID_REQUEST, 401 UNAUTHENTICATED, 429 RATE_LIMITED, 503 DEGRADED_FALLBACK (popularity-only served)
+Errors: 400, 401, 429, 503 DEGRADED_FALLBACK (popularity-only served)
 ```
 
 ```
-POST /v2/recommendations/batch      // offline/batch channel (push/email)
-Request: { "user_ids": [...], "surface": "EMAIL_DIGEST", "num_results": 10 }
-Response: { "job_id": "batch_2026_07_08_001", "status": "ACCEPTED" }   // async, results land in data lake
-
-GET /v2/recommendations/batch/{job_id}/status
+POST /v2/recommendations/batch   // async offline channel (push/email)
+GET  /v2/recommendations/batch/{job_id}/status
 ```
 
-- **Versioning**: URI-based (`/v1`, `/v2`); old versions supported for 6 months post-deprecation notice; response includes `model_version` for traceability. Breaking schema changes require major version bump; additive fields are backward compatible.
+**Versioning**: URI-based (`/v1`, `/v2`); old versions supported 6 months post-deprecation; response includes `model_version` for traceability; additive fields are backward compatible, breaking changes bump major version.
 
-## 10. Database Design (schema sketches, choice of SQL/NoSQL/columnar and why, partitioning/sharding key)
+## 10. Database Design
 
-| Store | Type | Purpose | Partition/Shard Key | Why |
+| Store | Type | Purpose | Partition Key | Why |
 |---|---|---|---|---|
-| Online Feature Store | Redis Cluster (key-value) | User/item/context features for real-time serving | `user_id` hash slot | Sub-ms latency, native TTL for freshness |
-| Item Metadata Store | DynamoDB | Catalog metadata (price, region, age rating, ownership flags) | `item_id` (partition), `region` (sort in GSI) | Serverless scale, strong consistency option for ownership checks |
-| Offline Feature/Event Lake | S3 + Parquet, Iceberg tables | Historical events for training, point-in-time joins | Partitioned by `event_date`, bucketed by `user_id` hash | Columnar compression, cheap at 10s of TB, works with Spark/Trino |
-| Ownership/Entitlement DB | PostgreSQL (sharded) | Source of truth: what user owns | Sharded by `user_id` range | Requires strong consistency + transactional guarantees for purchase flow |
-| Vector Index Storage | FAISS/HNSW index snapshots on local NVMe + S3 backup | Item embeddings for ANN | Sharded by item cluster (region-specific catalogs) | In-memory ANN needs local disk speed; S3 for durability/rebuild |
-| Experiment Exposure Log | Kafka → columnar (ClickHouse) | Log every recommendation exposure + variant for analysis | Partitioned by `experiment_id`, `date` | Fast aggregate queries for A/B analysis at scale |
+| Online Feature Store | Redis Cluster | Real-time user/item/context features | `user_id` hash slot | Sub-ms latency, native TTL |
+| Item Metadata Store | DynamoDB | Catalog metadata (price, region, age rating) | `item_id` | Serverless scale, strong consistency option |
+| Offline Feature/Event Lake | S3 + Parquet/Iceberg | Historical events for training | `event_date`, bucketed by user_id | Columnar, cheap at TB scale |
+| Ownership/Entitlement DB | PostgreSQL (sharded) | Source of truth: what user owns | `user_id` range | Strong consistency for purchase flow |
+| Vector Index Storage | FAISS/HNSW on NVMe + S3 backup | Item embeddings for ANN | Region-specific catalogs | Local disk speed + durable backup |
+| Experiment Exposure Log | Kafka → ClickHouse | Log every exposure + variant | `experiment_id`, `date` | Fast aggregate queries for A/B analysis |
 
-**Ownership table sketch (Postgres)**
 ```sql
 CREATE TABLE entitlements (
-  user_id       BIGINT NOT NULL,
-  item_id       VARCHAR(64) NOT NULL,
-  acquired_at   TIMESTAMPTZ NOT NULL,
-  platform      VARCHAR(16),
+  user_id BIGINT NOT NULL, item_id VARCHAR(64) NOT NULL,
+  acquired_at TIMESTAMPTZ NOT NULL, platform VARCHAR(16),
   PRIMARY KEY (user_id, item_id)
 ) PARTITION BY HASH (user_id);
 ```
 
-## 11. Caching (what's cached, cache invalidation strategy, cache-aside vs write-through)
+## 11. Caching
 
-| Cached Data | Cache | TTL | Strategy | Invalidation |
-|---|---|---|---|---|
-| User feature vector | Redis | 5 min | Cache-aside | TTL expiry + event-driven invalidation on purchase/session-end |
-| Item metadata (price, availability) | Redis + local in-process LRU | 60 s | Cache-aside | Pub/sub invalidation message on catalog update |
-| ANN candidate results (per user, per surface) | Redis, short TTL | 30 s | Cache-aside | TTL only (personalization drifts fast, short TTL sufficient) |
-| Ownership/entitlement flags | Redis (write-through from Postgres CDC) | N/A (kept fresh) | Write-through | CDC stream (Debezium) pushes updates immediately — must never serve stale "not owned" as "owned" |
-| Full recommendation response (identical user+surface+context within window) | CDN/edge cache for anonymous/logged-out fallback only | 2 min | Cache-aside | Not used for logged-in personalized traffic (correctness risk) |
-
-- Ownership cache uses **write-through** deliberately: false negative (user re-shown owned item) is a trust/UX issue; staleness tolerance is near-zero.
-- Everything else uses **cache-aside** with short TTLs — personalization staleness of seconds is acceptable, and cache-aside avoids write amplification for high-churn feature data.
-
-## 12. Queues & Async Processing (what's queued, at-least-once vs exactly-once, dead-letter handling)
-
-| Queue/Topic | Producer → Consumer | Delivery Semantics | DLQ Handling |
+| Cached Data | TTL | Strategy | Invalidation |
 |---|---|---|---|
-| `player-events` (Kafka) | Game client/telemetry → Flink stream processor | At-least-once (Kafka default) | Poison messages (malformed schema) routed to `player-events-dlq`, alert if DLQ rate > 0.1% |
-| `catalog-updates` (Kafka) | Content/merchandising service → Feature store updater, cache invalidator | At-least-once, idempotent consumer (upsert by item_id+version) | DLQ + manual replay tool |
-| `batch-reco-jobs` (SQS/RabbitMQ) | Batch scheduler → Batch inference workers | At-least-once, idempotency key = job_id | Retried 3x with backoff, then DLQ + PagerDuty page if backlog > 30 min |
-| `entitlement-cdc` (Debezium → Kafka) | Postgres CDC → Redis write-through updater | At-least-once, consumer dedupes via LSN/offset checkpoint | Critical path: DLQ triggers immediate alert (correctness-sensitive) |
-| `experiment-exposure-log` | Reco service → analytics pipeline | At-least-once (fine for analytics, dedup downstream by request_id) | DLQ retained 7 days, low priority |
+| User feature vector | 5 min | Cache-aside | TTL + event-driven on purchase/session-end |
+| Item metadata | 60s | Cache-aside | Pub/sub on catalog update |
+| ANN candidate results | 30s | Cache-aside | TTL only (personalization drifts fast) |
+| Ownership/entitlement flags | N/A | **Write-through** from Postgres CDC | CDC stream (Debezium) — must never serve stale "not owned" as "owned" |
+| Full response (logged-out fallback) | 2 min | Cache-aside | Not used for logged-in personalized traffic |
 
-- No queue in this system requires strict exactly-once — all consumers are designed idempotent (upsert-by-key or offset-checkpointed), which is cheaper and simpler than transactional exactly-once delivery.
+Ownership uses write-through deliberately: a false negative (re-showing an owned item) is a trust issue with near-zero staleness tolerance. Everything else uses cache-aside with short TTLs — seconds of personalization staleness is acceptable, and this avoids write amplification on high-churn feature data.
 
-## 13. Streaming & Event-Driven Architecture (topics, event schemas, consumer groups)
+## 12. Queues & Async Processing
 
-**Topic: `player-events`**
-```json
-{
-  "event_type": "ITEM_VIEW | ITEM_CLICK | PURCHASE | SESSION_START | SESSION_END",
-  "user_id": "u_9f3a2c",
-  "item_id": "dlc_ea_fc25_ultimate_pack",
-  "surface": "STORE_HOMEPAGE",
-  "timestamp": 1720440000123,
-  "platform": "PS5",
-  "session_id": "s_88213",
-  "value_usd": 4.99
-}
-```
-- **Consumer groups**: `realtime-feature-aggregator` (Flink, updates Redis short-window features), `training-data-writer` (Spark structured streaming → Iceberg lake), `experiment-analytics` (ClickHouse sink).
-- **Partitioning**: by `user_id` to preserve per-user event ordering for session-window aggregation.
-- **Retention**: 7 days hot (Kafka), then compacted into lake (indefinite, subject to data retention policy).
+| Queue/Topic | Flow | Semantics | DLQ |
+|---|---|---|---|
+| `player-events` (Kafka) | client → Flink | At-least-once | Malformed → DLQ, alert if rate > 0.1% |
+| `catalog-updates` (Kafka) | merchandising → feature store/cache | At-least-once, idempotent upsert | DLQ + manual replay |
+| `batch-reco-jobs` (SQS) | scheduler → batch workers | At-least-once, idempotency key = job_id | Retry 3x backoff → DLQ + page if backlog > 30min |
+| `entitlement-cdc` (Debezium) | Postgres CDC → Redis updater | At-least-once, offset-checkpointed | Critical path — immediate alert |
+| `experiment-exposure-log` | reco service → analytics | At-least-once, dedup downstream | Low priority, 7-day retention |
 
-**Topic: `catalog-updates`** — schema includes `item_id`, `version`, `price`, `region_availability[]`, `age_rating`, `embedding_refresh_required: bool`. Consumed by ANN index incremental updater and feature store.
+No queue needs strict exactly-once — all consumers are idempotent (upsert-by-key or offset-checkpointed), cheaper than transactional exactly-once.
 
-## 14. Model Serving (serving framework choice, batching, multi-model, hardware)
+## 13. Streaming & Event-Driven Architecture
 
-- **Two-tower retrieval model**: item tower embeddings precomputed offline, served via ANN index (FAISS/HNSW) — no per-request GPU inference needed for items. User tower runs online (small MLP) on CPU, <2ms.
-- **Ranking model**: 
-  - GBDT baseline served via **Triton Inference Server** (FIL backend) on CPU — cheap, adequate for tabular features.
-  - DLRM-style deep ranker served via **Triton** on GPU (A10G), with **dynamic batching** (max batch 64, max queue delay 5ms) to improve GPU utilization.
-- **Multi-model serving**: Triton hosts multiple model versions concurrently (canary v14 + stable v13) with per-model resource pools; routing controlled by orchestrator via model-version header.
-- **Hardware**: CPU nodes (c6i.4xlarge-class) for GBDT + ANN; GPU nodes (g5.xlarge/A10G) for DLRM; batch training uses A100 nodes.
-- **Fallback**: if ranking service degraded (timeout > 50ms), orchestrator serves popularity-ranked candidates directly (graceful degradation, not full failure).
+**Topic `player-events`**: `event_type` (VIEW/CLICK/PURCHASE/SESSION_START/END), `user_id`, `item_id`, `surface`, `timestamp`, `platform`, `session_id`, `value_usd`.
 
-## 15. Feature Store (online/offline split, point-in-time correctness)
+- **Consumer groups**: `realtime-feature-aggregator` (Flink → Redis), `training-data-writer` (Spark → Iceberg), `experiment-analytics` (ClickHouse).
+- **Partitioning**: by `user_id` to preserve per-user ordering for session-window aggregation.
+- **Retention**: 7 days hot (Kafka), then compacted into the lake.
 
-- **Offline store**: Iceberg/Parquet tables on S3, versioned features with event-time timestamps. Training pipeline performs **point-in-time joins** — for each training example (user, item, label, timestamp T), only features known as-of T are joined, preventing label leakage (e.g., can't use "purchased in last hour" feature computed after the label event).
-- **Online store**: Redis, materialized from the same feature definitions (via Feast-style feature store abstraction) to guarantee **train/serve consistency** — same transformation code path (feature logic defined once, executed in both batch and streaming context).
-- **Real-time features** (session clicks in last 30 min): computed by Flink directly into Redis, bypassing offline store for freshness; backfilled into offline store nightly for training consistency.
-- **Feature versioning**: every feature has a schema version; ranking model records which feature version set it was trained against, enforced at serving time to prevent skew.
+**Topic `catalog-updates`**: `item_id`, `version`, `price`, `region_availability[]`, `age_rating`, `embedding_refresh_required`. Consumed by ANN incremental updater and feature store.
 
-## 16. Vector Database (if applicable — indexing strategy, ANN algorithm choice)
+## 14. Model Serving
 
-- **Applicable** — core to candidate generation.
-- **Algorithm**: HNSW (Hierarchical Navigable Small World) — chosen over IVF-PQ because catalog size (550K items) is small enough that HNSW's higher recall/lower latency tradeoff wins; memory footprint (~600MB/replica) is affordable at this scale.
-- **Index build**: nightly full rebuild (batch, off-peak) + incremental insert path for new items (append-only HNSW insert, rebalanced weekly to control graph degradation).
-- **Sharding**: one full index per region (all 550K items) rather than sharding by item — simpler operationally, replicated 6x per region for throughput/redundancy; catalog fits comfortably in memory so no need to shard.
-- **Query**: user embedding (128-dim) → top-200 ANN lookup, `ef_search=64` tuned for ~2ms p99 per lookup at this scale.
-- **Alternative considered**: ScaNN (Google) — comparable recall/latency; HNSW chosen for broader OSS tooling/ops familiarity (FAISS ecosystem).
+- **Two-tower retrieval**: item embeddings precomputed offline, served via ANN index (no per-request GPU). User tower runs online (small MLP), CPU, <2ms.
+- **Ranking**: GBDT baseline via Triton (FIL backend) on CPU. DLRM deep ranker via Triton on GPU (A10G) with dynamic batching (max batch 64, max queue delay 5ms).
+- **Multi-model serving**: Triton hosts multiple versions concurrently (canary + stable), routed by orchestrator via model-version header.
+- **Hardware**: CPU for GBDT+ANN; GPU (A10G) for DLRM; A100 for batch training.
+- **Fallback**: if ranking degraded (timeout > 50ms), orchestrator serves popularity-ranked candidates — graceful degradation, not failure.
 
-## 17. Embedding Pipelines (if applicable, else N/A and why)
+## 15. Feature Store
 
-- **Applicable.**
-- **User tower**: consumes user features (recent interaction history, demographic bucket, platform, region, spend tier) → 128-dim embedding via 3-layer MLP.
-- **Item tower**: consumes item metadata (genre, price tier, franchise, content type, text description embedding from a frozen sentence-transformer) → 128-dim embedding.
-- **Training**: in-batch negative sampling with softmax loss (standard two-tower retrieval training), sampled from logged impressions + random negatives to correct for popularity bias (logQ correction).
-- **Embedding refresh cadence**: item embeddings recomputed nightly (batch) + on-demand for new catalog drops (triggered via `catalog-updates` topic, `embedding_refresh_required` flag) so new DLC is discoverable within the 15-minute freshness SLA.
-- **Embedding drift check**: compare cosine similarity distribution of new vs. previous day's item embeddings; large shifts trigger manual review before index swap.
+- **Offline**: Iceberg/Parquet on S3, event-time versioned. Training uses **point-in-time joins** so only features known as-of the label timestamp are used, preventing label leakage.
+- **Online**: Redis, materialized from the same feature definitions (Feast-style) to guarantee train/serve consistency (same transform code path for batch and streaming).
+- **Real-time features** (last 30 min): Flink writes directly to Redis for freshness, backfilled to offline store nightly.
+- **Versioning**: every feature has a schema version; model records which version it trained against, enforced at serving to prevent skew.
 
-## 18. Inference Pipelines (request lifecycle end-to-end)
+## 16. Vector Database
+
+- **Algorithm**: HNSW, chosen over IVF-PQ — catalog (550K items) is small enough that HNSW's recall/latency tradeoff wins; ~600MB/replica is affordable.
+- **Index build**: nightly full rebuild + incremental insert for new items (rebalanced weekly to control graph degradation).
+- **Sharding**: one full index per region, replicated 6x — simpler ops, catalog fits in memory so no need to shard by item.
+- **Query**: 128-dim user embedding → top-200 ANN, `ef_search=64` tuned for ~2ms p99.
+- **Alternative**: ScaNN — comparable recall/latency; HNSW chosen for FAISS ecosystem familiarity.
+
+## 17. Embedding Pipelines
+
+- **User tower**: recent interaction history, demographic bucket, platform, region, spend tier → 128-dim via 3-layer MLP.
+- **Item tower**: genre, price tier, franchise, content type, text description embedding (frozen sentence-transformer) → 128-dim.
+- **Training**: in-batch negative sampling with softmax loss, logged impressions + random negatives, logQ correction for popularity bias.
+- **Refresh**: item embeddings nightly + on-demand for new drops (`catalog-updates` event) to hit the 15-min freshness SLA.
+- **Drift check**: cosine similarity of new vs. previous day's item embeddings; large shifts trigger manual review before index swap.
+
+## 18. Inference Pipeline (request lifecycle)
 
 ```
-t=0ms    Client sends GetRecommendations(user_id, surface, context)
-t=1ms    API Gateway: authn (JWT verify), rate-limit check → forward
-t=2ms    Orchestrator: fan-out (parallel):
-           ├─ Feature Store lookup (user features, context features)      [~3ms]
-           ├─ Candidate Gen: user-tower inference + ANN top-200 lookup    [~6ms]
-           ├─ Candidate Gen: popularity list fetch (precomputed, cached)  [~1ms]
-           └─ Entitlement check (owned items) via Redis write-through     [~2ms]
-t=8ms    Merge + de-dup candidates (~300 total) → filter owned/region-locked
-t=10ms   Ranking Service: batch-score 300 candidates (GBDT or DLRM)       [~10ms p50, ~25ms p99]
-t=20ms   Diversity re-ranking (MMR, ensure no >3 items from same franchise in top 10)
-t=22ms   Response assembly (attach reason_code, experiment tag, model_version)
-t=24ms   Return to client
-         (p50 total ~25-30ms; p99 budget 150ms allows for feature-store cache
-          misses, GPU batching queue delay, cross-AZ hops)
+t=0ms   Client sends GetRecommendations
+t=1ms   Gateway: authn, rate-limit
+t=2ms   Orchestrator fans out in parallel:
+          Feature Store lookup            [~3ms]
+          Candidate Gen (ANN top-200)      [~6ms]
+          Popularity list (cached)         [~1ms]
+          Entitlement check (Redis)        [~2ms]
+t=8ms   Merge/de-dup (~300) → filter owned/region-locked
+t=10ms  Ranking: batch-score 300 candidates    [~10ms p50, ~25ms p99]
+t=20ms  Diversity re-ranking (MMR, cap same-franchise items in top 10)
+t=22ms  Response assembly
+t=24ms  Return to client
+        (p50 ~25-30ms; p99 budget 150ms covers cache misses, GPU batching delay, cross-AZ hops)
 ```
 
-## 19. Training Pipelines (data prep, training orchestration, distributed training if relevant)
+## 19. Training Pipelines
 
-- **Data prep**: Spark jobs read `player-events` lake, join with entitlement + catalog snapshots (point-in-time correct), generate labeled training rows (impression → click/purchase within attribution window, e.g. 24h for click, 7d for purchase attribution).
-- **Negative sampling**: for retrieval (two-tower), in-batch negatives + hard negative mining from near-miss ANN results (items ranked 200-400 that weren't clicked) to sharpen the embedding space.
-- **Orchestration**: Airflow DAG — `extract_events → build_training_set → train_two_tower → eval → train_ranker → eval → register_models → trigger_canary_rollout`.
-- **Distributed training**: two-tower and DLRM ranker trained via PyTorch DDP across 8x A100 GPUs (data-parallel; model is small enough that model-parallelism isn't needed). GBDT baseline trained via distributed XGBoost (CPU cluster, ~20 nodes) for large tabular datasets.
-- **Training data volume**: ~200M labeled rows/training run (30-day rolling window), ~11 TB compressed — full retrain takes ~3 hrs on the 8x A100 cluster for the two-tower model.
-- **Evaluation**: offline metrics (Recall@200 for retrieval, NDCG@10 and AUC for ranking) gated against holdout set before promotion; replay-based counterfactual evaluation (IPS-weighted) to estimate online lift before full rollout.
+- **Data prep**: Spark reads event lake, joins with entitlement + catalog snapshots (point-in-time correct), labels impressions with click (24h) / purchase (7d) attribution windows.
+- **Negative sampling**: in-batch negatives + hard negatives from near-miss ANN results (ranked 200-400, not clicked).
+- **Orchestration**: Airflow DAG — extract → build training set → train two-tower → eval → train ranker → eval → register → canary rollout.
+- **Distributed training**: two-tower/DLRM via PyTorch DDP on 8x A100 (data-parallel). GBDT via distributed XGBoost (~20 CPU nodes).
+- **Volume**: ~200M labeled rows/run (30-day window), ~11TB compressed; full two-tower retrain ≈ 3hrs on 8x A100.
+- **Evaluation**: offline Recall@200 (retrieval), NDCG@10/AUC (ranking) gated against holdout; IPS-weighted counterfactual eval estimates online lift pre-rollout.
 
-## 20. Retraining Strategy (cadence, triggers)
+## 20. Retraining Strategy
 
 | Model | Cadence | Trigger-based retrain |
 |---|---|---|
-| Two-tower retrieval | Daily (embedding refresh), full retrain weekly | Triggered early if embedding drift check fails or Recall@200 drops >3% on canary |
-| Ranking model (GBDT) | Daily incremental retrain | Triggered if feature distribution drift (PSI) exceeds threshold |
-| Ranking model (DLRM) | Weekly full retrain, daily fine-tune on last 24h | Triggered by concept drift alert (CTR prediction calibration error > 10%) |
-| Popularity/trending lists | Hourly recompute | Event-driven (new title launch, promo event start) |
-| Item embeddings (new catalog) | On-demand (within 15 min of publish) | Triggered by `catalog-updates` Kafka event |
+| Two-tower retrieval | Daily embedding refresh, weekly full retrain | Embedding drift fail or Recall@200 drop >3% |
+| Ranking (GBDT) | Daily incremental | Feature drift (PSI) exceeds threshold |
+| Ranking (DLRM) | Weekly full, daily fine-tune | Calibration error > 10% |
+| Popularity/trending | Hourly | Event-driven (launch, promo start) |
+| Item embeddings | On-demand (within 15 min) | `catalog-updates` event |
 
-- Major live-service events (game launch day, holiday sale start) trigger **out-of-band manual retrain + canary** ahead of the event, since organic daily cadence may not capture pre-event behavior shifts.
+Major live-service events (launch day, holiday sale) trigger out-of-band manual retrain + canary ahead of time, since daily cadence may miss pre-event behavior shifts.
 
-## 21. Drift Detection (data drift, concept drift, what metrics, what thresholds)
+## 21. Drift Detection
 
 | Drift Type | Metric | Threshold | Action |
 |---|---|---|---|
-| Feature data drift | Population Stability Index (PSI) per feature | PSI > 0.2 → alert; > 0.3 → auto-block model promotion | Investigate upstream data source, retrain with recent window |
-| Embedding drift | Cosine similarity shift of item embedding centroids day-over-day | Mean shift > 0.15 | Manual review before index swap |
-| Concept drift (label distribution) | CTR/CVR calibration error (predicted vs actual, binned) | Calibration error > 10% | Trigger retrain, widen exploration (increase popularity-fallback weight temporarily) |
-| Candidate coverage drift | % of impressions from top-10 items (concentration) | > 40% (indicates collapse to popularity, losing personalization) | Alert merchandising + ML team, check diversity re-ranker |
-| Cold-start ratio | % of requests served pure fallback (no personalization signal) | > 15% sustained | Investigate onboarding funnel / feature pipeline gaps |
+| Feature data drift | PSI per feature | >0.2 alert, >0.3 auto-block promotion | Investigate source, retrain |
+| Embedding drift | Cosine shift of item centroids day-over-day | Mean shift >0.15 | Manual review before index swap |
+| Concept drift | CTR/CVR calibration error | >10% | Retrain, widen exploration |
+| Candidate concentration | % impressions from top-10 items | >40% | Alert, check diversity re-ranker |
+| Cold-start ratio | % requests served pure fallback | >15% sustained | Investigate onboarding/pipeline gaps |
 
-- Drift monitoring runs as a scheduled batch job (daily) comparing production feature/prediction distributions against a rolling 7-day baseline, using Evidently-style drift reports feeding into the monitoring dashboard.
+Runs as a daily batch job comparing production distributions against a rolling 7-day baseline.
 
-## 22. Monitoring (what's monitored: infra, model quality, business metrics)
+## 22. Monitoring
 
 | Layer | Metrics |
 |---|---|
-| Infra | p50/p95/p99 latency per service, error rate, GPU utilization, Redis hit rate, Kafka consumer lag, queue depth |
-| Model quality | Recall@K (retrieval), NDCG@10 (ranking), calibration error, prediction score distribution, feature drift (PSI) |
-| Business | CTR, conversion rate (CVR), revenue-per-recommendation, session length uplift, diversity/coverage of recommended catalog, cold-start user conversion rate |
-| Experiment | Variant-level lift (CTR/CVR delta), sample ratio mismatch checks, exposure log completeness |
-| Data pipeline | Freshness lag (event timestamp → feature-available timestamp), training job success/duration, data volume anomalies |
+| Infra | p50/p95/p99 latency, error rate, GPU utilization, Redis hit rate, Kafka lag, queue depth |
+| Model quality | Recall@K, NDCG@10, calibration error, score distribution, PSI |
+| Business | CTR, CVR, revenue-per-recommendation, session-length uplift, catalog diversity/coverage, cold-start conversion |
+| Experiment | Variant lift, sample ratio mismatch, exposure log completeness |
+| Data pipeline | Freshness lag, training job success/duration, volume anomalies |
 
-- Dashboards: Grafana (infra + model metrics from Prometheus), business metrics dashboard (Looker/Tableau fed from ClickHouse exposure log).
+Dashboards: Grafana (infra/model via Prometheus), business dashboard (Looker/Tableau from ClickHouse exposure log).
 
-## 23. Alerting (alert conditions, thresholds, on-call routing)
+## 23. Alerting
 
-| Alert | Condition | Severity | Routing |
-|---|---|---|---|
-| API p99 latency breach | p99 > 150ms for 5 consecutive min | High | Page on-call SRE (PagerDuty) |
-| Error rate spike | 5xx rate > 1% over 5 min | High | Page on-call SRE |
-| Ranking service degraded-fallback rate | > 10% of requests served popularity-fallback for 10 min | Medium | Slack alert to ML platform team |
-| Entitlement CDC lag | Consumer lag > 30s | Critical (correctness risk — could show owned item) | Immediate page |
-| Feature store cache hit rate drop | < 90% for 15 min | Medium | Slack alert |
-| Model drift (PSI/calibration) breach | Per thresholds in Sec 21 | Medium | Slack alert to ML team, auto-block promotion pipeline |
-| Training pipeline failure | DAG failure | Medium | Email + Slack to data eng on-call |
-| DLQ backlog | > 30 min unprocessed | High | Page on-call |
+| Alert | Condition | Severity |
+|---|---|---|
+| API p99 breach | >150ms for 5 min | High — page SRE |
+| Error rate spike | 5xx >1% over 5 min | High — page SRE |
+| Ranking degraded-fallback | >10% requests on popularity fallback, 10 min | Medium — Slack ML platform |
+| Entitlement CDC lag | >30s | Critical — immediate page |
+| Feature cache hit rate | <90% for 15 min | Medium — Slack |
+| Model drift breach | Per Sec 21 thresholds | Medium — Slack, auto-block promotion |
+| Training pipeline failure | DAG failure | Medium — email/Slack data-eng |
+| DLQ backlog | >30 min unprocessed | High — page |
 
-- On-call rotation: ML platform on-call (model/serving issues) separate from data-eng on-call (pipeline/ETL issues); infra/SRE on-call owns latency/availability pages, escalates to ML on-call if root cause is model-side.
+On-call: ML platform (model/serving) separate from data-eng (pipeline/ETL); SRE owns latency/availability, escalates to ML if model-side.
 
-## 24. Logging (structured logging strategy, PII handling, retention)
+## 24. Logging
 
-- **Structured JSON logs** for every request: `request_id`, `user_id` (hashed/pseudonymized in long-term storage), `surface`, `latency_ms`, `model_versions_used`, `candidate_count`, `experiment_id/variant`, `error_code`.
-- **PII handling**: raw `user_id` used only in short-lived hot path (Redis, in-memory); logs destined for long-term storage/analytics have `user_id` replaced with a salted hash; no free-text PII (names, payment info) ever enters the recommendation logging path — those live in separate PCI-scoped systems.
-- **Retention**: request logs 30 days hot (searchable, Elasticsearch/OpenSearch), 1 year cold (S3, compliance/audit), exposure logs (for experimentation) retained 2 years (aggregated, anonymized) for longitudinal analysis.
-- **Access control**: logs containing hashed user identifiers restricted to ML/data-eng roles via IAM; full audit trail on log access for compliance (GDPR/CCPA "right to be forgotten" must propagate deletion requests into log retention pipeline).
+- **Structured JSON** per request: `request_id`, hashed `user_id`, `surface`, `latency_ms`, `model_versions_used`, `candidate_count`, `experiment_id/variant`, `error_code`.
+- **PII**: raw `user_id` only in short-lived hot path; long-term logs use a salted hash; no free-text PII enters this path (payment info lives in separate PCI-scoped systems).
+- **Retention**: 30 days hot (searchable), 1 year cold (S3), exposure logs 2 years anonymized.
+- **Access control**: IAM-restricted to ML/data-eng roles; audit trail for compliance; GDPR/CCPA deletion requests propagate into retention pipeline.
 
-## 25. Security (authn/authz, data encryption, threat model specific to this system)
+## 25. Security
 
-- **Data encryption**: TLS 1.3 in transit (client↔gateway, service↔service via mTLS in-mesh); encryption at rest (S3 SSE-KMS, Redis encryption-at-rest, Postgres TDE) for all feature/event stores.
-- **Threat model specifics**:
-  - **Recommendation manipulation**: malicious actor gaming the system (fake clicks/purchases via bots) to boost specific item ranking — mitigate via bot detection on event ingestion, anomaly detection on interaction velocity per user/IP.
-  - **Data poisoning**: adversarial injection of fake interaction events to skew training data — mitigate via event validation, rate limiting on event ingestion per user, outlier filtering in training data prep.
-  - **Model extraction/inversion**: repeated querying of ranking API to reverse-engineer model or extract embeddings — mitigate via rate limiting, response obfuscation (don't return raw scores, only ranks), monitoring for query patterns consistent with scraping.
-  - **PII leakage via embeddings**: user embeddings could theoretically leak behavioral patterns if exposed — embeddings never returned in API responses, access to raw embedding store restricted to internal services only.
-  - **Ownership bypass**: incorrect entitlement check could recommend (or worse, unlock via a related flow) content the user hasn't purchased — entitlement check treated as security-critical, not just relevance-critical.
+- **Encryption**: TLS 1.3 in transit (mTLS in-mesh); at-rest encryption for all feature/event stores (S3 SSE-KMS, Redis, Postgres TDE).
+- **Threat model**:
+  - **Manipulation** (bot clicks/purchases to boost ranking) — bot detection on ingestion, anomaly detection on interaction velocity.
+  - **Data poisoning** (fake events skewing training) — event validation, rate limiting, outlier filtering.
+  - **Model extraction** (querying API to reverse-engineer model/embeddings) — rate limiting, don't return raw scores (ranks only), scraping-pattern monitoring.
+  - **PII leakage via embeddings** — embeddings never returned in API responses; embedding store access restricted internally.
+  - **Ownership bypass** — entitlement check treated as security-critical, not just relevance-critical.
 
-## 26. Authentication (service-to-service and end-user auth mechanism)
+## 26. Authentication
 
-- **End-user**: OAuth2/OIDC via EA's central identity provider; client obtains short-lived JWT (15 min expiry), passed as Bearer token to Recommendation API; gateway validates signature + expiry + audience claim.
-- **Service-to-service**: mTLS within the service mesh (Istio/Linkerd-style sidecar), SPIFFE/SPIFFE-ID-based workload identity; internal gRPC calls (orchestrator → ranking service, etc.) authenticated via mTLS certs, not shared secrets.
-- **Batch/offline jobs**: IAM role-based access (cloud-native, e.g., IRSA on EKS) for S3/data lake access — no long-lived static credentials.
-- **Token scope**: user JWT scoped to read-only recommendation access; no write/purchase capability granted through this token (purchase flow uses separate, more tightly scoped commerce auth).
+- **End-user**: OAuth2/OIDC via EA's IdP; short-lived JWT (15 min); gateway validates signature/expiry/audience.
+- **Service-to-service**: mTLS in-mesh, SPIFFE workload identity — no shared secrets.
+- **Batch/offline**: IAM role-based access (e.g., IRSA), no long-lived static credentials.
+- **Token scope**: read-only recommendation access; purchase flow uses separate, more tightly scoped auth.
 
-## 27. Rate Limiting (algorithm choice, per-user/per-tenant limits)
+## 27. Rate Limiting
 
-- **Algorithm**: token bucket at the API Gateway (per-user) — allows short bursts (e.g., rapid carousel scrolling) while capping sustained rate.
-- **Limits**: 20 requests/sec/user burst, 5 requests/sec/user sustained (refill rate); batch endpoints limited per-service-account (e.g., email digest generator capped at 2,000 req/sec aggregate).
-- **Per-surface tenant limits**: each surface (store homepage, in-game shop, etc.) registered as a "tenant" with its own quota pool to prevent one surface's traffic spike from starving others — implemented via Redis-backed distributed token bucket counters.
-- **Abuse handling**: sustained rate-limit violations (bot-like patterns) escalate to a stricter, longer-lived block (sliding window ban) and feed into the bot-detection signal for the security threat model above.
+- **Algorithm**: token bucket at the gateway (per-user) — allows bursts while capping sustained rate.
+- **Limits**: 20 req/s/user burst, 5 req/s sustained; batch endpoints capped per-service-account (e.g., 2,000 req/s aggregate).
+- **Per-surface tenant limits**: each surface has its own quota pool (Redis-backed token buckets) so one surface's spike can't starve others.
+- **Abuse handling**: sustained violations escalate to a longer-lived block and feed the bot-detection signal.
 
-## 28. Autoscaling (metrics-driven autoscaling policy, HPA/VPA/KEDA specifics)
+## 28. Autoscaling
 
 ```yaml
-# HPA for ranking-service (GPU-backed DLRM path)
 apiVersion: autoscaling/v2
 kind: HorizontalPodAutoscaler
-metadata:
-  name: ranking-service-hpa
+metadata: { name: ranking-service-hpa }
 spec:
-  scaleTargetRef:
-    apiVersion: apps/v1
-    kind: Deployment
-    name: ranking-service
   minReplicas: 8
   maxReplicas: 60
   metrics:
     - type: Pods
-      pods:
-        metric:
-          name: triton_inference_queue_depth
-        target:
-          type: AverageValue
-          averageValue: "10"
+      pods: { metric: { name: triton_inference_queue_depth }, target: { type: AverageValue, averageValue: "10" } }
     - type: Resource
-      resource:
-        name: cpu
-        target:
-          type: Utilization
-          averageUtilization: 65
+      resource: { name: cpu, target: { type: Utilization, averageUtilization: 65 } }
   behavior:
-    scaleUp:
-      stabilizationWindowSeconds: 30
-      policies: [{ type: Percent, value: 100, periodSeconds: 60 }]
-    scaleDown:
-      stabilizationWindowSeconds: 300
-      policies: [{ type: Percent, value: 20, periodSeconds: 120 }]
+    scaleUp: { stabilizationWindowSeconds: 30, policies: [{ type: Percent, value: 100, periodSeconds: 60 }] }
+    scaleDown: { stabilizationWindowSeconds: 300, policies: [{ type: Percent, value: 20, periodSeconds: 120 }] }
 ```
 
-- **HPA** on orchestrator/candidate-gen services keyed on QPS + p99 latency (custom Prometheus adapter metric).
-- **KEDA** used for batch inference workers, scaling consumer pods based on `batch-reco-jobs` queue depth (scale-to-zero when idle, since batch jobs are bursty and off-peak).
-- **VPA** (recommendation mode only, not auto-apply) for GBDT ranking pods to right-size CPU/memory requests based on observed usage — avoided auto-apply to prevent restart churn during peak traffic.
-- GPU node pools use **cluster autoscaler** with a dedicated node group (A10G), scale-up latency mitigated by keeping a small warm buffer (2 idle GPU nodes) during known peak windows (evenings, weekends, launch days).
+- HPA on orchestrator/candidate-gen keyed on QPS + p99 latency.
+- KEDA scales batch inference workers on queue depth (scale-to-zero when idle).
+- VPA (recommendation-only, not auto-apply) right-sizes GBDT pods — avoids restart churn during peak.
+- GPU node pools use cluster autoscaler with a small warm buffer (2 idle nodes) during known peak windows.
 
-## 29. Cost Optimization (concrete levers: spot instances, caching, model distillation, batching)
+## 29. Cost Optimization
 
-- **Spot instances**: training cluster (A100 nodes) uses spot/preemptible instances with checkpointing every 500 steps — ~60-70% cost reduction on training compute; serving GPU nodes use on-demand/reserved (availability-critical) but batch inference workers (offline channel) use spot.
-- **Model distillation**: DLRM ranking model distilled from a larger teacher ensemble (trained offline, expensive) into a smaller student model for serving — cuts GPU inference cost ~40% with <1% NDCG regression.
-- **Caching**: aggressive short-TTL caching (Section 11) cuts redundant feature-store and ANN lookups for repeat requests within a session — reduces ANN QPS load ~25% during high-repeat-view surfaces (store homepage refresh).
-- **Batching**: dynamic batching on Triton (GPU ranking) improves throughput/GPU-$ by ~3x versus per-request inference.
-- **CPU vs GPU tiering**: GBDT ranker (CPU) used for lower-value/lower-traffic surfaces (e.g., email digest), reserving GPU DLRM capacity for high-value real-time surfaces (store homepage, in-game shop) where the accuracy lift matters most for revenue.
-- **Reserved capacity + Savings Plans** for baseline steady-state serving fleet (the ~2,780 QPS average load), with autoscaling/spot handling burst above baseline.
-- **Storage lifecycle**: raw event logs moved to S3 Glacier after 90 days; Iceberg table compaction reduces small-file overhead and query cost.
+- **Spot instances**: training (A100) on spot with checkpointing — ~60-70% savings; serving GPUs stay on-demand/reserved; batch inference workers use spot.
+- **Model distillation**: DLRM distilled from a larger teacher — ~40% GPU inference cost cut, <1% NDCG regression.
+- **Caching**: short-TTL caching cuts redundant feature/ANN lookups, ~25% ANN QPS reduction on high-repeat surfaces.
+- **Batching**: dynamic batching on Triton improves GPU throughput ~3x vs per-request.
+- **CPU vs GPU tiering**: GBDT (CPU) for lower-value surfaces (email digest); GPU DLRM reserved for high-value real-time surfaces.
+- **Reserved capacity** for steady-state baseline load; autoscaling/spot handles burst.
+- **Storage lifecycle**: raw logs to Glacier after 90 days; Iceberg compaction reduces query cost.
 
-## 30. Operational Concerns (Deployment, Reliability, Infra)
+## 30. Operational Concerns
 
-At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
+At SDE2 scope, treat this as a checklist: **backups** (automated snapshots of model registry/feature store with a tested restore path), **rollback** (one-command revert to last-known-good via CI/CD), **canary/blue-green rollout** (small traffic slice first, watch error rate + key metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, top model-quality signals, wired to on-call). Kubernetes/Terraform manifests and multi-region active-active topology are Staff/Principal-level concerns — worth knowing they exist, not worth rehearsing.
 
-## 38. Why This Architecture (justification)
+## 38. Why This Architecture
 
-- **Two-stage retrieval + ranking** is the standard, proven pattern for large-catalog recommendation (Netflix, YouTube, Meta) — it's necessary because scoring 550K items per request with a heavy ranking model is computationally infeasible at 14K QPS; ANN retrieval narrows the field cheaply first.
-- **Two-tower model for retrieval** decouples user and item computation, allowing item embeddings to be precomputed offline (amortized cost) while only the cheap user-tower runs online — this is what makes sub-10ms retrieval possible at this scale.
-- **Feature store with online/offline split** is required to guarantee train/serve consistency — without it, subtle skew between training-time and serving-time feature computation is one of the most common silent failure modes in production recommenders.
-- **GBDT + DLRM dual-path ranking** balances cost and quality — not every surface needs the most expensive model; tiering serving cost to business value (Section 29) is a deliberate architectural choice, not an afterthought.
-- **Multi-region active-active** is justified by EA's genuinely global player base and the tight p99 latency budget (150ms) — cross-continent round trips alone would blow the budget if single-region.
-- **Correctness-critical paths (entitlement/ownership) treated separately** from personalization paths (features) — different consistency requirements demand different data stores and cache strategies (write-through vs cache-aside), which this architecture explicitly separates rather than treating uniformly.
+- **Two-stage retrieval + ranking** is the standard pattern for large-catalog recommendation (Netflix, YouTube, Meta) — scoring 550K items per request with a heavy ranker is infeasible at 14K QPS; ANN narrows the field cheaply first.
+- **Two-tower retrieval** decouples user/item computation — item embeddings precomputed offline, only the cheap user tower runs online, enabling sub-10ms retrieval.
+- **Online/offline feature store split** guarantees train/serve consistency — skew between training-time and serving-time features is one of the most common silent failure modes in production recommenders.
+- **GBDT + DLRM dual-path ranking** ties serving cost to business value rather than using the expensive model everywhere.
+- **Multi-region active-active** is justified by EA's global player base and tight 150ms p99 — cross-continent round trips alone would blow the budget single-region.
+- **Correctness-critical paths (entitlement) separated** from personalization paths — different consistency requirements need different stores/cache strategies (write-through vs cache-aside).
 
-## 39. Alternative Architectures (at least 2 alternatives with why they were rejected or when they'd be preferred)
+## 39. Alternative Architectures
 
-| Alternative | Description | Why Rejected (or when preferred) |
-|---|---|---|
-| Single-stage ranking (score full catalog per request) | Skip candidate generation, rank all 550K items directly | Rejected: computationally infeasible at target QPS/latency (550K x DLRM inference per request would blow both latency and GPU cost budgets by orders of magnitude); would only be viable for catalogs < ~5K items or offline batch use cases with no latency constraint |
-| Pure collaborative filtering (matrix factorization, no content features) | Classic user-item matrix factorization, no two-tower/content embeddings | Rejected as sole method: fails badly on cold-start (new users/items have no interaction history) which is a hard requirement here given frequent new DLC drops and 150K new users/day; still used as one candidate-gen source blended in, not as the sole retrieval method |
-| Fully batch/offline precomputed recommendations (no real-time serving) | Precompute top-N recommendations nightly per user, serve from a lookup table | Preferred *when* real-time personalization isn't required (e.g., email digest surface uses exactly this pattern) — rejected as the *sole* approach because it can't react to in-session behavior (e.g., just-viewed item), which materially hurts conversion on high-intent surfaces like the in-game shop |
-| Single global model (no franchise/title-specific tuning) | One model across all EA titles, no per-title fine-tuning | Rejected for mature high-traffic titles (FIFA/EA FC, Battlefield) where title-specific behavioral patterns are strong enough to justify per-title fine-tuned ranking heads; retained as the default/fallback for smaller/newer titles with insufficient data to fine-tune |
+| Alternative | Why Rejected (or when preferred) |
+|---|---|
+| Single-stage ranking (score full catalog per request) | Infeasible at target QPS/latency; only viable for catalogs <~5K items or unconstrained offline use |
+| Pure collaborative filtering (matrix factorization only) | Fails on cold-start (new users/items) which is a hard requirement here; used as one blended candidate source, not the sole method |
+| Fully batch/offline precomputed recommendations | Preferred when real-time isn't needed (email digest uses this) — rejected as sole approach since it can't react to in-session behavior, hurting conversion on high-intent surfaces |
+| Single global model (no per-title tuning) | Rejected for high-traffic titles (FIFA/EA FC, Battlefield) where title-specific patterns justify fine-tuned heads; retained as fallback for smaller titles |
 
-## 40. Tradeoffs (explicit tradeoff table)
+## 40. Tradeoffs
 
 | Decision | Pro | Con |
 |---|---|---|
-| Two-stage retrieval+ranking | Scales to large catalogs, cheap at high QPS | Extra architectural complexity, potential recall loss if ANN misses relevant items ranker would've scored highly |
-| HNSW ANN index | Fast, high recall at this catalog scale | Memory-resident, incremental inserts degrade graph quality (needs periodic rebuild) |
-| Write-through cache for entitlements | Strong consistency, avoids "recommend owned item" bugs | Higher write latency/complexity vs. simple cache-aside |
-| Active-active multi-region | Best latency for global users, resilient to regional outage | Operational complexity (replication lag, no multi-master writes for entitlements) |
-| GBDT + DLRM dual path | Cost-efficient (cheap model where it's good enough) | Two models to maintain, monitor, and keep feature-consistent |
-| Short-TTL caching (aggressive) | Reduces backend load significantly | Slight staleness risk in personalization (acceptable) but requires careful separation from correctness-critical data (ownership) |
-| Canary + staged rollout | Catches regressions before full exposure | Slower time-to-full-rollout for genuinely good models; added engineering overhead (shadow traffic, staged gates) |
-| Distilled student ranking model | Cheaper GPU inference | Slight accuracy regression vs. full teacher ensemble (~1% NDCG) |
+| Two-stage retrieval+ranking | Scales to large catalogs, cheap at high QPS | Extra complexity, possible recall loss vs. full-catalog scoring |
+| HNSW ANN index | Fast, high recall at this scale | Memory-resident; incremental inserts degrade graph (needs rebuild) |
+| Write-through entitlement cache | Strong consistency, avoids owned-item bugs | Higher write latency/complexity vs cache-aside |
+| Active-active multi-region | Best latency, resilient to regional outage | Replication lag, no multi-master writes for entitlements |
+| GBDT + DLRM dual path | Cost-efficient | Two models to maintain and keep feature-consistent |
+| Aggressive short-TTL caching | Reduces backend load significantly | Slight personalization staleness (acceptable, kept separate from correctness-critical data) |
+| Canary + staged rollout | Catches regressions before full exposure | Slower time-to-full-rollout, added overhead |
+| Distilled student ranking model | Cheaper GPU inference | ~1% NDCG regression vs full teacher |
 
-## 41. Failure Modes (concrete failure scenarios and mitigations)
+## 41. Failure Modes
 
 | Failure | Impact | Mitigation |
 |---|---|---|
-| ANN index service down (region) | Candidate generation degraded to popularity-only | Orchestrator circuit-breaker falls back to popularity/trending candidates within timeout budget (10ms) |
-| Redis feature store outage | Missing user features → ranking uses defaults | Ranking model trained with missing-feature handling (default embeddings); degraded but non-zero quality; alert fires |
-| Entitlement CDC lag/outage | Risk of recommending owned item | Fail-closed: if entitlement freshness can't be guaranteed, filter conservatively (exclude uncertain items) rather than risk showing owned content |
-| GPU node pool exhaustion (ranking) | Ranking latency spikes, requests queue | Autoscaler + fallback to CPU GBDT path if GPU queue depth exceeds threshold |
-| Bad model deploy (accuracy regression) | Poor recommendations, revenue impact | Canary gates (Section 33) catch before full rollout; automatic rollback |
-| Kafka broker outage | Real-time feature updates stall, training data gap | Multi-AZ Kafka replication; consumers resume from last committed offset on recovery; short outage tolerable given features degrade gracefully to slightly stale |
-| Cross-region replication lag spike | Stale features served in secondary region | Monitored lag metric; if lag exceeds threshold, region temporarily removed from active-active rotation |
-| Cascading retry storm (client retries on timeout) | Amplifies load during partial degradation | Client-side exponential backoff + jitter; server-side load shedding (reject with 503 + Retry-After beyond capacity threshold) |
+| ANN index down (region) | Candidate gen degraded to popularity-only | Circuit breaker falls back within 10ms timeout budget |
+| Redis feature store outage | Missing features → ranker uses defaults | Model trained with missing-feature handling; alert fires |
+| Entitlement CDC lag/outage | Risk of recommending owned item | Fail-closed: exclude uncertain items rather than risk showing owned content |
+| GPU pool exhaustion | Ranking latency spikes, queueing | Autoscaler + fallback to CPU GBDT path |
+| Bad model deploy | Poor recommendations, revenue impact | Canary gates catch before full rollout; auto rollback |
+| Kafka broker outage | Real-time features stall, training gap | Multi-AZ replication; resume from last committed offset |
+| Cross-region replication lag spike | Stale features in secondary region | Monitored lag metric; region removed from rotation if exceeded |
+| Retry storm | Amplified load during degradation | Client backoff+jitter; server-side load shedding (503 + Retry-After) |
 
-## 42. Scaling Bottlenecks (where this breaks first at 10x/100x scale)
+## 42. Scaling Bottlenecks (10x/100x)
 
-- **At 10x (140K QPS)**: ANN index replica count and Redis feature-store shard count become the first bottleneck — need to shard the ANN index (currently full-copy per replica) rather than just adding more full replicas, and move from a single Redis cluster to a sharded multi-cluster feature store topology.
-- **At 10x**: ranking GPU fleet grows linearly (~140-150 GPU nodes/region) — cost becomes a forcing function to push harder on distillation/quantization (INT8) rather than just scaling node count.
-- **At 100x (1.4M QPS, unrealistic for EA today but illustrative)**: catalog size likely also grows (more titles, more UGC) — HNSW full-index-per-replica stops being viable in memory; would need to shift to sharded ANN (e.g., partition by title/genre) with a scatter-gather query pattern, adding latency and complexity.
-- **At 100x**: single-write-primary-per-region entitlement DB becomes a write bottleneck for purchase-heavy events (e.g., massive flash sale) — would need to revisit to a distributed SQL (e.g., CockroachDB/Spanner-style) for the entitlement store.
-- **Kafka event throughput**: at 100x event volume, current topic partitioning (by user_id) may create hot partitions for highly active users/bots — would need partition key revisit or secondary sharding dimension.
-- **Feature store write amplification**: real-time feature aggregation (Flink) at 100x event volume needs proportionally more stream-processing parallelism; state size for windowed aggregations grows, requiring more RocksDB-backed state store capacity per task manager.
+- **At 10x (140K QPS)**: ANN replica count and Redis shard count bottleneck first — need to shard the ANN index (not just add full-copy replicas) and move to a sharded multi-cluster feature store. Ranking GPU fleet grows linearly (~140-150 GPU nodes/region), pushing distillation/INT8 quantization over raw node scaling.
+- **At 100x (1.4M QPS, illustrative)**: HNSW full-index-per-replica stops fitting in memory as catalog also grows — shift to sharded ANN (partition by title/genre) with scatter-gather, adding latency. Single-write-primary entitlement DB becomes a write bottleneck during flash sales — revisit to distributed SQL (CockroachDB/Spanner-style). Kafka `user_id` partitioning may create hot partitions for highly active users/bots. Flink windowed-aggregation state size grows, needing more RocksDB state-store capacity.
 
-## 43. Latency Bottlenecks (where time is actually spent, p50/p99 budget breakdown)
+## 43. Latency Bottlenecks
 
 | Stage | p50 | p99 |
 |---|---|---|
-| Gateway (authn, rate limit) | 1 ms | 3 ms |
-| Feature store lookup | 3 ms | 15 ms (cache miss path) |
-| Candidate gen (ANN + popularity) | 6 ms | 20 ms (index contention/cold shard) |
+| Gateway | 1 ms | 3 ms |
+| Feature store lookup | 3 ms | 15 ms (cache miss) |
+| Candidate gen | 6 ms | 20 ms (cold shard) |
 | Entitlement check | 2 ms | 8 ms |
 | Merge/filter/de-dup | 2 ms | 4 ms |
-| Ranking (GBDT/DLRM, batched) | 10 ms | 40 ms (batching queue delay under load) |
-| Diversity re-ranking (MMR) | 2 ms | 5 ms |
+| Ranking (batched) | 10 ms | 40 ms (batching delay under load) |
+| Diversity re-ranking | 2 ms | 5 ms |
 | Response assembly | 1 ms | 2 ms |
-| Network/cross-service overhead | 3 ms | 10 ms |
-| **Total** | **~30 ms** | **~107 ms** (within 150ms budget, ~43ms headroom) |
+| Network overhead | 3 ms | 10 ms |
+| **Total** | **~30 ms** | **~107 ms** (within 150ms budget) |
 
-- **Biggest p99 contributor**: ranking service batching queue delay under load — dynamic batching trades a few ms of queueing for 3x GPU throughput; tuned batch-wait window (5ms max) caps the downside.
-- **Second biggest**: feature store cache misses — mitigated by pre-warming hot user features on session start.
+Biggest p99 contributor: ranking batching queue delay (5ms max-wait tuned to cap the downside of 3x GPU throughput gain). Second: feature-store cache misses, mitigated by pre-warming on session start.
 
-## 44. Cost Bottlenecks (what actually drives the bill)
+## 44. Cost Bottlenecks
 
-- **GPU ranking fleet** is the single largest cost driver (~75 GPU nodes globally at peak) — dominates over CPU/ANN/storage costs combined; this is why distillation, batching, and CPU/GPU tiering (Section 29) are first-priority levers, not afterthoughts.
-- **Cross-region data replication** (Kafka MirrorMaker2, S3 cross-region replication) — data egress costs scale with event volume; mitigated by compressing events and filtering non-essential fields before replication.
-- **Redis cluster memory** — while individually cheap, at 40M users x multiple regions x replication factor, aggregate memory footprint is a recurring line item; short TTLs help bound this.
-- **Training compute** (A100 clusters) — periodic but significant; spot instances are the main lever here.
-- **Storage growth** (event lake) — linear with player base and event volume; lifecycle policies (Glacier tiering, compaction) are the main control.
+- **GPU ranking fleet** (~75 nodes globally at peak) is the single largest driver — why distillation, batching, and CPU/GPU tiering are first-priority levers.
+- **Cross-region replication** (Kafka MirrorMaker2, S3 CRR) — mitigated by compressing/filtering events before replication.
+- **Redis memory** — cheap individually, but a recurring line item at 40M users x regions x replication; short TTLs bound it.
+- **Training compute** (A100 clusters) — periodic but significant; spot is the main lever.
+- **Storage growth** — linear with player base; lifecycle policies (Glacier, compaction) are the control.
 
 ## 45. Interview Follow-Up Questions
 
-1. How would you handle a brand-new game title launch with zero historical interaction data — walk through cold-start end-to-end.
-2. The ranking model's CTR predictions are well-calibrated offline but conversion drops 5% after a rollout — how do you debug this?
-3. How do you prevent the recommendation system from creating a filter-bubble / popularity-collapse feedback loop over time?
-4. Walk through what happens, in detail, if the ANN index service in one region goes fully down during a peak sales event.
-5. How would you extend this system to support cross-title recommendations (recommend a different EA game based on behavior in another)?
-6. How do you evaluate whether a new ranking model is actually better, before it's fully rolled out, given that online A/B tests take time?
-7. What's your strategy for balancing exploration (surfacing new/long-tail items) versus exploitation (serving known high-converting items)?
-8. How would you detect and mitigate recommendation manipulation via bot-driven fake engagement?
-9. If the entitlement database write-primary in US-East goes down, what's the blast radius, and how does the system behave?
-10. How would you change this architecture if the catalog grew from 550K items to 50M items (e.g., full UGC marketplace)?
+1. How would you handle a brand-new game title launch with zero historical data — walk through cold-start end-to-end.
+2. Ranking model's CTR predictions are well-calibrated offline but conversion drops 5% after rollout — how do you debug this?
+3. How do you prevent a filter-bubble / popularity-collapse feedback loop over time?
+4. Walk through what happens if the ANN index in one region goes fully down during a peak sales event.
+5. How would you extend this to cross-title recommendations?
+6. How do you evaluate a new ranking model before full rollout, given online A/B tests take time?
+7. How do you balance exploration (long-tail) versus exploitation (known converters)?
+8. How would you detect and mitigate bot-driven fake engagement?
+9. If the entitlement write-primary in US-East goes down, what's the blast radius?
+10. How would this architecture change if the catalog grew from 550K to 50M items (full UGC marketplace)?
 
 ## 46. Ideal Answers
 
-1. **Cold-start for new title launch**: No collaborative signal exists yet, so rely on content-based candidate generation (item-tower embedding from metadata alone) blended with editorial-curated candidates, with ranking falling back to content/demographic features instead of user-history features. Increase exploration weight temporarily to gather interaction data fast.
+1. **New title cold-start**: no collaborative signal exists, so rely on content-based candidates (item-tower from metadata) blended with editorial picks; ranking falls back to content/demographic features. Temporarily raise exploration weight to gather data fast.
 
-2. **Offline-online metric mismatch after rollout**: First check for train/serve skew — a feature store version mismatch or a feature computed differently online vs. in training is the most common root cause. Also check for confounds (promo/pricing change, latency-driven fallback) using the exposure log to segment the regression by surface/region before blaming the model itself.
+2. **Offline-online mismatch**: check train/serve skew first (feature store version mismatch is the most common cause). Also check confounds (pricing change, latency-driven fallback) by segmenting the exposure log by surface/region before blaming the model.
 
-3. **Filter-bubble/popularity-collapse mitigation**: Monitor candidate coverage/concentration metrics explicitly and use diversity-aware re-ranking (MMR) rather than pure score-ranking. Correct for popularity bias in training (logQ correction in the two-tower softmax loss) and maintain an exploration budget for under-exposed long-tail items.
+3. **Filter-bubble mitigation**: monitor candidate concentration explicitly, use diversity-aware re-ranking (MMR) instead of pure score-ranking. Correct popularity bias in training (logQ correction) and keep an exploration budget for long-tail items.
 
-4. **Regional ANN outage during peak sale**: The orchestrator's circuit breaker detects elevated ANN latency within its timeout budget (~10ms) and falls back to a precomputed popularity/trending candidate list, so ranking still runs and users get a degraded-personalization (not hard-outage) result. Alerting fires and traffic can be shifted away from the affected region while ANN recovers.
+4. **Regional ANN outage during peak sale**: circuit breaker detects elevated latency within its ~10ms budget and falls back to precomputed popularity candidates — ranking still runs, users get degraded (not broken) results. Alerting fires; traffic can shift away from the affected region.
 
-5. **Cross-title recommendations**: Requires a shared embedding space across titles — a global two-tower model trained on cross-title interaction data, or title-specific embeddings mapped into a common space via learned projection. Start with a simpler genre/franchise affinity heuristic before investing in a full joint embedding model.
+5. **Cross-title recommendations**: needs a shared embedding space — a global two-tower model on cross-title data, or per-title embeddings projected into a common space. Start with a genre/franchise affinity heuristic before a full joint embedding model.
 
-6. **Offline model evaluation before full rollout**: Combine offline metrics (Recall@K, NDCG, calibration) with counterfactual/off-policy evaluation — e.g., Inverse Propensity Scoring using logged exposure + propensity — to estimate the new model's online CTR/CVR without needing a live test first. This de-risks the canary's starting traffic allocation.
+6. **Pre-rollout evaluation**: combine offline metrics (Recall@K, NDCG, calibration) with off-policy evaluation (IPS using logged exposure + propensity) to estimate online CTR/CVR lift, de-risking the canary's starting allocation.
 
-7. **Exploration vs. exploitation**: Treat it as a contextual bandit layered on the ranking output — reserve a small percentage of impression slots for exploration candidates via Thompson sampling or epsilon-greedy, logging propensities for off-policy evaluation. Tune the exploration rate per-surface (more tolerance on low-stakes rails, less on revenue-critical surfaces).
+7. **Exploration vs exploitation**: treat as a contextual bandit layered on ranking output — reserve a small slot share for exploration (Thompson sampling or epsilon-greedy), log propensities for off-policy eval. Tune exploration rate per surface.
 
-8. **Bot-driven engagement manipulation**: Layer ingestion-time anomaly detection (event velocity per user/IP/device far exceeding human-plausible rates) with downstream training-data filtering that down-weights or excludes flagged accounts before they influence the model. Rate limiting at the edge and monitoring for suspicious concentration on specific items catch the rest.
+8. **Bot manipulation**: ingestion-time anomaly detection (event velocity per user/IP/device) plus training-data filtering that down-weights flagged accounts. Edge rate limiting and monitoring for suspicious item concentration catch the rest.
 
-9. **Entitlement write-primary outage (US-East)**: Blast radius is scoped to new purchase writes and reads dependent on the down primary; other regions' async replicas keep serving (slightly stale). The system fails closed on uncertainty — if freshness can't be verified it conservatively excludes ambiguous items rather than risk showing owned content as unowned.
+9. **Entitlement write-primary outage**: blast radius is scoped to new purchase writes and reads dependent on that primary; other regions' async replicas keep serving (slightly stale). System fails closed — excludes ambiguous items rather than risk showing owned content as unowned.
 
-10. **Catalog growth to 50M items (full UGC marketplace)**: In-memory full-copy HNSW per replica stops scaling cost-effectively, so shift to a sharded ANN architecture (partition by category/creator-tier/recency) or a disk-backed ANN system like DiskANN. Candidate generation also needs a stronger pre-filtering stage (coarse category/tag filtering) to keep the search space tractable.
+10. **Catalog growth to 50M (UGC marketplace)**: in-memory full-copy HNSW per replica stops scaling — shift to sharded ANN (by category/creator-tier/recency) or a disk-backed system like DiskANN. Candidate generation needs a stronger pre-filter stage (coarse category/tag) to keep search tractable.

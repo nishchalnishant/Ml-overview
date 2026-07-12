@@ -7,9 +7,9 @@ tags: [productionml, ml, system-design-clinical-ml-syst]
 ---
 # Clinical ML System Design
 
-End-to-end ML system for clinical decision support: sepsis early warning, radiology AI triage, readmission prediction, and drug interaction detection. High-stakes regulatory environment with asymmetric error costs and human-in-the-loop requirements.
+End-to-end ML system for clinical decision support: sepsis early warning, radiology triage, readmission prediction, drug interaction detection. High-stakes regulatory environment with asymmetric error costs and human-in-the-loop requirements.
 
-**Scale:** Millions of patient encounters/year, <60s alert latency for sepsis, 99.9% uptime (lives depend on it), FDA SaMD regulated.
+**Scale:** Millions of patient encounters/year, <60s alert latency for sepsis, 99.9% uptime, FDA SaMD regulated.
 
 ---
 
@@ -21,40 +21,40 @@ End-to-end ML system for clinical decision support: sepsis early warning, radiol
 |---|---|---|---|---|
 | Sepsis early warning | Continuous vitals + labs | Risk score + alert | <60s | II (De Novo) |
 | Chest X-ray triage | DICOM image | Finding + severity | <5 min | II (510(k)) |
-| 30-day readmission prediction | Discharge summary + EHR | Risk score | Batch (at discharge) | II |
-| Drug interaction detection | Medication orders | Interaction flag + severity | <1s | II (510(k)) |
+| 30-day readmission | Discharge summary + EHR | Risk score | Batch | II |
+| Drug interaction detection | Medication orders | Interaction flag | <1s | II (510(k)) |
 | ICU mortality prediction | Full ICU record | Mortality probability | Hourly | II |
 
 ### Clarifying Questions
 
-- **FDA classification?** Class I (low risk, general wellness) vs Class II (moderate risk, 510(k) or De Novo) vs Class III (high risk, PMA). Does the model replace clinical judgment or augment it?
-- **Real-time vs batch?** Continuous monitoring (sepsis) requires streaming inference. Discharge planning (readmission) is batch. This determines the entire architecture.
-- **Clinician-facing vs autonomous?** CDS tool that surfaces a recommendation (clinician decides) vs autonomous system that triggers an action (drug dispensing pause). Autonomous = higher FDA class, stricter validation.
-- **Which hospitals / EHR systems?** Epic? Cerner? Both? Single-site vs multi-site deployment. Epic has 33% US market; SMART on FHIR availability varies by version.
-- **What counts as a label?** Death? ICD-coded diagnosis? Clinician-confirmed? Time to event? Each has different bias and availability characteristics.
-- **Retraining cadence allowed?** Post-market surveillance requirements. Locked model (same as validated) vs adaptive model (requires re-validation with each update, per FDA AI/ML action plan 2021).
-- **Who bears liability?** Hospital? Vendor? Changes the required audit trail depth and indemnification clauses.
+- **FDA classification?** Class I (low risk) vs Class II (510(k)/De Novo) vs Class III (PMA). Does the model replace or augment clinical judgment?
+- **Real-time vs batch?** Continuous monitoring (sepsis) needs streaming inference; discharge planning (readmission) is batch. This shapes the whole architecture.
+- **Clinician-facing vs autonomous?** A CDS tool that surfaces a recommendation vs one that triggers an action directly (e.g., pausing drug dispensing). Autonomous = higher FDA class, stricter validation.
+- **Which EHR systems?** Epic and/or Cerner, single-site vs multi-site. Epic has ~33% US market share; SMART on FHIR support varies by version.
+- **What counts as a label?** Death, ICD-coded diagnosis, clinician confirmation, time-to-event — each has different bias and availability.
+- **Retraining cadence?** Locked model (matches what was validated) vs adaptive model (needs re-validation on each update, per FDA's 2021 AI/ML action plan).
+- **Who bears liability?** Hospital or vendor — affects required audit trail depth.
 
 ### Asymmetric Error Costs
 
 **False negatives are categorically more costly than false positives in most clinical settings.**
 
-| Error Type | Clinical Consequence | Downstream Cost |
+| Error Type | Consequence | Downstream Cost |
 |---|---|---|
-| FN: miss sepsis | Patient deteriorates, potentially dies | Wrongful death liability, ICU days |
-| FP: flag non-sepsis | Unnecessary blood culture, antibiotics | ~$500 workup cost, antibiotic resistance risk |
-| FN: miss lung nodule | Delayed cancer diagnosis | Stage migration, reduced survival |
-| FP: flag benign finding | Follow-up CT, patient anxiety | ~$1,000 additional imaging |
-| FN: miss drug interaction | Adverse drug event | Hospitalization, potential death |
-| FP: block valid medication | Treatment delay | Harm from undertreated condition |
+| FN: miss sepsis | Patient deteriorates, may die | Liability, ICU days |
+| FP: flag non-sepsis | Unnecessary workup | ~$500, antibiotic resistance risk |
+| FN: miss lung nodule | Delayed cancer diagnosis | Stage migration, lower survival |
+| FP: flag benign finding | Follow-up CT, anxiety | ~$1,000 |
+| FN: miss drug interaction | Adverse drug event | Hospitalization, possible death |
+| FP: block valid medication | Treatment delay | Harm from undertreatment |
 
-**Cost-sensitive threshold selection:**
+**Cost-sensitive threshold:**
 
 $$\text{optimal threshold} = \arg\max_t \left[\text{Sensitivity}(t) \cdot \frac{C_{FN}}{C_{FP}} - (1 - \text{Specificity}(t))\right]$$
 
-where C_FN/C_FP ratio for sepsis is roughly 50–100x. This pushes operating points to high sensitivity (>85%) even at the cost of specificity (50–60%).
+For sepsis, C_FN/C_FP is roughly 50–100x, pushing operating points to high sensitivity (>85%) even at the cost of specificity (50–60%).
 
-**Clinical utility curves** are preferred over ROC/AUC: they incorporate the prevalence and cost ratio, showing net benefit of the model vs treat-all vs treat-none strategies. Vickers & Elkin (2006).
+**Clinical utility curves** (net benefit vs threshold) are preferred over ROC/AUC since they incorporate prevalence and cost ratio (Vickers & Elkin, 2006).
 
 ---
 
@@ -62,40 +62,28 @@ where C_FN/C_FP ratio for sepsis is roughly 50–100x. This pushes operating poi
 
 ### FDA SaMD Classification
 
-Software as a Medical Device (SaMD) is classified by the **significance of information** provided and the **state of the healthcare situation**.
-
-```
-                    State of Healthcare Situation
-                    ─────────────────────────────────────────
-                    Non-serious  │  Serious  │  Critical
-                    ─────────────┼───────────┼──────────────
-Treat/Diagnose      Class I      │  Class II │  Class III
-  (inform)          (exempt)     │  510(k)   │  PMA
-                    ─────────────┼───────────┼──────────────
-Drive clinical      Class II     │  Class II │  Class III
-  management        510(k)       │  De Novo  │  PMA
-```
+Classified by significance of information provided and the state of the healthcare situation (non-serious/serious/critical) crossed with informing vs driving clinical management. Higher stakes → higher class.
 
 **Pathways:**
-- **510(k):** Predicate device exists. 90-day review. Most CDS tools qualify.
-- **De Novo:** Novel device, no predicate. 12-month review. Used for first-in-class AI tools (Epic Sepsis Model equivalent).
-- **PMA:** Class III. Full clinical trial required. Reserved for autonomous high-stakes decisions (AI-driven drug dispensing).
+- **510(k):** Predicate device exists. ~90-day review. Most CDS tools qualify.
+- **De Novo:** No predicate, novel device. ~12-month review. Used for first-in-class AI tools.
+- **PMA:** Class III, full clinical trial required. Reserved for autonomous high-stakes decisions.
 
-**Predetermined Change Control Plan (PCCP):** FDA's 2023 guidance allows adaptive models if the vendor pre-specifies what kinds of updates are permissible without re-submission. Critical for retraining pipelines.
+**Predetermined Change Control Plan (PCCP):** FDA's 2023 guidance lets vendors pre-specify permissible model update types (e.g., recalibration) that skip re-submission. Important for retraining pipelines.
 
-### Software Standards
+### Standards and Compliance
 
-- **IEC 62304:** Medical device software lifecycle. Requires software safety classification (A/B/C), risk management documentation, traceability matrix from requirements to tests.
-- **IEC 62366:** Usability engineering — alert design, workflow integration, error prevention.
-- **ISO 14971:** Risk management throughout the product lifecycle.
-- **HIPAA:** PHI de-identification (Safe Harbor or Expert Determination), BAA with cloud vendors, audit logs for all PHI access, minimum necessary standard.
+- **IEC 62304:** Medical device software lifecycle — safety classification, risk docs, requirements-to-tests traceability.
+- **IEC 62366:** Usability engineering (alert design, workflow integration).
+- **ISO 14971:** Risk management across the product lifecycle.
+- **HIPAA:** PHI de-identification, BAAs with cloud vendors, audit logs, minimum-necessary access.
 
 ### Operational Constraints
 
-- **Model lock-in:** The validated model artifact must be frozen. Any weight change = new submission unless covered by PCCP. Use versioned model registry with cryptographic hash.
-- **Audit trail:** Every prediction must log: timestamp, patient ID (encrypted), model version, input feature snapshot (or hash), output score, clinician action, outcome (when available). Retained for 7 years minimum.
-- **No standard A/B testing:** Randomizing patients to model vs no-model typically requires IRB approval. Shadow mode (model runs in background, no alert shown) is the standard pre-launch approach.
-- **Explainability as requirement:** Some state regulations (NY Local Law 144 equivalent in healthcare context) and hospital credentialing committees require the model to provide feature-level explanations.
+- **Model lock-in:** The validated artifact is frozen; any weight change needs a new submission unless covered by a PCCP. Use a versioned registry with cryptographic hashes.
+- **Audit trail:** Log timestamp, patient ID (encrypted), model version, input snapshot/hash, output score, clinician action, and outcome. Retain 7+ years.
+- **No standard A/B testing:** Randomizing patients to model vs no-model usually needs IRB approval. Shadow mode (model runs silently, no alert shown) is the standard pre-launch approach.
+- **Explainability:** Hospital credentialing committees and some regulations require feature-level explanations.
 
 ---
 
@@ -103,85 +91,48 @@ Drive clinical      Class II     │  Class II │  Class III
 
 ```
   EHR Systems (Epic, Cerner, Meditech)
-           │
-           │  HL7 v2 ADT/ORU messages  OR  FHIR R4 API
+           │  HL7 v2 ADT/ORU  OR  FHIR R4 API
            ▼
-  ┌─────────────────────────────────────────────────────────┐
-  │              Data Ingestion Layer                       │
-  │  Kafka (streaming) + SFTP batch                        │
-  │  HL7 parser → FHIR normalization → PHI tokenization    │
-  └──────────────────────┬──────────────────────────────────┘
-                         │
-           ┌─────────────┼──────────────────┐
-           ▼             ▼                  ▼
-  ┌──────────────┐ ┌───────────┐   ┌──────────────────┐
-  │  OMOP CDM    │ │  Real-    │   │  DICOM / Image   │
-  │  Warehouse   │ │  time     │   │  Pipeline        │
-  │  (batch/day) │ │  Feature  │   │  (radiology AI)  │
-  └──────┬───────┘ │  Store    │   └────────┬─────────┘
-         │         │ (Redis)   │            │
-         │         └─────┬─────┘            │
-         │               │                  │
-         └───────┬────────┘                 │
-                 ▼                          │
-  ┌──────────────────────────┐             │
-  │     Feature Extraction   │             │
-  │  Vital signs aggregation │             │
-  │  Lab value imputation    │             │
-  │  Medication encoding     │             │
-  │  ICD code embedding      │             │
-  └──────────┬───────────────┘             │
-             │                             │
-             ▼                             ▼
-  ┌──────────────────┐          ┌────────────────────┐
-  │  Risk Scoring    │          │  Vision Model      │
-  │  Models          │          │  (DenseNet/ViT)    │
-  │  ─────────────── │          │  Chest X-ray,      │
-  │  Sepsis: LSTM +  │          │  Pathology slide   │
-  │  Gradient boost  │          └──────────┬─────────┘
-  │  Readmission: XGB│                     │
-  │  Drug interaction│◄────────────────────┘
-  │  rule + embed    │
-  └──────────┬───────┘
-             │
-             ▼
-  ┌──────────────────────────────────────────────────────┐
-  │         Clinical Decision Support Interface           │
-  │  ─────────────────────────────────────────────────── │
-  │  Risk score + tier (LOW / ELEVATED / HIGH / CRITICAL)│
-  │  SHAP explanation: "Lactate ↑, HR ↑, low UO"        │
-  │  Recommended actions (suggested, not mandatory)      │
-  │  Confidence interval + calibration info              │
-  └──────────────────────────┬───────────────────────────┘
-                             │
-                             ▼
-  ┌──────────────────────────────────────────────────────┐
-  │              Clinician Action                         │
-  │  Accept recommendation │ Dismiss + reason │ Escalate │
-  └──────────────────────────┬───────────────────────────┘
-                             │
-                             ▼
-  ┌──────────────────────────────────────────────────────┐
-  │         Outcome Logging + Feedback Loop               │
-  │  Patient outcome (discharge, death, ICU transfer)    │
-  │  Clinician override rate + reason codes              │
-  │  Alert acceptance rate per unit/provider             │
-  └──────────────────────────┬───────────────────────────┘
-                             │
-                             ▼
-  ┌──────────────────────────────────────────────────────┐
-  │         Drift Monitoring + Model Surveillance        │
-  │  Feature distribution shift (KS test, PSI)          │
-  │  Score distribution shift                            │
-  │  Subgroup calibration tracking                       │
-  │  Post-market performance report (FDA requirement)    │
-  └──────────────────────────────────────────────────────┘
+  Data Ingestion (Kafka streaming + SFTP batch)
+  HL7 parser → FHIR normalization → PHI tokenization
+           │
+   ┌───────┼──────────────┐
+   ▼       ▼               ▼
+ OMOP CDM  Real-time      DICOM/Image
+ Warehouse Feature Store  Pipeline
+ (batch)   (Redis)        (radiology)
+   │         │               │
+   └────┬────┘               │
+        ▼                    │
+  Feature Extraction         │
+  (vitals, labs, meds,       │
+   ICD embeddings)           │
+        │                    ▼
+        ▼             Vision Model (DenseNet/ViT)
+  Risk Scoring Models  Chest X-ray, pathology
+  (LSTM/GBM/rules)  ◄───────┘
+        │
+        ▼
+  Clinical Decision Support Interface
+  Risk tier (LOW/ELEVATED/HIGH/CRITICAL) + SHAP explanation
+  + recommended (non-mandatory) actions + confidence interval
+        │
+        ▼
+  Clinician Action: Accept / Dismiss+reason / Escalate
+        │
+        ▼
+  Outcome Logging + Feedback Loop
+  (outcome, override rate, alert acceptance rate)
+        │
+        ▼
+  Drift Monitoring + Model Surveillance
+  (PSI/KS drift, subgroup calibration, post-market report)
 ```
 
-**EHR Integration Points:**
-- **Epic SMART on FHIR:** CDS Hooks standard for embedded CDS. `patient-view` hook fires when provider opens chart. `order-sign` hook fires before medication order.
-- **Cerner PowerChart:** CCOW-based context sharing; CDS integration via Ignite APIs.
-- **HL7 v2 ADT feeds:** Real-time admission/discharge/transfer events drive patient list management.
+**EHR integration points:**
+- **Epic SMART on FHIR:** CDS Hooks. `patient-view` fires on chart open, `order-sign` fires before a medication order.
+- **Cerner PowerChart:** CCOW context sharing, CDS via Ignite APIs.
+- **HL7 v2 ADT feeds:** Real-time admit/discharge/transfer events drive patient list management.
 
 ---
 
@@ -189,14 +140,13 @@ Drive clinical      Class II     │  Class II │  Class III
 
 ### EHR Data Quality
 
-EHR data was designed for billing, not ML. Every assumption made in general ML pipelines breaks.
+EHR data is built for billing, not ML — most general ML pipeline assumptions break here.
 
-**Missing data patterns:**
-- Labs are missing not at random (MNAR): a normal-appearing creatinine may be missing *because* the patient looked well. Imputation with population mean introduces bias.
-- Vital sign gaps during transport, shift change, or patient refusal are systematically different from random gaps.
-- Free-text notes contain critical clinical information (allergies, social history) that structured fields miss.
+**Missing data:**
+- Labs are missing not at random (MNAR): a normal-looking creatinine may be missing *because* the patient looked well. Mean imputation biases scores toward "normal."
+- Vital sign gaps during transport/shift change are systematically different from random gaps.
+- Free-text notes hold clinical info (allergies, social history) structured fields miss.
 
-**Strategies:**
 ```python
 # Missingness as a feature — critical in clinical settings
 def engineer_missingness_features(df: pd.DataFrame, lab_cols: list) -> pd.DataFrame:
@@ -208,81 +158,39 @@ def engineer_missingness_features(df: pd.DataFrame, lab_cols: list) -> pd.DataFr
     return df
 ```
 
-**Irregular time series:** Vital signs every 4 hours in ward, every 15 minutes in ICU. Labs drawn on clinical suspicion, not at fixed intervals. Models must handle variable-length sequences with irregular timestamps.
+**Irregular time series:** Vitals every 4h on the ward, every 15min in ICU; labs drawn on clinical suspicion. Models need to handle variable-length, irregularly-timestamped sequences.
 
-**ICD code heterogeneity:**
-- ICD-9 vs ICD-10 transition (2015) creates a cliff in longitudinal data.
-- Coding practices differ across hospitals (upcoding for reimbursement, undercoding for simplicity).
-- Principal vs secondary diagnosis ordering changes meaning.
-- ICD-10-CM has ~70,000 codes; grouping to CCS (Clinical Classifications Software) categories (286 groups) is standard preprocessing.
+**ICD code heterogeneity:** ICD-9→10 transition (2015) breaks longitudinal continuity; coding practices vary by hospital (up/undercoding); ICD-10-CM's ~70,000 codes are usually grouped into ~286 CCS categories for modeling.
 
 ### Data Harmonization: OMOP CDM
 
-The OHDSI OMOP Common Data Model maps institution-specific codes to standard vocabularies:
-- SNOMED CT for diagnoses
-- RxNorm for medications
-- LOINC for lab tests
-- CPT4 / HCPCS for procedures
-
-This enables multi-site training and federated validation without transferring raw PHI.
+The OHDSI OMOP model maps institution-specific codes to standard vocabularies — SNOMED CT (diagnoses), RxNorm (medications), LOINC (labs), CPT4/HCPCS (procedures) — enabling multi-site training without moving raw PHI.
 
 ### Selection Bias
 
-**Hospitalized patient bias:** A model trained on hospital EHR data only sees patients sick enough to be admitted. It cannot generalize to ambulatory settings. Readmission models have no information about the 80% of patients who never come back (left-censored outcomes).
-
-**Immortal time bias:** If you define the prediction window as "did the patient get sepsis after hour 6?" but your features include data from hours 0–6, early deterioration signals bleed into the feature window, inflating apparent model performance.
-
-**Label quality:**
-- Sepsis-3 definition requires clinical judgment (suspected infection + organ dysfunction). Retrospective coding is inconsistent.
-- Death is a clean label but conflates disease severity with care quality.
-- Discharge diagnosis is coded weeks after admission; cannot be used for real-time labels.
-- **Solution:** Use composite endpoints (ICU transfer OR vasopressor use OR death within 24h) that are objective and timely.
+- **Hospitalized-patient bias:** A model trained only on inpatient EHR data can't generalize to ambulatory settings.
+- **Immortal time bias:** If the prediction window is "sepsis after hour 6" but features include hours 0–6, early deterioration signal leaks in and inflates apparent performance.
+- **Label quality:** Sepsis-3 needs clinical judgment and is inconsistently coded retrospectively; death conflates severity with care quality; discharge diagnosis is coded too late for real-time labels. **Fix:** use composite endpoints (ICU transfer OR vasopressor use OR death within 24h) — objective and timely.
 
 ---
 
 ## 5. Model Architecture
 
-### Time Series of Clinical Events
-
-Patient data is a multivariate, irregular time series with heterogeneous data types:
-
-```
-t=0h    t=2h    t=6h    t=12h   t=24h
- │       │       │        │       │
- ├─ HR   ├─ HR   ├─ HR    ├─ HR   ├─ HR    ← continuous, q4h
- ├─ BP   ├─ BP   ├─ BP    ├─ BP   ├─ BP
- ├─ Temp ├─ Temp ├─ Temp  ├─ Temp ├─ Temp
- │       ├─ WBC  │        ├─ Lac  │        ← labs: irregular
- │       ├─ Cr   │        ├─ Cr   │
- ├─ [IV  │       ├─ [ABX  │       │        ← medications: events
- │  Fluid]       │  start]│
- ├─ [ICD ├─ [ICD │        │       │        ← diagnoses: sparse
- │  code]│  code]│
-```
+Patient data is a multivariate, irregular time series mixing continuous vitals (q4h), irregular labs, medication events, and sparse diagnosis codes.
 
 ### Model Options
 
-**LSTM for continuous monitoring:**
-- Handles variable-length sequences natively.
-- Forget gate learns to discount stale measurements.
-- Per-timestep output enables early warning at each observation.
-- Weakness: struggles with very long sequences (>200 time steps) due to gradient decay.
+**LSTM for continuous monitoring:** handles variable-length sequences natively; forget gate discounts stale measurements; per-timestep output enables early warning. Weakness: struggles past ~200 time steps due to gradient decay.
 
-**Transformer on irregular time series (preferred for new systems):**
-- Positional encoding replaced with time-delta encoding: `PE(t) = sin(t/T_max)`.
-- Multi-head attention captures cross-variable correlations (rising HR + falling BP = hemodynamic instability).
-- `STraTS` (2021) and `ETHAN` (2022) are clinical transformer architectures designed for this.
-- Self-supervised pretraining on large EHR corpora (via masked lab prediction) improves sample efficiency.
+**Transformer on irregular time series (preferred for new systems):** time-delta positional encoding (`PE(t) = sin(t/T_max)`) instead of standard position encoding; multi-head attention captures cross-variable correlations (rising HR + falling BP = instability). STraTS (2021) and ETHAN (2022) are purpose-built clinical transformer architectures; self-supervised pretraining on EHR corpora improves sample efficiency.
 
 ```python
 class ClinicalTransformer(nn.Module):
     def __init__(self, n_features: int, d_model: int = 128, n_heads: int = 8):
         super().__init__()
-        # Time-aware positional encoding
         self.time_encoder = nn.Linear(1, d_model)
         self.value_encoder = nn.Linear(n_features, d_model)
         self.missingness_encoder = nn.Embedding(2, d_model)
-
         encoder_layer = nn.TransformerEncoderLayer(
             d_model=d_model, nhead=n_heads, dropout=0.1, batch_first=True
         )
@@ -291,58 +199,40 @@ class ClinicalTransformer(nn.Module):
 
     def forward(self, values, times, mask):
         # values: (B, T, F), times: (B, T, 1), mask: (B, T) — True where missing
-        time_emb = self.time_encoder(times)
-        value_emb = self.value_encoder(values)
-        x = time_emb + value_emb
+        x = self.time_encoder(times) + self.value_encoder(values)
         x = self.transformer(x, src_key_padding_mask=mask)
-        return torch.sigmoid(self.output_head(x[:, -1, :]))  # last timestep
+        return torch.sigmoid(self.output_head(x[:, -1, :]))
 ```
 
-**Gradient boosting for tabular features (discharge prediction, drug interaction):**
-- Aggregated features over fixed windows: min/max/mean/last of each vital and lab.
-- Handles mixed types natively (continuous labs, binary flags, ICD codes as categorical).
-- Interpretable via SHAP. Faster to train and iterate.
-- XGBoost / LightGBM are standard. CatBoost handles high-cardinality ICD codes well.
+**Gradient boosting for tabular features (discharge, drug interaction):** window-aggregated features (min/max/mean/last), handles mixed types natively, interpretable via SHAP, fast to iterate. XGBoost/LightGBM standard; CatBoost handles high-cardinality ICD codes well.
 
-**Ensemble for robustness:**
-- Average transformer score (temporal patterns) + gradient boosting score (cross-sectional features).
-- Disagreement between ensemble members is a useful uncertainty signal.
-- If transformer score = 0.85 but GBM score = 0.30 → flag for clinician review rather than auto-alert.
+**Ensemble for robustness:** average transformer (temporal) + GBM (cross-sectional) scores. Large disagreement between them (e.g., 0.85 vs 0.30) is a useful signal to route to clinician review instead of auto-alerting.
 
-### Radiology AI (Image Pathway)
+### Radiology AI
 
-- **DenseNet-121** (Rajpurkar et al., CheXNet 2017) for chest X-ray pathology classification.
-- **Vision Transformer (ViT-B/16)** fine-tuned on CheXpert/MIMIC-CXR for improved calibration.
-- **Multi-label output:** pneumonia, atelectasis, cardiomegaly, pleural effusion, pneumothorax — not mutually exclusive.
-- **Critical finding triage:** separate binary head for "critical finding requiring urgent attention" to drive workflow prioritization.
-- Preprocessing: DICOM → PNG, CLAHE normalization, 224×224 or 512×512 depending on finding size.
+DenseNet-121 (CheXNet, 2017) or a ViT-B/16 fine-tuned on CheXpert/MIMIC-CXR for chest X-ray classification. Multi-label output (pneumonia, atelectasis, cardiomegaly, effusion, pneumothorax — not mutually exclusive), plus a separate binary "critical finding" head to drive urgent triage. Preprocessing: DICOM→PNG, CLAHE normalization, 224×224 or 512×512.
 
 ---
 
-## 6. Handling Class Imbalance in Clinical Settings
+## 6. Handling Class Imbalance
 
-### Prevalence Realities
-
-| Condition | Approximate prevalence in target population |
+| Condition | Approx. prevalence |
 |---|---|
-| Sepsis (hospital inpatients) | 2–4% |
-| 30-day readmission (general medicine) | 12–15% |
+| Sepsis (inpatients) | 2–4% |
+| 30-day readmission | 12–15% |
 | Pneumonia on chest X-ray (ED) | 5–10% |
 | Rare genetic disease | 0.01–0.1% |
 | Critical drug interaction | 1–3% of polypharmacy patients |
 
-### Strategies
-
 **Cost-sensitive learning:**
 ```python
-# XGBoost: scale_pos_weight = (negative samples) / (positive samples)
 model = XGBClassifier(
     scale_pos_weight=97,  # for 3% prevalence: 97/3
     eval_metric="aucpr",  # PR-AUC more informative than ROC-AUC under imbalance
 )
 ```
 
-**Focal loss for neural models (Lin et al., 2017):**
+**Focal loss (Lin et al., 2017):**
 ```python
 def focal_loss(logits, targets, alpha=0.25, gamma=2.0):
     bce = F.binary_cross_entropy_with_logits(logits, targets, reduction="none")
@@ -352,91 +242,65 @@ def focal_loss(logits, targets, alpha=0.25, gamma=2.0):
     return (focal_weight * bce).mean()
 ```
 
-**Operating point selection — do not use default 0.5 threshold:**
+**Operating point selection:** never use the default 0.5 threshold. Set it from hospital policy, clinical utility (net benefit) analysis, and clinician-elicited sensitivity/specificity tradeoffs. A sepsis model at 0.5 threshold with 3% prevalence and 80% sensitivity yields ~40% PPV — 60% of alerts are false positives, and clinical teams stop trusting the system (the Epic Sepsis Model controversy, NEJM 2021).
 
-The correct operating point is determined by:
-1. Hospital policy: "alert when probability > X%"
-2. Clinical utility analysis: net benefit curves
-3. Stakeholder elicitation: what sensitivity/specificity trade-off do clinicians accept?
-
-A sepsis model at 0.5 threshold with 3% prevalence and 80% sensitivity will have ~40% positive predictive value — 60% of alerts are false positives. Clinical teams routinely ignore such systems (Epic Sepsis Model controversy, UCSF/NEJM 2021).
-
-**Clinical utility curves (net benefit):**
+**Net benefit:**
 $$NB(\text{threshold}) = \frac{TP}{n} - \frac{FP}{n} \cdot \frac{p_t}{1 - p_t}$$
 
-where p_t is the decision threshold probability. Plot NB vs threshold and compare model vs treat-all vs treat-none. FDA guidance recommends this over ROC alone for clinical validation.
+Plot NB vs threshold to compare model vs treat-all vs treat-none. FDA guidance favors this over ROC alone for clinical validation.
 
 ---
 
 ## 7. Fairness and Bias
 
-### Known Sources of Bias in Clinical AI
+**Known bias sources:**
+- **Pulse oximetry:** SpO2 sensors overestimate saturation by 3–4 points in darker-skinned patients (Sjoding et al., NEJM 2020) — any model using SpO2 inherits this.
+- **Dermatology AI:** underperforms on darker Fitzpatrick skin tones due to training data skew (Esteva et al., Nature 2017).
+- **Sepsis models:** shown to have worse sensitivity for Black patients at the same threshold (Wong et al., 2021).
+- **SES proxy features:** ZIP code, insurance type, prior admissions predict readmission well but encode race/SES bias.
 
-**Pulse oximetry bias:** SpO2 sensors overestimate oxygen saturation in patients with darker skin tones by 3–4 percentage points (Sjoding et al., NEJM 2020). Any model using SpO2 as a feature will have worse performance for Black patients. Solution: include race as a feature (controversial) or train separate calibration layers.
-
-**Dermatology AI:** Esteva et al. (Nature 2017) and subsequent studies showed dermatology classifiers underperformed on darker skin Fitzpatrick scores due to training data dominated by lighter skin images. Datasets like Fitzpatrick17k and DDI are now required for validation.
-
-**Sepsis model disparities:** Wong et al. (npj Digital Medicine 2021) found that commercial sepsis models had worse sensitivity for Black patients vs White patients at the same alert threshold.
-
-**Socioeconomic status proxy features:** ZIP code, insurance type, prior admissions — legitimate predictors of readmission but proxies for SES and race. Including them improves accuracy but entrenches inequity in resource allocation.
-
-### Required Fairness Analyses
+**Required fairness analyses:**
 
 | Analysis | Method | Threshold |
 |---|---|---|
-| Subgroup calibration | Reliability diagrams by race/sex/age | Calibration slope ∈ [0.8, 1.2] per group |
-| Sensitivity/specificity parity | Report separately per demographic | Flag if gap >5 percentage points |
-| Disparate impact ratio | min(TPR_group) / max(TPR_group) | Must be >0.8 (4/5 rule) |
-| Calibration across sites | Hosmer-Lemeshow test per hospital | p > 0.05 before deployment at new site |
+| Subgroup calibration | Reliability diagrams by race/sex/age | Calibration slope ∈ [0.8, 1.2] |
+| Sensitivity/specificity parity | Report per demographic | Flag gap >5pp |
+| Disparate impact ratio | min(TPR)/max(TPR) across groups | Must be >0.8 (4/5 rule) |
+| Cross-site calibration | Hosmer-Lemeshow per hospital | p > 0.05 before new-site deployment |
 
-**Bias as regulatory requirement:** FDA's 2022 action plan explicitly lists demographic performance analysis as a required component of AI/ML SaMD submissions. Joint Commission (hospital accreditation body) is developing health equity standards that include AI audit requirements.
+FDA's 2022 action plan requires demographic performance analysis in AI/ML SaMD submissions.
 
-**Mitigation approaches:**
-- **Data-side:** Oversample underrepresented groups; curate demographically balanced validation sets.
-- **Model-side:** Adversarial debiasing (fairness constraints during training); multi-task learning with demographic parity constraint.
-- **Post-processing:** Separate thresholds per demographic group to equalize sensitivity (controversial, legally complex under anti-discrimination law).
-- **Process-side:** Clinical advisory board with diverse representation reviews model outputs before deployment.
+**Mitigations:** oversample underrepresented groups and curate balanced validation sets (data-side); adversarial debiasing or demographic-parity constraints (model-side); group-specific thresholds (post-processing, legally complex); diverse clinical advisory board review (process-side).
 
 ---
 
 ## 8. Human-in-the-Loop Design
 
-### Alert Fatigue: The Core Product Problem
+### Alert Fatigue
 
-The Epic Sepsis Model (ESM) controversy (Wong et al., NEJM Evidence 2021) is the canonical case study. ESM had AUROC 0.76 — a respectable metric — but in prospective evaluation:
-- 18% of alerts were accepted by nurses.
-- 67% of sepsis cases were missed (sensitivity 33%).
-- Nurses reported ignoring alerts due to habituation.
+The Epic Sepsis Model (Wong et al., NEJM Evidence 2021) is the canonical cautionary case: AUROC 0.76 looked solid, but prospectively only 18% of alerts were accepted, 67% of sepsis cases were missed (33% sensitivity), and nurses habituated to ignoring alerts.
 
-**Alert fatigue physics:**
-- ICU nurses receive 150–200 alarms per patient per day across all monitoring systems.
-- False positive rate >70% causes desensitization within weeks of deployment.
-- A model with 90% sensitivity but 70% FPR generates 2.3 false alerts for every true one at 3% prevalence — cognitively overwhelming.
+ICU nurses already see 150–200 alarms/patient/day; FPR >70% causes desensitization within weeks. At 3% prevalence, 90% sensitivity with 70% FPR means 2.3 false alerts per true one.
 
-### Tiered Alerting Architecture
+### Tiered Alerting
 
 ```
-Score < 0.3:  No alert. Log for retrospective analysis.
-Score 0.3–0.5: Passive indicator. Dashboard color change (yellow).
-               No interruption. Clinician sees on next chart open.
-Score 0.5–0.7: Non-interruptive alert. Sidebar notification.
-               One-click dismiss. Reason code required.
-Score 0.7–0.85: Interruptive alert. Pop-up with SHAP explanation.
-               "High sepsis risk. Lactate elevated, HR rising."
-               Accept / Dismiss+reason / Escalate options.
-Score >0.85:   Critical alert. Pages RN and attending.
-               EHR order set pre-populated (blood cultures, lactate).
-               Cannot dismiss without senior physician override.
+Score < 0.3:    No alert, logged only.
+Score 0.3–0.5:  Passive dashboard indicator, no interruption.
+Score 0.5–0.7:  Non-interruptive sidebar alert, one-click dismiss + reason code.
+Score 0.7–0.85: Interruptive pop-up with SHAP explanation.
+                Accept / Dismiss+reason / Escalate.
+Score >0.85:    Critical alert — pages RN and attending,
+                pre-populated order set, requires senior override to dismiss.
 ```
 
-**Alert budget:** Target <2 actionable alerts per nurse per 12-hour shift. Monitor alert burden per unit; auto-suppress if rate exceeds threshold.
+Target: <2 actionable alerts per nurse per 12h shift; auto-suppress if a unit's rate exceeds budget.
 
-### Explainability for Clinical Reasoning
+### Explainability
 
-SHAP values are the standard for structured/tabular models. Clinicians need feature-level attribution in clinical language, not raw feature names.
+SHAP values, translated into clinical language, are standard for tabular models:
 
 ```python
-# Map SHAP feature names to clinical language
 CLINICAL_EXPLANATIONS = {
     "hr_max_4h":        "Heart rate elevated (max {val:.0f} bpm)",
     "lactate_last":     "Lactate elevated ({val:.1f} mmol/L)",
@@ -451,39 +315,29 @@ def generate_clinical_explanation(shap_values: dict, feature_values: dict, top_k
     explanations = []
     for feat, shap_val in sorted_features[:top_k]:
         if feat in CLINICAL_EXPLANATIONS:
-            template = CLINICAL_EXPLANATIONS[feat]
-            text = template.format(val=feature_values[feat])
+            text = CLINICAL_EXPLANATIONS[feat].format(val=feature_values[feat])
             direction = "↑ risk" if shap_val > 0 else "↓ risk"
             explanations.append(f"{text} ({direction})")
     return explanations
 ```
 
-**Uncertainty communication:** Display calibrated confidence intervals, not just point estimates. "Sepsis probability: 78% (CI: 65–88%)" is more actionable than "ALERT: Sepsis risk HIGH." Clinicians trained in Bayesian reasoning use this information differently.
-
-**Attention visualization for image models:** Grad-CAM heatmaps overlaid on X-ray show which regions drove the prediction. Required for radiologist trust and for identifying spurious correlations (model learning from pacemaker presence rather than lung texture).
+Show calibrated confidence intervals, not just point estimates ("78% (CI 65–88%)" beats "ALERT: HIGH"). For imaging models, Grad-CAM heatmaps show which regions drove the prediction — needed for radiologist trust and catching spurious correlations (e.g., learning from a pacemaker rather than lung texture).
 
 ---
 
 ## 9. Validation and Monitoring
 
-### Validation Hierarchy
-
 | Validation type | Description | When required |
 |---|---|---|
-| Internal validation | Train/test split, CV | Always |
-| Temporal validation | Train 2018–2020, test 2021 | Required for FDA |
-| External validation | Different hospital (unseen during training) | Required for multi-site claim |
-| Prospective validation | Shadow mode, compare to ground truth after | Required before clinical deployment |
-| Prospective RCT | Randomized exposure to model vs control | Required for Class III / PMA; IRB needed |
+| Internal | Train/test split, CV | Always |
+| Temporal | Train on 2018–2020, test on 2021 | Required for FDA |
+| External | Different hospital, unseen in training | Required for multi-site claims |
+| Prospective (shadow) | Compare to ground truth post-hoc | Required before clinical deployment |
+| Prospective RCT | Randomized exposure | Required for Class III/PMA |
 
-**Temporal validation is the minimum bar.** Models that skip temporal validation and use random splits on longitudinal data are severely overfit — future leakage from labels coded retrospectively is common.
+Temporal validation is the minimum bar — random splits on longitudinal EHR data leak future information via retrospective coding and badly overstate performance.
 
-**Site-specific calibration:** A model trained at academic medical center performs poorly at community hospital due to:
-- Different patient population (acuity, demographics)
-- Different clinical protocols (order culture affects features)
-- Different EHR configuration (which labs are routinely ordered)
-
-**Solution:** Isotonic regression or Platt scaling recalibrates score-to-probability mapping at each new site using 500–1,000 local patient-outcome pairs.
+**Site-specific calibration:** performance drops when moving to a new hospital (different acuity mix, protocols, EHR configuration). Recalibrate with isotonic regression or Platt scaling using 500–1,000 local patient-outcome pairs.
 
 ### Continuous Monitoring
 
@@ -492,14 +346,13 @@ class ClinicalModelMonitor:
     def __init__(self, reference_df: pd.DataFrame, feature_cols: list):
         self.reference = reference_df
         self.features = feature_cols
-        self.psi_threshold = 0.2      # Population Stability Index
-        self.calibration_threshold = 0.1  # Max ECE (Expected Calibration Error)
+        self.psi_threshold = 0.2
+        self.calibration_threshold = 0.1  # max ECE
 
     def compute_psi(self, current_df: pd.DataFrame, feature: str) -> float:
-        # Population Stability Index: <0.1 stable, 0.1–0.2 minor shift, >0.2 major
+        # <0.1 stable, 0.1-0.2 minor shift, >0.2 major shift
         ref_pcts, bins = np.histogram(self.reference[feature].dropna(), bins=10, density=True)
         cur_pcts, _ = np.histogram(current_df[feature].dropna(), bins=bins, density=True)
-        # Avoid log(0)
         ref_pcts = np.where(ref_pcts == 0, 1e-4, ref_pcts)
         cur_pcts = np.where(cur_pcts == 0, 1e-4, cur_pcts)
         return np.sum((cur_pcts - ref_pcts) * np.log(cur_pcts / ref_pcts))
@@ -514,32 +367,24 @@ class ClinicalModelMonitor:
             sub = df[df["race_ethnicity"] == group]
             if len(sub) < 50:
                 continue
-            # Hosmer-Lemeshow or ECE
             results[group] = expected_calibration_error(sub["score"], sub["label"])
         return results
 ```
 
-**Monitoring triggers for FDA post-market surveillance:**
-- PSI > 0.2 on any top-10 feature → flag for review.
-- Score distribution shift (KS test p < 0.001) → automatic model pause pending investigation.
-- Subgroup ECE > 0.1 → diversity/equity review within 30 days.
-- Alert acceptance rate drops >20% → alert fatigue review.
-- New ICD-10 codes appearing in >5% of encounters (e.g., COVID U07.1 in March 2020) → model behavior audit.
+**Monitoring triggers:** PSI >0.2 on a top-10 feature → review; score-distribution KS p<0.001 → automatic pause; subgroup ECE >0.1 → equity review within 30 days; alert acceptance drop >20% → fatigue review; a new ICD-10 code appearing in >5% of encounters (e.g., COVID's U07.1) → behavior audit.
 
 ---
 
 ## 10. Deployment Constraints
 
-### Model Versioning with Regulatory Audit Trail
+### Model Registry / Audit Trail
 
 ```
-Model Registry entry (immutable):
 {
   "model_id": "sepsis_v3.2.1",
   "sha256": "a8f3c2...",
   "training_data_hash": "b7e1d4...",
   "validation_auc": 0.821,
-  "validation_date": "2024-01-15",
   "fda_submission": "K240123",
   "pccp_change_type": "minor_recalibration",
   "approved_by": ["CMO", "CISO", "FDA_reference"],
@@ -548,401 +393,164 @@ Model Registry entry (immutable):
 }
 ```
 
-Every inference call logs: `{patient_token, model_id, timestamp, feature_hash, score, alert_tier_shown, clinician_id, action_taken, action_timestamp}`.
+Every inference logs: `{patient_token, model_id, timestamp, feature_hash, score, alert_tier_shown, clinician_id, action_taken, action_timestamp}`.
 
-### Shadow Mode Deployment
+### Shadow Mode
 
-Before going live, run the model in shadow mode for 30–90 days:
-1. Model generates scores and would-have-been alerts.
-2. No alerts shown to clinicians.
-3. Compare model predictions to actual outcomes.
-4. Compare to existing clinical tools (NEWS2, qSOFA, APACHE II).
-5. Measure: sensitivity, PPV at proposed threshold, time-to-alert vs current standard.
-
-Shadow mode does not require IRB because patients are not being treated differently. It does require data access approval and BAA.
+Run 30–90 days before go-live: generate scores/would-be alerts without showing them, compare to actual outcomes and to existing tools (NEWS2, qSOFA, APACHE II), and measure sensitivity/PPV at the proposed threshold. No IRB needed (care isn't changed), but requires data access approval and a BAA.
 
 ### EHR Integration
 
-**Epic SMART on FHIR / CDS Hooks:**
-```json
-{
-  "hookInstance": "uuid",
-  "hook": "patient-view",
-  "context": {
-    "userId": "Practitioner/123",
-    "patientId": "Patient/456",
-    "encounterId": "Encounter/789"
-  }
-}
-```
+CDS Hooks fire (e.g., `patient-view`), the model service fetches FHIR resources (`Observation`, `MedicationRequest`, `Condition`), scores, and returns a `cards` array with the alert.
 
-Model service receives CDS Hook, fetches FHIR resources (`Observation`, `MedicationRequest`, `Condition`), computes score, returns `cards` array with alert and SMART app link for detailed view.
-
-**Graceful degradation:**
-- If feature pipeline fails (EHR downtime), return "model unavailable" rather than defaulting to 0 risk.
-- Fallback to rule-based alert (SIRS criteria, qSOFA) if ML service is down.
-- Circuit breaker pattern: if model latency >5s, bypass ML and use rules-only path.
-- Never silently fail with stale scores — display "last updated 4 hours ago" with timestamp.
+**Graceful degradation:** if the feature pipeline fails, return "model unavailable" — never default to 0 risk. Fall back to rule-based alerts (SIRS, qSOFA) if the ML service is down. Circuit breaker: bypass ML if latency >5s. Never silently serve stale scores — show a "last updated" timestamp.
 
 ---
 
 ## 11. Failure Modes
 
-### Alert Fatigue
+**Alert fatigue:** high FPR → clinicians dismiss without reading → true positives missed. Mitigate with tiered alerting, alert budgets, suppression of duplicate alerts within a time window, and unit-level burden reporting. Detect via acceptance rate <15% for a tier.
 
-**Mechanism:** High FPR → clinicians learn to dismiss without reading → true positives missed → clinical harm. Worse in ICU where staff already manages 150+ alarms/day.
+**Distribution shift from protocol changes:** e.g., a lactate order-set change silently shifts feature distributions and degrades sensitivity. COVID-19 (March 2020) is the textbook example — admission criteria, protocols, and coding all shifted at once. Mitigate by tying model revalidation to clinical protocol change management and monitoring PSI weekly.
 
-**Mitigation:** Tiered alerting, alert budget enforcement, regular alert burden reporting to unit leadership, suppression of cascading alerts (one alert per 4-hour window per patient per condition).
+**Feedback loops:** the model changes the outcomes it was trained to predict — early intervention prevents sepsis, so the label becomes 0 for a genuinely high-risk patient, and retraining teaches the model those patterns are low-risk. Mitigate with a randomized holdout (5–10%, IRB-approved) withheld from alerts, and counterfactual logging of would-have-been scores.
 
-**Detection:** Alert acceptance rate tracked per unit per model. If acceptance rate drops below 15% for a given alert tier, escalate to model review committee.
+**Demographic bias:** inherited from historically biased training data, widening health equity gaps via higher FN rates for marginalized groups. Mitigate with mandatory subgroup calibration checks and annual bias audits.
 
-### Distribution Shift from Protocol Changes
+**EHR vendor lock-in:** FHIR implementations vary by vendor and version; multi-site deployment becomes a heavy integration effort. Mitigate by abstracting behind a FHIR facade, keeping HL7 v2 as fallback, and maintaining a synthetic-patient test suite per integration.
 
-**Mechanism:** Sepsis bundle protocol changes (e.g., lactate removed from standard order set) → feature distribution changes → model miscalibrated → sensitivity drops silently.
-
-**Real example:** COVID-19 pandemic (March 2020) changed admission criteria, medication protocols, patient mix, and coding practices simultaneously. Models trained on pre-COVID data had severely degraded performance within weeks.
-
-**Mitigation:** Monitor PSI on top features weekly. Tie model revalidation schedule to clinical protocol change management process (every protocol change triggers model impact assessment).
-
-### Feedback Loops
-
-**Mechanism:** Model alerts → clinicians intervene earlier → outcomes improve → fewer positive labels in future data → retraining on this data makes model appear less accurate on the intervention-affected population → threshold raised → fewer alerts → outcomes worsen.
-
-This is the **causal feedback loop problem**: the model changes the very outcomes it was trained to predict.
-
-**Mitigation:** Withhold a random 5–10% of patients from receiving alerts (IRB-approved holdout group) for ongoing outcome measurement. Counterfactual logging: record would-have-been scores for patients where clinicians acted before the model triggered.
-
-### Demographic Bias
-
-**Mechanism:** Training data from historically biased healthcare system → model inherits disparities → higher false negative rate for marginalized groups → widens existing health equity gap.
-
-**Mitigation:** Mandatory subgroup calibration analysis before and after deployment. Annual bias audit as part of post-market surveillance. Engage patient advocacy groups in threshold-setting decisions.
-
-### EHR Vendor Lock-in
-
-**Mechanism:** Epic SMART on FHIR app built for Epic 2021 breaks on Epic 2023 upgrade. FHIR implementation varies by vendor (Cerner FHIR ≠ Epic FHIR despite same standard). Multi-site deployment becomes a full-time integration engineering effort.
-
-**Mitigation:** Abstract EHR interface behind FHIR facade. Use HL7 v2 as fallback for sites without FHIR. Maintain a synthetic patient test suite that runs against each EHR integration on every upgrade. Budget 2–3 integration engineers per 10 hospital sites.
-
-### Model Ossification
-
-**Mechanism:** Regulatory lock-in means the deployed model cannot be updated without re-submission. A 2020 model running in 2025 is trained on pre-COVID, pre-GLP1, pre-RSV-vaccine clinical patterns. Model becomes progressively less accurate as medicine evolves.
-
-**Mitigation:** File PCCP at time of initial submission specifying acceptable update types (recalibration, feature set expansion) that do not require new 510(k). Plan revalidation cycles (every 18–24 months) as part of product roadmap.
+**Model ossification:** regulatory lock-in means a 2020 model running in 2025 reflects pre-COVID clinical patterns. Mitigate by filing a PCCP upfront for allowed update types and planning revalidation cycles (18–24 months).
 
 ---
 
 ## 12. Interview Questions
 
-**Q1: You're asked to deploy a sepsis prediction model. The validation AUROC is 0.85. Is the model ready for deployment?**
+**Q1: Validation AUROC is 0.85 for a sepsis model. Is it ready for deployment?**
 
-AUROC alone is insufficient. First, AUROC is threshold-agnostic and insensitive to calibration. A perfectly ranked but miscalibrated model (all scores in [0.4, 0.6]) is not deployable. Second, the validation must be temporal and external — random splits overestimate performance due to label leakage in retrospectively coded EHR data. Third, subgroup performance must be evaluated; aggregate AUROC hides 10-percentage-point sensitivity gaps across demographic groups. Fourth, shadow mode prospective validation is required to measure alert burden and acceptance rate under real clinical workflows. AUROC 0.85 is a necessary but not sufficient condition.
+No. AUROC is threshold-agnostic and insensitive to calibration — a well-ranked but miscalibrated model isn't deployable. Validation must be temporal and external, since random splits on retrospectively-coded EHR data leak information. Subgroup performance must be checked — aggregate AUROC can hide large sensitivity gaps across demographics. And shadow-mode prospective validation is needed to measure real-world alert burden and acceptance. AUROC 0.85 is necessary, not sufficient.
 
----
+**Q2: How do you handle missing labs? Population mean imputation?**
 
-**Q2: How do you handle missing lab values in a clinical model? Population mean imputation?**
+No — missingness is MNAR. A normal-looking WBC may be missing *because* the patient looked well; mean imputation biases scores toward "normal" for patients too sick to have labs drawn. Better: add missingness indicators and time-since-last-observation features; use attention masking for sequence models; let gradient boosting handle NaN natively; forward-fill only within a clinically meaningful window.
 
-Never population mean imputation in clinical settings — missingness is MNAR (missing not at random). A normal-appearing WBC may be missing *because* the patient looked well. Mean imputation biases the model toward assuming normal values, which suppresses risk scores for patients who are too sick to have labs drawn. Correct approaches: (1) add binary missingness indicator features, (2) add time-since-last-observation features, (3) for time-series models, use masking in the attention mechanism, (4) for gradient boosting, leave as NaN and use native missing value handling (XGBoost/LightGBM support this natively). Forward-fill only within a clinically meaningful window (e.g., 4 hours for vitals, 24 hours for stable labs like creatinine).
+**Q3: A hospital wants to A/B test the sepsis model — one ICU gets alerts, the other doesn't. How?**
 
----
+Needs IRB approval, since the control arm may get inferior care. The application must establish clinical equipoise, define a stopping rule, and justify a consent waiver. Expect 3–6 months for IRB. Faster alternatives: a pre/post study (confounded by temporal trends) or a cluster-randomized design by unit to reduce contamination.
 
-**Q3: A hospital asks to A/B test the sepsis model — one ICU gets alerts, the other doesn't. How do you set this up?**
+**Q4: Six months post-launch, the model "never alerts anymore." What happened?**
 
-This requires IRB (Institutional Review Board) approval because patients in the control arm may receive inferior care due to withheld clinical decision support. The IRB application must justify the clinical equipoise (genuine uncertainty about model benefit), provide a stopping rule (stop if harm detected), and obtain waiver of individual consent given operational nature of the intervention. Timeline: 3–6 months for IRB. Alternative for faster evidence: pre-post study (model off for 6 months, model on for 6 months, compare outcomes), though this has confounders from temporal trends. Another alternative: cluster-randomized design by unit rather than individual patient, reducing contamination.
+Likely a feedback loop or distribution shift. Check: whether the alert rate dropped sharply and score distribution shifted (PSI); whether an EHR upgrade or protocol change altered feature availability; whether clinicians overrode thresholds locally; whether the ETL pipeline is silently failing and zeroing out features. Re-run the model on historical patients with known outcomes to isolate model drift from delivery-pipeline bugs.
 
----
+**Q5: How do you validate radiology AI when the ask is "just compare to my reads"?**
 
-**Q4: The clinical team reports the model "never alerts anymore" six months after launch. What happened?**
+Necessary but not sufficient. Inter-reader variability for chest X-ray is real (κ≈0.6–0.7), so use a multi-reader adjudicated panel, not one radiologist. Use consecutive real-world cases, not a curated interesting-case set (spectrum bias). The real question isn't "as good as a radiologist" but "does it improve the workflow" — measure time-to-read, missed-finding rate. Also require temporal/site validation and subgroup analysis by imaging equipment.
 
-Classic feedback loop with possible distribution shift. Investigate: (1) check alert rate trend — if it dropped sharply, check score distribution for shift using PSI; (2) check if any EHR upgrade or clinical protocol change occurred that changed feature distributions (e.g., lactate no longer routinely ordered); (3) check if clinicians customized alert thresholds in the EHR configuration (some EHR implementations allow per-unit threshold overrides); (4) check feature pipeline — silent failures in the ETL pipeline can result in stale or zeroed features, which push scores to a calibrated baseline. Run the model on historical patients with known outcomes and compare scores to initial validation to determine if model behavior has changed vs alert delivery pipeline.
+**Q6: How do you address the feedback loop where alerts change future training data?**
 
----
+The intervention confounds its own label — early treatment prevents the outcome, so a genuinely high-risk case gets labeled negative. Mitigations: an IRB-approved randomized holdout that skips alerts for some patients; counterfactual/causal labeling; using process labels (antibiotics given) instead of outcome labels; upweighting untreated-but-positive cases during retraining. No perfect fix exists — ignoring it causes gradual degradation over 12–18 months.
 
-**Q5: How do you validate a radiology AI before deployment? The radiologist says "just compare to my reads."**
+**Q7: An advocacy group flags worse sensitivity for Black patients in your readmission model. What do you do?**
 
-Radiologist-vs-model comparison is necessary but not sufficient. First, which radiologist? Inter-reader variability for chest X-ray is significant (κ ≈ 0.6–0.7 for pneumonia). Need a multi-reader panel with adjudication for the reference standard, not a single reader. Second, case mix matters — a curated set of interesting cases overestimates real-world performance (spectrum bias). Validation must use consecutive cases from the target clinical workflow. Third, the clinical question is not "is the model as good as a radiologist?" but "does the model improve workflow?" — measure time-to-read for critical findings, overnight error rate, missed finding rate. Fourth, temporal and site-specific validation required. Fifth, subgroup analysis by image acquisition parameters (different X-ray machines produce different image characteristics).
-
----
-
-**Q6: How do you address the feedback loop problem where the model's alerts change future training data?**
-
-The model intervention confounds the very outcome it predicts. If the sepsis model alerts at t=4h and clinicians treat early, the patient may not progress to sepsis — so the label is 0 (no sepsis) for a patient who was genuinely high risk. Retraining on this data teaches the model that high-risk feature patterns are actually low risk. Solutions: (1) prospective holdout — randomly withhold 5–10% of alerts (IRB required) so you have unintervened control patients; (2) counterfactual labels — label "would have developed sepsis absent intervention" using domain knowledge or causal models; (3) use process labels (antibiotics given, blood cultures drawn) rather than outcome labels (sepsis diagnosis); (4) in the retraining pipeline, upweight patients where no intervention was taken and outcome occurred. This is an open research problem; no perfect solution exists, but ignoring it leads to model degradation over 12–18 months.
-
----
-
-**Q7: A patient advocacy group raises concerns that your readmission model has worse sensitivity for Black patients. What do you do?**
-
-Immediate actions: (1) reproduce the disparity with rigorous statistical testing — confidence intervals, sample size checks — to confirm it is real and not noise; (2) audit the feature set for proxy variables (ZIP code, insurance type, prior no-shows) that are correlated with race and may encode historical access barriers rather than medical risk; (3) check training data composition — if Black patients are underrepresented, the model has less data to learn from for that group. Medium-term: (4) convene a clinical and ethics review board including patient advocates; (5) evaluate post-hoc recalibration with group-specific thresholds (improves equity but creates legal complexity); (6) consider whether the disparity reflects real outcome differences vs measurement artifact (e.g., if Black patients are systematically undertreated at discharge, the model is accurately predicting a biased system, not perpetuating one). Long-term: (7) work with hospital leadership on upstream data quality improvement, (8) report findings in post-market surveillance per FDA requirements, (9) publish results — suppressing known bias creates liability and perpetuates harm.
+First confirm the disparity is statistically real. Audit features for race/SES proxies (ZIP code, insurance, prior no-shows) and check training data representation. Convene a clinical/ethics review with patient advocates. Consider group-specific recalibration (equity gain, legal complexity) and whether the gap reflects a real biased-care pattern the model is faithfully learning rather than a modeling artifact. Report per FDA post-market surveillance requirements, and publish — suppressing known bias creates liability and continued harm.
 
 ---
 
 ## References and Further Reading
 
-- **Google Diabetic Retinopathy:** Gulshan et al., *JAMA* 2016. First high-profile FDA-cleared deep learning diagnostic. Notes on deployment challenges: Beede et al., CHI 2020 (why field deployment underperformed lab results).
-- **Epic Sepsis Model controversy:** Wong et al., *NEJM Evidence* 2021. Prospective evaluation showed poor sensitivity (33%) despite AUROC 0.76. Canonical case study in the gap between metric performance and clinical utility.
-- **Pulse oximetry bias:** Sjoding et al., *NEJM* 2020. Measured SpO2 overestimates arterial oxygen saturation in Black patients; clinical AI using SpO2 inherits this bias.
-- **Clinical utility curves:** Vickers & Elkin, *Medical Decision Making* 2006. Decision curve analysis is the recommended framework for evaluating clinical prediction models.
-- **FDA AI/ML action plan:** FDA, January 2021. Outlines PCCP framework, post-market surveillance requirements, and transparency guidance for adaptive AI/ML SaMD.
-- **OHDSI OMOP CDM:** ohdsi.org. Standard for observational health data harmonization across sites.
-- **STraTS:** Tipirneni & Reddy, *AAAI* 2022. Self-supervised transformer for clinical time series with irregular observations.
-- **Fairness in clinical AI:** Obermeyer et al., *Science* 2019 (commercial risk score discriminated against Black patients using health costs as proxy for health needs).
+- **Google Diabetic Retinopathy:** Gulshan et al., *JAMA* 2016; field deployment gap: Beede et al., CHI 2020.
+- **Epic Sepsis Model controversy:** Wong et al., *NEJM Evidence* 2021 — AUROC 0.76 but 33% prospective sensitivity.
+- **Pulse oximetry bias:** Sjoding et al., *NEJM* 2020.
+- **Clinical utility curves:** Vickers & Elkin, *Medical Decision Making* 2006.
+- **FDA AI/ML action plan:** FDA, January 2021 — PCCP framework, post-market surveillance.
+- **OHDSI OMOP CDM:** ohdsi.org.
+- **STraTS:** Tipirneni & Reddy, *AAAI* 2022.
+- **Fairness in clinical AI:** Obermeyer et al., *Science* 2019.
 
 ## Flashcards
 
-**FDA classification? Class I (low risk, general wellness) vs Class II (moderate risk, 510(k) or De Novo) vs Class III (high risk, PMA). Does the model replace clinical judgment or augment it?** #flashcard
-FDA classification? Class I (low risk, general wellness) vs Class II (moderate risk, 510(k) or De Novo) vs Class III (high risk, PMA). Does the model replace clinical judgment or augment it?
+**FDA classification categories?** #flashcard
+Class I (low risk, exempt) vs Class II (moderate, 510(k) or De Novo) vs Class III (high risk, PMA). Key question: does the model replace or augment clinical judgment?
 
-**Real-time vs batch? Continuous monitoring (sepsis) requires streaming inference. Discharge planning (readmission) is batch. This determines the entire architecture.?** #flashcard
-Real-time vs batch? Continuous monitoring (sepsis) requires streaming inference. Discharge planning (readmission) is batch. This determines the entire architecture.
+**510(k) vs De Novo vs PMA?** #flashcard
+510(k): predicate exists, ~90-day review. De Novo: novel device, no predicate, ~12-month review. PMA: Class III, full clinical trial required.
 
-**Clinician-facing vs autonomous? CDS tool that surfaces a recommendation (clinician decides) vs autonomous system that triggers an action (drug dispensing pause). Autonomous = higher FDA class, stricter validation.?** #flashcard
-Clinician-facing vs autonomous? CDS tool that surfaces a recommendation (clinician decides) vs autonomous system that triggers an action (drug dispensing pause). Autonomous = higher FDA class, stricter validation.
+**PCCP (Predetermined Change Control Plan)?** #flashcard
+FDA 2023 guidance letting vendors pre-specify permissible model updates (e.g., recalibration) without new submission.
 
-**Which hospitals / EHR systems? Epic? Cerner? Both? Single-site vs multi-site deployment. Epic has 33% US market; SMART on FHIR availability varies by version.?** #flashcard
-Which hospitals / EHR systems? Epic? Cerner? Both? Single-site vs multi-site deployment. Epic has 33% US market; SMART on FHIR availability varies by version.
+**IEC 62304 / IEC 62366 / ISO 14971?** #flashcard
+62304: medical device software lifecycle (safety classification, traceability). 62366: usability engineering. 14971: risk management across the lifecycle.
 
-**What counts as a label? Death? ICD-coded diagnosis? Clinician-confirmed? Time to event? Each has different bias and availability characteristics.?** #flashcard
-What counts as a label? Death? ICD-coded diagnosis? Clinician-confirmed? Time to event? Each has different bias and availability characteristics.
+**HIPAA requirements for clinical ML?** #flashcard
+PHI de-identification (Safe Harbor or Expert Determination), BAAs with cloud vendors, audit logs for all PHI access, minimum-necessary standard.
 
-**Retraining cadence allowed? Post-market surveillance requirements. Locked model (same as validated) vs adaptive model (requires re-validation with each update, per FDA AI/ML action plan 2021).?** #flashcard
-Retraining cadence allowed? Post-market surveillance requirements. Locked model (same as validated) vs adaptive model (requires re-validation with each update, per FDA AI/ML action plan 2021).
+**Model lock-in and audit trail?** #flashcard
+Validated model artifact is frozen; any weight change needs new submission unless under a PCCP. Every prediction logs timestamp, encrypted patient ID, model version, input hash, score, clinician action, outcome — retained 7+ years.
 
-**Who bears liability? Hospital? Vendor? Changes the required audit trail depth and indemnification clauses.?** #flashcard
-Who bears liability? Hospital? Vendor? Changes the required audit trail depth and indemnification clauses.
+**Why no standard A/B testing in clinical ML?** #flashcard
+Randomizing patients to model vs no-model usually requires IRB approval. Shadow mode (silent scoring, no alert shown) is the standard pre-launch approach instead.
 
-**510(k)?** #flashcard
-Predicate device exists. 90-day review. Most CDS tools qualify.
+**MNAR labs — why not mean imputation?** #flashcard
+A normal-looking lab may be missing because the patient looked well (missing not at random). Mean imputation biases the model toward assuming normal values, suppressing risk scores for undertested sick patients.
 
-**De Novo?** #flashcard
-Novel device, no predicate. 12-month review. Used for first-in-class AI tools (Epic Sepsis Model equivalent).
+**OMOP CDM vocabularies?** #flashcard
+SNOMED CT (diagnoses), RxNorm (medications), LOINC (labs), CPT4/HCPCS (procedures) — standardizes codes across sites for multi-site training.
 
-**PMA?** #flashcard
-Class III. Full clinical trial required. Reserved for autonomous high-stakes decisions (AI-driven drug dispensing).
+**Selection biases in clinical ML?** #flashcard
+Hospitalized-patient bias (no ambulatory data) and immortal time bias (feature window overlaps outcome window, inflating apparent performance).
 
-**IEC 62304?** #flashcard
-Medical device software lifecycle. Requires software safety classification (A/B/C), risk management documentation, traceability matrix from requirements to tests.
+**LSTM vs Transformer for clinical time series?** #flashcard
+LSTM: handles variable length natively, forget gate discounts stale data, weak past ~200 steps. Transformer: time-delta positional encoding, multi-head attention over cross-variable correlations, better for irregular long sequences (STraTS, ETHAN).
 
-**IEC 62366: Usability engineering?** #flashcard
-alert design, workflow integration, error prevention.
+**Why ensemble transformer + GBM?** #flashcard
+Transformer captures temporal patterns, GBM captures cross-sectional features; large disagreement between them (e.g. 0.85 vs 0.30) is a useful signal to route to clinician review instead of auto-alerting.
 
-**ISO 14971?** #flashcard
-Risk management throughout the product lifecycle.
+**Radiology AI standard architectures?** #flashcard
+DenseNet-121 (CheXNet) or ViT-B/16 fine-tuned on CheXpert/MIMIC-CXR; multi-label output plus a separate critical-finding head for triage.
 
-**HIPAA?** #flashcard
-PHI de-identification (Safe Harbor or Expert Determination), BAA with cloud vendors, audit logs for all PHI access, minimum necessary standard.
+**Why not use 0.5 threshold for clinical alerts?** #flashcard
+At 3% sepsis prevalence and 80% sensitivity, a 0.5 threshold gives ~40% PPV — 60% of alerts are false positives, causing clinicians to ignore the system (Epic Sepsis Model controversy).
 
-**Model lock-in?** #flashcard
-The validated model artifact must be frozen. Any weight change = new submission unless covered by PCCP. Use versioned model registry with cryptographic hash.
+**Net benefit / clinical utility curve?** #flashcard
+NB(threshold) = TP/n − FP/n · pt/(1−pt). Compares model vs treat-all vs treat-none; FDA-preferred over ROC alone for clinical validation.
 
-**Audit trail?** #flashcard
-Every prediction must log: timestamp, patient ID (encrypted), model version, input feature snapshot (or hash), output score, clinician action, outcome (when available). Retained for 7 years minimum.
+**Known bias sources in clinical AI?** #flashcard
+Pulse oximetry overestimates SpO2 in darker-skinned patients (Sjoding 2020); dermatology AI underperforms on darker Fitzpatrick tones; sepsis models show worse sensitivity for Black patients; ZIP code/insurance are SES/race proxies.
 
-**No standard A/B testing?** #flashcard
-Randomizing patients to model vs no-model typically requires IRB approval. Shadow mode (model runs in background, no alert shown) is the standard pre-launch approach.
+**Required fairness analyses?** #flashcard
+Subgroup calibration (slope 0.8-1.2), sensitivity/specificity parity (<5pp gap), disparate impact ratio (>0.8, 4/5 rule), cross-site calibration (Hosmer-Lemeshow p>0.05).
 
-**Explainability as requirement?** #flashcard
-Some state regulations (NY Local Law 144 equivalent in healthcare context) and hospital credentialing committees require the model to provide feature-level explanations.
+**Epic Sepsis Model controversy — key numbers?** #flashcard
+AUROC 0.76 in validation, but prospectively only 18% of alerts accepted and 67% of sepsis cases missed (33% sensitivity) — alert fatigue from habituation.
 
-**Epic SMART on FHIR?** #flashcard
-CDS Hooks standard for embedded CDS. patient-view hook fires when provider opens chart. order-sign hook fires before medication order.
+**Tiered alerting architecture?** #flashcard
+<0.3 no alert (logged); 0.3-0.5 passive dashboard; 0.5-0.7 non-interruptive sidebar; 0.7-0.85 interruptive pop-up with explanation; >0.85 critical page, requires senior override to dismiss.
 
-**Cerner PowerChart?** #flashcard
-CCOW-based context sharing; CDS integration via Ignite APIs.
+**Explainability requirements for clinical models?** #flashcard
+SHAP values translated to clinical language (not raw feature names); calibrated confidence intervals over point estimates; Grad-CAM heatmaps for imaging models to show region driving prediction and catch spurious correlations.
 
-**HL7 v2 ADT feeds?** #flashcard
-Real-time admission/discharge/transfer events drive patient list management.
+**Validation hierarchy for clinical models?** #flashcard
+Internal (always) → temporal (required for FDA) → external/cross-site (multi-site claims) → prospective shadow mode (before deployment) → prospective RCT (Class III/PMA).
 
-**Labs are missing not at random (MNAR)?** #flashcard
-a normal-appearing creatinine may be missing because the patient looked well. Imputation with population mean introduces bias.
+**Why is temporal validation the minimum bar?** #flashcard
+Random splits on longitudinal EHR data leak future information via retrospective coding, severely overstating performance.
 
-**Vital sign gaps during transport, shift change, or patient refusal are systematically different from random gaps.?** #flashcard
-Vital sign gaps during transport, shift change, or patient refusal are systematically different from random gaps.
+**Site-specific calibration fix?** #flashcard
+Isotonic regression or Platt scaling recalibrates score-to-probability mapping at a new site using 500-1,000 local patient-outcome pairs.
 
-**Free-text notes contain critical clinical information (allergies, social history) that structured fields miss.?** #flashcard
-Free-text notes contain critical clinical information (allergies, social history) that structured fields miss.
+**Key monitoring triggers?** #flashcard
+PSI >0.2 on top feature → review; score KS p<0.001 → auto-pause; subgroup ECE >0.1 → equity review in 30 days; alert acceptance drop >20% → fatigue review; new ICD code >5% of encounters → behavior audit.
 
-**ICD-9 vs ICD-10 transition (2015) creates a cliff in longitudinal data.?** #flashcard
-ICD-9 vs ICD-10 transition (2015) creates a cliff in longitudinal data.
+**Shadow mode deployment?** #flashcard
+Run model 30-90 days generating scores without showing alerts; compare to outcomes and existing tools (NEWS2, qSOFA, APACHE II). No IRB needed since care isn't changed, but needs data access approval and a BAA.
 
-**Coding practices differ across hospitals (upcoding for reimbursement, undercoding for simplicity).?** #flashcard
-Coding practices differ across hospitals (upcoding for reimbursement, undercoding for simplicity).
+**Graceful degradation for clinical ML services?** #flashcard
+On pipeline failure return "model unavailable," never default to 0 risk. Fall back to rule-based alerts (SIRS/qSOFA) if ML service is down. Circuit breaker bypasses ML if latency >5s. Never silently serve stale scores.
 
-**Principal vs secondary diagnosis ordering changes meaning.?** #flashcard
-Principal vs secondary diagnosis ordering changes meaning.
+**Feedback loop failure mode?** #flashcard
+Model alerts → clinicians intervene early → outcome doesn't occur → label becomes negative for a genuinely high-risk case → retraining teaches the model those patterns are low-risk. Mitigate with IRB-approved randomized holdout and counterfactual logging.
 
-**ICD-10-CM has ~70,000 codes; grouping to CCS (Clinical Classifications Software) categories (286 groups) is standard preprocessing.?** #flashcard
-ICD-10-CM has ~70,000 codes; grouping to CCS (Clinical Classifications Software) categories (286 groups) is standard preprocessing.
+**Model ossification failure mode?** #flashcard
+Regulatory lock-in prevents updates without re-submission, so an old model reflects outdated clinical patterns (e.g., pre-COVID). Mitigate with an upfront PCCP and planned revalidation cycles (18-24 months).
 
-**SNOMED CT for diagnoses?** #flashcard
-SNOMED CT for diagnoses
-
-**RxNorm for medications?** #flashcard
-RxNorm for medications
-
-**LOINC for lab tests?** #flashcard
-LOINC for lab tests
-
-**CPT4 / HCPCS for procedures?** #flashcard
-CPT4 / HCPCS for procedures
-
-**Sepsis-3 definition requires clinical judgment (suspected infection + organ dysfunction). Retrospective coding is inconsistent.?** #flashcard
-Sepsis-3 definition requires clinical judgment (suspected infection + organ dysfunction). Retrospective coding is inconsistent.
-
-**Death is a clean label but conflates disease severity with care quality.?** #flashcard
-Death is a clean label but conflates disease severity with care quality.
-
-**Discharge diagnosis is coded weeks after admission; cannot be used for real-time labels.?** #flashcard
-Discharge diagnosis is coded weeks after admission; cannot be used for real-time labels.
-
-**Solution?** #flashcard
-Use composite endpoints (ICU transfer OR vasopressor use OR death within 24h) that are objective and timely.
-
-**Handles variable-length sequences natively.?** #flashcard
-Handles variable-length sequences natively.
-
-**Forget gate learns to discount stale measurements.?** #flashcard
-Forget gate learns to discount stale measurements.
-
-**Per-timestep output enables early warning at each observation.?** #flashcard
-Per-timestep output enables early warning at each observation.
-
-**Weakness?** #flashcard
-struggles with very long sequences (>200 time steps) due to gradient decay.
-
-**Positional encoding replaced with time-delta encoding?** #flashcard
-PE(t) = sin(t/T_max).
-
-**Multi-head attention captures cross-variable correlations (rising HR + falling BP = hemodynamic instability).?** #flashcard
-Multi-head attention captures cross-variable correlations (rising HR + falling BP = hemodynamic instability).
-
-**STraTS (2021) and ETHAN (2022) are clinical transformer architectures designed for this.?** #flashcard
-STraTS (2021) and ETHAN (2022) are clinical transformer architectures designed for this.
-
-**Self-supervised pretraining on large EHR corpora (via masked lab prediction) improves sample efficiency.?** #flashcard
-Self-supervised pretraining on large EHR corpora (via masked lab prediction) improves sample efficiency.
-
-**Aggregated features over fixed windows?** #flashcard
-min/max/mean/last of each vital and lab.
-
-**Handles mixed types natively (continuous labs, binary flags, ICD codes as categorical).?** #flashcard
-Handles mixed types natively (continuous labs, binary flags, ICD codes as categorical).
-
-**Interpretable via SHAP. Faster to train and iterate.?** #flashcard
-Interpretable via SHAP. Faster to train and iterate.
-
-**XGBoost / LightGBM are standard. CatBoost handles high-cardinality ICD codes well.?** #flashcard
-XGBoost / LightGBM are standard. CatBoost handles high-cardinality ICD codes well.
-
-**Average transformer score (temporal patterns) + gradient boosting score (cross-sectional features).?** #flashcard
-Average transformer score (temporal patterns) + gradient boosting score (cross-sectional features).
-
-**Disagreement between ensemble members is a useful uncertainty signal.?** #flashcard
-Disagreement between ensemble members is a useful uncertainty signal.
-
-**If transformer score = 0.85 but GBM score = 0.30 → flag for clinician review rather than auto-alert.?** #flashcard
-If transformer score = 0.85 but GBM score = 0.30 → flag for clinician review rather than auto-alert.
-
-**DenseNet-121 (Rajpurkar et al., CheXNet 2017) for chest X-ray pathology classification.?** #flashcard
-DenseNet-121 (Rajpurkar et al., CheXNet 2017) for chest X-ray pathology classification.
-
-**Vision Transformer (ViT-B/16) fine-tuned on CheXpert/MIMIC-CXR for improved calibration.?** #flashcard
-Vision Transformer (ViT-B/16) fine-tuned on CheXpert/MIMIC-CXR for improved calibration.
-
-**Multi-label output: pneumonia, atelectasis, cardiomegaly, pleural effusion, pneumothorax?** #flashcard
-not mutually exclusive.
-
-**Critical finding triage?** #flashcard
-separate binary head for "critical finding requiring urgent attention" to drive workflow prioritization.
-
-**Preprocessing?** #flashcard
-DICOM → PNG, CLAHE normalization, 224×224 or 512×512 depending on finding size.
-
-**Data-side?** #flashcard
-Oversample underrepresented groups; curate demographically balanced validation sets.
-
-**Model-side?** #flashcard
-Adversarial debiasing (fairness constraints during training); multi-task learning with demographic parity constraint.
-
-**Post-processing?** #flashcard
-Separate thresholds per demographic group to equalize sensitivity (controversial, legally complex under anti-discrimination law).
-
-**Process-side?** #flashcard
-Clinical advisory board with diverse representation reviews model outputs before deployment.
-
-**18% of alerts were accepted by nurses.?** #flashcard
-18% of alerts were accepted by nurses.
-
-**67% of sepsis cases were missed (sensitivity 33%).?** #flashcard
-67% of sepsis cases were missed (sensitivity 33%).
-
-**Nurses reported ignoring alerts due to habituation.?** #flashcard
-Nurses reported ignoring alerts due to habituation.
-
-**ICU nurses receive 150–200 alarms per patient per day across all monitoring systems.?** #flashcard
-ICU nurses receive 150–200 alarms per patient per day across all monitoring systems.
-
-**False positive rate >70% causes desensitization within weeks of deployment.?** #flashcard
-False positive rate >70% causes desensitization within weeks of deployment.
-
-**A model with 90% sensitivity but 70% FPR generates 2.3 false alerts for every true one at 3% prevalence?** #flashcard
-cognitively overwhelming.
-
-**Different patient population (acuity, demographics)?** #flashcard
-Different patient population (acuity, demographics)
-
-**Different clinical protocols (order culture affects features)?** #flashcard
-Different clinical protocols (order culture affects features)
-
-**Different EHR configuration (which labs are routinely ordered)?** #flashcard
-Different EHR configuration (which labs are routinely ordered)
-
-**PSI > 0.2 on any top-10 feature → flag for review.?** #flashcard
-PSI > 0.2 on any top-10 feature → flag for review.
-
-**Score distribution shift (KS test p < 0.001) → automatic model pause pending investigation.?** #flashcard
-Score distribution shift (KS test p < 0.001) → automatic model pause pending investigation.
-
-**Subgroup ECE > 0.1 → diversity/equity review within 30 days.?** #flashcard
-Subgroup ECE > 0.1 → diversity/equity review within 30 days.
-
-**Alert acceptance rate drops >20% → alert fatigue review.?** #flashcard
-Alert acceptance rate drops >20% → alert fatigue review.
-
-**New ICD-10 codes appearing in >5% of encounters (e.g., COVID U07.1 in March 2020) → model behavior audit.?** #flashcard
-New ICD-10 codes appearing in >5% of encounters (e.g., COVID U07.1 in March 2020) → model behavior audit.
-
-**If feature pipeline fails (EHR downtime), return "model unavailable" rather than defaulting to 0 risk.?** #flashcard
-If feature pipeline fails (EHR downtime), return "model unavailable" rather than defaulting to 0 risk.
-
-**Fallback to rule-based alert (SIRS criteria, qSOFA) if ML service is down.?** #flashcard
-Fallback to rule-based alert (SIRS criteria, qSOFA) if ML service is down.
-
-**Circuit breaker pattern?** #flashcard
-if model latency >5s, bypass ML and use rules-only path.
-
-**Never silently fail with stale scores?** #flashcard
-display "last updated 4 hours ago" with timestamp.
-
-**Google Diabetic Retinopathy?** #flashcard
-Gulshan et al., JAMA 2016. First high-profile FDA-cleared deep learning diagnostic. Notes on deployment challenges: Beede et al., CHI 2020 (why field deployment underperformed lab results).
-
-**Epic Sepsis Model controversy?** #flashcard
-Wong et al., NEJM Evidence 2021. Prospective evaluation showed poor sensitivity (33%) despite AUROC 0.76. Canonical case study in the gap between metric performance and clinical utility.
-
-**Pulse oximetry bias?** #flashcard
-Sjoding et al., NEJM 2020. Measured SpO2 overestimates arterial oxygen saturation in Black patients; clinical AI using SpO2 inherits this bias.
-
-**Clinical utility curves?** #flashcard
-Vickers & Elkin, Medical Decision Making 2006. Decision curve analysis is the recommended framework for evaluating clinical prediction models.
-
-**FDA AI/ML action plan?** #flashcard
-FDA, January 2021. Outlines PCCP framework, post-market surveillance requirements, and transparency guidance for adaptive AI/ML SaMD.
-
-**OHDSI OMOP CDM?** #flashcard
-ohdsi.org. Standard for observational health data harmonization across sites.
-
-**STraTS?** #flashcard
-Tipirneni & Reddy, AAAI 2022. Self-supervised transformer for clinical time series with irregular observations.
-
-**Fairness in clinical AI?** #flashcard
-Obermeyer et al., Science 2019 (commercial risk score discriminated against Black patients using health costs as proxy for health needs).
+**EHR vendor lock-in mitigation?** #flashcard
+Abstract behind a FHIR facade, keep HL7 v2 as fallback, maintain a synthetic-patient test suite per integration, budget dedicated integration engineering for multi-site rollouts.

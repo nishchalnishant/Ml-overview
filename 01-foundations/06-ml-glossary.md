@@ -87,19 +87,9 @@ Q (Query) represents what the current position is looking for. K (Key) represent
 
 ## B
 
-**Bayesian Inference**
+**Bayesian Inference** *(niche — research/theory interviews only)*
 
-*The problem:* You want to estimate model parameters, but a single point estimate (MLE or MAP) doesn't capture your uncertainty about those parameters. How do you reason about the full distribution of plausible parameters?
-
-*Core insight:* Bayes' theorem lets you update a prior distribution $P(\theta)$ with observed data to get a posterior distribution $P(\theta|\mathcal{D})$. This posterior encodes all uncertainty about the parameters in a probabilistic form.
-
-*Mechanics:* $P(\theta|\mathcal{D}) = \frac{P(\mathcal{D}|\theta)P(\theta)}{P(\mathcal{D})}$ where $P(\mathcal{D}) = \int P(\mathcal{D}|\theta)P(\theta)d\theta$ is the evidence (marginal likelihood).
-
-*Prediction:* Rather than committing to a single $\hat{\theta}$, integrate over all parameters:
-$P(y^*|x^*,\mathcal{D}) = \int P(y^*|x^*,\theta)P(\theta|\mathcal{D})d\theta$ — this is the posterior predictive distribution.
-
-*What breaks:* Computing $P(\mathcal{D})$ exactly requires integrating over all parameter values — intractable for any non-trivial model. Approximate inference methods:
-- **MCMC (Markov Chain Monte Carlo):** Sample from posterior using random walks. Asymptotically exact but slow.
+Instead of a single point estimate for model parameters, Bayes' theorem gives a full posterior distribution over plausible parameter values: `posterior ∝ likelihood × prior`, updated as data arrives. This captures uncertainty that MLE/MAP (single point estimates) throw away. In practice, the posterior is intractable to compute exactly, so it's approximated via MCMC (sampling, slow but exact) or variational inference (optimization, fast but approximate).
 - **Variational inference:** Approximate posterior with a tractable family $q(\theta)$; minimize $D_{KL}(q\|P(\theta|\mathcal{D}))$. Faster but introduces bias.
 - **Laplace approximation:** Fit a Gaussian to the posterior centered at the MAP estimate. Fast but inaccurate away from the mode.
 
@@ -318,17 +308,9 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-**Empirical Risk Minimization (ERM)**
+**Empirical Risk Minimization (ERM)** *(niche — research/theory interviews only)*
 
-*The problem:* You cannot compute the true risk (expected loss over the full data distribution) because you only observe a finite training set. How do you define a principled learning objective?
-
-*Core insight:* Replace the expected loss with the average loss on training data. This is what every supervised learning algorithm does, even if not stated explicitly.
-
-*Mechanics:* True risk: $R(h) = \mathbb{E}_{(x,y)\sim\mathcal{D}}[\ell(h(x),y)]$. Empirical risk: $\hat{R}(h) = \frac{1}{n}\sum_{i=1}^n \ell(h(x_i),y_i)$. ERM: $h^* = \arg\min_{h \in \mathcal{H}} \hat{R}(h)$.
-
-*The fundamental tension:* A more expressive $\mathcal{H}$ achieves lower $\hat{R}(h^*)$ but the gap $R(h^*) - \hat{R}(h^*)$ grows with expressivity (VC dimension). Structural Risk Minimization (SRM) addresses this by explicitly penalizing $|\mathcal{H}|$ complexity — a theoretical foundation for regularization.
-
-*Conditions for ERM to generalize:* By the law of large numbers, $\hat{R}(h) \to R(h)$ for any fixed $h$ as $n \to \infty$. But we choose $h$ *after* seeing the data — the minimizer $h^*$ can exploit the specific sample. Uniform convergence (over all $h \in \mathcal{H}$ simultaneously) is required, and VC theory provides bounds on when this holds.
+You can't compute the true expected loss over the full data distribution, so every supervised learning algorithm substitutes the average loss over the training set instead — that substitution is ERM. The fundamental tension: a more expressive hypothesis class fits the training data better, but the gap between training loss and true loss grows with expressivity — the formal justification for regularization and for why more complex models need more data.
 
 ---
 
@@ -360,20 +342,9 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ---
 
-**Fisher Information**
+**Fisher Information** *(niche — research/theory interviews only)*
 
-*The problem:* How much information does a single observation carry about an unknown parameter $\theta$? You need a measure of the informativeness of a statistical model.
-
-*Core insight:* Fisher information measures how sharply the log-likelihood peaks at the true parameter value. A sharp peak means the data is highly informative; a flat peak means estimates are unreliable.
-
-*Mechanics:* $I(\theta) = \mathbb{E}\left[\left(\frac{\partial}{\partial\theta}\log P(x|\theta)\right)^2\right] = -\mathbb{E}\left[\frac{\partial^2}{\partial\theta^2}\log P(x|\theta)\right]$
-
-*The Fisher information matrix* (for vector $\theta$): $F_{ij} = \mathbb{E}\left[\frac{\partial \log P}{\partial \theta_i}\frac{\partial \log P}{\partial \theta_j}\right]$
-
-*ML uses:*
-- **Cramér-Rao bound:** $\text{Var}(\hat{\theta}) \geq 1/I(\theta)$ — no unbiased estimator can achieve lower variance; MLE achieves this bound asymptotically
-- **Natural gradient descent:** preconditions the gradient by $F^{-1}$, defining steepest descent in distribution space rather than parameter space; invariant to reparameterization
-- **Gauss-Newton matrix:** approximates the Hessian of the loss; equals the Fisher matrix for models with cross-entropy + softmax output
+Measures how sharply the log-likelihood peaks at the true parameter — a sharp peak means the data is very informative about $\theta$; a flat peak means estimates are unreliable. Sets a lower bound on estimator variance (Cramér-Rao bound) and underlies natural gradient descent, which preconditions updates by the Fisher matrix instead of taking raw gradient steps.
 
 ---
 
@@ -523,50 +494,40 @@ All other classification metrics are derived from these four numbers. Always sta
 
 *The problem:* MLE overfits with small data because it exclusively optimizes fit to observed data, ignoring prior knowledge about reasonable parameter values.
 
-*Core insight:* Incorporate a prior distribution $P(\theta)$ over parameters. MAP chooses the parameter value that maximizes the posterior $P(\theta|\mathcal{D}) \propto P(\mathcal{D}|\theta)P(\theta)$, balancing fit to data against the prior.
+*Core insight:* Incorporate a prior distribution over parameters. MAP chooses the parameter value that maximizes fit-to-data plus the prior — the log prior acts as a regularization term.
 
-*Mechanics:* $\hat{\theta}_{\text{MAP}} = \arg\max_\theta [\log P(\mathcal{D}|\theta) + \log P(\theta)]$. The log prior acts as a regularization term.
+*MAP = regularization (exactly, commonly asked):*
+- Gaussian prior → **L2 regularization (Ridge)**
+- Laplace prior → **L1 regularization (Lasso)**
 
-*MAP = regularization (exactly):*
-- Gaussian prior $P(\theta) = \mathcal{N}(0, \tau^2 I)$ → log prior $\propto -\|\theta\|_2^2$ → **L2 regularization (Ridge)**
-- Laplace prior $P(\theta) \propto \exp(-|\theta|/b)$ → log prior $\propto -\|\theta\|_1$ → **L1 regularization (Lasso)**
-
-*What breaks:* MAP gives a point estimate, not a distribution — it does not capture posterior uncertainty. Full Bayesian inference requires the entire posterior but is usually intractable for complex models.
+*What breaks:* MAP gives a single point estimate, not a distribution — it doesn't capture posterior uncertainty (that requires full [[Bayesian Inference]]).
 
 ---
 
 **Maximum Likelihood Estimation (MLE)**
 
-*The problem:* Given a dataset assumed to be drawn from a parametric distribution $P(x|\theta)$, you need to estimate the parameters $\theta$.
+*The problem:* Given a dataset assumed to be drawn from a parametric distribution, you need to estimate the parameters.
 
-*Core insight:* Choose $\theta$ to make the observed data as probable as possible. Equivalently, minimize the negative log-likelihood over the training set.
+*Core insight:* Choose parameters that make the observed data as probable as possible — equivalently, minimize the negative log-likelihood.
 
-*Mechanics:* $\hat{\theta}_{\text{MLE}} = \arg\max_\theta \sum_{i=1}^n \log P(x_i|\theta)$
+*Connection to loss functions (commonly asked):*
+- Gaussian noise assumption → MLE = minimize MSE
+- Bernoulli output (binary classification) → MLE = minimize binary cross-entropy
+- Categorical output (multi-class) → MLE = minimize categorical cross-entropy
 
-*Connection to loss functions:*
-- Gaussian noise assumption ($y = f(x;\theta) + \epsilon$, $\epsilon \sim \mathcal{N}(0,\sigma^2)$) → MLE = minimize MSE
-- Bernoulli output (binary classification with sigmoid) → MLE = minimize binary cross-entropy
-- Categorical output (multi-class with softmax) → MLE = minimize categorical cross-entropy
-
-*Properties:* Consistent (converges to true parameters as $n \to \infty$); asymptotically efficient (achieves minimum variance); invariant to reparameterization.
-
-*What breaks:* Overfits with small datasets — finds parameters that explain observed data perfectly, including noise. Use MAP/regularization to address this.
+*What breaks:* Overfits with small datasets — finds parameters that explain observed data perfectly, including noise. Use [[MAP Estimation]]/regularization to address this.
 
 ---
 
 **Mutual Information**
 
-*The problem:* Correlation only captures linear dependence between variables. You need a measure that captures any statistical dependence — including non-linear relationships.
+*The problem:* Correlation only captures linear dependence between variables. You need a measure that captures any statistical dependence, including non-linear relationships.
 
-*Core insight:* Mutual information measures the reduction in uncertainty about $X$ when you learn the value of $Y$ (and vice versa). It is zero if and only if $X$ and $Y$ are independent.
+*Core insight:* Mutual information measures how much learning the value of Y reduces uncertainty about X (and vice versa). It's zero if and only if X and Y are independent — equivalent to the KL divergence between the joint distribution and the product of the marginals.
 
-*Mechanics:* $I(X;Y) = \sum_{x,y} P(x,y)\log\frac{P(x,y)}{P(x)P(y)} = H(X) - H(X|Y) = H(Y) - H(Y|X)$
+*ML uses:* Feature selection (pick features with the highest MI against the label); the information bottleneck framing of representation learning; contrastive self-supervised learning objectives.
 
-*Equivalent expressions:* $I(X;Y) = D_{KL}(P(X,Y)\|P(X)P(Y))$ — the KL divergence between the joint distribution and the product of marginals. Zero iff the joint factorizes (= independence).
-
-*Data processing inequality:* For any function $f$, $I(X; f(Y)) \leq I(X; Y)$. Transforming $Y$ cannot create new information about $X$. Deterministic transformations cannot increase mutual information.
-
-*ML uses:* Feature selection (select features with highest $I(\text{feature}; \text{label})$); information bottleneck (learn representations that preserve $I(Z; Y)$ while compressing $I(Z; X)$); contrastive self-supervised learning objectives.
+*Niche extension (research/theory only):* the data processing inequality — deterministic transformations of Y can't increase MI(X; Y).
 
 ---
 
@@ -780,39 +741,15 @@ All other classification metrics are derived from these four numbers. Always sta
 
 ## V
 
-**VC Dimension (Vapnik-Chervonenkis Dimension)**
+**VC Dimension (Vapnik-Chervonenkis Dimension)** *(rarely asked outside research roles — know the one-liner)*
 
-*The problem:* How expressive is a hypothesis class? If a model can represent arbitrarily complex functions, will it ever generalize?
-
-*Core insight:* VC dimension quantifies the maximum complexity a hypothesis class can represent, by measuring the largest set of points it can classify in every possible way ("shatter").
-
-*Mechanics:* A hypothesis class $\mathcal{H}$ *shatters* a set of points $\{x_1,\ldots,x_m\}$ if for every possible binary labeling of those points, there exists some $h \in \mathcal{H}$ that produces that labeling exactly. $\text{VC-dim}(\mathcal{H})$ is the size of the largest such set.
-
-*Key examples:*
-- Linear classifiers in $\mathbb{R}^d$: VC dim = $d+1$
-- Polynomial classifiers of degree $k$: VC dim = $O(d^k)$
-- Neural networks with $n$ parameters: VC dim $\approx O(n)$ (but can be higher due to non-linearity)
-
-*Generalization bound:* With probability $\geq 1-\delta$ over the training sample of size $n$:
-$$R(h) \leq \hat{R}(h) + O\!\left(\sqrt{\frac{\text{VC-dim} \cdot \ln(n) + \ln(1/\delta)}{n}}\right)$$
-
-*What breaks:* VC bounds are often very loose for neural networks — they predict poor generalization for overparameterized models, but in practice deep networks generalize well. The theory is important for intuition and for classical ML, but does not fully explain modern deep learning.
+A theoretical measure of a model class's capacity: the largest set of points it can label in every possible way ("shatter"). Higher VC dimension → needs more data to generalize; this is the formal reason "more complex models need more data." In practice, VC bounds are loose for neural nets — they predict poor generalization for overparameterized models, but deep nets generalize well anyway, so the theory explains classical ML better than DL.
 
 ---
 
-**PAC Learning (Probably Approximately Correct)**
+**PAC Learning (Probably Approximately Correct)** *(rarely asked outside research roles — know the one-liner)*
 
-*The problem:* When is a concept learnable from finite data, and how many examples are needed?
-
-*Core insight:* A learning problem is PAC-learnable if there is an efficient algorithm that, for any accuracy requirement $\epsilon$ and confidence $\delta$, returns a good hypothesis from sufficiently many examples. "Probably" means with high probability ($1-\delta$); "approximately correct" means within $\epsilon$ error.
-
-*Mechanics:* An algorithm PAC-learns a concept class $\mathcal{C}$ if, for any distribution over examples and any $\epsilon, \delta > 0$, the algorithm returns $h$ with true error $\leq \epsilon$ (with probability $\geq 1-\delta$) using at most $n(\epsilon, \delta)$ examples and polynomial time.
-
-*Sample complexity for finite $|\mathcal{H}|$:* $n \geq \frac{1}{\epsilon}\left(\ln|\mathcal{H}| + \ln\frac{1}{\delta}\right)$
-
-*Agnostic PAC learning:* Allows the concept to be outside $\mathcal{H}$; the goal is to compete with the best $h \in \mathcal{H}$. Sample complexity scales as $O\!\left(\frac{d + \ln(1/\delta)}{\epsilon^2}\right)$ where $d$ is VC dimension.
-
-*Practical intuition:* More complex hypothesis classes (higher VC dim) need more data to generalize. This formalizes why "you need more data for complex models" and why regularization is important when data is scarce.
+Formalizes "how much data do I need?" A concept is PAC-learnable if an algorithm can, with high probability ($1-\delta$), return a hypothesis within error $\epsilon$ using a polynomial number of examples. Practical takeaway: more complex hypothesis classes need more data — the same intuition VC dimension gives, just from the sample-complexity side.
 
 ---
 

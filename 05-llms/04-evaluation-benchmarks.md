@@ -335,11 +335,5 @@ A 2% regression on a critical category can matter far more than a 5% improvement
 
 ## Flashcards
 
-**Errors have asymmetric costs (a false negative in a cancer screening context is far worse than a false positive)?** #flashcard
-Errors have asymmetric costs (a false negative in a cancer screening context is far worse than a false positive)
-
-**Facts are highly specialized (cardiology drug interactions vs. general medical knowledge)?** #flashcard
-Facts are highly specialized (cardiology drug interactions vs. general medical knowledge)
-
-**Style and format requirements are strict?** #flashcard
-Style and format requirements are strict
+**When should you build a custom eval instead of relying on standard benchmarks?** #flashcard
+When errors have asymmetric costs (e.g., false negatives in cancer screening are far worse than false positives), when facts are highly specialized (e.g., cardiology drug interactions vs. general medical knowledge), or when style/format requirements are strict.

@@ -125,31 +125,15 @@ Whitening decorrelates features and equalizes their scales. Used as preprocessin
 
 ---
 
-## Kernel PCA
+## Kernel PCA *(niche — research/theory interviews only)*
 
 **The problem**: PCA is linear — it can only find structure in the span of the original features. Data with non-linear manifold structure (concentric circles, Swiss rolls) cannot be separated by any linear projection.
 
-**The core insight**: map data to a high-dimensional feature space $\phi: \mathbb{R}^d \to \mathcal{H}$ where it becomes linearly separable, then run PCA there. The kernel trick avoids ever computing $\phi(x)$ explicitly by using kernel evaluations $k(x_i, x_j) = \langle \phi(x_i), \phi(x_j) \rangle$.
+**The core insight**: map data to a high-dimensional feature space via a kernel trick (as in SVMs) so it becomes linearly separable there, then run PCA in that space — without ever computing the mapping explicitly.
 
-### The Algorithm
+**Common kernels**: RBF (local non-linear structure), polynomial (interactions up to degree $p$), sigmoid.
 
-1. Compute the $n \times n$ kernel matrix: $K_{ij} = k(x_i, x_j)$
-2. Center in feature space: $\tilde{K} = K - \mathbf{1}_n K - K \mathbf{1}_n + \mathbf{1}_n K \mathbf{1}_n$ (where $\mathbf{1}_n = \frac{1}{n}\mathbf{1}\mathbf{1}^T$)
-3. Solve the eigenproblem $\tilde{K} \alpha = n \lambda \alpha$
-4. Project: $z_i^{(k)} = \sum_j \alpha_j^{(k)} \tilde{K}_{ij}$
-
-**Common kernels**:
-- **RBF**: $k(x, y) = \exp(-\gamma \|x - y\|^2)$ — captures local non-linear structure; $\gamma$ controls scale
-- **Polynomial**: $k(x, y) = (x \cdot y + c)^p$ — captures interactions up to degree $p$
-- **Sigmoid**: $k(x, y) = \tanh(\alpha x \cdot y + c)$
-
-### Limitations
-
-**Computational**: kernel matrix is $O(n^2)$ in memory and $O(n^3)$ to decompose. Impractical for $n > 10^4$.
-
-**Out-of-sample extension**: PCA projects new points with $z = Vx$. Kernel PCA has no direct formula for new points — the Nyström approximation or pre-image methods are required, adding complexity.
-
-**Hyperparameter sensitivity**: kernel choice and parameters strongly affect results; no universal guidance.
+**Limitations**: $O(n^2)$ memory / $O(n^3)$ to decompose — impractical past $n \approx 10^4$. No direct out-of-sample projection (needs Nyström approximation). Results are sensitive to kernel choice with no universal guidance.
 
 ```python
 from sklearn.decomposition import KernelPCA
@@ -160,33 +144,11 @@ X_kpca = kpca.fit_transform(X)
 
 ---
 
-## ICA (Independent Component Analysis)
+## ICA (Independent Component Analysis) *(niche — research/theory interviews only)*
 
-**The problem**: PCA finds uncorrelated components (zero covariance). But uncorrelated does not mean independent. Audio mixed from multiple microphones, EEG signals from multiple brain sources — the original signals are statistically independent, which is a much stronger condition than uncorrelation.
+**The problem**: PCA finds uncorrelated components (zero covariance), which is weaker than statistical independence. Audio mixed from multiple microphones or EEG signals from multiple brain sources are independent, not just uncorrelated.
 
-**The core insight**: if source signals are independent and non-Gaussian, their mixture has a distribution that is more Gaussian than any source (Central Limit Theorem). Reversing this: to recover independent sources from a mixture, find the unmixing matrix that produces the *least* Gaussian components.
-
-### The Model
-
-Assume: $x = As$, where $s$ are independent non-Gaussian sources and $A$ is an unknown mixing matrix. Find $W = A^{-1}$ such that $\hat{s} = Wx$ are maximally non-Gaussian and independent.
-
-### Non-Gaussianity Measures
-
-**Kurtosis**: $\text{kurt}(y) = E[y^4] - 3(E[y^2])^2$. Gaussian has kurtosis 0; super-Gaussian sources (like speech) have positive kurtosis; sub-Gaussian have negative kurtosis. Sensitive to outliers.
-
-**Negentropy**: $J(y) = H(y_{\text{Gauss}}) - H(y)$. Non-negative; zero only for Gaussians. More robust but harder to compute exactly.
-
-### FastICA
-
-The standard algorithm. For each component $w$:
-
-1. Approximate negentropy gradient using a nonlinearity $g$ (e.g., $g(u) = \tanh(u)$):
-$$w \leftarrow E[x g(w^T x)] - E[g'(w^T x)] w$$
-2. Normalize: $w \leftarrow w / \|w\|$
-3. Deflate: project out previously found components to enforce orthogonality
-4. Repeat until convergence
-
-Converges cubically (much faster than gradient descent).
+**The core insight**: by the Central Limit Theorem, a mixture of independent non-Gaussian sources looks more Gaussian than any individual source. So recovering the sources means finding the unmixing matrix that makes the outputs *least* Gaussian (measured via kurtosis or negentropy). **FastICA** is the standard algorithm, converging cubically via a fixed-point iteration on a non-Gaussianity measure.
 
 ### PCA vs ICA
 
@@ -278,21 +240,9 @@ $$p_{j|i} = \frac{\exp(-\|x_i - x_j\|^2 / 2\sigma_i^2)}{\sum_{k \neq i} \exp(-\|
 
 The bandwidth $\sigma_i$ is set per-point to achieve a target **perplexity** $= 2^{H(P_i)}$ where $H$ is the Shannon entropy of $P_i$. Binary search over $\sigma_i$ for each point.
 
-**Step 2 — Low-dimensional affinities**: in 2D, use a Student t-distribution with 1 degree of freedom (Cauchy):
+**Step 2 — Low-dimensional affinities**: in 2D, use a Student t-distribution with 1 degree of freedom (Cauchy) instead of a Gaussian. Its heavy tail lets moderately similar points spread out in 2D, resolving the crowding problem.
 
-$$q_{ij} = \frac{(1 + \|y_i - y_j\|^2)^{-1}}{\sum_{k \neq l} (1 + \|y_k - y_l\|^2)^{-1}}$$
-
-The heavy tail allows moderately similar points to spread out in 2D, resolving the crowding problem.
-
-**Step 3 — Minimize KL divergence** between $P$ and $Q$:
-
-$$\mathcal{L} = \text{KL}(P \| Q) = \sum_{i \neq j} p_{ij} \log \frac{p_{ij}}{q_{ij}}$$
-
-Gradient:
-
-$$\frac{\partial \mathcal{L}}{\partial y_i} = 4 \sum_j (p_{ij} - q_{ij})(y_i - y_j)(1 + \|y_i - y_j\|^2)^{-1}$$
-
-Optimized with momentum-based gradient descent (typically 1000 iterations).
+**Step 3 — Minimize KL divergence** between the high- and low-dimensional affinity distributions $P$ and $Q$, via momentum-based gradient descent (typically 1000 iterations).
 
 ### Perplexity Parameter
 
@@ -387,31 +337,11 @@ X_new_embedded = reducer.transform(X_new)
 
 ---
 
-## NMF (Non-negative Matrix Factorization)
+## NMF (Non-negative Matrix Factorization) *(niche — research/theory interviews only)*
 
 **The problem**: PCA components can have negative values, making them hard to interpret as "parts". For data that is inherently additive (images, documents, audio spectra), you want a parts-based decomposition where each component is a non-negative building block.
 
-**The core insight**: constrain both the basis vectors and their coefficients to be non-negative. Then any data point is a non-negative linear combination of parts — components combine additively, not subtractively. This enforces sparse, localized, interpretable representations.
-
-### The Objective
-
-Factorize $X \approx WH$ where $X \in \mathbb{R}_{\geq 0}^{n \times d}$, $W \in \mathbb{R}_{\geq 0}^{n \times k}$, $H \in \mathbb{R}_{\geq 0}^{k \times d}$:
-
-$$\mathcal{L} = \|X - WH\|_F^2 = \sum_{i,j} (X_{ij} - (WH)_{ij})^2$$
-
-subject to $W_{ij} \geq 0$ and $H_{ij} \geq 0$.
-
-### Multiplicative Update Rules
-
-Gradient descent with non-negativity constraints leads to the multiplicative updates (Lee & Seung, 1999):
-
-$$H \leftarrow H \odot \frac{W^T X}{W^T W H}, \quad W \leftarrow W \odot \frac{X H^T}{W H H^T}$$
-
-where $\odot$ is element-wise multiplication. These updates are guaranteed to keep $W, H \geq 0$ and monotonically decrease the objective. Convergence to a local minimum (not global — NMF is non-convex in $W$ and $H$ jointly).
-
-**KL divergence variant**: replace Frobenius with generalized KL divergence — better for count data (text, genomics):
-
-$$\mathcal{L}_{\text{KL}} = \sum_{ij} \left(X_{ij} \log \frac{X_{ij}}{(WH)_{ij}} - X_{ij} + (WH)_{ij}\right)$$
+**The core insight**: constrain both the basis vectors and their coefficients to be non-negative ($X \approx WH$, all non-negative). Data becomes a non-negative combination of parts — additive, not subtractive — which yields sparse, localized, interpretable representations. Solved via multiplicative update rules (Lee & Seung) that guarantee non-negativity and monotonic convergence to a local minimum (the problem is non-convex jointly in $W, H$). A KL-divergence variant of the loss works better for count data (text, genomics).
 
 ### Applications
 
@@ -467,28 +397,11 @@ The bottleneck representation $z = f_\theta(x)$ is the embedding.
 
 PCA is the special case of a linear autoencoder with no activation functions (the learned subspace converges to the PCA subspace).
 
-### VAE (Variational Autoencoder) as Probabilistic DR
+### VAE (Variational Autoencoder) as Probabilistic DR *(niche — research/theory interviews only)*
 
-**The problem with standard autoencoders**: the latent space is not structured. Points near each other in latent space may decode to completely different outputs. Interpolation and generation fail.
+**The problem with standard autoencoders**: the latent space is not structured — nearby latent points can decode to unrelated outputs, so interpolation and generation fail.
 
-**The core insight**: instead of encoding to a point $z$, encode to a distribution $q_\phi(z | x) = \mathcal{N}(\mu_\phi(x), \sigma^2_\phi(x) I)$. Sample $z \sim q_\phi(z|x)$ and decode. Add a KL regularizer that forces $q_\phi(z|x)$ to stay close to a standard Gaussian prior $p(z) = \mathcal{N}(0, I)$:
-
-$$\mathcal{L}_{\text{VAE}} = \underbrace{E_{q_\phi}[\log p_\theta(x|z)]}_{\text{reconstruction}} - \underbrace{\text{KL}(q_\phi(z|x) \| p(z))}_{\text{regularization}}$$
-
-**VAE as DR**: the mean $\mu_\phi(x)$ is the embedding. The KL term ensures smooth interpolation: nearby latent points decode to similar outputs. The latent space is a proper probabilistic model of the data.
-
-**Reparameterization trick**: gradients cannot flow through sampling. Write $z = \mu + \sigma \odot \epsilon$ where $\epsilon \sim \mathcal{N}(0, I)$; gradients flow through $\mu$ and $\sigma$.
-
-```python
-# Encoder outputs mean and log-variance
-mu, log_var = encoder(x)
-z = mu + torch.exp(0.5 * log_var) * torch.randn_like(mu)  # reparameterization
-x_recon = decoder(z)
-
-kl_loss = -0.5 * torch.sum(1 + log_var - mu.pow(2) - log_var.exp())
-recon_loss = F.mse_loss(x_recon, x, reduction='sum')
-loss = recon_loss + beta * kl_loss  # beta-VAE: beta > 1 enforces disentanglement
-```
+**The core insight**: encode each input to a distribution rather than a point, and add a KL regularizer pulling that distribution toward a standard Gaussian prior. This makes the latent space smooth (nearby points decode similarly) and gives it a proper probabilistic structure. The mean of the encoded distribution serves as the embedding. Trained with the **reparameterization trick** ($z = \mu + \sigma \odot \epsilon$) so gradients can flow through the sampling step.
 
 ---
 

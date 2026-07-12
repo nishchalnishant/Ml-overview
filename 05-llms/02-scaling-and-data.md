@@ -288,14 +288,5 @@ When scaling token count hits data walls and scaling parameters hits memory wall
 
 ## Flashcards
 
-**Remove documents shorter than 100 or longer than 100,000 tokens?** #flashcard
-Remove documents shorter than 100 or longer than 100,000 tokens
-
-**Filter by character-level repetition ratio (> 20% flagged as degenerate)?** #flashcard
-Filter by character-level repetition ratio (> 20% flagged as degenerate)
-
-**Remove documents where most lines are punctuation or numbers?** #flashcard
-Remove documents where most lines are punctuation or numbers
-
-**Filter by word overlap with a known-quality reference corpus?** #flashcard
-Filter by word overlap with a known-quality reference corpus
+**What are the fast heuristic filters applied before classifier-based quality filtering?** #flashcard
+Length bounds (drop <100 or >100,000 tokens), repetition ratio (>20% flagged as degenerate), line composition (mostly punctuation/numbers → drop), and word overlap with a known-quality reference corpus.

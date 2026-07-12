@@ -7,13 +7,13 @@ tags: [interviewprep, ml, llm-scenario-based-questions]
 ---
 # Scenario-Based Questions — First-Principles Interview Guide
 
-These questions test whether you think like someone who runs systems, not just trains models. The underlying competency: systematic diagnosis before action, and proportional intervention before heroic solutions.
+These questions test whether you think like someone who runs systems, not just trains models: diagnose systematically before acting, and prefer proportional fixes over heroic ones.
 
 ---
 
 ## Core Principle: Diagnose Before Acting
 
-Every scenario answer that jumps straight to "retrain the model" or "increase model complexity" is wrong — not because retraining is always wrong, but because acting before diagnosing is wrong. The correct structure:
+Jumping straight to "retrain the model" or "increase model complexity" is wrong — not because those fixes are always wrong, but because acting before diagnosing is. Structure:
 
 ```
 1. What do the symptoms tell me? (diagnosis)
@@ -27,13 +27,13 @@ Every scenario answer that jumps straight to "retrain the model" or "increase mo
 ## 1. Model Accuracy Dropped Overnight
 
 ### What the interviewer is testing
-Whether you have a systematic mental model for production degradation — and whether "retrain the model" is your first or last response.
+Whether "retrain the model" is your first or last response to production degradation.
 
 ### The reasoning structure
 
-Overnight drops are almost always *external changes*, not model failures. The model is a frozen function — it doesn't change unless you change it. What changed is the world around it.
+Overnight drops are almost always *external changes*, not model failures — the model is a frozen function. What changed is the world around it.
 
-Check in this order, because earlier steps are cheaper and more common:
+Check in this order (cheaper and more common first):
 
 ```
 1. Data pipeline
@@ -63,11 +63,9 @@ Check in this order, because earlier steps are cheaper and more common:
 
 ### The pattern in action
 
-"Our fraud model's recall dropped from 82% to 61% overnight."
+"Our fraud model's recall dropped from 82% to 61% overnight." First: is this real recall on ground-truth labels, or a proxy metric? If the labeling pipeline failed, recall may be undefined, not 61%.
 
-First question: is this real recall on ground-truth labels, or is it the monitored proxy metric? If the labeling pipeline failed, you're seeing 0 positive labels in today's evaluation window — recall is undefined, not 61%.
-
-After confirming it's real: check the feature PSI. If `transaction_velocity_1h` has PSI = 0.7, a new feature computation job likely failed and is returning zeros. Recall drops because a key predictive feature is missing at serving time. Fix: restore the feature computation job. No retraining needed.
+If confirmed real: check feature PSI. If `transaction_velocity_1h` has PSI = 0.7, the feature job likely failed and is returning zeros — recall drops because a key feature is missing at serving time. Fix: restore the job. No retraining needed.
 
 ### Common traps
 

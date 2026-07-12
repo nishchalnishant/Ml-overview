@@ -1,576 +1,419 @@
 # MCP Ecosystem
 
-## 1. Problem Framing & Requirement Gathering
+## 1. Problem Framing
 
-EA is rolling out AI agents across the studio portfolio: a live-ops copilot that tunes matchmaking/economy parameters, a QA agent that triages crash reports, a player-support agent that issues refunds/bans, and a content-pipeline agent that touches DCC tools (Maya, Frostbite asset DB). Each of these agents needs to call *tools* — internal services, data warehouses, game-specific APIs — in a standardized, discoverable, auditable way instead of every team hand-rolling bespoke function-calling glue.
+EA is rolling out AI agents across studios: a live-ops copilot, a QA agent that triages crashes, a support agent that issues refunds/bans, and a content-pipeline agent touching DCC tools. Each needs to call *tools* — internal services, data warehouses, game APIs — in a standardized, discoverable, auditable way instead of bespoke function-calling glue per team.
 
-We are asked to design **the MCP (Model Context Protocol) ecosystem**: the server/client architecture that lets any LLM-backed agent at EA discover, authenticate to, and invoke tools exposed by dozens of independently-owned MCP servers (telemetry warehouse, EAC anti-cheat, Origin/EA Play entitlements, Frostbite build system, support ticketing), across multiple studios, tenants, and trust boundaries — safely, at EA scale.
+Design **the MCP (Model Context Protocol) ecosystem**: the server/client architecture letting any LLM agent discover, authenticate to, and invoke tools exposed by dozens of independently-owned MCP servers (telemetry warehouse, anti-cheat, entitlements, build system, support ticketing) across studios and trust boundaries, safely and at scale.
 
-This is fundamentally a **distributed API gateway + service-discovery + capability-authorization system with an LLM client on one end**, not a model-serving problem per se (though model serving of the *agent's own LLM* is a dependency we touch on).
+This is a **distributed API gateway + service-discovery + capability-authorization system with an LLM client on one end** — not a model-serving problem (though the agent's own LLM serving is a dependency).
 
 ## 2. Functional Requirements
 
-- FR1: MCP clients (agent runtimes) can discover available MCP servers and their tool/resource/prompt manifests at runtime (`tools/list`, `resources/list`, `prompts/list`).
-- FR2: MCP servers expose typed tool schemas (JSON Schema) that the agent's LLM uses for function-calling; invocation via `tools/call` with structured args and structured/streamed results.
-- FR3: Multi-tenant **tool registry**: studios (DICE, Respawn, BioWare, EA SPORTS) register/version/deprecate their own MCP servers without a central release train.
-- FR4: Per-tenant, per-agent, per-tool **authorization** — an agent identity can be scoped to a subset of tools/resources on a server (e.g., QA agent can call `crash_report.query` but not `entitlements.grant`).
-- FR5: Auth handshake between agent (MCP client) and MCP server supports both human-delegated (OAuth-style, on behalf of a studio employee) and pure service-to-service (machine identity) flows.
-- FR6: Session and context propagation — multi-turn tool use within one agent session must reuse a negotiated capability set without re-auth per call.
-- FR7: Tool invocation supports sync (request/response), long-running (job submission + polling/streaming progress via `notifications/progress`), and streaming (SSE) transports.
-- FR8: Audit trail — every tool call is logged with agent identity, tenant, tool, args (redacted), result hash, latency, outcome.
-- FR9: Registry supports search/ranking of tools by capability (semantic search over tool descriptions) so agents with 500+ available tools can shortlist relevant ones.
-- FR10: Kill-switch / policy engine can revoke a tool, a server, or an agent's grant in real time (sub-minute propagation) — e.g., a tool found to leak PII gets pulled instantly.
-- FR11: Sandboxed execution option for untrusted/community MCP servers (third-party plugin marketplace inside EA's internal tool store).
+- FR1: Clients discover MCP servers and tool/resource/prompt manifests at runtime (`tools/list`, `resources/list`, `prompts/list`).
+- FR2: Servers expose typed JSON Schema tool definitions for LLM function-calling; invocation via `tools/call`.
+- FR3: Multi-tenant **tool registry** — studios register/version/deprecate their own MCP servers without a central release train.
+- FR4: Per-tenant, per-agent, per-tool **authorization** (e.g., QA agent can query crash reports but not grant entitlements).
+- FR5: Auth supports both human-delegated (OAuth-style, on behalf of an employee) and service-to-service (machine identity) flows.
+- FR6: Session/context propagation — multi-turn tool use reuses a negotiated capability set without re-auth per call.
+- FR7: Sync, long-running (job + poll/progress), and streaming (SSE) invocation.
+- FR8: Audit trail on every call — identity, tenant, tool, redacted args, result hash, latency, outcome.
+- FR9: Semantic search over tool descriptions so agents with 500+ tools can shortlist relevant ones.
+- FR10: Kill-switch — revoke a tool/server/agent grant in real time (sub-minute propagation).
+- FR11: Sandboxed execution for untrusted/community MCP servers (internal plugin marketplace).
 
 ## 3. Non-Functional Requirements
 
 | Dimension | Target |
 |---|---|
-| Discovery latency (`tools/list` cold) | p99 < 300 ms |
-| Discovery latency (cached) | p99 < 20 ms |
-| Tool invocation overhead (gateway added latency, excluding tool's own work) | p50 < 15 ms, p99 < 60 ms |
-| Auth handshake (token mint + capability check) | p99 < 50 ms |
-| Availability of registry (control plane) | 99.9% (43m/month downtime budget) |
-| Availability of gateway (data plane, tool invocation path) | 99.95% |
-| Throughput | 8,000 tool calls/sec sustained fleet-wide, burst 25,000/sec during live-ops incidents |
-| Consistency of registry reads | Eventually consistent, ≤ 5s propagation acceptable except kill-switch (≤ 60s hard SLA, target 10s) |
-| Consistency of authorization decisions | Strongly consistent — never serve a stale "allow" after a revoke |
-| Cost | Gateway + registry infra ≤ $0.35 per 1,000 tool calls fully loaded |
-| Multi-tenancy isolation | Hard tenant boundary — no cross-studio data leakage even under gateway bug (defense in depth) |
+| Discovery latency (cold / cached) | p99 < 300ms / < 20ms |
+| Tool invocation gateway overhead | p50 < 15ms, p99 < 60ms |
+| Auth handshake | p99 < 50ms |
+| Registry (control plane) availability | 99.9% |
+| Gateway (data plane) availability | 99.95% |
+| Throughput | 8,000 calls/sec sustained, burst 25,000/sec |
+| Registry read consistency | Eventual, ≤5s (kill-switch: ≤60s hard SLA, target 10s) |
+| Authz decision consistency | Strong — never serve a stale "allow" after revoke |
+| Cost | ≤ $0.35 per 1,000 tool calls, fully loaded |
+| Multi-tenancy | Hard tenant boundary, defense in depth |
 
-## 4. Clarifying Questions an Interviewer Would Expect You to Ask
+## 4. Clarifying Questions
 
-1. Are MCP servers hosted by EA centrally, or are they operated independently by each studio (federated ownership)?
-2. Do agents act autonomously (cron/live-ops loop) or always on-behalf-of a logged-in human (support agent acting for a CS rep)?
-3. Is there a third-party/community MCP server marketplace, or is everything first-party/internal?
-4. What's the blast radius requirement — can one compromised agent identity reach every studio's tools, or must it be scoped per-studio by default?
-5. Do we need to support MCP servers running on developer laptops (local stdio transport) for internal tooling, in addition to hosted HTTP/SSE servers?
-6. What's the tool call volume mix — read-only queries (telemetry lookups) vs. mutating actions (issue refund, ban player, kick off a build)?
-7. Is there a compliance requirement (COPPA for players under 13, GDPR) that constrains what tool results can be logged/cached?
-8. Do we need human-in-the-loop approval gates for high-risk tools (e.g., ban/refund) baked into the protocol layer, or is that the agent framework's job?
-9. What's the expected number of distinct MCP servers and tools at steady state (tens vs. thousands)?
-10. Should the registry support semantic/embedding-based tool search, or is a curated namespace hierarchy sufficient at current scale?
+1. Are MCP servers centrally hosted, or federated per studio?
+2. Do agents act autonomously, or always on behalf of a logged-in human?
+3. Is there a third-party marketplace, or is everything first-party?
+4. What's the blast-radius requirement — can a compromised agent reach every studio's tools, or is it scoped per-studio?
+5. Do we need local stdio transport (developer laptops) alongside hosted HTTP/SSE?
+6. What's the read-vs-mutating call mix (telemetry lookups vs. refunds/bans)?
+7. Compliance constraints (COPPA, GDPR) on what tool results can be logged/cached?
+8. Do high-risk tools need protocol-level human-approval gates, or is that the agent framework's job?
+9. Expected steady-state server/tool count (tens vs. thousands)?
+10. Does the registry need semantic search, or is a curated namespace enough at current scale?
 
-## 5. Assumptions (Explicit)
+## 5. Assumptions
 
-1. ~1,200 distinct MCP servers registered across EA within 18 months (studio services, shared platform services, a handful of vetted third-party dev-tool integrations).
-2. ~18,000 distinct tools total (avg 15 tools/server), growing ~25%/quarter.
-3. ~6,000 active agent identities (mix of scheduled live-ops agents, on-demand support-desk agents, developer copilots) at steady state, each with its own scoped credential.
-4. Peak fleet-wide tool-call rate driven by live-service incident response (e.g., a title-wide outage triggers dozens of diagnostic agents firing in parallel) plus routine QA/support load.
-5. MCP transport is predominantly Streamable HTTP (post-2025 MCP spec) with SSE for streaming; local stdio used only for internal developer-workstation tools, out of scope for the hosted gateway's SLAs.
-6. Underlying LLM inference (the agent's own model calls) is a separate system (see "LLM Gateway" chapter) — this chapter's latency budgets are for the tool-call path only, not model token generation.
-7. Identity provider is EA's internal OIDC (built on Okta) for human-delegated auth; SPIFFE/SPIFFE-compatible mTLS identities for service-to-service.
-8. Registry metadata (tool schemas, ownership, versions) fits comfortably in a document store; it is not itself a big-data problem — the scale challenge is authz decision throughput and audit log volume, not registry storage.
-9. "Multi-tenant" = studio-level tenancy as the primary isolation boundary; sub-tenant (team-level) scoping is a stretch goal, not v1.
+1. ~1,200 MCP servers registered within 18 months; ~18,000 tools total (~15/server), growing ~25%/quarter.
+2. ~6,000 active agent identities (scheduled, on-demand, developer copilots), each with a scoped credential.
+3. Peak load driven by live-service incidents (many diagnostic agents firing at once) plus routine QA/support load.
+4. Transport: Streamable HTTP + SSE (MCP 2025 spec); local stdio is developer-only, out of scope for hosted SLAs.
+5. Agent LLM inference is a separate system (LLM Gateway) — this doc's latency budgets cover the tool-call path only.
+6. Identity: EA's internal OIDC (Okta) for humans, SPIFFE/mTLS for service-to-service.
+7. Registry metadata fits in a document store — the scale challenge is authz throughput and audit volume, not registry storage.
+8. Tenancy = studio-level; team-level sub-tenant scoping is a stretch goal.
 
 ## 6. Capacity Estimation
 
-**Tool call volume**
-- Steady state: 6,000 active agents × avg 2 tool calls/min active-session ≈ 200 calls/sec baseline.
-- Incident/live-ops burst: 300 concurrent diagnostic-agent sessions × 5 calls/sec each ≈ 1,500 calls/sec added burst.
-- Design target from NFR: 8,000/sec sustained, 25,000/sec burst (10x headroom over current projected peak — matches EA's live-service spikiness, e.g. patch-day traffic).
+**Tool calls**: 6,000 agents × ~2 calls/min ≈ 200/sec baseline; incident bursts add ~1,500/sec. Design target 8,000/sec sustained, 25,000/sec burst (10x headroom for live-service spikiness).
 
-**Discovery (`tools/list`) load**
-- Each agent session performs discovery once per session start + on cache-miss/tool-registry-version-bump.
-- ~6,000 agents × ~20 session-starts/day / 86,400s ≈ 1.4 req/sec baseline — trivially small; dominated by burst-on-deploy (registry pushes new manifest → cache invalidation storm): model 6,000 agents re-fetching within a 60s window ⇒ 100 req/sec transient spike. Cache absorbs this (see §11).
+**Discovery**: ~1.4 req/sec baseline; a registry push can cause a cache-invalidation storm (~100 req/sec transient) — absorbed by caching (§11).
 
-**Registry storage**
-- Tool manifest: ~2 KB JSON Schema avg (name, description, input/output schema, auth scope tags).
-- 18,000 tools × 2 KB = 36 MB raw. With versioning (avg 8 historical versions retained) ≈ 288 MB. Trivial — single document-store cluster, not sharded for volume (sharded for tenancy isolation instead, see §10).
-- Server metadata: 1,200 servers × 5 KB (ownership, endpoint, TLS cert ref, rate-limit policy) = 6 MB.
+**Registry storage**: 18,000 tools × ~2KB manifest × ~8 versions ≈ 288 MB; server metadata ~6MB. Trivial — small HA document-store cluster.
 
-**Audit log volume (the real storage driver)**
-- 8,000 calls/sec avg × 86,400 s/day = 691M events/day.
-- Per-event record ~1.5 KB (identity, tool, redacted args digest, result hash, timing, outcome) ⇒ ~1.04 TB/day raw.
-- Retention: 90 days hot (queryable) + 2 years cold (compliance) ⇒ hot tier ≈ 94 TB, cold tier (compressed columnar, ~5:1) ≈ 152 TB over 2 years.
-- At 8,000 events/sec this is squarely a **Kafka → columnar store** problem, not a relational-DB-audit-table problem.
+**Audit volume (real storage driver)**: 8,000/sec × 86,400s ≈ 691M events/day × ~1.5KB ≈ ~1TB/day raw. Retention: 90 days hot (~94TB) + 2 years cold compressed (~152TB). This is a **Kafka → columnar store** problem.
 
-**Authz decision throughput**
-- Every tool call requires a capability check: 8,000/sec sustained, 25,000/sec burst.
-- Target p99 50ms ⇒ policy engine must be in-memory / edge-cached (OPA-style), not a round-trip to a central RDBMS per call.
+**Authz throughput**: 8,000-25,000 checks/sec at p99 <50ms requires an in-memory/edge-cached policy engine (OPA-style), not a per-call RDBMS round trip.
 
-**Compute footprint (gateway data plane)**
-- Stateless gateway pods, each handling ~1,000 req/sec (JSON schema validation + policy check + proxy) ⇒ 25 pods at burst (25,000/sec), 8 pods at steady state (8,000/sec), with HPA between.
-- Each pod: 2 vCPU / 2 GiB — no GPU on this path (GPU lives in the LLM gateway, out of scope here).
-- Registry control-plane: 3-node document-store cluster (HA), 3-node policy/OPA cluster, both small (< 16 vCPU total) since read-heavy and cached.
+**Compute**: stateless gateway pods (~1,000 req/sec each) → 8 pods steady state, 25 at burst, 2 vCPU/2GiB each, no GPU. Control plane (registry + OPA) is small (<16 vCPU), read-heavy and cached.
 
-**No model-weight sizing here** — MCP gateway/registry is infra, not a model-serving system; the only "model" involved is the optional embedding model for semantic tool search (§9/§16), a small (~100M param) sentence-embedding model, single small GPU or CPU-served, negligible compared to gateway compute.
+No model-weight sizing here — the only model involved is a small (~100M param) embedding model for semantic tool search, negligible next to gateway compute.
 
 ## 7. High-Level Architecture
 
 ```
-                         ┌───────────────────────────────────────────┐
-                         │              Agent Runtime                 │
-                         │  (Live-ops copilot / QA agent / Support     │
-                         │   agent / Dev copilot)  — MCP CLIENT        │
-                         └───────────────┬─────────────────────────────┘
-                                         │ 1. mint session (OIDC/mTLS)
-                                         ▼
-                 ┌───────────────────────────────────────────────────────┐
-                 │                 MCP GATEWAY (edge, stateless)          │
-                 │  - TLS termination, mTLS to internal services          │
-                 │  - Rate limiting (token bucket, per-agent/per-tenant)  │
-                 │  - AuthN verification, AuthZ policy eval (OPA sidecar) │
-                 │  - Request routing to correct MCP server               │
-                 │  - Schema validation (JSON Schema on tool args)        │
-                 │  - Audit event emission (async, fire-and-forget)       │
-                 └───────┬───────────────────────┬─────────────┬──────────┘
-                         │                       │             │
-             2. discover │            3. authz   │   4. audit  │
-                         ▼                       ▼             ▼
-         ┌───────────────────────┐   ┌────────────────────┐  ┌───────────────────┐
-         │   TOOL REGISTRY        │   │  POLICY ENGINE (OPA)│  │  KAFKA (audit topic)│
-         │  (multi-tenant, doc DB)│   │  cached capability   │  │  → stream processor │
-         │  - server manifests    │   │  grants, sub-second  │  │  → columnar store    │
-         │  - tool schemas/versions│   │  revoke propagation  │  │  (audit/compliance)  │
-         │  - semantic search idx │   └──────────┬───────────┘  └───────────────────┘
-         └───────────┬────────────┘              │
-                      │                            │ pub/sub on revoke
-                      │              ┌─────────────▼─────────────┐
-                      │              │  IDENTITY & GRANT STORE     │
-                      │              │  (agent identities, OIDC    │
-                      │              │   token scopes, tenant ACLs)│
-                      │              └────────────────────────────┘
-                      │
-        5. route call ▼
-   ┌──────────────────────────────────────────────────────────────────────┐
-   │                     MCP SERVERS (per-domain, per-studio)               │
-   │  ┌─────────────┐ ┌───────────────┐ ┌────────────────┐ ┌─────────────┐ │
-   │  │ Telemetry    │ │ EAC Anti-Cheat│ │ Entitlements/   │ │ Frostbite   │ │
-   │  │ Warehouse MCP│ │ MCP Server     │ │ Support MCP     │ │ Build MCP   │ │
-   │  └─────────────┘ └───────────────┘ └────────────────┘ └─────────────┘ │
-   │        (each independently deployed/owned/scaled by its team)          │
-   └──────────────────────────────────────────────────────────────────────┘
-                      │
-                      ▼ 6. result (sync/streamed/job-poll)
-              back through gateway to agent
+                    Agent Runtime (MCP CLIENT)
+                    Live-ops / QA / Support / Dev copilot
+                              │ 1. mint session (OIDC/mTLS)
+                              ▼
+                 MCP GATEWAY (edge, stateless)
+    TLS/mTLS · rate limiting · authn/authz (OPA sidecar)
+    routing · JSON Schema validation · async audit emission
+       │                    │                  │
+2. discover        3. authz │        4. audit  │
+       ▼                    ▼                  ▼
+  TOOL REGISTRY      POLICY ENGINE (OPA)    KAFKA (audit topic)
+  (multi-tenant,      cached grants,        → stream processor
+   doc DB, semantic   sub-second revoke     → columnar store
+   search idx)         propagation
+       │                    │
+       │        IDENTITY & GRANT STORE (agent identities,
+       │         OIDC scopes, tenant ACLs) — pub/sub on revoke
+       │
+5. route call ▼
+  MCP SERVERS (per-domain, per-studio, independently owned)
+  Telemetry · Anti-Cheat · Entitlements/Support · Build MCP
+       │
+       ▼ 6. result (sync/streamed/job-poll) → back through gateway
 ```
 
 ## 8. Low-Level Components
 
-**MCP Gateway (edge/data plane)**
-- Responsibility: single ingress for all agent→tool traffic; authn/z enforcement, schema validation, rate limiting, routing, audit emission.
-- Interface: MCP-native (JSON-RPC 2.0 over Streamable HTTP/SSE) `initialize`, `tools/list`, `tools/call`, `resources/list`, `resources/read`, `notifications/progress`.
-- Scaling unit: stateless pod, horizontal, scales on req/sec + p99 latency (HPA).
-
-**Tool Registry (control plane)**
-- Responsibility: source of truth for which MCP servers exist, their tool manifests, versions, deprecation status, ownership metadata, semantic search index.
-- Interface: internal gRPC/REST admin API for studios to register/update servers (CI/CD-driven, not manual); read API consumed by gateway (cached).
-- Scaling unit: read-replica fan-out; write path is low-volume (registrations), doesn't need aggressive scaling — 3-node HA cluster sufficient.
-
-**Policy Engine (OPA-based authz)**
-- Responsibility: evaluate "can agent X, acting for tenant Y, call tool Z with these args' sensitivity tags" — Rego policies compiled from tenant/tool ACLs.
-- Interface: sidecar to gateway, in-process/local-socket evaluation (no network hop) using a locally cached policy bundle, refreshed via pub/sub on change.
-- Scaling unit: scales 1:1 with gateway pods (sidecar pattern) — no independent scaling axis.
-
-**Identity & Grant Store**
-- Responsibility: agent identity records, OIDC client credentials, per-agent capability grants (tool-level scopes), human-delegation chains (which employee an agent acts on behalf of).
-- Interface: OIDC token introspection endpoint + gRPC grant-lookup API.
-- Scaling unit: small HA cluster, read-heavy, cached aggressively at gateway (§11).
-
-**MCP Servers (leaf nodes, federated ownership)**
-- Responsibility: expose domain tools (telemetry query, ban issuance, build trigger) with their own internal auth/business logic; register manifest with Tool Registry via CI pipeline.
-- Interface: standard MCP server SDK (Python/TS/Go) implementing `tools/list`/`tools/call`; each server owns its own scaling (independent deployment, independent SLOs published to registry).
-- Scaling unit: per-team, independent — gateway treats them as opaque upstreams with circuit breakers.
-
-**Audit Pipeline**
-- Responsibility: durable, queryable record of every tool invocation for compliance, incident forensics, and anomaly detection feed.
-- Interface: Kafka topic `mcp.audit.v1` (producer: gateway, async); consumers: stream processor (redaction, enrichment) → columnar sink (compliance) + real-time anomaly detector (security).
-- Scaling unit: Kafka partitions keyed by tenant; consumer group scales with partition count.
-
-**Semantic Tool Search Service**
-- Responsibility: given an agent's natural-language task, rank the top-K relevant tools out of 18,000 (avoids stuffing every schema into the LLM's context window).
-- Interface: internal REST `POST /tool-search {query, tenant, k}` → ranked tool IDs; backed by a small embedding model + ANN index (see §16).
-- Scaling unit: stateless retrieval service + vector index shard, scales on query volume (low — one call per agent-session-start typically, not per tool-call).
+- **MCP Gateway** (data plane): single ingress for agent→tool traffic; authn/z, schema validation, rate limiting, routing, audit emission. JSON-RPC 2.0 over Streamable HTTP/SSE. Stateless, scales on req/sec + p99 latency.
+- **Tool Registry** (control plane): source of truth for servers, manifests, versions, ownership, semantic index. CI/CD-driven writes (low volume); reads cached at gateway. 3-node HA cluster.
+- **Policy Engine (OPA)**: evaluates "can agent X, for tenant Y, call tool Z" from Rego policies. Runs as a gateway sidecar (local, no network hop), refreshed via pub/sub. Scales 1:1 with gateway.
+- **Identity & Grant Store**: agent identities, OIDC credentials, per-agent tool scopes, human-delegation chains. Small HA cluster, read-heavy, aggressively cached.
+- **MCP Servers** (leaf nodes): domain tools with their own auth/business logic, registered via CI. Independently deployed and scaled; gateway treats them as opaque upstreams with circuit breakers.
+- **Audit Pipeline**: durable record of every call for compliance/forensics/anomaly detection. Kafka topic (async producer) → stream processor → columnar sink + real-time anomaly detector. Partitioned by tenant.
+- **Semantic Tool Search**: ranks top-K relevant tools out of 18,000 given a natural-language task, so the LLM's context isn't stuffed with every schema. Small embedding model + ANN index; low query volume (once per session start).
 
 ## 9. API Design
 
-MCP itself is JSON-RPC 2.0; the gateway also exposes REST admin/control APIs. Versioning: MCP protocol version negotiated in `initialize` (`protocolVersion` field, e.g. `"2025-06-18"`); registry/admin REST APIs use URI versioning (`/v1/...`).
+MCP is JSON-RPC 2.0; gateway also exposes REST admin APIs. Protocol version negotiated in `initialize`; admin API uses URI versioning (`/v1`).
 
-**MCP data-plane (JSON-RPC over Streamable HTTP, `POST /mcp`)**
+**MCP data plane** (`POST /mcp`): `initialize` → capability negotiation; `tools/list` → paginated tool manifests with JSON Schema; `tools/call` → structured args in, structured/streamed content out (`isError` flag).
 
-```jsonc
-// initialize
-→ { "jsonrpc":"2.0", "id":1, "method":"initialize",
-    "params": { "protocolVersion":"2025-06-18",
-                "clientInfo": {"name":"liveops-copilot","version":"3.2.0"},
-                "capabilities": {"sampling":{}, "roots":{"listChanged":true}} } }
-← { "jsonrpc":"2.0", "id":1, "result":
-    { "protocolVersion":"2025-06-18",
-      "serverInfo": {"name":"telemetry-mcp","version":"1.4.0"},
-      "capabilities": {"tools":{"listChanged":true}} } }
-
-// tools/list
-→ { "jsonrpc":"2.0", "id":2, "method":"tools/list", "params":{"cursor":null} }
-← { "jsonrpc":"2.0", "id":2, "result":
-    { "tools":[
-        { "name":"telemetry.query_matches",
-          "description":"Query ranked-match telemetry for a title/date range",
-          "inputSchema": {"type":"object",
-             "properties": {"title_id":{"type":"string"},
-                             "start":{"type":"string","format":"date-time"},
-                             "end":{"type":"string","format":"date-time"}},
-             "required":["title_id","start","end"]} }
-      ], "nextCursor": null } }
-
-// tools/call
-→ { "jsonrpc":"2.0", "id":3, "method":"tools/call",
-    "params": { "name":"telemetry.query_matches",
-                "arguments": {"title_id":"apex-legends","start":"2026-07-01T00:00:00Z","end":"2026-07-08T00:00:00Z"} } }
-← { "jsonrpc":"2.0", "id":3, "result":
-    { "content":[{"type":"text","text":"{...json result...}"}], "isError": false } }
-```
-
-**Admin/control REST API (studio-facing, `/v1`)**
+**Admin/control REST (`/v1`)**
 
 | Endpoint | Method | Purpose | Auth |
 |---|---|---|---|
-| `/v1/servers` | POST | Register a new MCP server (manifest + endpoint + owner team) | CI service token, scoped to team namespace |
-| `/v1/servers/{server_id}` | PUT | Update manifest/version | CI service token |
-| `/v1/servers/{server_id}` | DELETE | Deprecate/remove server | CI service token + approval gate |
-| `/v1/servers/{server_id}/tools` | GET | List tools for a server (admin view, unfiltered) | Studio admin OIDC |
-| `/v1/grants` | POST | Grant an agent identity access to `{server_id, tool_name[]}` | Tenant admin OIDC |
-| `/v1/grants/{grant_id}` | DELETE | Revoke grant (propagates ≤10s via pub/sub) | Tenant admin OIDC |
-| `/v1/tool-search` | POST | Semantic search: `{query, tenant, k}` → ranked tool IDs | Agent service token |
-| `/v1/audit/query` | POST | Query audit log (filtered by tenant, agent, time range) | Security/compliance role |
+| `/v1/servers` | POST | Register server (manifest + endpoint + owner) | CI token, team-scoped |
+| `/v1/servers/{id}` | PUT / DELETE | Update / deprecate | CI token (+approval gate on delete) |
+| `/v1/servers/{id}/tools` | GET | Admin tool listing | Studio admin OIDC |
+| `/v1/grants` | POST / DELETE | Grant or revoke agent→tool access (revoke propagates ≤10s) | Tenant admin OIDC |
+| `/v1/tool-search` | POST | Semantic search `{query, tenant, k}` | Agent service token |
+| `/v1/audit/query` | POST | Query audit log | Security/compliance role |
 
-Response envelope standardized: `{data, error, request_id}`. Breaking schema changes bump `/v2`; MCP protocol version negotiated independently of REST version.
+Response envelope: `{data, error, request_id}`. Breaking changes bump `/v2`.
 
 ## 10. Database Design
 
 | Store | Type | Data | Why |
 |---|---|---|---|
-| Tool Registry | Document DB (MongoDB-style) | Server manifests, tool schemas, version history | Schema-per-tool varies wildly (arbitrary JSON Schema) — poor fit for rigid relational columns; document model matches MCP's own JSON-Schema-native manifests |
-| Identity & Grant Store | Relational (Postgres) | Agent identities, grants, tenant ACLs, delegation chains | Grants are relational by nature (agent × tool × tenant, foreign keys, referential integrity matters — a dangling grant to a deleted tool is a security bug) |
-| Policy bundles | Object store (S3-compatible) + in-memory cache | Compiled Rego bundles | Read-mostly, versioned artifacts, distributed via CDN-like pull, not a live DB |
-| Audit Log (hot) | Columnar OLAP (ClickHouse-style) | 90-day queryable tool-call records | High-cardinality analytical queries (by tenant/agent/tool/time) at 691M events/day — row store can't sustain this |
-| Audit Log (cold) | Object storage, Parquet, partitioned by date/tenant | 2-year compliance retention | Cheapest durable storage; rarely queried, batch access only |
-| Semantic search index | Vector index (see §16) | Tool description embeddings | ANN lookup, not a relational concern |
+| Tool Registry | Document DB | Server manifests, tool schemas, version history | Arbitrary per-tool JSON Schema — poor fit for rigid columns |
+| Identity & Grant Store | Relational (Postgres) | Identities, grants, ACLs, delegation chains | Grants are relational (agent × tool × tenant); referential integrity matters — a dangling grant is a security bug |
+| Policy bundles | Object store + in-memory cache | Compiled Rego bundles | Read-mostly, versioned, pull-distributed |
+| Audit Log (hot) | Columnar OLAP | 90-day queryable records | High-cardinality analytical queries at 691M events/day |
+| Audit Log (cold) | Object storage, Parquet | 2-year compliance retention | Cheap, rarely queried |
+| Semantic search index | Vector index (§16) | Tool description embeddings | ANN lookup |
 
-**Partitioning/sharding keys:**
-- Registry: sharded by `tenant_id` (studio) — enforces the hard tenant-isolation NFR at the storage layer, not just app logic.
-- Grant store: partitioned by `tenant_id`, secondary index on `agent_id`.
-- Audit columnar store: partitioned by `(tenant_id, date)` — matches both compliance query patterns ("show me tenant X's calls last week") and retention/deletion (drop old date partitions cheaply).
-- Kafka audit topic: keyed by `tenant_id` to preserve per-tenant ordering and enable per-tenant consumer scaling/backpressure isolation.
+**Partitioning**: registry and grants sharded/partitioned by `tenant_id` (hard isolation at storage layer). Audit columnar store partitioned by `(tenant_id, date)`. Kafka audit topic keyed by `tenant_id`.
 
 ## 11. Caching
 
-| Cached item | Cache | TTL/invalidation | Strategy |
+| Cached item | Cache | Invalidation | Strategy |
 |---|---|---|---|
-| Tool manifests (`tools/list` results) | Gateway-local in-memory + Redis L2 | TTL 5 min, active invalidation via registry pub/sub on version bump | Cache-aside |
-| Compiled policy bundles | Gateway sidecar local memory | Invalidated via pub/sub push on grant change (not polling) — meets ≤10s revoke SLA | Write-through push (registry pushes to subscribers, not pull-based) |
-| Agent OIDC token introspection | Redis, TTL = token lifetime (max 15 min) | Natural expiry; explicit bust on identity disable | Cache-aside |
-| Semantic tool-search results | Redis, keyed by `(tenant, normalized_query_hash)` | TTL 1 hr | Cache-aside — search is not safety-critical, staleness tolerable |
-| Tool-call *results* | **Not cached at gateway by default** — most tools are non-idempotent or return live data (telemetry queries, ban status) | N/A | Individual MCP servers may cache internally (their concern); gateway treats results as opaque |
+| Tool manifests | Gateway memory + Redis L2 | TTL 5min + pub/sub on version bump | Cache-aside |
+| Compiled policy bundles | Gateway sidecar memory | Pub/sub push on grant change (meets ≤10s revoke SLA) | Write-through push |
+| OIDC token introspection | Redis, TTL = token life (≤15min) | Natural expiry + explicit bust | Cache-aside |
+| Semantic search results | Redis, TTL 1hr | — | Cache-aside (staleness tolerable) |
+| Tool-call results | **Not cached** — mostly non-idempotent/live data | N/A | Individual servers may cache internally |
 
-Why cache-aside dominates: registry/grant reads vastly outnumber writes (thousands of reads/sec vs. registrations/grants in the tens/hour), and staleness tolerance differs sharply by item — hence per-item TTL/invalidation tuning rather than one blanket policy. The one deliberate exception is policy bundles, where push-invalidation is required to hit the sub-10s kill-switch SLA that a pull-TTL model can't guarantee.
+Registry/grant reads vastly outnumber writes, so cache-aside dominates with per-item TTL tuning. Policy bundles are the one exception: push-invalidation is required to hit the sub-10s kill-switch SLA.
 
 ## 12. Queues & Async Processing
 
-| Queue | Payload | Delivery semantics | DLQ handling |
+| Queue | Payload | Delivery | DLQ |
 |---|---|---|---|
-| `mcp.audit.v1` (Kafka) | Tool-call audit events | At-least-once (producer retries on gateway); consumers idempotent via `(agent_id, call_id)` dedup key | Poison messages (malformed audit payload) → `mcp.audit.dlq`, alert if DLQ depth > 100/5min |
-| `mcp.grant-revoke.v1` (Kafka, low-latency topic) | Grant revocation events | At-least-once, but consumers apply revokes idempotently (revoke is a set-removal, naturally idempotent) | N/A — revoke messages that fail to apply trigger immediate PagerDuty (security-critical) |
-| `mcp.longrunning-jobs` (SQS-style) | Long-running tool invocations (e.g., "kick off Frostbite build") that exceed sync timeout | At-least-once; job has server-side idempotency key supplied by client to avoid duplicate builds | After 3 delivery attempts → DLQ, surfaced to owning MCP server team's on-call |
-| `mcp.registry-sync.v1` | Registry manifest change events, fan out to gateway caches | At-least-once, consumers treat as "invalidate then re-fetch" (safe to over-invalidate) | Not critical-path; failed sync just means TTL-based cache eventually catches up |
+| `mcp.audit.v1` (Kafka) | Call audit events | At-least-once, idempotent consumers via `(agent_id, call_id)` | Malformed → DLQ, alert if depth > 100/5min |
+| `mcp.grant-revoke.v1` (Kafka) | Revocation events | At-least-once, idempotent (set-removal) | Failure → immediate PagerDuty |
+| `mcp.longrunning-jobs` | Long-running invocations (e.g., build trigger) | At-least-once, client-supplied idempotency key | 3 attempts → DLQ to owning team |
+| `mcp.registry-sync.v1` | Manifest change events | At-least-once, "invalidate then re-fetch" | Non-critical, TTL catches up |
 
-Exactly-once is explicitly **not** attempted for audit/telemetry-style events (cost/complexity not justified — idempotent consumers achieve effectively-once outcomes cheaply). The one place we'd consider exactly-once semantics is the long-running job queue for mutating actions (ban issuance) — mitigated via client-supplied idempotency keys rather than transactional queue machinery.
+Exactly-once isn't attempted for audit/telemetry (idempotent consumers give effectively-once cheaply). Mutating long-running actions (e.g., bans) use client idempotency keys instead of transactional queue machinery.
 
 ## 13. Streaming & Event-Driven Architecture
 
-**Topics**
-
-| Topic | Producer | Consumers | Schema (Avro/Protobuf) |
+| Topic | Producer | Consumers | Key fields |
 |---|---|---|---|
-| `mcp.audit.v1` | Gateway | Compliance sink, anomaly detector, usage-analytics | `{event_id, ts, tenant_id, agent_id, server_id, tool_name, args_digest, latency_ms, outcome, error_code?}` |
-| `mcp.grant-revoke.v1` | Grant Store (on admin action) | All gateway sidecars, Policy Engine | `{grant_id, tenant_id, agent_id, tool_scope[], action: GRANT\|REVOKE, ts}` |
-| `mcp.registry-sync.v1` | Tool Registry | Gateway cache layer, semantic-search indexer | `{server_id, version, change_type: CREATE\|UPDATE\|DEPRECATE, manifest_ref, ts}` |
-| `mcp.tool-health.v1` | Gateway (circuit breaker state) | Ops dashboards, autoscaler signal | `{server_id, tool_name, error_rate_1m, p99_latency_ms, breaker_state}` |
+| `mcp.audit.v1` | Gateway | Compliance, anomaly detector, analytics | tenant, agent, tool, args_digest, latency, outcome |
+| `mcp.grant-revoke.v1` | Grant Store | Gateway sidecars, Policy Engine | grant_id, agent_id, scope, action |
+| `mcp.registry-sync.v1` | Tool Registry | Gateway cache, search indexer | server_id, version, change_type |
+| `mcp.tool-health.v1` | Gateway (circuit breaker) | Ops dashboards, autoscaler | error_rate, p99, breaker_state |
 
-**Consumer groups**: each downstream concern (compliance, security anomaly detection, analytics) gets its own consumer group off `mcp.audit.v1` so a slow consumer (e.g., a batch analytics job) never backpressures the security-critical revoke path, which lives on a separate low-latency topic entirely.
+Each downstream concern gets its own consumer group off `mcp.audit.v1` so a slow consumer (e.g. batch analytics) never backpressures the revoke path, which lives on its own low-latency topic.
 
 ## 14. Model Serving
 
-The MCP ecosystem itself serves no large model on the critical tool-call path — it's a protocol/gateway layer. The two models involved:
+No large model sits on the critical tool-call path — this is a protocol/gateway layer. Two models are involved:
 
-1. **Semantic tool-search embedding model** (§8, §16): small (~100M param) sentence-embedding model (e.g., a distilled BGE/E5-class model), served via a lightweight inference server (Triton or TorchServe), CPU-servable at this size, batched with a 10ms micro-batch window since query volume is low (session-start only, not per-call).
-2. **The agent's own LLM** (the thing deciding which tool to call) is out of scope for this chapter — it's served by EA's central LLM Gateway (separate system doc) and merely *acts as* the MCP client. We note the interface: the agent runtime receives `tools/list` output, injects tool schemas into the LLM's context/function-calling API, gets back a `tools/call` request to forward.
+1. **Tool-search embedding model**: small (~100M param) sentence-embedding model, CPU-served, batched (10ms window) since query volume is low (session-start only).
+2. **The agent's own LLM** is out of scope (served by EA's central LLM Gateway) — it just acts as the MCP client, consuming `tools/list` output and producing `tools/call` requests.
 
-No GPU fleet is provisioned specifically for MCP infra; the embedding model above runs on shared CPU inference capacity (a handful of pods), explicitly *not* co-located with the gateway's latency-critical path.
+No GPU fleet for MCP infra; the embedding model runs on shared CPU capacity, isolated from the gateway's latency-critical path.
 
 ## 15. Feature Store
 
-**N/A for the MCP gateway/registry itself** — there is no ML feature engineering happening in the tool-call routing/authz path; decisions are policy-rule-based (OPA), not model-scored. The adjacent anomaly-detection consumer (§13, "detect an agent calling tools outside its normal pattern") *does* need features (rolling call-rate per agent, tool-diversity entropy, off-hours flag), and for that narrow slice:
-- **Online**: last-15-min/1hr rolling aggregates per `(agent_id, tool_name)`, served from a low-latency KV store (Redis) updated by the stream processor consuming `mcp.audit.v1`.
-- **Offline**: same features backfilled from the columnar audit store for model training/backtesting.
-- **Point-in-time correctness**: anomaly-detection training set must join audit events with the grant-state *as of that event's timestamp* (not current grants) — achieved by storing grant-version snapshots alongside each audit event's `args_digest` context, avoiding label leakage from later revokes.
+N/A for the gateway/registry itself — routing/authz decisions are policy-rule-based (OPA), not model-scored. The anomaly-detection consumer (§13) needs features: rolling call-rate and tool-diversity per `(agent_id, tool_name)`, served online from Redis (updated from the audit stream) and backfilled offline from the columnar store. Point-in-time correctness matters — training joins audit events with grant-state *as of that event's time*, not current grants, to avoid label leakage from later revokes.
 
 ## 16. Vector Database
 
-**Applicable, narrowly** — used only for the semantic tool-search service (§8), not for any core protocol function.
-- **Index**: HNSW (via a managed vector DB or pgvector-with-HNSW) over ~18,000 tool-description embeddings — small enough that IVF-PQ's memory savings aren't needed; HNSW's better recall at this scale (tens of thousands of vectors) is worth the modest extra memory (~18k × 768-dim float32 ≈ 55 MB, trivial).
-- **ANN choice justification**: at 18,000 vectors, brute-force cosine search is even arguably viable (< 5ms), but HNSW is chosen for headroom as tool count grows 25%/quarter — re-evaluate IVF-PQ only if this crosses ~1M vectors (unlikely within the planning horizon).
-- **Sharding**: single shard, replicated for HA — no partitioning needed at this scale; re-shard-by-tenant only if per-tenant tool catalogs need hard isolation for search (currently search operates over the tenant's *visible* tool subset via a metadata filter, not a physically separate index).
+Used narrowly for semantic tool search (§8), not any core protocol function.
+- **Index**: HNSW over ~18,000 tool-description embeddings (~55MB total) — small enough that brute-force would even work, but HNSW gives headroom as the catalog grows ~25%/quarter. Re-evaluate IVF-PQ only near ~1M vectors.
+- **Sharding**: single shard, replicated for HA. Search filters by tenant-visible tool subset at query time rather than physically separate indexes.
 
 ## 17. Embedding Pipelines
 
-**Applicable, narrowly** — same scope as §16.
-- **Pipeline**: on tool registration/update (`mcp.registry-sync.v1` event) → embedding worker consumes event → generates embedding from `{tool_name, description, param_names}` concatenated text → upserts into vector index with metadata `{tool_id, server_id, tenant_id, version}`.
-- **Model**: same small sentence-embedding model as §14; batched embedding generation (registration events are low-volume, no real-time pressure — batch window of a few seconds is fine).
-- **Re-embedding trigger**: on any manifest description change (semantic drift in what the tool does) — versioned so search can fall back to prior embedding if a re-embed job fails, rather than dropping the tool from search results.
+On tool registration/update (`mcp.registry-sync.v1`), a worker embeds `{name, description, params}` and upserts into the vector index with `{tool_id, server_id, tenant_id, version}` metadata. Same small embedding model as §14, batched (registration is low-volume). Re-embed triggered on manifest description changes; versioned so a failed re-embed falls back to the prior embedding rather than dropping the tool from search.
 
 ## 18. Inference Pipelines (End-to-End Request Lifecycle)
 
-Here "inference" = the full agent tool-call round trip (the closest analog to a model-serving "inference pipeline" in this system).
+"Inference" here = the full agent tool-call round trip:
 
 ```
-Agent decides to call a tool
-        │
-        ▼
-[1] Agent runtime → MCP Gateway: tools/call (JSON-RPC, mTLS/OIDC bearer)      ~1-2ms network
-        │
-        ▼
-[2] Gateway: verify OIDC token / mTLS cert, extract agent identity             ~3-5ms
-        │
-        ▼
-[3] Gateway → Policy sidecar (local): authz check                              ~1-3ms
-        │   (cached grant + policy bundle, no network hop)
-        ▼
-[4] Gateway: JSON Schema validation of tool arguments                          ~1-2ms
-        │
-        ▼
-[5] Gateway: rate-limit check (token bucket, local + Redis-backed counter)      ~2-5ms
-        │
-        ▼
-[6] Gateway: circuit-breaker check for target MCP server health                ~<1ms
-        │
-        ▼
-[7] Gateway → MCP Server: proxied tools/call over mTLS                         ~network + server's own work
-        │                                                                       (5ms-2s depending on tool;
-        │                                                                        e.g. telemetry query ~150ms,
-        │                                                                        build trigger ~async job)
-        ▼
-[8] MCP Server: executes tool logic (its own DB/service calls), returns result
-        │
-        ▼
-[9] Gateway: emit async audit event to Kafka (fire-and-forget, doesn't block response)
-        │
-        ▼
-[10] Gateway → Agent: tools/call result (sync) or notifications/progress (streamed)
-        │
-        ▼
-Agent's LLM consumes result, decides next action (may loop back to [1])
+Agent → Gateway: tools/call (mTLS/OIDC)                 ~1-2ms
+Gateway: verify token/cert, extract identity              ~3-5ms
+Gateway → Policy sidecar (local, cached): authz check      ~1-3ms
+Gateway: JSON Schema validation of args                    ~1-2ms
+Gateway: rate-limit check (local + async Redis)             ~2-5ms
+Gateway: circuit-breaker check on target server              <1ms
+Gateway → MCP Server: proxied call (mTLS)         network + server's own work
+                                                    (5ms fast query – 2s+ build trigger)
+Server executes, returns result
+Gateway: async audit emit to Kafka (non-blocking)
+Gateway → Agent: result (sync) or notifications/progress (streamed)
+Agent's LLM consumes result, may loop back to step 1
 ```
 
-**Gateway-added overhead budget**: steps 2–6 + 9 (excluding upstream tool execution and step 7's network) must total p50 < 15ms / p99 < 60ms per NFR — this is the number this system is actually accountable for; upstream tool latency is each MCP server team's own SLO.
+**Gateway-added overhead** (everything except upstream execution/network) must total p50 <15ms / p99 <60ms per NFR — that's what this system owns; upstream tool latency is each server team's SLO.
 
 ## 19. Training Pipelines
 
-No model is trained as part of the core MCP protocol path. Two adjacent, small training pipelines exist:
+No model trains on the core protocol path. Two small adjacent pipelines:
+1. **Tool-search embedding fine-tune**: quarterly, offline, single-GPU, on EA-internal (query → corrected tool) pairs mined from session logs — small-data, not distributed training.
+2. **Anomaly-detection model**: gradient-boosted classifier or isolation forest on rolling call-pattern features, trained offline on the audit store, CPU-only.
 
-1. **Tool-search embedding model fine-tuning** (infrequent): base sentence-embedding model optionally fine-tuned on EA-internal (query → correct tool) pairs mined from agent session logs where a human corrected the agent's tool choice. Offline batch job, single-GPU fine-tune, run quarterly, not a distributed-training problem at this data size (thousands of labeled pairs).
-2. **Anomaly-detection model** (§15): gradient-boosted classifier (or simpler, an isolation-forest) trained on rolling-window call-pattern features to flag anomalous agent behavior (credential misuse, scope creep). Trained offline on the columnar audit store, CPU-only, retrained on the cadence in §20.
-
-Neither requires distributed/multi-GPU training — both are small-data, small-model problems; the emphasis in this system is data *plumbing* (getting clean labeled examples out of audit logs), not training infra.
+The emphasis is data plumbing (clean labeled examples from audit logs), not training infra.
 
 ## 20. Retraining Strategy
 
 | Model | Cadence | Trigger |
 |---|---|---|
-| Tool-search embedding fine-tune | Quarterly, or ad hoc | Tool catalog grows >30% since last fine-tune, or search click-through/override rate degrades below threshold (see §21) |
-| Anomaly-detection model | Weekly scheduled retrain | Also triggered on: (a) false-positive rate reported by security team exceeds 5% of flagged events in a week, (b) a new tool category is onboarded (distribution shift in normal call patterns) |
-| Policy bundles (not ML, but analogous "retrain") | On every grant/ACL change | Event-driven, not scheduled — compiled and pushed within seconds |
+| Tool-search embedding | Quarterly / ad hoc | Catalog grows >30%, or search override rate degrades (§21) |
+| Anomaly detector | Weekly | False-positive rate >5%, or new tool category shifts normal patterns |
+| Policy bundles (non-ML) | On every grant/ACL change | Event-driven, compiled and pushed within seconds |
 
 ## 21. Drift Detection
 
-| Drift type | What's monitored | Metric | Threshold |
-|---|---|---|---|
-| Data drift (tool-search) | Distribution of incoming natural-language queries vs. training query distribution | Embedding-space KL/population stability index on query embeddings, weekly | PSI > 0.2 → flag for review |
-| Concept drift (tool-search relevance) | Agent's actual tool selection after search vs. top-K suggested | Override rate (agent picks a tool outside top-5 suggested) | > 15% override rate over 7-day window → trigger retrain |
-| Concept drift (anomaly detector) | False positive/negative rate reported by security analysts | Weekly analyst-labeled sample precision/recall | Precision < 0.85 or recall < 0.90 → retrain + threshold review |
-| "Protocol drift" (MCP-specific, not ML) | New MCP server versions deviating from expected schema conventions (breaking manifest changes slipping through) | Schema-validation failure rate on `tools/list` ingestion | > 1% of registered servers failing validation in a week → registry team review |
+| Drift | Metric | Threshold |
+|---|---|---|
+| Data drift (search queries) | PSI on query embeddings, weekly | PSI > 0.2 → review |
+| Concept drift (search relevance) | Override rate (agent picks outside top-5) | >15% over 7 days → retrain |
+| Concept drift (anomaly detector) | Analyst-labeled precision/recall | Precision <0.85 or recall <0.90 → retrain |
+| "Protocol drift" (MCP-specific) | Schema-validation failure rate on `tools/list` ingestion | >1%/week → registry team review |
 
-This system's "drift" is as much about *tool ecosystem* drift (schemas, ownership, deprecations) as classic ML data drift — worth calling out explicitly in an interview since it's a distinguishing feature of an MCP-shaped system vs. a typical model-serving one.
+Worth noting in interview: this system's "drift" is as much about the tool ecosystem (schema/ownership churn) as classic ML data drift.
 
 ## 22. Monitoring
 
 | Category | Metrics |
 |---|---|
-| Infra | Gateway pod CPU/mem, p50/p99 latency per stage (§18 breakdown), request rate, error rate by MCP server, circuit-breaker state transitions, Kafka consumer lag |
-| Registry/control-plane | Registration rate, manifest validation failure rate, cache hit ratio (registry/policy), pub/sub propagation latency (grant revoke → gateway applied) |
-| Model quality (search) | Recall@5 on labeled eval set, override rate, embedding staleness (days since last re-embed vs. manifest update) |
-| Security | Authz denial rate per agent/tenant (spike = probing behavior), anomaly-detector flag rate, credential age (stale/unrotated service tokens) |
-| Business | Tool-call volume by studio/tenant (cost allocation), top-N most-used tools (registry prioritization signal), agent adoption (active agents/week), incident MTTR when agents assist live-ops |
+| Infra | Gateway CPU/mem, p50/p99 per stage, error rate by server, circuit-breaker transitions, Kafka lag |
+| Control plane | Registration rate, manifest validation failures, cache hit ratio, revoke propagation latency |
+| Search quality | Recall@5, override rate, embedding staleness |
+| Security | Authz denial rate by agent/tenant, anomaly flag rate, credential age |
+| Business | Call volume by studio, top-N tools, active agents/week, incident MTTR with agent assist |
 
 ## 23. Alerting
 
 | Alert | Condition | Routing |
 |---|---|---|
-| Grant-revoke propagation SLA breach | Revoke not applied fleet-wide within 10s | PagerDuty, Security on-call, P1 |
-| Gateway p99 latency breach | p99 > 60ms for 5 consecutive min | PagerDuty, Platform on-call, P2 |
-| Tool-call error rate spike | Any single tool's error rate > 10% over 5 min | Slack to owning MCP server team, P3; escalate to P2 if sustained 30 min |
-| Audit pipeline lag | Kafka consumer lag on `mcp.audit.v1` > 5 min of backlog | PagerDuty, Platform on-call, P2 (compliance risk) |
-| Anomaly-detector high-confidence flag | Agent flagged with score > 0.95 (likely credential misuse) | PagerDuty, Security on-call, P1, auto-suspend agent pending review |
-| Registry validation failure spike | > 1% of registrations failing schema validation | Slack, Registry team, P3 |
-| Semantic search relevance degradation | Override rate > 15% (§21) | Slack, ML platform team, P4 (non-urgent, quality issue) |
+| Revoke propagation SLA breach | Not applied fleet-wide within 10s | PagerDuty, Security, P1 |
+| Gateway p99 breach | >60ms for 5 min | PagerDuty, Platform, P2 |
+| Tool error rate spike | Any tool >10% error over 5 min | Slack owning team, P3→P2 if sustained |
+| Audit pipeline lag | Kafka lag >5 min backlog | PagerDuty, Platform, P2 (compliance risk) |
+| Anomaly high-confidence flag | Score >0.95 | PagerDuty, Security, P1, auto-suspend agent |
+| Registry validation failures | >1% of registrations | Slack, Registry team, P3 |
+| Search relevance degradation | Override rate >15% | Slack, ML platform, P4 |
 
-On-call routing follows tenant/team ownership where the fault is domain-specific (a single MCP server's errors go to that server's owning team) and central platform on-call for anything cross-cutting (gateway, registry, policy engine, audit pipeline).
+Domain-specific faults route to the owning team; cross-cutting issues (gateway, registry, policy, audit) go to central platform on-call.
 
 ## 24. Logging
 
-- **Structured logging** (JSON) at every gateway stage: `request_id`, `agent_id`, `tenant_id`, `tool_name`, `server_id`, `stage_latencies{}`, `outcome`, `trace_id` (for correlation, §35).
-- **PII handling**: tool call *arguments* frequently contain player IDs, emails (support/refund tools), payment references. Gateway applies a **redaction policy per tool**, tagged in the tool's manifest (`sensitivity: pii|financial|none`) — PII-tagged fields are hashed/tokenized before logging (`args_digest` in audit schema, §13), never logged in plaintext. Full plaintext args are retained only transiently (in-flight, not persisted) for the tool's own execution.
-- **Retention**: application/debug logs 30 days hot (ELK/OpenSearch-style); audit logs per §10 (90 days hot columnar, 2 years cold Parquet) — audit retention is a compliance requirement (GDPR/COPPA-adjacent — need to show what an agent did with a minor player's data, without retaining the raw PII itself).
-- **Right-to-erasure**: since audit records use tokenized `args_digest` rather than raw PII, erasure requests are handled by purging the token-mapping table (identity vault) rather than rewriting 2 years of columnar audit history — a deliberate design choice to keep compliance tractable at this log volume.
+- Structured JSON at every gateway stage: `request_id`, `agent_id`, `tenant_id`, `tool_name`, `server_id`, stage latencies, outcome, `trace_id`.
+- **PII**: tool args often contain player IDs, emails, payment refs. Each tool's manifest tags sensitivity (`pii|financial|none`); tagged fields are hashed/tokenized before logging (`args_digest`) — never logged in plaintext. Full args are transient, not persisted.
+- **Retention**: app logs 30 days; audit logs 90 days hot + 2 years cold (compliance requirement).
+- **Right-to-erasure**: audit records use tokenized digests, so erasure = purging the token-mapping vault, not rewriting years of columnar history.
 
 ## 25. Security
 
-**Threat model specific to this system:**
-1. **Over-privileged agent** — an agent granted broad tool access gets prompt-injected (via untrusted content in a tool result, e.g., a player-submitted bug report) into calling a destructive tool (issue mass refunds). Mitigation: least-privilege per-agent grants (FR4), human-in-the-loop approval gate flag on high-risk tools enforced at the gateway (not just app-level), output/argument schema validation limiting what an injected instruction can actually construct.
-2. **Malicious/compromised MCP server** (especially third-party marketplace ones, FR11) — a server could return crafted responses designed to manipulate the agent's LLM (indirect prompt injection) or exfiltrate data via tool-call arguments. Mitigation: sandboxed execution tier for untrusted servers (network-isolated, capability-scoped even further), response size/content-type allowlisting, no untrusted server ever gets a direct grant to write-capable tools.
-3. **Registry poisoning** — a compromised CI credential registers a malicious tool manifest impersonating a trusted namespace. Mitigation: namespace ownership verification (signed commits from the owning team's repo, tied to their SPIFFE identity), manifest diffing/approval gate for any change to a tool's `sensitivity`/auth-scope tags.
-4. **Credential/token leakage** — long-lived service tokens for agent identities being a juicy target. Mitigation: short-lived OIDC tokens (15 min max), mTLS with SPIFFE workload identity rotated automatically, no static API keys for service-to-service.
-5. **Cross-tenant data leakage via gateway bug** — a routing bug sends studio A's telemetry-tool result to studio B's agent. Mitigation: tenant_id threaded through every layer as a hard partition key (not just a filter), row-level checks at the MCP server too (defense in depth — gateway isn't the only line of defense), chaos/fuzz testing specifically for cross-tenant leakage.
+**Threat model:**
+1. **Over-privileged/injected agent** — prompt injection via untrusted tool output drives a destructive call. Mitigation: least-privilege grants, human-in-the-loop gate on high-risk tools enforced at the gateway, strict schema validation on args.
+2. **Malicious/compromised MCP server** (esp. third-party) — crafted responses manipulate the agent or exfiltrate data. Mitigation: sandboxed execution tier, response allowlisting, no write-capable grants for untrusted servers.
+3. **Registry poisoning** — compromised CI credential registers a malicious manifest. Mitigation: signed-commit namespace ownership tied to SPIFFE identity, approval gate on sensitivity/scope changes.
+4. **Credential leakage** — long-lived tokens are a target. Mitigation: short-lived OIDC tokens (15min), auto-rotated mTLS/SPIFFE identities, no static API keys.
+5. **Cross-tenant leakage via gateway bug** — routing bug leaks studio A's data to studio B. Mitigation: `tenant_id` as a hard partition key at every layer, server-side row checks too (defense in depth), chaos testing for cross-tenant leaks.
 
-**Encryption**: TLS 1.3 everywhere in transit (mTLS internal, TLS+OIDC bearer external-facing where applicable); audit log columnar store encrypted at rest (KMS-managed keys, per-tenant key where feasible for stronger isolation).
+**Encryption**: TLS 1.3 everywhere (mTLS internal); audit store encrypted at rest with KMS keys.
 
 ## 26. Authentication
 
-- **Service-to-service** (agent runtime ↔ gateway ↔ MCP server): mTLS with SPIFFE/SPIRE-issued workload identities (X.509-SVID), short-lived (hours), automatically rotated. Gateway verifies the SPIFFE ID matches an expected agent identity registered in the Identity Store.
-- **Human-delegated** (support agent acting on behalf of a CS rep, dev copilot acting on behalf of an engineer): OIDC authorization-code flow against EA's internal Okta-backed IdP; the resulting token includes a `delegation_chain` claim (`{human_subject, agent_id, scope}`) so the gateway/audit trail always knows *who* ultimately authorized an action, not just which agent executed it — critical for tools like refund/ban issuance where accountability must trace to a human.
-- **Third-party MCP servers** (marketplace, FR11): separate, more restrictive OAuth client-credentials flow with mandatory scopes, sandboxed network tier (§25), no delegation-chain trust (never inherits a human's broader permissions).
-- **Session/token propagation**: within one MCP session, the negotiated capability set (from `initialize` handshake) is cached against the session ID so subsequent `tools/call` within the same session skip the full authz re-derivation (though the *token itself* still gets verified per-call) — this is what keeps multi-turn tool use within the 15ms/60ms overhead budget (§18).
+- **Service-to-service**: mTLS with SPIFFE/SPIRE workload identities, short-lived, auto-rotated. Gateway matches SPIFFE ID to a registered agent identity.
+- **Human-delegated**: OIDC auth-code flow (Okta); token carries a `delegation_chain` claim (`{human_subject, agent_id, scope}`) so audit trail always traces to a human — critical for refund/ban tools.
+- **Third-party servers**: separate OAuth client-credentials flow, mandatory scopes, sandboxed network tier, no delegation-chain trust.
+- **Session propagation**: negotiated capability set from `initialize` is cached against the session ID so subsequent calls skip full authz re-derivation (token is still verified per call) — this is what keeps overhead inside the 15/60ms budget.
 
 ## 27. Rate Limiting
 
-- **Algorithm**: token bucket, per-`(agent_id, tool_name)` and a coarser per-`(tenant_id)` bucket — token bucket chosen over sliding-window-log for O(1) memory per key at 18,000-tool × 6,000-agent cardinality, and because it naturally supports controlled bursts (a live-ops incident legitimately needing a burst of diagnostic calls) rather than hard-clipping at a fixed window boundary.
-- **Limits** (defaults, overridable per-tool via manifest):
-  - Read-only/query tools: 60 req/min per agent, burst 120.
-  - Mutating tools (refund, ban, build-trigger): 10 req/min per agent, burst 20 — tighter because blast radius is higher.
-  - Per-tenant aggregate ceiling: 2,000 req/min, to protect one studio's traffic spike from starving others (multi-tenant fairness — also acts as a coarse cost-control lever, §29).
-- **Enforcement point**: gateway, local token-bucket counters backed by Redis for cross-pod consistency (approximate — slight overcounting tolerated in exchange for avoiding a synchronous Redis round-trip on every single call; a local-first-check-then-async-sync pattern).
-- **Response on limit**: standard `429`-equivalent MCP error object with `retry_after_ms`, surfaced to the agent so its LLM can reason about backoff rather than the client silently failing.
+- **Algorithm**: token bucket per `(agent_id, tool_name)` and per `tenant_id` — O(1) memory at this cardinality, and naturally supports legitimate bursts (incident response) rather than hard-clipping.
+- **Limits**: read tools 60/min (burst 120); mutating tools (refund, ban, build) 10/min (burst 20) — tighter due to blast radius. Per-tenant ceiling 2,000/min for fairness.
+- **Enforcement**: gateway-local counters backed by Redis for cross-pod consistency (approximate, local-first-then-async-sync to avoid a sync Redis round trip per call).
+- **Response**: MCP error with `retry_after_ms` so the agent's LLM can reason about backoff.
 
 ## 28. Autoscaling
 
-- **Gateway pods**: Kubernetes HPA on custom metric `requests_per_second_per_pod` (target 800/pod, headroom under the 1,000/pod design capacity from §6) plus a secondary trigger on p99 latency (scale out if p99 > 40ms for 2 min, ahead of the 60ms SLA breach). Min 8 replicas (steady state), max 30 (covers 25,000/sec burst design target).
-- **KEDA** used for the audit-pipeline stream processors — scaled on Kafka consumer-group lag (`mcp.audit.v1` lag > 10,000 messages triggers scale-out), since this is an event-driven workload better matched to lag-based scaling than CPU-based HPA.
-- **Policy sidecars**: scale 1:1 with gateway pods (no independent policy), so no separate autoscaler needed there.
-- **VPA**: applied in recommendation-only mode to the Tool Registry and Identity Store clusters (low-volatility, mostly-read workloads) — used to right-size requests/limits periodically rather than live-resize, to avoid pod restarts on a control-plane component.
-- **MCP servers themselves**: each owning team's own autoscaling policy — the gateway's circuit breaker (§8, §18) is the mechanism that protects the rest of the system when an individual MCP server under-scales or falls over, not a shared autoscaler.
+- **Gateway pods**: HPA on requests/sec/pod (target 800) plus p99-latency trigger. Min 8, max 30 replicas.
+- **Audit stream processors**: KEDA on Kafka consumer lag.
+- **Policy sidecars**: scale 1:1 with gateway (no independent axis).
+- **MCP servers**: each team's own autoscaling — gateway circuit breakers protect the system if one under-scales.
 
 ## 29. Cost Optimization
 
-- **Spot/preemptible instances** for gateway pods (stateless, fast-drain-and-reschedule tolerant) — 60-70% cost reduction vs. on-demand for the largest compute line item (25 pods at burst).
-- **Caching** (§11) collapses what would otherwise be a registry/policy read per tool-call into a handful of reads per cache-TTL window — directly cuts control-plane compute and cross-AZ network charges.
-- **Audit log tiering**: 90-day hot columnar (expensive, fast) → 2-year cold Parquet-on-object-storage (cheap, slow) is itself a cost lever — keeping 2 years fully in the hot tier would roughly 8x the compliance-storage bill for no query-pattern benefit (compliance queries are rare, batch, latency-insensitive).
-- **Batching the embedding model** (§14): batching tool-search embedding requests into a 10ms window means a couple of small CPU pods cover the workload instead of provisioning for worst-case single-request latency.
-- **Per-tenant rate ceilings** (§27) double as a cost-control lever — prevents one studio's misconfigured agent loop from silently inflating the shared infra bill (chargeback model attributes gateway compute cost proportionally to tenant call volume, visible in the business-metrics dashboard, §22).
-- **Tool-call result NOT cached by default** (§11) is itself a conscious cost/correctness tradeoff — caching would save compute but risks serving stale ban-status/entitlement data, judged not worth the small savings given the low absolute cost of the gateway's own compute relative to what a stale-data incident would cost.
+- Spot instances for stateless gateway pods (~60-70% savings on the largest compute line item).
+- Caching (§11) collapses per-call registry/policy reads into a handful per TTL window.
+- Audit tiering (90-day hot columnar → 2-year cold Parquet) avoids an ~8x hot-storage bill.
+- Batched embedding requests mean a couple small CPU pods cover tool-search load.
+- Per-tenant rate ceilings double as cost control (chargeback by call volume).
+- Not caching tool-call results is a deliberate correctness-over-cost tradeoff — staleness risk (stale ban/entitlement data) outweighs the modest compute savings.
 
-## 30. Operational Concerns (Deployment, Reliability, Infra)
+## 30. Operational Concerns
 
-At SDE2 scope, treat this as a checklist rather than a design exercise: **backups** (automated snapshots of the model registry, feature store, and any stateful service, with a tested restore path), **rollback** (every deploy must be revertible to the last-known-good version — the model registry and CI/CD pipeline should make this a one-command operation), **canary/blue-green rollout** (shift a small percentage of traffic first, watch error rate and key business/model metrics, then ramp), and **basic observability** (dashboards + alerts on latency, error rate, and the top 2-3 model-quality signals, wired to on-call). Kubernetes/Terraform specifics and multi-region active-active topology are Staff/Principal-level infra-architecture concerns — worth knowing they exist, not worth rehearsing the manifests.
+At SDE2 scope, treat as a checklist: automated backups with a tested restore path; one-command rollback to last-known-good; canary/blue-green rollout (small traffic slice first, watch error rate, then ramp); dashboards/alerts on latency, error rate, and top model-quality signals wired to on-call. Multi-region active-active topology and detailed Kubernetes/Terraform specifics are Staff/Principal-level concerns — know they exist, don't rehearse the manifests.
 
-## 38. Why This Architecture
+## 31. Why This Architecture
 
-- A **stateless gateway + externalized policy engine** cleanly separates the two things that actually need independent scaling curves: raw request throughput (gateway) vs. authorization-decision correctness/freshness (policy), letting each be tuned/scaled without coupling.
-- **Federated MCP server ownership** matches EA's actual organizational reality (dozens of semi-autonomous studios) — a centrally-owned monolithic tool-serving layer would recreate the exact bottleneck (one team gatekeeping every studio's tool additions) that MCP as a protocol exists to avoid.
-- **Push-based revoke propagation** (rather than short-TTL polling) is the one place we deliberately spend extra engineering effort (pub/sub fan-out) because it's the one NFR (sub-10s kill-switch) that a purely cache-TTL design structurally cannot guarantee.
-- **Document store for registry, relational for grants** reflects that tool schemas are naturally polymorphic JSON while grants are naturally relational (agent × tool × tenant) — picking one database paradigm for both would force an awkward compromise in one direction or the other.
+- **Stateless gateway + externalized policy engine** separates two things needing independent scaling curves: raw throughput (gateway) vs. authz freshness/correctness (policy).
+- **Federated MCP server ownership** matches EA's actual org structure — a centrally-owned tool layer would recreate the gatekeeping bottleneck MCP exists to avoid.
+- **Push-based revoke propagation** is the one place worth extra engineering effort (pub/sub fan-out), because it's the one NFR (sub-10s kill-switch) a pure TTL-cache design can't guarantee.
+- **Document store for registry, relational for grants** matches each data shape — polymorphic JSON schemas vs. naturally relational grants.
 
-## 39. Alternative Architectures
+## 32. Alternative Architectures
 
-| Alternative | Description | Why rejected (or when preferred) |
-|---|---|---|
-| Centralized monolithic tool-gateway (no MCP protocol, bespoke per-agent function-calling glue) | Every agent framework directly integrates each tool's API | Rejected: O(agents × tools) integration cost, no standardized discovery/auth, doesn't scale past a handful of agents/tools — this is exactly the pre-MCP status quo EA is moving away from |
-| Fully centralized single MCP server exposing all 18,000 tools | One team owns and operates every tool's MCP-facing wrapper | Rejected: recreates a central bottleneck/single point of ownership; would be preferred only in a much smaller org (single studio, < 50 tools) where coordination overhead of federation exceeds its benefit |
-| Synchronous-only tool invocation (no job-queue for long-running tools) | Simpler, no async job infra | Rejected: build-trigger/batch-analysis tools routinely exceed reasonable HTTP timeout windows; would be preferred if the tool catalog were 100% read-only/fast-path, which it isn't (mutating/long tools are a real minority but non-trivial) |
-| No policy engine — authz baked into each MCP server individually | Each server enforces its own access control | Rejected as the *sole* mechanism (still kept as defense-in-depth per §25) because it can't give a single point of sub-10s fleet-wide revocation, and produces inconsistent authz semantics across 1,200 independently-coded servers; acceptable as a *secondary* layer, not primary |
+| Alternative | Why rejected / when preferred |
+|---|---|
+| Bespoke per-agent function-calling glue (no MCP) | O(agents × tools) integration cost, no standard discovery/auth — the pre-MCP status quo being replaced |
+| Single monolithic MCP server for all tools | Recreates a central ownership bottleneck; fine only for a single studio with <50 tools |
+| Sync-only invocation (no job queue) | Build/batch tools exceed HTTP timeouts; fine only if the catalog were 100% fast-path read-only |
+| No policy engine, authz per-server only | Can't give fleet-wide sub-10s revocation, inconsistent semantics across 1,200 servers; kept as secondary defense-in-depth layer only |
 
-## 40. Tradeoffs
+## 33. Tradeoffs
 
 | Decision | Benefit | Cost |
 |---|---|---|
-| Federated MCP server ownership | Scales with org, no central bottleneck | Inconsistent quality/reliability across servers; gateway must be defensive (circuit breakers) against every upstream |
-| Push-based revoke propagation | Meets sub-10s security SLA | Extra infra (dedicated pub/sub path) vs. simpler TTL-polling |
-| Cache-aside for most registry/grant reads | Low latency, low control-plane load | Small window of staleness tolerated everywhere except revoke |
-| Document DB for registry | Flexible schema matches arbitrary tool manifests | Weaker referential integrity than relational — must guard against dangling references to deleted servers/tools in app logic |
-| Token-bucket rate limiting, Redis-backed approximate counts | O(1) memory, tolerates bursts, avoids sync Redis round-trip per call | Slight overcounting possible across pods — a marginally generous limit in edge cases, judged acceptable |
-| Not caching tool-call results | Avoids stale ban/entitlement data | Forgoes compute savings that caching would offer for read-heavy tools |
-| Sandboxed tier for third-party servers | Contains blast radius of untrusted code | Extra operational complexity (a second execution environment to maintain) |
+| Federated server ownership | Scales with org, no bottleneck | Inconsistent upstream quality; gateway must defend with circuit breakers |
+| Push-based revoke | Meets sub-10s SLA | Extra pub/sub infra vs. simple TTL polling |
+| Cache-aside for reads | Low latency/load | Staleness window everywhere except revoke |
+| Document DB for registry | Flexible schema | Weaker referential integrity — must guard dangling references in app logic |
+| Approximate Redis rate limiting | O(1) memory, no sync round trip | Slight overcounting possible across pods |
+| No tool-result caching | Avoids stale ban/entitlement data | Forgoes compute savings on read-heavy tools |
+| Sandboxed third-party tier | Contains blast radius | Extra environment to maintain |
 
-## 41. Failure Modes
+## 34. Failure Modes
 
-1. **A popular MCP server (e.g., telemetry) goes down** → circuit breaker trips after error-rate threshold, gateway fails fast with a structured MCP error rather than hanging agent sessions; agents' LLMs can reason about the `isError` response and retry/fallback. Mitigation validated via chaos testing (kill telemetry-MCP pods, verify gateway doesn't cascade-fail).
-2. **Policy bundle push fails silently to a subset of gateway pods** (network partition during pub/sub fan-out) → stale policy served from some pods, potential over- or under-permissive authz. Mitigation: policy bundle version is included in every authz decision's audit log; a background reconciliation job periodically diffs each pod's loaded bundle version against the source of truth and force-refreshes laggards, alerting if any pod is >2 versions behind.
-3. **Kafka partition unavailability drops audit events** → tool calls still succeed (audit emission is async/non-blocking, correctly decoupled from the request path) but compliance/security visibility has a gap. Mitigation: gateway buffers audit events locally (bounded, with overflow-to-disk) during producer-side Kafka unavailability, replays on recovery; DLQ/lag alerting (§12, §23) catches sustained issues.
-4. **Semantic tool-search returns wrong/irrelevant tools** → agent's LLM either fails to find the right tool or (worse) selects a superficially-similar but wrong tool (e.g., a "ban" tool instead of "warn" tool with similar description). Mitigation: manifest descriptions require a human-reviewed clarity bar for high-risk tools at registration time; high-risk tools get mandatory disambiguation confirmation step in the agent framework, not solely relying on search ranking.
-5. **Registry primary region outage** → writes (new registrations/grants) blocked, but reads continue from replicas (stale by replication lag) — existing agents keep functioning with their already-cached grants; new agent onboarding blocked until failover completes (~15 min RTO, §30).
-6. **A compromised third-party MCP server exfiltrates data via tool-call arguments echoed back in results** → sandboxing (§25) limits network egress from that server's execution tier; response schema validation at the gateway catches obviously malformed/oversized responses, though a sophisticated exfiltration disguised as legitimate tool output is the hardest case — mitigated primarily by *not* granting third-party servers access to sensitive-tagged tools in the first place (policy-level prevention over detection).
+1. **Popular server (e.g. telemetry) down** → circuit breaker trips, gateway fails fast with a structured error instead of hanging sessions. Validated via chaos testing.
+2. **Policy push fails to a pod subset** (network partition) → stale policy on some pods. Mitigation: bundle version logged per decision, background reconciliation force-refreshes laggards, alerts if >2 versions behind.
+3. **Kafka partition unavailable** → calls still succeed (audit is async/non-blocking) but compliance visibility gaps. Mitigation: bounded local buffering with disk overflow, replay on recovery.
+4. **Semantic search returns the wrong tool** (e.g. "ban" vs. "warn") → high-risk tools require human-reviewed manifest clarity and a mandatory disambiguation step, not reliance on ranking alone.
+5. **Registry primary region outage** → writes blocked, reads continue from replicas; existing agents keep working off cached grants, new onboarding blocked until failover (~15min RTO).
+6. **Compromised third-party server exfiltrates via echoed args** → sandboxing limits egress, schema validation catches malformed responses; primary defense is never granting sensitive-tool access to third-party servers in the first place.
 
-## 42. Scaling Bottlenecks
+## 35. Scaling Bottlenecks
 
-- **At 10x scale (80,000 calls/sec, 12,000 servers, 60,000 agents)**: 
-  - Redis-backed rate-limit counters become a hotspot — per-key contention on high-traffic tenants; mitigation: shard Redis by tenant, move to a local-approximate-then-periodic-reconcile model more aggressively.
-  - Audit Kafka topic partition count needs re-tuning (currently sized for 8,000/sec baseline) — at 80,000/sec, partition count and consumer parallelism must scale roughly proportionally; columnar sink ingest rate becomes the tighter constraint than Kafka itself.
-  - Semantic tool-search index (18,000 → potentially 180,000 tool descriptions) — this is where HNSW's memory footprint (§16) starts to matter and a re-evaluation of IVF-PQ becomes warranted.
-- **At 100x scale (800,000 calls/sec)**: this exceeds any single-region gateway fleet's practical pod count under one Kubernetes cluster's control-plane limits — would require gateway sharding by tenant-hash across multiple independent clusters, not just more HPA replicas in one cluster; the Identity & Grant Store (single-writer Postgres, §31) becomes the hard architectural bottleneck, requiring a move to a multi-writer/partitioned grant-store design (e.g., per-tenant grant-store shards) well before 100x is reached.
+- **At 10x (80,000 calls/sec)**: Redis rate-limit counters hot-spot on high-traffic tenants → shard by tenant, lean more on approximate local-then-reconcile. Audit Kafka partitions and columnar ingest need re-tuning. Search index (18K→180K tools) is where HNSW memory starts to matter.
+- **At 100x**: exceeds a single-region gateway fleet's practical pod count → requires gateway sharding by tenant-hash across clusters. The single-writer Postgres grant store becomes the hard bottleneck, needing per-tenant sharding well before this point.
 
-## 43. Latency Bottlenecks
+## 36. Latency Bottlenecks
 
-| Stage | p50 | p99 | Notes |
-|---|---|---|---|
-| Network (agent → gateway) | 1ms | 3ms | Same-region assumption |
-| Auth verification (mTLS/OIDC) | 2ms | 5ms | Cached token introspection |
-| Authz check (local policy sidecar) | 1ms | 3ms | No network hop by design |
-| Schema validation | 1ms | 2ms | JSON Schema, small payloads |
-| Rate-limit check | 1ms | 4ms | Local + async Redis reconcile |
-| **Gateway overhead subtotal** | **~6ms** | **~17ms** | Within the 15/60ms budget (§6, §18) with margin |
-| Network (gateway → MCP server) | 1-3ms | 5-10ms | Depends on cross-AZ/region routing |
-| MCP server's own execution | 5ms (fast query) – 2000ms (complex build-trigger ack) | Highly variable | **The dominant cost for most tool calls** — outside this system's direct control, only its circuit-breaker/timeout policy |
-| Async audit emission | 0 (non-blocking) | 0 (non-blocking) | Doesn't sit in critical path |
+| Stage | p50 | p99 |
+|---|---|---|
+| Network (agent→gateway) | 1ms | 3ms |
+| Auth verification | 2ms | 5ms |
+| Authz check (local sidecar) | 1ms | 3ms |
+| Schema validation | 1ms | 2ms |
+| Rate-limit check | 1ms | 4ms |
+| **Gateway overhead subtotal** | **~6ms** | **~17ms** |
+| MCP server's own execution | 5ms–2000ms+ | highly variable — **dominant cost** |
+| Async audit emit | 0 (non-blocking) | 0 |
 
-**Bottom line**: the gateway itself is nowhere near the latency bottleneck at design targets — the MCP server's own execution time dominates end-to-end latency in nearly every real tool call. The system's job is to keep its *own* overhead negligible and use circuit breakers/timeouts so a slow upstream degrades gracefully rather than the gateway becoming the bottleneck by proxy (e.g., thread/connection exhaustion waiting on a slow server).
+The gateway is nowhere near the bottleneck at design targets — server execution time dominates. The gateway's job is negligible self-overhead plus circuit breakers/timeouts so a slow upstream degrades gracefully.
 
-## 44. Cost Bottlenecks
+## 37. Cost Bottlenecks
 
-- **Audit log storage/compute** (hot columnar tier, §6/§10) is the single largest recurring infra line item at steady state — 691M events/day, 94 TB hot retention — dwarfing gateway compute cost.
-- **Gateway compute** is the second driver, mostly proportional to call volume, largely mitigated by spot instances (§29) and caching reducing control-plane round-trips per call.
-- **Cross-region data transfer** for tool calls that must route to a tool hosted in a different region than the requesting agent (§31) — an underappreciated cost line, worth explicitly monitoring per-tenant to catch mis-routed traffic patterns (e.g., an EU agent routinely calling a US-only tool that should have a regional equivalent).
-- **NOT a major cost driver**: the registry/identity control-plane databases (tiny relative to audit volume), and the semantic-search embedding model (small model, low query volume, batched).
+- **Audit storage/compute** (hot columnar, 691M events/day, 94TB hot) is the largest recurring line item, dwarfing gateway compute.
+- **Gateway compute** is second, roughly proportional to call volume, mitigated by spot + caching.
+- **Cross-region data transfer** for calls routed to a tool in a different region — worth monitoring per-tenant for mis-routed traffic.
+- Registry/identity control-plane DBs and the search embedding model are not major cost drivers.
 
-## 45. Interview Follow-Up Questions
+## 38. Interview Follow-Up Questions
 
-1. How would you handle a tool that needs to call back into the agent mid-execution (human-in-the-loop approval, or the tool itself needing an LLM completion) — does MCP's sampling capability change your architecture?
-2. Your revoke-propagation SLA is 10 seconds — walk through exactly what happens in the worst case where a gateway pod is netsplit from the pub/sub fan-out for 30 seconds.
-3. How do you prevent a single studio's misbehaving agent (bug, not malice) from degrading service for every other tenant sharing the gateway fleet?
-4. If you had to support 100,000 tools instead of 18,000, what's the first component that breaks and what would you change?
-5. How would semantic tool search interact with authorization — could search leak the *existence* of a tool a tenant isn't authorized to call, even if it can't invoke it?
-6. Walk me through what changes if an MCP server needs to stream partial results over a multi-minute job (e.g., a long analysis) rather than a simple job-poll model.
-7. How do you test/validate a third-party MCP server before admitting it to the marketplace, beyond the sandbox runtime isolation?
-8. What's your strategy if two different studios register tools with confusingly similar names/descriptions, and the agent picks the wrong one?
-9. How would you extend this design to support sub-tenant (team-level, not just studio-level) authorization scoping without a full re-architecture?
-10. What telemetry would tell you the tool registry's semantic search is actively causing harm (agents doing wrong things) rather than just being mediocre?
+1. How does a tool calling back into the agent mid-execution (human approval, or MCP sampling) change the architecture?
+2. Walk through the worst case where a gateway pod is netsplit from revoke pub/sub for 30 seconds against a 10s SLA.
+3. How do you stop one studio's misbehaving agent from degrading service for every other tenant?
+4. At 100,000 tools instead of 18,000, what breaks first?
+5. Could semantic search leak the *existence* of a tool a tenant isn't authorized to call?
+6. What changes if a server needs to stream partial results over a multi-minute job instead of job-poll?
+7. How do you vet a third-party MCP server before marketplace admission, beyond sandboxing?
+8. Two studios register confusingly similar tool names — what's your strategy?
+9. How would you add sub-tenant (team-level) authorization without a full re-architecture?
+10. What telemetry tells you semantic search is actively causing harm, not just mediocre?
 
-## 46. Ideal Answers
+## 39. Ideal Answers
 
-1. **Sampling/callback handling**: MCP's `sampling/createMessage` lets a server request the *client's* LLM do a completion mid-tool-execution, so the gateway can't treat `tools/call` as strictly request/response-terminal — it must keep the session open and route the callback back through it. Apply the same per-tool authz scoping and rate limit to sampling requests rather than giving the server an unbounded channel.
-
-2. **30s netsplit worst case**: that gateway pod can serve stale grants/policy for up to 30s beyond the 10s SLA, a real breach. The reconciliation job (§41.2) bounds this by proactively pulling on version-lag, and high-risk tools can carry a "must revalidate live" flag forcing a synchronous grant-store check.
-
-3. **Tenant isolation under misbehavior**: the per-tenant rate-limit ceiling (§27) is the first line of defense regardless of per-agent limits. Fair-queuing/priority classes on gateway pods stop one tenant's queue from starving others, and per-tenant usage dashboards (§22) catch slow-building misbehavior before it hits the hard limit.
-
-4. **100,000 tools**: the semantic-search vector index (HNSW) likely stays fine memory-wise at that scale, but the more likely break point is the gateway's registry read cache size. Fix is a smarter partial-cache/LRU strategy keyed by which tools a tenant/agent-class actually uses, not full-catalog caching.
-
-5. **Search leaking tool existence**: yes — a tenant seeing a sensitive tool name in search results (even if denied on `tools/call`) is a real information-disclosure risk. Fix is applying the same authz filter to search as to `tools/list`, pre/post-filtering the vector query rather than relying on call-time denial alone.
-
-6. **Long streaming job**: shift from job-submit+poll to `notifications/progress` over the same session's SSE stream, keeping a long-lived connection instead of a fire-and-forget queue. This needs its own timeout/keepalive tuning distinct from the fast-path sync budget (§18) so a healthy multi-minute job doesn't trip the same circuit breaker as a hung server.
-
-7. **Third-party vetting**: beyond sandbox runtime isolation, add static analysis of the manifest for suspicious scope requests and a manual security review gate before marketplace listing. New servers get a probationary period at reduced rate limits with human-approval on their first N calls, plus continuous anomaly monitoring (§15) at a lower alert threshold than first-party.
-
-8. **Name collision confusion**: namespace tools by `{studio}.{domain}.{action}` so collisions are structurally prevented at the identifier level, and surface the owning studio/team prominently to the agent's LLM as a disambiguating signal. Track override/correction rate (§21) as the metric that catches this in production.
-
-9. **Sub-tenant scoping without re-architecture**: the grant model (§10, `agent_id × tool × tenant`) can add an optional `team_id` column with hierarchical policy evaluation without changing the storage paradigm. The harder part is that the registry currently shards at studio granularity, so sub-tenant scoping lives as a finer authz filter within a studio's shard rather than needing its own partition.
-
-10. **Search actively causing harm, signal**: override rate (§21) tells you search is *mediocre*; what tells you it's *harmful* is correlating search-suggested tool calls with downstream error/rollback rates. If search-suggested selections are followed by corrective/undo actions at a statistically higher rate than explicitly-named ones, that's a direct harm signal.
+1. **Sampling/callback**: `sampling/createMessage` lets a server request a completion from the client's LLM mid-call, so the gateway can't treat `tools/call` as request/response-terminal — it keeps the session open and routes the callback through it, applying the same authz/rate limits to sampling requests.
+2. **30s netsplit**: that pod serves stale grants up to 30s — a real SLA breach. Reconciliation job bounds this via version-lag pulls; high-risk tools can carry a "must revalidate live" flag forcing a synchronous grant-store check.
+3. **Tenant isolation**: per-tenant rate ceiling is the first line of defense; fair-queuing/priority classes stop one tenant starving others; usage dashboards catch slow-building misbehavior early.
+4. **100,000 tools**: HNSW likely still fine memory-wise; the real break point is gateway registry cache size — fix with a partial/LRU cache keyed by actual per-tenant usage instead of full-catalog caching.
+5. **Search leaking existence**: yes, a real information-disclosure risk. Fix: apply the same authz filter to search as to `tools/list`, pre/post-filtering the vector query rather than relying on call-time denial alone.
+6. **Long streaming job**: shift from job-submit+poll to `notifications/progress` over the session's SSE stream, with its own timeout/keepalive tuning distinct from the fast-path budget so a healthy long job doesn't trip the same breaker as a hung server.
+7. **Third-party vetting**: static analysis of manifest scope requests, manual security review before listing, probationary reduced rate limits with human approval on first N calls, tighter anomaly-alert thresholds.
+8. **Name collisions**: namespace tools as `{studio}.{domain}.{action}` to prevent collisions structurally; surface owning studio to the LLM as a disambiguating signal; track override rate as the production signal.
+9. **Sub-tenant scoping**: add an optional `team_id` to the grant model with hierarchical policy evaluation — no storage paradigm change needed; it becomes a finer authz filter within a studio's existing shard.
+10. **Harm vs. mediocre**: override rate shows mediocrity; correlating search-suggested tool calls with downstream error/rollback rates shows harm — if suggested selections get corrected/undone at a higher rate than explicitly-named ones, that's a direct harm signal.

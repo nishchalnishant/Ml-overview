@@ -528,6 +528,5 @@ class VLLMDeployment:
 
 - **Speculative decoding algorithm** → [05-llms/applications/07-speculative-decoding.md](../../05-llms/applications/07-speculative-decoding.md)
 - **KV cache and GQA math** → [05-llms/08-kv-cache-and-mqa-gqa.md](../../05-llms/08-kv-cache-and-mqa-gqa.md)
-- **Distributed training (DDP, FSDP, DeepSpeed)** → [distributed-training-and-parallelism.md](./13-distributed-training-and-parallelism.md)
 - **Model quantization (GPTQ, AWQ, GGUF)** → [quantization-pruning-detailed.md](./17-quantization-pruning-detailed.md)
 - **System design for LLM inference ops** → [06-production-ml/system-design/12-llm-inference-ops.md](../../06-production-ml/system-design/12-llm-inference-ops.md)
