@@ -35,19 +35,6 @@ This is a platform-for-platforms problem — customers are ~800 internal ML engi
 | Cost | GPU utilization > 65% fleet-wide (vs. ~20-30% typical of siloed clusters) |
 | Multi-tenancy | Hard quota isolation, no noisy-neighbor starvation |
 
-## 4. Clarifying Questions
-
-1. Training only, serving only, or both end-to-end?
-2. How many tenants at launch, growth in 2 years?
-3. On-prem/colo GPU fleet or cloud-elastic (EA is hybrid: on-prem steady-state + cloud burst)?
-4. Must one tenant's bad job never affect another's SLA?
-5. Real-time player-facing serving (matchmaking, anti-cheat), offline batch (churn), or both?
-6. Existing data lake/feature warehouse to integrate with, or build fresh?
-7. Governance constraints (COPPA, EU/China data residency)?
-8. Support arbitrary frameworks (PyTorch/TF/XGBoost/JAX) or standardize?
-9. Mostly small XGBoost models, or also large-scale DL (recommender embeddings, LLM moderation)?
-10. Who owns on-call — platform itself vs. individual models on it?
-
 ## 5. Assumptions
 
 1. 800 ML practitioners across ~40 studios; ~250 actively training weekly.

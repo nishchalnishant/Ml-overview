@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Ml
+topic: Dl
 subtopic: Computer Vision
 status: unread
-tags: [interviewprep, ml, ml-computer-vision]
+tags: [interviewprep, dl, dl-computer-vision]
 ---
 # Computer Vision
 

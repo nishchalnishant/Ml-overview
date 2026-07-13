@@ -393,11 +393,11 @@ A: Replay raw events through the same streaming job in batch mode, writing outpu
 
 ## Flashcards
 
-**Sorted merge join?** #flashcard
-Both tables sorted by (entity_id, timestamp); single pass with two pointers.
+**How does a sorted merge join speed up point-in-time joins over the naive O(n×m) approach?** #flashcard
+Both tables are sorted by (entity_id, timestamp); a single pass with two pointers finds the matching feature row per label in O(n+m) instead of a per-row scan.
 
-**Snapshot materialization?** #flashcard
-Store feature snapshots at fixed intervals (hourly); binary search for the nearest snapshot before cutoff.
+**What is snapshot materialization, and why does it help point-in-time joins scale?** #flashcard
+Feature snapshots are stored at fixed intervals (e.g. hourly); a lookup binary-searches for the nearest snapshot before the label's cutoff timestamp instead of scanning the full history.
 
 **What does PSI > 0.25 indicate?** #flashcard
 Significant feature drift; requires retraining.

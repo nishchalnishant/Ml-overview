@@ -2,14 +2,6 @@
 
 Ultimate Team wants personalized discount coupons instead of static pack prices, to lift revenue without players feeling cheated. Design an ML system that picks the optimal discount per player.
 
-## Clarifying Questions to Ask
-- Base price change or targeted coupons? → Coupons only; varying base price = legal/PR disaster.
-- What currency? → Premium virtual currency (bought with real money).
-- Optimize immediate conversion or LTV? → 30-day LTV — avoid discounts that cannibalize the rest of the month's spend.
-- Classification or bandit/RL framing? → They want you to propose the optimal-discount (bandit) framing yourself.
-- Historical data available? → Yes, 1-month random A/B test, discounts 0–50%.
-- How often do prices refresh? → Daily batch, not real-time.
-
 ## Core Architecture
 - Historical randomized A/B data → feature store (Snowflake).
 - Train one regressor per discount arm (0%, 10%, 25%, 50%) predicting 30-day revenue — **XGBoost regressors**, chosen for tabular efficiency and easy per-arm isolation.
@@ -32,16 +24,6 @@ Ultimate Team wants personalized discount coupons instead of static pack prices,
 - **Contextual bandit vs. uplift modeling** — bandits are simple and explore continuously; uplift modeling directly targets causal incremental revenue but is harder to implement/evaluate. Matters because bandits alone can misfire on whales.
 - **Per-arm models vs. single model with discount as a feature** — per-arm isolates signal cleanly but doesn't scale past a handful of arms; single model scales better but risks the discount feature getting drowned out by dominant features like playtime.
 - **Epsilon-greedy vs. Thompson Sampling** — epsilon-greedy is trivial to implement but wastes a fixed fraction of traffic on pure randomness; Thompson Sampling explores more efficiently via posterior sampling but is materially harder to bolt onto XGBoost.
-
-## Toughest Follow-ups
-**"A whale looks high-LTV under every discount arm — how do you stop the model handing them a 50% discount anyway?"**
-Predict incremental revenue, not absolute revenue: uplift = E[Rev|treatment] − E[Rev|control]. If uplift is negative or near zero, don't treat, even if absolute predicted revenue is high everywhere. This is exactly what uplift modeling is for.
-
-**"Legal says no two players can see different prices for the same item — pivot the design."**
-Keep item price identical for everyone; move personalization to *which item* gets featured in the "Just for You" slot. Same bandit machinery, but the arms become item choices instead of discount tiers.
-
-**"30-day LTV means a 30-day wait for labels — how do you retrain weekly?"**
-Train a surrogate model that maps a short window (e.g., 3 days) of post-promo behavior to predicted 30-day LTV, and use that prediction as the reward signal for the bandit, closing the loop in days instead of a month.
 
 ## Biggest Pitfall
 Framing this as a binary "will they buy?" classifier instead of a bandit/RL revenue-optimization problem — it maximizes conversion while quietly destroying margin, and is the single fastest way to drop from Hire to No Hire.

@@ -827,86 +827,56 @@ When offline and online diverge: investigate position bias in offline data, chec
 
 ## Flashcards
 
-**"Is this for cold-start users or established ones?"?** #flashcard
-"Is this for cold-start users or established ones?"
+**What are the seven steps of the ML design interview framework?** #flashcard
+1) Clarify requirements, 2) frame as an ML problem, 3) data sources, 4) feature engineering, 5) model architecture, 6) training pipeline, 7) evaluation and deployment.
 
-**"What's the latency budget?** #flashcard
-50ms or 500ms?"
+**Why do two-tower retrieval models fail to distinguish "good" from "great" candidates?** #flashcard
+They train on positive pairs and easy negatives via cosine similarity. Without in-batch or hard-negative mining, they only learn to separate obvious positives from obviously irrelevant items.
 
-**"What does success look like as a business metric?"?** #flashcard
-"What does success look like as a business metric?"
+**Why does training a ranker on raw clicks create a feedback loop?** #flashcard
+Clicks are biased by position — items shown first get more clicks regardless of relevance. The model learns to rank previously-high-positioned items higher, reinforcing their position.
 
-**What is the label? How is it defined?** #flashcard
-What is the label? How is it defined?
+**How does Inverse Propensity Scoring correct for position bias, and what breaks it?** #flashcard
+IPS reweights each training example by 1/examination-probability at its position, upweighting low-position clicks. Breaks down at low propensities — a single misclick at position 10 (propensity 0.1) gets 10x the loss weight, causing high variance. Clipped IPS trades bias for lower variance.
 
-**Pointwise score, pairwise preference, or sequence?** #flashcard
-Pointwise score, pairwise preference, or sequence?
+**Why can calibration make predictions worse instead of better?** #flashcard
+Calibration (Platt scaling, temperature scaling) assumes the validation distribution matches serving. Under data drift between training and deployment, calibration maps scores to the wrong scale.
 
-**What logs exist? What implicit signals are available?** #flashcard
-What logs exist? What implicit signals are available?
+**Epsilon-greedy vs Thompson Sampling for exploration — what's the tradeoff?** #flashcard
+Epsilon-greedy serves a random item with probability epsilon (simple, but wastes exploration on clearly-bad items). Thompson Sampling maintains a Beta distribution per item and samples proportional to uncertainty, exploring more efficiently but requiring more bookkeeping.
 
-**User features, item features, context features, interaction features?** #flashcard
-User features, item features, context features, interaction features
+**Why does hybrid retrieval combine BM25 and semantic search instead of using one?** #flashcard
+BM25 handles exact-match/vocabulary well but misses semantic equivalents ("ML researcher" vs "deep learning scientist"); semantic search generalizes but is slower and harder to tune for exact matches. Combining both then reranking with a cross-encoder gets both recall types.
 
-**Justify complexity vs latency vs interpretability?** #flashcard
-Justify complexity vs latency vs interpretability
+**Why must serving-time feature vectors be logged rather than recomputed for training?** #flashcard
+Point-in-time features (e.g., "user's last 30 clicks") change continuously. Recomputing at training time yields different values than what was actually used at serving time, creating training/serving skew that re-computation cannot fix after the fact.
 
-**Data splits, loss function, optimization?** #flashcard
-Data splits, loss function, optimization
+**Why is PR-AUC preferred over ROC-AUC for fraud detection?** #flashcard
+ROC-AUC is dominated by the majority (non-fraud) class and can report 0.98 while catching almost no fraud. PR-AUC directly measures precision-recall tradeoff on the rare positive class.
 
-**Offline metrics → online A/B test → monitoring?** #flashcard
-Offline metrics → online A/B test → monitoring
+**What's the fraud-detection feedback loop problem?** #flashcard
+Blocking a transaction means you never observe its true outcome — training data only contains transactions that passed the filter, creating survivorship bias that underrepresents the fraud the model should learn to catch.
 
-**Feature retrieval (user profile, item features)?** #flashcard
-5ms
+**Why train separate models per engagement objective (like, comment, share, hide) instead of one combined metric?** #flashcard
+A single metric like clicks produces clickbait; each objective needs its own calibrated model trained on the appropriate population, then combined with explicit business-priority weights (including heavily penalizing negative signals like "hide").
 
-**Candidate generation (ANN search)?** #flashcard
-5ms
+**ESMM: why not train a CVR model directly on clicked data?** #flashcard
+CVR labels only exist for clicked items, but at serving time the model scores all impressions — the CVR model has never seen the distribution it must predict on (sample selection bias). ESMM decomposes P(click ∧ convert) = P(click) × P(convert|click) so the CVR tower is trained jointly across the entire impression space.
 
-**Feature assembly for ranking?** #flashcard
-3ms
+**Why does downsampling negatives require a calibration correction?** #flashcard
+Downsampling changes the apparent positive rate. A Bayes'-theorem correction (p_true = p'/(p' + (1-p')/w)) recovers the true probability from the model's output on downsampled data — but only if positives weren't also filtered.
 
-**Ranking model inference (top-1000 -> top-50)?** #flashcard
-15ms
+**Bid shading vs random throttling for budget pacing — why is one better?** #flashcard
+Random exclusion during throttling can lose an auction to a competitor entirely. Bid shading (reducing the bid when ahead of pace) preserves auction participation while still controlling total spend.
 
-**Re-ranking and business logic?** #flashcard
-5ms
+**Why monitor p99/p999 latency separately from p50?** #flashcard
+A 50ms p50 with 500ms p99 means 1% of users get 10x slower responses — often at the most latency-sensitive, highest-stakes moments (first purchase, fraud decisions).
 
-**Response serialization and network?** #flashcard
-10ms
+**Airbnb search: why train on booking confirmation instead of clicks?** #flashcard
+A click with no booking gives no quality signal; supply scarcity also distorts raw click/impression stats — a great listing gets booked immediately with few impressions, making "available = low quality" a spurious pattern if scarcity isn't modeled.
 
-**Model quantization (FP32 to INT8)?** #flashcard
-2-4x inference speedup with <1% accuracy loss
+**TikTok feed ranking: why optimize for completion rate over likes?** #flashcard
+Completion rate is passive (doesn't require deliberate action) and harder to game than likes, but it also creates the strongest filter-bubble effect of any engagement signal, since it reinforces whatever the user just watched with no natural brake.
 
-**ONNX export?** #flashcard
-portable format with optimized runtime
-
-**Pre-compute item embeddings offline; only compute query embedding at serve time?** #flashcard
-Pre-compute item embeddings offline; only compute query embedding at serve time
-
-**Cascade?** #flashcard
-use fast model to filter candidates; expensive model only on top-100
-
-**Primary label?** #flashcard
-booking confirmation (binary, delayed by days)
-
-**Feature engineering?** #flashcard
-listing features (reviews, photos, price/night, amenities), guest features (verification level, booking history, response rate), search context (check-in date, group size, destination)
-
-**Listing quality score trained separately from ranking; both fed into a joint model?** #flashcard
-Listing quality score trained separately from ranking; both fed into a joint model
-
-**Geo features?** #flashcard
-distance from destination center, proximity to attractions
-
-**Primary training signal?** #flashcard
-video completion rate = watched_seconds / video_duration
-
-**Secondary signals?** #flashcard
-like, comment, share, follow (positive); skip, scroll past (negative)
-
-**Two-tower model?** #flashcard
-user tower (watch history, follow graph, device, locale) x video tower (visual features from frame sampling, audio features, caption embeddings, hashtags)
-
-**Cold-start for new videos?** #flashcard
-initial traffic allocation based on creator history and content features; boost if early viewers show high completion
+**Why do offline metric improvements (AUC, NDCG) sometimes fail to move online business metrics?** #flashcard
+Offline metrics measure fit to historical (possibly position-biased, unrepresentative) data; online metrics measure live user behavior. Divergence signals position bias in offline data, unrepresentative A/B traffic, or training/serving feature mismatch — investigate empirically rather than assuming offline gains transfer.

@@ -352,44 +352,32 @@ A: Generally no. Retrieval optimizes for recall (do I get good candidates?), ran
 
 ## Flashcards
 
-**Explicit vs implicit feedback? (ratings vs clicks/watch-time)?** #flashcard
-Explicit vs implicit feedback? (ratings vs clicks/watch-time)
+**Why does two-tower retrieval normalize user and item embeddings before taking the dot product?** #flashcard
+Normalizing to unit vectors turns the dot product into pure cosine similarity, so retrieval ranks items by direction (semantic alignment) rather than magnitude; without normalization, items with large-norm embeddings (e.g. popular items with more training signal) would score higher regardless of true relevance.
 
-**Real-time vs batch? (feed refresh on scroll vs daily email)?** #flashcard
-Real-time vs batch? (feed refresh on scroll vs daily email)
+**Why does two-tower training correct in-batch negative scores by subtracting log p(i)?** #flashcard
+In-batch sampled negatives are drawn proportional to item frequency in the batch, so popular items appear as negatives far more often than rare ones purely by chance; subtracting log p(i) (the item's sampling probability) removes this frequency bias so the model isn't penalized for scoring popular items highly just because they were oversampled as negatives.
 
-**Cold start exposure? (new user, new item SLA)?** #flashcard
-Cold start exposure? (new user, new item SLA)
+**Why is a two-stage retrieval→ranking pipeline used instead of scoring all 10M items with the full ranking model?** #flashcard
+The ranking model uses expensive cross-features and deep interactions that cost too much to run on 10M items within a 100ms budget; ANN retrieval narrows the candidate set to a few hundred in ~2ms so the expensive model only needs to score a small, pre-filtered set.
 
-**Business objective? (engagement, revenue, diversity, safety)?** #flashcard
-Business objective? (engagement, revenue, diversity, safety)
+**Why does IVF-PQ trade exact recall for memory and speed compared to a flat index?** #flashcard
+A flat index computes exact distances against all 10M vectors (10GB, 100% recall but only ~5K QPS); IVF-PQ instead clusters vectors into cells and compresses each vector into a compact product-quantized code, so search only probes a subset of cells against compressed codes — dropping to ~500MB and ~95% recall but reaching 50K QPS, which is the right trade for retrieval where ranking downstream can absorb small recall loss.
 
-**Feedback loop risk? (filter bubbles, popularity bias)?** #flashcard
-Feedback loop risk? (filter bubbles, popularity bias)
+**Why is BPR (pairwise) loss often preferred over pointwise binary cross-entropy for implicit feedback ranking?** #flashcard
+Implicit feedback (clicks, not ratings) only tells you a user preferred one item over ones they didn't click, not an absolute label like "0.3 relevant"; BPR directly optimizes the relative order of a clicked item versus an unclicked one, which matches the actual implicit signal, whereas pointwise BCE forces an artificial absolute click/no-click target that's noisier for ranking quality.
 
-**Offline?** #flashcard
-embed all 10M items → build FAISS IndexIVFPQ (IVF: 4096 cells, PQ: M=64 subspaces, 8 bits)
+**Why must offline feature joins use point-in-time correctness (feature_ts ≤ event_ts) instead of joining to the current feature value?** #flashcard
+If training features are joined using today's feature value for a historical event, the model sees information that wasn't actually available at prediction time (e.g. a user's click count that includes clicks that happened after the training example's timestamp) — this label leakage makes offline metrics look great while the model fails online because that future information doesn't exist at serving time.
 
-**Query time?** #flashcard
-probe 128 cells → ~1M distance computations, ~2ms on CPU
+**Why does the offline evaluation pipeline require a temporal train/test split instead of a random split?** #flashcard
+A random split lets the model train on interactions that happened after some test examples, again leaking future information the model wouldn't have at real serving time; a temporal split (train on the past, test on the future) is the only split that mirrors how the model will actually be used in production.
 
-**Alternatives?** #flashcard
-ScaNN (Google), Milvus (distributed), Pinecone (managed)
+**Why does interleaving detect ranking quality differences with far fewer users than a standard A/B test?** #flashcard
+Standard A/B compares aggregate metrics between two disjoint populations, so the signal is diluted by between-user variance; interleaving shows both rankers' results to the same user in one merged list and measures which ranker's items got clicked more, using each user as their own control — removing between-user variance is what gives it roughly 10x the sensitivity per user.
 
-**Diversity?** #flashcard
-Maximal Marginal Relevance (MMR): rerank greedily penalizing similarity to already-selected items
+**Why is CUPED variance reduction applied using a pre-experiment metric rather than just increasing sample size?** #flashcard
+Increasing sample size to hit a target MDE can require impractically large populations (300K+ users/arm for a 0.1pp CTR lift); CUPED instead subtracts out the portion of the outcome metric predictable from a user's pre-experiment behavior (e.g. last week's CTR), shrinking residual variance by 20-40% and letting the same MDE be detected with a smaller sample.
 
-**Freshness?** #flashcard
-boost items < 24h old by factor λ
-
-**Safety?** #flashcard
-hard-remove policy-violating items
-
-**Exploration?** #flashcard
-ε-greedy or UCB slot (1 in 20 positions is exploration)
-
-**Team-draft interleaving?** #flashcard
-rank A and B independently, interleave top-k alternating
-
-**Outcome?** #flashcard
-which list's items got more clicks? 10× more sensitive than standard A/B for ranking
+**Why must Sample Ratio Mismatch be checked before reading any other experiment metric?** #flashcard
+If the actual traffic split between arms deviates from the intended split (e.g. 48/52 instead of 50/50), it signals a broken randomization or logging pipeline — any metric difference measured under a broken assignment mechanism is confounded and cannot be trusted, so SRM must be cleared first or the whole experiment's conclusions are invalid.

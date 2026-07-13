@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Machine Learning Interviews
 status: unread
-tags: [interviewprep, ml, llm-machine-learning-interview]
+tags: [interviewprep, ml, ml-machine-learning-interview]
 ---
 # Machine Learning Interview — Complete Preparation Guide
 

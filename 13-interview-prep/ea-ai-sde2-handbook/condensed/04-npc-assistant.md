@@ -4,15 +4,6 @@
 
 ---
 
-## Clarifying Questions to Ask
-- End-to-end latency budget? → **< 1.5s** voice-to-voice, faster is better.
-- Are we building STT/TTS too? → **No**, separate services; you own text-in → text-out "Brain".
-- How strict on lore/hallucination? → **Very strict** — NPC must not invent lore, must stay in character if it doesn't know something.
-- Jailbreak/toxicity tolerance? → **Zero** — must not break character or generate hate speech even under provocation.
-- Self-hosted vs API model? → **Open-weight model** (Llama 3 8B / Mistral) self-hosted on k8s, for latency + cost control.
-
----
-
 ## Core Architecture
 ```
 Player Mic → STT → [NPC Dialogue Service] → streaming text chunks → TTS → Player
@@ -46,19 +37,6 @@ Player Mic → STT → [NPC Dialogue Service] → streaming text chunks → TTS 
 - **Self-hosted Llama 3 8B vs GPT-4 API:** open weights = no variable cost, no network round-trip latency, but you own GPU infra and it's less capable out-of-the-box.
 - **Sentence-level vs word-level TTS streaming:** sentence buffering adds ~300ms upfront latency but sounds natural; word-level is faster to start but robotic/unnatural intonation.
 - **System prompt vs LoRA fine-tuning for persona:** system prompts iterate fast but burn context tokens every request; LoRA costs engineering effort upfront but is cheaper per-token and sticks to character better.
-
----
-
-## Toughest Follow-ups
-
-**Q: Farmer NPC gets asked about the level-5 boss — standard RAG might retrieve and leak the strategy guide. How do you prevent this?**
-> Use metadata-filtered/namespaced RAG — the farmer persona only has retrieval access to "Farmer Lore"/"Local Town Lore" namespaces. Query against boss-fight lore returns nothing, and the system prompt instructs the model to act confused/in-character rather than answer from general knowledge.
-
-**Q: Finance wants a 50% cost cut without downgrading the model. Options?**
-> Three levers: (1) INT4 quantization (AWQ/GPTQ) cuts VRAM ~70%, enabling cheaper GPUs (T4/L4 instead of A100/A10G); (2) tune vLLM continuous batching to maximize GPU utilization and lower cost-per-token; (3) enable prefix/prompt-caching so the static system prompt's KV cache isn't recomputed every request.
-
-**Q: A player jailbreaks the NPC live on stream. Need an immediate fix without retraining. What do you do?**
-> Deploy an emergency output filter (exact-match blocklist / fast regex) in front of TTS, plus a targeted input guardrail blocking the specific phrases used — both pushed via dynamic config (Redis/LaunchDarkly) so it's live in seconds without a redeploy.
 
 ---
 

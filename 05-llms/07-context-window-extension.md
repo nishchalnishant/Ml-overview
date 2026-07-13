@@ -350,29 +350,11 @@ A: ALiBi natively extrapolates to longer sequences without any rescaling — if 
 
 ## Flashcards
 
-**High-frequency (short-range)?** #flashcard
-very sensitive, should not be scaled (keep original)
+**In YaRN, why are high frequencies left unscaled while low frequencies are interpolated?** #flashcard
+High-frequency (short-range) components are very sensitive to position and shouldn't be scaled — keep them as trained. Low-frequency (long-range) components are less sensitive and can be safely linearly interpolated to cover the extended context.
 
-**Low-frequency (long-range)?** #flashcard
-less sensitive, can be linearly interpolated
+**What makes ALiBi extrapolate to longer sequences without fine-tuning?** #flashcard
+ALiBi uses no learned positional encoding — it adds a fixed linear distance penalty to attention logits. Because the penalty is a simple linear function of distance (not learned frequencies), it extrapolates natively to arbitrarily long sequences. Used in BLOOM and MPT.
 
-**No positional encoding during training?** #flashcard
-No positional encoding during training
-
-**Linear extrapolation is built-in (linear penalty for distance)?** #flashcard
-Linear extrapolation is built-in (linear penalty for distance)
-
-**Handles arbitrarily long sequences without fine-tuning?** #flashcard
-Handles arbitrarily long sequences without fine-tuning
-
-**Used in?** #flashcard
-BLOOM, MPT
-
-**Chunked prefill (process prompt in 4K chunks)?** #flashcard
-Chunked prefill (process prompt in 4K chunks)
-
-**PagedAttention (virtual memory for KV cache)?** #flashcard
-PagedAttention (virtual memory for KV cache)
-
-**Multi-GPU with tensor parallelism?** #flashcard
-Multi-GPU with tensor parallelism
+**What three techniques let you serve a model at 128K+ context when the KV cache exceeds a single GPU's memory?** #flashcard
+Chunked prefill (process the prompt in smaller chunks, e.g. 4K, to avoid an OOM spike), PagedAttention (virtual-memory-style paging for the KV cache), and multi-GPU tensor parallelism to split the model and cache across devices.

@@ -282,8 +282,14 @@ feature_age = Gauge('feature_age_seconds', 'Feature staleness', ['feature_view']
 
 ## Flashcards
 
-**alert?** #flashcard
-ConsumerLagHigh
+**Why is monitoring Kafka broker health insufficient for a streaming ML pipeline?** #flashcard
+The cluster can appear healthy while consumer lag grows and the pipeline falls minutes behind — features go stale silently. Always monitor consumer lag per group with lag-based alerts, not just broker health.
 
-**alert?** #flashcard
-PipelineLatencySLABreach
+**What causes "hot partitions" in a Kafka-based feature pipeline, and how do you fix it?** #flashcard
+Keying by a single high-volume entity (e.g. one user generating 1000 events/sec) sends all its events to one partition, bottlenecking that partition. Fix: salted partitioning (`user_id + random_suffix % N`).
+
+**Aggressive vs. conservative watermark tolerance — what's the tradeoff?** #flashcard
+Aggressive (e.g. 10s) gives low latency but drops more late-arriving events. Conservative (e.g. 5min) catches more late events but adds latency. Fraud favors aggressive/low-latency; billing favors conservative/low-drop.
+
+**Why choose asynchronous precompute over synchronous inference for high-traffic real-time ML?** #flashcard
+Precomputing predictions on feature update (and caching them) avoids paying inference latency on the request path; only re-infer when features changed meaningfully, falling back to synchronous inference as a cold-start path.

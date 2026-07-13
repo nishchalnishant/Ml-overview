@@ -37,18 +37,6 @@ Key framing:
 | Durability | Prediction logs 30 days min; model artifacts versioned indefinitely |
 | Multi-tenancy | One noisy model must not degrade others' p99 by >10% |
 
-## 4. Clarifying Questions
-
-1. Single-game or shared platform? (Assume shared.)
-2. GPU vs CPU model mix? (Assume 30% GPU-bound / 70% CPU-bound by count, GPU dominates compute cost.)
-3. Do callers pass features, or does platform own retrieval? (Assume both — feature-store path opt-in.)
-4. Sync-only, or also batch scoring? (Assume this scopes to sync; batch is a separate pipeline sharing the registry.)
-5. Rollback SLA for a bad deploy? (Assume auto-rollback within 5 min of SLO breach.)
-6. Compliance constraints (COPPA, GDPR)? (Assume yes — EU data residency required.)
-7. Who owns feature correctness? (Upstream teams own pipelines; platform owns online store + serving correctness.)
-8. Failure contract with callers? (Fail-open with default score + flag.)
-9. Traffic pattern — diurnal or event-driven spikes? (Both; events can cause 3-5x spikes in minutes.)
-
 ## 5. Assumptions
 
 1. 120M MAU; ~15M concurrent at global peak.

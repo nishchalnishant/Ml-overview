@@ -2,14 +2,6 @@
 
 Build a production RAG assistant over EA's internal developer docs (Markdown + Confluence HTML, heavy C++ code blocks) so developers get accurate, cited answers instead of hallucinated API calls.
 
-## Clarifying Questions to Ask
-- Document formats? → Mostly Markdown from GitHub + Confluence HTML, lots of C++ code blocks.
-- How to chunk without splitting code blocks? → Open question — you must propose a strategy.
-- Vector-only or hybrid search? → Devs search exact function names (`fb::PhysicsMaterial`); hybrid needed.
-- How is quality evaluated? → 100 QA test set exists; need automated retrieval + generation eval.
-- Ingestion scale/frequency? → Signals whether batch re-embedding or incremental updates matter.
-- Latency/cost budget for generation? → Drives re-ranking vs. raw top-k context stuffing decision.
-
 ## Core Architecture
 ```
 Docs → Markdown-header-aware chunking (preserves headers + code blocks)
@@ -38,16 +30,6 @@ Query → Hybrid Search (dense cosine + BM25) → RRF fusion
 - Naive fixed-length chunking vs. semantic/Markdown chunking: naive is simple but destroys code logic; semantic preserves logic at the cost of uneven chunk sizes for vector matching.
 - Dense vector search vs. BM25: vectors generalize ("gravity" ≈ "things falling") but blur exact symbol names; BM25 nails exact matches but misses paraphrase — hybrid is the only real answer for technical docs.
 - Stuffing more chunks into the LLM vs. re-ranking down to fewer: more context raises recall but costs latency/money and triggers lost-in-the-middle; re-ranking trades a small recall risk for precision and speed.
-
-## Toughest Follow-ups
-**Q: Some C++ files are 5,000-line raw text with no Markdown headers — how do you chunk without splitting functions?**
-A: Use an AST-based splitter (LangChain's `Language.CPP`, or Tree-sitter) that parses actual code syntax and only splits at valid boundaries like function/class ends — never mid-function.
-
-**Q: Retrieval is great, but a complex architecture question needs info from 10 chunks and only 3 fit in context — what now?**
-A: Map-Reduce RAG: map each chunk in parallel through a cheap/fast LLM to extract only query-relevant facts, then reduce those extractions into one combined context for the final generation — bypasses context limits and strips noise.
-
-**Q: How do you stop the LLM from inventing plausible-looking C++ functions that don't exist?**
-A: Strict prompt constraints plus a post-generation verification pass — regex-extract any engine namespace symbols (`fb::...`) from the answer and confirm each exists in the retrieved context; fail closed if not.
 
 ## Biggest Pitfall
 Proposing naive fixed-size chunking (or worse, fine-tuning the LLM on the docs instead of doing retrieval at all) and not recognizing why it breaks code/API accuracy — this is the fastest path from Hire to No Hire.

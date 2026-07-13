@@ -65,17 +65,7 @@ If an embedding model normalizes its output (most do), cosine and dot product ar
 
 **The core insight**: sparse representations (BM25/TF-IDF) are exact — they score documents by weighted term overlap with the query. Dense representations (neural embeddings) are semantic — they score by meaning proximity regardless of exact terms. Exact-match queries fail in dense search; paraphrase queries fail in sparse search.
 
-**The mechanics**:
-
-**Sparse (BM25)**: represents each document as a vector over the vocabulary where most entries are zero (only present terms are non-zero). BM25 score:
-```
-score(D, Q) = Σ IDF(qi) · (f(qi, D) · (k1 + 1)) / (f(qi, D) + k1 · (1 - b + b · |D|/avgdl))
-```
-f(qi, D) = term frequency of query term i in document D. IDF = inverse document frequency. k1 and b are tuning parameters. Implemented efficiently via inverted index. Latency is O(|vocabulary terms in query|) per query.
-
-**Dense**: represents each document as a d-dimensional float vector. Similarity via cosine/dot product. Retrieved via ANN index (see HNSW below). Encodes semantics. Fails on rare terms, identifiers, exact strings.
-
-**Hybrid**: retrieve from both independently; merge candidate lists (typically with RRF). Gets the best of both: exact-match recall from BM25, semantic recall from dense. Standard in production systems handling mixed query types.
+**The mechanics**: sparse (BM25/TF-IDF) represents each document as a vector over the vocabulary where only present terms are non-zero, scored by term-frequency/inverse-document-frequency weighting via an inverted index. Dense represents each document as a d-dimensional float vector, scored by cosine/dot product, retrieved via an ANN index (see HNSW below). For the BM25 formula, the RRF fusion mechanics, and why hybrid search is standard in production, see [Hybrid Search in the RAG notes](03-retrieval-augmented-generation-rag.md#hybrid-search) — the mechanism is identical whether you're reasoning about it from the RAG pipeline side or the embedding side.
 
 **What breaks**: dense-only retrieval fails on product IDs, error codes, rare acronyms. Sparse-only retrieval fails on paraphrases, conceptual questions, cross-lingual queries. Neither failure mode is obvious from aggregate metrics — they appear as tail query failures.
 

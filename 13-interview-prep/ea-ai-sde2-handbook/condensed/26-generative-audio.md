@@ -2,13 +2,6 @@
 
 Design a TTS/voice-cloning pipeline to voice 500 NPCs across 1M+ dialogue lines generated dynamically by an LLM, matching original actors' voices, emotionally expressive, fast enough for live gameplay.
 
-## Clarifying Questions to Ask
-- Edge or cloud inference? → Cloud; console RAM can't hold high-quality TTS models.
-- How is emotion controlled? → Need emotion tags (e.g. `<angry>`) fed into the TTS engine.
-- Do we have rights to clone actors' voices? → Yes, signed contracts scoped to this game only.
-- Latency SLA from text to first audio? → `< 1.5s` or conversation flow breaks.
-- Multilingual requirement? → Assume yes eventually — informs cross-lingual cloning choice.
-
 ## Core Architecture
 ```
 LLM Dialogue Service → (streamed text + emotion tag)
@@ -38,16 +31,6 @@ LLM Dialogue Service → (streamed text + emotion tag)
 - **Sentence vs word chunking** — sentence chunking gives natural prosody but ~500ms added latency; word chunking hits ~50ms but sounds robotic/stilted.
 - **Zero-shot cloning (XTTS) vs fine-tuning (VITS per actor)** — zero-shot is instant and scalable from 3s of audio; fine-tuning needs 5hrs audio + 2 days GPU but yields glitch-free AAA-grade quality.
 - **Grapheme vs phoneme input** — raw text is simpler/modern but mispronounces invented names; phoneme dictionaries add engineering overhead but give control needed for fantasy jargon.
-
-## Toughest Follow-ups
-**Q: Do we need new voice actors and training data for French/German/Spanish?**
-No — use cross-lingual voice cloning (YourTTS/SeamlessM4T style). Extract the speaker embedding (timbre/pitch) from the English actor once, feed it into a multilingual acoustic model alongside target-language text. The model synthesizes fluent French, etc., in the actor's own vocal characteristics without any new recordings.
-
-**Q: Move inference to the player's local PC (2GB model, 50% CPU) — how do you ship this safely?**
-Export to ONNX, quantize to INT8 (~500MB), run via ONNX Runtime's native API inside the game engine on a dedicated background thread — never the render thread — streaming PCM to the audio engine to avoid frame drops.
-
-**Q: How do you make a robot NPC sound metallic without a cheap audio filter?**
-Manipulate the model internals, not post-processing: interpolate the speaker embedding between the actor's vector and a synthetic "robot" embedding (e.g., `0.7*actor + 0.3*robot`), or alter the mel-spectrogram pre-vocoder. Produces a natively hybrid voice rather than a filtered-over effect.
 
 ## Biggest Pitfall
 Proposing to just call an off-the-shelf API (e.g., ElevenLabs) instead of engineering the internal pipeline — ignores latency control, cost at EA's scale, and voice-rights/data ownership, and is an instant drop toward No Hire.

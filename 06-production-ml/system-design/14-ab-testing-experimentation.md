@@ -445,3 +445,23 @@ Primacy effect           | Control users prefer familiar UX     | Same mitigatio
 SRM                      | Assignment bug                       | Always check before analyzing
 Practical vs statistical | p<0.001 but effect is tiny           | Report effect size + CI
 ```
+
+## Flashcards
+
+**Why is Sample Ratio Mismatch (SRM) a "stop the experiment" signal rather than just a metric to note?** #flashcard
+A significant deviation from the intended split (e.g. 48/52 instead of 50/50) means the assignment mechanism itself is broken — any treatment effect measured on top of a biased population is confounded and cannot be trusted, so the fix is to find and fix the assignment bug, not to analyze around it.
+
+**How does CUPED reduce the sample size needed for an experiment, and what does it require?** #flashcard
+It subtracts out the portion of outcome variance explained by a user's pre-experiment behavior (`Y - theta*(X - E[X])`), cutting variance by 30-70% for metrics correlated with historical behavior — it requires the same metric to be measurable before the experiment starts.
+
+**Why does a standard user-level A/B test break down in a marketplace or social network setting?** #flashcard
+Treatment and control users interact (a treated driver affects a control rider's wait time, a treated user's post appears in a control friend's feed), so the control group is contaminated by treatment effects — violates the independence assumption behind the statistics.
+
+**Why do interleaving experiments reach significance so much faster than A/B tests for ranking models?** #flashcard
+Interleaving compares two rankers within the same user session (which model's items get clicked), removing between-user variance entirely — that variance, not the ranking signal itself, is what makes user-level CTR comparisons slow to converge.
+
+**When should you use a multi-armed bandit instead of a fixed-split A/B test?** #flashcard
+When the reward signal is immediate (clicks, purchases) and there's real business cost to serving a worse variant during the test — the bandit shifts traffic toward the better arm as evidence accumulates instead of holding a fixed 50/50 split for the full duration.
+
+**Why is "p < 0.001" not sufficient justification to ship a change?** #flashcard
+A tiny effect size can reach very low p-values with a large enough sample; statistical significance only says the effect is real, not that it's large enough to matter — always report effect size and confidence interval alongside p-value to judge practical significance.

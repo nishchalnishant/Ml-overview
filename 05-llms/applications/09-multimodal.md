@@ -256,14 +256,29 @@ Optimization targets: reduce image resolution (448px vs 1024px gives 5× fewer p
 
 ## Flashcards
 
-**Input?** #flashcard
-log-mel spectrogram (80-channel, 25ms windows, 10ms hop)
+**Why can't a language model process images or audio directly, and why not just convert them to text first (OCR/ASR)?** #flashcard
+Images and audio are continuous signals in a different representational space than discrete text tokens. Converting to text first (OCR, ASR) discards non-lexical information — spatial layout, tone, emotion, timing — that the model could otherwise use.
 
-**Encoder?** #flashcard
-convolutional layers + transformer on spectrogram frames
+**How does ViT convert an image into a transformer-compatible sequence, and what spatial information does it lose?** #flashcard
+It splits the image into non-overlapping patches, flattens and linearly projects each into the model's embedding dimension, then adds position embeddings — turning the image into a token sequence. The global [CLS] output loses fine spatial detail (can't answer "what's in the top-left corner?"); patch embeddings retain spatial structure but their positional encoding degrades at resolutions other than the training resolution.
 
-**Decoder?** #flashcard
-autoregressive text generation
+**How is CLIP trained, and what is its main limitation for multimodal LLMs?** #flashcard
+CLIP jointly trains an image encoder and text encoder with contrastive (InfoNCE) loss on internet (image, text) pairs, pulling matched pairs together and pushing mismatched pairs apart in a shared embedding space — enabling zero-shot classification via cosine similarity to class-name text. Its global embedding averages out spatial detail, so it struggles with counting, reading text, and localizing objects.
 
-**Training?** #flashcard
-680K hours of internet audio with automatically generated transcripts
+**Compare the three main ways to bridge a vision encoder into an LLM (linear projection, Q-Former, Perceiver Resampler) — what does each trade off?** #flashcard
+Linear projection (LLaVA): projects all patch embeddings into the LLM's dimension and concatenates them with text — simple, but costs one LLM token per patch (256+ tokens per image). Q-Former (BLIP-2): K learnable queries cross-attend to image features, compressing N patches to K (~32) tokens — far cheaper context cost, but needs its own pretraining and loses fine spatial detail. Perceiver Resampler (Flamingo): similar cross-attention compression, but interleaved at every LLM layer via gated cross-attention — deeper integration, but requires architectural changes to the LLM (can't bolt onto a frozen model).
+
+**What is "early fusion" (Gemini, Llama 4) and why is it harder to adopt than late-fusion approaches?** #flashcard
+Early fusion treats image patches and text tokens as one unified stream processed by the same transformer from layer 1, letting the model itself learn cross-modal integration rather than relying on a separate encoder plus bridge. It requires training from scratch on multimodal data — a pretrained text-only backbone can't be reused — making it far more compute-intensive than late-fusion adapters.
+
+**How does Whisper convert audio into text, and what does it lose in the process?** #flashcard
+It converts audio into a log-mel spectrogram and treats it like an image: a convolutional + transformer encoder processes the spectrogram, and an autoregressive decoder generates the transcript. It discards all non-lexical signal — tone, emotion, prosody, background context — so a downstream LLM sees only words.
+
+**How do neural audio codecs (EnCodec/SoundStream) let an LLM generate audio, and what is RVQ?** #flashcard
+They compress audio into discrete codebook indices via Residual Vector Quantization (RVQ): each stage quantizes the residual left by the previous stage, so one audio frame becomes N codebook indices (e.g., EnCodec: 8 codebooks at 24kHz). An LLM can then autoregressively predict these discrete codes to generate audio, as used in MusicGen, AudioPaLM, and GPT-4o's audio output.
+
+**Why is full video attention intractable, and how do sparse frame sampling and factorized spatiotemporal attention address it differently?** #flashcard
+One hour of 1080p/30fps video yields tens of millions of visual tokens — far too many for full self-attention. Sparse frame sampling processes only 1–4 representative frames per second, which captures overall content but misses fast motion and event sequences. Factorized spatiotemporal attention (TimeSformer/ViViT) instead runs spatial attention within each frame and temporal attention across frames separately, cutting cost from O((N·T)²) to O(N·T²) + O(T·N²) while approximating (not exactly replicating) full joint attention.
+
+**In production VLM serving, what are the two latency costs unique to multimodal requests (vs. text-only), and how are they typically reduced?** #flashcard
+Image preprocessing/encoding (ViT forward pass) and the increased prefill cost from image tokens. Both are reduced by lowering image resolution (fewer patches), caching ViT features for repeated images (e.g., document QA), and routing simple queries to lower resolution while reserving high resolution for OCR/document tasks.

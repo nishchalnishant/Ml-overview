@@ -570,23 +570,8 @@ A: Four factors: (1) Data scale — less than 100K examples generally doesn't ju
 
 ## Flashcards
 
-**Model weights (bf16)?** #flashcard
-2 bytes
+**What is the per-parameter memory footprint for full fine-tuning with fp32 Adam?** #flashcard
+~16 bytes/param before activations: 2 bytes weights (bf16) + 2 bytes gradients (bf16) + 12 bytes optimizer states (fp32 master weights + momentum + variance).
 
-**Gradients (bf16)?** #flashcard
-2 bytes
-
-**Optimizer states (fp32 master weights + momentum + variance)?** #flashcard
-12 bytes
-
-**Activations (depends on batch/seq size)?** #flashcard
-Activations (depends on batch/seq size)
-
-**Total?** #flashcard
-~16 bytes/param (before activations)
-
-**8B model?** #flashcard
-~20 GB total (weights frozen in bf16 + small LoRA grads/optimizer)
-
-**Fits on a single 24GB GPU?** #flashcard
-Fits on a single 24GB GPU
+**How much memory does LoRA fine-tuning need for an 8B model, and why?** #flashcard
+~20 GB total — fits on a single 24GB GPU. The base weights stay frozen in bf16 while only the small LoRA adapter's gradients and optimizer states are trainable (~0.1% of params).

@@ -402,40 +402,14 @@ Whether you understand that multimodal RAG is not just "give the model images" �
 You need to ship a product assistant that answers questions using both uploaded images and text documents. The system must be reliable, secure (ACL-aware), and verifiable (grounded answers with citations).
 
 ### The Core Insight
-Don't force raw modalities together. Convert each to compatible representations first, then apply the same RAG pattern: retrieve evidence, package it, generate with grounding constraints, verify faithfulness.
+Don't force raw modalities together. Convert each to compatible representations first, then apply the same RAG pattern: retrieve evidence, package it, generate with grounding constraints, verify faithfulness. This is the same pipeline as [Q8's multimodal RAG](#q8-what-is-multi-modal-rag-and-how-does-it-differ-from-text-only-rag) — retrieval, evidence packaging, grounding, faithfulness check, ACL-in-retrieval, OCR/ASR-as-untrusted-input all apply unchanged here.
 
 ### The Mechanics
-```
-Retrieval pipeline:
-  query → embed (text or image) → ANN search against multimodal index (ACL filtered)
-  → rerank → format evidence with modality IDs
-
-Generation pipeline:
-  prompt = f"Use ONLY the evidence below. Cite evidence IDs for each claim.\n{evidence}\n\n{query}"
-  response = llm.generate(prompt, vision_tokens=visual_evidence)
-  if not faithfulness_check(response, evidence):
-      return "I can't confirm that from the available evidence."
-```
-
-Security layers:
-- **OCR/ASR**: treat extracted text from images and audio as untrusted input (prompt injection vector)
-- **ACL**: enforce in vector DB retrieval filters, not in the prompt
-- **Output moderation**: run classifier on generated text for harmful content
-
-Evaluation:
+The one addition beyond Q8's pipeline is an explicit **evaluation checklist** for shipping the system:
 - Retrieval recall@k per modality (images vs text vs video segments)
 - Answer faithfulness against multimodal evidence
 - Citation accuracy (does the answer cite the right evidence IDs?)
-- Safety: moderation pass rate on outputs
-
-```python
-img_tok = vision_encode(image)
-hits = ann.search(embed_query(query), filters={"user_acl": user.acl_groups})
-evidence = format_evidence(hits)
-resp = llm.generate(messages=[{"role":"user", "content": query}],
-                    system=f"Use only:\n{evidence}",
-                    vision_tokens=img_tok)
-```
+- Safety: moderation pass rate on outputs (see [Q18](#q18-how-do-you-handle-multi-modal-content-moderation))
 
 ### What Breaks
 - Model ignores image tokens and generates from text priors (see Q23)

@@ -223,61 +223,35 @@ Tooling: LangSmith, Weights & Biases Weave, Arize Phoenix, or custom OpenTelemet
 
 *Related: [RAG](02-rag.md) | [Hallucination Mitigation](05-hallucination-mitigation.md) | [Tuning and Optimization](10-tuning-optimization.md)*
 
+
 ## Flashcards
 
-**Zero-shot: append "Let's think step by step."?** #flashcard
-the model imitates reasoning patterns from training data.
+**Why does Chain-of-Thought reduce (but not eliminate) reasoning errors?** #flashcard
+Writing out intermediate steps puts them into the model's own context, so later tokens condition on those intermediate results instead of implicit weights alone. But the trace can look structurally correct while being factually wrong — CoT lowers the error rate, it doesn't guarantee correctness.
 
-**Few-shot?** #flashcard
-provide 2–5 worked examples with explicit step-by-step traces. The model imitates the pattern.
+**How does ReAct differ from plain Chain-of-Thought?** #flashcard
+CoT reasons only from parametric memory. ReAct interleaves Thought → Action (tool call) → Observation, grounding each reasoning step in a real external result instead of the model's internal knowledge — necessary for live data or facts the model doesn't already know.
 
-**The generated scratchpad becomes part of the model's own context for the final answer.?** #flashcard
-The generated scratchpad becomes part of the model's own context for the final answer.
+**Why is self-critique/reflection unreliable for factual errors but more reliable for code?** #flashcard
+Critiquing an existing answer is an easier task than generating a perfect one, so it can surface flaws. But the model can also agree with its own subtle factual errors when it's systematically miscalibrated in that domain. Code errors are more traceable because execution can be mentally simulated, making self-critique more trustworthy there.
 
-**Define tools as JSON schemas (name, description, parameter types, required fields).?** #flashcard
-Define tools as JSON schemas (name, description, parameter types, required fields).
+**When is Tree of Thought worth its exponential cost over linear reflection?** #flashcard
+ToT explores multiple candidate reasoning branches with scoring and pruning instead of committing to one linear path — useful for planning/combinatorial problems with multiple plausible solutions. Cost scales exponentially with branching factor and depth, so it's only justified when accuracy gains from backtracking outweigh running the model dozens of times per query.
 
-**Pass tool definitions alongside the prompt.?** #flashcard
-Pass tool definitions alongside the prompt.
+**What are the main tool-use failure modes and their mitigations?** #flashcard
+Hallucinated tool calls (invented names/args) — mitigate with strict schema validation. Wrong argument values — mitigate with unambiguous parameter descriptions. Cascade errors (bad tool output reasoned over correctly, producing a confidently wrong answer) — mitigate with output validation. Infinite loops — mitigate with a hard max iteration limit.
 
-**The model outputs a structured tool-call object instead of prose when it decides a tool is needed.?** #flashcard
-The model outputs a structured tool-call object instead of prose when it decides a tool is needed.
+**Why do agent memory systems need different backends for different memory types?** #flashcard
+In-context (recent turns) uses a sliding window; short-term state uses Redis/key-value store; long-term semantic memory (past facts) uses a vector DB retrieved by similarity; structured workflow state uses a relational DB. Each has different retrieval patterns and lifetimes. Risk: without TTL and freshness scoring, semantic memory accumulates stale facts the model treats as current.
 
-**The host parses the call, executes the function, appends the result as a message, and calls the model again.?** #flashcard
-The host parses the call, executes the function, appends the result as a message, and calls the model again.
+**What causes multi-agent systems to fail more than single-agent ones, despite handling more complex tasks?** #flashcard
+Multi-agent systems multiply every single-agent failure mode — one bad tool call in a subagent poisons the orchestrator's context. They add 2-4x more LLM calls (latency/cost), require precise inter-agent message formats (a prose/JSON mismatch breaks silently), and make error attribution hard without full-trace observability.
 
-**Hallucinated tool calls?** #flashcard
-the model invents a tool name or argument not in the schema. Mitigated by strict schema validation with required fields and enum constraints.
+**Why route queries instead of sending everything through the most capable/expensive path?** #flashcard
+Not every query needs retrieval or multi-step reasoning — a cheap classifier (small model or constrained-output LLM call) can dispatch simple queries directly and save cost on the majority that don't need the expensive path. Risk: router errors are invisible in the output — a misclassified query silently answers from stale parametric memory with no warning.
 
-**Wrong argument values?** #flashcard
-the model infers the right tool but the wrong parameter (wrong city, wrong date). Mitigated by unambiguous parameter descriptions.
+**What guardrails are non-negotiable for autonomous agentic systems, and why must they not be model-overridable?** #flashcard
+Max step counters (prevent infinite loops), per-tool timeouts (prevent hung calls), output schema validation (prevent malformed tool args), content classifiers (block harmful output), human-in-the-loop approval (for irreversible actions), and sandboxed execution (contain generated code). These must be hard-enforced outside the model's own reasoning, since the model could otherwise talk itself past a soft guardrail.
 
-**Cascade errors?** #flashcard
-a wrong tool call returns a bad observation; the model reasons correctly from bad data and produces a confidently wrong answer.
-
-**Infinite loops?** #flashcard
-the model calls tools indefinitely without concluding. Always enforce a hard maximum iteration limit.
-
-**Multi-agent systems multiply every single-agent failure mode. One bad tool call in a subagent poisons the orchestrator's context.?** #flashcard
-Multi-agent systems multiply every single-agent failure mode. One bad tool call in a subagent poisons the orchestrator's context.
-
-**Coordination adds latency?** #flashcard
-2–4× more LLM calls than a single agent.
-
-**Inter-agent communication formats must be precise. If subagent A returns prose and subagent B expects JSON, the system breaks silently.?** #flashcard
-Inter-agent communication formats must be precise. If subagent A returns prose and subagent B expects JSON, the system breaks silently.
-
-**Attribution is hard?** #flashcard
-tracing which agent introduced an error requires full-trace observability.
-
-**Every LLM call?** #flashcard
-record model name, prompt tokens, completion tokens, latency, full output.
-
-**Every tool call?** #flashcard
-record tool name, input arguments, output, latency, success/failure.
-
-**Full agent trace?** #flashcard
-record the sequence of steps, state at each step, and final answer.
-
-**Cost?** #flashcard
-sum token costs across all LLM calls in a run.
+**Why is full-trace observability essential for debugging multi-step agents?** #flashcard
+A wrong final answer from a 10-step agent could have originated at any step. Logging only the final output makes debugging guesswork. Full tracing (every LLM call, tool call, routing decision, state transition with inputs/outputs/latency/cost) lets you replay the exact sequence that led to a failure — at the cost of non-linear storage growth, mitigated by sampling (100% of failures, 1% of successes) and PII sanitization.

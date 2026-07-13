@@ -390,3 +390,20 @@ Return top-K results — total: <20ms
 ```
 
 **What breaks**: index sharding requires a merge step across shards. If shard 3 goes down, results from that shard are missing — the system silently returns fewer results without error. Implement health checks per shard; degrade gracefully by routing to replica shards.
+
+## Flashcards
+
+**Why use ANN instead of exact brute-force search for large-scale retrieval?** #flashcard
+Brute-force dot-product search over 100M+ items is too slow for <10ms latency budgets; ANN trades a small recall loss (1-5% missed top-K) for 100-1000x speedup.
+
+**IVF vs. HNSW vs. IVF-PQ — when would you pick each?** #flashcard
+IVF-Flat: large N, fast build, full precision. HNSW: lowest query latency, but slow to build and memory-heavy (graph overhead). IVF-PQ: very large N under memory constraints, trading recall for 10-100x compression.
+
+**Why must you re-normalize embeddings after PCA dimensionality reduction?** #flashcard
+PCA projection doesn't preserve unit norm, and cosine similarity via dot product requires embeddings on the unit sphere — skipping re-normalization silently breaks similarity scores.
+
+**Why maintain a separate delta index instead of rebuilding the full ANN index when new items arrive?** #flashcard
+Rebuilding a 100M-item index takes hours and needs 2x memory (old + new); a flat delta index absorbs new items cheaply and is periodically merged into the base index, avoiding staleness during rebuild.
+
+**What silently breaks when one shard of a sharded ANN index goes down, and how do you guard against it?** #flashcard
+The system returns fewer results without erroring, since missing-shard results just don't get merged in. Guard with per-shard health checks and route to replica shards on failure.

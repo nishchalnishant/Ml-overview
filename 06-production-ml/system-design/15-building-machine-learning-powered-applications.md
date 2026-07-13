@@ -663,41 +663,32 @@ def compute_decision_economics(
 
 ## Flashcards
 
-**API contract between model and product?** #flashcard
-API contract between model and product
+**Why should ML product design start from the user outcome instead of the available data or model architecture?** #flashcard
+Starting from data builds a model that predicts what's easy to support, not what's needed; starting from architecture constrains the problem to what that architecture handles well. Starting from the user decision and working backward keeps the model in service of an actual outcome.
 
-**Actual latency requirements (rule runs in microseconds; model in milliseconds)?** #flashcard
-Actual latency requirements (rule runs in microseconds; model in milliseconds)
+**Why build a naive end-to-end pipeline before doing any sophisticated modeling?** #flashcard
+The pipeline — not the model — reveals the real constraints: actual latency budget, data format issues in the live input stream, edge cases (empty/long/non-English input), and what happens downstream when a prediction is missing. Finding these after months of modeling means redesigning everything.
 
-**Data format issues in the real input stream?** #flashcard
-Data format issues in the real input stream
+**Why does fixing data usually beat trying a new model architecture when a model plateaus?** #flashcard
+Architecture contributes incrementally; data quality contributes multiplicatively — e.g. 15% wrong labels can cap accuracy at 78% regardless of architecture, and fixing the labels (not the model) closes the gap.
 
-**Edge cases?** #flashcard
-empty strings, very long documents, non-English input
+**Why must evaluation slices be defined before training rather than after?** #flashcard
+Defining slices post-hoc lets you cherry-pick segments where the model already looks good (selection bias); pre-defining them forces you to confront weak segments you didn't choose.
 
-**Downstream failures?** #flashcard
-what happens when the model returns None?
+**What four categories does a model failure get attributed to, and why does order matter?** #flashcard
+Framing (out of scope), data (bad/ambiguous labels), features (insufficient signal), or model. Check them in that order — architecture is rarely the root cause, so jumping straight to "try a new model" skips cheaper, more likely fixes.
 
-**Input schema validation (type, range, presence)?** #flashcard
-Input schema validation (type, range, presence)
+**Why does copying notebook code directly into a production endpoint cause failures that never showed up in analysis?** #flashcard
+Notebooks assume well-formed sequential input; production has concurrent requests, malformed input, and partial failures (OOM, corrupt artifacts) — global state, mutable defaults, and unhandled exceptions that were invisible single-threaded become crashes or corruption under load.
 
-**Graceful error handling (never propagate raw exceptions to callers)?** #flashcard
-Graceful error handling (never propagate raw exceptions to callers)
+**Why do ML systems need behavioral tests in addition to unit and integration tests?** #flashcard
+Unit/integration tests catch pipeline bugs, but a model can pass all of them while learning the wrong pattern; behavioral tests check invariances (positives should outscore negatives, more signal shouldn't lower the score) that must hold regardless of the specific model.
 
-**Health check endpoint?** #flashcard
-Health check endpoint
+**Why do behavioral tests assert on orderings/invariances instead of exact prediction values?** #flashcard
+An exact-value assertion ("sentence X returns 0.73") breaks on every retrain even when the model is still correct; invariance tests (positive > negative, monotonic in signal strength) survive retraining and still catch real regressions.
 
-**Request logging (for debugging production failures)?** #flashcard
-Request logging (for debugging production failures)
+**Why translate AUC/accuracy into decision economics (cost of false positives/negatives) before presenting results to stakeholders?** #flashcard
+A metric like "AUC = 0.84" doesn't tell a stakeholder what they can now do or what errors cost; translating into business terms (% of fraud caught, review team time saved, $ cost of false alarms vs. missed fraud) answers the question they actually asked.
 
-**Version information in every response?** #flashcard
-Version information in every response
-
-**fp * cost_table["fp_cost"]?** #flashcard
-fp * cost_table["fp_cost"]
-
-**fn * cost_table["fn_cost"]?** #flashcard
-fn * cost_table["fn_cost"]
-
-**(fp + tn) * cost_table["fp_cost"]?** #flashcard
-(fp + tn) * cost_table["fp_cost"]
+**Why is 99.9% accuracy meaningless for a fraud model, and what should be reported instead?** #flashcard
+If fraud is 0.1% of transactions, predicting "not fraud" always achieves 99.9% accuracy while catching zero fraud; report precision/recall at the chosen operating threshold, compared against a baseline (rules, random), not raw accuracy.

@@ -2,13 +2,6 @@
 
 Dozens of production models (Matchmaking, Churn, Fraud) degrade silently as game patches shift input distributions. Design a pipeline that detects covariate/concept drift on input features and alerts *before* accuracy drops — no real-time ground truth available.
 
-## Clarifying Questions to Ask
-- What stat tests for continuous vs categorical features? → propose KS-test / PSI (continuous), PSI or Chi-Square (categorical).
-- What's the baseline? → the exact training dataset of the current prod model.
-- Do we have real-time ground-truth labels? → No (e.g. churn label lags 30 days) — must detect on input features alone.
-- How many features/models? → ~5,000 features across 20 models — scale matters.
-- Do we auto-retrain or just alert? → alert only; retraining is a human decision (guard against blind auto-retrain).
-
 ## Core Architecture
 - Nightly Airflow DAG (batch, not streaming) — drift is a slow signal, doesn't need real-time.
 - Baseline = cached training distribution; live = 7-day rolling window (smooths weekday/weekend seasonality) + a 1-day window in parallel (catches acute pipeline breaks like sudden nulls).
@@ -32,16 +25,6 @@ Dozens of production models (Matchmaking, Churn, Fraud) degrade silently as game
 - **PSI vs KS-test:** KS is statistically stricter but always significant at massive scale; PSI is coarser but business-interpretable and stable — pick PSI as the primary alerting metric.
 - **1-day vs 7-day window:** 1-day catches acute pipeline breaks fast but is noisy with seasonality; 7-day smooths seasonality but is slow to catch bugs — run both in parallel.
 - **Alert-only vs auto-retrain:** Auto-retraining nightly on drifted data is tempting but risks retraining on corrupted/broken data (data-quality bugs masquerading as drift) — always gate retraining behind a human/DQ check.
-
-## Toughest Follow-ups
-**Q: How do you measure drift on a high-cardinality categorical (10,000 distinct `item_name` values)?**
-PSI buckets go empty/sparse with high cardinality. Bucket the long tail into "Other" before computing PSI, or embed the category into a dense vector and track drift of the embedding centroid over time instead of raw category frequencies.
-
-**Q: With 5,000 features at 95% confidence, you get ~250 false positives/day by chance. How do you stop alert spam?**
-This is the multiple-comparisons problem — apply a Bonferroni correction to tighten the per-feature threshold, and multiply drift score by feature importance so only top-N business-relevant features can page a human; the rest log silently to a dashboard.
-
-**Q: How would SHAP make a better drift detector than raw PSI?**
-Track drift of each feature's SHAP value distribution, not just the raw feature distribution. If a feature's input distribution shifts but its SHAP contribution stays stable, the model's decision logic is unaffected — this isolates "benign" drift from drift that actually changes predictions.
 
 ## Biggest Pitfall
 Proposing blind nightly auto-retraining as the "fix" for drift (without a data-quality gate or human review) — this is the single fastest way to go from Hire to No-Hire, since it risks retraining on corrupted data and wastes compute on every trivial fluctuation.

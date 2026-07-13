@@ -34,19 +34,6 @@ Design a conversational AI assistant for EA player support that handles account 
 | Data durability | 99.999999999% (11 nines) for conversation transcripts (compliance retention) |
 | Safety | ≥ 99.5% recall on jailbreak/prompt-injection detection eval set; 0 tolerance for PII leak across user sessions |
 
-## 4. Clarifying Questions an Interviewer Would Expect You to Ask
-
-1. Does the chatbot need to take real *write* actions (issue refunds, unban accounts) or only read/inform? (Changes the entire tool-calling risk model.)
-2. What's the SLA for human escalation — does a human need to respond within minutes (live chat) or hours (async ticket)?
-3. Is this single-tenant (one EA Help brand) or must it support per-title branding/persona (Apex bot vs. Sims bot voice)?
-4. What languages and regions must launch day-one vs. can be phased?
-5. Do we need on-device/offline fallback (e.g., console without connectivity), or is this always server-backed?
-6. What's the data residency requirement — GDPR (EU player data must stay in EU), COPPA (minors' data handling)?
-7. Is voice input/output in scope, or text-only?
-8. What existing systems must we integrate with (Salesforce/Zendesk for ticketing, existing entitlement/order APIs) vs. build new?
-9. What's the acceptable hallucination/error budget before this triggers legal/PR risk (e.g., bot promises a refund it can't honor)?
-10. Do we own model choice, or is there a mandated foundation model vendor (cost/procurement constraint)?
-
 ## 5. Assumptions (Explicit, Numbered)
 
 1. 35M MAU across EA portfolio; 4% engage support chat monthly → 1.4M unique conversations/month.

@@ -32,19 +32,6 @@
 | Cost | Inference predominantly CPU (tree ensembles) to keep serving cost low |
 | Durability | Feature/score history retained per policy; no data loss on write path (queue-backed) |
 
-## 4. Clarifying Questions
-
-1. Scope: one flagship title, or a shared platform across FC, Apex, Sims, Battlefield? (drives multi-tenancy)
-2. Operational definition of "churn" — no login in N days, no monetization event, or survival-analysis time-to-event?
-3. Intervention frequency cap — how many pushes/offers per player per week before fatigue?
-4. Existing central telemetry pipeline to integrate with, or build ingestion from scratch?
-5. Cross-title churn signals needed, or strictly single-title?
-6. Acceptable false-positive cost (wasted offer) vs. false-negative cost (silent loss)?
-7. GDPR/CCPA/COPPA constraints on behavioral profiling and targeted offers to minors?
-8. Who signs off on interpretability — legal/compliance review before automated offer decisions?
-9. Existing feature-store/ML-platform tooling to build on vs. greenfield?
-10. Is holdout/control infrastructure for incrementality testing already standardized?
-
 ## 5. Assumptions
 
 1. Flagship live-service title: 25M MAU, 6M DAU.

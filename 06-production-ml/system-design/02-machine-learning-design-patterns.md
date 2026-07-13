@@ -1083,8 +1083,29 @@ class AdversarialDebiasing(nn.Module):
 
 ## Flashcards
 
-**Use pre-trained (Word2Vec, GloVe, BERT) when data is scarce?** #flashcard
-Use pre-trained (Word2Vec, GloVe, BERT) when data is scarce
+**Why use Hashed Feature instead of one-hot for high-cardinality categoricals?** #flashcard
+Fixed vocabulary size (N buckets) regardless of how many new categories appear — no retraining needed. Tradeoff: hash collisions mix unrelated categories' signals.
 
-**Train from scratch on task-specific data when you have sufficient labeled examples and domain-specific semantics?** #flashcard
-Train from scratch on task-specific data when you have sufficient labeled examples and domain-specific semantics
+**When should you use pre-trained embeddings vs training from scratch?** #flashcard
+Pre-trained (Word2Vec, GloVe, BERT) when labeled data is scarce; train from scratch when you have enough labeled examples and domain-specific semantics that generic embeddings wouldn't capture.
+
+**Why do feature crosses explode combinatorially, and how do you control it?** #flashcard
+Crossing two categoricals multiplies their cardinalities (1000 cities × 100 job types = 100K values), most rare. Hash the cross to a fixed bucket size to bound dimensionality.
+
+**Cascade pattern: what has to be true for the confidence threshold to work?** #flashcard
+Each stage's confidence must be calibrated. An overconfident cheap model never escalates hard cases to the expensive model — they get silently misclassified instead.
+
+**Why can't demographic parity and equal opportunity both hold when base rates differ across groups?** #flashcard
+Chouldechova (2017): equal positive rates, equal FPR, and equal FNR cannot all hold simultaneously when outcome prevalence differs by group — fairness criteria trade off and require an explicit, documented choice.
+
+**Bagging vs boosting: what does each reduce, and why?** #flashcard
+Bagging (e.g., Random Forest) reduces variance by averaging models trained on bootstrap samples. Boosting (e.g., XGBoost) reduces bias by training models sequentially, each correcting the previous ensemble's residuals.
+
+**Why must preprocessing be baked into the model graph (Transform pattern)?** #flashcard
+If training-time and serving-time preprocessing are separate code paths, they drift — different normalization constants or encoding logic silently cause training/serving skew.
+
+**Why is PSI > 0.2 used as a retraining trigger, and what does it miss?** #flashcard
+PSI measures how much a feature's marginal distribution shifted between training and production. It misses concept drift, where marginals stay stable but the feature's relationship to the label changes.
+
+**Why must every ML model beat a non-ML baseline?** #flashcard
+Without a baseline (majority class, rule-based heuristic), an accuracy number is meaningless. Use the strongest practical baseline — the system currently in production — not a weak strawman.

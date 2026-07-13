@@ -40,41 +40,10 @@ Concrete failures first, then derived solutions. Each concept: problem → core 
 
 ## Q2: Explain RLHF, PPO, and DPO — what problem does each solve?
 
-**The problem.** A language model trained purely on next-token prediction will happily continue sentences like "Here's how to build a bomb:" because that's what the training distribution contains. It also gives confidently wrong information when the most statistically likely completion is wrong. Supervised fine-tuning on curated examples helps but doesn't generalize to the full space of possible harmful or unhelpful outputs.
+Full pipeline mechanics (Bradley-Terry reward model loss, 4-model PPO structure, KL penalty, DPO's reparameterization derivation, DPO variants) are covered in depth in [17-advanced-alignment-and-reasoning.md](17-advanced-alignment-and-reasoning.md) Q1-Q2. Summary for this drill:
 
-**The core insight.** The model should be optimized for what humans actually prefer, not for what the training corpus contains. This requires a signal that represents human preferences over outputs — a reward function — and an optimization process that moves the model toward higher-reward outputs while preventing the model from collapsing into reward-hacking degenerate behavior.
-
-**The mechanics.**
-
-RLHF pipeline:
-1. SFT: fine-tune the base model on high-quality demonstrations.
-2. Reward model: train a classifier on pairwise comparisons (y_w preferred over y_l given prompt x). Loss is Bradley-Terry: `L_RM = -E[log σ(r(x, y_w) - r(x, y_l))]`.
-3. PPO: optimize the policy to maximize reward while staying close to the reference policy via KL penalty.
-
-```text
-L_PPO = E[r_φ(x, y) - β · KL[π_θ(y|x) || π_ref(y|x)]]
-
-4 live models during PPO training:
-  - Actor π_θ: current policy being updated
-  - Reference π_ref: frozen SFT model (provides KL baseline)
-  - Reward model r_φ: frozen, provides scalar reward
-  - Critic V_ψ: estimates value for variance reduction
-```
-
-DPO bypasses the explicit reward model entirely. It reparameterizes the optimal policy under the RLHF objective and shows the reward is implicitly represented in the log-ratio of policy to reference:
-
-```text
-L_DPO = -E[log σ(β · log(π_θ(y_w|x)/π_ref(y_w|x)) - β · log(π_θ(y_l|x)/π_ref(y_l|x)))]
-```
-
-This is a classification loss on preference pairs — no RL training loop, no reward model network, no critic.
-
-**What breaks.**
-- RLHF: reward hacking. The policy learns to generate outputs that score high according to the reward model without being genuinely good. The reward model is an imperfect proxy; PPO will find and exploit its weaknesses.
-- RLHF: requires 4 models in GPU memory simultaneously during PPO — expensive and operationally complex.
-- DPO: assumes the reference model is good. If SFT base quality is low, the log-ratio baseline is unreliable.
-- DPO: offline — trained on a fixed preference dataset. Can't adapt to new preferences without retraining.
-- Both: sycophancy. Models learn to give answers that sound good to evaluators, not answers that are correct.
+- **RLHF** = SFT → reward model (Bradley-Terry pairwise loss) → PPO (optimizes policy against reward model, KL-penalized against a frozen reference; needs 4 live models: actor, reference, reward model, critic).
+- **DPO** reparameterizes the same RLHF objective so the reward is implicit in the policy/reference log-ratio, turning it into a classification loss on preference pairs — no RL loop, no reward model, no critic.
 
 **What the interviewer is testing.** That you understand the full 3-stage pipeline, why each stage exists, what KL regularization does, and that DPO is a mathematical equivalence — not a fundamentally different objective, just a different optimization procedure.
 
@@ -467,48 +436,7 @@ What makes a good cache target:
 
 ## Q11: Compare AWQ and GPTQ for LLM weight quantization.
 
-**The problem.** A 70B-parameter model in float16 requires ~140GB GPU memory. Loading it for inference requires 2-4 H100 GPUs at significant cost. You want to compress weights to 4-bit integers, reducing memory to ~35GB and fitting on a single high-end GPU — but naive 4-bit quantization produces quality so degraded it's unusable.
-
-**The core insight.** Uniform quantization treats all weights equally, but they're not equal in importance. Both GPTQ and AWQ identify which weights are most sensitive to quantization error and handle them carefully, while aggressively compressing the less sensitive ones.
-
-**The mechanics.**
-
-GPTQ (Frantar et al., 2022):
-```text
-Process: layer-by-layer, column-by-column greedy quantization
-Key idea: use second-order information (Hessian approximation) to minimize
-          the reconstruction error of each layer's output
-
-For layer weight W and calibration activations X:
-  Quantize W one column at a time
-  After quantizing column j, update remaining unquantized columns to
-  compensate for the introduced error using Hessian inverse
-
-Result: INT4 weights with compensated residual errors
-Runtime: hours on calibration set for a 70B model
-```
-
-AWQ (Lin et al., 2023):
-```text
-Key insight: activation magnitude identifies "salient" weights
-             (weights that, when wrong, create large output errors)
-
-Step 1: Collect activation statistics on calibration data
-        Identify which weight channels have large input activations
-        
-Step 2: Apply per-channel scale: 
-        W_scaled = W * s    (before quantization)
-        X_scaled = X / s    (compensate in activation)
-        
-        Scale amplifies salient weight precision, reducing relative quantization error
-        
-Step 3: Quantize W_scaled normally
-        
-Result: 4-bit weights with protected activation-sensitive channels
-Runtime: faster than GPTQ (~minutes on calibration set)
-```
-
-Key comparison:
+Full mechanics (GPTQ's Hessian-based column-wise error compensation, AWQ's activation-aware channel scaling, code examples, NF4, and the quality/compression tradeoff table) are covered in [16-efficient-llm-deployment.md](16-efficient-llm-deployment.md) Section 2. Summary for this drill:
 
 | Property | GPTQ | AWQ |
 |----------|------|-----|
@@ -517,11 +445,6 @@ Key comparison:
 | Quality | Strong, especially for irregular weight patterns | Strong, especially for activation-sensitive weights |
 | Memory at quant time | Higher (stores Hessian) | Lower |
 | Hardware support | INT4 kernels (ExLlama, triton) | INT4 kernels (GEMM with scale) |
-
-**What breaks.**
-- Quality degrades on quantization-sensitive tasks first: long-context reasoning, code with precise syntax, math.
-- Calibration data mismatch: if the calibration set doesn't represent deployment distribution, saliency/error estimates are off.
-- Both methods quantize weights, not activations. KV cache still in float16 unless you add activation quantization (SmoothQuant, FP8).
 
 **What the interviewer is testing.** That you understand the distinction between the two approaches and know that quality must be measured, not assumed, for any PTQ method.
 

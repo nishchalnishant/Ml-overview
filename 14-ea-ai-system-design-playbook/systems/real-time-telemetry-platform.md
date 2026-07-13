@@ -39,18 +39,6 @@ Treat this as a **shared, multi-title, multi-tenant platform** — the hardest, 
 | Cost ceiling | < $0.08 per million events fully loaded |
 | Backpressure | Absorb 10x burst for 5 min without data loss |
 
-## 4. Clarifying Questions
-
-1. Exactly-once for all events, or only monetization?
-2. How many distinct downstream consumers read the same stream?
-3. Cross-title unified schemas, or per-title autonomy?
-4. Fail open (drop) or fail closed (buffer client-side) during regional outage?
-5. Are clients trusted (dedicated servers) or untrusted (consoles, spoofable)?
-6. GDPR/COPPA constraints on minors' telemetry?
-7. Existing infra (Kafka on-prem, MSK, Kinesis) or greenfield?
-8. Do ML consumers need point-in-time-correct joins, or just aggregates?
-9. Burst shape: sudden (patch drop) vs. gradual (player growth)?
-
 ## 5. Assumptions
 
 1. 70M MAU, 9M CCU peak during a global season launch.

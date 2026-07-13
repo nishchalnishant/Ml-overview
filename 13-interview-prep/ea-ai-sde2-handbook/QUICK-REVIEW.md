@@ -6,7 +6,7 @@ Master index for the 30 condensed cheat sheets in `condensed/`. **Skim this file
 
 - Each cheat sheet takes **~3 minutes** to read (they're 70-110 lines). All 30 = ~90 minutes total, so a full pass is doable even the night before.
 - **Day 1 — Game/EA-specific systems (01-13):** matchmaking, churn, toxicity, NPCs, cheat detection, pricing, crash prediction, LiveOps, recommendations, voice, economy, support RAG, semantic search. These are the scenarios most likely to open the interview, since they're EA's actual domain.
-- **Day 2 — General AI engineering (14-30):** feature stores, RAG pipelines, anomaly/drift detection, recsys at scale, edge serving, A/B testing, VLM agents, RL, GenAI content, knowledge graphs, distributed training, MLOps. These test whether you can generalize ML-system fundamentals beyond games.
+- **Day 2 — General AI engineering (14-30):** feature stores, RAG pipelines, anomaly/drift detection, recsys at scale, edge serving, A/B testing, VLM agents, RL, GenAI content, knowledge graphs, MLOps. These test whether you can generalize ML-system fundamentals beyond games.
 - Before the interview: read the **Cross-Cutting Patterns** section below twice — it's the highest-density signal-to-time ratio in this whole handbook.
 - Under time pressure, read only each file's **"Talking Points"** and **"Biggest Pitfall"** sections — that's ~80% of the interview signal in ~30% of the words.
 
@@ -42,7 +42,6 @@ Master index for the 30 condensed cheat sheets in `condensed/`. **Skim this file
 - [25 — Anti-Cheat](condensed/25-anti-cheat.md) — client-side LightGBM tripwire under <1% CPU budget, physics-based mouse features, ban waves over instant bans
 - [26 — Generative Audio](condensed/26-generative-audio.md) — streaming VITS/XTTS voice cloning for 500 NPCs, sentence-level chunking, cross-lingual cloning
 - [27 — Latency Prediction](condensed/27-latency-prediction.md) — GRU-based client-side position prediction, delta coordinates, server stays authoritative for hits
-- [28 — Distributed Training](condensed/28-distributed-training.md) — FSDP sharding for a 10B-param model, BF16, elastic torchrun fault tolerance
 - [29 — Dynamic Difficulty](condensed/29-dynamic-difficulty.md) — contextual bandit (Thompson Sampling) DDA, boredom vs frustration reward shaping, sandbagging detection
 - [30 — MLOps Pipeline](condensed/30-mlops-pipeline.md) — notebook-to-production pipeline, model registry, shadow→canary→full rollout, drift monitoring
 

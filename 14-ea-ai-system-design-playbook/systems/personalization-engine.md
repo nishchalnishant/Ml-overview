@@ -35,19 +35,6 @@ The interviewer wants to see: how do you turn player telemetry (session length, 
 | Durability | Feature/event logs: 90 days hot, 2 years cold |
 | Freshness | Retrain daily (offer ranker), weekly (content ranker) |
 
-## 4. Clarifying Questions
-
-1. One title or a shared multi-tenant platform across EA's portfolio?
-2. Native client UI (Unreal/Frostbite) or web-based store frontend?
-3. Synchronous (blocking UI render) or can we pre-fetch personalization at session start?
-4. Acceptable staleness for "real-time" context — usable same session, or only next session?
-5. On-device fallback needed for offline/unreachable-backend cases?
-6. Hard latency budget from the game engine's UI loop, or decoupled (loading screen)?
-7. Build-vs-buy experimentation platform — does it support server-side assignment at our QPS?
-8. Which regions require consent-gated personalization (EU/UK, California, loot-box-adjacent regs)?
-9. Do offers have inventory/pricing constraints (no conflicting bundles, daily offer-fatigue budget)?
-10. Is under-13 (COPPA) traffic present, requiring personalization disabled for that cohort?
-
 ## 5. Assumptions
 
 1. Portfolio MAU: 60M; DAU: 12M (20% DAU/MAU).

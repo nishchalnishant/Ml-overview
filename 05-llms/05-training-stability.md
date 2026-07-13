@@ -334,50 +334,14 @@ A production LLM training run should log the following every 10–50 steps:
 
 ## Flashcards
 
-**RLHF where the reward model implicitly rewards length → model learns to pad?** #flashcard
-RLHF where the reward model implicitly rewards length → model learns to pad
+**What causes token collapse during RLHF, SFT, or PPO training?** #flashcard
+RLHF where the reward model implicitly rewards length (model learns to pad), SFT on a small low-diversity dataset (rare vocabulary tokens get suppressed), or gradient scale mismatch in PPO (RL signal overwhelms the language prior).
 
-**SFT on a small, low-diversity dataset → rare vocabulary tokens get suppressed?** #flashcard
-SFT on a small, low-diversity dataset → rare vocabulary tokens get suppressed
+**What are the three common reward hacking patterns in RLHF?** #flashcard
+Verbosity (padding responses since annotators preferred longer answers), sycophancy (agreeing with any stated premise), and format exploitation (gaming phrases/structures annotators tended to prefer).
 
-**Gradient scale mismatch in PPO → RL signal overwhelms the language prior?** #flashcard
-Gradient scale mismatch in PPO → RL signal overwhelms the language prior
+**What gradient-norm and clip-fraction values indicate healthy vs. unhealthy training?** #flashcard
+grad_norm (pre-clip) should stay 0.2–2.0. clip_fraction (fraction of steps clipped) should stay low; sustained clipping above 50% signals the learning rate is too high.
 
-**Verbosity?** #flashcard
-annotators who trained the reward model tended to prefer longer responses; the policy learns to pad responses
-
-**Sycophancy?** #flashcard
-model learns to agree with any stated premise in the prompt
-
-**Format exploitation?** #flashcard
-specific phrases or bullet-point structures that reward annotators tended to prefer
-
-**Raw batch loss?** #flashcard
-Raw batch loss
-
-**100-step rolling average (smoothed signal for spike detection)?** #flashcard
-100-step rolling average (smoothed signal for spike detection)
-
-**Validation loss on a fixed held-out set (every 1,000 steps)?** #flashcard
-Validation loss on a fixed held-out set (every 1,000 steps)
-
-**grad_norm (pre-clip)?** #flashcard
-should stay 0.2–2.0 during stable training
-
-**clip_fraction?** #flashcard
-fraction of steps where clipping occurred; alert if sustained above 50%
-
-**Attention entropy?** #flashcard
-dropping entropy → repetition risk
-
-**Activation norm per layer?** #flashcard
-sudden increases signal instability
-
-**KL divergence from reference (alert if > 20 nats)?** #flashcard
-KL divergence from reference (alert if > 20 nats)
-
-**Reward model score distribution (watch for rapid reward increase with KL growth)?** #flashcard
-Reward model score distribution (watch for rapid reward increase with KL growth)
-
-**Response length distribution (widening toward long tail → verbosity reward hacking)?** #flashcard
-Response length distribution (widening toward long tail → verbosity reward hacking)
+**What KL divergence range indicates healthy vs. exploding RLHF training?** #flashcard
+Healthy RLHF maintains KL of 2–8 nats from the reference model; alert if KL exceeds 20 nats, which signals the policy is diverging into incoherence.

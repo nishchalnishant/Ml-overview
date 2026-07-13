@@ -40,19 +40,6 @@ This is infrastructure, not a single feature — dozens of game studios and cent
 | Storage durability | 99.999999999% (11 nines, S3-class) | Raw exposure/metric events are the source of truth for audits |
 | Cost ceiling | Experimentation infra ≤ 3% of total telemetry spend | Must ride on existing telemetry pipeline, not duplicate it |
 
-## 4. Clarifying Questions an interviewer would expect you to ask
-
-1. Is assignment done client-side (SDK, offline-capable) or server-side only? Consoles can be offline for matches — do we need deterministic hashing that works without a network call?
-2. What's the unit of randomization — player account, device, or match/session? (Matchmaking experiments often randomize at match level, not player level.)
-3. Do we need cross-platform identity resolution (same player on PS5 + PC + mobile) for consistent bucketing?
-4. How many concurrent experiments per title — tens or hundreds? Determines need for layers/namespaces.
-5. Do any experiments affect monetization directly (pricing, loot box odds)? If so, legal/compliance review and audit trail requirements are stricter.
-6. Is sequential testing a hard requirement, or can teams wait for fixed-horizon results?
-7. Do ML teams need shadow mode (model runs but decisions discarded) in addition to holdouts?
-8. What's acceptable staleness for guardrail metrics — is 15 minutes fast enough to prevent a bad monetization experiment from costing real money overnight?
-9. Should assignment be reproducible offline for QA/test environments (deterministic given seed)?
-10. Is there a hard regulatory need (e.g., loot-box/gambling-adjacent regions like Belgium/Netherlands) to exclude certain regions from certain experiment types?
-
 ## 5. Assumptions
 
 1. ~90M MAU across EA's top live-service titles combined (FC, Apex, Sims, Battlefield, Madden).

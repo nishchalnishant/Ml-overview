@@ -41,20 +41,6 @@
 | Cost | ≤ $0.00004 per row scored (tabular, blended spot/on-demand); ≤ $0.0006 per row (GPU DL models) — see Section 6/29 |
 | Data freshness (feature snapshot → job start) | ≤ 4h staleness for daily jobs, ≤ 15 min for "fast lane" LiveOps flash-sale targeting jobs |
 
-## 4. Clarifying Questions an Interviewer Would Expect You to Ask
-
-1. What's the largest single job in scope — full 700M-account population, or per-title (30-45M MAU) subsets?
-2. Is this multi-tenant across teams (anti-cheat, LiveOps, personalization) on shared infra, or a dedicated platform per team?
-3. What model types must be supported — pure tabular (CPU-friendly) or also GPU-bound DL/embedding models?
-4. What's the hard deadline pressure — is there a "campaign must go out by 6am" constraint, or is this pure batch analytics with loose SLAs?
-5. Do we own Spark/Ray infra (self-managed on EKS/EMR) or use a managed service (Databricks, SageMaker Batch Transform, Vertex AI Batch)?
-6. What's the backfill frequency and typical window size — do we need to replay 90 days routinely, or is that a rare emergency operation?
-7. Is incremental/delta scoring required, or is full re-score every run acceptable given cost budget?
-8. What's the downstream consumption pattern — warehouse-only (BI), or does batch output feed a low-latency online store (feature store) for real-time personalization?
-9. What's the cost ceiling / who owns the cloud bill — per-team chargeback or centralized platform budget?
-10. Are there compliance constraints on batch-processing player data (GDPR erasure requests mid-backfill, data residency per region for EU accounts)?
-11. What's acceptable staleness of the model artifact used — must every job pin an exact model version, and how is that governed?
-
 ## 5. Assumptions
 
 1. Total addressable population: 700M registered accounts; active scoring population (played in last 90 days) ≈ 400M accounts across titles.

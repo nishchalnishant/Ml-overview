@@ -427,89 +427,32 @@ A: Static batching: form a batch, wait for all requests to complete, form next b
 
 ## Flashcards
 
-**t_queue?** #flashcard
-waiting for a server to accept the request (batch scheduling delay)
+**Why is prefill compute-bound but decode memory-bandwidth-bound?** #flashcard
+Prefill processes all S input tokens in parallel — arithmetic intensity scales with S, quickly exceeding the GPU's compute/bandwidth threshold. Decode generates one token at a time (batch=1): FLOPs=2N but bytes=N (full weight load per token), giving intensity ~1 op/byte, far below the threshold — bound by how fast weights stream from HBM.
 
-**t_prefill?** #flashcard
-processing the entire input prompt (compute-bound)
+**Why does decode throughput scale near-linearly with batch size, up to a point?** #flashcard
+At batch B, FLOPs scale to 2NB while bytes loaded stay ~N (weights shared across the batch), so arithmetic intensity becomes B ops/byte. Below the compute threshold (~500 on A100), more batching is nearly free throughput; above it, decode becomes compute-bound and stops scaling.
 
-**t_decode_per_token?** #flashcard
-one forward pass of the decoder (memory-bandwidth-bound)
+**What does the KV cache store, and why is it needed?** #flashcard
+It stores the Key and Value projections for every previous token position so autoregressive decoding doesn't recompute them at each step — recomputing from scratch would cost O(t²) total work vs O(t) with caching.
 
-**E2E = 500 + 999 × 50 = 50.45 seconds?** #flashcard
-E2E = 500 + 999 × 50 = 50.45 seconds
+**Why can KV cache memory exceed model weight memory at high batch sizes?** #flashcard
+KV cache scales with layers × KV heads × head_dim × context_length × batch_size × dtype_bytes, so on long-context, large-batch workloads it can dwarf the (fixed) model weight footprint — e.g. 100 concurrent 8K-context requests on an 8B model needs ~54GB of KV cache alone.
 
-**2 = K and V?** #flashcard
-2 = K and V
+**What problem does PagedAttention solve, and how?** #flashcard
+Pre-allocating a contiguous max-context block per request wastes 40-80% of KV memory to fragmentation on variable-length sequences. PagedAttention borrows OS-style virtual memory: fixed-size physical blocks mapped via a per-request logical→physical block table, allocated on demand and freed on completion — eliminating fragmentation and enabling 2-4x more concurrent requests.
 
-**L = num layers?** #flashcard
-L = num layers
+**How does continuous batching differ from static batching, and why does it raise GPU utilization?** #flashcard
+Static batching waits for the whole batch to finish before admitting new requests, so short requests idle waiting on the longest one. Continuous batching re-forms the batch at every decode step, immediately filling a freed slot with a queued request — raising GPU utilization from ~30% to >80%.
 
-**H = num KV heads?** #flashcard
-H = num KV heads
+**Why does chunked prefill reduce TTFT, and what's the cost?** #flashcard
+Splitting a long prompt's prefill into small chunks (e.g. 512 tokens) interleaved with decode steps lets the first output token stream after one chunk instead of the full prompt, cutting TTFT dramatically. Cost: TPOT increases slightly due to interleaving/context-switch overhead.
 
-**d_k = head dimension?** #flashcard
-d_k = head dimension
+**How does speculative decoding speed up generation despite decode being memory-bound?** #flashcard
+A small draft model generates K candidate tokens autoregressively (cheap); the large target model verifies all K in one parallel forward pass (which is compute-bound, so batching K tokens is nearly free) and accepts/rejects each via a probability ratio test — yielding multiple accepted tokens per expensive target-model call instead of one.
 
-**S_context = max context tokens?** #flashcard
-S_context = max context tokens
+**Why route LLM requests to different model sizes rather than always using the largest model?** #flashcard
+Most requests don't need the largest model's capability; routing by input complexity, user tier, or small-model confidence sends easy requests to cheap/fast models and only escalates hard ones — cutting average cost and latency without sacrificing quality on requests that need it.
 
-**L=32, H=8 (GQA), d_k=128, context=8192?** #flashcard
-L=32, H=8 (GQA), d_k=128, context=8192
-
-**KV = 2 × 32 × 8 × 128 × 8192 × 2 = 536 MB per request?** #flashcard
-KV = 2 × 32 × 8 × 128 × 8192 × 2 = 536 MB per request
-
-**KV = 53.6 GB?** #flashcard
-exceeds A100 80GB even before model weights (~16GB)
-
-**L=80, H=8 (GQA), d_k=128, context=4096?** #flashcard
-L=80, H=8 (GQA), d_k=128, context=4096
-
-**KV = 2 × 80 × 8 × 128 × 4096 × 2 = 671 MB per request?** #flashcard
-KV = 2 × 80 × 8 × 128 × 4096 × 2 = 671 MB per request
-
-**Allocate?** #flashcard
-assign physical blocks to new request (on demand, not upfront)
-
-**Free?** #flashcard
-return blocks when request completes
-
-**Copy-on-write?** #flashcard
-for beam search, parent and child share blocks until divergence
-
-**Input length (longer → harder)?** #flashcard
-Input length (longer → harder)
-
-**User tier (premium → larger model)?** #flashcard
-User tier (premium → larger model)
-
-**Task type (code → code-specialized, multimodal → vision model)?** #flashcard
-Task type (code → code-specialized, multimodal → vision model)
-
-**Confidence from small model (if >0.95 confidence, don't escalate)?** #flashcard
-Confidence from small model (if >0.95 confidence, don't escalate)
-
-**Tokens/sec = 10K × (1K + 500) = 15M tokens/sec total throughput?** #flashcard
-Tokens/sec = 10K × (1K + 500) = 15M tokens/sec total throughput
-
-**Effective decode tokens/sec = 10K × 500 = 5M tokens/sec?** #flashcard
-Effective decode tokens/sec = 10K × 500 = 5M tokens/sec
-
-**A100 80GB, Llama-3 70B (4-bit quantized, ~35GB model)?** #flashcard
-A100 80GB, Llama-3 70B (4-bit quantized, ~35GB model)
-
-**At batch_size=32, fp8?** #flashcard
-~3000 decode tokens/sec per GPU (empirical)
-
-**GPUs needed = 5M / 3000 ≈ 1667 GPUs?** #flashcard
-GPUs needed = 5M / 3000 ≈ 1667 GPUs
-
-**With 8× A100 nodes?** #flashcard
-~209 nodes
-
-**Each request holds 1.5K tokens × 671MB/8K × (1.5K/8K) = ~126MB?** #flashcard
-Each request holds 1.5K tokens × 671MB/8K × (1.5K/8K) = ~126MB
-
-**At 10K concurrent requests?** #flashcard
-1.26 TB KV cache → distributed across nodes
+**In LLM capacity planning, why is decode throughput (not total throughput) the binding constraint?** #flashcard
+Prefill is compute-bound and processed once per request, but decode happens once per output token and is memory-bandwidth-bound — so GPU count is sized off `QPS × avg_output_tokens / decode_tokens_per_sec_per_GPU`, not off total (input+output) token volume.

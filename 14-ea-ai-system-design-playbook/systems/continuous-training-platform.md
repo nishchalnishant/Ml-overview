@@ -36,19 +36,6 @@ EA runs live-service titles (FC, Apex, Sims, Battlefield) where ML models decay 
 | Durability | Zero data loss on datasets/artifacts (object storage) |
 | Auditability | Every promotion/rollback traceable to trigger, approver, gate results |
 
-## 4. Clarifying Questions
-
-1. How many model families/titles must this support at once?
-2. Acceptable blast radius of a bad promotion — is canary mandatory?
-3. Human approval on every promotion, or only borderline gate results?
-4. Retrain cadence per model class — hourly (fraud), daily (churn), weekly (recsys)?
-5. Do we own the feature store/labeling infra, or integrate with existing ones?
-6. Rollback SLA — seconds (flag flip) or minutes (redeploy)?
-7. Regulatory constraints (COPPA, GDPR, loot-box rules) on training data or explainability?
-8. In-house GPU clusters or cloud reserved+spot?
-9. Tolerance for false-positive drift (wasted retrain spend) vs. false negatives (stale prod model)?
-10. Does shadow/canary need real traffic replay, or is a held-out offline set enough for some models?
-
 ## 5. Assumptions
 
 1. 6 major titles, ~40 production model endpoints.

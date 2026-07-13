@@ -35,19 +35,6 @@ Design a skill-based matchmaking system for an EA live-service title (e.g., squa
 | Cost | Compute scales sub-linearly with CCU via batched ticks, not per-player threads |
 | Durability | Ticket state survives matchmaker pod restart |
 
-## 4. Clarifying Questions
-
-1. Team size/mode — 1v1, 5v5, battle royale (60-100)? Changes complexity from pairing to bin-packing.
-2. Is cross-region matchmaking acceptable to reduce wait time?
-3. Are mixed-skill parties averaged, capped by highest, or restricted to narrow spread?
-4. Ranked vs unranked with different fairness tolerances?
-5. Elo (simple, pairwise) vs TrueSkill (Bayesian, team-native)?
-6. Role queues / composition constraints needed?
-7. Smurf/new-account detection feeding initial rating?
-8. DGS fleet model — pre-warmed pool or on-demand (affects match-to-play latency)?
-9. Backfill time budget for a mid-match leaver?
-10. Do low-population regions (e.g., SEA at 3am) need special handling?
-
 ## 5. Assumptions
 
 1. 40M MAU, 6M DAU, 2M peak CCU globally, ~35% peak-region skew.

@@ -505,6 +505,40 @@ Not necessarily bad — could reflect shedding low-value demand that was congest
 
 ---
 
+## Flashcards
+
+**Why is asymmetric loss used for ETA prediction instead of standard MSE?** #flashcard
+Underestimating ETA ("3 min" when it's actually 7) causes rider cancellations and poor ratings, while overestimating just makes the rider pleasantly surprised — the cost of the two error directions isn't symmetric, so penalizing under-prediction more heavily (β > α) better matches the real business cost.
+
+**Why does surge pricing need both a supply/demand ratio AND a price elasticity estimate, not just one?** #flashcard
+SDR tells you the current imbalance (too many riders vs. drivers), but elasticity tells you how much price change is needed to close that gap — without elasticity you don't know if a 1.2x or 2.5x multiplier is required to bring supply and demand back into balance.
+
+**Why do production surge systems use H3 hex cells instead of square grids?** #flashcard
+Square grid neighbors are unequally distant (diagonal neighbors are √2× farther than adjacent ones), causing anisotropic smoothing artifacts at cell corners; hexagons are equidistant to all six neighbors, giving isotropic smoothing and clean hierarchical aggregation.
+
+**Why can't surge multipliers be set by pure reactive thresholds on SDR?** #flashcard
+Reactive-only pricing oscillates: surge triggers → drivers rush in → SDR flips to oversupply → surge drops → drivers leave → shortage returns. Fixing this requires temporal hysteresis (sustained imbalance before changing price), capped change per interval, and spatial smoothing across neighboring cells.
+
+**Why does map matching (snapping noisy GPS to road segments) require an HMM/Viterbi approach instead of nearest-edge lookup?** #flashcard
+Raw GPS has enough noise that naive nearest-edge snapping picks the wrong parallel road or jumps illogically between pings; Viterbi finds the most likely sequence of road segments by combining emission probability (GPS distance to a segment) with transition probability (route plausibility — consistent direction, no teleporting).
+
+**Why is a fallback hierarchy (ML model → cache → historical average → free-flow estimate) necessary for ETA serving?** #flashcard
+The ETA response has a hard <500ms budget; if the ML model times out or a city-specific cluster is unavailable, the system must degrade gracefully to cheaper, always-available estimates rather than fail the request outright.
+
+**Why is a two-stage model useful for airport pickup ETAs specifically?** #flashcard
+Airport pickups have a distinct structure — staging-lot wait time depends on flight landing/baggage claim, and curb ETA only starts once a driver is dispatched from the lot — so a single generic ETA model misses the staging-to-curb transition that dominates total wait time.
+
+**Why does a sudden citywide map change (new road, closed road) silently degrade an ETA model instead of causing an obvious error?** #flashcard
+The model keeps producing confident-looking numbers based on stale road-graph assumptions; there's no crash, just a systematic bias in mean residual error per affected segment — requiring active monitoring of residuals (not just uptime) to catch it.
+
+**Why do ride-hailing platforms need a conservative pricing schedule for new cities instead of letting the ML pricing model run immediately?** #flashcard
+A new city has no trip history for ETA and no historical price/demand data for elasticity estimation, so an ML pricing model would be fitting noise; a fixed schedule plus transfer learning from a similar city avoids erratic early pricing until ~10K trips accumulate.
+
+**Why might a 2% drop in completion rate after introducing surge NOT be a signal to roll back the pricing model?** #flashcard
+In a supply-constrained market, some of that "completion rate" was inflated by requests that would never get a driver anyway; surge can shed low-value demand while improving driver utilization and earnings. The real test is a holdout A/B measuring net marketplace value (fulfilled trips × fare), not raw completion rate alone.
+
+---
+
 ## References
 
 - Uber Engineering: [DeepETA: How Uber Predicts Arrival Times Using Deep Learning](https://www.uber.com/blog/deepeta-how-uber-predicts-arrival-times/) (2022)

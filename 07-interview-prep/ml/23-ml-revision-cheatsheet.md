@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Ml Revision
 status: unread
-tags: [interviewprep, ml, llm-ml-revision]
+tags: [interviewprep, ml, ml-ml-revision]
 ---
 # Quick Revision Cheat Sheet
 

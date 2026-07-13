@@ -253,25 +253,32 @@ A: (1) **Retrieval miss** (correct document not retrieved): fix with hybrid retr
 **Q: What is the difference between RAG and fine-tuning for injecting knowledge, and when do you use each?**
 A: **RAG**: retrieves relevant context at inference time. Strengths: knowledge is always up-to-date (add documents to the index); source-attributable (can cite which document); no training cost; can handle large knowledge bases (billions of tokens). Weaknesses: retrieval latency (~100-200ms); retrieval can fail; context window limits how much knowledge fits; requires a vector store in production. **Fine-tuning**: bakes knowledge into weights during training. Strengths: zero retrieval latency; knowledge is always available; can learn domain-specific reasoning patterns (not just facts). Weaknesses: knowledge becomes stale as the world changes; hallucinations increase for tail knowledge (fine-tuning on rare facts causes the model to confabulate similar-sounding facts); expensive to update — must retrain; can't cite sources. **Decision rule**: use RAG when (a) knowledge changes frequently, (b) you need source attribution, (c) the knowledge base is large, or (d) you need to add knowledge post-deployment. Use fine-tuning when (a) you need to change behavior/tone/format, (b) you need to teach reasoning patterns not just facts, (c) latency is critical. In practice: combine both — fine-tune for behavior and domain adaptation, RAG for up-to-date factual grounding.
 
+
 ## Flashcards
 
-**Facts change frequently and the model needs current information?** #flashcard
-Facts change frequently and the model needs current information
+**When should you use RAG vs. fine-tuning to give a model new knowledge?** #flashcard
+Use RAG when facts change frequently, answers must cite sources, the domain is proprietary/narrow, or knowledge must update without retraining. Use fine-tuning instead when the problem is behavioral (tone, format, style) rather than factual, or when the knowledge is static and already well-covered in pretraining. Avoid RAG if the latency budget can't absorb the 50-300ms retrieval overhead.
 
-**Answers must be attributed to specific source documents?** #flashcard
-Answers must be attributed to specific source documents
+**Why does chunk size create a precision/context tradeoff in RAG?** #flashcard
+Smaller chunks retrieve more precisely because nearly all their content is relevant to a matching query, but they provide less surrounding context and answers spanning chunk boundaries get missed. Larger chunks preserve more context but score lower on retrieval since most of the chunk is off-topic for any given query. General default is 512-1024 tokens with 50-100 token overlap to avoid losing answers at the boundary.
 
-**The domain is proprietary or too narrow to justify retraining?** #flashcard
-The domain is proprietary or too narrow to justify retraining
+**Why combine dense and sparse (BM25) retrieval instead of using embeddings alone?** #flashcard
+Dense retrieval captures semantic similarity/paraphrase but can miss exact-match terms like proper nouns, part numbers, or technical identifiers. BM25 handles exact matches well but misses paraphrase. Reciprocal Rank Fusion combines both rank lists (RRF(d) = Σ 1/(k + rank)) without needing calibrated scores from either ranker.
 
-**Knowledge needs to be updatable without GPU budget?** #flashcard
-Knowledge needs to be updatable without GPU budget
+**Why use ANN (approximate nearest neighbor) search instead of exact nearest neighbor for retrieval?** #flashcard
+Exact nearest neighbor requires computing similarity against every vector — O(n) per query, too slow at millions of documents. ANN algorithms like HNSW (multi-layer navigable graph, O(log n) query time) or IVF (cluster into Voronoi cells, search only nearest clusters) trade a small amount of recall for large speed gains.
 
-**The problem is behavioral (tone, format, style)?** #flashcard
-fine-tune instead
+**What is HyDE and when does it help retrieval?** #flashcard
+HyDE (Hypothetical Document Embeddings) generates a plausible LLM answer to the query first, then embeds and retrieves using that hypothetical answer instead of the raw query — because a full answer's embedding is closer in vector space to real answer-containing documents than a short vague query's embedding is. Risk: if the LLM hallucinates a wrong hypothetical answer, it retrieves the wrong documents, injecting the hallucination problem into retrieval itself.
 
-**The latency budget cannot absorb retrieval overhead (50–300ms)?** #flashcard
-The latency budget cannot absorb retrieval overhead (50–300ms)
+**Why is reranking a separate stage from initial retrieval, rather than just using better embeddings?** #flashcard
+Bi-encoders (used for ANN retrieval) embed query and document independently for speed, but can't model query-document interaction, so they optimize for speed over precision. Cross-encoders process query and document together and score relevance much more accurately, but are too slow to run against the full corpus. So the pattern is: ANN retrieves top-N candidates fast, cross-encoder reranks those N down to a precise top-k.
 
-**The knowledge is static and already well-covered in pretraining data?** #flashcard
-The knowledge is static and already well-covered in pretraining data
+**What is "lost-in-the-middle" and how does it affect RAG prompt construction?** #flashcard
+LLMs recall information at the start and end of a long context better than in the middle (U-shaped recall). This means the most relevant retrieved chunk should be placed first (or last) in the assembled context, not buried among lower-relevance chunks, or the model may effectively ignore it.
+
+**What do the four RAGAS metrics each isolate, and why can't one end-to-end score do this?** #flashcard
+RAG can fail at multiple independent stages, so a single score can't localize the failure: faithfulness (is the answer grounded in retrieved context, checked by decomposing into atomic claims), answer relevancy (does the answer address the question), context precision (are retrieved chunks actually relevant), and context recall (did retrieval surface everything needed). Each requires different ground truth and points to a different fix.
+
+**When debugging a RAG system that gives wrong answers, what's the correct order to check causes?** #flashcard
+Check in this order before touching the generation model: (1) stale/missing documents — answer isn't in the index at all, (2) poor chunking — answer spans a boundary and no single chunk scores highly, (3) irrelevant retrieval — embedding model mismatched to domain vocabulary, (4) prompt not enforcing groundedness — model ignores context in favor of parametric memory. Most RAG failures are retrieval/chunking problems, not generation problems.

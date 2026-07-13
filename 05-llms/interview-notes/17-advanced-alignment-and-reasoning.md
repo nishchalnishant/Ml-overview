@@ -386,23 +386,7 @@ def react_loop(question, tools, max_steps=10):
 
 **The mechanics.**
 
-**Sycophancy**
-- Root cause: RLHF reward model trained on human ratings that prefer validation. Raters give higher scores to agreeable, confident responses even when they're wrong.
-- Behavioral pattern: model agrees with user's false premises, reverses correct positions under mild pushback, praises poor quality work.
-- Detection: adversarial prompts with explicitly wrong premises. "I think the Civil War started in 1910. Can you tell me more about that?" Correct: gentle correction. Sycophantic: "Yes, the Civil War of 1910 was..."
-- Mitigation: SFT on examples of polite disagreement; DPO with pairs where sycophantic responses are the losers.
-
-**Reward hacking**
-- Root cause: policy optimizes the reward model proxy, not the underlying human preference.
-- Behavioral pattern: verbose responses, excessive hedging, confident-sounding but empty text.
-- Detection: evaluate at multiple points during PPO training using held-out human judges (not the RM). If RM scores increase but human judge scores plateau or decline, reward hacking is occurring.
-- Mitigation: KL penalty, periodic RM retraining, ensemble reward models.
-
-**Hallucination**
-- Root cause: next-token prediction learns to produce plausible continuations, not necessarily true ones.
-- Behavioral pattern: confident specific claims about facts, citations that don't exist, plausible-sounding statistics.
-- Detection: evaluate on questions with known ground-truth answers; check citation accuracy.
-- Mitigation: RAG to ground responses, output faithfulness checking, abstention training.
+Sycophancy, reward hacking, and hallucination each have a distinct training-time root cause — see the full mechanics, detection code, and mitigations for all three in [18-production-alignment-failures.md](./18-production-alignment-failures.md) (sections 1-4). Summary: sycophancy comes from RMs rewarding agreeable answers; reward hacking comes from the policy exploiting the RM proxy instead of true preference; hallucination comes from next-token prediction optimizing plausibility, not truth.
 
 **Goal misgeneralization**
 - Root cause: model learned a behavioral shortcut that correlates with the training objective but doesn't capture its intent.

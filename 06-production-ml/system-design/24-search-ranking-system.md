@@ -261,32 +261,32 @@ A: Clicks are noisy relevance signals due to position/selection bias. Pipeline: 
 
 ## Flashcards
 
-**$\text{IDF}(t) = \log\frac{N - df(t) + 0.5}{df(t) + 0.5}$?** #flashcard
-inverse document frequency
+**Why does BM25's term-frequency component saturate ($k_1$) instead of scaling linearly with term count?** #flashcard
+Without saturation, a document that repeats a query term 50 times (keyword stuffing) would dominate one with 5 natural occurrences by 10x, even though relevance doesn't scale that way; the $k_1$ term caps the marginal value of each additional occurrence, matching diminishing returns in perceived relevance.
 
-**$k_1 \in [1.2, 2.0]$?** #flashcard
-term frequency saturation (prevents very frequent terms from dominating)
+**Why does BM25 need a document-length normalization term ($b$), and why not just divide by raw length?** #flashcard
+Long documents naturally contain more term occurrences by chance, not because they're more relevant, so raw scores would systematically favor long documents; normalizing term frequency against document length relative to the average length ($avgdl$) removes this length bias while still letting genuinely long, relevant documents rank well via IDF and match strength.
 
-**$b = 0.75$?** #flashcard
-length normalization factor
+**Why does two-tower dense retrieval train with in-batch negatives instead of explicitly mined hard negatives?** #flashcard
+In-batch negatives are essentially free — every other (query, doc) pair already loaded in the batch becomes a negative for the current query with no extra data engineering — making training efficient at scale; the tradeoff is that random in-batch negatives are usually "easy" negatives, so production systems often add explicitly mined hard negatives (near-misses) later in training to sharpen the decision boundary.
 
-**$avgdl$?** #flashcard
-average document length
+**Why is hybrid BM25 + dense retrieval combined via Reciprocal Rank Fusion instead of a weighted score average?** #flashcard
+BM25 scores and cosine similarity scores live on different, incomparable scales that shift with query and corpus statistics, so a fixed weighted average is unstable; RRF only uses each result's rank position (not its raw score), making the fusion scale-invariant and robust across queries with very different score distributions.
 
-**Vocabulary mismatch?** #flashcard
-query "cardiovascular disease" doesn't match document "heart attack"
+**Why is nDCG preferred over precision@k for evaluating search ranking?** #flashcard
+Precision@k treats a hit at position 1 the same as a hit at position 10, but real users almost never scroll that far; nDCG's logarithmic position discount (and graded, not binary, relevance) makes it far more sensitive to the top-3 ranking quality that actually drives click behavior.
 
-**Paraphrase?** #flashcard
-"cheap flights" vs "affordable airfare"
+**Why does LambdaMART optimize "lambda" gradients instead of directly backpropagating through nDCG?** #flashcard
+nDCG is non-differentiable — it depends on the discrete sort order of documents, not a smooth function of scores — so LambdaMART instead computes a virtual gradient per document pair representing how much swapping two documents' ranks would change nDCG, which is well-defined even though nDCG itself has no analytic gradient.
 
-**Semantic?** #flashcard
-"Apple earnings" might prefer tech documents over orchard documents depending on context
+**Why does training an LTR model directly on raw click data bias it toward already-highly-ranked documents?** #flashcard
+Users click position 1 far more often regardless of true relevance (position bias), so raw clicks conflate "this document is relevant" with "this document happened to be shown first" — training naively on this reinforces whatever the current ranker already does rather than improving it.
 
-**Position 1 weight?** #flashcard
-$1/\log_2(2) = 1.0$
+**How does inverse propensity scoring correct for position bias in click training data?** #flashcard
+Each click is reweighted by 1/P(click | position) — the estimated probability a user would click at that position regardless of relevance — so clicks earned at low-visibility positions (rare, thus more informative) count more, and clicks at position 1 (common, less informative) count less, unbiasing the training signal.
 
-**Position 2 weight?** #flashcard
-$1/\log_2(3) = 0.63$
+**Why do production LTR pipelines build pairwise training examples specifically from (clicked doc, skipped doc that ranked above it) rather than all click/no-click pairs?** #flashcard
+A skip that occurred above a click is a much stronger negative signal — the user saw that document first and chose not to click it in favor of one ranked lower — than an arbitrary unclicked document elsewhere in the results, giving cleaner pairwise preference labels from noisy click logs.
 
-**Position 10 weight?** #flashcard
-$1/\log_2(11) = 0.29$
+**Why can't BM25 alone handle a query like "cheap flights" against a document about "affordable airfare"?** #flashcard
+BM25 is a purely lexical/term-overlap method — it has no representation of meaning, so synonymous phrases with zero shared vocabulary score as irrelevant regardless of true semantic match; this is exactly the gap dense embedding retrieval is designed to close, which is why hybrid retrieval outperforms BM25 alone.

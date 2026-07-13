@@ -2,13 +2,6 @@
 
 Design a real-time system that listens to VoIP voice chat (e.g. Apex Legends), detects hate speech/harassment, and mutes the offending player within seconds — building on an existing text-moderation system.
 
-## Clarifying Questions to Ask
-- Process 100% of voice traffic? → No — only reported players or low Trust Score players (cost prohibitive otherwise).
-- Latency SLA? → Mute within 3–5 seconds of the utterance.
-- STT-then-text, or audio-native model? → STT (Whisper/Vosk) → existing text toxicity model for v1.
-- Can we store raw audio? → No persistent storage unless reported (GDPR/CCPA); in-memory only otherwise.
-- Overlapping voices / diarization needed? → No — client sends per-player separate audio streams.
-
 ## Core Architecture
 ```
 Game Client (opus, 200ms chunks) → Voice Gateway (gRPC/WebSocket, sticky sessions)
@@ -35,16 +28,6 @@ Game Client (opus, 200ms chunks) → Voice Gateway (gRPC/WebSocket, sticky sessi
 - STT+text pipeline vs audio-native classifier: text loses tone/sarcasm signal but reuses existing model; audio-native captures tone but needs scarce labeled hate-speech audio.
 - Partial-result evaluation vs waiting for full sentence: partials hit the SLA but multiply API calls; full-sentence waits reduce load but miss the SLA for continuous talkers.
 - Client-side (edge) STT vs cloud STT: edge is cheap and private but trivially bypassed by a hacked client; cloud is tamper-resistant but expensive at scale.
-
-## Toughest Follow-ups
-**Q: Partial transcripts ("You"→"You are"→"You are a"...) generate 4x API calls per sentence — this crashes the text API at scale. Fix it?**
-A: Throttle by delta, not by every partial — only re-score when the transcript grows by ~3+ words or 2 seconds have elapsed. Cache the previously-scored prefix and only evaluate the new suffix/delta, avoiding full re-scoring of unchanged text.
-
-**Q: GDPR requires immediate audio deletion, but muted players will appeal and CS needs to hear the clip. How do you reconcile?**
-A: Keep only a rolling ephemeral in-memory/Redis ring buffer (e.g., last 60s). On a mute trigger, dump just that window to a secure S3 bucket with a 30-day lifecycle for CS review; if no violation occurs, audio never touches disk — compliance by construction, not policy.
-
-**Q: A player speaks very slowly, breaking the STT's chunking so it emits meaningless fragments that dodge the toxicity filter. Fix?**
-A: The VAD's silence/hangover threshold is too aggressive, cutting the utterance mid-sentence. Increase the "end-of-utterance" silence padding (e.g., 1.5s of pure silence) so slow cadences stitch back into one string before scoring.
 
 ## Biggest Pitfall
 Proposing to send an LLM (or any heavyweight audio-in model) over raw audio for every player's full voice stream, ignoring cost/bandwidth/SLA reality — this alone tanks the interview to No Hire regardless of other strengths.

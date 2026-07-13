@@ -669,6 +669,40 @@ RTB has severe skew: only ~5% of eligible requests reach the model after filteri
 
 ---
 
+## Flashcards
+
+**Why is calibration a harder requirement than AUC for a bidding model?** #flashcard
+Bid price is computed as `pCTR × pCVR × CPA_target` — an absolute value, not a rank. A 3x-overestimated pCTR makes the DSP bid 3x too much regardless of how well the model ranks impressions relative to each other, directly destroying ROI.
+
+**Why does FTRL-Proximal (not a neural net) remain the production workhorse for pCTR in the 10ms bidding path?** #flashcard
+Inference is a single sparse dot product over microseconds with no GPU/network dependency, L1 regularization keeps the model sparse enough to fit in local memory, and per-feature online updates can be pushed to serving every few minutes without a full redeploy — all critical under a hard 10ms budget.
+
+**Why does delayed feedback (Chapelle 2014) break naive pCVR training on recent data?** #flashcard
+A click today may convert 7-30 days later, so recent impressions look artificially non-converting purely because their conversion window hasn't closed yet — training on them as negatives biases the model low. The fix upweights recent clicks by the inverse probability that a conversion "hasn't happened yet."
+
+**Why is bid shading necessary in first-price auctions but not second-price?** #flashcard
+In second-price (Vickrey) auctions you pay the second-highest bid, so bidding your true value is the dominant strategy. In first-price auctions you pay exactly what you bid, so bidding true value gives zero surplus — optimal bidding shades below true value toward the expected clearing price.
+
+**Why do budget pacing systems use a PID controller instead of a fixed hourly spend target?** #flashcard
+Traffic volume and clearing prices vary throughout the day; a fixed schedule either overspends early (missing high-value evening traffic) or underspends late. A PID controller continuously adjusts a bid dampener (lambda) based on the error between actual and target spend rate, correcting in real time.
+
+**Why can PID-based pacing oscillate between zero spend and spend bursts?** #flashcard
+Integral windup: when budget is exhausted, the integral error term keeps accumulating, then massively overcorrects once budget resets — causing wide spend swings. Fixed with an anti-windup clamp on the integral term when lambda is saturated.
+
+**Why does a Redis latency spike cause win rate to collapse to near zero rather than just slowing responses?** #flashcard
+The bid path has a hard ~10ms deadline enforced by exchanges; if feature lookup latency pushes total request time past that wall, the exchange treats the DSP as a no-bid rather than waiting — a small latency spike converts into a complete loss of bidding volume until a fallback to default features kicks in.
+
+**Why does the shift to first-price auctions and cookie deprecation both push toward the same architectural change?** #flashcard
+Both remove a source of certainty the DSP used to rely on (guaranteed pay-second-price, guaranteed persistent user ID) and require estimating a distribution instead of a known value — clearing-price distributions for bid shading, and contextual/aggregate signals (Topics API, FLEDGE) replacing deterministic user IDs.
+
+**Why is inverse propensity weighting needed when training pCTR/pCVR on logged bidding data?** #flashcard
+Only ~5% of bid requests survive filtering to reach the model, and only won impressions produce labels — training naively on this subset reproduces the selection bias of whatever policy logged the data. Weighting by 1/P(selected) corrects the exposure bias so the model reflects the true population, not just what was previously bid on and won.
+
+**Why is a two-level (local + global) budget guard needed instead of one atomic Redis counter?** #flashcard
+Checking a single global counter on every bid adds network latency that competes with the 10ms budget; a local token bucket handles most checks approximately and fast, batching updates to the authoritative global Redis counter periodically — trading small over-delivery risk (bounded by batch size) for latency headroom.
+
+---
+
 ## 13. References & Further Reading
 
 - **OpenRTB 2.6 Spec** — IAB Tech Lab

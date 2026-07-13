@@ -46,7 +46,6 @@ Structured prompts and full-system walkthroughs. Start with [ML Engineering & Pr
 | Data engineering for ML | [data-engineering-for-ml.md](07-data-engineering-for-ml.md) |
 | Streaming ML pipeline | [streaming-ml-pipeline.md](06-streaming-ml-pipeline.md) |
 | Real-time ML systems | [real-time-ml-systems.md](05-real-time-ml-systems.md) |
-| Distributed training | [distributed-training.md](11-distributed-training.md) |
 | Cost optimization | [cost-optimization.md](13-cost-optimization.md) |
 | A/B testing & experimentation | [ab-testing-experimentation.md](14-ab-testing-experimentation.md) |
 | LLM inference ops | [llm-inference-ops.md](12-llm-inference-ops.md) |

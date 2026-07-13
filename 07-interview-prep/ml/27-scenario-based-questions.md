@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Scenario Based Questions
 status: unread
-tags: [interviewprep, ml, llm-scenario-based-questions]
+tags: [interviewprep, ml, ml-scenario-based-questions]
 ---
 # Scenario-Based Questions — First-Principles Interview Guide
 

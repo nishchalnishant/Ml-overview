@@ -34,19 +34,6 @@ Design a recommendation engine for EA's game store / in-game content surfaces (E
 | Freshness | New catalog items rankable within 15 min of publish |
 | Data durability | Feature store & training data: 11 nines (object storage) |
 
-## 4. Clarifying Questions
-
-1. Which surfaces are in scope — store front page only, or also in-game overlays and push/email?
-2. Catalog size — thousands (full games) or millions (cosmetics, bundles, UGC)?
-3. Single-title or cross-title (recommend across EA's whole portfolio)?
-4. Business objective — conversion, revenue, engagement/retention, or blended?
-5. Real-time in-session adaptation required, or is daily-batch sufficient?
-6. Compliance constraints — loot box regulations, age filtering, regional restrictions?
-7. Existing feature store/data platform to integrate with, or greenfield?
-8. Acceptable staleness for "already purchased" exclusion?
-9. Cold-start support needed for brand-new game launches with zero history?
-10. Known traffic peaks (launch day, holiday sale) to provision for?
-
 ## 5. Assumptions
 
 1. 40M MAU across EA App + top 5 live-service titles' in-game shops.

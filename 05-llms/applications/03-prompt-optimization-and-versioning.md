@@ -380,50 +380,23 @@ A: Same principles as ML model evaluation: (1) strict train/test split — itera
 
 ## Flashcards
 
-**"Improved" prompts aren't validated on held-out data?** #flashcard
-"Improved" prompts aren't validated on held-out data
+**Why is systematic prompt engineering needed instead of ad-hoc tuning?** #flashcard
+Ad-hoc "improvements" aren't validated on held-out data, aren't version-controlled (no rollback when a change breaks downstream tasks), aren't measured consistently, and lead to duplicated effort across teams. Systematic engineering treats prompts like code: define task → build eval set → baseline → optimize (DSPy/APE) → human review → A/B test → version in a registry.
 
-**No version control?** #flashcard
-can't roll back when a prompt update breaks downstream tasks
+**What are the main pitfalls of using an LLM as a judge, and how do you mitigate them?** #flashcard
+Position bias (judges favor the first response in pairwise comparisons — fix by randomizing/averaging both orderings), verbosity bias (favors longer outputs regardless of quality), self-preference (a model rates its own outputs higher), and calibration drift (judge scores must be validated against a held-out set of human labels).
 
-**No measurement?** #flashcard
-model performance measured informally or not at all
+**When does chain-of-thought prompting help vs. hurt?** #flashcard
+For simple/single-step tasks, CoT just adds latency with no accuracy benefit — direct answering is sufficient. For multi-step reasoning it improves accuracy by 10–40%. Rule of thumb: use CoT only when the task requires more than ~2 reasoning steps; for classification, adding "verify your answer" catches errors cheaply.
 
-**Duplicated effort?** #flashcard
-multiple teams write variations of the same prompts
+**What triggers a prompt rollback in production?** #flashcard
+LLM-judge score drops more than 5%, user negative-feedback rate rises, latency P99 exceeds SLA (a new prompt changes output length and therefore TPOT), or error rate spikes (JSON parse failures, refused completions).
 
-**Position bias?** #flashcard
-judges favor the first response in pairwise comparisons (randomize order and average)
+**What is APE (Automatic Prompt Engineer) and how does it work?** #flashcard
+Generate N candidate prompts with an LLM from a task description, evaluate each on a held-out example set with an eval function, and keep the best-scoring candidate. Simple, fast, but only as good as the eval function and candidate diversity.
 
-**Verbosity bias?** #flashcard
-judges favor longer outputs even when they add no value
+**What does DSPy optimize that manual prompt engineering can't?** #flashcard
+DSPy separates program logic from prompt text and treats prompts/few-shot examples as learnable parameters optimized end-to-end across chained modules, rather than hand-tuned in isolation per prompt. This lets multi-hop pipelines improve jointly, at the cost of needing labeled training data and more setup time.
 
-**Self-preference?** #flashcard
-a model judges its own outputs more favorably
-
-**Calibration?** #flashcard
-map judge scores to human labels using a held-out correlation set
-
-**Simple tasks?** #flashcard
-direct answer prompting is sufficient (CoT adds latency, no benefit)
-
-**Multi-step reasoning?** #flashcard
-CoT improves accuracy by 10–40% on benchmarks
-
-**Classification?** #flashcard
-CoT + "Verify your answer" reduces errors significantly
-
-**Rule?** #flashcard
-if the task requires >2 reasoning steps, try CoT
-
-**LLM-judge score drops > 5%?** #flashcard
-LLM-judge score drops > 5%
-
-**User negative feedback rate increases?** #flashcard
-User negative feedback rate increases
-
-**Latency P99 exceeds SLA (different prompt → different output length → different TPOT)?** #flashcard
-Latency P99 exceeds SLA (different prompt → different output length → different TPOT)
-
-**Error rate (JSON parse failures, refused completions) spikes?** #flashcard
-Error rate (JSON parse failures, refused completions) spikes
+**How do you avoid over-fitting a prompt to its eval set?** #flashcard
+Use a strict dev/test split (iterate only on dev, evaluate final choice once on held-out test), require statistical significance (Wilcoxon signed-rank, p < 0.05, n ≥ 200) before promoting a change, stratify by difficulty/category, and keep a never-touched "hard examples" set for periodic blind checks.

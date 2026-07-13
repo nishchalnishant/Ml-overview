@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Ml Coding Patterns
 status: unread
-tags: [interviewprep, ml, llm-ml-coding-patterns]
+tags: [interviewprep, ml, ml-ml-coding-patterns]
 ---
 # ML Coding Patterns — First-Principles Interview Reference
 

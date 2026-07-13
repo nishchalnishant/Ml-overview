@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Ml
+topic: Llm
 subtopic: Large Language Model
 status: unread
-tags: [interviewprep, ml, ml-large-language-model]
+tags: [interviewprep, llm, llm-large-language-model]
 ---
 # Large Language Models
 

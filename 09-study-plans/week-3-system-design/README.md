@@ -45,7 +45,7 @@ tags: [studyplans, ml, week-3-days-22-25-system-design]
 - [Production ML Overview](../../06-production-ml/README.md)
 - [ML System Design Interview Guide](../../06-production-ml/system-design/03-machine-learning-design-interview.md)
 - [System Design & MLOps (interview notes)](../../07-interview-prep/ml/06-system-design-and-mlops.md)
-- [Scenario-Based LLM Questions](../../07-interview-prep/llm/06-scenario-based-questions.md)
+- [Scenario-Based LLM Questions](../../07-interview-prep/ml/27-scenario-based-questions.md)
 - Day files in this folder: 01-day-22, 02-day-23, 03-day-24-25
 
 ---

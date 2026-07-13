@@ -84,19 +84,7 @@ For multi-GPU inference: NVLink (~600 GB/s) vs PCIe (~64 GB/s) determines whethe
 
 **The core insight:** Autoregressive generation is iteration-level, not request-level. Each "step" is a full forward pass over the current batch. There's nothing stopping you from swapping a finished sequence out and a new one in at any step boundary.
 
-**The mechanics — iteration-level scheduling:**
-
-```
-Step  1: [A: tok1] [B: tok1] [C: tok1] [D: tok1]
-Step  2: [A: tok2] [B: tok2] [C: tok2] [D: tok2]
-Step 10: [A: DONE] [B:tok10] [C: tok10] [D: tok10]
-          └→ admit E immediately
-Step 11: [E: tok1] [B: tok11] [C: tok11] [D: tok11]
-```
-
-Each step: check if any sequences finished; free their KV blocks; admit waiting requests up to memory capacity; run one forward pass over all active sequences.
-
-Throughput improvement over static batching: 5–10× for typical chat workloads with mixed-length responses.
+**The mechanics — iteration-level scheduling:** at every step boundary, check which sequences finished, free their KV blocks, and admit waiting requests up to memory capacity — rather than waiting for the whole batch to drain. Throughput improvement over static batching: 5–10× for typical chat workloads with mixed-length responses. For the step-by-step scheduling diagram, see [Continuous Batching](16-efficient-llm-deployment.md#5-continuous-batching-never-let-the-gpu-wait).
 
 **What breaks:**
 - Without PagedAttention: admitting new requests requires contiguous KV memory that may not be available even if total free memory is sufficient (fragmentation)
@@ -118,17 +106,7 @@ Throughput improvement over static batching: 5–10× for typical chat workloads
 
 **The core insight:** You can guess the next several tokens cheaply with a small model, then verify all guesses simultaneously with one forward pass of the large model. Verification is parallelizable because the large model can evaluate all positions at once given the draft tokens.
 
-**The mechanics:**
-
-1. Draft model (e.g., 7B) generates γ candidate tokens autoregressively: t₁, t₂, ..., tᵧ
-2. Target model (70B) evaluates all γ positions in one parallel forward pass
-3. Accept token tᵢ with probability min(1, p_target(tᵢ) / p_draft(tᵢ))
-4. At the first rejection, resample from p_target(t) - p_draft(t) (normalized)
-5. Repeat
-
-Key property: the output distribution is **identical to sampling from the target model alone**. No quality loss.
-
-Speedup depends on acceptance rate α. With α ≈ 0.8 and γ = 4, expected accepted tokens per large-model forward pass ≈ 1/(1-α) ≈ 3.2. Throughput gain: 2–3×.
+**The mechanics:** a small draft model generates γ candidate tokens autoregressively, then the large target model verifies all γ positions in one parallel forward pass, accepting each token with probability min(1, p_target/p_draft) and resampling from the residual at the first rejection. The output distribution is identical to sampling from the target model alone — no quality loss. Speedup depends on acceptance rate α (with α≈0.8, γ=4, throughput gain is 2–3×). For the full accept/reject derivation, see [Speculative Decoding](16-efficient-llm-deployment.md#4-speculative-decoding-parallelizing-what-was-sequential).
 
 **What breaks:**
 - Low acceptance rate: if draft and target disagree often, you run the large model more than unspeculative decoding
@@ -151,26 +129,7 @@ Speedup depends on acceptance rate α. With α ≈ 0.8 and γ = 4, expected acce
 
 **The core insight:** K and V for past tokens never change after they're computed. Cache them. Each new token only needs to compute its own Q, K, V, then attend to the cached K and V from all prior tokens.
 
-**The mechanics:**
-
-Memory cost per sequence:
-```
-KV_bytes = 2 × L × H_kv × d_h × T × bytes_per_element
-```
-For LLaMA 3 70B (80 layers, 8 KV heads via GQA, 128 head dim), BF16, 4096 tokens:
-```
-= 2 × 80 × 8 × 128 × 4096 × 2 = 1.34 GB per sequence
-```
-
-At batch=16: 21.4 GB. At batch=32: 42.8 GB. KV cache dominates VRAM at scale.
-
-GQA (Grouped Query Attention): LLaMA 3 uses 8 KV heads vs 64 query heads. KV cache is 8× smaller than if using full multi-head attention.
-
-Management strategies:
-- **Limit max_seq_len and batch_size:** hard cap on KV memory
-- **PagedAttention:** don't pre-allocate for max length; allocate blocks on demand
-- **KV quantization (INT8/FP8):** halve or quarter KV memory at some quality cost
-- **Prefix caching:** if many requests share a system prompt, compute its KV once and reuse
+**The mechanics:** KV memory scales as `2 × L × H_kv × d_h × T × bytes_per_element` — for LLaMA 3 70B (GQA, 8 KV heads) at 4096 tokens that's 1.34 GB per sequence, so KV cache dominates VRAM at any real batch size (42.8 GB at batch=32). GQA reduces this 8× versus full multi-head attention. Mitigation hierarchy: cap max_seq_len/batch_size, PagedAttention (allocate on demand), KV quantization, prefix caching. Full derivation and code in [KV Cache Mechanics](16-efficient-llm-deployment.md#3-kv-cache-mechanics-the-state-you-must-keep).
 
 **What breaks:**
 - Forgetting KV cache in capacity planning: you can fit the model but not serve any requests
@@ -192,23 +151,7 @@ Management strategies:
 
 **The core insight:** OS virtual memory solved this exact problem for RAM decades ago. Pages. Allocate fixed-size blocks (pages) only when needed. Maintain a page table mapping logical KV positions to physical memory blocks. Requests that finish release their pages immediately for reuse.
 
-**The mechanics:**
-
-PagedAttention (vLLM):
-- Divide KV cache into fixed-size blocks, e.g., 16 tokens per block
-- Each sequence has a page table: logical token position → physical block index
-- Allocate one block at a time as generation proceeds
-- On request completion, mark blocks as free for reuse
-- Sequences sharing a prefix (same system prompt) can share physical blocks (copy-on-write)
-
-```
-Sequence A: [block_42][block_7][block_31]    (tokens 0–15, 16–31, 32–47)
-Sequence B: [block_42][block_19][block_8]    (shared prefix in block_42)
-```
-
-Result: 3–4× higher batch capacity vs naive contiguous allocation, 24× higher throughput vs HuggingFace Transformers naive batching on equivalent hardware.
-
-vLLM combines PagedAttention + continuous batching + an OpenAI-compatible API server. It's a serving runtime, not a model.
+**The mechanics:** PagedAttention divides KV cache into fixed-size blocks (e.g. 16 tokens) with a page table mapping logical position → physical block, allocating on demand and letting sequences sharing a prefix share physical blocks (copy-on-write). Result: 3–4× higher batch capacity than naive contiguous allocation, 24× higher throughput than naive HF Transformers batching. vLLM combines PagedAttention + continuous batching + an OpenAI-compatible API server — a serving runtime, not a model. Full block-table diagram in [PagedAttention (vLLM)](16-efficient-llm-deployment.md#3-kv-cache-mechanics-the-state-you-must-keep).
 
 **What breaks:**
 - Very small block sizes (e.g., 4 tokens): too many page table lookups, kernel overhead
@@ -260,25 +203,7 @@ Privacy benefit: on-device inference means user data never leaves the device. Fo
 
 **The core insight:** Most of a model's weights lie in a smooth distribution — they're "close" to their quantized values. The exceptions are outlier weights with large magnitudes. The entire game of good quantization is: protect the important weights (large activations, sensitive layers) from precision loss.
 
-**The mechanics:**
-
-PTQ (Post-Training Quantization) — no retraining:
-
-Symmetric INT8: q = round(w / s), s = max(|w|) / 127. Dequantize: ŵ = q × s
-
-GPTQ: quantize layer by layer using second-order curvature (inverse Hessian) to propagate and minimize quantization error. Works well at 4-bit for most transformer weights.
-
-AWQ (Activation-Aware Weight Quantization): observe which weights correspond to high-magnitude activations (important for output), scale those weights before quantizing to protect them. Better quality than GPTQ on average.
-
-NF4 (bitsandbytes): uses a normal float 4-bit format that better matches the bell-curve distribution of transformer weights. Best for 4-bit with QLoRA/fine-tuning scenarios.
-
-Quality vs memory trade-off:
-| Format | VRAM (70B) | Quality cost |
-|---|---|---|
-| FP16 | 140 GB | Reference |
-| INT8 | 70 GB | ~0.2 perplexity increase |
-| AWQ 4-bit | 35 GB | ~0.4 perplexity increase |
-| INT4 naive | 35 GB | 1–2+ perplexity increase |
+**The mechanics:** PTQ symmetric INT8 needs no retraining (`q = round(w/s), s = max(|w|)/127`). GPTQ quantizes layer-by-layer using inverse-Hessian curvature to propagate quantization error into later columns. AWQ scales high-activation-magnitude weight channels before quantizing to protect them, and generally beats GPTQ. NF4 (bitsandbytes) uses a normal-float 4-bit format matching the bell-curve distribution of transformer weights — the default for QLoRA. Full derivations, code (`auto_gptq`, `awq`, `bitsandbytes`), and the extended tradeoff table are in [Quantization](16-efficient-llm-deployment.md#2-quantization-fitting-more-into-the-same-hardware).
 
 **What breaks:**
 - Quantizing with a calibration dataset that doesn't match production distribution
@@ -395,29 +320,7 @@ Routing must know which model is loaded: gateway tracks model placement and rout
 
 **The core insight:** Sharding means each device holds only a slice of the state. The question is which state to shard and how to reconstruct what's needed for each forward/backward pass.
 
-**The mechanics — the training sharding family:**
-
-FSDP (PyTorch Fully Sharded Data Parallel):
-- Shards parameters, gradients, and optimizer states across DP ranks
-- AllGather parameters before each layer's forward pass, free after
-- ReduceScatter gradients during backward
-- Memory per GPU: O(model_size / num_gpus) instead of O(model_size)
-
-DeepSpeed ZeRO (Zero Redundancy Optimizer):
-- Stage 1: shard optimizer states only. Each GPU holds full weights, sharded optimizer state.
-- Stage 2: + shard gradients. Reduced gradient memory.
-- Stage 3: + shard parameters (equivalent to FSDP). Minimum memory.
-- ZeRO-Infinity: offload to CPU/NVMe for extreme scale.
-
-For inference: TP/PP (tensor and pipeline parallelism) split the model across devices for serving huge models. FSDP and ZeRO are primarily training strategies.
-
-```
-Choosing shard topology:
-- Training, PyTorch ecosystem → FSDP
-- Training, want CPU/NVMe offload → DeepSpeed ZeRO-3 / ZeRO-Infinity
-- Inference, single node → TP (fast interconnect required)
-- Inference, multi-node → TP within node + PP across nodes
-```
+**The mechanics — the training sharding family:** FSDP shards parameters, gradients, and optimizer states across DP ranks (AllGather before each forward, ReduceScatter gradients in backward), giving O(model_size/num_gpus) memory per GPU. DeepSpeed ZeRO shards progressively more state per stage (1: optimizer state, 2: +gradients, 3: +parameters ≈ FSDP), with ZeRO-Infinity offloading to CPU/NVMe. TP/PP (tensor/pipeline parallelism) are the inference-serving analogs — FSDP/ZeRO are primarily training strategies. Full mechanics for TP/PP (AllReduce math, pipeline bubble formula) are in [Model Parallelism](16-efficient-llm-deployment.md#7-model-parallelism-when-one-gpu-isnt-enough).
 
 **What breaks:**
 - High sharding degree with slow interconnect: AllGather/ReduceScatter communication dominates training time

@@ -288,5 +288,17 @@ When scaling token count hits data walls and scaling parameters hits memory wall
 
 ## Flashcards
 
-**What are the fast heuristic filters applied before classifier-based quality filtering?** #flashcard
-Length bounds (drop <100 or >100,000 tokens), repetition ratio (>20% flagged as degenerate), line composition (mostly punctuation/numbers → drop), and word overlap with a known-quality reference corpus.
+**What did the Chinchilla paper find that contradicted Kaplan et al.'s 2020 scaling laws?** #flashcard
+Kaplan concluded you should scale model parameters aggressively and use relatively few tokens (GPT-3: 175B params, only 300B tokens). Chinchilla showed this was wrong — a 70B model trained on 1.4T tokens (~20 tokens/parameter) beats GPT-3 at the same training compute. Parameters and data should scale together, not parameters alone.
+
+**Why do companies like Meta deliberately train "overtrained" models (e.g., LLaMA 3 at ~214 tokens/param) instead of Chinchilla-optimal ones?** #flashcard
+Chinchilla optimizes for minimizing loss at fixed training compute, but training happens once while inference happens billions of times. A smaller model trained far past Chinchilla-optimal on more tokens is cheaper to serve and can match or beat a larger Chinchilla-optimal model at the same inference cost.
+
+**Are "emergent abilities" in LLMs a real discontinuity in model capability?** #flashcard
+Often not — Schaeffer et al. showed many apparent emergent jumps are artifacts of discontinuous evaluation metrics (e.g., exact-match accuracy on multi-step problems), not the underlying model capability, which usually improves smoothly with scale. Calibrated/continuous metrics reveal gradual improvement instead of a sharp jump.
+
+**What is the fundamental limit of training on purely synthetic data from a teacher model, and how does verification address it?** #flashcard
+A model can't become significantly smarter than its teacher purely from imitating synthetic outputs. Adding a verification step (programmatic/mathematical check of correctness) lets you keep only verified-correct synthetic examples, enabling generation of arbitrarily many high-quality training examples — this is how models like DeepSeek-R1 bootstrapped reasoning.
+
+**What is test-time (inference-time) compute scaling, and what's the simplest way to apply it?** #flashcard
+Instead of training a bigger model, give the model more computation at inference to improve output quality — e.g., chain-of-thought prompting (reasoning tokens before the answer) or best-of-N sampling with a reward model picking the best candidate. Performance scales roughly logarithmically with reasoning tokens; best-of-N is only as good as the verifier used to pick the winner.

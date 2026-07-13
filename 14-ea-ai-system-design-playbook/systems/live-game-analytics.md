@@ -34,19 +34,6 @@ Design a real-time analytics platform for a live-service EA title (think Apex Le
 | Durability | No silent data loss on ingestion; at-least-once delivery guaranteed |
 | Cost | Infra cost < 1.5% of title's live-ops revenue-supported budget |
 
-## 4. Clarifying Questions an Interviewer Would Expect You to Ask
-
-1. Single title or shared platform across EA's whole portfolio (FIFA/FC, Apex, Battlefield, The Sims)?
-2. What's peak concurrent players (CCU) we must design for — launch day vs steady state?
-3. Do dashboards need "exact" counts (e.g., revenue reconciliation) or approximate is fine (HyperLogLog cardinality)?
-4. Is anomaly alerting purely statistical, or do live-ops teams want custom rule thresholds per title?
-5. What's the acceptable staleness for OLAP queries — same-hour, same-day?
-6. Do we need cross-title comparisons (portfolio-wide exec dashboard) or is isolation per-title sufficient?
-7. Client telemetry — trusted (server-authoritative) or can be spoofed/adversarial (mobile clients)?
-8. Regulatory constraints — GDPR/CCPA on player data, need for anonymization/right-to-erasure?
-9. Who owns metric definitions — central data platform team or each game studio?
-10. Existing infra — is there a pre-existing Kafka/Kinesis backbone at EA to integrate with, or greenfield?
-
 ## 5. Assumptions
 
 1. Portfolio-wide shared platform, multi-tenant per title, starting with 3 flagship titles onboarded.

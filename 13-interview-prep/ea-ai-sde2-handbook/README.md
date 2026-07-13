@@ -73,7 +73,6 @@ Every interview follows this 20-part structure:
 | 25 | Payment Fraud Detection at EA Play |
 | 26 | Billion-Scale Approximate Nearest Neighbor Search |
 | 27 | Domain-Specific LLM Fine-Tuning & RLHF |
-| 28 | Petabyte-Scale Data Pipeline for ML |
 | 29 | Shadow Deployment & Canary Rollout Strategy |
 | 30 | ML Infrastructure Cost Optimization |
 

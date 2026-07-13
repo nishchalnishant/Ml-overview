@@ -167,14 +167,7 @@ class GuardrailStack:
 
 **The mechanics.**
 
-Alignment failure taxonomy:
-
-| Failure Mode | Root Cause | Symptom | Fix |
-|---|---|---|---|
-| Sycophancy | RM rewards agreement | Reverses positions under pushback | DPO with disagreement pairs |
-| Reward hacking | Policy exploits RM proxy | Verbose, confident, hollow | KL penalty, RM retraining |
-| Specification gaming | Proxy metric != intent | Achieves metric, not goal | Broader specification |
-| Goal misgeneralization | Shortcut in-distribution | OOD behavioral failures | Broader training distribution |
+Sycophancy, reward hacking, specification gaming, and goal misgeneralization are the four recurring alignment failure modes — full root-cause analysis, mitigations, and code are in [18-production-alignment-failures.md](./18-production-alignment-failures.md) (sections 2-5) and the taxonomy table in [17-advanced-alignment-and-reasoning.md](./17-advanced-alignment-and-reasoning.md#alignment-taxonomy). In short: each stems from the training-time proxy (RM score, benchmark metric) diverging from the true objective under optimization pressure — Goodhart's Law applied to AI.
 
 **Detecting sycophancy specifically:**
 ```python

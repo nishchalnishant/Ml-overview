@@ -395,59 +395,20 @@ Key changes:
 
 ## Flashcards
 
-**English with BPE-50K?** #flashcard
-~1.3 tokens/word
+**How does tokenizer fertility vary across languages, and why does high fertility hurt?** #flashcard
+Fertility (tokens/word or tokens/char) is ~1.3 tokens/word for English with BPE-50K, ~2–3 for morphologically rich Finnish, and ~2–4 tokens/character for Chinese/Japanese under a Latin-trained tokenizer. High fertility means longer sequences for the same content, which costs more under quadratic attention and effectively truncates the usable context window.
 
-**Finnish (highly inflected)?** #flashcard
-~2–3 tokens/word
+**What guarantees does standard BPE make about determinism, and how does it treat whitespace?** #flashcard
+BPE is greedy and deterministic — given fixed merge rules, the same string always maps to the same token sequence. It has no explicit whitespace handling by default; GPT-2's BPE instead folds a leading space into the token itself (e.g. `Ġword`).
 
-**Chinese/Japanese with a Latin-trained tokenizer?** #flashcard
-~2–4 tokens/character
+**Why is tiktoken fast, and how does its pre-tokenization help arithmetic?** #flashcard
+Tiktoken is written in Rust with Python bindings, making it 10–100× faster than pure-Python HuggingFace tokenizers, and uses byte-level BPE under the hood. Its regex-based pre-tokenization splits on whitespace/punctuation/digits before merging, preventing cross-boundary merges — `cl100k_base` specifically splits numbers into individual digits so multi-digit numbers don't fragment unpredictably, which helps arithmetic.
 
-**High fertility = longer sequences = quadratic attention cost + truncated context.?** #flashcard
-High fertility = longer sequences = quadratic attention cost + truncated context.
+**How much does fertility blow up for non-English, non-Latin-script languages under GPT-2's tokenizer?** #flashcard
+GPT-2 tokenizes Turkish at ~4–6 tokens/word (vs ~1.3 for English) and Arabic at ~7–10 tokens/word, since GPT-2's vocabulary was trained overwhelmingly on English text.
 
-**Greedy, deterministic (given fixed merge rules)?** #flashcard
-Greedy, deterministic (given fixed merge rules)
+**What code-specific tokenization quirks can hurt an LLM's code understanding?** #flashcard
+Indentation (repeated spaces may be 1 or 4 tokens depending on tokenizer), identifiers (`snake_case_variable` often fragments at underscores), multi-char symbols (`->`, `=>`, `::` may or may not be single tokens), and comments (tokenized with no structural distinction from code).
 
-**Same string always maps to same token sequence (no stochasticity)?** #flashcard
-Same string always maps to same token sequence (no stochasticity)
-
-**No explicit handling of whitespace?** #flashcard
-GPT-2 BPE encodes leading space as part of the token (Ġword)
-
-**Written in Rust with Python bindings → very fast (10–100× faster than pure-Python HuggingFace tokenizers for throughput workloads)?** #flashcard
-Written in Rust with Python bindings → very fast (10–100× faster than pure-Python HuggingFace tokenizers for throughput workloads)
-
-**Uses byte-level BPE under the hood?** #flashcard
-Uses byte-level BPE under the hood
-
-**Regex-based pre-tokenization to split on whitespace, punctuation, digits?** #flashcard
-prevents cross-boundary merges
-
-**cl100k_base pre-tokenization pattern?** #flashcard
-splits numbers into individual digits, preventing multi-digit merges that hurt arithmetic
-
-**GPT-2 on Turkish?** #flashcard
-~4–6 tokens/word (vs ~1.3 for English)
-
-**GPT-2 on Arabic?** #flashcard
-~7–10 tokens/word (right-to-left, rich morphology)
-
-**Indentation?** #flashcard
-Python indentation encoded as repeated space tokens; 4 spaces may be 1 token or 4 tokens depending on tokenizer
-
-**Identifiers?** #flashcard
-snake_case_variable often fragments at underscores
-
-**Symbols?** #flashcard
-->, =>, :: may or may not be single tokens
-
-**Comments: tokenized same as code?** #flashcard
-no structural distinction
-
-**BPE?** #flashcard
-selects the most frequent adjacent pair.
-
-**WordPiece?** #flashcard
-selects the pair that maximizes corpus likelihood, equivalent to choosing pairs with highest PMI: score = count(AB) / (count(A) × count(B)).
+**What's the core mechanical difference between BPE's and WordPiece's merge rule?** #flashcard
+BPE merges the most frequent adjacent pair. WordPiece merges the pair that maximizes corpus likelihood — equivalent to highest PMI: score = count(AB) / (count(A) × count(B)) — favoring pairs that are mutually informative rather than just common.

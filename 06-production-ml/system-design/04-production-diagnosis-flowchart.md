@@ -380,20 +380,26 @@ A: Defense in depth: (1) schema validation at every pipeline boundary (Great Exp
 
 ## Flashcards
 
-**Training set feature stats (μ, σ, p50, p99)?** #flashcard
-Training set feature stats (μ, σ, p50, p99)
+**Sudden accuracy drop vs. gradual drop — what's the first branch in diagnosis?** #flashcard
+Sudden (<1h) points to deployment/pipeline issues (rollback, schema change, label pipeline break); gradual (days/weeks) points to data or concept drift.
 
-**Serving feature stats (same features, live traffic)?** #flashcard
-Serving feature stats (same features, live traffic)
+**What does PSI (Population Stability Index) measure, and what do the thresholds mean?** #flashcard
+Shift in a feature's distribution between expected (training) and actual (serving) data. <0.1 no significant drift, 0.1-0.25 moderate (monitor), >0.25 significant (action required).
 
-**Calibration?** #flashcard
-Calibration
+**Data drift vs. concept drift vs. label drift — what changes in each?** #flashcard
+Data drift: P(X) changes, P(Y|X) stable (e.g. demographic shift). Concept drift: P(Y|X) changes, P(X) stable (e.g. fraud pattern changes). Label drift: P(Y) changes (e.g. seasonal CTR drop).
 
-**Upstream feature PSI?** #flashcard
-Upstream feature PSI
+**Why is TTFT compute-bound but TPOT memory-bandwidth-bound in LLM inference?** #flashcard
+TTFT (prefill) does one large matmul over the full prompt — arithmetic intensity scales with sequence length. TPOT (decode) loads all model weights per single output token — intensity is ~1 op/byte regardless of batch size, so it's bound by memory bandwidth, not compute.
 
-**Continuous: stream training data in real time?** #flashcard
-high engineering cost, useful for fast-moving patterns (fraud, stock)
+**Why is training-serving skew called the "#1 silent killer"?** #flashcard
+Offline evaluation looks fine (good AUC) but online performance is poor, because it stems from feature computation differences (dtype casts, aggregation window mismatches, different null-fill strategies) between training and serving pipelines — not a model quality problem.
 
-**Periodic (daily/weekly): simpler, stable?** #flashcard
-sufficient for most recommendation/ranking
+**What's the single biggest prevention for training-serving skew?** #flashcard
+Define each feature once in a shared feature store/definition, used identically by both training and serving — never separate SQL-for-training vs. Python-for-serving implementations.
+
+**When would you use ADWIN over PSI for drift detection?** #flashcard
+ADWIN is streaming/online and needs continuously arriving labels (e.g. click feedback) — it adaptively shrinks its window on detected change. PSI is batch/offline and only needs input features, suited to scheduled monitoring without labels.
+
+**Continuous vs. periodic retraining — what's the tradeoff?** #flashcard
+Continuous (stream training in real time) has high engineering cost but handles fast-moving patterns (fraud, stock). Periodic (daily/weekly) is simpler and sufficient for most recommendation/ranking tasks.

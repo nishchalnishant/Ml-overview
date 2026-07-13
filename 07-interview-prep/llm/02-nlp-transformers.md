@@ -3,11 +3,11 @@ module: Interview Prep
 topic: Llm
 subtopic: Nlp Transformers
 status: unread
-tags: [interviewprep, ml, llm-nlp-transformers]
+tags: [interviewprep, llm, llm-nlp-transformers]
 ---
 # NLP and Transformers — First-Principles Interview Guide
 
-> For classical-NLP-to-Transformers coverage from the core ML track, see [ml/13-nlp.md](../ml/13-nlp.md).
+> For classical NLP (bag-of-words, TF-IDF, word embeddings, RNNs/LSTMs, stemming, dependency parsing), see [ml/13-nlp.md](../ml/13-nlp.md).
 
 ---
 
@@ -108,7 +108,7 @@ Self-attention collapses this to $O(1)$: every position can directly attend to e
 
 For each token $i$, compute compatibility with all tokens $j$: $e_{ij} = q_i \cdot k_j$. Softmax over $j$ gives attention weights $\alpha_{ij}$. Output is a weighted sum of values: $\text{out}_i = \sum_j \alpha_{ij} v_j$.
 
-**Why $\sqrt{d_k}$ scaling:** Without it, dot products have variance $d_k$; at $d_k=64$ scores have std 8, causing softmax to collapse to a one-hot vector and zeroing gradients. Dividing by $\sqrt{d_k}$ restores variance to 1. Full derivation: [math-derivations.md §5](../ml/18-math-derivations.md#5-why-sqrtd_k-scaling).
+**Why $\sqrt{d_k}$ scaling:** Without it, dot products have variance $d_k$; at $d_k=64$ scores have std 8, causing softmax to collapse to a one-hot vector and zeroing gradients. Dividing by $\sqrt{d_k}$ restores variance to 1. Full derivation: [ml/18-math-derivations.md §5](../ml/18-math-derivations.md#5-why-sqrtd_k-scaling).
 
 $$\text{Attention}(Q, K, V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right) V$$
 

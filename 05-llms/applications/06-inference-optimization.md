@@ -194,11 +194,29 @@ A: **Static batching**: group N requests into a batch, run prefill + decode toge
 
 ## Flashcards
 
-**Slow time-to-first-token (prefill)?** #flashcard
-the bottleneck is processing the prompt. Long prompts → FlashAttention-2, chunked prefill, prefix caching. Same system prompt repeated across requests → prefix caching eliminates re-encoding cost.
+**Why is autoregressive decode fundamentally hard to speed up?** #flashcard
+Generation is sequential — each output token requires a full forward pass through every transformer layer, and forward passes cannot be parallelized across output tokens. Every optimization (KV cache, batching, speculative decoding) has to work within that constraint rather than remove it.
 
-**Slow token generation (decode): check GPU utilization. If utilization is low, the GPU is memory-bandwidth-bound?** #flashcard
-it is waiting for weight reads from HBM, not doing compute. Solutions: reduce model size (quantize), improve batching (continuous batching), or add GPUs (tensor parallelism).
+**How does the KV cache reduce attention cost, and what's the tradeoff?** #flashcard
+K/V projections for a token depend only on that token, so caching them once turns per-step attention cost from O(n²) to O(n). The cost is memory that grows linearly with sequence length × batch size — GPUs typically run out of KV cache memory before they run out of compute, which is why batching is hard.
 
-**High latency for a single user but acceptable throughput?** #flashcard
-speculative decoding reduces per-token latency for a single request.
+**How does FlashAttention avoid the O(n²) memory cost of attention?** #flashcard
+It never materializes the full n×n score matrix in HBM. It tiles Q/K/V into blocks that fit in fast on-chip SRAM, computes attention tile by tile, and tracks softmax normalization incrementally (online softmax) while accumulating the output. FLOPs are unchanged, but HBM traffic drops from O(n²) to O(n), giving 2-4× wall-clock speedup.
+
+**What problem does PagedAttention solve that plain KV cache allocation doesn't?** #flashcard
+Naive allocation reserves a contiguous block sized to each request's max possible length, wasting 50-80% of GPU memory to internal fragmentation. PagedAttention borrows OS virtual-memory paging: it divides the KV cache into fixed-size blocks allocated on demand and mapped non-contiguously via a block table, which is also what makes continuous batching practical.
+
+**Why does continuous batching beat static/dynamic batching, and what makes it possible?** #flashcard
+Static/dynamic batching leaves GPU slots idle when some sequences finish early while others keep generating (head-of-line blocking). Continuous batching schedules at the token-step level — finished sequences are evicted and new requests inserted every step, keeping the batch always full. This requires PagedAttention's flexible per-request KV cache allocation, and gives 2-10× throughput over static batching.
+
+**Compare W4A16 vs W8A8 quantization — why doesn't W4A16 always speed up compute?** #flashcard
+W4A16 stores weights in 4-bit but dequantizes to fp16 before the matmul, so it saves memory bandwidth but gets no compute speedup from INT4 tensor cores. W8A8 stores and computes in 8-bit directly (needs INT8 tensor core hardware, e.g. A100+), giving both memory savings and ~2× real compute speedup.
+
+**Why is LLM inference at small batch sizes memory-bandwidth-bound rather than compute-bound?** #flashcard
+GPUs have far more FLOPs than memory bandwidth (A100: 312 TFLOPS vs 2 TB/s HBM). At batch size 1, arithmetic units idle waiting for weight tensors to arrive from HBM, so utilization is often 1-5%. Larger batches amortize the weight-load cost across more requests, which is why throughput scales near-linearly with batch size until the compute-bound regime kicks in.
+
+**How do you decide whether slow inference is a prefill or decode problem, and what's the fix for each?** #flashcard
+Isolate the phase first. Slow time-to-first-token = prefill-bound (fix: FlashAttention-2, chunked prefill, prefix caching for repeated system prompts). Slow token generation with low GPU utilization = memory-bandwidth-bound decode (fix: quantize, use continuous batching, add GPUs via tensor parallelism). Always profile (nvtop/nsys/vLLM metrics) before guessing.
+
+**When would you pick vLLM vs TensorRT-LLM vs llama.cpp for serving?** #flashcard
+vLLM: multi-user API servers on NVIDIA GPUs with variable-length workloads — the standard default (PagedAttention + continuous batching). TensorRT-LLM: maximum throughput on fixed NVIDIA hardware/model, at the cost of 20-60 min hardware-specific compilation per config — not for rapid iteration. llama.cpp: CPU/Mac/consumer-GPU local inference with GGUF quantization, not suitable for production multi-user serving at scale.

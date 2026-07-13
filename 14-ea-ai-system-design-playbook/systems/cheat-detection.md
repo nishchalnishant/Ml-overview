@@ -36,17 +36,6 @@ Design an anti-cheat system for a live-service EA title (e.g. Battlefield/Apex-s
 | False-negative tolerance | accept higher FN in real-time path if batch path recovers within 24h | layered defense |
 | Cost | anti-cheat compute budget ≤ 3-5% of total live-ops infra spend | ML ensemble must not be GPU-cost-prohibitive at this scale |
 
-## 4. Clarifying Questions an Interviewer Would Expect
-
-1. Is this PvP-only (aim/movement cheats) or does it also need economy/exploit detection (duplication, currency farming bots)?
-2. Do we control the game client (can we ship kernel-level or user-mode anti-cheat drivers) or is this telemetry-only (e.g. mobile, cross-play with untrusted clients)?
-3. What's the acceptable false-positive tolerance — is a wrongful ban a support-ticket cost or a PR/legal cost (esports players, streamers)?
-4. Is enforcement immediate-kick, shadow-ban (matched only with other flagged players), or ban-wave only?
-5. Do we need cross-title signal sharing (device fingerprint banned in one EA title informs another)?
-6. What's the expected adversary sophistication — script-kiddie aimbots vs. paid, actively-maintained cheat-provider services with anti-anti-cheat evasion?
-7. Regulatory constraints — GDPR/CCPA on telemetry retention, minors' data (COPPA) affecting what we can log/fingerprint?
-8. Is there a competitive/esports mode requiring stricter SLAs and full replay-based manual review?
-
 ## 5. Assumptions
 
 1. Title has 25M MAU, 2M peak concurrent players, average session 40 minutes.

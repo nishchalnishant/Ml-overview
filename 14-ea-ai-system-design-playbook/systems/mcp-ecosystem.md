@@ -37,19 +37,6 @@ This is a **distributed API gateway + service-discovery + capability-authorizati
 | Cost | ≤ $0.35 per 1,000 tool calls, fully loaded |
 | Multi-tenancy | Hard tenant boundary, defense in depth |
 
-## 4. Clarifying Questions
-
-1. Are MCP servers centrally hosted, or federated per studio?
-2. Do agents act autonomously, or always on behalf of a logged-in human?
-3. Is there a third-party marketplace, or is everything first-party?
-4. What's the blast-radius requirement — can a compromised agent reach every studio's tools, or is it scoped per-studio?
-5. Do we need local stdio transport (developer laptops) alongside hosted HTTP/SSE?
-6. What's the read-vs-mutating call mix (telemetry lookups vs. refunds/bans)?
-7. Compliance constraints (COPPA, GDPR) on what tool results can be logged/cached?
-8. Do high-risk tools need protocol-level human-approval gates, or is that the agent framework's job?
-9. Expected steady-state server/tool count (tens vs. thousands)?
-10. Does the registry need semantic search, or is a curated namespace enough at current scale?
-
 ## 5. Assumptions
 
 1. ~1,200 MCP servers registered within 18 months; ~18,000 tools total (~15/server), growing ~25%/quarter.

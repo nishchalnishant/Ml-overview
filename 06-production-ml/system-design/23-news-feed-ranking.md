@@ -467,3 +467,35 @@ A: Content-side: topic diversity index (avg pairwise embedding distance of weekl
 
 **Q: Design fair ranking so small creators can get discovered, not just large ones.**
 A: The core problem is a rich-get-richer loop: history -> affinity -> ranking -> impressions -> more history. Four levers: (1) exploration budget — reserve 10-15% of slots for creators the user hasn't interacted with, ranked within-bucket by engagement relative to peer creators of similar size; (2) propensity correction in training so a 10K-follower creator's 1% engagement counts equally to a 100M-follower creator's 1% engagement; (3) audience saturation penalty for repeatedly showing the same creator to the same user; (4) bootstrap new creators via content embeddings (CLIP/BERT) matched to users who engaged with similar content, sidestepping cold start entirely.
+
+## Flashcards
+
+**Why does optimizing pure engagement (likes/comments/shares) predictably degrade a feed over time?** #flashcard
+Each single-metric objective has an exploit: likes alone favors low-effort/clickbait content, time-spent alone favors passive scroll-traps, and comments alone favors controversial/outrage content — none of these correlate with what users actually report as satisfying, which is why Meta's 2018 MSI pivot deliberately traded ~5% time-on-platform for higher self-reported wellbeing.
+
+**Why does the ranking pipeline use a lightweight ranker before the heavy multi-task ranker instead of scoring all candidates with the full model?** #flashcard
+Scoring 5,000 candidates with a deep multi-task network at full cost wouldn't fit the <200ms budget; a cheap logistic-regression pass (~1ms for all 5,000) filters down to ~500, so the expensive model only runs on posts likely to matter.
+
+**Why is the heavy ranker multi-task (predicting like/comment/share/time/hide/unfollow jointly) instead of one model per action?** #flashcard
+Rare actions like shares (~10x rarer than likes) don't have enough data to train a strong standalone model; a shared-bottom architecture lets common representations transfer across tasks while task-specific heads still capture per-action differences.
+
+**Why do negative signals (hide, unfollow, report) get weighted far more heavily than positive signals in the composite score?** #flashcard
+Negative signals are sparse but carry much higher information content — a post that 1% of viewers hide indicates active regret, not mere disinterest, and is a stronger quality signal than an equivalent like rate, so unfollow/report are weighted 5-10x a like.
+
+**Why is creator affinity computed as a learned embedding dot product rather than raw historical engagement rate?** #flashcard
+Raw engagement rate can't score a creator's brand-new post (zero historical engagement yet); a collaborative-filtering-style embedding trained on the user-creator interaction history generalizes to new content from a creator the user already likes, solving per-post cold start.
+
+**Why does naive engagement-based ranking systematically suppress friends/family content relative to professional creator content?** #flashcard
+Friends' posts are high in personal relevance but low in production quality, so they lose on raw engagement rate against polished creator content — platforms fix this by ranking friends and creator content on separate tracks and blending them at assembly time using policy-set percentages, not a single unified score.
+
+**Why does A/B testing feed ranking changes violate the standard independence assumption (SUTVA)?** #flashcard
+User A's feed experience depends on User B's engagement and posts, and if A and B are in different experiment arms, B's behavior under their arm leaks into A's outcomes through the shared social graph — mitigated by ego-cluster randomization (assigning whole social neighborhoods to one arm) at the cost of statistical power.
+
+**Why do short 1-2 week A/B tests systematically miss the real effect of ranking changes?** #flashcard
+Novelty effects fade only after weeks, and content ecosystem effects (creators posting less if their reach drops) take months to materialize — both invisible in a short window, requiring long-running holdout groups (~1% of users for 3-6 months) to catch slow-moving degradation.
+
+**Why does popularity bias in training data create a self-reinforcing feedback loop, and how is it corrected?** #flashcard
+Posts shown more often accumulate more engagement data purely from exposure volume, making the model favor them even more in the next training round regardless of true quality; inverse propensity scoring weights training examples by 1/P(shown), preventing frequently-shown posts from dominating the gradient.
+
+**Why is an explicit exploration budget necessary even after diversity-aware reranking (MMR/DPP)?** #flashcard
+MMR/DPP only diversify among already-retrieved, already-scored candidates — they can't surface a new creator or topic cluster that never made it into the candidate set in the first place. A dedicated exploration budget (reserving slots for unshown creators/topics) is required to break the cold-start and popularity-bias loop at its source.

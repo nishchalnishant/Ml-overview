@@ -281,50 +281,17 @@ A: Tensor parallelism splits a single weight matrix across GPUs — each GPU com
 
 ## Flashcards
 
-**Parameters?** #flashcard
-determine model capacity and memory footprint
+**In MoE, what do "parameters" vs "active FLOPs" each determine, and how does MoE decouple them?** #flashcard
+Parameters determine model capacity and memory footprint; active FLOPs determine compute cost per token. MoE decouples the two — total parameters scale with the number of experts (large capacity), while only top-K experts run per token (dense-model inference cost).
 
-**Active FLOPs?** #flashcard
-determine compute cost per token
+**What do f_i, P_i, N, and α mean in the load-balancing loss L = α·N·Σf_i·P_i?** #flashcard
+f_i = fraction of tokens dispatched to expert i (non-differentiable). P_i = mean routing probability assigned to expert i (differentiable, provides the gradient). N = number of experts. α = load-balancing coefficient, typically 0.01–0.1. The product f_i·P_i penalizes uneven routing while staying differentiable through P_i.
 
-**MoE decouples these?** #flashcard
-large capacity at dense-model inference cost
+**In DeepSeek's shared vs. routed expert split, what does each type handle?** #flashcard
+Shared experts are always active and handle common knowledge, preventing redundancy across routed experts. Routed experts are top-K selected per token and specialize in domain-specific knowledge.
 
-**$f_i = \frac{\text{tokens dispatched to expert } i}{\text{total tokens}}$ (fraction of tokens)?** #flashcard
-$f_i = \frac{\text{tokens dispatched to expert } i}{\text{total tokens}}$ (fraction of tokens)
+**How does the capacity factor trade off dropped tokens against memory, and how does this differ between training and inference?** #flashcard
+Higher capacity_factor → fewer dropped tokens but more memory (larger expert buffers); lower capacity_factor → more dropped tokens (information loss) but less memory. During training, overloaded tokens are simply dropped (their gradients ignored). At inference, a higher capacity_factor (e.g. 2.0) or a "no drop" mode is typically used to avoid losing information.
 
-**$P_i = \frac{1}{T}\sum_{x} G_i(x)$ (mean routing probability for expert i)?** #flashcard
-$P_i = \frac{1}{T}\sum_{x} G_i(x)$ (mean routing probability for expert i)
-
-**N = number of experts?** #flashcard
-N = number of experts
-
-**α = load balancing coefficient (typically 0.01–0.1)?** #flashcard
-α = load balancing coefficient (typically 0.01–0.1)
-
-**Shared experts (always active)?** #flashcard
-handle common knowledge
-
-**Routed experts (top-K selected)?** #flashcard
-handle specialized knowledge
-
-**capacity_factor ↑ → fewer dropped tokens, more memory?** #flashcard
-capacity_factor ↑ → fewer dropped tokens, more memory
-
-**capacity_factor ↓ → more dropped tokens (information loss), less memory?** #flashcard
-capacity_factor ↓ → more dropped tokens (information loss), less memory
-
-**Training?** #flashcard
-drop tokens (ignore their gradients) at overloaded experts
-
-**Inference?** #flashcard
-typically use capacity_factor=2.0 to minimize drops, or use "no drop" mode
-
-**Some experts activate on specific syntactic patterns (punctuation, numbers)?** #flashcard
-Some experts activate on specific syntactic patterns (punctuation, numbers)
-
-**Some on semantic domains (medical text, code, math)?** #flashcard
-Some on semantic domains (medical text, code, math)
-
-**Some on languages (English expert vs Chinese expert)?** #flashcard
-Some on languages (English expert vs Chinese expert)
+**What kinds of specialization do MoE experts empirically develop?** #flashcard
+Experts specialize along multiple axes: syntactic patterns (e.g. punctuation, numbers), semantic domains (e.g. medical text, code, math), and even language (e.g. an English-specific vs. Chinese-specific expert).

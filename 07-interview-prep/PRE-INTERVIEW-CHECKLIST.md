@@ -47,7 +47,7 @@ Pick one you're confident with. Know the full pipeline, latency budget, failure 
 - [ ] Search ranking (query understanding → retrieval → LTR → serving)
 - [ ] LLM serving (tokenization → KV cache → batching → output)
 
-**Reference:** [ML System Design](ml/06-system-design-and-mlops.md) | [LLM System Design](llm/04-ml-system-design.md)
+**Reference:** [ML System Design](ml/06-system-design-and-mlops.md) | [LLM System Design](ml/25-ml-system-design.md)
 
 ### Behavioral — Have 3 Stories Ready
 
@@ -99,7 +99,7 @@ Run through these without looking anything up:
 - [ ] Implement NDCG@K from scratch
 - [ ] Sketch a two-tower model in PyTorch (forward pass only)
 
-**Reference:** [ML Coding Patterns](llm/05-ml-coding-patterns.md) | [Algorithms](ml/08-algorithms.md)
+**Reference:** [ML Coding Patterns](ml/26-ml-coding-patterns.md) | [Algorithms](ml/08-algorithms.md)
 
 ### Mental Prep
 

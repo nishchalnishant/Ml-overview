@@ -4,16 +4,6 @@ Design an ML system that monitors 1-second server telemetry (CPU, memory, bandwi
 
 ---
 
-## Clarifying Questions (ask these)
-
-- Univariate or multivariate anomaly? → **Multivariate** (high CPU is fine if players are high, anomalous if players are 0).
-- How many metrics/servers? → **20 metrics × 100,000 servers**.
-- False positive tolerance? → **Extremely low** — prefer missing minor anomalies over spamming PagerDuty.
-- Labeled failure data available? → **No** — zero-day failures, must be unsupervised.
-- Is concept drift a concern? → Yes, game patches permanently shift baselines.
-
----
-
 ## Core Architecture
 
 ```
@@ -49,19 +39,6 @@ Servers (1Hz) → Kafka → Flink (1-min tumbling window, group by server_id)
 - **Isolation Forest vs Autoencoder** — Autoencoders model deep non-linear correlations better but need GPU train/serve; Isolation Forest is CPU-cheap and interpretable, better fit at EA's 100k-server scale.
 - **Strict (99.9th pct) vs loose alerting threshold** — strict keeps DevOps trust high but misses slow-burn anomalies until they hit critical mass.
 - **1-minute window vs true real-time** — smooths GC-spike noise but delays detection of a full lockup by up to 60s.
-
----
-
-## Toughest Follow-ups
-
-**Q: New game mode doubles max players tomorrow, permanently shifting CPU/RAM distributions — the model will flag every server. What do you do?**
-> Put the model in shadow mode (score but don't alert) for known structural breaks, collect ~24h of new-baseline telemetry, retrain from scratch, validate the new distribution, then re-enable alerting.
-
-**Q: A slow 1%/hour memory leak won't look anomalous minute-to-minute. How does the system catch it?**
-> A 1-minute window only catches point anomalies. Add a second Flink job computing a 24-hour rolling slope/derivative per metric and feed that as an extra feature — a sustained upward slope gets flagged even when absolute RAM is still low.
-
-**Q: Isolation Forest can't update online — must retrain from scratch daily. How do you avoid teaching the new model that anomalies are normal?**
-> Score the new day's data with the previous day's model (and cross-reference known PagerDuty/reboot events), strip anything flagged as anomalous, and train only on the sanitized remainder.
 
 ---
 

@@ -37,19 +37,6 @@
 | Hallucination rate | ≤3% target, ≤5% alert |
 | Cost/query (fully loaded) | ≤$0.006 blended |
 
-## 4. Clarifying Questions
-
-1. Internal-only or eventually player-facing (changes ACL/moderation/abuse surface massively)?
-2. Corpus size and growth rate?
-3. Multi-turn in scope for v1, or single-shot first?
-4. Multilingual retrieval needed (EA has 20+ locales)?
-5. Freshness requirement — can patch-day docs tolerate a 2h lag?
-6. Self-host the LLM or call a third-party API (cost, residency, latency)?
-7. Acceptable hallucination rate, and who audits it?
-8. Regulatory constraints (GDPR erasure, COPPA if player-facing)?
-9. Budget ceiling per query/month constraining model choice?
-10. On-prem/air-gapped deployment needed for any studio?
-
 ## 5. Assumptions
 
 1. 8M source docs → ~60M chunks (avg 512 tokens/chunk).

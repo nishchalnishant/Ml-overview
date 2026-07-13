@@ -741,23 +741,17 @@ Rollback immediately to the previous versioned artifact. Do not investigate whil
 
 ## Flashcards
 
-**name?** #flashcard
-triton
+**Which serving framework gives dynamic batching + concurrent multi-model execution on GPU?** #flashcard
+Triton Inference Server
 
-**Train on a fixed snapshot of historical data?** #flashcard
-Train on a fixed snapshot of historical data
-
-**Deploy periodically (daily, weekly, monthly)?** #flashcard
-Deploy periodically (daily, weekly, monthly)
-
-**Simple, auditable, reproducible?** #flashcard
-Simple, auditable, reproducible
+**What characterizes offline (batch) retraining?** #flashcard
+Trains on a fixed historical snapshot, deployed periodically (daily/weekly/monthly) — simple, auditable, reproducible, but stale between runs.
 
 **ADWIN?** #flashcard
-maintains an adaptive window; triggers when the mean within sub-windows differs significantly
+Maintains an adaptive window; triggers when the mean within sub-windows differs significantly.
 
 **DDM?** #flashcard
-tracks error rate and standard deviation; alerts when error exceeds baseline + threshold
+Tracks error rate and standard deviation; alerts when error exceeds baseline + threshold.
 
 **Page-Hinkley test?** #flashcard
-sequential test that triggers when cumulative deviation exceeds a threshold
+Sequential test that triggers when cumulative deviation exceeds a threshold.

@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Ml
-subtopic: Deep Learning
+topic: Dl
+subtopic: Deep Learning Fundamentals
 status: unread
-tags: [interviewprep, ml, ml-deep-learning]
+tags: [interviewprep, dl, dl-deep-learning-fundamentals]
 ---
 # Deep Learning
 

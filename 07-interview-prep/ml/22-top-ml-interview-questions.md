@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Top Ml Interview Questions
 status: unread
-tags: [interviewprep, ml, llm-top-ml-interview-questions]
+tags: [interviewprep, ml, ml-top-ml-interview-questions]
 ---
 # Top ML Interview Questions — Reference Answers
 

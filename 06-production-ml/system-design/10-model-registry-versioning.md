@@ -351,3 +351,20 @@ Hugging Face | ✓  | ✗       | ✓       | ✗         | NLP/LLM models
 ```
 
 **What breaks**: registries that track metrics but not data versions. Two runs with identical code and hyperparameters but different training data will produce different models. Without data versioning (DVC, LakeFS), you cannot reproduce a model or diagnose a regression that was caused by a data pipeline change.
+
+## Flashcards
+
+**Why run champion and challenger models on the same traffic instead of A/B splitting outright?** #flashcard
+Shadow-scoring both on every request (while only serving the champion, or a small challenger slice) lets you compare predictions on identical inputs before committing real traffic to the new model.
+
+**Canary rollout: what guardrail checks trigger automatic rollback?** #flashcard
+Error rate exceeding threshold, p99 latency exceeding threshold, PR-AUC regression beyond a tolerance vs. baseline, and false positive rate increasing beyond a tolerance vs. baseline.
+
+**Why is `archive_existing_versions=True` important when promoting a new model to Production?** #flashcard
+It preserves the previous Production version as "Archived" rather than deleting it, so automatic rollback can immediately re-promote the last known-good version if the new one regresses.
+
+**What breaks when a model registry tracks metrics/hyperparameters but not data versions?** #flashcard
+Two runs with identical code and hyperparameters but different training data produce different models — without data versioning (DVC/LakeFS) you can't reproduce a model or tell whether a regression came from a data pipeline change.
+
+**What must be logged for full model reproducibility, beyond hyperparameters?** #flashcard
+Training data path/hash, data split seed, git commit, dependency hash, and exact environment versions (Python, CUDA, framework) — code and hyperparameters alone aren't enough to reproduce a model exactly.

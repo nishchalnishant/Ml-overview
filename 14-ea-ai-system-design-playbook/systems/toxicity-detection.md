@@ -38,20 +38,6 @@ This is a trust & safety system with an asymmetric, politically sensitive cost f
 | False-negative rate (severe) | < 2% miss rate on threats/grooming, audited weekly |
 | Freshness | Retrain/patch cycle < 7 days for new slang/evasion |
 
-## 4. Clarifying Questions
-
-1. Inline (blocking) or post-hoc enforcement? Changes the latency budget entirely.
-2. Which surfaces are in scope — text, voice, usernames, forums?
-3. Voice at launch, or text-first?
-4. Which languages/regions are P0?
-5. On-device pre-filtering vs. all server-side?
-6. Appeals SLA — hours or days?
-7. Legal constraints (COPPA, EU DSA, UK OSA)?
-8. Does enforcement differ by player tier (minors, pros, payers)?
-9. Keep existing word-list filter as fast-path, or fully ML-driven?
-10. Human reviewer capacity available today?
-11. Cross-title shared trust signals needed?
-
 ## 5. Assumptions
 
 1. ~120M MAU across titles; chat-enabled titles ~60M MAU.

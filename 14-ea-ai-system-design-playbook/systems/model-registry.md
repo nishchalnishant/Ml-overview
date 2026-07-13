@@ -42,19 +42,6 @@ This is an internal platform system, not player-facing — but its availability 
 | Durability | 11 nines, cross-region replicated | Models are often irreproducible |
 | Cost | < $0.02/model-version-GB-month effective | Thousands of multi-GB checkpoints add up fast |
 
-## 4. Clarifying Questions
-
-1. Shared registry across all EA titles, or per-studio? (Assume shared platform, per-title namespaces.)
-2. Support classical ML (XGBoost, sklearn) alongside DL checkpoints? (Yes — matchmaking uses GBTs, recommendation uses deep models.)
-3. Is approval human-in-the-loop, or fully automatable via eval thresholds?
-4. Largest artifact size? (LLM fine-tunes for dialogue systems: 15-70GB; most gameplay models: 10MB-2GB.)
-5. Do we need bit-for-bit reproducibility, or just lineage traceability?
-6. Is the registry the feature-schema source of truth, or does it just reference an external Feature Store version?
-7. Compliance/retention requirements (COPPA, GDPR erasure vs. training lineage)?
-8. Do canary/shadow deployments get their own entries, or ephemeral references to Staging?
-9. Are training and serving co-located per region, or centralized training with global serving fan-out?
-10. Acceptable RPO/RTO if metadata store is lost — can it be reconstructed from CI/CD logs?
-
 ## 5. Assumptions
 
 1. ~50 active ML teams across ~20 titles, each with 5-30 model families.

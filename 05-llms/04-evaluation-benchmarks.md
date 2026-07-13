@@ -337,3 +337,21 @@ A 2% regression on a critical category can matter far more than a 5% improvement
 
 **When should you build a custom eval instead of relying on standard benchmarks?** #flashcard
 When errors have asymmetric costs (e.g., false negatives in cancer screening are far worse than false positives), when facts are highly specialized (e.g., cardiology drug interactions vs. general medical knowledge), or when style/format requirements are strict.
+
+**Why does BLEU correlate poorly with human judgment on open-ended generation?** #flashcard
+BLEU rewards lexical n-gram overlap, not semantic correctness — "The dog bit the man" and "The man bit the dog" score identically against either as reference. Treat it as a filter for very bad outputs, not an evaluator of quality.
+
+**What is pass@k and why is pass@10 more informative than pass@1 for coding benchmarks?** #flashcard
+Pass@k is the probability that at least one of k generated samples passes all unit tests. Pass@1 measures raw first-try accuracy; pass@10 measures whether the model can find a correct solution given multiple attempts, which better reflects real usage where a developer can try again.
+
+**Why is position bias the most dangerous bias in LLM-as-judge evaluation, and how do you mitigate it?** #flashcard
+A judge tends to prefer whichever answer is shown first, so a fixed ordering (always candidate A first) silently biases every comparison toward A. Mitigate by randomizing order and running both (A,B) and (B,A), then averaging or taking the majority.
+
+**What is benchmark contamination, and what's the most reliable way to detect it without access to the training data?** #flashcard
+Contamination is when test examples leaked into training data, turning the test into a recall exercise rather than a measure of capability. Since training data is rarely public, use proxies: test on paraphrased (not verbatim) versions of benchmark questions, use chronological splits (train before a cutoff, test on newer data), or rely on continuously-updated "living" benchmarks like LiveCodeBench.
+
+**Why does the LMSYS Chatbot Arena Elo ranking sometimes disagree with MMLU rankings?** #flashcard
+Arena measures real user preference across the actual distribution of questions people ask, including tone, formatting, and personality — not just factual accuracy on curated questions. A model can score high on MMLU but have an awkward or unhelpful response style that users rank lower in head-to-head comparisons.
+
+**Why is calibration sometimes more important than raw accuracy in high-stakes deployments?** #flashcard
+A well-calibrated model that says "90% confident" is right 90% of the time, so its confidence is actionable. A model with higher accuracy but poor calibration can be confidently wrong, which is more dangerous in decision-critical settings even though its average accuracy looks better.

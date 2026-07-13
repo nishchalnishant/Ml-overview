@@ -477,11 +477,23 @@ This is distinct from alignment training — it's a policy/deployment framework 
 
 ## Flashcards
 
-**Length correlation: DPO can learn to make chosen responses longer instead of better?** #flashcard
-reward model annotators often preferred longer responses, so the dataset implicitly encodes a length bias. Length-normalized DPO variants address this.
+**Why does next-token prediction alone produce a model with broad world knowledge?** #flashcard
+Because minimizing next-token loss over diverse text implicitly requires learning syntax, facts, and reasoning — predicting "the mitochondria is the ___" requires biology knowledge. The objective is simple; the knowledge needed to minimize it is not. But it doesn't teach values or correctness, which is why alignment is a separate stage.
 
-**Gradient degradation?** #flashcard
-if the policy drifts far from the reference model, the DPO loss provides weak gradient signal (the log-probability ratio saturates). Monitor KL divergence during training.
+**Why does AdamW decouple weight decay from the adaptive gradient update instead of adding it to the gradient like standard Adam?** #flashcard
+In standard Adam, L2 regularization is added to the gradient, so it gets scaled by the adaptive term $\hat{v}_t$ — parameters with large gradient variance get weaker effective decay. AdamW applies decay after the adaptive update so every parameter gets the same regularization strength regardless of gradient scale.
 
-**Preference data quality?** #flashcard
-contradictory preferences or ambiguous annotations degrade alignment. DPO is more sensitive to data quality than PPO because it has no explicit regularization mechanism beyond the $\beta$ term.
+**Why is learning-rate warmup necessary at the start of training?** #flashcard
+Adam's second moment estimate $v_t$ starts at zero, so for the first ~100 steps the effective learning rate is wildly amplified even with bias correction. Warmup keeps the LR small until optimizer statistics stabilize, preventing early noisy gradients from destructively updating parameters.
+
+**Why does SFT mask the loss on the prompt and only train on the assistant's response tokens?** #flashcard
+Training on the prompt would teach the model to predict instructions/questions rather than answers, which is not the goal. SFT teaches format (when/how to respond), not new capability — the capability already exists from pretraining.
+
+**Why does RLHF need a reward model and a KL penalty instead of just optimizing the reward directly?** #flashcard
+Human preferences aren't captured by cross-entropy loss, so a reward model is trained on pairwise comparisons (Bradley-Terry loss) to score responses. Optimizing that reward directly causes reward hacking (repetition, sycophancy, length gaming); the KL penalty against the frozen SFT model keeps the policy from drifting into degenerate high-reward behaviors.
+
+**How does DPO avoid training a separate reward model, and what does it cost?** #flashcard
+DPO substitutes the closed-form optimal-policy expression back into the preference loss, so the reward term cancels out and the policy is trained directly on (chosen, rejected) pairs relative to a frozen reference model. It's simpler than PPO but more sensitive to preference-data quality and can suffer from length bias or weak gradients if the policy drifts far from the reference.
+
+**What is reward hacking, and why does the alignment tax exist?** #flashcard
+Reward hacking is when a policy scores well on the reward model without satisfying real human preferences (e.g., length gaming, sycophancy, format exploitation) — a case of Goodhart's Law, since the reward model is only a proxy. The alignment tax is the resulting small drop (1-5%) in raw capability benchmarks caused by shifting the model away from the base model's capability distribution toward safety/helpfulness.

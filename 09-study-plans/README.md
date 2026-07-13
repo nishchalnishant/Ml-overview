@@ -28,6 +28,8 @@ This folder contains structured learning paths for ML interview preparation and 
 
 **Pair with:** [AI_ML_REVISION_GUIDE.md](../01-foundations/01-ai-ml-systems-and-application.md) for the **night-before** sprint, and [mlops.md](../06-production-ml/01-mlops.md) when the conversation turns to **production**.
 
+The core sprint is 30 days (Weeks 1-4). If LLM depth is a major axis of your target interviews, add [Week 5: LLM Deep Dive](week-5-llm-deep-dive/README.md) (Days 31-35) before your final sprint.
+
 ### Week 1: Foundations & Data Chemistry
 *Focus: Understanding how data moves and how simple models fail.*
 
@@ -89,10 +91,25 @@ This folder contains structured learning paths for ML interview preparation and 
 - **Day 30: Night-Before Sprint**
     - Study: [AI & ML Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md) only — no new concepts.
 
+### Week 5: LLM Deep Dive (Optional Extension)
+*Focus: LLM architecture internals, efficient training/inference, alignment, agentic systems — for roles where LLM depth is a primary evaluation axis.*
+
+- **Day 31-32: Architecture, Scaling & Efficiency**
+    - Study: [01-day-31-32.md](week-5-llm-deep-dive/01-day-31-32.md)
+    - Key Concept: Scaling laws, MoE routing, LoRA/QLoRA, KV cache, MQA/GQA, speculative decoding.
+- **Day 33-34: Alignment & Agentic Systems**
+    - Study: [02-day-33-34.md](week-5-llm-deep-dive/02-day-33-34.md)
+    - Key Concept: RLHF vs. DPO, reward hacking, RAG architecture, agentic workflows, MCP.
+- **Day 35: Applied & Production LLMs**
+    - Study: [03-day-35.md](week-5-llm-deep-dive/03-day-35.md)
+    - Key Concept: Multimodal fusion, context window extension, LLMOps vs. classical MLOps.
+
+See [Week 5 README](week-5-llm-deep-dive/README.md) for the full daily pattern, linked resources, and projects.
+
 ### Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
 1. **[Master Revision Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md)**
-2. **[Master Q&A Bank](../07-interview-prep/llm/01-top-ml-interview-questions.md)**
+2. **[Master Q&A Bank](../07-interview-prep/ml/22-top-ml-interview-questions.md)**
 
 ---
 
@@ -412,7 +429,7 @@ Use these to calibrate where to enter the 6-month career tracks above.
 ## Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
 1. **[Master Revision Cheat Sheet](../01-foundations/01-ai-ml-systems-and-application.md)**
-2. **[Master Q&A Bank](../07-interview-prep/llm/01-top-ml-interview-questions.md)**
+2. **[Master Q&A Bank](../07-interview-prep/ml/22-top-ml-interview-questions.md)**
 
 ---
 

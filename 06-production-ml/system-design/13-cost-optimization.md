@@ -489,3 +489,20 @@ cheapest_viable = min(viable, key=lambda r: r['cost'])
 ```
 
 **What breaks**: optimizing cost without quality guardrails. Quantizing a model to INT4 reduces cost by 8x but increases errors by 5% — if that 5% represents $2M in fraud missed or 5% more user churn, the cost optimization was counterproductive. Always measure cost per quality unit (cost per AUC point, cost per BLEU point), not absolute cost.
+
+## Flashcards
+
+**Why are spot/preemptible instances viable for training but not for serving production traffic?** #flashcard
+Training can checkpoint and resume, tolerating interruption for a 60-90% discount; serving must stay available to users, so interruption risk directly costs uptime — spot is reserved for fault-tolerant batch/training workloads.
+
+**Why does dynamic batching cut inference cost without a quality tradeoff, while quantization and cascading do involve one?** #flashcard
+Batching just groups requests to use idle GPU throughput — same model, same weights, no accuracy change. Quantization and cascade serving substitute a cheaper/smaller model for some or all requests, trading some accuracy for cost.
+
+**In cascade serving, why must each stage only return early on high-confidence predictions?** #flashcard
+A cheap stage returning low-confidence predictions early would silently degrade quality on ambiguous cases; gating early return on confidence (e.g. score > 0.9 or < 0.1) ensures only the "easy" majority skips the expensive model, preserving accuracy on hard cases.
+
+**Why should a fraud-scoring service avoid caching predictions, even though caching cuts cost elsewhere?** #flashcard
+Fraud scores must reflect the latest signal for a real-time decision; a cached stale score could let a now-risky transaction through or block a now-safe one — the cost savings aren't worth the correctness risk for a real-time risk decision.
+
+**Why compare models on "cost per quality unit" rather than absolute cost when choosing a serving model size?** #flashcard
+The cheapest model is worthless if it falls below the quality threshold the product needs; picking on cost-per-AUC-point (or cost-per-BLEU-point) finds the cheapest model that still clears the bar, rather than the cheapest model period.

@@ -5,9 +5,9 @@ subtopic: Nlp
 status: unread
 tags: [interviewprep, ml, ml-nlp]
 ---
-# Natural Language Processing
+# Natural Language Processing — Classical Foundations
 
-**Primary reference:** [NLP methods](../../03-deep-learning/methods/01-nlp-fundamentals.md) | [LLM fundamentals](../../05-llms/interview-notes/01-llm-fundamentals.md) | [self-attention derivation](../llm/09-nlp-transformers.md)
+**Primary reference:** [NLP methods](../../03-deep-learning/methods/01-nlp-fundamentals.md) | For transformers, attention, tokenization, BERT/GPT, and PEFT, see [llm/02-nlp-transformers.md](../llm/02-nlp-transformers.md)
 
 ---
 
@@ -19,7 +19,7 @@ The core difficulty is representational, not computational: meaning is context-d
 - TF-IDF: still no order, but weights by discriminative value.
 - Word embeddings: distributional similarity, but context-free ("bank" has one vector for finance and river).
 - RNNs: process order, but lose long-range context to gradient decay.
-- Transformers: attend across all positions at once, removing the sequential bottleneck.
+- Transformers: attend across all positions at once, removing the sequential bottleneck (see [llm/02-nlp-transformers.md](../llm/02-nlp-transformers.md)).
 
 **Trap:** assuming LLMs make NLP "solved" — they still fail predictably on rare domains, low-resource languages, structured reasoning, and factual precision.
 
@@ -59,53 +59,11 @@ LSTMs fix this with gates: **input** (what to write), **forget** (what to keep �
 
 Even LSTMs are sequential — hidden state at $t$ needs state at $t-1$ — which blocks parallelization and limits how well early-sequence signal survives to later positions.
 
-**Trap:** say *why* Transformers won (sequential bottleneck + vanishing gradient, solved by direct position-to-position attention), not just "Transformers are better." RNNs still matter where O(n²) attention cost is prohibitive.
+**Trap:** say *why* Transformers won (sequential bottleneck + vanishing gradient, solved by direct position-to-position attention — see [llm/02-nlp-transformers.md §3](../llm/02-nlp-transformers.md)), not just "Transformers are better." RNNs still matter where O(n²) attention cost is prohibitive.
 
 ---
 
-## 5. Attention and the Transformer
-
-Attention replaces the fixed-hidden-state bottleneck with direct, learned routing between all positions — constant path length between any two tokens regardless of sequence length.
-
-Query/Key/Value: each position emits a query ("what am I looking for") and a key ("what do I offer"); dot product gives a compatibility score; the value is what gets aggregated.
-
-$$\text{Attention}(Q,K,V) = \text{softmax}\left(\frac{QK^T}{\sqrt{d_k}}\right)V$$
-
-Divide by $\sqrt{d_k}$ because dot products grow with dimension ($\text{Var}(q^Tk)=d_k$), which would push softmax into saturation and kill gradients.
-
-Multi-head attention runs $h$ attention operations on projected subspaces in parallel and concatenates — different heads specialize in different relationship types (syntax, semantics, position) without explicit supervision.
-
-**Trap:** explain $\sqrt{d_k}$ via softmax saturation/gradient vanishing, not "prevents large numbers." Attention weights are learned and task-specific, not "looking at everything uniformly."
-
----
-
-## 6. BERT vs GPT — Encoder vs Decoder
-
-Both are Transformers; they differ in the attention mask during pretraining.
-
-**BERT (encoder-only):** bidirectional attention, masked-language-model pretraining. Good when the full input is available at inference (classification, NER, extractive QA).
-
-**GPT (decoder-only):** causal (left-to-right) attention, next-token-prediction pretraining. Required for generation, since future tokens can't be seen during training or inference.
-
-Encoder-decoder models (T5, BART) are often right for seq2seq tasks needing both a rich input encoding and autoregressive output.
-
-**Trap:** "BERT is always better for understanding" is a tendency, not a law — large GPT-class models are strong at understanding too.
-
----
-
-## 7. Tokenization and BPE
-
-Tradeoff: vocabulary size vs sequence length. Large vocab → shorter sequences, worse rare-word coverage, bigger embedding table. Character-level → full coverage, very long sequences.
-
-**BPE:** start from characters, iteratively merge the most frequent adjacent pair, until vocab size $V$ (typically 32k-100k) is reached.
-
-**WordPiece** (BERT): merges by language-model likelihood rather than raw frequency. **SentencePiece** (T5, LLaMA): operates on raw bytes, no language-specific preprocessing needed.
-
-**Trap:** a tokenizer trained on English prose over-splits code identifiers — domain-specific tokenizers matter. Tokenization (text → token IDs) is separate from the embedding lookup (IDs → vectors).
-
----
-
-## 8. Perplexity
+## 5. Perplexity
 
 $$\text{PPL}(W) = \exp\left(-\frac1N\sum_i \log P(w_i\mid w_{<i})\right)$$
 
@@ -115,7 +73,7 @@ Perplexity $k$ means the model is as uncertain as choosing uniformly among $k$ o
 
 ---
 
-## 9. Seq2Seq and Summarization
+## 6. Seq2Seq and Summarization
 
 Encoder builds an input representation; decoder generates output autoregressively.
 
@@ -127,7 +85,7 @@ Choose based on hallucination tolerance: legal/compliance leans extractive or gr
 
 ---
 
-## 10. Stemming vs Lemmatization
+## 7. Stemming vs Lemmatization
 
 Both normalize word forms for grouping. Stemming: mechanical suffix-chopping, fast but crude ("universal" → "univers"). Lemmatization: dictionary-aware, respects part of speech, slower but more accurate.
 
@@ -135,7 +93,7 @@ Modern transformer pipelines mostly don't need either (subword tokenization hand
 
 ---
 
-## 11. Dependency Parsing
+## 8. Dependency Parsing
 
 Identifies typed grammatical relationships (subject, object, modifier) as a tree over a sentence — useful when you need to know "who did what to whom" precisely (e.g. structured info extraction, semantic role labeling). Transformers implicitly encode some syntax in attention patterns, but explicit parsers still matter when you need guaranteed, verifiable structured output.
 
@@ -143,6 +101,6 @@ Identifies typed grammatical relationships (subject, object, modifier) as a tree
 
 ## Quick Diagnostics
 
-**Why Transformers won:** attention handles long-range dependencies with O(n²) per-layer cost instead of forcing information through O(n) sequential hidden states — removes the training bottleneck and lets any position access any other directly.
+**Why Transformers won:** attention handles long-range dependencies with O(n²) per-layer cost instead of forcing information through O(n) sequential hidden states — removes the training bottleneck and lets any position access any other directly. Full mechanism: [llm/02-nlp-transformers.md](../llm/02-nlp-transformers.md).
 
 **Choosing an approach for a new NLP task:** ask data size, latency budget, generative vs discriminative, interpretability need — in that order — before picking an architecture. TF-IDF + logistic regression is a legitimate production answer under tight data/latency/interpretability constraints.

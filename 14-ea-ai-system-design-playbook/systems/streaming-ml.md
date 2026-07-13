@@ -41,18 +41,6 @@ Primary use cases:
 | Model update latency | Online param refresh visible to serving within 60s of a labeled event |
 | Scalability | Linear horizontal scaling to 5x traffic during a launch/live-event spike |
 
-## 4. Clarifying Questions
-
-1. Is "online learning" true per-event SGD, or periodic micro-batch refresh (e.g., every 60s)?
-2. Acceptable staleness for anti-cheat vs. matchmaking — equally latency-sensitive?
-3. Exactly-once end-to-end, or at-least-once with idempotent consumers?
-4. Is inference synchronous (blocks a game client) or async (published to a topic)?
-5. How many titles share this platform vs. per-title deployments?
-6. Label latency — how long after a prediction do we learn ground truth? Drives the feedback-loop design.
-7. Regulatory constraints — GDPR/COPPA on telemetry, especially minors?
-8. Is shadow-mode required before promoting an online-updated model?
-9. If the feature pipeline falls behind, do we serve stale features, fall back to a default model, or reject requests?
-
 ## 5. Assumptions
 
 1. Platform serves 8 titles concurrently; largest (Apex-scale) is 60% of traffic.

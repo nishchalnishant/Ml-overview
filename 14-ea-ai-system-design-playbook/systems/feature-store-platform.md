@@ -42,19 +42,6 @@ The ask: build a **centralized Feature Store Platform** — a single system of r
 | Cost ceiling | Feature store infra ≤ 8% of total ML platform spend |
 | Freshness | Streaming features: ≤60s lag p99. Batch daily features: ≤ 4h after source data lands. |
 
-## 4. Clarifying Questions an interviewer would expect you to ask
-
-1. Is this single-title or **multi-tenant across studios** (affects namespace/isolation design)?
-2. What entity types are we keying on — player_id only, or also match_id, squad_id, item_id (multi-entity joins)?
-3. What's the acceptable **staleness bound** for online features — is 30s okay for churn scoring but too slow for anti-cheat?
-4. Do we need **streaming aggregations** (rolling windows, e.g. "kills in last 10 min") or only point lookups of precomputed values?
-5. Who owns **PIT-correctness enforcement** — is it a platform guarantee, or can teams opt out for speed?
-6. What's the **write path for backfills** — do they go through the same pipeline as live ingestion, or a separate batch overwrite path?
-7. Do downstream **models require feature vectors as of training label time**, implying we need an event-time index, not just ingestion-time?
-8. Is there a need for **cross-title feature sharing** (e.g., a "player is a whale" feature reused across FC and Apex) — implies a shared entity resolution layer?
-9. What existing infra can we build on (Kafka footprint, Spark/Databricks, existing key-value stores) vs. greenfield?
-10. What's the **budget for online store replicas** — do we need multi-region for latency, or is single-region with edge caching sufficient?
-
 ## 5. Assumptions (explicit, numbered)
 
 1. ~55M MAU across EA's top 6 live-service titles combined; average concurrent players at peak ~2.5M.

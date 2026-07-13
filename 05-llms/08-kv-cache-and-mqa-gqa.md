@@ -330,20 +330,11 @@ A: Prefix caching only helps when multiple requests share an identical token pre
 
 ## Flashcards
 
-**Cache all K, V from positions 1..t?** #flashcard
-Cache all K, V from positions 1..t
+**What does the KV cache store, and why does it avoid recomputation?** #flashcard
+It caches K and V for every position 1..t computed so far in generation, so each new decoding step reuses them instead of recomputing attention over the whole prefix.
 
-**Reuse instead of recomputing?** #flashcard
-Reuse instead of recomputing
+**How does prefix caching reduce both latency and memory for shared prompts?** #flashcard
+TTFT drops because the shared prefix (e.g. system prompt) skips prefill computation entirely. KV memory drops because the prefix's KV is cached once and shared across N requests, giving an effective 1/N memory overhead per request.
 
-**TTFT reduction?** #flashcard
-prefix tokens skip prefill computation
-
-**KV memory?** #flashcard
-prefix KV shared across N requests (effective 1/N memory overhead)
-
-**Llama-3 8B at 8K context, fp16 → int8?** #flashcard
-536MB → 268MB per request
-
-**Doubles concurrent batch size on same hardware?** #flashcard
-Doubles concurrent batch size on same hardware
+**What's the effect of quantizing the KV cache from fp16 to int8?** #flashcard
+Roughly halves KV cache memory per request (e.g. Llama-3 8B at 8K context: 536MB → 268MB), which doubles the concurrent batch size servable on the same hardware, with negligible quality loss.

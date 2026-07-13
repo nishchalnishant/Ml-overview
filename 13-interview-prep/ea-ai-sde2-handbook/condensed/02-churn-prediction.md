@@ -2,14 +2,6 @@
 
 MoM active users are dropping. Design + build a system to predict player churn and trigger automated interventions (email, XP boost, cosmetics) before players leave for good.
 
-## Clarifying Questions to Ask
-- Churn definition? → No login for 14 consecutive days.
-- Prediction window? → On day T, predict churn in [T+1, T+14].
-- Real-time or batch? → Daily batch, scored at 2 AM UTC for all active players.
-- Cost of interventions? → Emails free, XP boost cheap, cosmetics expensive (cannibalizes sales) — minimize FPs on cosmetics.
-- What data exists? → Daily aggregates: playtime, matches, K/D, battle pass, friends online, purchases.
-- Predicting churn probability or intervention effect? → v1: just P(churn) + static threshold rules.
-
 ## Core Architecture
 - Snowflake/warehouse → nightly ETL → rolling 7d/14d/30d feature aggregates (playtime, K/D trend, social activity).
 - Airflow DAG triggers batch inference (Spark/Python) — not real-time, this is a daily-batch problem.
@@ -32,17 +24,6 @@ MoM active users are dropping. Design + build a system to predict player churn a
 - **Batch vs. real-time inference** — batch is far cheaper/simpler but misses the exact moment of a rage-quit; matches business need here (daily interventions, not instant).
 - **Rule-based thresholds vs. uplift modeling** — thresholds are simple/interpretable but ignore incrementality; uplift targets only persuadable players, saving cosmetics budget.
 - **XGBoost vs. deep learning (LSTM on sessions)** — XGBoost trains/deploys faster and handles missing data natively; DL could capture sequential patterns but adds deployment cost with limited tabular data payoff.
-
-## Toughest Follow-Ups
-
-**Q: How does your model handle players already mid-churn (inactive 13 days, not "active today")?**
-A: Cohort must be "logged in at least once in last 14 days," not "active today." Score all of them; `days_since_last_login` becomes the most critical feature. Scoring only today's active players silently drops the highest-risk segment.
-
-**Q: How do you know the model is actually saving players, not just correctly identifying people who'd have stayed/left anyway?**
-A: Use a global control group (~5% of players, never receive interventions regardless of score). Compare 14-day retention of treated vs. control high-risk players. If retention is equal, the intervention adds no value even with a perfect model — this is the uplift/incrementality argument.
-
-**Q: A new season drops and changes all engagement metrics overnight — how do you handle the concept drift?**
-A: Model over-predicts churn or retention because behavior shifts en masse (covariate shift). Add seasonal features (`days_since_season_start`) and shorten the training window or use recency-weighted samples so the model adapts fast instead of relying on stale 6-month history.
 
 ## Biggest Pitfall
 Treating this as a pure modeling exercise — tuning XGBoost hyperparameters while missing that a model without a control-group evaluation and cost-aware thresholds can't prove it's actually reducing churn, and proposing real-time streaming infra for a problem the business only needs solved daily.

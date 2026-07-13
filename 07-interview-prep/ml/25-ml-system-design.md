@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Ml System Design
 status: unread
-tags: [interviewprep, ml, llm-ml-system-design]
+tags: [interviewprep, ml, ml-ml-system-design]
 ---
 # ML System Design — Interview Playbook
 
@@ -265,6 +265,8 @@ $$s_{\text{final}} = \alpha \cdot s_{\text{relevance}} + (1-\alpha) \cdot s_{\te
 ---
 
 ## 7. LLM Serving Design
+
+> For deeper LLM-specific serving topics (quantization, speculative decoding, batching strategies), see [../llm/01-large-language-model.md](../llm/01-large-language-model.md).
 
 ### Problem
 Serve a 70B LLM at 100 QPS with P90 time-to-first-token < 2s.

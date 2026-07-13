@@ -936,200 +936,35 @@ A: Regulators care about two things in model transitions: that the new model has
 
 ## Flashcards
 
-**payment_history_12m?** #flashcard
-payment_history_12m
+**Why exclude zip code and age from a credit model even if predictive?** #flashcard
+Zip code is a proxy for race (ECOA); age is a directly protected characteristic (ADEA). Document exclusions explicitly — an undocumented exclusion looks like the feature was used and hidden.
 
-**debt_to_income_ratio?** #flashcard
-debt_to_income_ratio
+**What are the four approval gates before a high-stakes model deploys?** #flashcard
+1) Automated validation (CI/CD: performance, calibration, PSI, fairness thresholds) 2) Model owner sign-off (non-delegatable attestation) 3) Risk/compliance review (protected attributes, GDPR/ECOA/FCRA) 4) Business sign-off (rollback criteria, runbook).
 
-**credit_utilization?** #flashcard
-credit_utilization
+**What triggers a MAJOR semantic version bump for a model?** #flashcard
+Any change that breaks caller assumptions: output type change, score range change (even with rescaling), new required input features, prediction semantics flip, or a framework change that alters numerical precision.
 
-**zip_code?** #flashcard
-"proxy for race under ECOA"
+**What must a model owner personally attest to at Gate 2?** #flashcard
+Training data fits the use case, known failure modes are documented, feature importance was reviewed, and there is no target leakage — not delegatable to automated checks.
 
-**age?** #flashcard
-"ADEA protected characteristic"
+**What does the Gate 3 (risk/compliance) checklist cover?** #flashcard
+Protected attribute review (direct + proxy), adverse-action notice mechanism, GDPR Article 22 documentation, ECOA/FHA/FCRA review, data retention policy, right-to-erasure impact.
 
-**gate?** #flashcard
-automated_validation
+**What does Gate 4 (business sign-off) require beyond performance metrics?** #flashcard
+Confirmation the model solves the actual business problem, that thresholds meet business needs (not just statistical significance), pre-agreed rollback criteria, and an existing on-call runbook.
 
-**gate?** #flashcard
-model_owner_signoff
+**What are the non-negotiable properties of an audit log store?** #flashcard
+Append-only (no DELETE/UPDATE), encrypted at rest, accessible only to the audit/compliance role (not the serving app), and retention enforced by schedule rather than manual deletion.
 
-**gate?** #flashcard
-risk_compliance
+**Name four ML-specific GDPR/data breach scenarios.** #flashcard
+Model inversion (recovering training data from weights), inference audit log exposure (PII in feature snapshots), feature store breach, and membership inference attacks proving training data presence.
 
-**gate?** #flashcard
-business_signoff
+**What are the core fields of a model card (Google format)?** #flashcard
+Model details (type/version/owner), intended use and out-of-scope uses, training data provenance, performance vs. benchmark, fairness analysis by group, known limitations, ethical considerations, and how-to-use (input/output/threshold).
 
-**Output type changes (probability → binary label)?** #flashcard
-Output type changes (probability → binary label)
+**Give an example of a documented "known limitation" in a model card.** #flashcard
+E.g., AUC drops to 0.71 for thin-file applicants (<3 credit accounts) — score reliability is lower for that segment, so the model card flags it rather than silently under-serving them.
 
-**Score range changes (0–1 → 0–100) even with rescaling?** #flashcard
-Score range changes (0–1 → 0–100) even with rescaling
-
-**New required input features (callers must update)?** #flashcard
-New required input features (callers must update)
-
-**Prediction semantics change (lower score now means higher risk)?** #flashcard
-Prediction semantics change (lower score now means higher risk)
-
-**Model framework change that alters numerical precision?** #flashcard
-Model framework change that alters numerical precision
-
-**Training data is appropriate for the use case?** #flashcard
-Training data is appropriate for the use case
-
-**Known failure modes are documented?** #flashcard
-Known failure modes are documented
-
-**Feature importance analysis was reviewed?** #flashcard
-Feature importance analysis was reviewed
-
-**No target leakage in feature set?** #flashcard
-No target leakage in feature set
-
-**[ ] Protected attributes reviewed (direct and proxy)?** #flashcard
-[ ] Protected attributes reviewed (direct and proxy)
-
-**[ ] Adverse action notice mechanism tested?** #flashcard
-[ ] Adverse action notice mechanism tested
-
-**[ ] GDPR Article 22 documentation prepared if automated individual decision?** #flashcard
-[ ] GDPR Article 22 documentation prepared if automated individual decision
-
-**[ ] ECOA/FHA/FCRA compliance review (for credit/housing models)?** #flashcard
-[ ] ECOA/FHA/FCRA compliance review (for credit/housing models)
-
-**[ ] Data retention policy attached to model version?** #flashcard
-[ ] Data retention policy attached to model version
-
-**[ ] Right to erasure impact assessed?** #flashcard
-[ ] Right to erasure impact assessed
-
-**Model is solving the intended business problem?** #flashcard
-Model is solving the intended business problem
-
-**Performance thresholds meet business requirements (not just statistical significance)?** #flashcard
-Performance thresholds meet business requirements (not just statistical significance)
-
-**Rollback decision criteria are agreed in advance?** #flashcard
-Rollback decision criteria are agreed in advance
-
-**On-call runbook exists?** #flashcard
-On-call runbook exists
-
-**Append-only (no DELETE, no UPDATE on audit rows)?** #flashcard
-Append-only (no DELETE, no UPDATE on audit rows)
-
-**Encrypted at rest (AES-256 minimum)?** #flashcard
-Encrypted at rest (AES-256 minimum)
-
-**Accessible only to audit/compliance role (not the serving application)?** #flashcard
-Accessible only to audit/compliance role (not the serving application)
-
-**Retention enforced by the data retention schedule, not manual deletion?** #flashcard
-Retention enforced by the data retention schedule, not manual deletion
-
-**Model inversion attack recovers training data from model weights?** #flashcard
-Model inversion attack recovers training data from model weights
-
-**Inference audit logs exposed (contains feature snapshots with PII)?** #flashcard
-Inference audit logs exposed (contains feature snapshots with PII)
-
-**Feature store breach (contains individual-level features)?** #flashcard
-Feature store breach (contains individual-level features)
-
-**Membership inference attack demonstrates training data presence?** #flashcard
-Membership inference attack demonstrates training data presence
-
-**Model type?** #flashcard
-Gradient Boosted Trees (XGBoost 1.7)
-
-**Version?** #flashcard
-2.4.1
-
-**Owners?** #flashcard
-Alice Smith (model), Lending Product (business)
-
-**Date?** #flashcard
-2024-03-08
-
-**License?** #flashcard
-Internal use only
-
-**Primary use case?** #flashcard
-Automated screening for personal loan applications ($1,000–$50,000)
-
-**Intended users?** #flashcard
-Loan origination system (automated), underwriting team (human review)
-
-**Out-of-scope uses:?** #flashcard
-Out-of-scope uses:
-
-**Small business loans (model not validated on business applicants)?** #flashcard
-Small business loans (model not validated on business applicants)
-
-**Mortgage lending (different regulatory framework, not validated)?** #flashcard
-Mortgage lending (different regulatory framework, not validated)
-
-**Applications outside the United States?** #flashcard
-Applications outside the United States
-
-**Dataset?** #flashcard
-Internal credit bureau data, 2017–2023
-
-**Size?** #flashcard
-2.3M applications (1.8M train, 230K validation, 230K test)
-
-**Geographic coverage?** #flashcard
-48 contiguous US states
-
-**Temporal coverage?** #flashcard
-2017–2023; outcome labels are 24-month default
-
-**Label definition?** #flashcard
-Default = 90+ days past due within 24 months of origination
-
-**Zip code excluded as proxy for race per ECOA?** #flashcard
-Zip code excluded as proxy for race per ECOA
-
-**Age excluded as direct protected characteristic per ADEA?** #flashcard
-Age excluded as direct protected characteristic per ADEA
-
-**SHAP-based adverse action reasons generated for all denials?** #flashcard
-SHAP-based adverse action reasons generated for all denials
-
-**Human review available on request per FCRA?** #flashcard
-Human review available on request per FCRA
-
-**Input?** #flashcard
-Feature vector per schema in schemas/credit_risk_v2_input.json
-
-**Output?** #flashcard
-Float in [0, 1] where higher = higher default probability
-
-**Decision threshold?** #flashcard
-0.15 (tuned for 12% approval rate target; business-configurable)
-
-**Adverse action?** #flashcard
-Call generate_adverse_action_notice() for all predictions ≥ threshold
-
-**[ ] Timeline of events (detection → diagnosis → rollback → resolution)?** #flashcard
-[ ] Timeline of events (detection → diagnosis → rollback → resolution)
-
-**[ ] Root cause identified (data drift? code bug? infrastructure failure? feature pipeline issue?)?** #flashcard
-[ ] Root cause identified (data drift? code bug? infrastructure failure? feature pipeline issue?)
-
-**[ ] Impact quantified (affected requests, affected subjects, estimated business impact)?** #flashcard
-[ ] Impact quantified (affected requests, affected subjects, estimated business impact)
-
-**[ ] Why monitoring did not catch it earlier (or why it did, and the response was slow)?** #flashcard
-[ ] Why monitoring did not catch it earlier (or why it did, and the response was slow)
-
-**[ ] Action items with owners and deadlines?** #flashcard
-[ ] Action items with owners and deadlines
-
-**[ ] Model card updated with the failure mode?** #flashcard
-[ ] Model card updated with the failure mode
+**What should a post-mortem checklist include within 48 hours of an incident?** #flashcard
+Timeline (detection → diagnosis → rollback → resolution), root cause, quantified impact, why monitoring did/didn't catch it, action items with owners/deadlines, and an updated model card.

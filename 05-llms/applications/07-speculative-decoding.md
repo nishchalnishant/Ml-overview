@@ -180,20 +180,23 @@ Any reasonable draft model achieves α > 0.5 at small batch sizes. Speculative d
 
 ## Flashcards
 
-**Small batch size (1–4)?** #flashcard
-memory bandwidth is the bottleneck; speculative decoding multiplies tokens per weight-read.
+**Why does speculative decoding speed up generation without changing the output distribution?** #flashcard
+A small draft model proposes K tokens; the target model verifies all K in a single forward pass (same cost as generating one token) and uses rejection sampling — accept token i with probability min(1, q_i/p_i), else resample from max(0, q-p)/Z. This guarantees the output distribution exactly matches the target model's, so speedup is "free" whenever the draft model's guesses are often correct.
 
-**Long generation sequences (code, long documents)?** #flashcard
-amortizes draft overhead over many accepted tokens.
+**What determines the actual speedup from speculative decoding, and when does it hurt instead of help?** #flashcard
+Speedup depends on acceptance rate α (how well draft and target distributions match) and draft-model speed ratio β: speedup ≈ E[tokens/step] / (1 + K/β). It helps at small batch sizes (memory-bandwidth-bound, GPU underutilized) and long generations (amortizes draft overhead); it hurts at large batch sizes (already compute-bound — adds overhead with no gain) and very short responses.
 
-**High-quality draft model from the same family (LLaMA 7B for LLaMA 70B)?** #flashcard
-high acceptance rates.
+**Why does speculative decoding work better for code than for creative writing or math CoT?** #flashcard
+Code has high local predictability (repeated variable names, boilerplate), so a small draft model's next-token guesses match the target's more often (acceptance ~0.85-0.92, 2.5-4× speedup). Creative writing and extended math reasoning have many equally plausible continuations, so draft/target disagree more often (acceptance ~0.55-0.75, 1.3-2× speedup).
 
-**Large batch sizes (32+)?** #flashcard
-the GPU is compute-bound; speculative decoding adds coordination overhead without proportional speedup.
+**How does Medusa avoid needing a separate draft model, and what's the cost?** #flashcard
+It attaches K extra linear prediction heads to the target model's final hidden state, each predicting a different future position, so drafting is just K cheap linear passes on already-computed hidden states — no second model to deploy. Tradeoff: heads see only the current hidden state (no recurrent context), so acceptance rates (0.65-0.75) and speedup (1.5-2.5×) are lower than a well-trained separate draft model, and the heads still require fine-tuning on the frozen base model.
 
-**Very short responses (< 20 tokens)?** #flashcard
-draft overhead is not amortized.
+**How does Eagle improve on Medusa, and what's the added coupling cost?** #flashcard
+Eagle trains a small single-layer transformer that conditions on both the token embedding and the target model's actual hidden state to predict the target's next hidden state (sharing the target's LM head) — this is better calibrated than Medusa's context-free linear heads. Cost: tighter coupling to the target model (must be retrained per target) and it needs access to the target's internal hidden states during drafting.
 
-**High-temperature sampling?** #flashcard
-widens the distribution gap between draft and target, lowering acceptance rates.
+**What is self-speculative decoding and when does it work best?** #flashcard
+The target model drafts by exiting early (e.g., at layer L/2) and verifies with the full L-layer pass — no separate model or trained components needed at all. Works best on deterministic tasks (code completion, factual retrieval) where the model is already confident early in the forward pass; benefits less on high-temperature/creative generation.
+
+**How does multi-token prediction (e.g., DeepSeek MTP) differ from Medusa/Eagle in when its cost is paid?** #flashcard
+Auxiliary heads predicting t+2, t+3, etc. are trained jointly with the main LM head from scratch, so at inference the speculative tokens are a free byproduct of the standard forward pass — zero added inference cost. The cost is paid entirely during training (can't be bolted onto an existing model without retraining), and it still provides little benefit on high-entropy/creative tasks.

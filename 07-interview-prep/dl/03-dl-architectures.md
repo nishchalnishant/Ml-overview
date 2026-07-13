@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Dl
 subtopic: Dl Architectures
 status: unread
-tags: [interviewprep, ml, llm-dl-architectures]
+tags: [interviewprep, dl, dl-dl-architectures]
 ---
 # Deep Learning Architectures — First-Principles Interview Guide
 

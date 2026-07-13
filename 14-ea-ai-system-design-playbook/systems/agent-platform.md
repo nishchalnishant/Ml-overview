@@ -39,19 +39,6 @@ This is an **infrastructure platform**, not a single agent — other teams build
 | Cost | Median run ≤ $0.03; hard cap $5/run, $500/tenant/day default quota |
 | Durability | Run traces & memory: 99.999999999% (11 9s, object storage) |
 
-## 4. Clarifying Questions an interviewer would expect you to ask
-
-1. Are agents player-facing (needs child-safety/COPPA/toxicity filtering) or internal-only for v1?
-2. What's the blast radius of mutating tool calls — can an agent issue real refunds/bans, or only draft-and-approve?
-3. Do we need to support arbitrary user-authored tools (code execution) or only a curated tool catalog?
-4. Is multi-agent (agent calls agent) in scope, or single-agent-with-tools only?
-9. What's the expected mix of interactive vs. batch agent runs — affects whether we optimize for tail latency or throughput/cost?
-6. Do agent definitions change frequently (need hot-reload/versioning) or are they mostly static per team?
-7. Is there an existing internal LLM gateway/model-serving layer we route through, or do we own model serving too?
-8. What compliance regime applies (GDPR for EU players, COPPA for minors, SOC2 for enterprise/publisher partners)?
-9. What's acceptable staleness for long-term memory — can it lag telemetry by minutes?
-10. Do we need on-prem/console-adjacent execution (latency-sensitive NPC agents) or is cloud-only fine for v1?
-
 ## 5. Assumptions (explicit, numbered)
 
 1. V1 scope is **internal tools only** (support, live-ops, QA); player-facing NPC agents are phase 2, gated by extra safety review.

@@ -40,19 +40,6 @@ Core framing questions to align with the interviewer/PM before designing:
 | Durability | Decision + label data: 99.999999999% (11 nines, object storage class) | Legal/chargeback evidence retention |
 | Fail-open policy | On scoring-service outage, fail to conservative rule-set, never fail to "block all" or "allow all" blindly | Balance availability vs risk |
 
-## 4. Clarifying Questions an Interviewer Would Expect You to Ask
-
-1. Is this greenfield or replacing an existing rules engine? (Affects whether we need a shadow-mode rollout period.)
-2. What's the current chargeback ratio and card-network threshold we must stay under (e.g., Visa VDMP triggers at 0.9%)?
-3. Do we need to support 3DS/step-up authentication as a native action, or just allow/deny?
-4. Is cross-title / cross-studio data sharing permitted (privacy/legal), e.g., can a device fingerprint flagged in FIFA inform Apex scoring?
-5. What identity signals are available: hashed device ID, IP/ASN, card BIN, platform account ID (PSN/Xbox/Steam), EA account age?
-6. What's the label latency — how long after a transaction do we get a confirmed chargeback or confirmed-fraud analyst verdict?
-7. Are there regulatory constraints (GDPR/CCPA) on storing device fingerprints or using them for automated decisions without explanation?
-8. What's acceptable false-positive rate on legitimate whales (high-LTV players) — do we need a VIP allowlist/override path?
-9. Do we need on-device (console/client) pre-screening signals, or is everything server-side?
-10. What's the expected adversary sophistication — scripted bots, human click-farms, or organized rings with insider access?
-
 ## 5. Assumptions
 
 1. EA has ~30M monthly active payers across titles (subset of ~500M+ registered accounts), with peak concurrent transaction load during content drops (e.g., FC Ultimate Team pack releases).

@@ -713,20 +713,23 @@ Main risks: (1) Feature fetch fan-out — if each request fetches features for 5
 
 ## Flashcards
 
-**GC pauses (JVM heap pressure, Python GC)?** #flashcard
-GC pauses (JVM heap pressure, Python GC)
+**What four things typically cause a large P99/P50 latency gap?** #flashcard
+GC pauses (JVM/Python), thundering herd on cache miss, stragglers in a batched feature fetch (waiting for the slowest key), and CPU throttling in a container.
 
-**Thundering herd on cache miss?** #flashcard
-Thundering herd on cache miss
+**Why is exactly-once Kafka delivery usually overkill for ML feature pipelines?** #flashcard
+It costs 2-3x latency overhead. At-least-once delivery with idempotent writes (upsert by event ID) is the pragmatic default; reserve exactly-once for financial ledgers.
 
-**Stragglers in batched feature fetch (wait for slowest key)?** #flashcard
-Stragglers in batched feature fetch (wait for slowest key)
+**What is point-in-time correctness and why does violating it cause training-serving skew?** #flashcard
+Training features must be computed using only data available as of the label's event time. If a feature is computed with data from after the label was observed, the model learns signal it will never have at serving time (future leakage).
 
-**CPU throttling in container (check cpu_throttled_seconds)?** #flashcard
-CPU throttling in container (check cpu_throttled_seconds)
+**Event sourcing vs. CDC for the dual-write consistency problem — when to use each?** #flashcard
+Event sourcing (Kafka as sole source of truth, feature store derived from it) fits ML feature stores — eventual consistency is acceptable. CDC (Debezium reads DB WAL, publishes to Kafka) fits financial ledgers where the DB must be the single source of truth.
 
-**High-value transactions?** #flashcard
-maximize recall (miss fewer frauds), tolerate 200ms
+**How does exposure bias become a self-reinforcing feedback loop?** #flashcard
+Model shows ads/items only to predicted high-CTR users; low-scored users are never shown anything, so no click data accumulates for them; retraining on this biased data pushes the split further, and the model can't generalize to the unexposed population.
 
-**Micro-transactions?** #flashcard
-maximize precision (false positives are costly), require <20ms
+**Fraud detection: why route high-value vs. micro-transactions to different thresholds?** #flashcard
+High-value transactions should maximize recall (miss fewer frauds) and can tolerate ~200ms latency; micro-transactions should maximize precision (false positives are costly relative to transaction value) and need <20ms latency.
+
+**What's the fallback hierarchy when a real-time ML system's primary path fails?** #flashcard
+Online features + latest model → cached predictions (TTL-bounded) → simpler in-process fallback model (e.g. logistic regression) → hard-coded business rules → default action (allow-all or block-all based on risk tolerance).

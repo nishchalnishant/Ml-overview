@@ -905,80 +905,20 @@ After backfilling, validate a sample: take 10 random (user_id, date) pairs, manu
 
 ## Flashcards
 
-**Lambda is operationally expensive?** #flashcard
-two codebases that must produce identical results for the same feature. Schema changes require coordinated updates in both paths.
+**Why is Lambda architecture operationally expensive compared to Kappa?** #flashcard
+Lambda requires two codebases (batch + speed layer) that must produce identical results for the same feature; schema changes require coordinated updates in both paths. Kappa uses one streaming codebase and replays the event log for historical reprocessing.
 
-**Kappa requires the stream processor to handle replay at batch throughput?** #flashcard
-Kafka retention must cover the full reprocessing window (weeks or months of logs).
+**What does Kappa architecture require from the stream processor and event log to work?** #flashcard
+The stream processor must sustain batch-level throughput during replay, and Kafka retention must cover the full reprocessing window (weeks or months of logs) so historical data isn't lost.
 
-**Modern default?** #flashcard
-prefer Kappa with Flink or Spark Structured Streaming. Fall back to Lambda only when you need exact historical correctness that streaming can't guarantee (e.g., late-arriving data beyond the watermark).
+**What's the modern default choice between Lambda and Kappa, and when do you fall back?** #flashcard
+Prefer Kappa (Flink or Spark Structured Streaming). Fall back to Lambda only when exact historical correctness is required that streaming can't guarantee — e.g., late-arriving data beyond the watermark.
 
-**name?** #flashcard
-user_id
+**Iceberg vs. Delta Lake — name one scenario favoring each.** #flashcard
+Iceberg: multi-engine shops (Trino + Spark + Flink) or tables with frequent partition scheme changes (hidden partitioning avoids rewrites). Delta Lake: Databricks-centric stacks needing Z-ordering/Auto Optimize, or Spark-unified streaming+batch.
 
-**name?** #flashcard
-purchase_count_30d
+**Why must a feature backfill filter strictly on `transaction_date <= target_date` rather than reading the current table snapshot?** #flashcard
+Reading the full/current table and filtering incorrectly can leak future data into a historical feature value (temporal leakage) — inflating offline metrics without a corresponding signal at serving time.
 
-**name?** #flashcard
-feature_timestamp
-
-**preprocess.py?** #flashcard
-preprocess.py
-
-**data/raw.parquet?** #flashcard
-data/raw.parquet
-
-**data/processed.parquet?** #flashcard
-data/processed.parquet
-
-**train.py?** #flashcard
-train.py
-
-**data/processed.parquet?** #flashcard
-data/processed.parquet
-
-**models/model.pkl?** #flashcard
-models/model.pkl
-
-**metrics.json?** #flashcard
-metrics.json
-
-**Multi-engine shops (Trino for ad-hoc + Spark for ETL + Flink for streaming)?** #flashcard
-Multi-engine shops (Trino for ad-hoc + Spark for ETL + Flink for streaming)
-
-**Tables with frequent partition scheme changes (Iceberg's hidden partitioning avoids rewrites)?** #flashcard
-Tables with frequent partition scheme changes (Iceberg's hidden partitioning avoids rewrites)
-
-**Very large tables where Delta transaction log size becomes a bottleneck (>100K transactions)?** #flashcard
-Very large tables where Delta transaction log size becomes a bottleneck (>100K transactions)
-
-**Databricks-centric stack (native integration, Z-ordering, Auto Optimize)?** #flashcard
-Databricks-centric stack (native integration, Z-ordering, Auto Optimize)
-
-**Streaming + batch unification on Spark (DeltaStream API)?** #flashcard
-Streaming + batch unification on Spark (DeltaStream API)
-
-**Simpler operational model for small-to-medium teams?** #flashcard
-Simpler operational model for small-to-medium teams
-
-**name?** #flashcard
-user_30d_features
-
-**name?** #flashcard
-user_id
-
-**not_null?** #flashcard
-not_null
-
-**unique?** #flashcard
-unique
-
-**name?** #flashcard
-event_count_30d
-
-**not_null?** #flashcard
-not_null
-
-**dbt_utils.accepted_range:?** #flashcard
-dbt_utils.accepted_range:
+**dbt: what do `not_null`, `unique`, and `accepted_range` tests enforce, and where do they run?** #flashcard
+They enforce data-contract-like guarantees (non-null values, uniqueness, valid numeric ranges) on model output columns, run as part of the dbt DAG so a violation fails the pipeline before bad data reaches downstream consumers.

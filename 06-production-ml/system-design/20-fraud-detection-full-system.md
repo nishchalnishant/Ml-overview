@@ -396,71 +396,32 @@ A: Card testing leaves velocity signatures: rapid succession of small transactio
 
 ## Flashcards
 
-**What type of fraud? Card-not-present, account takeover, synthetic identity, merchant fraud?** #flashcard
-What type of fraud? Card-not-present, account takeover, synthetic identity, merchant fraud
+**Why is accuracy a useless metric for fraud detection, even at 98%?** #flashcard
+With a ~0.1% fraud rate, a model that always predicts "not fraud" gets 99.9% accuracy while catching zero fraud. PR-AUC and recall-at-fixed-FPR are the metrics that actually reflect fraud-catching performance on this class imbalance.
 
-**Decision latency? Real-time (<100ms) or near-real-time (<5s)?** #flashcard
-Decision latency? Real-time (<100ms) or near-real-time (<5s)
+**Why use PR-AUC instead of ROC-AUC as the primary fraud metric?** #flashcard
+ROC-AUC's false positive rate axis is diluted by the 99.9% of transactions that are true negatives, making it insensitive to changes that matter operationally; PR-AUC directly reflects the precision-recall trade-off at the low-FPR operating points fraud systems actually run at.
 
-**False positive cost? Declined legitimate transaction → customer friction, churn?** #flashcard
-False positive cost? Declined legitimate transaction → customer friction, churn
+**Why does the fraud model use a two-model ensemble (GBT + sequence/neural) instead of one model?** #flashcard
+GBT handles tabular, non-linear feature interactions well and is fast/interpretable via SHAP, but can't capture temporal patterns; a sequence model (LSTM over transaction history) is needed specifically for account-takeover patterns like new device → password change → new payee → large transfer, which only show up as an ordered sequence.
 
-**False negative cost? Fraud loss + chargeback fee ($15–50/incident)?** #flashcard
-False negative cost? Fraud loss + chargeback fee ($15–50/incident)
+**Why can't fraud models be trained on chargeback labels alone?** #flashcard
+Chargebacks take 30-90 days to arrive, so training only on confirmed fraud misses "silent fraud" that was never reported and starves the model of recent data. A label hierarchy (rule blocks → manual review → disputes → chargebacks) lets daily retraining use fast, lower-quality signals while monthly retraining uses slow, high-quality confirmed labels.
 
-**Feedback delay? Chargebacks arrive 30–90 days after transaction?** #flashcard
-Feedback delay? Chargebacks arrive 30–90 days after transaction
+**Why must fraud model validation use a temporal split, never a random split?** #flashcard
+Fraud patterns drift over time — new attack vectors emerge and old ones get patched — so a random split leaks future fraud patterns into training and overstates how well the model will generalize to genuinely new attacks it hasn't seen yet.
 
-**XGBoost or LightGBM?** #flashcard
-XGBoost or LightGBM
+**Why combine a rules engine with an ML model instead of using ML alone?** #flashcard
+Rules are fast, interpretable, and auditable (needed for regulatory compliance and obvious cases like stolen-card blocklists) but brittle since adversaries adapt to known rules; ML adapts to subtle patterns but is a black box and needs labeled data. Production systems run rules first for clear-cut blocks, then ML for the ambiguous middle.
 
-**Handles tabular features, missing values, non-linear interactions?** #flashcard
-Handles tabular features, missing values, non-linear interactions
+**Why does `scale_pos_weight` (or focal loss) matter for training a fraud GBM, and what breaks without it?** #flashcard
+At a ~1000:1 class imbalance, an unweighted model minimizes loss by mostly ignoring the minority (fraud) class, since predicting "not fraud" for everything is already near-optimal for unweighted loss — weighting the positive class (or down-weighting easy negatives via focal loss) forces the model to actually learn fraud-distinguishing signal.
 
-**500 trees, depth 6, ~30ms inference?** #flashcard
-500 trees, depth 6, ~30ms inference
+**Why is a card-testing attack (many small transactions, then one large one) hard for a plain tabular GBM to catch but easier for a sequence model?** #flashcard
+Any single small transaction looks unremarkable in isolation — the fraud signal is in the temporal pattern (rapid succession, low-then-high amount variance) across multiple transactions, which a per-transaction tabular model doesn't see but a sequence/velocity-feature model does.
 
-**Interpretable via SHAP?** #flashcard
-Interpretable via SHAP
+**Why do retraining triggers for fraud models include both precision drops AND recall drops, not just one?** #flashcard
+A precision drop signals a new fraud pattern is bypassing the model (missed positives look normal); a recall drop signals rising false negatives, e.g. from unreported fraud increasing the effective noise in "negative" labels — both indicate the model no longer matches current fraud behavior, but point to different causes.
 
-**Embed user history, merchant, device fingerprint?** #flashcard
-Embed user history, merchant, device fingerprint
-
-**Captures sequence patterns (series of transactions)?** #flashcard
-Captures sequence patterns (series of transactions)
-
-**~20ms inference?** #flashcard
-~20ms inference
-
-**Insensitive to true negatives (99.9% of transactions)?** #flashcard
-Insensitive to true negatives (99.9% of transactions)
-
-**Directly measures useful fraud detection at low FPR?** #flashcard
-Directly measures useful fraud detection at low FPR
-
-**Use Level 1+2 labels for daily model refresh (low delay, lower quality)?** #flashcard
-Use Level 1+2 labels for daily model refresh (low delay, lower quality)
-
-**Use Level 1–4 for monthly full retrain (high delay, high quality)?** #flashcard
-Use Level 1–4 for monthly full retrain (high delay, high quality)
-
-**Positive label = any level flagged, negative = 120 days without any flag?** #flashcard
-Positive label = any level flagged, negative = 120 days without any flag
-
-**Precision drops >5% at fixed threshold (new fraud pattern bypassing model)?** #flashcard
-Precision drops >5% at fixed threshold (new fraud pattern bypassing model)
-
-**Recall drops >5% (false negatives increasing, unreported fraud rise)?** #flashcard
-Recall drops >5% (false negatives increasing, unreported fraud rise)
-
-**PSI > 0.25 on top-10 features (covariate shift)?** #flashcard
-PSI > 0.25 on top-10 features (covariate shift)
-
-**Fraud rate exceeds 2× expected (emerging attack)?** #flashcard
-Fraud rate exceeds 2× expected (emerging attack)
-
-**Rules?** #flashcard
-interpretable, fast, easy to audit, brittle (adversaries adapt)
-
-**ML?** #flashcard
-adaptive, catches subtle patterns, black box, needs labels
+**Why treat unconfirmed recent transactions (<90 days old) as censored rather than as negative labels?** #flashcard
+A transaction with no chargeback yet isn't confirmed non-fraud — it may simply not have been reported yet within the observation window. Treating it as a hard negative teaches the model a wrong ground truth; survival-analysis framing (or excluding it until the window closes) avoids this bias.

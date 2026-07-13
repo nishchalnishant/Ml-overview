@@ -43,19 +43,6 @@ Key framing questions to state upfront in an interview:
 
 Non-negotiables specific to EA: unreleased-title source code and design docs are among the company's most sensitive assets — a leak (via prompt injection into a third-party model, or cross-repo context bleed) is a legal/business risk, not just an engineering bug.
 
-## 4. Clarifying Questions an Interviewer Would Expect
-
-1. Are we allowed to send proprietary code to a third-party hosted LLM API, or must inference be fully in-VPC/on-prem?
-2. What's the largest repo we must index (LOC, file count) — does it fit single-box indexing or need distributed indexing?
-3. Is code execution allowed to reach network/filesystem, or fully air-gapped sandbox?
-4. Do we need multi-IDE support day one, or start with VS Code and expand?
-5. What's acceptable false-accept rate for completions that introduce security vulnerabilities (e.g., hardcoded secrets, unsafe deserialization)?
-6. Is there a hard requirement for on-device/local-only mode for classified/embargoed titles (pre-announcement AAA projects)?
-7. Do we need audit trails for compliance (e.g., proving no third-party model trained on EA proprietary code)?
-8. What's the budget ceiling per engineer per month for inference spend?
-9. Should completions and chat share the same underlying model or can we use a smaller distilled model for inline and a larger one for chat?
-10. Is there an existing internal code index / search system (e.g., Sourcegraph-like) we can build on rather than re-index from scratch?
-
 ## 5. Assumptions
 
 1. ~30,000 engineers across EA studios use the assistant; ~18,000 are daily active (DAU) during core dev cycles.

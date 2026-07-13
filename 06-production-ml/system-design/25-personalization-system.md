@@ -455,3 +455,37 @@ Profile Store  ANN Index   Item Features
 ```
 
 **What breaks**: personalizing cold-start users with demographic fallbacks creates filter bubbles faster than personalized recommendations. A user in the "25-34 tech male" demographic bucket gets served tech content → engages with tech → reinforces the bucket. The demographic model never learns they actually prefer cooking content. Mix exploration (random from diverse categories) into cold-start responses.
+
+---
+
+## Flashcards
+
+**Why does category affinity use an exponential moving average instead of a simple running average of all-time events?** #flashcard
+A user's taste shifts over time (they stop liking running gear after an injury, start liking baby products after having a kid); an EMA with a small learning rate (e.g. 0.1) lets recent signals dominate while a plain average would let years of stale history drown out a real preference shift.
+
+**Why does the system weight purchase/dwell/click/skip signals differently instead of treating all engagement as equally positive?** #flashcard
+A click can be accidental or driven by curiosity, but a purchase or 60-second dwell represents real cost paid by the user, so it's much stronger evidence of true preference; skips and explicit dislikes are given negative weight because silence (no interaction) is ambiguous but an active skip is a genuine negative signal.
+
+**Why must session context be allowed to override the long-term profile rather than always blending them at a fixed ratio?** #flashcard
+A user with a "running gear" long-term profile who is actively searching "birthday gifts for kids" has a completely different immediate intent; a fixed blend would keep surfacing running shoes during a gift search, so the system computes an intent_weight that shifts toward 80% context when a clear query signal exists, and toward the stable profile only during ambiguous, query-less browsing.
+
+**Why does the cold-start handler use a tiered strategy (population prior → demographic fallback → collaborative similarity → personalized) instead of one fallback method?** #flashcard
+Each tier requires progressively more data to be reliable: zero events means even a demographic guess is unfounded, so raw popularity is safest; a handful of events supports a coarse demographic bucket; dozens of events support finding genuinely similar users; the tiers let the system upgrade personalization quality as evidence accumulates instead of over- or under-fitting at any given data volume.
+
+**Why can new items get content-based embeddings instead of collaborative-filtering embeddings at launch?** #flashcard
+Collaborative filtering embeddings are learned purely from interaction history, which a brand-new item has none of; deriving an initial embedding from title/category/brand/price content features lets the item enter the same embedding space immediately, with the content embedding gradually refined as real interactions accumulate.
+
+**Why do new items get an explicit score boost (e.g. +30% in the first 24 hours) rather than competing purely on predicted relevance?** #flashcard
+A new item's predicted score is unreliable — the model has almost no signal to base it on — so without a boost it would rarely be shown, would never accumulate interaction data, and would be permanently stuck looking unpopular; the boost buys it an "impression budget" to let the model learn its true quality.
+
+**Why does the fusion score include a diversity penalty for items similar to what's already been shown in the session?** #flashcard
+Pure relevance-maximizing scoring will happily show 10 near-identical items if they all match the user's dominant affinity, which feels repetitive rather than helpful; penalizing similarity to recently-seen items forces variety within a session even when the raw personalization signal favors near-duplicates.
+
+**Why does demographic-fallback cold start risk creating filter bubbles even faster than a trained personalization model?** #flashcard
+The demographic bucket (e.g. "25-34 tech male") is a hard prior that then gets reinforced by its own predictions — the user engages with the tech content they're shown because it's the only thing shown, and that engagement is read back as confirming the demographic guess, so the system never discovers the user's actual off-prior preferences (e.g. cooking) unless exploration is deliberately mixed in.
+
+**Why is the personalization service kept stateless while user profiles and session context live in Redis rather than in-process memory?** #flashcard
+At 100K requests/second across 500M users, a stateless service can be scaled horizontally behind a load balancer without needing to route a given user consistently to the same server; profile state in a shared Redis layer lets any service instance serve any request while still hitting sub-5ms profile reads within the 50ms P99 budget.
+
+**Why is item price sensitivity applied as a multiplicative penalty on the fused score rather than as another additive term like category affinity?** #flashcard
+A price-sensitive user should have expensive items suppressed regardless of how strong their category affinity is (a price-sensitive user who loves running gear still shouldn't see $300 shoes ranked at the top); multiplying the combined relevance score by a price_score factor lets a bad price match scale down an otherwise-high relevance score instead of just being outweighed by it in a sum.

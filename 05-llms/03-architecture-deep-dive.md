@@ -341,6 +341,8 @@ English: "the cat is on the mat"  → Le chat est sur le tapis.
 
 ## 12. Major Model Families
 
+*(niche — useful for context/trivia, but exact version-by-version specs and benchmark numbers are rarely quizzed directly; know the general architectural trends per family, not every number)*
+
 ### GPT Family (OpenAI)
 
 **GPT-3 (2020)**: 175B parameters, 96 layers, 96 heads, 12,288 embedding dim. Trained on ~300B tokens (WebText2 + Books + Wikipedia). Standard MHA with learned absolute positional embeddings. Context: 2,048 tokens. Severely undertrained by Chinchilla standards (1.7 tokens/param vs. Chinchilla's 20). Demonstrated emergent few-shot learning at scale — no task-specific fine-tuning, just examples in the prompt.

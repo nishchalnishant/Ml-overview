@@ -254,32 +254,29 @@ Span-level hallucination detection. Labels individual sentences as factual or ha
 
 ## Flashcards
 
-**Append "Think step by step before answering"?** #flashcard
-forces verifiable intermediate steps.
+**Why do LLMs hallucinate in the first place?** #flashcard
+They're trained to minimize next-token prediction loss (fluency), not to distinguish "I know this" from "this sounds plausible." A recalled fact and a fluent confabulation look identical to the training objective. Mitigations must either give the model external facts (RAG), detect inconsistency with a reliable source, or change the training reward.
 
-**Include few-shot examples where the model says "I don't know" for uncertain questions.?** #flashcard
-Include few-shot examples where the model says "I don't know" for uncertain questions.
+**What's the difference between faithful and factual hallucination?** #flashcard
+Faithful = consistent with the provided context but wrong about the world (e.g., accurately summarizing a source that itself contains an error). Factual = contradicts world knowledge regardless of context. A model can be faithful-but-wrong or factual-but-unfaithful (correct about the world while contradicting what the source said).
 
-**Add explicit instructions?** #flashcard
-"If you are less than 80% confident in a claim, preface it with 'I believe.' If you cannot verify from the provided context, say so."
+**Why does teacher forcing during training contribute to hallucination at inference?** #flashcard
+Training conditions each token on the ground-truth prefix; inference conditions on the model's own (possibly wrong) previous outputs. The model was never trained to recover from its own errors, so one wrong token can compound across a long generation (exposure bias).
 
-**Instruct citation?** #flashcard
-"After each factual claim, include [Doc N] referring to the source document."
+**How do self-consistency and SelfCheckGPT detect hallucination without a reference answer?** #flashcard
+Sample N responses to the same prompt (or N variants at temp>0 against one primary response at temp=0) and measure agreement/semantic similarity. High variance across samples signals unreliable/confabulated content. Both fail on systematic hallucinations — errors the model makes consistently produce high cross-sample agreement despite being wrong.
 
-**Expected Calibration Error (ECE)?** #flashcard
-bin predictions by stated confidence; measure the average gap between confidence and accuracy within each bin. Low ECE = well calibrated.
+**How does RAG reduce hallucination and what limits its effectiveness?** #flashcard
+It externalizes knowledge into the prompt so the model attends to a verifiable, updatable source instead of reconstructing facts from parametric memory. Ceiling is retrieval quality: if the right chunk isn't retrieved, the model falls back to parametric memory; lost-in-the-middle effects and conflicting passages can still cause errors.
 
-**Verbalized uncertainty?** #flashcard
-train or prompt the model to use phrases ("I believe," "I'm not certain") when it is less confident.
+**How does constrained decoding prevent hallucination, and what does it not fix?** #flashcard
+It derives a finite-state machine from a schema/regex and masks invalid tokens (−∞ logit) at each decode step, so the model physically cannot emit malformed output. It eliminates format hallucinations (bad JSON keys/types) but not factual ones — the model can still produce valid JSON containing wrong values.
 
-**Token-level log-probabilities: for single-token answers, the model's own log-probability of the answer token is a calibration signal?** #flashcard
-imperfect but better than nothing.
+**What is calibration and why does RLHF often make it worse?** #flashcard
+Calibration is the gap between a model's stated confidence and its empirical accuracy (measured via Expected Calibration Error). RLHF tends to reward confident, fluent responses over hedged ones, so models become more overconfident even as raw capability improves — the model learns to seem accurate rather than be accurate.
 
-**Filter the SFT dataset to keep only examples with FactScore above a threshold.?** #flashcard
-Filter the SFT dataset to keep only examples with FactScore above a threshold.
+**What is FactScore and how is it computed?** #flashcard
+It decomposes generated text into atomic claims, retrieves supporting evidence for each (e.g., via Wikipedia BM25/dense retrieval), and classifies each claim as supported or not with an NLI model or LLM. FactScore = fraction of claims supported. More granular than sentence-level judgments but expensive at scale and limited to verifiable claims.
 
-**Include TruthfulQA-style adversarial examples with correct answers (teaching the model not to repeat common misconceptions).?** #flashcard
-Include TruthfulQA-style adversarial examples with correct answers (teaching the model not to repeat common misconceptions).
-
-**Use FactScore as a reward signal?** #flashcard
-prefer high-FactScore responses during preference data collection.
+**Rank the hallucination mitigation stack by cost and what each does/doesn't fix.** #flashcard
+Cheapest → most expensive: prompt engineering (near-zero cost, reduces surface hallucination but unreliable against confident errors) → constrained decoding / calibration (low cost, fixes format/expression, not content) → RAG (medium infra cost, fixes knowledge-grounding up to retrieval quality) → factuality fine-tuning (high cost, reduces systematic errors, risks losing coverage) → RLHF/RLAIF (highest cost, most powerful, but reward-hacking risk).

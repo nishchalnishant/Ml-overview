@@ -168,13 +168,7 @@ The action space is defined by tool schemas provided to the model. The loop is g
 - **Direct injection**: user message contains "Ignore your previous instructions and do X." The model may follow X.
 - **Indirect injection**: malicious text is embedded in a retrieved document. When the document is inserted into the RAG prompt, the model follows the embedded instructions.
 
-**Mitigations — defense in depth, not a single prompt rule**:
-
-1. **Never trust user content as instructions**: treat user input as data, not as control flow. Do not dynamically insert user text into the system prompt section.
-2. **Code-side enforcement**: critical business logic (permission checks, allowed actions) must be enforced in application code, not only as model instructions.
-3. **Tool allowlists and argument validation**: the model may request destructive tool calls. The application code decides whether to execute them, not the model.
-4. **Retrieval filtering**: enforce ACL checks on retrieved documents before they enter the prompt. Even if the model is "told" to follow injected instructions, it cannot retrieve unauthorized content if retrieval is gated.
-5. **Output validation**: schema-validate and safety-filter model outputs before acting on them.
+**Mitigations — defense in depth, not a single prompt rule.** Full mitigation stack (structural trust boundaries, tool allowlists, HITL, code-level enforcement) covered in [17-advanced-alignment-and-reasoning.md](./17-advanced-alignment-and-reasoning.md) and [10-ai-safety-ethics-and-responsible-ai-what.md](./10-ai-safety-ethics-and-responsible-ai-what.md#q2-a-user-embeds-instructions-in-content-your-agent-retrieves-how-does-prompt-injection-work-and-how-do-you-defend-against-it). Short version: never trust user/retrieved content as instructions, enforce business logic in application code (not the prompt), gate retrieval with ACL checks, and validate/allowlist any tool calls before execution.
 
 **What breaks**: no single mitigation is complete. A fully defense-in-depth system reduces the attack surface but cannot eliminate it — the model is, by design, instruction-following. The goal is to ensure that even if the model follows an injected instruction, it cannot do anything harmful because the application layer enforces safety independently.
 

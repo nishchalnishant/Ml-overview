@@ -1,9 +1,9 @@
 ---
 module: Interview Prep
-topic: Llm
+topic: Ml
 subtopic: Statistics Probability
 status: unread
-tags: [interviewprep, ml, llm-statistics-probability]
+tags: [interviewprep, ml, ml-statistics-probability]
 ---
 # Statistics and Probability — Interview Reference
 

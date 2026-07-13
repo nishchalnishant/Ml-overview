@@ -33,19 +33,6 @@ Core tension to surface immediately in an interview: **relevance vs. freshness v
 | Cost | Target ≤ $0.0006 per query fully loaded (compute + storage + model serving amortized) at steady state |
 | Durability | Zero data loss on source-of-truth systems (search index is a derived, rebuildable artifact — not source of truth) |
 
-## 4. Clarifying Questions an Interviewer Would Expect
-
-1. Is the ACL model role-based (RBAC), attribute-based (ABAC), or per-object ACL lists inherited from source systems (Confluence spaces, GitHub repo perms, Jira project roles)?
-2. Do we need cross-studio search, or can studios opt out (e.g., unreleased-title code must never leak across studio boundaries even to other EA employees)?
-3. Is there a hard compliance requirement (SOX, contractual NDAs with partners) restricting where indexed embeddings/text can be stored (region residency)?
-4. What's the tolerance for stale ACLs — is "eventually consistent within 2 min" acceptable, or is this a hard security boundary requiring synchronous ACL check at read time regardless of index staleness?
-5. Should code search index private/unreleased-title branches, or only mainline/trunk?
-6. Is LLM-based answer synthesis in scope for v1, or is this pure ranked retrieval first?
-7. What's acceptable model-serving cost ceiling, and is there an existing internal GPU allocation (shared with other ML platform teams) or dedicated budget?
-8. Do we need multi-lingual support (EA has studios in Japan, Sweden, France)?
-9. Is click/behavioral data available for learning-to-rank, or do we cold-start with pure relevance heuristics?
-10. What existing identity provider (Okta/Azure AD) issues the ACL/group claims we must trust?
-
 ## 5. Assumptions
 
 1. 40,000 EA employees/contractors are potential users; ~18,000 are daily active searchers (DAU) during a work week.

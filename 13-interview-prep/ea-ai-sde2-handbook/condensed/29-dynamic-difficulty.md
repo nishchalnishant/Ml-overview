@@ -4,17 +4,6 @@
 
 ---
 
-## Clarifying Questions to Ask
-
-- **How do we define "Flow State"?** → Target ~80% win rate on first try, but <20% HP remaining in boss fights (tension).
-- **Does difficulty change mid-fight?** → No — changes only happen out of sight (e.g., next room spawn), to preserve immersion.
-- **What if players sandbag (intentionally fail) to farm an easier mode/achievement?** → Yes, real risk — need to detect intentional failure vs genuine struggle.
-- **What's the action space — what can the AI actually tune?** → Subtle levers only (spawn count, aggression), not visibly halving boss HP.
-- **Algorithm class expected?** → Contextual Bandit / Bayesian tracking, not supervised learning (we're exploring policies, not fitting static labels).
-- **Latency/compute environment?** → Runs client-side/offline-capable (single-player, no guaranteed connectivity).
-
----
-
 ## Core Architecture
 
 ```
@@ -50,19 +39,6 @@ Game Client → telemetry (accuracy, parry rate, time-to-kill, deaths)
 - **Rule-based heuristics vs Contextual Bandit:** rules (`if deaths>3: lower`) are simple, predictable, industry-proven; bandits optimize flow mathematically and find hidden feature interactions but need careful reward tuning to avoid weird emergent behavior.
 - **Visible vs invisible difficulty scaling:** visible (prompt to switch to Easy) respects agency but bruises pride; invisible DDA preserves ego but risks backlash if players discover it and feel manipulated — always ship an opt-out toggle.
 - **Elo/Glicko vs Bandit:** Elo is simple, proven, no ML infra needed, but needs a well-defined win/loss margin; bandits handle richer context but are harder to explain/debug to designers.
-
----
-
-## Toughest Follow-ups
-
-**Q: Thompson Sampling might randomly assign "Very Hard" to a beginner just to explore. How do you constrain this in production?**
-A: Hard-cap exploration to ±1 difficulty tier from current — never let the bandit jump straight to an extreme. Decay epsilon over session time (e.g., lock the model after ~2 hours of play) so long-term players get a stable, exploitation-only experience.
-
-**Q: Using Elo instead — if a player clears a room in 5 min with zero damage, did they "win" or "lose" the exchange?**
-A: Binary Elo can't represent this — need a continuous margin-of-victory score, e.g. `(expected_time/actual_time) * health_remaining`, fed into a Glicko-style continuous rating update instead of a 1/0/0.5 outcome.
-
-**Q: The DDA goes viral on Reddit; players feel the game is "lying" to them. How do you handle it?**
-A: Reframe publicly as an "Adaptive AI Director" focused on pacing, not stat-nerfing. Strictly honor the progression-override rule so gear upgrades never feel invalidated. Ship a menu toggle for Standard (fixed) vs Director (dynamic) mode — giving players the choice defuses the backlash.
 
 ---
 

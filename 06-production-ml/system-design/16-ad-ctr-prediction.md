@@ -935,146 +935,32 @@ Log loss improvement threshold: 0.001 → production-worthy at Google scale
 
 ## Flashcards
 
-**Ad format? Display (banner), search (keyword-triggered), social (feed), video pre-roll?** #flashcard
-each has different click semantics and feature sets
+**Why does calibration matter more than ranking quality (AUC) for CTR models?** #flashcard
+The auction uses the absolute value of pCTR to compute eCPM (bid × pCTR × quality); if pCTR is systematically 2× too high, every advertiser overpays by 2× regardless of how well the model ranks ads relative to each other.
 
-**Latency budget? Entire ad serving stack must complete in <100ms; CTR scoring gets ~10ms?** #flashcard
-Latency budget? Entire ad serving stack must complete in <100ms; CTR scoring gets ~10ms
+**Why is feature hashing necessary for user×ad cross features instead of storing them explicitly?** #flashcard
+The cross-feature space is combinatorially too large (trillions of possible pairs) to store exactly; hashing projects pairs into a fixed-size space (e.g. 2^26) with a small, acceptable collision rate (~0.015%).
 
-**Training data freshness? Is 24h-stale model acceptable, or is online learning required?** #flashcard
-Training data freshness? Is 24h-stale model acceptable, or is online learning required?
+**Why does DLRM separate sparse (ID) and dense features before combining them, rather than concatenating everything upfront?** #flashcard
+Sparse IDs need embedding-table lookups and benefit from explicit pairwise interaction (dot products) with each other; dense features go through a bottom MLP first. Treating them uniformly would waste the structure of the ID space and blow up parameter count.
 
-**Feedback loop? Are post-click conversions in scope, or just clicks?** #flashcard
-Feedback loop? Are post-click conversions in scope, or just clicks?
+**Why use a two-tower architecture for retrieval but a single joint model for ranking?** #flashcard
+Retrieval must search ~1B candidates in milliseconds, so user and ad embeddings are computed independently and matched via fast ANN search (dot product); ranking only scores ~1000 candidates, so a joint model can afford full user-ad feature interactions for higher accuracy.
 
-**Sparse ID space? How many user IDs, ad IDs, publisher IDs?** #flashcard
-determines embedding table memory
+**Why must you apply a calibration correction after negative sampling, and what happens if you forget?** #flashcard
+Training on a downsampled negative class shifts the learned probability distribution; without correcting via `p_true = p_model / (p_model + (1-p_model)/q)`, the raw model output is inflated (roughly 100× too high at a 1% sampling rate), breaking the auction's eCPM calculation.
 
-**Multi-task? Predict only CTR, or also CVR (conversion rate), engagement, etc.?** #flashcard
-Multi-task? Predict only CTR, or also CVR (conversion rate), engagement, etc.?
+**Why does training a CTR model without position-bias correction create a feedback loop?** #flashcard
+Users click higher-positioned ads more regardless of quality (the examination hypothesis); an uncorrected model learns "shown in position 1 → high CTR" and keeps ranking those same ads to position 1, starving new/lower-ranked ads of the exposure needed to prove themselves.
 
-**Auction type? First-price vs second-price?** #flashcard
-calibration requirements differ
+**Why can't a standard random train/validation split be used to evaluate a CTR model offline?** #flashcard
+Two reasons: temporal leakage (random splits let the model train on future information relative to some validation examples — use a strict time-based split), and survivorship bias (the logged data only contains ads the previous policy chose to show, so a new policy's counterfactual choices have no ground truth — requires IPS/counterfactual evaluation).
 
-**Wide part?** #flashcard
-Cross-product features + logistic regression. Memorizes frequent co-occurrences (e.g., "user installed Netflix" AND "ad is for Disney+" → high CTR).
+**Why do CTR model experiments face interference effects that break standard A/B test assumptions (SUTVA)?** #flashcard
+Advertisers share a fixed budget/auction pool; giving the treatment group's ads better scores causes them to win more auctions, directly reducing the control group's impressions — the groups aren't independent, so naive lift measurement overstates the true effect.
 
-**Deep part?** #flashcard
-Embedding lookup + 3-layer MLP. Generalizes to unseen combinations.
+**Why is the "Matthew effect" a failure mode specific to CTR feedback loops, and how is it mitigated?** #flashcard
+Ads with high predicted CTR get shown more, accumulate more clicks, and are retrained to even higher pCTR, while new ads never get exposure to prove themselves; mitigated with exploration budgets, Thompson sampling (sampling from the posterior instead of a point estimate), or counterfactual off-policy training on all candidates, not just past winners.
 
-**Handles 10^9 sparse features naturally (only store touched features)?** #flashcard
-Handles 10^9 sparse features naturally (only store touched features)
-
-**Per-coordinate adaptive learning rates (like AdaGrad)?** #flashcard
-Per-coordinate adaptive learning rates (like AdaGrad)
-
-**L1 regularization produces truly sparse models (important for memory)?** #flashcard
-L1 regularization produces truly sparse models (important for memory)
-
-**Can process ~100K examples/second per worker?** #flashcard
-Can process ~100K examples/second per worker
-
-**Auction computes eCPM = $10 × 0.02 = $0.20?** #flashcard
-Auction computes eCPM = $10 × 0.02 = $0.20
-
-**Advertiser wins auctions they shouldn't, pays too much per click?** #flashcard
-Advertiser wins auctions they shouldn't, pays too much per click
-
-**Budget depletes 2× faster than expected?** #flashcard
-Budget depletes 2× faster than expected
-
-**Temperature scaling?** #flashcard
-simplest, one parameter, good default
-
-**Platt scaling?** #flashcard
-when score distribution differs from logistic
-
-**Isotonic regression?** #flashcard
-when you have >100K calibration examples and need flexible shape
-
-**Advertiser A is in experiment group; their ads now score higher → they win more auctions → Advertiser B's ads (in control group) get fewer impressions?** #flashcard
-Advertiser A is in experiment group; their ads now score higher → they win more auctions → Advertiser B's ads (in control group) get fewer impressions
-
-**Measuring "CTR improvement" in treatment vs control is confounded by budget reallocation?** #flashcard
-Measuring "CTR improvement" in treatment vs control is confounded by budget reallocation
-
-**An experiment that improves CTR by 0.5% might decrease control group CTR by 0.3%?** #flashcard
-net lift is only 0.2%, but naive experiment reports 0.5%
-
-**Revenue per query (RPQ)?** #flashcard
-Revenue per query (RPQ)
-
-**Advertiser spend rate (budget utilization)?** #flashcard
-Advertiser spend rate (budget utilization)
-
-**User satisfaction signals (skip rate, complaint rate)?** #flashcard
-User satisfaction signals (skip rate, complaint rate)
-
-**CTR lift (with confidence intervals)?** #flashcard
-CTR lift (with confidence intervals)
-
-**RPM improvement?** #flashcard
-RPM improvement
-
-**Advertiser ROI?** #flashcard
-Advertiser ROI
-
-**Model log loss improvement?** #flashcard
-Model log loss improvement
-
-**Calibration ECE?** #flashcard
-Calibration ECE
-
-**Impression share for small advertisers?** #flashcard
-Impression share for small advertisers
-
-**Exploration budget?** #flashcard
-Reserve ε fraction of auctions for random or UCB-based ad selection (analogous to multi-armed bandit exploration)
-
-**Thompson sampling: Sample pCTR from posterior distribution rather than using point estimate?** #flashcard
-naturally balances explore/exploit
-
-**Counterfactual off-policy training?** #flashcard
-Train on all candidate ads, not just winners (requires logging propensities)
-
-**Context-only serving?** #flashcard
-Use device type, geo, time-of-day, page content without user history
-
-**Demographic fallback?** #flashcard
-Age + gender (if provided) → use segment-level CTR
-
-**Session signals?** #flashcard
-Clicks within current session bootstrap a session embedding in real time
-
-**Federated/ondevice signals?** #flashcard
-In privacy-preserving settings, use on-device behavioral signals without sending to server
-
-**Shorter training window (last 7 days instead of 30 days) for faster adaptation?** #flashcard
-Shorter training window (last 7 days instead of 30 days) for faster adaptation
-
-**Sample-weighted training?** #flashcard
-weight recent examples more heavily
-
-**Pre-season fine-tuning?** #flashcard
-collect holiday traffic data from prior year, fine-tune before the event
-
-**Click velocity?** #flashcard
->10 clicks/minute from same IP
-
-**Click-through without dwell time?** #flashcard
-user clicks, immediately leaves (<2 seconds on landing page)
-
-**Geographic anomalies?** #flashcard
-IP claims to be in New York, but timezone/language is Eastern Europe
-
-**Click farms?** #flashcard
-coordinated click patterns across IPs sharing subnet
-
-**Invalid click filtering before labels enter training data?** #flashcard
-Invalid click filtering before labels enter training data
-
-**Separate "raw CTR" vs "valid CTR" metrics?** #flashcard
-Separate "raw CTR" vs "valid CTR" metrics
-
-**Retroactive budget credits to affected advertisers?** #flashcard
-Retroactive budget credits to affected advertisers
+**Why does Population Stability Index (PSI) matter for CTR models specifically around holidays?** #flashcard
+Events like Black Friday shift CTR 3-5× above normal; a model trained on pre-holiday data will systematically underestimate pCTR during the shift. PSI compares score distributions to flag when retraining or a shorter/reweighted training window is needed.

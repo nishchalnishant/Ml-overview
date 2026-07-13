@@ -2,13 +2,6 @@
 
 EAAC's kernel driver collects mouse/memory telemetry to catch aimbots/wallhacks that mimic human behavior. Design an ML system that runs **on the game client** (not just server) under brutal CPU/RAM limits, with a safe escalation path so false positives don't instant-ban innocent players.
 
-## Clarifying Questions to Ask
-- Compute budget for the client model? → **<1% CPU, <50MB RAM** — game needs the resources.
-- What features does the driver actually collect? → Mouse (x,y,t) trajectories, `ReadProcessMemory` call frequency from other processes, driver signatures.
-- Do we ban instantly off the client model? → **No** — client only triggers; uploads telemetry to a heavier cloud model for the actual ban decision.
-- How do we handle legit high-skill/high-DPI players? → Must normalize features by sensitivity/DPI/resolution or pros get flagged.
-- Can we trust the OS-level signal at all? → No — DMA hardware cheats bypass the OS/kernel driver entirely.
-
 ## Core Architecture
 ```
 Kernel Driver (mouse x,y,t + memory reads)
@@ -37,16 +30,6 @@ Kernel Driver (mouse x,y,t + memory reads)
 - **LightGBM vs LSTM/CNN on-device**: trees give near-zero perf cost; neural nets are more accurate on nuanced behavior but cost ~30MB RAM and CPU cycles the game can't spare — accuracy traded for zero frame-rate impact.
 - **Instant ban vs ban waves**: instant bans let cheat devs reverse-engineer exactly which feature tripped detection; delayed waves obfuscate the trigger at the cost of a window where cheaters keep playing.
 - **Edge-only vs server-only detection**: edge catches cheap/local cheats cheaply but can be blinded by DMA hardware bypassing the OS; server-only behavioral analysis is bypass-proof but needs constant telemetry and heavier compute.
-
-## Toughest Follow-Ups
-**Q: Cheat dev deletes the model file on launch so it never runs — how do you stop this?**
-A: Server expects a signed heartbeat every 60s containing a hash of the model file. Missing/invalid heartbeat → treat as anti-cheat auth failure and kick/ban, independent of whether any cheat behavior was observed.
-
-**Q: A DMA PCIe card reads memory physically, bypassing the OS/kernel driver entirely — how does the pipeline catch it?**
-A: Give up on OS-level signals for this case; the cheat still has to act in-game. Shift to server-side behavioral analysis — track crosshair placement vs. actual enemy positions (e.g., perfect tracking through walls). Behavior is anomalous regardless of what hardware read the memory.
-
-**Q: LSTMs are slow/sequential and suffer vanishing gradients — what would you use for edge time-series instead?**
-A: Temporal Convolutional Networks (dilated 1D convolutions) — parallelizable unlike LSTMs, no vanishing gradient issue, and compile efficiently to ONNX/TFLite for edge deployment.
 
 ## Biggest Pitfall
 Proposing a heavy on-device model (Transformer/CNN/LSTM) that ignores the extreme client CPU/RAM budget, or treating false positives as an acceptable cost — either one signals no real-world game-client experience and is a No-Hire.
