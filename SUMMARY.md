@@ -18,11 +18,12 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Foundations Overview](01-foundations/README.md)
 * [Applied AI & ML Systems Guide](01-foundations/01-ai-ml-systems-and-application.md)
 * [Math and Theory Foundations](01-foundations/02-math-and-theory-foundations.md)
-* [Information Theory](01-foundations/05-information-theory.md)
 * [Python and Data Tooling](01-foundations/03-python-and-data-tooling.md)
 * [Data Processing & EDA](01-foundations/04-data-processing-and-eda.md)
 * [Foundations Flashcards](01-foundations/flashcards.md)
 * [ML Glossary](01-foundations/06-ml-glossary.md)
+* [Foundations — Interview Questions & Answers](01-foundations/interviewquestions.md)
+* [Foundations — Comparison Cheat Sheet](01-foundations/CHEATSHEET-COMPARISON.md)
 
 ## 02 — Classical ML
 
@@ -42,6 +43,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Model Interpretation](02-classical-ml/13-model-interpretation.md)
 * [Calibration & Uncertainty](02-classical-ml/14-calibration-and-uncertainty.md)
 * [Time Series Analysis (Classical)](02-classical-ml/20-time-series-analysis.md)
+* [Classical ML — Interview Questions](02-classical-ml/interviewquestions.md)
+* [Classical ML — Rapid Comparison Cheat Sheet](02-classical-ml/CHEATSHEET-COMPARISON.md)
 
 ## 03 — Deep Learning
 
@@ -53,7 +56,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Attention](03-deep-learning/components/10-attention.md)
   * [Autoencoders](03-deep-learning/components/12-autoencoders.md)
   * [Backpropagation](03-deep-learning/components/01-backpropagation.md)
-  * [Distributed Training & Parallelism](03-deep-learning/components/13-distributed-training-and-parallelism.md)
   * [Hidden Layers](03-deep-learning/components/04-hidden-layers.md)
   * [Loss Functions](03-deep-learning/components/05-loss-functions.md)
   * [Model Compression](03-deep-learning/components/16-model-compression.md)
@@ -70,8 +72,17 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [NLP Fundamentals](03-deep-learning/methods/01-nlp-fundamentals.md)
   * [Time Series](03-deep-learning/methods/09-time-series.md)
 * [PyTorch Fundamentals](03-deep-learning/01-pytorch-fundamentals.md)
-* [MCP](03-deep-learning/mcp.md)
 * [Transfer Learning](03-deep-learning/02-transfer-learning.md)
+* [Deep Learning — Interview Questions](03-deep-learning/interviewquestions.md)
+* [Deep Learning Comparison Cheatsheet](03-deep-learning/CHEATSHEET-COMPARISON.md)
+
+## 04 — Reinforcement Learning
+
+* [Overview](04-reinforcement-learning/README.md)
+* [RL Foundations](04-reinforcement-learning/01-rl-foundations.md)
+* [Bandits & Exploration](04-reinforcement-learning/02-bandits-and-exploration.md)
+* [Value-Based Methods](04-reinforcement-learning/03-value-based-methods.md)
+* [Policy Gradient Methods](04-reinforcement-learning/04-policy-gradient-methods.md)
 
 ## 05 — LLMs
 
@@ -89,7 +100,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Interview Questions](05-llms/11-interview-questions.md)
 * [Applications](05-llms/applications/README.md)
   * [Agentic Workflows](05-llms/applications/01-agentic-workflows.md)
-  * [Context Window Extension](05-llms/07-context-window-extension.md)
   * [Hallucination Mitigation](05-llms/applications/05-hallucination-mitigation.md)
   * [How to Train Your Dragon (LLM)](05-llms/applications/11-how-to-train-your-dragon-llm.md)
   * [Inference Optimization](05-llms/applications/06-inference-optimization.md)
@@ -140,6 +150,9 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Agentic Design Patterns](05-llms/books/01-agentic-design-pattern.md)
   * [Hands-On Large Language Models — Jay Alammar](05-llms/books/02-handson-large-language-models-jay_alammar.md)
 * [Revision](05-llms/REVISION.md)
+* [MCP — Model Context Protocol](05-llms/applications/12-mcp.md)
+* [LLM — Interview Questions](05-llms/interviewquestions.md)
+* [LLM Techniques — Exhaustive Comparison Cheat Sheet](05-llms/CHEATSHEET-COMPARISON.md)
 
 ## 06 — Production ML
 
@@ -160,7 +173,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Feature Store Architecture](06-production-ml/system-design/08-feature-store-architecture.md)
   * [Embedding Pipeline Design](06-production-ml/system-design/09-embedding-pipeline-design.md)
   * [Model Registry & Versioning](06-production-ml/system-design/10-model-registry-versioning.md)
-  * [Distributed Training](06-production-ml/system-design/11-distributed-training.md)
   * [LLM Inference Ops](06-production-ml/system-design/12-llm-inference-ops.md)
   * [Cost Optimization](06-production-ml/system-design/13-cost-optimization.md)
   * [A/B Testing & Experimentation](06-production-ml/system-design/14-ab-testing-experimentation.md)
@@ -177,6 +189,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Personalization System](06-production-ml/system-design/25-personalization-system.md)
   * [End-to-End Recommendation System](06-production-ml/system-design/26-end-to-end-recommendation-system.md)
   * [Video Recommendation System](06-production-ml/system-design/27-video-recommendation-system.md)
+* [Production ML — Interview Questions](06-production-ml/interviewquestions.md)
+* [Production ML — Comparison Cheat Sheet](06-production-ml/CHEATSHEET-COMPARISON.md)
 
 ## 07 — Interview Prep
 
@@ -214,12 +228,13 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [LLM Interview Notes](07-interview-prep/llm/README.md)
   * [Large Language Models](07-interview-prep/llm/01-large-language-model.md)
   * [NLP & Transformers](07-interview-prep/llm/02-nlp-transformers.md)
-
-## 08 — Emerging Topics
-
-* [Emerging Topics Overview](08-emerging-topics/README.md)
-* [Experimentation & Causal Inference](08-emerging-topics/experimentation-and-causal-inference/README.md)
-  * [Experimentation & Causal Inference (Deep Dive)](08-emerging-topics/experimentation-and-causal-inference/01-experimentation-and-causal-inference.md)
+* [Interview Playbook — The 90-Minute Blueprint](07-interview-prep/INTERVIEW-PLAYBOOK-90MIN.md)
+* [Communication Framework](07-interview-prep/COMMUNICATION-FRAMEWORK.md)
+* [Tradeoff Question Bank — ML, DL & LLMs](07-interview-prep/tradeoffs.md)
+* [Round 3 Prep — "Solve a real production problem end to end (with coding). Make and justify tradeoffs."](07-interview-prep/ROUND3-tradeoff-drills.md)
+* [Electronic Arts — ML Practical Interview Prep](07-interview-prep/EA-ml-deep-learning-interview.md)
+* [Master Interview Question Bank — Curated High-Signal Reference](07-interview-prep/interviewquestions.md)
+* [Interview Prep — Comparison Cheat Sheet](07-interview-prep/CHEATSHEET-COMPARISON.md)
 
 ## 09 — Study Plans
 
@@ -241,44 +256,10 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Days 24–25: Behavioral & Soft Skills](09-study-plans/week-3-system-design/03-day-24-25-behavioral-soft-skills.md)
 * [Week 4: Final Prep](09-study-plans/week-4-final-prep/README.md)
   * [Days 26–30: Final Prep](09-study-plans/week-4-final-prep/01-day-26-30-final-prep.md)
-
-## 10 — References
-
-* [Overview](10-references/README.md)
-* [Resources](10-references/resources.md)
-* [Book Notes](10-references/book-notes/README.md)
-  * [Deep Learning Books](10-references/book-notes/deep-learning/README.md)
-    * [Alice in Differentiable Wonderland](10-references/book-notes/deep-learning/01-alice-in-differentiable-wonderland.md)
-    * [Build a Large Language Model From Scratch](10-references/book-notes/deep-learning/02-build-a-large-language-model-from-scratch.md)
-    * [Deep Learning: A Practitioner's Approach](10-references/book-notes/deep-learning/03-deep-learning-practitioner-approach.md)
-    * [Deep Learning with PyTorch](10-references/book-notes/deep-learning/04-deep-learning-with-pytorch.md)
-    * [Dive Into Deep Learning](10-references/book-notes/deep-learning/05-dive-into-deep-learning.md)
-    * [Grokking Deep Learning](10-references/book-notes/deep-learning/06-grokking-deep-learning.md)
-  * [Machine Learning Books](10-references/book-notes/machine-learning/README.md)
-    * [Machine Learning Pocket Reference](10-references/book-notes/machine-learning/machine-learning-pocket-reference.md)
-  * [MLOps Books](10-references/book-notes/mlops/README.md)
-    * [Designing Machine Learning Systems](10-references/book-notes/mlops/01-designing-machine-learning-systems.md)
-    * [Keras to Kubernetes](10-references/book-notes/mlops/02-keras-to-kubernetes.md)
-    * [Machine Learning Design Patterns](10-references/book-notes/mlops/03-machine-learning-design-patterns.md)
-    * [Machine Learning Engineering](10-references/book-notes/mlops/04-machine-learning-engineering.md)
-* [Research Papers](10-references/research-papers/README.md)
-  * [Deep Learning Papers](10-references/research-papers/deep-learning/README.md)
-    * [Computer Vision Papers](10-references/research-papers/deep-learning/01-computer-vision.md)
-    * [LLM Papers](10-references/research-papers/deep-learning/02-llm.md)
-    * [Time Series Papers](10-references/research-papers/deep-learning/03-time-series.md)
-  * [Classical ML Papers](10-references/research-papers/01-ml.md)
-  * [MLOps Papers](10-references/research-papers/02-mlops.md)
-
-## 11 — Data Scientist
-
-* [Overview](11-data-scientist/README.md)
-* [Interview Prep](11-data-scientist/01-data-scientist-interview-prep.md)
-* [EDA & Data Quality](11-data-scientist/02-eda-and-data-quality.md)
-* [SQL & Data Manipulation](11-data-scientist/03-sql-and-data-manipulation.md)
-* [Statistics & Probability](11-data-scientist/04-statistics-and-probability.md)
-* [Metrics & Business Analytics](11-data-scientist/05-metrics-and-business-analytics.md)
-* [Causal Inference](11-data-scientist/06-causal-inference.md)
-* [Experiment Design & AB Testing](11-data-scientist/07-experiment-design-and-ab-testing.md)
+* [Day 31-32: Architecture, Scaling & Efficient Training/Inference](09-study-plans/week-5-llm-deep-dive/01-day-31-32.md)
+* [Day 33-34: Alignment, Safety & Agentic Systems / RAG](09-study-plans/week-5-llm-deep-dive/02-day-33-34.md)
+* [Day 35: Applied & Production LLMs + Mock Interview](09-study-plans/week-5-llm-deep-dive/03-day-35.md)
+* [Consolidated Interview Question Bank (4-Week Study Plan)](09-study-plans/interviewquestions.md)
 
 ## 12 — Projects
 
@@ -288,3 +269,70 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [03 — LLM Fine-Tuning (LoRA)](12-projects/03-llm-finetuning/README.md)
 * [04 — Multi-Agent A2A + MCP](12-projects/04-multi-agent-a2a-mcp/README.md)
 * [09 — MCP Agent System](12-projects/09-mcp-agent-system/README.md)
+* [--- core ---](12-projects/05-interview-template/PACKAGES-CHEATSHEET.md)
+* [00 — Problem Framing (do this before writing any code)](12-projects/05-interview-template/template/00_problem_framing.md)
+* [Scenario Brief — Fraud Risk Scoring for a Payments Platform](12-projects/05-interview-template/production-scenario/00_scenario_brief.md)
+* [Solution Walkthrough — read only after attempting the drill](12-projects/05-interview-template/production-scenario/02_solution_walkthrough.md)
+* [Hands-On Projects — Interview Q&A](12-projects/interviewquestions.md)
+* [12-projects Comparison Cheat Sheet](12-projects/CHEATSHEET-COMPARISON.md)
+
+## 13 — EA Mock Interviews
+
+* [Handbook Overview](13-interview-prep/ea-ai-sde2-handbook/README.md)
+* [Quick Review](13-interview-prep/ea-ai-sde2-handbook/QUICK-REVIEW.md)
+  * [Matchmaking (FIFA Online) — 60-Min Cheat Sheet](13-interview-prep/ea-ai-sde2-handbook/condensed/01-matchmaking.md)
+  * [Churn Prediction & Intervention (Apex Legends) — Cheat Sheet](13-interview-prep/ea-ai-sde2-handbook/condensed/02-churn-prediction.md)
+  * [Interview 03 — Toxic Chat Moderation (Cheat Sheet)](13-interview-prep/ea-ai-sde2-handbook/condensed/03-toxic-chat.md)
+  * [Interview 04 — LLM-Powered NPC Dialogue Assistant (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/04-npc-assistant.md)
+  * [Cheat Sheet — Real-Time Cheat Detection (Aimbot)](13-interview-prep/ea-ai-sde2-handbook/condensed/05-cheat-detection.md)
+  * [Dynamic In-Game Store Pricing & Promotions — Cheat Sheet](13-interview-prep/ea-ai-sde2-handbook/condensed/06-dynamic-pricing.md)
+  * [Crash Prediction Cheat Sheet](13-interview-prep/ea-ai-sde2-handbook/condensed/07-crash-prediction.md)
+  * [Interview 08 — LiveOps Campaign Agent (Cheat Sheet)](13-interview-prep/ea-ai-sde2-handbook/condensed/08-liveops-agent.md)
+  * [Interview 09 — In-Game Store Recommendation Engine (Cheat Sheet)](13-interview-prep/ea-ai-sde2-handbook/condensed/09-store-recommendations.md)
+  * [Interview 10 — Real-Time Voice Toxicity Moderation (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/10-voice-moderation.md)
+  * [Interview 11 — In-Game Economy Inflation Prediction (Cheat Sheet)](13-interview-prep/ea-ai-sde2-handbook/condensed/11-economy-prediction.md)
+  * [Interview 12 — Customer Support RAG Assistant (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/12-support-rag.md)
+  * [Interview 13 — Semantic Search for Game Asset Discovery (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/13-semantic-search.md)
+  * [Interview 14 — Real-Time Feature Store (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/14-feature-store.md)
+  * [Interview 15 — Production RAG Pipeline (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/15-llm-rag-pipeline.md)
+  * [Interview 16 — Real-Time Anomaly Detection on Streaming Data (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/16-anomaly-detection.md)
+  * [Interview 17 — Large-Scale Collaborative Filtering Recommender (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/17-recommendation-system.md)
+  * [Interview 18 — Model Serving on Edge Devices (Cheat Sheet)](13-interview-prep/ea-ai-sde2-handbook/condensed/18-edge-model-serving.md)
+  * [Interview 19 — A/B Testing & Experimentation Platform (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/19-ab-testing.md)
+  * [Interview 20 — Multimodal VLM Game Testing Agent (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/20-vlm-qa-agent.md)
+  * [Interview 21 — Automated Data Drift Detection Pipeline (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/21-data-drift.md)
+  * [Interview 22 — Deep RL for NPC AI (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/22-rl-npc.md)
+  * [Interview 23 — GenAI for 3D Asset Creation (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/23-genai-3d-assets.md)
+  * [Interview 24 — Knowledge Graph Construction for Lore & Story (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/24-knowledge-graph.md)
+  * [Anti-Cheat: Client-side Memory Anomaly Detection — Cheat Sheet](13-interview-prep/ea-ai-sde2-handbook/condensed/25-anti-cheat.md)
+  * [Interview 26 — Generative Audio: Dynamic NPC Voice Cloning (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/26-generative-audio.md)
+  * [Interview 27 — Multiplayer Latency Compensation (Time-Series Prediction)](13-interview-prep/ea-ai-sde2-handbook/condensed/27-latency-prediction.md)
+  * [Interview 29 — AI-Driven Dynamic Game Difficulty (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/29-dynamic-difficulty.md)
+  * [Interview 30 — End-to-End MLOps Pipeline (Condensed)](13-interview-prep/ea-ai-sde2-handbook/condensed/30-mlops-pipeline.md)
+
+## 14 — EA System Design Playbook
+
+* [Playbook Overview](14-ea-ai-system-design-playbook/README.md)
+  * [Agent Platform](14-ea-ai-system-design-playbook/systems/agent-platform.md)
+  * [AI Coding Assistant](14-ea-ai-system-design-playbook/systems/ai-coding-assistant.md)
+  * [Batch Inference Platform](14-ea-ai-system-design-playbook/systems/batch-inference.md)
+  * [Chatbot (Customer/Player Support)](14-ea-ai-system-design-playbook/systems/chatbot.md)
+  * [Cheat Detection](14-ea-ai-system-design-playbook/systems/cheat-detection.md)
+  * [Continuous Training Platform](14-ea-ai-system-design-playbook/systems/continuous-training-platform.md)
+  * [Enterprise Search](14-ea-ai-system-design-playbook/systems/enterprise-search.md)
+  * [Experiment Platform (A/B Testing)](14-ea-ai-system-design-playbook/systems/experiment-platform.md)
+  * [Feature Store Platform](14-ea-ai-system-design-playbook/systems/feature-store-platform.md)
+  * [Fraud Detection](14-ea-ai-system-design-playbook/systems/fraud-detection.md)
+  * [Live Game Analytics](14-ea-ai-system-design-playbook/systems/live-game-analytics.md)
+  * [Matchmaking Engine](14-ea-ai-system-design-playbook/systems/matchmaking-engine.md)
+  * [MCP Ecosystem](14-ea-ai-system-design-playbook/systems/mcp-ecosystem.md)
+  * [ML Platform](14-ea-ai-system-design-playbook/systems/ml-platform.md)
+  * [Model Registry](14-ea-ai-system-design-playbook/systems/model-registry.md)
+  * [Personalization Engine](14-ea-ai-system-design-playbook/systems/personalization-engine.md)
+  * [Player Churn Prediction](14-ea-ai-system-design-playbook/systems/player-churn-prediction.md)
+  * [RAG Platform](14-ea-ai-system-design-playbook/systems/rag-platform.md)
+  * [Real-Time Inference Platform](14-ea-ai-system-design-playbook/systems/real-time-inference.md)
+  * [Real-Time Telemetry Platform](14-ea-ai-system-design-playbook/systems/real-time-telemetry-platform.md)
+  * [Recommendation Engine](14-ea-ai-system-design-playbook/systems/recommendation-engine.md)
+  * [Streaming ML Platform](14-ea-ai-system-design-playbook/systems/streaming-ml.md)
+  * [Toxicity Detection](14-ea-ai-system-design-playbook/systems/toxicity-detection.md)
