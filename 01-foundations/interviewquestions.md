@@ -150,6 +150,7 @@ This is chained indexing: the first `[]` returns either a view or copy depending
 - [02-math-and-theory-foundations.md](02-math-and-theory-foundations.md) — derivations and proofs
 - [03-python-and-data-tooling.md](03-python-and-data-tooling.md) — library mechanics
 - [04-data-processing-and-eda.md](04-data-processing-and-eda.md) — workflow detail
-- [05-information-theory.md](05-information-theory.md) — full derivations
+- [02-math-and-theory-foundations.md](02-math-and-theory-foundations.md) §4 — information theory intuition
+- [../07-interview-prep/ml/19-maths.md](../07-interview-prep/ml/19-maths.md) §7, §9 — full derivations
 - [06-ml-glossary.md](06-ml-glossary.md) — complete term-by-term reference
 - [flashcards.md](flashcards.md) — active recall companion

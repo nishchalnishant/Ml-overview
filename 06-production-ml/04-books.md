@@ -15,7 +15,6 @@ Recommended reading for production ML and MLOps. Ordered by how foundational the
 
 **Author:** Chip Huyen
 **Best for:** End-to-end mental model of production ML — data, features, training, serving, monitoring, and drift — written for practitioners who ship.
-**Book notes:** [../10-references/book-notes/mlops/01-designing-machine-learning-systems.md](../10-references/book-notes/mlops/01-designing-machine-learning-systems.md)
 
 ---
 
@@ -23,7 +22,6 @@ Recommended reading for production ML and MLOps. Ordered by how foundational the
 
 **Author:** Andriy Burkov
 **Best for:** Practical, dense engineering patterns for building and deploying real ML systems — less theory, more "here is what breaks and how to fix it."
-**Book notes:** [../10-references/book-notes/mlops/04-machine-learning-engineering.md](../10-references/book-notes/mlops/04-machine-learning-engineering.md)
 
 ---
 
@@ -47,4 +45,3 @@ Recommended reading for production ML and MLOps. Ordered by how foundational the
 
 **Author:** Valliappa Lakshmanan, Sara Robinson, Michael Munn
 **Best for:** Catalog of reusable design patterns for data representation, problem framing, model training, and serving — reference-style, dip in when needed.
-**Book notes:** [../10-references/book-notes/mlops/03-machine-learning-design-patterns.md](../10-references/book-notes/mlops/03-machine-learning-design-patterns.md)

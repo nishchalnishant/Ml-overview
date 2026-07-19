@@ -562,7 +562,7 @@ BLIP-2's bridge is a **Q-Former** (Querying Transformer): N learned query embedd
 
 Three families dominate image generation, each solving the same problem — model a high-dimensional image distribution well enough to sample realistic new images — with a different training strategy: GANs use an adversarial discriminator, VAEs use a variational latent bottleneck, and diffusion models use iterative denoising.
 
-For the full derivations (GAN minimax objective, mode collapse and WGAN-GP, VAE ELBO and the reparameterization trick, DDPM forward/reverse process math, DDIM, latent diffusion, diffusion transformers), see [generative-models.md](08-generative-models.md) §1-3 and §6-8 — this section only adds the vision-specific framing:
+For the full derivations (GAN minimax objective, mode collapse and WGAN-GP, VAE ELBO and the reparameterization trick, DDPM forward/reverse process math, DDIM, latent diffusion, diffusion transformers), see the planned `08-generative/` section (**TODO** — GAN minimax objective, mode collapse and WGAN-GP, VAE ELBO and the reparameterization trick, DDPM forward/reverse math, DDIM, latent diffusion, diffusion transformers). This section adds the vision-specific framing:
 
 - **GANs** (StyleGAN2, progressive growing) historically produced the sharpest high-resolution faces/textures but are hardest to train and prone to mode collapse.
 - **VAEs** are rarely used alone for photorealistic image generation — their blurry reconstructions (from pixel-wise Gaussian likelihood) make them more useful as a component (e.g., the encoder/decoder in latent diffusion) than a standalone generator.

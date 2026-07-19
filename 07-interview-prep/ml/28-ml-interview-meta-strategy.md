@@ -88,27 +88,27 @@ The same topic produces very different questions at different levels. Recognize 
 
 ## 4. ML Coding — What Must Be Automatic
 
-These must be writeable with zero hesitation. Each one has a numerical stability failure mode. Full implementations with reasoning: [ml-coding-patterns.md](05-ml-coding-patterns.md).
+These must be writeable with zero hesitation. Each one has a numerical stability failure mode. Full implementations with reasoning: [ml-coding-patterns.md](26-ml-coding-patterns.md).
 
 **The six patterns you must write from scratch:**
 
-1. **Sigmoid + BCE loss** — numerically stable form: clip z before `exp` or branch on sign. BCE needs `eps` to prevent `log(0)`. See [ml-coding-patterns.md §3](05-ml-coding-patterns.md).
+1. **Sigmoid + BCE loss** — numerically stable form: clip z before `exp` or branch on sign. BCE needs `eps` to prevent `log(0)`. See [ml-coding-patterns.md §3](26-ml-coding-patterns.md).
 
-2. **Numerically stable softmax** — shift by `max(x)` before exponentiation. Invariance proof: `exp(x_i - c) / Σ exp(x_j - c) = exp(x_i) / Σ exp(x_j)`. See [ml-coding-patterns.md §1](05-ml-coding-patterns.md).
+2. **Numerically stable softmax** — shift by `max(x)` before exponentiation. Invariance proof: `exp(x_i - c) / Σ exp(x_j - c) = exp(x_i) / Σ exp(x_j)`. See [ml-coding-patterns.md §1](26-ml-coding-patterns.md).
 
-3. **Precision / Recall / F1** — TP, FP, FN from scratch. Denominator guards for zero division. F1 = harmonic mean punishes P/R imbalance harder than arithmetic mean. See [ml-coding-patterns.md §5](05-ml-coding-patterns.md).
+3. **Precision / Recall / F1** — TP, FP, FN from scratch. Denominator guards for zero division. F1 = harmonic mean punishes P/R imbalance harder than arithmetic mean. See [ml-coding-patterns.md §5](26-ml-coding-patterns.md).
 
-4. **Scaled dot-product attention** — `scores = Q @ K.T / sqrt(d_k)`, apply causal mask before softmax (`-1e9` for masked positions), then `weights @ V`. See [ml-coding-patterns.md §8](05-ml-coding-patterns.md).
+4. **Scaled dot-product attention** — `scores = Q @ K.T / sqrt(d_k)`, apply causal mask before softmax (`-1e9` for masked positions), then `weights @ V`. See [ml-coding-patterns.md §8](26-ml-coding-patterns.md).
 
-5. **K-Means E+M step** — E: `argmin` over centroid distances. M: mean of assigned points, keep old centroid if empty cluster. See [ml-coding-patterns.md §4](05-ml-coding-patterns.md).
+5. **K-Means E+M step** — E: `argmin` over centroid distances. M: mean of assigned points, keep old centroid if empty cluster. See [ml-coding-patterns.md §4](26-ml-coding-patterns.md).
 
-6. **PyTorch training loop bugs** — four bugs to know: (1) missing `zero_grad()` accumulates gradients; (2) gradient clipping must precede `optimizer.step()`; (3) inference requires both `model.eval()` (disables dropout/BN train mode) and `torch.no_grad()` (stops autograd graph); (4) checkpoint must include optimizer state — losing Adam's m/v buffers loses momentum. See [ml-coding-patterns.md §7](05-ml-coding-patterns.md).
+6. **PyTorch training loop bugs** — four bugs to know: (1) missing `zero_grad()` accumulates gradients; (2) gradient clipping must precede `optimizer.step()`; (3) inference requires both `model.eval()` (disables dropout/BN train mode) and `torch.no_grad()` (stops autograd graph); (4) checkpoint must include optimizer state — losing Adam's m/v buffers loses momentum. See [ml-coding-patterns.md §7](26-ml-coding-patterns.md).
 
 ---
 
 ## 5. ML System Design — Universal Structure
 
-Never start with a model. The model is the *last* thing you choose. Full 10-step framework with worked examples: [ml-system-design.md](04-ml-system-design.md).
+Never start with a model. The model is the *last* thing you choose. Full 10-step framework with worked examples: [ml-system-design.md](25-ml-system-design.md).
 
 **Step summary:** Clarify goal → Metrics (offline + online) → Constraints (latency/QPS/budget) → Data + labels (freshness, delay, skew) → Baseline → Architecture (justify vs constraints) → Feature pipeline (real-time vs batch, fit on train only) → Serving (batch vs real-time, caching) → Evaluation (A/B design, backtesting) → Monitoring + rollback (PSI >0.25 = retrain, rollback defined before launch).
 

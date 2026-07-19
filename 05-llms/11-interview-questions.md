@@ -25,7 +25,7 @@ Whether you can extract the practical engineering implication from the research 
 
 **First-principles reasoning structure**:
 
-Start from the question the paper answered: "Given a fixed compute budget (measured in FLOPs), how should you split it between model size and training tokens?" The answer — equal scaling, ~20 tokens/parameter, and why GPT-3 was overtrained in size relative to data — is worked through in full in [02-scaling-and-data.md](../02-scaling-and-data.md). The follow-on implication worth adding here: Llama 2 (7B, 2T tokens) outperforms much larger models on many benchmarks precisely because it was trained on far more data than Chinchilla-optimal — smaller-trained-longer wins on inference economics too.
+Start from the question the paper answered: "Given a fixed compute budget (measured in FLOPs), how should you split it between model size and training tokens?" The answer — equal scaling, ~20 tokens/parameter, and why GPT-3 was overtrained in size relative to data — is worked through in full in [02-scaling-and-data.md](02-scaling-and-data.md). The follow-on implication worth adding here: Llama 2 (7B, 2T tokens) outperforms much larger models on many benchmarks precisely because it was trained on far more data than Chinchilla-optimal — smaller-trained-longer wins on inference economics too.
 
 **Common traps**:
 - Treating the "20 tokens per parameter" ratio as a hard law rather than an approximation from a specific compute range. It may not hold at extreme scales.

@@ -29,7 +29,7 @@ flowchart TD
 
 ---
 
-> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the underlying statistics (PSM, IPW, doubly robust estimators, diff-in-diff, RDD, IV), see [Causal Inference](../../11-data-scientist/06-causal-inference.md).
+> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the underlying statistics (PSM, IPW, doubly robust estimators, diff-in-diff, RDD, IV), see [Canonical Stats Questions](../../07-interview-prep/ml/11-canonical-stats-questions.md) §3 and [Statistics & Probability Rapid-Fire](../../07-interview-prep/ml/24-statistics-probability-rapid-fire.md).
 
 ## Why Experimentation Infrastructure Matters
 

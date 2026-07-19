@@ -247,7 +247,7 @@ X_reduced = pca.fit_transform(X_scaled)
 
 ## Anomaly Detection
 
-> Full treatment of Isolation Forest, One-Class SVM, LOF, Elliptic Envelope, Autoencoder-based detection, and HDBSCAN is in **[anomaly-detection.md](16-anomaly-detection.md)**. This section provides a quick reference for the unsupervised learning context.
+> **TODO (planned):** a dedicated `16-anomaly-detection.md` covering Isolation Forest, One-Class SVM, LOF, Elliptic Envelope, autoencoder-based detection, and HDBSCAN. Until then this section is the quick reference for the unsupervised-learning context.
 
 **Quick method selector:**
 

@@ -102,7 +102,7 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 
 - [03-deep-learning/deep-learning-cheatsheet.md](../03-deep-learning/deep-learning-cheatsheet.md) — mixed precision, gradient accumulation, batch norm placement
 - [06-production-ml/13-cost-optimization.md](../06-production-ml/system-design/13-cost-optimization.md)
-- [06-production-ml/11-distributed-training.md](../06-production-ml/system-design/11-distributed-training.md)
+- [03-deep-learning/components/18-llm-serving.md](../03-deep-learning/components/18-llm-serving.md)
 
 **Two senses of "performance" — cover both:**
 1. **Model performance**: regularization (dropout, weight decay, label smoothing), class-weighting or focal loss for imbalance, calibration (see [02-classical-ml/14-calibration-and-uncertainty.md](../02-classical-ml/14-calibration-and-uncertainty.md)) if predicted probabilities feed a downstream decision (e.g. an intervention threshold for at-risk players).

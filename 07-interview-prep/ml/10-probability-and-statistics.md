@@ -7,7 +7,7 @@ tags: [interviewprep, ml, ml-probability-and-statistics]
 ---
 # Probability and Statistics
 
-**Primary reference:** [Statistics & Probability (Data Scientist track)](../../11-data-scientist/04-statistics-and-probability.md) | [Canonical Stats Questions](11-canonical-stats-questions.md)
+**Primary reference:** [Statistics & Probability Rapid-Fire](24-statistics-probability-rapid-fire.md) | [Canonical Stats Questions](11-canonical-stats-questions.md)
 
 ---
 

@@ -208,4 +208,4 @@ Worked examples of this pattern (bias-variance, imbalanced data, model selection
 - [AI System Design](../05-llms/interview-notes/07-ai-system-design.md)
 - [Math Derivations](../07-interview-prep/ml/18-math-derivations.md)
 - [MLOps](../06-production-ml/01-mlops.md)
-- [Causal Inference & A/B Testing](../08-emerging-topics/experimentation-and-causal-inference/README.md)
+- [Causal Inference & A/B Testing](../06-production-ml/system-design/14-ab-testing-experimentation.md)
