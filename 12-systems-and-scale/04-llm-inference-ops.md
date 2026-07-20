@@ -411,17 +411,29 @@ def capacity_plan(qps, avg_input_tokens, avg_output_tokens,
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Why is LLM decode memory-bandwidth-bound but prefill compute-bound?**  
+### Q: Why is LLM decode memory-bandwidth-bound but prefill compute-bound? [Hard]  
 A: During decode (batch=1), we generate one token per step. The FLOPs required = 2N (one forward pass), but we must load all N model parameters from HBM. Arithmetic intensity = 1 op/byte, far below A100's threshold (~500). At batch size B, intensity = B ops/byte — becomes compute-bound near B=500. Prefill processes S tokens simultaneously; matrix multiply is O(N×S) FLOPs but still O(N) weight load, so intensity = S. Once S > a few hundred, prefill is compute-bound and GPU utilization is high.
 
+**Cross-questions to expect:**
+
+- *You say batching decode to B~500 makes it compute-bound. Why don't real servers just crank batch size until decode is compute-bound and call it solved?* -> Because KV-cache memory grows linearly with batch size and context length, so long before B=500 you run out of HBM to hold all those sequences' caches -- you hit the memory-*capacity* wall before you reach the compute-bound regime. Decode is bandwidth-bound in practice not because you can't imagine a large batch, but because KV capacity caps the batch you can actually assemble. The two limits fight each other.
+- *If decode is bandwidth-bound at batch=1, does quantizing weights to int4 give a clean 4x decode speedup?* -> No -- it helps because you load fewer weight bytes, but decode also loads the *KV cache* from HBM, and quantizing weights doesn't shrink that. As context grows, KV traffic becomes a large share of the bytes moved, so the weight-quantization speedup is capped by the un-quantized KV reads. This is why long-context decode benefits from KV-cache quantization specifically, not just weight quantization.
+
+**Trap:** treating "arithmetic intensity" as a fixed property of the model. It's a property of the *workload* -- batch size, context length, and which tensors dominate the byte traffic all move the intensity, so the same model is bandwidth-bound in one serving regime and compute-bound in another.
 **Q: How does PagedAttention improve throughput?**  
 A: Traditional KV cache pre-allocates contiguous memory for max_context_len per request. With variable-length requests, gaps between requests cause fragmentation — up to 70% of KV memory is wasted on internal fragmentation and padding. PagedAttention uses fixed-size physical blocks (16 tokens) and a logical-to-physical block table per request, like OS virtual memory. Blocks are allocated on demand and freed immediately when requests complete. This eliminates fragmentation, enabling 2–4× more concurrent requests → 2–4× higher throughput for the same hardware.
 
-**Q: You need to reduce TTFT for a chatbot handling 10K-token system prompts. What do you do?**  
+### Q: You need to reduce TTFT for a chatbot handling 10K-token system prompts. What do you do? [Medium]  
 A: (1) Chunked prefill: process the 10K prompt in 512-token chunks, interleaved with decode steps — first token arrives after 512 tokens instead of 10K; (2) Prefix caching: if the system prompt is shared across requests (e.g., same persona), cache its KV computation — TTFT for subsequent requests with the same prefix is near-zero; (3) Request priority queue: deprioritize long prefills during high-load periods to not block waiting decode requests; (4) Parallel prefill: for very long prompts, split across multiple GPUs (tensor parallel for prefill phase only).
 
+**Cross-questions to expect:**
+
+- *Chunked prefill improves TTFT by interleaving prefill with decode. What are you taking away from, and who notices?* -> You're stealing compute from the in-flight *decode* requests to make room for prefill chunks, so their inter-token latency (TPOT) rises -- you improve the newcomer's time-to-first-token at the cost of every currently-streaming user's smoothness. It's a latency *reallocation*, not a free win, and under load the tradeoff between TTFT and TPOT has to be tuned deliberately, not assumed favorable.
+- *Prefix caching makes shared system prompts near-free. When does it silently stop helping or become a liability?* -> When prompts aren't actually identical -- a single differing token near the start invalidates the shared prefix, so per-user personalization injected early kills the cache hit. And the cached KV blocks consume the same scarce HBM the KV cache needs for live sequences, so an aggressive prefix cache can *reduce* the concurrency you can serve. It's a memory-for-latency trade with a capacity cost, not pure upside.
+
+**Trap:** optimizing TTFT in isolation. TTFT and TPOT (inter-token latency) trade against each other through the shared compute budget -- a chatbot that first-tokens instantly but then streams slowly can feel worse than one with a slightly longer initial pause. The SLA has to name both.
 **Q: What is continuous batching and how does it compare to static batching?**  
 A: Static batching: form a batch, wait for all requests to complete, form next batch. If batch has a 500-token request and a 10-token request, GPU sits idle after the short request finishes. Continuous batching re-forms the batch at every token generation step: when a request completes, the slot is immediately filled with a queued request. This keeps GPU utilization continuously high (>80% vs ~30% for static). Implemented in vLLM, TGI — essential for production serving with heterogeneous request lengths.
 

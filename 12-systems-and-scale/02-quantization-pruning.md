@@ -360,16 +360,29 @@ def distillation_loss(student_logits, teacher_logits, labels, T=4.0, alpha=0.5):
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
 **Q: Why is per-group quantization better than per-tensor for LLM weights?**  
 A: LLM weight matrices have different value ranges in different subsets — some rows have large magnitudes, others are small. Per-tensor quantization uses a single scale for the entire matrix: large values set the scale, forcing small values to round to zero or a few discrete levels. Per-group (g=128) uses a separate scale for every 128 consecutive weights, so each group's range is fully utilized. The tradeoff: per-group stores (d_model/128) extra scale factors per matrix — ~0.5% overhead for d_model=4096. Worth it: per-group quantization reduces quantization error 2–5× vs per-tensor at 4-bit.
 
-**Q: How does GPTQ differ from RTN and why does it perform better at 4-bit?**  
+### Q: How does GPTQ differ from RTN and why does it perform better at 4-bit? [Hard]  
 A: RTN rounds each weight independently to the nearest integer — simple but ignores the interaction between weights. GPTQ treats quantization as an optimization problem: given calibration data activations X, minimize ||WX − W_q X||. It processes columns left-to-right, and when a column is quantized (introducing error), the remaining columns are adjusted via the inverse Hessian to partially compensate. This error compensation means GPTQ distributes quantization error across weights, rather than letting each weight's error accumulate independently. Result: ~1–2% less perplexity degradation than RTN at 4-bit for 70B models.
 
+**Cross-questions to expect:**
+
+- *GPTQ's error compensation is fit to calibration data. What goes wrong when your serving distribution differs from that calibration set?* -> GPTQ solves ||WX - W_q X|| for a *specific* X, so it over-fits the compensation to whatever domain the calibration samples came from. Quantize on English web text and serve code or another language, and the "compensated" weights can be *worse* than naive RTN on the out-of-distribution inputs, because the Hessian it inverted describes the wrong activation statistics. RTN, being data-free, has no such distribution dependence -- it's uniformly mediocre rather than conditionally good.
+- *If GPTQ processes columns left-to-right and compensates the remainder, why doesn't error just pile up in the last columns?* -> It can -- the compensation budget shrinks as fewer columns remain to absorb error, so late columns carry more residual. That's exactly why activation-aware methods (AWQ) that protect *salient* channels regardless of position can beat GPTQ at the same bit-width: GPTQ's ordering is a heuristic, and the assumption that later-quantized columns can always soak up earlier error breaks near the end of the matrix.
+
+**Trap:** claiming GPTQ is strictly better than RTN. It's better *on-distribution and at low bit-width*; the inverse-Hessian machinery buys little at 8-bit (where RTN is already near-lossless) and can backfire off-distribution -- the win is specific to the 4-bit, in-domain regime.
 **Q: Why does QLoRA work — how can you fine-tune through a quantized model?**  
 A: The key insight is that QLoRA doesn't update the quantized weights. The 4-bit weights are frozen. Training only updates the LoRA adapter matrices A and B (full precision bf16). During forward pass: output = W_4bit·x + B·A·x. Gradients flow through B·A (full precision, differentiable), not through W_4bit (discrete, non-differentiable). The LoRA adapters learn the task-specific corrections while the quantized base model provides the pretrained representations. The only approximation is that W_4bit introduces noise vs the full-precision W — this slightly hurts fine-tuning compared to full fine-tuning, but preserves 99.9% of the base model's capability.
 
-**Q: What's the quality vs memory trade-off when choosing between fp16, int8, and int4 for serving a 70B model?**  
+### Q: What's the quality vs memory trade-off when choosing between fp16, int8, and int4 for serving a 70B model? [Medium]  
 A: fp16: 140GB, highest quality, needs 2× A100s. Int8 (LLM.int8): 70GB, <0.1% quality loss, fits on 1× A100 with ~10% inference overhead. Int4 (GPTQ/AWQ): 35GB, ~0.5–1% quality loss on most benchmarks, fits on 1× A100 with faster inference (lower bandwidth needed). In practice for production: int4 is the standard for deployment when GPU cost matters. For latency-critical paths: fp8 on H100 gives near-fp16 quality with 2× throughput using hardware-native fp8 matrix multiply.
+
+**Cross-questions to expect:**
+
+- *You quote "int4 = 0.5-1% quality loss on most benchmarks" as if it's negligible. Which capabilities does that aggregate number hide?* -> Benchmark averages mask that quantization damage is concentrated -- multi-step reasoning, long-context retrieval, and low-resource languages degrade far more than the headline MMLU delta suggests, because small errors compound over reasoning chains and rare tokens. A model that loses 0.7% on average can lose a chunk of its chain-of-thought reliability, which is exactly what a production agent depends on. Evaluate on the capability you actually ship, not the leaderboard mean.
+- *You say int4 "fits on 1x A100 with faster inference." When is int4 actually NOT faster?* -> At large batch sizes. Decode at batch=1 is memory-bandwidth-bound, so halving the bytes loaded speeds it up -- but as batch grows the workload becomes compute-bound, and int4 weights must be dequantized to fp16 for the matmul, adding compute that can erase the win. Int4's speedup is a low-batch, bandwidth-bound phenomenon; in a high-throughput server it can be slower than int8 or fp8 with hardware-native matmul.
+
+**Trap:** treating memory footprint as the only axis. Fitting on one GPU changes *cost*, but int8's ~10% inference overhead and int4's dequant cost mean the cheapest-to-fit option isn't always the cheapest-per-token at your actual load -- the right choice depends on batch size and the capability mix, not GB alone.

@@ -505,20 +505,32 @@ class VLLMDeployment:
 
 ---
 
-## 11. Interview Questions
+## 11. Interview Angles
 
-**Q: What is the KV cache and why does it dominate LLM serving memory?**  
+### Q: What is the KV cache and why does it dominate LLM serving memory? [Medium]  
 *A:* The KV cache stores the key and value tensors for all past tokens to avoid recomputing them on each generation step. Size = 2 × layers × heads × head_dim × ctx_len × bytes. For LLaMA 2 70B at 4K context (BF16): ~10 GB per sequence. This means with 80 GB GPU, you can only serve ~8 concurrent long-context sequences — the main serving bottleneck. Solutions: GQA (8-32× reduction), quantized KV cache (FP8 or INT8), PagedAttention (eliminate fragmentation).
 
+**Cross-questions to expect:**
+
+- *You cut KV memory with GQA and INT8 KV cache. What does each of those quietly cost you?* -> GQA is a *model-architecture* decision baked in at pretraining -- you can't retrofit it onto a model trained with full multi-head attention without retraining, so it's not a serving knob for an existing checkpoint. INT8 KV quantization *is* a serving knob, but it adds noise to every attended token, and that error accumulates over long contexts -- the degradation is worst exactly in the long-context regime where you needed the memory savings most.
+- *KV cache scales with context length x concurrency. Given a fixed 80GB GPU, why can't you just trade one for the other freely?* -> Because they multiply, and both have floors -- you need enough concurrency to keep the GPU compute-bound (or throughput collapses) and enough context for the task. Past a point, admitting one more long-context request evicts or blocks several short ones, so the scheduler faces a packing problem, not a smooth trade. This is precisely the fragmentation pressure PagedAttention exists to relieve.
+
+**Trap:** citing the KV-cache size formula and stopping there. The formula gives per-sequence bytes; the *serving* bottleneck is the interaction with variable-length concurrency and fragmentation, which the static formula doesn't capture -- two deployments with the same formula value can have wildly different effective capacity.
 **Q: Explain PagedAttention and how it improves serving throughput.**  
 *A:* Before vLLM, each request pre-allocated a contiguous memory block of max_len tokens. Most requests finish before max_len, wasting 20-40% of GPU memory. PagedAttention (borrowed from OS virtual memory) divides KV cache into small fixed-size blocks (e.g., 16 tokens). A block table maps logical positions to physical blocks. Blocks are allocated on demand and can be non-contiguous. Benefits: near-zero memory waste, allows sharing system prompt blocks across users (copy-on-write), enables fitting 3-4× more sequences into the same GPU memory → 2-4× throughput improvement.
 
 **Q: What is continuous batching and why does it matter?**  
 *A:* Static batching waits for all requests in a batch to finish before starting new ones, causing GPU idle time when short requests finish early. Continuous batching inserts new requests into the batch immediately after each generation step (token by token), so the GPU is always maximally utilized. This reduces mean latency and increases throughput — particularly important for request streams with high variance in output length.
 
-**Q: How does tensor parallelism differ from pipeline parallelism for serving?**  
+### Q: How does tensor parallelism differ from pipeline parallelism for serving? [Hard]  
 *A:* Tensor parallelism (TP) splits each layer's weight matrices across GPUs — each GPU handles a shard of every attention head and FFN row/column. Communication: All-Reduce after each sublayer (frequent, small messages). Best for minimizing latency on a single request. Pipeline parallelism (PP) assigns different layers to different GPUs/nodes — data flows through stages. Communication: activation tensors between stages (less frequent, larger messages). Best for very large models that don't fit even with TP. In practice: TP within a node (fast NVLink), PP across nodes (slower InfiniBand).
 
+**Cross-questions to expect:**
+
+- *You put TP within a node and PP across nodes. Why does TP fall apart the moment it crosses the NVLink boundary?* -> TP does an All-Reduce after every sublayer -- that's frequent, latency-sensitive communication, and it's tolerable only over NVLink's hundreds-of-GB/s. Stretch TP across nodes on InfiniBand and the per-layer All-Reduce latency dominates, so throughput craters. PP crosses nodes because it communicates activations only at stage boundaries (rare, large messages), which tolerates the slower link. The placement rule is a direct consequence of each method's communication *frequency*, not a convention.
+- *PP lets you fit models TP can't. What does PP cost you that TP doesn't -- and how do you hide it?* -> Pipeline bubbles: with one request flowing through stages, all but one stage sit idle, so naive PP latency includes dead time. You hide it with micro-batching (multiple in-flight requests filling the pipeline), but that raises latency per request and needs enough concurrent load to stay full -- so PP's efficiency is load-dependent in a way TP's isn't. At low traffic, PP's bubbles are pure waste.
+
+**Trap:** framing TP-vs-PP as a single choice. Production large-model serving is usually *both* at once (TP intra-node, PP inter-node, sometimes plus data parallelism), and the interesting question is the split ratio under your latency SLA and GPU topology -- not which one "wins."
 **Q: What are the tradeoffs between AWQ and GPTQ quantization for inference?**  
 *A:* Both are weight-only INT4 post-training quantization. GPTQ uses layer-by-layer reconstruction — minimize quantization error by adjusting each layer's weights to compensate for errors from quantizing previous layers. AWQ analyzes activation patterns to identify "salient" weight channels (those multiplied by large activations) and applies per-channel scaling to protect them. In practice: AWQ has ~0.5-1 perplexity point better than GPTQ for the same bit-width, because protecting salient weights matters more than layer-by-layer reconstruction. Both give ~4× memory reduction and 2-3× throughput improvement over BF16 at near-lossless quality (0.5-1% accuracy drop on most benchmarks).
 
