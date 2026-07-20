@@ -12,4 +12,9 @@ Model *architectures*, as distinct from the training *components* in `05-deep-le
 
 **What lives here:** MLP, CNN, RNN/LSTM/GRU, attention, transformers, GNN, SSM/Mamba.
 
-**TODO (planned):** `04-dl-architectures.md` is a mixed-topic file carried over intact from the migration. Its §4 GAN / §5 VAE / §6 Diffusion sections belong in `../08-generative/` and should be split out.
+**Split completed.** `04-dl-architectures.md` §4 (GAN) and §6 (Diffusion) now point at
+[`../08-generative/02-gans.md`](../08-generative/02-gans.md) and
+[`../08-generative/03-diffusion.md`](../08-generative/03-diffusion.md) for depth, keeping a
+selection summary here. §5 (Autoencoder/VAE) **stayed** — it is the interview-framing modality
+of [`../08-generative/01-autoencoders.md`](../08-generative/01-autoencoders.md), not a duplicate
+of it, and moving it would have collided with existing deep-dive content.

@@ -204,6 +204,22 @@ Also fixed: **20 files outside `16-interview-prep/` carried stale `module: Inter
 
 #### Still open
 
+## Phase 4 — generative split + responsible-AI routing (COMPLETE)
+
+Both items were planned as *moves*. Survey changed both: one was a partial move, the other was
+not a move at all.
+
+| Planned | Found | Action |
+| :--- | :--- | :--- |
+| Move `04-dl-architectures.md` §4–6 → `08-generative/` | §4 (GAN) and §6 (Diffusion) had no counterpart — clean move. §5 (VAE) **collided** with an existing deep-dive in `01-autoencoders.md` and is a different modality of the same subject. | Moved §4 → `02-gans.md`, §6 → `03-diffusion.md`, each with new Interview Angles. §5 kept in place with a reciprocal cross-reference. |
+| Consolidate LLM safety → `14-responsible-ai/` | The three candidate files are LLM-*behavioural* (jailbreaks, prompt injection, RLHF, sycophancy, reward hacking), sit in a numbered 1–18 arc, and one has a paired `-snappy.md` modality file. Genuine overlap with the fairness math is ~3 questions of ~50. | **Not moved.** Added a routing table to `14-responsible-ai/README.md` splitting model-agnostic math (here) from LLM behaviour (there), plus cross-links. Corrected the README's own stale "should be consolidated here" claim. |
+
+**Lesson, fourth occurrence.** The README in `08-generative/` asserted §4–6 was "misfiled, not
+missing" — written from the plan, not from the files. It was two-thirds right. A folder that
+*looks* thin may be thin for a reason worth preserving. Both READMEs now state their real gaps:
+normalizing flows and autoregressive models in `08-generative/`; interpretability mechanics and
+adversarial robustness in `14-responsible-ai/`.
+
 - [ ] Decide whether standalone recsys coverage is in scope (see Phase 1 survey table)
 - [ ] Decide whether gradient boosting should be consolidated to one home (currently 3) — a merge decision, not a split
 - [ ] If Interview Angles format is wanted repo-wide, author cross-questions/traps per topic rather than relocating existing Q&A

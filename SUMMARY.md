@@ -112,6 +112,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 
 * [Generative Models](08-generative/README.md)
 * [Autoencoders](08-generative/01-autoencoders.md)
+* [Generative Adversarial Networks](08-generative/02-gans.md)
+* [Diffusion Models](08-generative/03-diffusion.md)
 
 ## 09 — Reinforcement Learning
 

@@ -215,48 +215,22 @@ Flash Attention produces mathematically identical output to standard attention. 
 ---
 
 >
-> **TODO (planned — split):** Sections 4–6 (GAN, Autoencoder/VAE, Diffusion) are
-> generative models and belong in `../08-generative/`. They live here only because
-> this file moved intact during the Phase 3 restructure. Split before adding to them,
-> so `08-generative/` does not become a second source of truth.
-
 ## 4. GAN (Generative Adversarial Network)
 
-### What the interviewer is actually testing
-Whether you understand adversarial training dynamics — specifically the instabilities and why they are structurally hard to fix. The competency: framing the min-max game, diagnosing each failure mode, and articulating why diffusion models overcame GAN limitations.
+> **Moved:** full treatment in [../08-generative/02-gans.md](../08-generative/02-gans.md) —
+> the minimax objective, the three structural failure modes, WGAN-GP, and why GANs lost to
+> diffusion for offline synthesis but still win at real-time.
 
-### The reasoning structure
-
-Direct likelihood maximization — $\max \log p_\theta(x)$ — is intractable for complex distributions like images: you can't evaluate $p_\theta(x)$ for a neural generator in closed form. GANs sidestep this entirely by replacing the likelihood criterion with an adversarial one: does a discriminator network think the generated sample is real?
-
-The minimax game:
-$$\min_G \max_D \mathbb{E}_{x \sim p_\text{data}}[\log D(x)] + \mathbb{E}_{z \sim p_z}[\log(1 - D(G(z)))]$$
-
-At Nash equilibrium: $D(x) = 0.5$ everywhere — discriminator cannot distinguish real from generated. Getting there reliably is the unsolved problem.
-
-### The pattern in action
-
-**Three structural failure modes:**
-
-| Failure | Mechanism | What it looks like | Fix |
-| :--- | :--- | :--- | :--- |
-| Mode collapse | Generator converges to a small set of outputs that fool the discriminator — diversity disappears | All generated faces look similar | Minibatch discrimination, unrolled GANs, diversity regularization |
-| Vanishing gradient | When $D$ is too accurate, $\log(1 - D(G(z))) \approx 0$ — generator gradient approaches zero | Generator stops improving despite discriminator being perfect | Non-saturating loss: maximize $\log D(G(z))$ instead of minimizing $\log(1-D(G(z)))$ |
-| Training oscillation | Generator and discriminator cycle — neither converges | Loss curves oscillate without settling | Wasserstein GAN with Lipschitz constraint |
-
-**WGAN:** replaces the classifier discriminator with a critic that measures Earth-mover distance:
-$$\mathcal{L}_\text{WGAN} = \mathbb{E}_{x \sim p_\text{data}}[D(x)] - \mathbb{E}_z[D(G(z))]$$
-
-The critic must be 1-Lipschitz (enforced via gradient penalty: $\mathbb{E}[(\|\nabla_{\hat{x}} D(\hat{x})\|_2 - 1)^2]$). This provides meaningful gradients even when the generator and data distributions don't overlap at all — solving the vanishing gradient problem structurally.
-
-### Common traps
-
-**Trap: not knowing why GANs lost to diffusion models.**
-The adversarial training instabilities — mode collapse, vanishing gradients, oscillation — were never fully solved despite a decade of effort. The fundamental issue is that the training objective is a minimax game, which has no guarantee of convergence to the optimal solution. Diffusion models train by simple regression (predict the added noise), have no adversarial dynamics, and produce better sample diversity with no mode collapse mechanism. The one remaining advantage of GANs: single-step inference. Diffusion requires 20–1000 denoising steps; a GAN requires one forward pass. This matters for real-time generation.
+**Selection summary:** single forward pass at inference. Choose it when latency is the binding
+constraint and you can afford the training instability. Otherwise prefer diffusion.
 
 ---
 
 ## 5. Autoencoder / VAE
+
+> **Deep-dive counterpart:** [../08-generative/01-autoencoders.md](../08-generative/01-autoencoders.md)
+> covers the variants (undercomplete, denoising, sparse), the ELBO derivation, and β-VAE.
+> This section is the interview framing of the same material — kept here deliberately, not duplicated by accident.
 
 ### What the interviewer is actually testing
 Whether you understand the reparameterization trick and *why* it's necessary — and the precise difference between a deterministic bottleneck and a stochastic one. The competency: explain what posterior collapse is and why it's the opposite failure from a bad latent space.
@@ -300,41 +274,12 @@ Without the KL term, the encoder learns a Dirac delta (point estimates) and the 
 
 ## 6. Diffusion Models
 
-### What the interviewer is actually testing
-Whether you understand the closed-form forward process and why it enables efficient training. The competency: explain why "predict the noise" produces stable training that GANs could never achieve, and what DDIM does differently from DDPM.
+> **Moved:** full treatment in [../08-generative/03-diffusion.md](../08-generative/03-diffusion.md) —
+> the closed-form forward process, the noise-prediction objective, DDPM vs. DDIM, and where the
+> speed gap actually stands.
 
-### The reasoning structure
-
-The key insight that makes diffusion models tractable: the forward process (adding Gaussian noise over $T$ steps) has a closed form. You don't need to simulate 1000 steps to get the noisified version of $x_0$ at timestep $t$ — you can compute it in one shot:
-
-$$q(x_t \mid x_0) = \mathcal{N}\left(\sqrt{\bar{\alpha}_t}\, x_0,\; (1-\bar{\alpha}_t) I\right), \quad \bar{\alpha}_t = \prod_{s=1}^{t}(1-\beta_s)$$
-
-This is what enables training at scale: for any batch element, sample a random timestep $t$, corrupt $x_0$ by the right amount in one operation, and train the denoiser.
-
-### The pattern in action
-
-**Simplified training objective (Ho et al.):** predict the noise that was added:
-$$\mathcal{L}_\text{simple} = \mathbb{E}_{t, x_0, \epsilon}\left[\|\epsilon - \epsilon_\theta(\sqrt{\bar{\alpha}_t} x_0 + \sqrt{1-\bar{\alpha}_t}\epsilon,\; t)\|^2\right]$$
-
-The network $\epsilon_\theta$ takes a noisy image and a timestep, and outputs the predicted noise. This is regression — not a minimax game, not a discriminator to balance, not an intractable likelihood. It trains stably with standard optimization. Mode collapse has no mechanism to occur: each training step is an independent regression on a random noise level.
-
-**Why diffusion beat GANs structurally:**
-1. Stable training — regression loss, no adversarial dynamics
-2. Better sample diversity — no mode collapse mechanism
-3. Classifier-free guidance works reliably — scale guidance weight to trade diversity for fidelity
-4. Better coverage of complex distributions at large scale
-
-**Inference DDPM vs DDIM:**
-DDPM: stochastic reverse process, requires all $T$ steps (typically 1000).
-DDIM: reframes the reverse process as an ODE (deterministic). The same trained model; a different sampling scheme. Allows 10-50 steps with minimal quality loss because the ODE solver can take larger steps.
-
-**The current state of the speed gap:**
-DDIM: 20-50 steps. Consistency models: 1-4 steps. Latent diffusion (Stable Diffusion): denoises in a compressed latent space (64×64 instead of 512×512), reducing per-step cost by ~64×. The single-step advantage of GANs has been largely closed.
-
-### Common traps
-
-**Trap: saying diffusion models are slow without qualification.**
-The 1000-step requirement was DDPM-specific. DDIM showed the trained model works with far fewer steps. The framing to use in an interview: "Inference speed was the limitation, and it's been addressed through ODE-based sampling (DDIM), latent space diffusion, and consistency models. The remaining tradeoff is one-step generation quality vs multi-step generation quality — not whether multi-step is required at all."
+**Selection summary:** stable regression training, no mode collapse, best-in-class sample
+diversity. The default for image synthesis unless per-sample latency rules it out.
 
 ---
 
