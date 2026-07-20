@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 4 (Days 26-30): Final Prep
 subtopic: ""
 status: unread

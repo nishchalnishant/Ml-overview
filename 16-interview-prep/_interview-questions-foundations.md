@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Interview Prep
 topic: Interview Questions
 subtopic: ""
 status: unread

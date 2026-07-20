@@ -1,5 +1,5 @@
 ---
-module: LLMs
+module: LLM Applications
 topic: Applications
 subtopic: Tuning Optimization
 status: unread

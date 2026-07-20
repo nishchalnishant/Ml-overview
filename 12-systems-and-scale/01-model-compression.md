@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Systems and Scale
 topic: Components
 subtopic: Model Compression
 status: unread

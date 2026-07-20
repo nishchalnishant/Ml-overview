@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Systems and Scale
 topic: LLM Serving
 subtopic: Production Inference
 status: unread

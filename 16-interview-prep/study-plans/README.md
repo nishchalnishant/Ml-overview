@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: ML Study Plans
 subtopic: ""
 status: unread

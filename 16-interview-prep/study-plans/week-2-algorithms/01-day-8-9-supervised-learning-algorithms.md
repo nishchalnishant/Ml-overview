@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 2 Algorithms
 subtopic: Day 8 9 Supervised Learning Algorithms
 status: unread

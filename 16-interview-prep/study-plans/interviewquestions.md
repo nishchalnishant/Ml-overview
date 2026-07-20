@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Interview Questions
 subtopic: Consolidated 4 Week Interview Question Bank
 status: unread

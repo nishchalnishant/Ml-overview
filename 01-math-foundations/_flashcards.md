@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Math Foundations
 topic: Flashcards
 status: unread
 tags: [foundations, flashcards, active-recall]

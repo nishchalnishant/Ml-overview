@@ -1,5 +1,5 @@
 ---
-module: Production ML
+module: System Design
 topic: System Design
 subtopic: Building Machine Learning Powered Applications
 status: unread

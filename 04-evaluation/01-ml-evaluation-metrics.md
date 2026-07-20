@@ -1,5 +1,5 @@
 ---
-module: Classical ML
+module: Evaluation
 topic: Ml Evaluation Metrics
 subtopic: ""
 status: unread

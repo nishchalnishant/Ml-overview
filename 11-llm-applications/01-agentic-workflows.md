@@ -1,5 +1,5 @@
 ---
-module: LLMs
+module: LLM Applications
 topic: Applications
 subtopic: Agentic Workflows
 status: unread

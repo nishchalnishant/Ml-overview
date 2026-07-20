@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 2 (Days 8-21): Algorithms
 subtopic: ""
 status: unread

@@ -86,6 +86,12 @@ The `_` prefix sorts modality files below content files.
 
 Because this repo is for interviews, every topic file follows this order. The first and last sections are non-negotiable.
 
+**`module:` is the containing top-level folder**, title-cased with acronyms capitalized —
+`03-classical-ml` → `Classical ML`, `11-llm-applications` → `LLM Applications`. Two exceptions:
+`08-generative` uses `Generative Models`, and files at the repo root use `ML Overview`. Nothing
+reads this field today (neither `.gitbook.yaml` nor `check-links.py`); it exists so pages can be
+filtered by section later. A file that moves folders must have its `module:` updated to match.
+
 ```markdown
 ---
 module: <section>

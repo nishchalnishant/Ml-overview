@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Data
 topic: Python and Data Tooling
 subtopic: ""
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: LLMs
+module: LLM Applications
 topic: LLM Applications
 subtopic: ""
 status: unread

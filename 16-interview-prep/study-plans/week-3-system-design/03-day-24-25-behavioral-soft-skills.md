@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 3 System Design
 subtopic: Day 24 25 Behavioral Soft Skills
 status: unread

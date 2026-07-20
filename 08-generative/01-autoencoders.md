@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Generative Models
 topic: Components
 subtopic: Autoencoders
 status: unread

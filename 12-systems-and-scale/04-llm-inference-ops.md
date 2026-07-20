@@ -1,5 +1,5 @@
 ---
-module: Production ML
+module: Systems and Scale
 topic: System Design
 subtopic: Llm Inference Ops
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 2 Algorithms
 subtopic: Day 15 16 Evaluation Metrics
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: LLM Applications
 topic: Mcp
 subtopic: ""
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 3 System Design
 subtopic: Day 22 Ml System Design
 status: unread

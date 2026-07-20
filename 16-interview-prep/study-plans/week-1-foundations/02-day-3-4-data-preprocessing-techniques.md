@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 1 Foundations
 subtopic: Day 3 4 Data Preprocessing Techniques
 status: unread

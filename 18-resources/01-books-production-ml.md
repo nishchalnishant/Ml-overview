@@ -1,5 +1,5 @@
 ---
-module: Production ML
+module: Resources
 topic: Books
 subtopic: ""
 status: unread

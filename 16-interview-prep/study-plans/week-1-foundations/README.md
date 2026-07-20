@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 1 (Days 1-7): Foundations
 subtopic: ""
 status: unread

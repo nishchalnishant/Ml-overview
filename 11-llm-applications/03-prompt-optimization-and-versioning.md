@@ -1,5 +1,5 @@
 ---
-module: LLMs
+module: LLM Applications
 topic: Applications
 subtopic: Prompt Optimization And Versioning
 status: unread

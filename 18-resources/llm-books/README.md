@@ -1,5 +1,5 @@
 ---
-module: LLMs
+module: Resources
 topic: Books
 subtopic: ""
 status: unread

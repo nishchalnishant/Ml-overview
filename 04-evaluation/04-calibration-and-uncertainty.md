@@ -1,5 +1,5 @@
 ---
-module: Classical ML
+module: Evaluation
 topic: Calibration And Uncertainty
 subtopic: ""
 status: unread

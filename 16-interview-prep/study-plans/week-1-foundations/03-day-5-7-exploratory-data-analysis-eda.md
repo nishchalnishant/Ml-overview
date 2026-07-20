@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 1 Foundations
 subtopic: Day 5 7 Exploratory Data Analysis Eda
 status: unread

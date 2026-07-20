@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 3 (Days 22-25): System Design
 subtopic: ""
 status: unread

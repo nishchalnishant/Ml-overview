@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 5 (Days 31-35): LLM Deep Dive
 subtopic: ""
 status: unread

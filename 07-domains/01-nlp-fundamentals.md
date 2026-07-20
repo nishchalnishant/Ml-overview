@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Domains
 topic: Methods
 subtopic: Nlp Fundamentals
 status: unread

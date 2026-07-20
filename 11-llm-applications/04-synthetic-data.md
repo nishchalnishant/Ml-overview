@@ -1,5 +1,5 @@
 ---
-module: LLMs
+module: LLM Applications
 topic: Synthetic Data
 subtopic: Applications
 status: unread

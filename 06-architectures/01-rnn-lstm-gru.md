@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Architectures
 topic: Components
 subtopic: Rnn Lstm Gru
 status: unread

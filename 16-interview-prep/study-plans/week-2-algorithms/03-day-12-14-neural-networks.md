@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 2 Algorithms
 subtopic: Day 12 14 Neural Networks
 status: unread

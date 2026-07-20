@@ -1,5 +1,5 @@
 ---
-module: Production ML
+module: Systems and Scale
 topic: System Design
 subtopic: Cost Optimization
 status: unread

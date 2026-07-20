@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Deep Learning Core
 topic: Pytorch Fundamentals
 subtopic: ""
 status: unread

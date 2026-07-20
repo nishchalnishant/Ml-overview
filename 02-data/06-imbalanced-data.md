@@ -1,5 +1,5 @@
 ---
-module: Classical ML
+module: Data
 topic: Imbalanced Data
 subtopic: ""
 status: unread

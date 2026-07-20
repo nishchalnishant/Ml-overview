@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Math Foundations
 topic: Math And Theory Foundations
 subtopic: ""
 status: unread

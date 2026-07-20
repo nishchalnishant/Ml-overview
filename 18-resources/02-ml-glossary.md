@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Resources
 topic: Ml Glossary
 subtopic: ""
 status: unread

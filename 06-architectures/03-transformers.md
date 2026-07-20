@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Architectures
 topic: Components
 subtopic: Transformers
 status: unread

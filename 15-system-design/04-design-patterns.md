@@ -1,5 +1,5 @@
 ---
-module: Production ML
+module: System Design
 topic: System Design
 subtopic: Machine Learning Design Patterns
 status: unread

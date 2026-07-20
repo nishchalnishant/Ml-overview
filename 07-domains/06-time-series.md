@@ -1,5 +1,5 @@
 ---
-module: Deep Learning
+module: Domains
 topic: Methods
 subtopic: Time Series
 status: unread

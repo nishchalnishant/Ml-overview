@@ -1,5 +1,5 @@
 ---
-module: ml-overview
+module: ML Overview
 topic: Mind Map
 subtopic: ""
 status: unread

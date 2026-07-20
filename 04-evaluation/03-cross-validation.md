@@ -1,5 +1,5 @@
 ---
-module: Classical ML
+module: Evaluation
 topic: Cross Validation
 subtopic: ""
 status: unread

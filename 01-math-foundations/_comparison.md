@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Math Foundations
 topic: Cheatsheet Comparison
 subtopic: ""
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: Foundations
+module: Meta
 topic: Applied AI and ML Systems
 status: unread
 tags: [foundations, ml, ai-systems, revision]

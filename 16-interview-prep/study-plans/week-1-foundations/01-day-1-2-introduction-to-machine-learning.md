@@ -1,5 +1,5 @@
 ---
-module: Study Plans
+module: Interview Prep
 topic: Week 1 Foundations
 subtopic: Day 1 2 Introduction To Machine Learning
 status: unread
