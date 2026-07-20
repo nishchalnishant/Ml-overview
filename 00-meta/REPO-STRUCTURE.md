@@ -2,7 +2,7 @@
 
 **Purpose:** This repo is an **interview-preparation knowledge base** for ML/DL engineering roles (SDE-2 / AI Engineer and above). Every structural decision below serves that goal: content is organized so you can find a concept, understand it deeply, and defend it under cross-examination.
 
-**Status:** Phase 0 complete (2026-07-19). Phase 1 complete and re-scoped (2026-07-20). Phases 2–3 pending.
+**Status:** Phase 0 complete (2026-07-19). Phase 1 complete and re-scoped (2026-07-20). **Phase 3 complete (2026-07-20)** — repo now matches the target structure below. Phase 2 (file splits) pending.
 
 ---
 
@@ -197,13 +197,68 @@ Placed at slot `04` rather than the target's `09` because `04` was vacant betwee
 - [ ] Write `16-anomaly-detection.md` — resolves the standing TODO marker in `unsupervised-learning.md`
 - [ ] Decide whether standalone recsys coverage is in scope (see Phase 1 survey table)
 
-### Phase 3 — Move folders (highest risk, lowest value — do last)
+### Phase 3 — Move folders ✅ COMPLETE (2026-07-20)
 
-- [ ] Renumber to close gaps
-- [ ] Move folders to target structure
-- [ ] Regenerate `SUMMARY.md` mechanically
-- [ ] Publish a redirect table here
-- [ ] Re-run `check-links.py` — must report **CLEAN**
+- [x] Renumber to close gaps — the repo now has exactly the 19 folders listed above, no holes
+- [x] Move folders to target structure — 160 `git mv` operations, rename history preserved
+- [x] Regenerate `SUMMARY.md` mechanically — generated from the folder tree, headings match folder numbering
+- [x] Publish a redirect table (below)
+- [x] Re-run `check-links.py` — reports **CLEAN** (0 broken links, 0 dead nav entries, 0 unpublished files)
+
+#### Redirect table — old folder → new folder
+
+| Old | New | Files |
+| :--- | :--- | ---: |
+| `12-projects/` | `17-projects/` | 66 |
+| `05-llms/` | `10-llms/` | 51 |
+| `13-interview-prep/` | `16-interview-prep/` | 31 |
+| `14-ea-ai-system-design-playbook/` | `16-interview-prep/` | 24 |
+| `09-study-plans/` | `16-interview-prep/` | 23 |
+| `07-interview-prep/` | `16-interview-prep/` | 18 |
+| `06-production-ml/` | `15-system-design/` | 17 |
+| `03-deep-learning/` | `05-deep-learning-core/` | 15 |
+| `06-production-ml/` | `13-production-ml/` | 14 |
+| `05-llms/` | `11-llm-applications/` | 13 |
+| `02-classical-ml/` | `03-classical-ml/` | 11 |
+| `07-interview-prep/` | `01-math-foundations/` | 7 |
+| `04-reinforcement-learning/` | `09-reinforcement-learning/` | 5 |
+| `01-foundations/` | `01-math-foundations/` | 4 |
+| `02-classical-ml/` | `04-evaluation/` | 4 |
+| `02-classical-ml/` | `02-data/` | 3 |
+| `03-deep-learning/` | `06-architectures/` | 3 |
+| `03-deep-learning/` | `07-domains/` | 3 |
+| `07-interview-prep/` | `07-domains/` | 3 |
+| `03-deep-learning/` | `12-systems-and-scale/` | 3 |
+| `05-llms/` | `18-resources/` | 3 |
+| `01-foundations/` | `02-data/` | 2 |
+| `07-interview-prep/` | `03-classical-ml/` | 2 |
+| `06-production-ml/` | `12-systems-and-scale/` | 2 |
+| `01-foundations/` | `00-meta/` | 1 |
+| `07-interview-prep/` | `02-data/` | 1 |
+| `07-interview-prep/` | `04-evaluation/` | 1 |
+| `06-production-ml/` | `04-evaluation/` | 1 |
+| `07-interview-prep/` | `05-deep-learning-core/` | 1 |
+| `07-interview-prep/` | `06-architectures/` | 1 |
+| `03-deep-learning/` | `08-generative/` | 1 |
+| `07-interview-prep/` | `10-llms/` | 1 |
+| `07-interview-prep/` | `13-production-ml/` | 1 |
+| `07-interview-prep/` | `14-responsible-ai/` | 1 |
+| `07-interview-prep/` | `15-system-design/` | 1 |
+| `01-foundations/` | `16-interview-prep/` | 1 |
+| `06-production-ml/` | `18-resources/` | 1 |
+| `01-foundations/` | `18-resources/` | 1 |
+
+Renames were executed with `git mv`, so `git log --follow <file>` traverses the move. To locate any file by its old path:
+
+```bash
+git log --all --diff-filter=A --name-only --pretty=format: -- "**/<old-basename>.md"
+```
+
+#### Notes from execution
+
+- **Link repair was the bulk of the work, not the moves.** The moves produced 718 broken links. Path-remapping fixed 381; the remainder needed *basename* resolution (286) and then git's own rename detection (51), because many files were both moved *and* renamed (`flashcards.md` → `_flashcards.md`, `24-search-ranking-system.md` → `cases/09-search-ranking.md`). Git rename detection is the authoritative source here — prefer it over hand-built mappings.
+- **`11-llm-applications/` initially nested as `11-llm-applications/applications/`.** Flattened. Subtree moves need the destination checked, not just the source.
+- **4 folder READMEs were deleted rather than moved** (`03-deep-learning/components/`, `07-interview-prep/{dl,llm,ml}/`) — they indexed folders that no longer exist.
 
 ---
 

@@ -36,23 +36,23 @@ FLOWCHARTS.md            Decision flowcharts across topics
 
 **Where to start tonight**
 
-- **[AI/ML systems & application](01-foundations/01-ai-ml-systems-and-application.md)** — Golden rules, architectures, infra patterns, gotchas.
-- **[35-day roadmap](09-study-plans/README.md)** — Structured reps from zero to "I can hold the room."
-- **[Math derivations hub](07-interview-prep/ml/18-math-derivations.md)** — Chain rule to attention, with your pen.
-- **[Interview hub](07-interview-prep/README.md)** — canonical entry point for interview prep.
-- **[ML interview notes](07-interview-prep/ml/README.md)** — full classical + DL Q&A bank.
-- **[LLM deep dives](05-llms/interview-notes/README.md)** — RAG, agents, alignment, serving.
-- **[Pre-interview checklist](07-interview-prep/PRE-INTERVIEW-CHECKLIST.md)** — 48h → 24h → morning-of: what to review, verify, and do before walking in.
+- **[AI/ML systems & application](00-meta/01-ai-ml-systems-and-application.md)** — Golden rules, architectures, infra patterns, gotchas.
+- **[35-day roadmap](16-interview-prep/study-plans/README.md)** — Structured reps from zero to "I can hold the room."
+- **[Math derivations hub](01-math-foundations/03-math-derivations.md)** — Chain rule to attention, with your pen.
+- **[Interview hub](16-interview-prep/README.md)** — canonical entry point for interview prep.
+- **[ML interview notes](README.md)** — full classical + DL Q&A bank.
+- **[LLM deep dives](10-llms/interview-notes/README.md)** — RAG, agents, alignment, serving.
+- **[Pre-interview checklist](16-interview-prep/03-pre-interview-checklist.md)** — 48h → 24h → morning-of: what to review, verify, and do before walking in.
 
 **10-Minute Revision Cards** (skim before any topic or interview)
 
 | Section | Quick-review card |
 |---------|--------------|
-| Foundations | [flashcards.md](01-foundations/flashcards.md) |
-| Classical ML | [classical-ml-flashcards.md](02-classical-ml/classical-ml-flashcards.md) |
-| Deep Learning | [deep-learning-cheatsheet.md](03-deep-learning/deep-learning-cheatsheet.md) · [flashcards](03-deep-learning/deep-learning-flashcards.md) |
-| LLMs | [REVISION.md](05-llms/REVISION.md) |
-| Production ML | [REVISION.md](06-production-ml/REVISION.md) |
+| Foundations | [flashcards.md](01-math-foundations/_flashcards.md) |
+| Classical ML | [classical-ml-flashcards.md](03-classical-ml/_flashcards.md) |
+| Deep Learning | [deep-learning-cheatsheet.md](05-deep-learning-core/_cheatsheet.md) · [flashcards](05-deep-learning-core/_flashcards.md) |
+| LLMs | [REVISION.md](10-llms/_revision.md) |
+| Production ML | [REVISION.md](13-production-ml/_revision.md) |
 
 **Engineering bridge:** *Training is your build job; the model artifact is your release candidate; inference is the always-on service; MLOps is CI/CD when the "code" and the "data" both change.*
 
@@ -65,21 +65,21 @@ FLOWCHARTS.md            Decision flowcharts across topics
 | [Foundations](01-foundations/) | Intro to AI, glossary, revision guide |
 | [Classical ML](02-classical-ml/) | Bias–variance, trees, calibration, when classical beats DL |
 | [Deep Learning](03-deep-learning/) | Activations, backprop, attention, PyTorch |
-| [Computer Vision](03-deep-learning/methods/03-computer-vision.md) | CNNs, detection, ViT, CLIP, self-supervised |
-| [Time Series](03-deep-learning/methods/09-time-series.md) | ARIMA through Transformers, forecasting, anomaly detection |
-| [LLMs](05-llms/README.md) | Architecture, training, scaling, evaluation |
-| [LLM Applications](05-llms/applications/README.md) | RAG, agents, tuning, inference optimization |
-| [Multimodal AI](05-llms/applications/09-multimodal.md) | CLIP, VLMs, fusion architectures, audio, video, deployment |
-| [Speculative Decoding](05-llms/applications/07-speculative-decoding.md) | Medusa, Eagle, standard SD, production trade-offs |
-| [LLM Training Stability](05-llms/05-training-stability.md) | Loss spikes, mixed precision, RLHF failure modes |
-| [Production ML](06-production-ml/README.md) | MLOps, CI/CD for ML, deployment |
-| [Model Governance](06-production-ml/03-model-governance.md) | Model registry, audit trails, GDPR, champion-challenger |
+| [Computer Vision](07-domains/04-computer-vision.md) | CNNs, detection, ViT, CLIP, self-supervised |
+| [Time Series](07-domains/06-time-series.md) | ARIMA through Transformers, forecasting, anomaly detection |
+| [LLMs](10-llms/README.md) | Architecture, training, scaling, evaluation |
+| [LLM Applications](README.md) | RAG, agents, tuning, inference optimization |
+| [Multimodal AI](11-llm-applications/09-multimodal.md) | CLIP, VLMs, fusion architectures, audio, video, deployment |
+| [Speculative Decoding](11-llm-applications/07-speculative-decoding.md) | Medusa, Eagle, standard SD, production trade-offs |
+| [LLM Training Stability](10-llms/05-training-stability.md) | Loss spikes, mixed precision, RLHF failure modes |
+| [Production ML](13-production-ml/README.md) | MLOps, CI/CD for ML, deployment |
+| [Model Governance](13-production-ml/03-model-governance.md) | Model registry, audit trails, GDPR, champion-challenger |
 | [ML System Design](06-production-ml/system-design/) | Design patterns, case studies, engineering |
-| [Model Compression](03-deep-learning/components/16-model-compression.md) | Quantization, distillation, pruning |
-| [Transfer Learning & Domain Adaptation](03-deep-learning/02-transfer-learning.md) | Fine-tuning, DANN, few-shot, MAML, zero-shot |
-| [Hands-On Projects](12-projects/README.md) | Runnable tabular ML pipeline, RAG system, and LoRA fine-tuning — not just prose |
-| [EA Mock Interviews](13-interview-prep/ea-ai-sde2-handbook/README.md) | 30 structured SDE-2 AI engineer interview scenarios |
-| [EA System Design Playbook](14-ea-ai-system-design-playbook/README.md) | 23 full system design chapters with 46-section template |
+| [Model Compression](12-systems-and-scale/01-model-compression.md) | Quantization, distillation, pruning |
+| [Transfer Learning & Domain Adaptation](05-deep-learning-core/10-transfer-learning.md) | Fine-tuning, DANN, few-shot, MAML, zero-shot |
+| [Hands-On Projects](17-projects/README.md) | Runnable tabular ML pipeline, RAG system, and LoRA fine-tuning — not just prose |
+| [EA Mock Interviews](16-interview-prep/ea/sde2-handbook/README.md) | 30 structured SDE-2 AI engineer interview scenarios |
+| [EA System Design Playbook](16-interview-prep/ea/system-design-playbook/README.md) | 23 full system design chapters with 46-section template |
 
 ---
 
