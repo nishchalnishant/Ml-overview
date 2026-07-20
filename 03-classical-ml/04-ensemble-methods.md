@@ -112,7 +112,9 @@ gb = GradientBoostingClassifier(
 )
 ```
 
-**XGBoost / LightGBM / CatBoost** are optimized variants — see `supervised-learning.md` for full comparison.
+**XGBoost / LightGBM / CatBoost** are optimized variants — see
+[01-supervised-learning.md](01-supervised-learning.md) for the library-by-library comparison, and
+[03-algorithms.md](03-algorithms.md) for XGBoost's second-order objective and split-gain criterion.
 
 **What breaks**: gradient boosting is prone to overfitting — it keeps correcting residuals until it memorizes training noise. Early stopping (via a validation set) is essential. The sequential nature makes it slow and unparallelizable across trees. It is also sensitive to hyperparameters: learning rate, tree depth, and subsampling fraction all interact.
 

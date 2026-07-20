@@ -286,7 +286,7 @@ def mc_dropout_predict(model, x, n_samples=50):
 
 **The problem**: You want a coverage guarantee — not just a well-calibrated probability, but a provable statement: "The true label is in this prediction set with at least 90% probability." No distributional assumptions. Works with any model.
 
-See the dedicated `conformal-prediction.md` file for full treatment. Summary of the key ideas here:
+Conformal prediction has no dedicated file in this repo; this section is its full treatment:
 
 **The core insight**: A calibration set of labeled examples tells you how nonconforming (surprising) a prediction needs to be before you should distrust it. If a new prediction is more nonconforming than $(1-\alpha)$ of the calibration examples, exclude it from the prediction set.
 

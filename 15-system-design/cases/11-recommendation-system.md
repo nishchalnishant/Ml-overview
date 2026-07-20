@@ -336,7 +336,7 @@ A: Two-tower decouples user and item computation. Item embeddings are precompute
 A: Items shown at position 1 have 3–5× higher CTR regardless of quality (position bias). Solutions: (1) Inverse propensity scoring — weight each sample by 1/P(position) to debias, (2) position-aware features — feed position as input and zero it out at inference, (3) pairwise training (BPR) which only uses relative ordering.
 
 **Q: Your retrieval recall dropped from 82% to 74% overnight. Walk me through diagnosis.**  
-A: Check (1) item index freshness — did the ANN rebuild fail? (2) feature distribution for user tower — new feature pipeline issue? (3) model version — was a bad model deployed? (4) data issue — popularity distribution shift in items? Start with index health, then feature drift (PSI), then model logs. See diagnosis flowchart in `production-diagnosis-flowchart.md`.
+A: Check (1) item index freshness — did the ANN rebuild fail? (2) feature distribution for user tower — new feature pipeline issue? (3) model version — was a bad model deployed? (4) data issue — popularity distribution shift in items? Start with index health, then feature drift (PSI), then model logs. See diagnosis flowchart in [../../13-production-ml/10-production-diagnosis-flowchart.md](../../13-production-ml/10-production-diagnosis-flowchart.md).
 
 **Q: How would you design for 10× scale from 100M to 1B users?**  
 A: (1) Shard user embedding store by user_id mod N, (2) distribute ANN index across shards (each shard searches subset, merge top-K), (3) split retrieval into geographic clusters, (4) serve user tower at edge for low-latency embedding, (5) async re-ranking to decouple from API latency. Key bottleneck shifts from model inference to embedding store I/O.

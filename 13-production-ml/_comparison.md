@@ -7,7 +7,7 @@ tags: [productionml, cheatsheet, comparison, interview-prep]
 ---
 # Production ML — Comparison Cheat Sheet
 
-Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. Every entry grounded in what the folder's files actually cover (`01-mlops.md`, `02-deployment-patterns.md`, `03-model-governance.md`, `REVISION.md`, and `system-design/*.md`).
+Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. Every entry grounded in what the folder's files actually cover (`01-mlops.md`, `02-deployment-patterns.md`, `03-model-governance.md`, [_revision.md](_revision.md), and `system-design/*.md`).
 
 ---
 
@@ -74,7 +74,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pros: simple integration; good tooling/observability; human-readable payloads.
 - Cons: higher per-request latency overhead (JSON serialization) vs gRPC; scales worse under very high QPS than binary protocols.
 - Pick over alternatives: pick REST over gRPC when client diversity/debuggability matters more than raw latency.
-- Key operational detail: typical latency tier <100ms (near-real-time) per `05-real-time-ml-systems.md` latency-tier table.
+- Key operational detail: typical latency tier <100ms (near-real-time) per [04-real-time-ml-systems.md](04-real-time-ml-systems.md) latency-tier table.
 
 **Real-time gRPC**
 - What it is: binary protocol (protobuf) request/response serving, typically used for internal service-to-service calls needing low latency.
@@ -213,7 +213,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - What it is: statistical measure comparing a feature's distribution between a baseline (training) window and a current (serving) window.
 - Pros: simple, single interpretable number; works well on binned continuous or categorical features; industry-standard threshold conventions.
 - Cons: sensitive to binning choice; doesn't diagnose *why* a distribution shifted, only that it did.
-- Pick over alternatives: pick PSI over KL divergence when you want a standard, threshold-driven trigger for retraining decisions (PSI > 0.25 = significant drift → retrain, per `REVISION.md`).
+- Pick over alternatives: pick PSI over KL divergence when you want a standard, threshold-driven trigger for retraining decisions (PSI > 0.25 = significant drift → retrain, per [_revision.md](_revision.md)).
 - Key operational detail: PSI < 0.1 = no significant shift; 0.1-0.25 = moderate, investigate; >0.25 = significant, retrain.
 
 **KL Divergence**
@@ -283,7 +283,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pros: cluster randomization and geo-splits avoid contamination between treatment/control when users interact with each other; switchback testing (time-based on/off) is useful when clusters are hard to define; hold-out groups measure long-run cumulative effect.
 - Cons: cluster/geo-based designs increase required sample size and complexity (fewer independent units = less power); switchback introduces time-based confounds (day-of-week effects).
 - Pick over alternatives: pick cluster/geo randomization over standard user-level A/B when users interact with each other (marketplace liquidity, social feed) so treatment leaks into control; pick switchback when clusters aren't naturally definable but time-based on/off is feasible; pick hold-out groups to measure cumulative long-term effect that a short experiment window would miss.
-- Key operational detail: complexity increases roughly in the order: user-level A/B < geographic split < cluster randomization < switchback (per the table in `14-ab-testing-experimentation.md`).
+- Key operational detail: complexity increases roughly in the order: user-level A/B < geographic split < cluster randomization < switchback (per the table in [../04-evaluation/06-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md)).
 
 **Interleaving (Team-Draft Interleaving)**
 - What it is: for ranking/search comparison, interleave results from two rankers into a single result list shown to the user, then attribute clicks back to the source ranker.
@@ -292,7 +292,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pick over alternatives: pick interleaving over standard A/B specifically for ranker/search comparisons where sample efficiency matters and outputs are ordered lists.
 - Key operational detail: winner is computed by counting which ranker contributed more clicked results in the interleaved list.
 
-**Common Pitfalls table** (from `14-ab-testing-experimentation.md`)
+**Common Pitfalls table** (from [../04-evaluation/06-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md))
 
 | Pitfall | Problem | Fix |
 |---|---|---|
@@ -356,7 +356,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pros: can dramatically simplify learning (bucketed classification often outperforms exact regression when precision beyond the bucket isn't needed); aligns loss function with actual business decision.
 - Cons: loses granularity within a bucket; bucket boundaries are an added design decision.
 - Pick over alternatives: pick reframing over forcing a hard regression problem when the downstream decision only needs a coarse bucket (e.g., "will this take 0-1 day, 1-3 days, or 3+ days" instead of exact hours).
-- Key operational detail: directly follows from the Problem Framing principle in `01-machine-learning-engineering.md` — translate the business decision into the ML task, not the reverse.
+- Key operational detail: directly follows from the Problem Framing principle in [01-mlops.md](01-mlops.md) — translate the business decision into the ML task, not the reverse.
 
 **Multilabel Classification**
 - What it is: predict multiple non-mutually-exclusive labels per example (vs single-label multiclass).
@@ -374,7 +374,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 
 **Cascade**
 - What it is: chain of models of increasing cost/accuracy, where only ambiguous cases proceed to the next (more expensive) stage.
-- Pros: dramatically cuts average latency/cost since most traffic resolves at cheap early stages (explicit example in `13-cost-optimization.md`: 50% rules + 35% fast model + 15% full model → 81.5% cost reduction vs always using the full model).
+- Pros: dramatically cuts average latency/cost since most traffic resolves at cheap early stages (explicit example in [11-system-design-and-mlops.md](11-system-design-and-mlops.md): 50% rules + 35% fast model + 15% full model → 81.5% cost reduction vs always using the full model).
 - Cons: added system complexity (multiple models, routing logic, confidence thresholds to tune); errors at an early stage can't be corrected downstream if routed incorrectly.
 - Pick over alternatives: pick cascade over always running the expensive model when a large fraction of traffic is "easy" and can be resolved cheaply/confidently by a lightweight first stage.
 - Key operational detail: confidence thresholds for escalation must be tuned carefully — too conservative negates the cost savings, too aggressive sends hard cases through with wrong early answers.
@@ -400,7 +400,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pros: directly prevents training-serving skew from mismatched preprocessing — the single biggest production ML failure mode per this repo's README.
 - Cons: adds a layer of abstraction/tooling (must serialize and version the transform alongside the model).
 - Pick over alternatives: pick an explicit Transform pattern over "reimplement preprocessing in the serving service" whenever training and serving are different codebases/languages.
-- Key operational detail: fit scalers/encoders only on training data, never on val/test/serving data — same principle repeated across `01-machine-learning-engineering.md`'s data leakage section.
+- Key operational detail: fit scalers/encoders only on training data, never on val/test/serving data — same principle repeated across [01-mlops.md](01-mlops.md)'s data leakage section.
 
 **Multistage Training**
 - What it is: break training into sequential stages (e.g., pretrain on a broad task, then fine-tune on the target task) rather than training end-to-end from scratch.
@@ -418,7 +418,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 
 **Distillation**
 - What it is: train a smaller "student" model to mimic a larger "teacher" model's outputs (soft labels), compressing capability into a cheaper model.
-- Pros: 3-10x inference speedup/cost reduction for typically 2-5% accuracy loss (per `13-cost-optimization.md` cost/quality tables); production-viable model that retains most teacher performance.
+- Pros: 3-10x inference speedup/cost reduction for typically 2-5% accuracy loss (per [11-system-design-and-mlops.md](11-system-design-and-mlops.md) cost/quality tables); production-viable model that retains most teacher performance.
 - Cons: added training pipeline step (train teacher, generate soft labels, train student); some accuracy loss is inevitable.
 - Pick over alternatives: pick distillation over serving the large model directly when inference cost/latency at scale dominates and a small accuracy loss is acceptable; pick over quantization alone when you need a fundamentally smaller architecture, not just lower-precision weights.
 - Key operational detail: often combined with quantization for compounding cost savings (distill then quantize).
@@ -437,11 +437,11 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pros: aligns the offline metric with the actual business objective (vs accuracy, which is misleading under imbalance).
 - Cons: requires deliberate metric selection per task — no one-size-fits-all default.
 - Pick over alternatives: pick PR-AUC over ROC-AUC under severe class imbalance (ROC-AUC is optimistic when negatives vastly outnumber positives); pick NDCG for ranking/recommendation where position matters; pick F-beta (beta>1 for recall-weighted, <1 for precision-weighted) when precision/recall costs are asymmetric.
-- Key operational detail: mirrors the "97% precision at 30% recall passes evaluation but is commercially worthless" failure mode called out in `01-machine-learning-engineering.md`.
+- Key operational detail: mirrors the "97% precision at 30% recall passes evaluation but is commercially worthless" failure mode called out in [01-mlops.md](01-mlops.md).
 
 **Slicing**
 - What it is: evaluate model performance on meaningful subpopulations/segments, not just the aggregate metric.
-- Pros: catches subgroup failures hidden by a good aggregate score (explicitly flagged as a "common failure" in `REVISION.md`'s MLOps checklist: "Aggregate metric hides subgroup failure").
+- Pros: catches subgroup failures hidden by a good aggregate score (explicitly flagged as a "common failure" in [_revision.md](_revision.md)'s MLOps checklist: "Aggregate metric hides subgroup failure").
 - Cons: requires defining meaningful slices up front (demographic, device type, geography); more evaluation infrastructure/reporting surface.
 - Pick over alternatives: pick sliced evaluation over aggregate-only whenever fairness, safety, or known-heterogeneous-population risk exists.
 - Key operational detail: pair with Prediction Bias/Fairness pattern for slices defined by protected attributes.
@@ -451,19 +451,19 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - Pros: proactively catches skew rather than waiting for a downstream accuracy/business-metric drop.
 - Cons: needs logged serving-time feature snapshots to compare against training distributions.
 - Pick over alternatives: pick this over waiting for delayed ground-truth labels to reveal a problem — feature-level skew detection is an earlier warning signal than label-based metrics.
-- Key operational detail: directly ties to the "log features at serving time, use that logged snapshot for training" practice from `05-real-time-ml-systems.md`.
+- Key operational detail: directly ties to the "log features at serving time, use that logged snapshot for training" practice from [04-real-time-ml-systems.md](04-real-time-ml-systems.md).
 
 **Baseline Comparison**
 - What it is: always compare the trained model against simple baselines (majority class, rule-based, plain logistic regression) before deploying.
 - Pros: cheap sanity check; prevents deploying complex models that don't actually beat a trivial baseline; directly informs the project-viability/cost-vs-accuracy tradeoff.
 - Cons: requires discipline to maintain baseline implementations alongside the "real" model over time.
-- Pick over alternatives: mandatory regardless of alternatives — "if the ML model can't beat these, it has no business being deployed" (`01-machine-learning-engineering.md`).
+- Pick over alternatives: mandatory regardless of alternatives — "if the ML model can't beat these, it has no business being deployed" ([01-mlops.md](01-mlops.md)).
 - Key operational detail: baselines should be evaluated on the identical test set/metric as the candidate model, not a different slice.
 
 **Prediction Bias / Fairness (demographic parity, equal opportunity, disparate impact, adversarial debiasing)**
 - What it is: formal fairness metrics and mitigation techniques — demographic parity (equal positive-prediction rate across groups), equal opportunity (equal true-positive rate across groups), disparate impact ratio, and adversarial debiasing (train against an adversary trying to predict the protected attribute from the model's representation).
 - Pros: makes fairness measurable and auditable rather than assumed; adversarial debiasing actively removes protected-attribute signal from learned representations.
-- Cons: fairness constraints often trade off against raw accuracy (explicit Pareto tradeoff noted in `05-real-time-ml-systems.md`'s multi-objective section); different fairness definitions (demographic parity vs equal opportunity) can be mutually incompatible — satisfying one can violate another.
+- Cons: fairness constraints often trade off against raw accuracy (explicit Pareto tradeoff noted in [04-real-time-ml-systems.md](04-real-time-ml-systems.md)'s multi-objective section); different fairness definitions (demographic parity vs equal opportunity) can be mutually incompatible — satisfying one can violate another.
 - Pick over alternatives: pick demographic parity when equal outcome rates across groups is the legal/policy requirement; pick equal opportunity when equal error rates for the qualified population matter more than equal outcome rates; pick adversarial debiasing when you need to remove protected-attribute signal from representations directly, not just adjust the decision threshold per group.
 - Key operational detail: this is also where model governance's regulatory compliance obligations bite (GDPR Art 22 automated-decision rights, ECOA/FCRA in credit) — see `03-model-governance.md`.
 
@@ -496,7 +496,7 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 - What it is: predefined severity tiers and a documented rollback playbook for responding to production model incidents.
 - Pros: removes decision-paralysis during an incident; ensures rollback (not just root-cause investigation) happens fast.
 - Cons: requires the rollback mechanism (e.g., champion/challenger router, canary infra) to actually exist and be tested beforehand.
-- Pick over alternatives: essential wherever automated rollback triggers (per `10-model-registry-versioning.md`'s `trigger_automatic_rollback`) are in place — the playbook is the human-process complement to the automated trigger.
+- Pick over alternatives: essential wherever automated rollback triggers (per [09-model-registry-versioning.md](09-model-registry-versioning.md)'s `trigger_automatic_rollback`) are in place — the playbook is the human-process complement to the automated trigger.
 - Key operational detail: P1 = full outage/harm, requires immediate rollback; lower severities may allow monitoring before action.
 
 ---
@@ -569,4 +569,4 @@ Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. 
 | LLM serving internals (KV cache, batching) | `system-design/12-llm-inference-ops.md` |
 | Cost optimization | `system-design/13-cost-optimization.md` |
 | Full MLE lifecycle (data → monitoring) | `system-design/01-machine-learning-engineering.md` |
-| 10-minute condensed revision | `REVISION.md` |
+| 10-minute condensed revision | [_revision.md](_revision.md) |

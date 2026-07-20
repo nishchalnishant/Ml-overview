@@ -322,6 +322,11 @@ enet  = ElasticNet(alpha=0.01, l1_ratio=0.5)      # l1_ratio: fraction of L1
 
 All three are gradient-boosted tree libraries. Each differs in how trees are grown, how they handle categorical features, and their computational tradeoffs.
 
+> **Assumes you know how boosting works.** For the mechanism, see
+> [04-ensemble-methods.md](04-ensemble-methods.md) (AdaBoost → gradient boosting, with code) or
+> [03-algorithms.md](03-algorithms.md) (gradient descent in function space, XGBoost's split-gain
+> criterion). This section is the library-selection comparison only.
+
 ### Tree Growth Strategy
 
 | Property | XGBoost | LightGBM | CatBoost |

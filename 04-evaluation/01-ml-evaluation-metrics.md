@@ -68,7 +68,7 @@ $$\text{MCC} = \frac{TP \cdot TN - FP \cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+F
 
 ## 2. Calibration Metrics
 
-Covered in depth in `calibration-and-uncertainty.md`. Summary for this file:
+Covered in depth in [04-calibration-and-uncertainty.md](04-calibration-and-uncertainty.md). Summary for this file:
 
 ### ECE and MCE
 

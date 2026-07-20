@@ -104,6 +104,11 @@ $$\text{Gain} = \frac{1}{2}\left[\frac{G_L^2}{H_L+\lambda} + \frac{G_R^2}{H_R+\l
 
 where $G$ = sum of first-order gradients, $H$ = sum of second-order gradients, $\lambda$ = L2 regularization, $\gamma$ = minimum gain threshold.
 
+> **Same topic, other modalities:** [04-ensemble-methods.md](04-ensemble-methods.md) derives gradient
+> boosting from AdaBoost (why it generalizes to arbitrary losses) with sklearn code;
+> [01-supervised-learning.md](01-supervised-learning.md) compares XGBoost/LightGBM/CatBoost
+> library-by-library. This section is the interview-reasoning framing. Kept separate deliberately.
+
 ---
 
 ## 5. Random Forest vs XGBoost

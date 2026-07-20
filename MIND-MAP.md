@@ -615,7 +615,7 @@ MACHINE LEARNING
 - Expert → `08-emerging-topics` → `05-llms/applications` → `10-references`
 
 **By interview type:**
-- Classical ML coding → `07-interview-prep/ml/08-algorithms.md` + `coding.md`
+- Classical ML coding → [16-interview-prep/11-ml-coding-patterns.md](16-interview-prep/11-ml-coding-patterns.md) + [16-interview-prep/10-coding.md](16-interview-prep/10-coding.md)
 - ML system design → `06-production-ml/system-design/03-machine-learning-design-interview.md`
 - LLM theory → `05-llms/03-architecture-deep-dive.md` + `05-llms/interview-notes/01-llm-fundamentals.md`
 - LLM system design → `05-llms/interview-notes/07-ai-system-design.md`

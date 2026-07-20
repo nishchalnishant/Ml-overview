@@ -402,4 +402,4 @@ Treating optimization algorithms as black boxes. Every practical training failur
 
 ---
 
-*Cross-reference: `optimization.md` (gradient descent basics, Adam, AdamW, practical debugging), `deep-learning.md` (backpropagation, normalization, residual connections).*
+*Cross-reference: [../05-deep-learning-core/06-optimisers.md](../05-deep-learning-core/06-optimisers.md) (gradient descent basics, Adam, AdamW, practical debugging), [../05-deep-learning-core/](../05-deep-learning-core/README.md) (backpropagation, normalization, residual connections).*
