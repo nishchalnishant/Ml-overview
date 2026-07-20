@@ -141,13 +141,44 @@ If an early layer's weights are barely changing:
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Explain what vanishing gradients mean and why they happen.**  
+### Q: Explain what vanishing gradients mean and why they happen. [Easy]
+
 A: For stacked layers, ∂L/∂x₁ = W_N^T · W_{N-1}^T · ... · W_1^T · ∂L/∂h_N (plus activation derivatives at each step). If the weight matrices/activation derivatives consistently scale the gradient by less than 1, repeated multiplication causes exponential decay — early layers receive a near-zero gradient and stop learning. This was the key obstacle to deep networks before ReLU (doesn't saturate for positive inputs), normalization layers, and residual connections.
 
-**Q: How do residual connections solve the vanishing gradient problem?**  
+**Cross-questions to expect:**
+- *"Do exploding gradients have the same cause?"* → Same mechanism, opposite direction: repeated multiplication by factors consistently above 1. Worth saying they're one phenomenon, since the fixes differ — clipping addresses exploding, architecture addresses vanishing.
+- *"ReLU has derivative exactly 1 for positive inputs. Does that eliminate vanishing gradients?"* → No. It removes the activation's contribution to shrinkage, but the weight matrices still multiply. A deep plain ReLU net can still vanish if weights are poorly scaled — which is exactly what He initialization exists to prevent.
+- *"Why did LSTMs help before ResNets existed?"* → The cell state is an additive path with derivative ≈1, the same trick as a residual connection, applied along time rather than depth. Recognizing them as the same idea is the strong answer.
+- *"Can you detect this from training curves alone?"* → Not reliably — a flat loss looks the same for a bad learning rate. You need per-layer gradient norms; the signature is early-layer norms orders of magnitude below late-layer norms.
+
+**Trap:** Saying "sigmoid causes vanishing gradients" and stopping. Sigmoid's max derivative of 0.25 makes it *worse*, but the cause is repeated multiplication of factors below 1 through a deep composition — swapping in ReLU without fixing initialization or adding skip connections does not make a 50-layer network trainable.
+
+---
+
+### Q: How do residual connections solve the vanishing gradient problem? [Medium]
+
 A: ResNet defines each block as F(x) = x + G(x) instead of F(x) = G(x). The gradient at the input is ∂L/∂x = ∂L/∂F · (1 + ∂G/∂x). The "+1" term gives gradients a direct path back through the identity shortcut, regardless of how small ∂G/∂x becomes — even if G contributes zero gradient, signal still flows through unchanged. This is why 152-layer ResNets train from scratch while equally deep plain networks don't. Transformers use the same trick: every attention and FFN block is wrapped in a residual connection.
 
-**Q: What is gradient checkpointing and when would you use it?**  
+**Cross-questions to expect:**
+- *"If the identity path solves it, why not make every network 1000 layers?"* → Depth still costs compute and memory, and returns diminish — ResNet-1001 barely beats ResNet-152. Skip connections make depth *trainable*, not automatically *better*.
+- *"Pre-activation or post-activation residual blocks?"* → He et al. (2016) showed pre-activation (BN → ReLU → conv inside the branch) gives a completely unobstructed identity path, since nothing operates on the skip itself. It trains deeper nets more stably and is the modern default.
+- *"What does the network actually learn if the identity is already good?"* → $G(x) \approx 0$. That's the point of the name: it learns the *residual* from identity, and learning a near-zero function is far easier than learning a near-identity one through a stack of nonlinearities.
+- *"Do residual connections interact with normalization placement?"* → Yes, directly. Post-norm applies LN to the sum, so the skip path passes through a normalizer and the clean gradient route is degraded; pre-norm keeps the identity clean. That's why deep transformers are pre-norm — see [07-normalization.md](07-normalization.md).
+
+**Trap:** Describing the skip as "adding the input back so information isn't lost." That's the forward-pass intuition and it's incomplete. The load-bearing fact is the derivative: the $(1 + \partial G/\partial x)$ term guarantees a gradient path that survives no matter how small $\partial G/\partial x$ gets.
+
+---
+
+### Q: What is gradient checkpointing and when would you use it? [Medium]
+
 A: Standard backprop caches every intermediate activation from the forward pass for reuse in the backward pass — memory scales with depth × batch size × sequence length. Gradient checkpointing trades compute for memory: only activations at checkpoint boundaries are saved, and the rest are recomputed during the backward pass. This cuts activation memory substantially at the cost of roughly 30% more compute. Use it when fine-tuning large models that don't fit in GPU memory, or training with long sequences/large batches where activation memory dominates.
+
+**Cross-questions to expect:**
+- *"Why roughly 30% and not 100% more compute?"* → Only the forward pass is recomputed, and only between checkpoints. Backward is roughly twice the cost of forward, so the full step is ~3 units; adding one extra forward makes ~4. Hence ~33%, not double.
+- *"Where do you place the checkpoints?"* → With $\sqrt{n}$ evenly spaced segments over $n$ layers, memory drops to $O(\sqrt{n})$ — the standard result. In practice you checkpoint at transformer block boundaries, which is what `torch.utils.checkpoint` wrappers do by default.
+- *"It broke my model's dropout — why?"* → The recomputed forward must reproduce the original one exactly. Any RNG-dependent op (dropout, stochastic depth) will resample unless the RNG state is saved and restored. PyTorch handles this with `preserve_rng_state=True`; getting it wrong makes backward compute gradients for a *different* network than the one that produced the loss.
+- *"How does it compare to just reducing batch size?"* → Both cut activation memory, but small batches hurt throughput and can destabilize BatchNorm statistics. Checkpointing keeps the batch size and pays in compute instead — usually the better trade on modern accelerators.
+
+**Trap:** Calling it a memory optimization with no downsides. It is a compute-for-memory trade, and it interacts badly with anything stochastic in the forward pass. If asked how to fit a larger model, checkpointing is one lever among several (mixed precision, ZeRO sharding, offload) — naming only this one suggests a narrow view of the problem.

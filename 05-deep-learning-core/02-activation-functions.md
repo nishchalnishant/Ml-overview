@@ -193,13 +193,44 @@ Numerically stable form: subtract the max before exponentiating to prevent overf
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Why did GELU replace ReLU in transformers, and what is GELU computing?**
+### Q: Why did GELU replace ReLU in transformers, and what is GELU computing? [Medium]
+
 A: GELU (Gaussian Error Linear Unit) is defined as GELU(x) = x·Φ(x), where Φ(x) is the standard normal CDF. Intuitively: the input x is gated by the probability that a standard normal random variable is less than x — inputs far below zero are dropped (near-zero probability), inputs far above zero pass through almost entirely. Unlike ReLU which is a hard gate (0 or 1), GELU is smooth everywhere, including at zero. This matters because: (1) smooth gradients near zero avoid the "dead neuron" problem where ReLU neurons with x<0 get zero gradient permanently; (2) GELU has a small negative region below zero (unlike ReLU's strict non-negativity), giving the network more expressiveness; (3) empirically, BERT, GPT-2, and all subsequent transformers trained with GELU converge better than ReLU. The practical approximation used in code is GELU(x) ≈ 0.5x·(1 + tanh(√(2/π)·(x + 0.044715x³))), which avoids computing the true CDF.
 
-**Q: What is SwiGLU and why do all modern LLMs use it?**
+**Cross-questions to expect:**
+- *"Is the tanh approximation still needed?"* → Largely not. It existed because the exact erf-based CDF was slow; modern frameworks have fast exact GELU, and PyTorch offers both via `approximate='tanh'`. It survives mainly for bit-exact compatibility when reproducing BERT/GPT-2 checkpoints.
+- *"Is GELU actually better, or just what BERT happened to use?"* → Honest answer: the margin over ReLU is small and often within noise at small scale. GELU's adoption owes as much to BERT/GPT-2 lineage as to a decisive result — and SwiGLU has since displaced it in new models anyway. Claiming a large intrinsic advantage overstates the evidence.
+- *"Does GELU eliminate dead neurons?"* → It makes them far less likely, not impossible. The gradient is small but nonzero for negative inputs, so a unit driven far negative recovers very slowly rather than never.
+- *"Why does smoothness at zero actually matter?"* → ReLU's derivative is discontinuous at the origin. For adaptive optimizers tracking gradient second moments, a smooth activation gives better-behaved curvature estimates near the kink.
+
+**Trap:** Explaining GELU as "ReLU but smooth." The defining idea is *stochastic gating* — $x \cdot \Phi(x)$ weights the input by the probability it would survive a random gate, which is where the paper's connection to dropout comes from. Smoothness is a consequence of that construction, not its purpose.
+
+---
+
+### Q: What is SwiGLU and why do all modern LLMs use it? [Hard]
+
 A: SwiGLU (Swish-Gated Linear Unit) replaces the standard FFN block FFN(x) = ReLU(xW_1)W_2 with a gated variant: SwiGLU(x) = (xW ⊙ SiLU(xV))W_2, where SiLU(x) = x·σ(x) (Swish activation). The key change is the multiplicative gate — the linear projection xW is element-wise multiplied by the activated projection SiLU(xV). This gating mechanism lets the network learn to selectively suppress or amplify feature dimensions. Because there are now 3 weight matrices (W, V, W_2) instead of 2, the intermediate hidden dimension is typically scaled to 2/3 of the standard 4d_model to keep total parameter count constant. Empirically, SwiGLU achieves the same validation loss as ReLU FFNs in ~15-20% fewer training steps (Noam Shazeer 2020). All Llama variants, Gemma, Mistral, and PaLM use SwiGLU. Interview answer: "it combines smooth gradients from Swish with the gating mechanism's selective feature control — empirically the best FFN activation at scale."
 
-**Q: Why does the dying ReLU problem occur, and how do LeakyReLU and ELU address it differently?**
+**Cross-questions to expect:**
+- *"Why exactly 2/3 on the hidden dimension?"* → Three matrices instead of two. To hold parameters fixed you need $3 \cdot d \cdot d_{ff}' = 2 \cdot d \cdot 4d$, giving $d_{ff}' = \tfrac{8}{3}d$ — i.e. two-thirds of the usual $4d$. Being able to derive this on the spot is the point of the question.
+- *"Why does gating help, mechanistically?"* → The multiplicative interaction gives a second-order term a single linear-plus-activation path can't express. It's the same reason LSTM gates and Highway Networks worked.
+- *"Shazeer's own framing of the evidence?"* → Famously candid: the paper attributes the gains to "divine benevolence" — i.e. it works empirically and the theory is post-hoc. Knowing the result is empirical rather than derived is a genuine signal.
+- *"Does SwiGLU cost more at inference?"* → Slightly — three matmuls instead of two, and the gate blocks some kernel fusions. Parameter count is held constant but FLOPs and memory traffic are marginally higher, which matters in serving.
+
+**Trap:** Saying "three matrices means more parameters." The hidden dimension is deliberately shrunk to $\tfrac{8}{3}d$ precisely so the count matches. The gain comes from the gating structure, not extra capacity — that's the whole reason the comparison is fair.
+
+---
+
+### Q: Why does the dying ReLU problem occur, and how do LeakyReLU and ELU address it differently? [Medium]
+
 A: ReLU(x) = max(0, x). For x < 0, the output is 0 and the gradient is exactly 0. If a neuron's pre-activation is negative for every sample in a batch, it receives zero gradient — the weights don't update, and the neuron is permanently "dead." This happens when: large learning rates push weights such that the neuron always produces negative pre-activations, or poor initialization creates systematic negative outputs. LeakyReLU: f(x) = x if x > 0, else αx (α ≈ 0.01). The small slope for x < 0 ensures gradient is never exactly zero — dead neurons can recover. ELU (Exponential Linear Unit): f(x) = x if x > 0, else α(e^x - 1). ELU has negative saturation (approaches -α asymptotically), which makes the mean activation closer to zero (like batch normalization's effect) — this accelerates learning. ELU also has smooth gradient everywhere including at x=0. Trade-off: LeakyReLU is faster to compute; ELU converges faster but costs an exp() per activation. In practice for transformers: both are superseded by GELU/SwiGLU. For lightweight CNNs where compute matters: LeakyReLU is standard.
+
+**Cross-questions to expect:**
+- *"How would you actually detect dead neurons in a running model?"* → Hook the activations and track the fraction of units that output zero for every sample across a full epoch. A persistently-zero unit is dead; a high but varying zero-rate is just normal ReLU sparsity and is fine.
+- *"Is sparsity from ReLU good or bad?"* → Both, and the distinction is the answer. Input-dependent sparsity (different units fire for different samples) is useful and cheap. Permanent sparsity (a unit that never fires) is lost capacity. Same zero, different meaning.
+- *"If LeakyReLU fixes it, why isn't it the default everywhere?"* → The gains are inconsistent — it helps when you actually have a dying-unit problem and does little otherwise, while adding a hyperparameter $\alpha$. ReLU's simplicity and speed usually win, and transformers moved to GELU/SwiGLU regardless.
+- *"What's PReLU?"* → LeakyReLU with $\alpha$ learned per channel rather than fixed. Recovers a little accuracy on CNNs, adds parameters and a small amount of training complexity.
+
+**Trap:** Treating dying ReLU as a routine hazard requiring a preventive activation swap. It's mostly a symptom of too high a learning rate or bad initialization — fix the cause. Reaching for LeakyReLU to paper over an LR problem leaves the real issue in place.

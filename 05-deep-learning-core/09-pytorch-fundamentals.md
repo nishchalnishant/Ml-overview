@@ -743,44 +743,74 @@ for batch_X, batch_y in train_loader:
 
 ---
 
-## 10. Common Interview Questions
+## 10. Interview Angles
 
-**Q: What's the difference between `.view()` and `.reshape()`?**
+These are API-recall questions — asked fast, in sequence, to check you have actually written
+training loops. Depth questions on the same concepts live in
+[06-optimisers.md](06-optimisers.md), [07-normalization.md](07-normalization.md), and
+[08-regularization.md](08-regularization.md).
+
+### Q: What's the difference between `.view()` and `.reshape()`? [Easy]
 
 `.view()` requires contiguous memory and returns a view (no copy). `.reshape()` handles non-contiguous tensors by making a copy if needed. After `.permute()` or `.transpose()`, the tensor may not be contiguous — `.view()` will error, `.reshape()` will silently copy. Use `.reshape()` unless you explicitly need a view guarantee.
 
-**Q: Why call `optimizer.zero_grad()` before `loss.backward()`?**
+### Q: Why call `optimizer.zero_grad()` before `loss.backward()`? [Easy]
 
 PyTorch accumulates gradients by default — each `.backward()` call adds to `.grad`. Without zeroing, gradients from previous batches add to current ones. The rare legitimate exception is gradient accumulation (multiple backward passes per optimizer step to simulate a larger batch).
 
-**Q: What's the difference between `model.parameters()` and `model.state_dict()`?**
+### Q: What's the difference between `model.parameters()` and `model.state_dict()`? [Easy]
 
 `parameters()` yields only learnable weight tensors (those with `requires_grad=True`). `state_dict()` is an ordered dict mapping names to tensors — it includes parameters and non-learnable buffers (BatchNorm running stats). Use `state_dict()` for saving; `parameters()` for the optimizer.
 
-**Q: When would you use `requires_grad=False` on layers?**
+### Q: When would you use `requires_grad=False` on layers? [Easy]
 
 When fine-tuning a pretrained model: freeze early layers (general features shouldn't change), train only the head or upper layers. Also saves compute — no graph is built through frozen parameters.
 
-**Q: What's the difference between BatchNorm and LayerNorm?**
+**Cross-questions to expect:**
+- *"Is freezing enough to stop those layers changing?"* → Not if they contain BatchNorm. Running statistics are buffers, not parameters — they keep updating in train mode regardless of `requires_grad`. You also need `model.eval()` on those modules, or the frozen backbone drifts.
+- *"`requires_grad=False` or leaving them out of the optimizer?"* → Different effects. Omitting from the optimizer stops the update but still builds the graph and computes the gradient; `requires_grad=False` skips the backward computation entirely and is the one that saves compute. Weight decay on a param group is another way to silently change "frozen" weights.
+
+**Trap:** Freezing after constructing the optimizer with `model.parameters()`. The optimizer still holds those tensors, and any stale `.grad` plus weight decay will move them.
+
+### Q: What's the difference between BatchNorm and LayerNorm? [Medium]
 
 BatchNorm normalizes across the batch for each feature — needs a large batch for stable statistics, uses running stats at inference. LayerNorm normalizes across features within each sample — batch-size agnostic, identical behavior at train and test time. Transformers use LayerNorm because they often process small or variable batches.
 
-**Q: What does `.detach()` do?**
+### Q: What does `.detach()` do? [Medium]
 
 Returns a new tensor sharing data with the original but with no `grad_fn`. Gradients don't flow through it. Use it when you need a tensor's value but don't want that path included in backpropagation (target networks in RL, metrics logging, NumPy conversion).
 
-**Q: What's the difference between `CrossEntropyLoss` and `NLLLoss`?**
+**Cross-questions to expect:**
+- *"`.detach()` vs `torch.no_grad()`?"* → `.detach()` cuts one tensor out of the graph; `no_grad()` disables graph construction for a whole block. Use `no_grad()` for inference and validation — it saves the memory of storing activations, which `.detach()` after the fact does not.
+- *"Does it copy?"* → No. It shares storage, so an in-place edit to the detached tensor mutates the original and can corrupt a backward pass. Use `.detach().clone()` when you intend to modify.
+
+**Trap:** Accumulating `total_loss += loss` in a training loop without `.item()` or `.detach()`. You retain the entire graph for every batch of the epoch — a classic slow memory leak that looks like a framework bug.
+
+### Q: What's the difference between `CrossEntropyLoss` and `NLLLoss`? [Easy]
 
 `CrossEntropyLoss` = `LogSoftmax` + `NLLLoss` in one numerically stable operation. Pass raw logits. `NLLLoss` expects log-probabilities (output of `F.log_softmax`). Use `CrossEntropyLoss` for classification — applying softmax externally then passing to `NLLLoss` introduces unnecessary floating-point error.
 
-**Q: How does gradient clipping work?**
+### Q: How does gradient clipping work? [Medium]
 
 Computes the global L2 norm of all parameter gradients concatenated. If this norm exceeds `max_norm`, scales all gradients down so the total norm equals `max_norm`. Preserves gradient direction, clips magnitude. Call after `loss.backward()`, before `optimizer.step()`.
 
-**Q: What's the advantage of AdamW over Adam?**
+**Cross-questions to expect:**
+- *"Norm clipping or value clipping?"* → `clip_grad_norm_` rescales globally and preserves direction; `clip_grad_value_` clamps each element and does not. Norm clipping is the default for transformers and RNNs precisely because direction is the informative part.
+- *"Where does it go with mixed precision?"* → After `scaler.unscale_(optimizer)`. Clip the scaled gradients and your `max_norm` is meaningless — it's off by the loss-scale factor, which changes dynamically.
+- *"How do you pick `max_norm`?"* → Log the observed grad norm for a few hundred steps and set the threshold above the typical value so it only catches spikes. 1.0 is the common default because that's roughly where well-conditioned transformer training sits.
+
+**Trap:** Treating clipping as a fix for exploding gradients. It bounds the symptom; a run that clips on most steps has a learning-rate or initialization problem that clipping is hiding.
+
+### Q: What's the advantage of AdamW over Adam? [Medium]
 
 In Adam, weight decay is applied by adding `wd * param` to the gradient before the adaptive scaling — so the effective decay is scaled by `1/sqrt(v)`, differently for each parameter. AdamW decouples weight decay from the gradient update, applying it directly to weights. Theoretically correct; empirically better especially for transformers.
 
-**Q: What happens if you forget `model.eval()` during validation?**
+### Q: What happens if you forget `model.eval()` during validation? [Medium]
 
 Dropout stays active — each forward pass randomly zeros different activations, producing different outputs for the same input. BatchNorm uses batch statistics instead of running statistics — unreliable with small validation batches. Validation loss is artificially high and noisy. The model may appear to be overfitting when it isn't.
+
+**Cross-questions to expect:**
+- *"And the reverse — forgetting `model.train()` after validating?"* → Worse and quieter. Dropout is off and BatchNorm stops updating its running statistics, so training silently loses its regularization and the model overfits with no error anywhere.
+- *"Does `eval()` disable gradients?"* → No, and this is the most common misconception. It only switches module behaviour. You still need `torch.no_grad()` to avoid building the graph — otherwise validation is correct but uses training-level memory.
+
+**Trap:** Assuming `eval()` makes a model deterministic. Non-deterministic CUDA kernels, and any explicit sampling in your forward pass, are unaffected.

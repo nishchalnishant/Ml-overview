@@ -393,13 +393,41 @@ bf16 has the same exponent range as fp32, so gradient overflow is not a concern 
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Derive the Adam update rule from first principles and explain why it outperforms SGD with momentum.**  
-A: Adam maintains two moment estimates: m_t = β_1·m_{t-1} + (1-β_1)·g_t (1st moment, exponential moving average of gradients) and v_t = β_2·v_{t-1} + (1-β_2)·g_t² (2nd moment, EMA of squared gradients). Both are bias-corrected: m̂_t = m_t/(1-β_1^t), v̂_t = v_t/(1-β_2^t) (early steps are underestimated due to zero initialization). Update: θ_t = θ_{t-1} - α·m̂_t/(√v̂_t + ε). The key insight: the denominator √v̂_t is a per-parameter learning rate adaptor — parameters with large historical gradients get smaller effective LR, parameters with small gradients get larger effective LR. This makes Adam insensitive to gradient scale, so the global learning rate α doesn't need careful tuning per layer. SGD + momentum only tracks the gradient direction, not the scale — it needs careful per-layer LR tuning or extensive warm-up schedules. In practice, Adam converges faster (10-100× fewer iterations to reach similar loss) and is more robust to initialization.
+### Q: Derive the Adam update rule from first principles and explain why it outperforms SGD with momentum. [Medium]
 
-**Q: What is the difference between Adam and AdamW, and why does L2 regularization work differently in adaptive optimizers?**  
-A: In vanilla Adam, adding L2 regularization (weight decay) to the loss means the gradient becomes g_t + λ·θ. This gradient goes through the adaptive scaling: update ∝ (g_t + λ·θ) / √(v_t). For parameters with large gradient variance (large v_t), the regularization effect λ·θ is dampened by the same factor — the effective weight decay is different for each parameter and depends on gradient history. This means Adam doesn't apply uniform L2 regularization. AdamW (Loshchilov & Hutter 2019) decouples weight decay from the gradient: θ_t = θ_{t-1} - α·m̂_t/(√v̂_t + ε) - α·λ·θ_{t-1}. The weight decay term bypasses the adaptive scaling, applying uniformly to all parameters. In practice, AdamW with λ=0.01-0.1 produces better-regularized models than Adam + L2, especially for LLMs. All modern LLM training uses AdamW.
+ Adam maintains two moment estimates: m_t = β_1·m_{t-1} + (1-β_1)·g_t (1st moment, exponential moving average of gradients) and v_t = β_2·v_{t-1} + (1-β_2)·g_t² (2nd moment, EMA of squared gradients). Both are bias-corrected: m̂_t = m_t/(1-β_1^t), v̂_t = v_t/(1-β_2^t) (early steps are underestimated due to zero initialization). Update: θ_t = θ_{t-1} - α·m̂_t/(√v̂_t + ε). The key insight: the denominator √v̂_t is a per-parameter learning rate adaptor — parameters with large historical gradients get smaller effective LR, parameters with small gradients get larger effective LR. This makes Adam insensitive to gradient scale, so the global learning rate α doesn't need careful tuning per layer. SGD + momentum only tracks the gradient direction, not the scale — it needs careful per-layer LR tuning or extensive warm-up schedules. In practice, Adam converges faster (10-100× fewer iterations to reach similar loss) and is more robust to initialization.
 
-**Q: Why might you choose a simpler optimizer like SGD over Adam for a specific task?**  
+**Cross-questions to expect:**
+- *"Why is bias correction needed at all?"* → $m$ and $v$ start at zero, so early estimates are biased toward zero — badly, since $\beta_2=0.999$ means $v$ takes hundreds of steps to warm up. Dividing by $1-\beta^t$ removes exactly that bias. Without it the first steps have a huge effective learning rate, which is one of the things LR warmup independently papers over.
+- *"What does $\epsilon$ actually do?"* → More than prevent division by zero. It caps the maximum effective step at $\alpha/\epsilon$ for tiny gradients, so it's a floor on the denominator and a real hyperparameter — 1e-8 is standard, but large-batch and low-precision training often needs 1e-6 or larger for stability.
+- *"Does Adam converge?"* → Not in general — Reddi et al. (2018) constructed a convex problem where it fails, because the effective learning rate can increase between steps. AMSGrad fixes it by taking a running max of $v$. In practice nobody uses AMSGrad, which tells you the counterexample is not the binding issue for deep nets.
+
+**Trap:** Calling Adam's $v$ a second moment "estimate of curvature." It's an estimate of the gradient's uncentered second moment, not the Hessian. It normalizes by gradient *scale*, not by curvature — a distinction that matters the moment someone asks how Adam relates to Newton's method.
+
+---
+
+### Q: What is the difference between Adam and AdamW, and why does L2 regularization work differently in adaptive optimizers? [Medium]
+
+ In vanilla Adam, adding L2 regularization (weight decay) to the loss means the gradient becomes g_t + λ·θ. This gradient goes through the adaptive scaling: update ∝ (g_t + λ·θ) / √(v_t). For parameters with large gradient variance (large v_t), the regularization effect λ·θ is dampened by the same factor — the effective weight decay is different for each parameter and depends on gradient history. This means Adam doesn't apply uniform L2 regularization. AdamW (Loshchilov & Hutter 2019) decouples weight decay from the gradient: θ_t = θ_{t-1} - α·m̂_t/(√v̂_t + ε) - α·λ·θ_{t-1}. The weight decay term bypasses the adaptive scaling, applying uniformly to all parameters. In practice, AdamW with λ=0.01-0.1 produces better-regularized models than Adam + L2, especially for LLMs. All modern LLM training uses AdamW.
+
+**Cross-questions to expect:**
+- *"Show me the mechanism in one line."* → In Adam, the L2 term enters the gradient and is then divided by $\sqrt{v}$, so parameters with large gradients get *less* decay — the opposite of the intent. AdamW subtracts $\lambda w$ after the adaptive step, so every parameter decays at the same rate.
+- *"Does the optimal $\lambda$ transfer between them?"* → No, and this trips people up. AdamW's decay is no longer scaled by the learning rate in the same way, so a $\lambda$ tuned for Adam is typically far too small. Re-tune when you switch; a config port that leaves $\lambda$ alone is a real bug.
+- *"What do you exclude from decay?"* → Biases and normalization parameters (LayerNorm gain/bias). Decaying a LayerNorm gain toward zero shrinks the activation scale for no regularization benefit. Every major LLM training config carries this parameter-group split.
+
+**Trap:** "AdamW is Adam with weight decay." Adam already has weight decay if you pass `weight_decay` — it's just applied wrongly. AdamW is Adam with *decoupled* decay, and the whole point is the coupling, not the presence.
+
+---
+
+### Q: Why might you choose a simpler optimizer like SGD over Adam for a specific task? [Medium]  
 A: SGD with momentum can generalize better than Adam on some tasks — this is the "generalization gap" phenomenon. Adam finds sharp minima quickly; SGD explores more broadly and often finds flatter minima (lower sharpness) that generalize better. Evidence: many CV classification benchmarks (ImageNet ResNets) achieve better test accuracy with SGD + cosine LR than Adam. Intuition: Adam adapts per-parameter LRs to converge fast in the loss landscape it sees during training, which can lead to solutions that fit training data well but are sensitive to distribution shift (sharp minima). SGD is slower but covers more of the loss landscape. Practical rule: for transformer/LLM training → AdamW (faster convergence is critical at scale); for small CNNs with abundant data → try SGD; for production systems where training time is fixed and convergence speed matters → AdamW. Also: SGD requires much less memory (no moment buffers), saving 8 bytes/param vs Adam's 12 bytes/param.
+
+**Cross-questions to expect:**
+- *"Is the generalization gap a settled result?"* → No. It's robust on convolutional vision benchmarks, and it largely disappears once Adam's hyperparameters (especially $\epsilon$ and decay) are tuned as carefully as SGD's — Choi et al. (2019) made that case directly. Present it as an empirical regularity with a contested cause, not a law.
+- *"Then why is every LLM trained with AdamW?"* → Transformer gradients have wildly different scales across parameter groups — embeddings, LayerNorm gains, attention projections. A single global learning rate serves them badly, and per-parameter scaling is what makes training tractable at all. Language models also rarely reach the overfitting regime where the gap would show up.
+- *"What's the cost?"* → Two extra fp32 states per parameter. At scale that's the dominant optimizer memory term and the reason for 8-bit optimizers, ZeRO sharding, and interest in Lion, which keeps only momentum.
+- *"When would you actually reach for SGD today?"* → Fine-tuning a convolutional vision model where the reference recipe uses it, or memory-bound training where losing the second-moment state buys you a larger batch. Not as a default for anything transformer-shaped.
+
+**Trap:** Framing this as "SGD generalizes better, Adam converges faster" and leaving it there. That summary is true on ResNet-style benchmarks and misleading everywhere else — the interviewer is usually probing whether you know the regime boundary.
