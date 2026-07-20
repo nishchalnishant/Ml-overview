@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Classical ML
 topic: Ml
 subtopic: Fundamentals Of Machine Learning
 status: unread
-tags: [interviewprep, ml, ml-fundamentals-of-machine-lea]
+tags: [interviewprep, ml, ml-fundamentals-of-machine-lea, interview-framing]
 ---
 # Fundamentals of Machine Learning
 

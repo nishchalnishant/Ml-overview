@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Math Foundations
 topic: Ml
 subtopic: Optimization Theory
 status: unread
-tags: [interviewprep, ml, ml-optimization-theory]
+tags: [interviewprep, ml, ml-optimization-theory, interview-framing]
 ---
 # Optimization Theory — Deep Dive for ML Interviews
 

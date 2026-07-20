@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Classical ML
 topic: Ml
 subtopic: Algorithms
 status: unread
-tags: [interviewprep, ml, ml-algorithms]
+tags: [interviewprep, ml, ml-algorithms, interview-framing]
 ---
 # ML Algorithms
 

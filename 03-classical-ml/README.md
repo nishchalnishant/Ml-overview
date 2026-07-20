@@ -9,13 +9,26 @@ tags: [classicalml, ml, classical-machine-learning]
 
 Welcome to the Classical Machine Learning library. This track provides a deep-dive, first-principles exploration of traditional ML algorithms, from their mathematical derivation to their practical implementation.
 
-Each core module features an **Executive Summary & Cheatsheet** at the top for quick review, followed by a **Deep Dive** into the mechanics.
+## Routing — which file do I want?
+
+Several files here cover **the same algorithms on purpose**. They are different study modalities, not duplicates, and they are used at different moments. Read this table before assuming something is redundant.
+
+| If you want to… | Go to | Format |
+| :--- | :--- | :--- |
+| Understand *why* an algorithm works, from the math up | [01-supervised-learning.md](01-supervised-learning.md) | Problem → intuition → mechanics → what breaks |
+| Rehearse *answering out loud* under interview pressure | [03-algorithms.md](03-algorithms.md) | What the interviewer is testing → traps → formulas cold |
+| Cram the decision tables the night before | [_comparison.md](_comparison.md) | Dense side-by-side comparison |
+| Drill active recall | [_flashcards.md](_flashcards.md) | Q → A |
+| Work a tiered question ladder end to end | [_interview-questions.md](_interview-questions.md) | Easy → Medium → Hard |
+
+**Do not merge these.** Collapsing the deep-dive into the interview framing loses the derivations; collapsing the other way loses the traps. Both are load-bearing.
 
 ## Core Modules
 
 | File | What it covers |
 | :--- | :--- |
-| [supervised-learning.md](01-supervised-learning.md) | Linear/Logistic Regression, SVM, Decision Trees, Ensembles (RF/XGBoost), KNN, Naive Bayes |
+| [supervised-learning.md](01-supervised-learning.md) | **Deep dive.** Linear/Logistic Regression, SVM, Decision Trees, Ensembles (RF/XGBoost), KNN, Naive Bayes |
+| [algorithms.md](03-algorithms.md) | **Interview framing** of the same algorithms + K-Means, PCA, and a selection framework |
 | [unsupervised-learning.md](02-unsupervised-learning.md) | K-Means, DBSCAN, GMM, Hierarchical Clustering, PCA/t-SNE/UMAP |
 | [data-preprocessing.md](../02-data/03-data-preprocessing.md) | Data Leakage, Missing Data, Scaling, Categorical Encoding, Concept Drift |
 | [classical-ml-flashcards.md](_flashcards.md) | Active recall flashcards for all classical ML concepts |
@@ -35,5 +48,6 @@ Each core module features an **Executive Summary & Cheatsheet** at the top for q
 | [model-interpretation.md](../04-evaluation/05-model-interpretation.md) | SHAP, LIME, feature importance, partial dependence |
 | [calibration-and-uncertainty.md](../04-evaluation/04-calibration-and-uncertainty.md) | Platt scaling, isotonic regression, uncertainty quantification |
 | [time-series-analysis.md](06-time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
+| [anomaly-detection.md](10-anomaly-detection.md) | Isolation Forest, LOF, One-Class SVM, autoencoders — when labels are scarce |
 | [interviewquestions.md](../16-interview-prep/study-plans/interviewquestions.md) | Interview-style Q&A across classical ML topics |
 

@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Math Foundations
 topic: Ml
 subtopic: Probability And Statistics
 status: unread
-tags: [interviewprep, ml, ml-probability-and-statistics]
+tags: [interviewprep, ml, ml-probability-and-statistics, interview-framing]
 ---
 # Probability and Statistics
 

@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Domains
 topic: Llm
 subtopic: Nlp Transformers
 status: unread
-tags: [interviewprep, llm, llm-nlp-transformers]
+tags: [interviewprep, llm, llm-nlp-transformers, interview-framing]
 ---
 # NLP and Transformers — First-Principles Interview Guide
 

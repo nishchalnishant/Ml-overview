@@ -188,14 +188,29 @@ Placed at slot `04` rather than the target's `09` because `04` was vacant betwee
 
 **Process note worth keeping:** the survey was nearly derailed twice — once by an `-E` regex whose escaped alternation matched nothing (reads as "topic absent" rather than "pattern broken"), and once by ranking hits by file size, which surfaced only the repo's largest files for every query. Rank by keyword density (`grep -rioE | cut -d: -f1 | sort | uniq -c | sort -rn`) and treat a zero result as suspect until the pattern is proven on a known match.
 
-### Phase 2 — Split overloaded files
+### Phase 2 — Split overloaded files (partially complete, 2026-07-20)
 
-- [ ] `02-classical-ml/01-supervised-learning.md` → per-algorithm files
-- [ ] Extract gradient boosting into its own file (XGB/LGBM/CatBoost mechanics)
-- [ ] Move section-level `interviewquestions.md` content inline as `## Interview Angles`
-- [ ] Split `CHEATSHEET-COMPARISON.md` into `_cheatsheet.md` + `_comparison.md`
-- [ ] Write `16-anomaly-detection.md` — resolves the standing TODO marker in `unsupervised-learning.md`
+**Three of the five planned splits were wrong and were not executed.** As in Phase 1, the list was written from the target structure rather than from the files. Surveying first prevented two duplications and one destructive merge. What the survey found:
+
+| Planned | Finding | Action |
+| :--- | :--- | :--- |
+| Split `01-supervised-learning.md` per-algorithm | `03-algorithms.md` **already covers the same eight algorithms** — but as *interview framing* ("what the interviewer is testing", traps, formulas cold) vs. the deep-dive's derivations. Not duplicates: different modalities. | **Not split.** Splitting would have created a third copy. Added a routing table to the folder README making the modality split explicit. |
+| Extract gradient boosting to its own file | Already in three places: `01-supervised-learning.md` §XGBoost/LightGBM/CatBoost (732 words), `03-algorithms.md` §4, `04-ensemble-methods.md` §Boosting. | **Not extracted.** A fourth home makes the duplication worse. Consolidation is a separate decision. |
+| Move `_interview-questions.md` content inline | Content is substantive and already tiered Easy/Medium/Hard, but has **no cross-questions and no traps**. Distributing it means authoring Interview Angles fresh per topic, and loses the end-to-end drillable ladder. | **Not moved.** The tiered ladder is a study asset; scattering it to satisfy a format spec is a net loss. |
+| Split `_cheatsheet-comparison.md` → `_cheatsheet.md` + `_comparison.md` | All 7 files are a **single uniform comparison format** (What it is / Pros / Cons / Pick over alternatives when / Key hyperparameters; 578 table rows). There is no separable cram-sheet half — splitting means bisecting entries that read as a unit, or duplicating "What it is" into both. | **Renamed** `_cheatsheet-comparison.md` → `_comparison.md` (7 files). They were misnamed, not merged. |
+| Write anomaly detection file | Genuine gap. (`16-interview-prep/ea/.../16-anomaly-detection.md` exists but is an EA streaming *case study*, not an algorithms reference.) | **Written** as `03-classical-ml/10-anomaly-detection.md`, resolving the TODO in `02-unsupervised-learning.md`. |
+
+Also fixed: **20 files outside `16-interview-prep/` carried stale `module: Interview Prep` frontmatter** from the migration — which is *why* `03-algorithms.md` read as a duplicate rather than as a distinct modality. Corrected to their actual module, with an `interview-framing` tag added to keep them discoverable.
+
+#### Still open
+
 - [ ] Decide whether standalone recsys coverage is in scope (see Phase 1 survey table)
+- [ ] Decide whether gradient boosting should be consolidated to one home (currently 3) — a merge decision, not a split
+- [ ] If Interview Angles format is wanted repo-wide, author cross-questions/traps per topic rather than relocating existing Q&A
+
+#### The recurring lesson
+
+Three phases running, plans written from the target structure have not survived contact with the files. **Survey before executing, and treat "this looks like a duplicate" as a hypothesis to test** — twice now the apparent duplicate was a distinct study modality whose frontmatter had gone stale.
 
 ### Phase 3 — Move folders ✅ COMPLETE (2026-07-20)
 

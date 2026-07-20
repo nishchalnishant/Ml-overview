@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Domains
 topic: Dl
 subtopic: Computer Vision
 status: unread
-tags: [interviewprep, dl, dl-computer-vision]
+tags: [interviewprep, dl, dl-computer-vision, interview-framing]
 ---
 # Computer Vision
 

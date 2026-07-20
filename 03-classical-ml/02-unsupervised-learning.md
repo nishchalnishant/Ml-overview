@@ -247,7 +247,7 @@ X_reduced = pca.fit_transform(X_scaled)
 
 ## Anomaly Detection
 
-> **TODO (planned):** a dedicated `16-anomaly-detection.md` covering Isolation Forest, One-Class SVM, LOF, Elliptic Envelope, autoencoder-based detection, and HDBSCAN. Until then this section is the quick reference for the unsupervised-learning context.
+> **Full treatment:** [10-anomaly-detection.md](10-anomaly-detection.md) — isolation vs. density vs. boundary framings, the `contamination` trap, threshold-as-alert-budget, and interview angles. The table below is the quick selector for the unsupervised-learning context.
 
 **Quick method selector:**
 

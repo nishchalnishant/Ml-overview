@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Math Foundations
 topic: Ml
 subtopic: Maths
 status: unread
-tags: [interviewprep, ml, ml-maths]
+tags: [interviewprep, ml, ml-maths, interview-framing]
 ---
 # Maths for ML Interviews
 

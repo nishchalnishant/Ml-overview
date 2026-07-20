@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Math Foundations
 topic: Ml
 subtopic: Math Derivations
 status: unread
-tags: [interviewprep, ml, ml-math-derivations]
+tags: [interviewprep, ml, ml-math-derivations, interview-framing]
 ---
 # Math Derivations for ML Interviews
 

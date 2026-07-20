@@ -30,7 +30,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Canonical Statistics Interview Questions](01-math-foundations/05-canonical-stats-questions.md)
 * [Optimization for ML Interviews](01-math-foundations/06-optimization.md)
 * [Optimization Theory — Deep Dive for ML Interviews](01-math-foundations/07-optimization-theory.md)
-* [Foundations — Comparison Cheat Sheet](01-math-foundations/_cheatsheet-comparison.md)
+* [Foundations — Comparison Cheat Sheet](01-math-foundations/_comparison.md)
 * [Machine Learning Foundations Flashcards](01-math-foundations/_flashcards.md)
 * [Statistics and Probability — Interview Reference](01-math-foundations/_rapid-fire.md)
 
@@ -56,7 +56,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [When Classical ML Wins](03-classical-ml/07-when-classical-ml-wins.md)
 * [Hyperparameter Optimization](03-classical-ml/08-hyperparameter-optimization.md)
 * [Fundamentals of Machine Learning](03-classical-ml/09-ml-fundamentals.md)
-* [Classical ML — Rapid Comparison Cheat Sheet](03-classical-ml/_cheatsheet-comparison.md)
+* [Anomaly Detection](03-classical-ml/10-anomaly-detection.md)
+* [Classical ML — Rapid Comparison Cheat Sheet](03-classical-ml/_comparison.md)
 * [Classical ML Flashcards](03-classical-ml/_flashcards.md)
 * [Classical ML — Interview Questions](03-classical-ml/_interview-questions.md)
 
@@ -84,8 +85,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [PyTorch Fundamentals](05-deep-learning-core/09-pytorch-fundamentals.md)
 * [Transfer Learning & Domain Adaptation](05-deep-learning-core/10-transfer-learning.md)
 * [Deep Learning](05-deep-learning-core/11-deep-learning-fundamentals.md)
-* [Deep Learning Comparison Cheatsheet](05-deep-learning-core/_cheatsheet-comparison.md)
 * [Deep Learning — 10-Minute Revision Card](05-deep-learning-core/_cheatsheet.md)
+* [Deep Learning Comparison Cheatsheet](05-deep-learning-core/_comparison.md)
 * [Deep Learning Flashcards](05-deep-learning-core/_flashcards.md)
 * [Deep Learning — Interview Questions](05-deep-learning-core/_interview-questions.md)
 
@@ -134,7 +135,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Mixture of Experts (MoE) — Advanced and Routing](10-llms/09-moe-advanced-and-routing.md)
 * [Tokenization](10-llms/10-tokenization.md)
 * [Large Language Models](10-llms/11-large-language-model.md)
-* [LLM Techniques — Exhaustive Comparison Cheat Sheet](10-llms/_cheatsheet-comparison.md)
+* [LLM Techniques — Exhaustive Comparison Cheat Sheet](10-llms/_comparison.md)
 * [LLM — Interview Questions](10-llms/_interview-questions-2.md)
 * [LLM Interview Questions — First-Principles Structure](10-llms/_interview-questions.md)
 * [LLMs — 10-Minute Revision Card](10-llms/_revision.md)
@@ -214,7 +215,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Model Registry & Versioning](13-production-ml/09-model-registry-versioning.md)
 * [Production ML Diagnosis Flowcharts](13-production-ml/10-production-diagnosis-flowchart.md)
 * [ML System Design and MLOps](13-production-ml/11-system-design-and-mlops.md)
-* [Production ML — Comparison Cheat Sheet](13-production-ml/_cheatsheet-comparison.md)
+* [Production ML — Comparison Cheat Sheet](13-production-ml/_comparison.md)
 * [Production ML — Interview Questions](13-production-ml/_interview-questions.md)
 * [Production ML — 10-Minute Revision Card](13-production-ml/_revision.md)
 
@@ -261,7 +262,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [ML Coding Patterns — First-Principles Interview Reference](16-interview-prep/11-ml-coding-patterns.md)
 * [Top ML Interview Questions — Reference Answers](16-interview-prep/12-top-ml-questions.md)
 * [Additional ML Interview Topics](16-interview-prep/13-additional-topics.md)
-* [Interview Prep — Comparison Cheat Sheet](16-interview-prep/_cheatsheet-comparison.md)
+* [Interview Prep — Comparison Cheat Sheet](16-interview-prep/_comparison.md)
 * [Foundations — Interview Questions & Answers](16-interview-prep/_interview-questions-foundations.md)
 * [Master Interview Question Bank — Curated High-Signal Reference](16-interview-prep/_interview-questions.md)
 * [Quick Revision Cheat Sheet](16-interview-prep/_revision-cheatsheet.md)
@@ -349,7 +350,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 ## 17 — Projects
 
 * [Hands-On Projects](17-projects/README.md)
-* [12-projects Comparison Cheat Sheet](17-projects/_cheatsheet-comparison.md)
+* [12-projects Comparison Cheat Sheet](17-projects/_comparison.md)
 * [Hands-On Projects — Interview Q&A](17-projects/_interview-questions.md)
 * [Project: End-to-End Tabular ML Pipeline](17-projects/01-tabular-ml-pipeline/README.md)
 * [Project: Retrieval-Augmented Generation (RAG) Pipeline](17-projects/02-rag-pipeline/README.md)

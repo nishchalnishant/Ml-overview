@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: System Design
 topic: Ml
 subtopic: Ml System Design
 status: unread
-tags: [interviewprep, ml, ml-ml-system-design]
+tags: [interviewprep, ml, ml-ml-system-design, interview-framing]
 ---
 # ML System Design — Interview Playbook
 

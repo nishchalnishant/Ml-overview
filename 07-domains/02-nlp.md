@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Domains
 topic: Ml
 subtopic: Nlp
 status: unread
-tags: [interviewprep, ml, ml-nlp]
+tags: [interviewprep, ml, ml-nlp, interview-framing]
 ---
 # Natural Language Processing — Classical Foundations
 

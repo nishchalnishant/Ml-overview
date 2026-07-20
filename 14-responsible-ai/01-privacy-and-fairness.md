@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Responsible AI
 topic: Ml
 subtopic: Privacy And Fairness
 status: unread
-tags: [interviewprep, ml, ml-privacy-and-fairness]
+tags: [interviewprep, ml, ml-privacy-and-fairness, interview-framing]
 ---
 # Privacy and Fairness in Machine Learning
 

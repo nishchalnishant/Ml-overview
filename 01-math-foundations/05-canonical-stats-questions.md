@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Math Foundations
 topic: Ml
 subtopic: Canonical Stats Questions
 status: unread
-tags: [interviewprep, ml, ml-canonical-stats-questions]
+tags: [interviewprep, ml, ml-canonical-stats-questions, interview-framing]
 ---
 # Canonical Statistics Interview Questions
 

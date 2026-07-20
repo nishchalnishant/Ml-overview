@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Evaluation
 topic: Ml
 subtopic: Model Evaluation
 status: unread
-tags: [interviewprep, ml, ml-model-evaluation]
+tags: [interviewprep, ml, ml-model-evaluation, interview-framing]
 ---
 # Model Evaluation
 

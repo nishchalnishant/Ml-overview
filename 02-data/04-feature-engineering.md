@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Data
 topic: Ml
 subtopic: Data Preprocessing And Feature Engineering
 status: unread
-tags: [interviewprep, ml, ml-data-preprocessing-and-feat]
+tags: [interviewprep, ml, ml-data-preprocessing-and-feat, interview-framing]
 ---
 # Data Preprocessing and Feature Engineering
 

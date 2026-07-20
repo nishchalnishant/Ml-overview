@@ -1,9 +1,9 @@
 ---
-module: Interview Prep
+module: Math Foundations
 topic: Ml
 subtopic: Optimization
 status: unread
-tags: [interviewprep, ml, ml-optimization]
+tags: [interviewprep, ml, ml-optimization, interview-framing]
 ---
 # Optimization for ML Interviews
 
