@@ -1,2 +1,0 @@
-# Parts of deep learning
-

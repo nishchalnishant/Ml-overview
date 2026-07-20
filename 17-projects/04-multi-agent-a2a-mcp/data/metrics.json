@@ -1,0 +1,7 @@
+{
+  "revenue_growth_pct": {"Q1": 9, "Q2": 13, "Q3": 18},
+  "churn_rate_pct": {"Q1": 3.1, "Q2": 3.6, "Q3": 4.2},
+  "csat_score": {"Q1": 4.7, "Q2": 4.6, "Q3": 4.3},
+  "support_ticket_volume": {"Q1": 820, "Q2": 910, "Q3": 1183},
+  "eu_revenue_share_pct": {"Q1": 30, "Q2": 33, "Q3": 41}
+}
