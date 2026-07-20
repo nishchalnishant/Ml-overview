@@ -240,6 +240,32 @@ which dropped the real hits. Deleted the duplicate; kept the stronger original.
 and check SUMMARY.md before writing any new file. Two of four gaps in this phase were bookkeeping
 errors in READMEs written from the target structure rather than from the files.
 
+## Phase 6 — merge to main
+
+Merged `restructure/phase-3-target-layout` into `main`. The old tree (`30-days/`,
+`deep-learning/`, `llms/`, `machine-learning/`, `ml-system-design/`, `interview/`,
+`book-notes/`, `pytorch/`, `research-papers/` and loose top-level files) is gone; 102 markdown
+files became 308.
+
+| Finding | Resolution |
+| :--- | :--- |
+| `introduction-to-ai.md` was deleted in `15b8e41` and its definitional prose survived nowhere. | Restored the orientation section only (~60 of 875 lines) as `00-meta/00-what-is-ai.md`, with routing links. The rest is covered at greater depth by the new sections. |
+| Acronym casing was inconsistent from an earlier migration: `Classical Ml`/`Classical ML`, `Llms`/`LLMs`, `Production Ml`/`Production ML`. | Normalized to the acronym form across 104 files. |
+| **Merged the wrong branch.** Session metadata named `interview-prep/ea-ml-deep-learning`; that ref stopped at Phase 1. Phases 2–5 were on `restructure/phase-3-target-layout`. The bad merge produced a tree that was neither layout. | Reset `main` to `e3e6e22`, verified the correct ref's tree and commit list, re-merged. Nothing had been pushed, so it was fully reversible. |
+
+**Sixth occurrence, new variant:** the first five were *content* asserted from the target
+structure. This one was *state* — a branch name trusted from stale session metadata, never
+re-resolved. Same failure, different object.
+
+**Standing rule:** verify the ref, not the label. Before a merge, confirm the branch actually
+contains the commits you mean to merge (`git log --oneline <base>..<ref>`) and that its tree
+looks the way you expect. Never read a piped tail of merge output as confirmation of success —
+check the resulting tree.
+
+**Also:** after resetting a bad merge, untracked leftovers are not necessarily debris.
+`17-projects/` held generated artifacts excluded by `.gitignore` — irrecoverable if deleted.
+Diff against the tracked tree before cleaning anything up.
+
 - [ ] Decide whether standalone recsys coverage is in scope (see Phase 1 survey table)
 - [ ] Decide whether gradient boosting should be consolidated to one home (currently 3) — a merge decision, not a split
 - [ ] If Interview Angles format is wanted repo-wide, author cross-questions/traps per topic rather than relocating existing Q&A
