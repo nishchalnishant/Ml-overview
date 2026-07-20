@@ -327,26 +327,44 @@ Daily batch:
 
 ---
 
-## 5+ Canonical Interview Q&As
+## Interview Angles
 
-**Q: Why two-tower instead of one model that takes both user and item as input?**  
+### Q: Why two-tower instead of one model that takes both user and item as input? [Medium]  
 A: Two-tower decouples user and item computation. Item embeddings are precomputed offline, so query-time cost is O(1) ANN lookup, not O(N) forward passes. The trade-off: you lose explicit feature interaction (user × item cross-features). DLRM/DCN-V2 adds interactions back at ranking stage, where candidate set is small enough (~500 items) to afford it.
 
+**Cross-questions to expect:**
+
+- *Two-tower precomputes item embeddings for O(1) lookup. What breaks the instant your item features are time-sensitive (price, stock, trending score)?* -> The precomputed embedding is stale by construction -- it was baked at index-build time, so a flash sale or an out-of-stock item still retrieves as if nothing changed. You either exclude fast-moving features from the tower and inject them at ranking, or you accept an index-refresh lag. The clean O(1) story quietly assumes item features are slow-moving.
+- *You add DCN-V2 cross-features back at ranking. If interactions matter that much, why not skip two-tower and rank everything?* -> Because ranking every one of 10M items with a cross-feature model is computationally impossible at query time -- that's the whole reason retrieval exists. Two-tower's lost expressiveness is the price of reducing the candidate set to ~500 the expensive model can afford. It's a cascade by necessity, not by preference.
+
+**Trap:** describing the two towers as independent. They share a loss and a common embedding space -- a change to negative sampling or the temperature in the retrieval loss shifts *both* towers, and that coupling is where hard-to-debug recall regressions come from.
 **Q: How do you handle position bias in training data?**  
 A: Items shown at position 1 have 3–5× higher CTR regardless of quality (position bias). Solutions: (1) Inverse propensity scoring — weight each sample by 1/P(position) to debias, (2) position-aware features — feed position as input and zero it out at inference, (3) pairwise training (BPR) which only uses relative ordering.
 
-**Q: Your retrieval recall dropped from 82% to 74% overnight. Walk me through diagnosis.**  
+### Q: Your retrieval recall dropped from 82% to 74% overnight. Walk me through diagnosis. [Hard]  
 A: Check (1) item index freshness — did the ANN rebuild fail? (2) feature distribution for user tower — new feature pipeline issue? (3) model version — was a bad model deployed? (4) data issue — popularity distribution shift in items? Start with index health, then feature drift (PSI), then model logs. See diagnosis flowchart in [../../13-production-ml/10-production-diagnosis-flowchart.md](../../13-production-ml/10-production-diagnosis-flowchart.md).
 
+**Cross-questions to expect:**
+
+- *You check index freshness, feature drift, model version. All three look clean. Where do you look next?* -> The evaluation itself. An overnight "recall drop" with clean inputs often means the *ground-truth set* changed -- a labeling pipeline, a relevance-join, or the candidate-pool definition shifted, so you're measuring against a different denominator. A metric can drop with the model untouched. Always confirm the eval harness before assuming the model regressed.
+- *Recall dropped but online engagement is flat. Which do you trust?* -> Flat engagement with dropped offline recall means your recall metric and user value have decoupled -- likely the "missed" items were near-duplicates or already-seen, so losing them costs nothing real. Offline recall is a proxy; when it disagrees with the online metric that pays the bills, the online metric wins and the proxy needs re-examining.
+
+**Trap:** starting with the model. Model version is the *least* likely overnight cause if you didn't deploy -- index rebuilds, feature-pipeline cron jobs, and eval-set changes all fire on schedules and are far more common culprits than a model that didn't change.
 **Q: How would you design for 10× scale from 100M to 1B users?**  
 A: (1) Shard user embedding store by user_id mod N, (2) distribute ANN index across shards (each shard searches subset, merge top-K), (3) split retrieval into geographic clusters, (4) serve user tower at edge for low-latency embedding, (5) async re-ranking to decouple from API latency. Key bottleneck shifts from model inference to embedding store I/O.
 
 **Q: nDCG vs MRR — when do you use which?**  
 A: MRR focuses on rank of first relevant item — good for navigational queries (user wants exactly one thing). nDCG measures graded relevance across all K positions — better for feed/recommendation where multiple relevant items exist. nDCG@10 is standard for recommendation; MRR is standard for search.
 
-**Q: You have 10M items but 90% have <10 interactions. How do you prevent the long tail from hurting your model?**  
+### Q: You have 10M items but 90% have <10 interactions. How do you prevent the long tail from hurting your model? [Hard]  
 A: (1) Content features prevent zero-shot cold start — item tower uses text/image embeddings regardless of interaction history, (2) popularity-corrected negative sampling prevents head items from dominating gradient signal, (3) exposure floor — guarantee minimum impressions to tail items via explore bucket, (4) cluster-level fallback — items with sparse interactions fall back to cluster embeddings from similar items.
 
+**Cross-questions to expect:**
+
+- *You add an exposure floor guaranteeing tail items minimum impressions. What's the risk of guaranteeing exposure to items that may simply be bad?* -> You spend real user attention showing items that are genuinely low-quality, not just under-explored -- an exposure floor can't distinguish "unseen" from "seen and rightly ignored." Without a quality gate on what enters the explore bucket, the floor degrades feed quality and the metric you'll notice is engagement on the explored slots cratering.
+- *Content embeddings give tail items a cold-start representation. Why doesn't that fully solve the tail problem?* -> Content embeddings capture what an item *is*, not how users *respond* to it -- two visually similar items can have very different engagement, and no amount of content similarity recovers that behavioral signal. Content features bootstrap retrieval but the ranking precision on the tail stays weak until real interactions accrue.
+
+**Trap:** popularity-corrected negative sampling as a pure fix. Over-correcting for popularity can invert the bias -- you start under-ranking head items that are popular *because they're genuinely good*, trading a tail problem for a head problem.
 **Q: Should your retrieval model and ranking model share embeddings?**  
 A: Generally no. Retrieval optimizes for recall (do I get good candidates?), ranking optimizes for precision (which candidate is best?). Different objectives → different representation optima. Exception: parameter-efficient scenarios where a shared backbone is fine-tuned with separate heads — acceptable when model size is constrained.
 

@@ -248,17 +248,29 @@ def ips_correction(clicks, positions, propensity_scores):
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Why is nDCG better than precision@k for search evaluation?**
+### Q: Why is nDCG better than precision@k for search evaluation? [Medium]
 A: Precision@k treats all positions equally — a hit at position 1 counts the same as at position 10. nDCG discounts logarithmically by position (weight 1.0, 0.63, ... 0.29 at position 10), matching the fact that users rarely scroll past position 3. It also uses graded relevance (a 3/3 doc counts more than a 1/3 doc), unlike binary precision@k. This makes nDCG more sensitive to top-rank improvements — a better proxy for CTR and engagement.
 
+**Cross-questions to expect:**
+
+- *nDCG needs graded relevance labels. Where do those come from, and how does that bias your eval?* -> Graded labels come from editorial judges or from click-derived grades, both biased. Editorial judges don't share the user's intent for ambiguous queries; click-derived grades inherit position and presentation bias. So nDCG's "better proxy for engagement" claim only holds if your relevance grades themselves aren't corrupted by the same biases you're trying to measure past.
+- *nDCG is normalized per query by the ideal ranking. What does that normalization hide when you average across queries?* -> Each query's DCG is divided by its own ideal, so an easy navigational query (one perfect answer) and a hard exploratory query (many partial answers) both max out at 1.0 -- averaging treats a small absolute gain on an easy query the same as a hard-won gain on a difficult one. Slice nDCG by query type; the mean flatters uniformly.
+
+**Trap:** citing the logarithmic discount as if it were empirically fitted to user behavior. It's a convenient closed form, not a measured attention curve -- real position-attention drops faster than log and varies by surface (mobile vs. desktop).
 **Q: How do you handle vocabulary mismatch between queries and documents?**
 A: (1) Dense retrieval embeds queries and documents in the same semantic space, so "heart attack" and "myocardial infarction" land close together; (2) query expansion adds synonyms before BM25 matching; (3) hybrid retrieval combines BM25 (exact/rare-term matches) with dense retrieval (paraphrase/semantic matches) via RRF — this combination consistently beats either alone; (4) learned sparse retrieval (e.g. SPLADE) expands query/doc representations in vocabulary space, combining BM25 efficiency with dense semantics. Hybrid + RRF is the most robust baseline in practice.
 
-**Q: How do you train an LTR model with only click logs?**
+### Q: How do you train an LTR model with only click logs? [Hard]
 A: Clicks are noisy relevance signals due to position/selection bias. Pipeline: (1) collect impression logs with position, doc, query, click; (2) correct position bias via propensity scores (randomized re-ranking A/B test or EM estimation); (3) build pairwise examples — (query, clicked_doc, skipped_doc) where skipped_doc was shown above the click (stronger negative signal); (4) train LambdaMART on propensity-weighted pairwise preferences; (5) supplement with editorial relevance labels for tail queries where clicks are sparse; (6) evaluate on held-out queries with editorial labels to avoid circular evaluation.
 
+**Cross-questions to expect:**
+
+- *You estimate position propensities from a randomized re-ranking test. That degrades live results for real users. How do you keep that ethical/cheap?* -> You randomize only a small traffic slice and only swap within already-relevant top results (interleaving / small pairwise swaps), not full shuffles, so the user harm is bounded. The alternative -- EM estimation of propensities from organic data -- avoids the live cost but assumes a click model that may not hold, so most shops accept a tiny randomization budget as the price of unbiased propensities.
+- *You use skipped-above-clicked as a negative. When is that "skip" not actually a negative?* -> When the user's need was satisfied by a snippet without clicking (good abandonment), or when they clicked lower because they already knew the top result -- the skip encodes prior knowledge, not irrelevance. Treating all skips-above as hard negatives teaches the model to demote results that were fine, just already-seen.
+
+**Trap:** evaluating the click-trained model on click metrics. That's circular -- the model optimizes clicks and you score it on clicks, so position bias inflates both. Hold out editorial labels for evaluation even if you train on clicks.
 ## Flashcards
 
 **Why does BM25's term-frequency component saturate ($k_1$) instead of scaling linearly with term count?** #flashcard

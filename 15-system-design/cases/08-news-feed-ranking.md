@@ -445,29 +445,47 @@ Secondary: likes/session, time-on-platform, negative feedback rate
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Engagement optimization often conflicts with user wellbeing — how do you handle it?**
+### Q: Engagement optimization often conflicts with user wellbeing — how do you handle it? [Hard]
 A: Constrained multi-objective optimization: treat wellbeing as a floor constraint, not something to maximize. Compute a predicted wellbeing score (proxy signals: satisfaction surveys, hide/unfollow regret signals, long-term return rate) and require it stay above threshold θ while maximizing engagement within that constraint. Since wellbeing labels lag (survey-based, weeks) while engagement is instant, use long-horizon holdout groups (~1% permanently in control) to catch slow wellbeing effects short A/B tests miss. Meta's 2018 MSI pivot was effectively moving that constraint boundary — accepting lower engagement for a higher wellbeing floor.
 
+**Cross-questions to expect:**
+
+- *Your wellbeing proxy is survey-based and lags by weeks. Engagement is instant. Doesn't the model just learn to game engagement in the weeks before the constraint can react?* -> Yes -- that's the core danger. A fast objective under a slow constraint means the system can drift far past the floor before any survey catches it, and by then the damaged cohort has already churned or habituated. You mitigate with a permanent long-horizon holdout and with faster leading proxies (hide/unfollow/regret clicks) that correlate with the slow label, but you should be explicit that the constraint is always reacting to stale evidence.
+- *Meta's MSI pivot moved the constraint boundary. How would you know, six months later, whether that trade was actually worth it?* -> You can't read it off short A/B tests -- the whole point is that the benefit is long-horizon retention and the cost is near-term engagement. You need the permanent holdout and a pre-registered long-term metric, otherwise every quarter's incentive is to quietly relax the floor back toward engagement.
+
+**Trap:** framing wellbeing as another term in a weighted sum. A weighted objective lets a large engagement gain buy out a wellbeing loss; a floor constraint refuses the trade below the threshold. The distinction is the entire ethical content of the design.
 **Q: How do you design candidate retrieval for a user with 5,000 friends and 2,000 followed pages in under 10ms?**
 A: Parallelize retrieval across sources — graph traversal and ANN interest retrieval run concurrently. Keep adjacency lists and post indexes in memory (TAO/Redis) for fast fan-out. For very large graphs, only pull from "active" connections (posted in the last 7 days) instead of the full friend list. Pre-compute candidate sets off-peak and cache them, applying lightweight freshness updates on read. The 10ms budget covers cache hits; cache misses (new/cold-start users) use a separate slower path.
 
 **Q: How do you detect and prevent popularity bias in training data?**
 A: Items shown more often accumulate more engagement data, which makes the model favor them further — a feedback loop. Fix with inverse propensity scoring: weight training examples by the inverse probability of being shown, so frequently-shown items don't dominate the gradient. This requires logging the score/rank at impression time. Also maintain an exploration budget (ε-greedy or Thompson sampling) to gather unbiased signal on rarely-shown items.
 
-**Q: A competitor launches and engagement drops 15%. Model problem or product problem?**
+### Q: A competitor launches and engagement drops 15%. Model problem or product problem? [Medium]
 A: Decompose the drop. Is it uniform across segments, or concentrated (competitive threats usually hit specific demographics/power users first, model regressions are more uniform)? Check engagement rate per session (model quality) vs. session frequency/length (product/competitive). Replay the model on historical data to check for input feature drift. Check content supply (are creators posting less) vs. demand (same posts getting less engagement). Check negative signals: rising hide/unfollow/report suggests a model issue; flat negative signals with lower impressions suggests a retention/acquisition issue.
 
+**Cross-questions to expect:**
+
+- *You say model regressions are uniform and competitive threats are concentrated. Give a case where that heuristic misleads you.* -> A model regression tied to a feature that only exists for a subpopulation (e.g. a video-embedding bug) is *concentrated*, and a competitor that pulls broadly (a platform-wide TikTok-style shift) is *uniform*. The uniform/concentrated split is a useful prior, not a proof -- confirm with a model replay on historical data, which isolates model quality from the changed environment.
+- *Negative signals (hide/unfollow/report) are flat but impressions are down. You concluded "retention, not model." What confound could break that?* -> If the competitor peeled off your most engaged power users first, the *remaining* population has structurally lower negative-signal rates, so flat negatives can coexist with a real quality problem for the users you kept. Segment the negative-signal trend by cohort tenure before trusting the aggregate.
+
+**Trap:** running a single model replay and calling it settled. Replay tells you whether *inputs* drifted; it cannot see a demand-side shift where the same content simply gets less engagement because attention moved off-platform.
 **Q: How does ads ranking interact with the organic feed ranker, and what can go wrong?**
 A: Two models: unified auction (organic and ads get one quality score; combined score = predicted_value × bid, ad wins only if revenue exceeds organic opportunity cost) or fixed insertion (ads at every Nth slot regardless of organic quality). Unified is more efficient but complex. Failure modes: better organic ranking raises the opportunity cost of ad slots, so fewer ads clear the auction and revenue drops unexpectedly (track revenue as a guardrail in organic experiments); shared features between ad and organic models mean retraining one can silently shift the other; heavy ad density causes banner blindness that biases organic engagement labels too.
 
 **Q: How would you measure filter bubble effects in the feed?**
 A: Content-side: topic diversity index (avg pairwise embedding distance of weekly consumption), source diversity (distinct creators consumed), viewpoint diversity on political content. Trajectory: is a user's average content extremism/partisanship score drifting over time? Survey: periodic "did you see content that challenged your views this week?" Counterfactual: compare actual feed diversity to a diversity-maximizing baseline. Content diversity responds to MMR/DPP reranking (5-10% engagement cost); viewpoint diversity needs explicit cross-partisan injection with user consent.
 
-**Q: Design fair ranking so small creators can get discovered, not just large ones.**
+### Q: Design fair ranking so small creators can get discovered, not just large ones. [Hard]
 A: The core problem is a rich-get-richer loop: history -> affinity -> ranking -> impressions -> more history. Four levers: (1) exploration budget — reserve 10-15% of slots for creators the user hasn't interacted with, ranked within-bucket by engagement relative to peer creators of similar size; (2) propensity correction in training so a 10K-follower creator's 1% engagement counts equally to a 100M-follower creator's 1% engagement; (3) audience saturation penalty for repeatedly showing the same creator to the same user; (4) bootstrap new creators via content embeddings (CLIP/BERT) matched to users who engaged with similar content, sidestepping cold start entirely.
 
+**Cross-questions to expect:**
+
+- *You reserve 10-15% of slots for unexplored creators. What's the direct cost, and who pays it?* -> The cost is short-term engagement -- explored slots are, by construction, lower expected-value than exploited ones, so the user pays in feed quality now for creator-ecosystem health later. If you don't measure and cap that cost per user, the exploration budget silently becomes a tax the most engaged users resent, and they're the ones who'll notice.
+- *Propensity correction makes a 10K-follower creator's 1% engagement count like a 100M creator's 1%. Doesn't that over-promote genuinely mediocre small creators?* -> It can. Equalizing for exposure removes the rich-get-richer bias but also removes a real signal -- large creators are sometimes large because they're good. The honest framing is that you're trading some precision for ecosystem diversity, and the right exploration rate is the one where the long-term supply-side gain (more creators staying) exceeds the demand-side engagement loss.
+
+**Trap:** treating creator fairness as a pure win. Every lever here (exploration slots, propensity reweighting, saturation penalties) costs measurable near-term engagement -- pretending otherwise is how these systems get quietly rolled back the first bad quarter.
 ## Flashcards
 
 **Why does optimizing pure engagement (likes/comments/shares) predictably degrade a feed over time?** #flashcard
