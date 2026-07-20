@@ -16,6 +16,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 ## 00 — Meta
 
 * [Meta — How To Use This Repo](00-meta/README.md)
+* [What Is AI — Paradigms and Orientation](00-meta/00-what-is-ai.md)
 * [Applied AI & ML Systems Guide](00-meta/01-ai-ml-systems-and-application.md)
 * [Removed SUMMARY.md Entries — Phase 0 Record](00-meta/REMOVED-CONTENT.md)
 * [Repo Structure — Target State and Migration Plan](00-meta/REPO-STRUCTURE.md)
