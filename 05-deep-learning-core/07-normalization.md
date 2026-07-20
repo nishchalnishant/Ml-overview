@@ -17,6 +17,8 @@ tags: [deeplearning, ml, components-normalization]
 
 **What breaks** without normalization: activations drift into saturation regions (tanh/sigmoid gradients vanish), training requires very careful initialization and learning rate tuning, and deep networks often fail to converge at all.
 
+> **This motivation is historical, not settled.** ICS is the argument from the original BatchNorm paper (Ioffe & Szegedy, 2015) and it's why normalization was invented — but it is not the current explanation for *why it works*. Santurkar et al. (2018) injected distribution shift *after* the normalization layer and found BN still helped, which the ICS story cannot account for; they argue the real mechanism is a smoother, better-conditioned loss landscape that tolerates larger steps. Learn the ICS framing because interviewers reference it, but don't assert it as the accepted cause — see the trap in [Interview Angles](#interview-angles).
+
 ---
 
 ## Batch Normalization
@@ -180,13 +182,44 @@ Used in: WaveNet, normalizing flow models where batch statistics would break the
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Derive batch normalization and explain why it helps training.**  
+### Q: Derive batch normalization and explain why it helps training. [Medium]
+  
 A: For a mini-batch of activations {x_1, ..., x_m}, BN computes: μ_B = (1/m)Σx_i (batch mean); σ²_B = (1/m)Σ(x_i - μ_B)² (batch variance); x̂_i = (x_i - μ_B)/√(σ²_B + ε) (normalize); y_i = γ·x̂_i + β (scale and shift with learnable params). The normalization reduces internal covariate shift — the distribution of each layer's input changes less as earlier layers update, so later layers experience a more stable input distribution. This allows higher learning rates (the normalization prevents activations from exploding), acts as regularization (the batch statistics introduce noise similar to dropout), and makes the model less sensitive to initialization. At inference, use running statistics (exponential moving averages computed during training) rather than batch statistics. Key limitation: BN depends on batch size — with batch=1, the batch statistics are just the sample itself (no normalization). This is why LayerNorm is used for NLP/transformers where sequences have variable length and batch size may be small.
 
-**Q: When would you use Layer Norm vs Batch Norm vs Group Norm?**  
+**Cross-questions to expect:**
+- *"You said BN reduces internal covariate shift — is that actually why it works?"* → This is the trap question. The ICS explanation is from the original paper and is now contested: Santurkar et al. (2018) showed BN still helps when you *inject* distribution shift after the normalization, and argued the real mechanism is a smoother loss landscape (better-conditioned gradients, so larger steps stay stable). Say what BN does mechanically, then note the explanation is disputed — claiming ICS as settled fact is a dated answer.
+- *"Where exactly do you place BN relative to the activation?"* → Original paper puts it before the nonlinearity (conv → BN → ReLU); this is still the common default. After-activation sometimes trains slightly better in practice. Either is defensible if you say why.
+- *"What happens to BN at inference with batch size 1?"* → Nothing bad, because inference uses the running averages, not batch statistics. The batch-size problem is a *training* problem. Confusing the two is a common slip.
+- *"Why do the learnable γ and β exist if you just normalized?"* → Normalization forces zero mean/unit variance, which may be the wrong distribution for the next layer — γ/β let the network undo it. Setting γ=√σ² and β=μ recovers the identity, so BN can learn to do nothing.
+
+**Trap:** Asserting "BN reduces internal covariate shift" as the accepted explanation. It's the historical motivation, not the current understanding — the loss-smoothing account has better evidence. Interviewers who know the literature use this to separate memorized answers from real understanding.
+
+---
+
+### Q: When would you use Layer Norm vs Batch Norm vs Group Norm? [Medium]
+  
 A: **Batch Norm**: best for large-batch training on CNNs with fixed-size inputs (ImageNet classification) — statistics are stable with batch size ≥ 32; fails at small batch sizes or variable-length sequences. **Layer Norm**: normalizes across the feature dimension of each individual sample, independent of batch — preferred for NLP/transformers (variable-length sequences, small batches common, autoregressive generation has batch=1) and RNNs. All modern LLMs use LayerNorm or RMSNorm. **Group Norm**: divides channels into G groups, normalizes within each group — intermediate between BN and LN; designed for object detection/segmentation where batch size is typically 1-2 (high-res images, memory-limited); GN outperforms BN at batch size 2-8. **Instance Norm**: normalizes per-sample, per-channel — designed for style transfer where spatial statistics encode style; removes style information from feature maps. **RMSNorm**: LayerNorm without mean subtraction (only scale by RMS) — 10-15% faster than LN with negligible quality loss; used in Llama, Gemma, Mistral.
 
-**Q: Why does batch normalization act as regularization, and how does this interact with dropout?**  
+**Cross-questions to expect:**
+- *"Why can't transformers just use BatchNorm?"* → Sequences are variable-length and padded. Batch statistics would be computed partly over padding, and they'd shift with batch composition. Autoregressive decoding also runs at batch=1 per step. LN sidesteps all of it by normalizing within a sample.
+- *"What does RMSNorm drop, and why is it safe to drop?"* → Mean subtraction — it keeps only the scaling by RMS. Empirically the re-centering contributes little once the network has learnable scale, so you get the speedup for negligible quality loss.
+- *"Pre-norm or post-norm, and why does it matter?"* → Post-norm (original Transformer) needs LR warm-up to train stably at depth; pre-norm (LN inside the residual branch) gives a clean gradient path through the residual stream and trains stably without heavy warm-up. Nearly all modern LLMs are pre-norm — see [Pre-Norm vs Post-Norm](#pre-norm-vs-post-norm) above for the residual-stream argument.
+- *"Group Norm with G=1 or G=C — what do you get?"* → G=1 is LayerNorm over all channels; G=C is InstanceNorm. GN interpolates between them, which is why it degrades gracefully at small batch.
+
+**Trap:** Reciting the list without connecting it to the constraint that drives the choice. The real axis is *what does the normalization depend on* — BN depends on other samples in the batch, everything else doesn't. Every practical consequence (small batches, variable length, batch=1 decoding) follows from that one fact.
+
+---
+
+### Q: Why does batch normalization act as regularization, and how does this interact with dropout? [Hard]
+  
 A: BN introduces two sources of randomness: (1) mean and variance are computed over the current mini-batch, not the full dataset — these are noisy estimates, adding stochastic noise to each activation; (2) BN computed on one batch cannot perfectly represent the true distribution, so each sample's normalized value depends on which other samples it's batched with. This noise acts similarly to dropout — it prevents co-adaptation of neurons. When BN and dropout are used together, they can interact poorly: during training, dropout scales activations by 1/p; the scale change is absorbed by BN's normalization (it renormalizes regardless of scale). But at test time, without dropout, the batch statistics see different variance, causing a train/test discrepancy. In practice: for transformers with LayerNorm, dropout after attention/FFN works well because LN doesn't depend on batch statistics. For CNNs with BN, using dropout after BN layers typically hurts — either use one or the other; if both, put dropout before BN.
+
+**Cross-questions to expect:**
+- *"If BN already regularizes, why do LLMs still use dropout?"* → LayerNorm has no batch-derived noise — it's deterministic given the sample. So the regularization that comes free with BN doesn't exist in a transformer, and dropout has to supply it.
+- *"You said put dropout before BN. What actually goes wrong in the other order?"* → Dropout changes the activation variance at training time but not at test time. BN estimates its running variance from the dropout-perturbed training activations, then at test time sees undropped activations with different variance — the stored statistics are calibrated to the wrong distribution. Li et al. (2019) call this the "variance shift."
+- *"Does the BN regularization effect get stronger or weaker as batch size grows?"* → Weaker. Larger batches give less noisy statistics, so the noise-driven regularization fades — part of why very-large-batch training often needs extra explicit regularization.
+- *"How does this interact with gradient accumulation?"* → Accumulation doesn't change BN's statistics: BN normalizes per forward pass, so the effective statistical batch stays the micro-batch size, not the accumulated size. People expecting accumulation to fix small-batch BN are surprised by this.
+
+**Trap:** Treating "BN regularizes" as a reason to drop other regularization. The effect is a side effect of noisy batch statistics — it weakens with large batches, vanishes at inference, and disappears entirely if you switch to LayerNorm. It is not a substitute for weight decay or dropout.
