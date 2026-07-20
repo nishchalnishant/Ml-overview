@@ -728,7 +728,7 @@ Adjust λ in MMR per user: higher λ for comfort viewers (more relevance), lower
 
 ---
 
-## 12. Interview Questions
+## 12. Interview Angles
 
 **Q1: Why use a two-tower model for retrieval instead of a single model that scores (user, video) pairs directly?**
 
@@ -758,7 +758,7 @@ Filter bubbles emerge when the recommender only shows users content similar to t
 
 ---
 
-**Q4: A new video goes viral but the system is slow to amplify it. How do you fix this?**
+### Q4: A new video goes viral but the system is slow to amplify it. How do you fix this? [Medium]
 
 The root cause is that ANN index updates are batched (e.g., hourly), and the ranking model relies on historical engagement features that haven't accumulated yet.
 
@@ -773,6 +773,12 @@ The root cause is that ANN index updates are batched (e.g., hourly), and the ran
 
 ---
 
+**Cross-questions to expect:**
+
+- *You cut the ANN index refresh to every 5 minutes for viral candidates. What's the cost you just signed up for, and does it even scale?* -> Frequent partial index rebuilds are expensive and fragment the index; do it for everything and you melt the retrieval tier. So the trigger has to be a narrow viral-signal gate, which means you're now maintaining a second, hotter path with its own failure modes and its own false-positive problem -- a video that spikes for a minute and dies still forces a rebuild. The fast path buys latency by adding operational surface, not for free.
+- *A "rate of change of engagement" feature amplifies whatever is spiking. How is that not just an engine for manufactured virality and brigading?* -> It is exactly that risk -- velocity features reward coordinated early bursts, which is precisely what bot rings and brigades manufacture. You need the velocity signal gated by authenticity/spam scores and by audience diversity (organic virality spreads across unrelated clusters; manufactured virality spikes within one). Rewarding raw velocity without a genuineness check turns your fast path into an attack surface.
+
+**Trap:** treating "slow to amplify" as purely a freshness bug. Some of that latency is a deliberate safety buffer -- instant amplification of anything spiking is how harmful content goes viral before any human or classifier can look at it. The lag you're being asked to remove is partly load-bearing.
 **Q5: How does TikTok's For You Page differ architecturally from YouTube's homepage recommendation?**
 
 | Dimension | YouTube Homepage | TikTok For You Page |
@@ -788,7 +794,7 @@ TikTok's Monolith system (2022) uses a large embedding model without embedding t
 
 ---
 
-**Q6: How would you detect and mitigate the watch-time → extremism pipeline?**
+### Q6: How would you detect and mitigate the watch-time → extremism pipeline? [Hard]
 
 **Detection:**
 1. Map the video corpus onto a topic-risk graph: run community detection on the video-to-video recommendation graph; identify clusters associated with harmful content (validated by policy team).
@@ -803,7 +809,13 @@ TikTok's Monolith system (2022) uses a large embedding model without embedding t
 
 ---
 
-**Q7: How would you evaluate recommendation quality offline, given that you can only observe engaged-with content, not all content the user would have liked?**
+**Cross-questions to expect:**
+
+- *You add a safety-classifier score as a negative term in the composite ranking objective. A large watch-time gain can still buy out a small safety penalty. Isn't that the same weighted-sum failure as engagement-vs-wellbeing?* -> Yes -- a soft penalty in a weighted sum means enough predicted watch time always outbids the safety term, so borderline-harmful-but-magnetic content still surfaces. For content classes where the harm is categorical you need a hard score ceiling or an eligibility gate, not a term the objective can trade away. The weighted-sum framing is appropriate for taste, not for safety floors.
+- *Your radicalization signal is "trajectory monotonically moving toward high-risk clusters." What's the base-rate problem that makes that alarm mostly wrong?* -> Almost everyone who watches one video in a risk-adjacent cluster does not radicalize, so even a fairly accurate trajectory detector fires overwhelmingly on false positives given how rare the real outcome is. Intervening on all of them (injecting off-topic content) degrades the experience for a huge benign majority to catch a tiny true-positive set -- you have to be explicit about that precision/harm trade, not just claim detection.
+
+**Trap:** trusting the video-to-video recommendation graph to define "high-risk clusters" when that graph is itself produced by the recommender you're auditing. The clusters encode the system's own behavior, so you can end up measuring and correcting the recommender against its own biases -- the ground truth for what is harmful has to come from outside the engagement graph (policy/human labels), or the audit is circular.
+### Q7: How would you evaluate recommendation quality offline, given that you can only observe engaged-with content, not all content the user would have liked? [Hard]
 
 This is the **missing data / counterfactual evaluation problem** — the fundamental challenge in offline recommendation evaluation.
 
@@ -823,6 +835,12 @@ This is the **missing data / counterfactual evaluation problem** — the fundame
 
 ---
 
+**Cross-questions to expect:**
+
+- *IPW corrects for exposure by dividing by propensity. What happens to the variance when some shown items had tiny propensities, and why does that quietly wreck your "unbiased" estimate?* -> Small propensities in the denominator produce enormous weights, so a handful of rarely-shown items dominate the estimate and the variance explodes -- the estimator is unbiased in expectation but so noisy per-run that it can't rank two models reliably. You clip or cap weights to control variance, which reintroduces bias. IPW trades the selection bias you can see for a variance problem you can't, and "unbiased" on the slide hides that.
+- *You propose a user-behavior simulator to escape logged-data bias. Why is that often worse than the bias it replaces?* -> The simulator is trained on the same logged, biased data, so it learns the current system's blind spots and then rewards models that agree with it -- you get a confident number that measures resemblance to today's policy, not user value. Simulator fidelity is unfalsifiable offline (you can't check counterfactual watches), so a good simulation score can mask a model that's worse in production. It's most dangerous precisely because it looks like it solved the counterfactual problem.
+
+**Trap:** reporting held-out recall as a quality metric. Held-out watched items are a biased sample of "would have liked" -- the content the user would have loved but was never shown is invisible to the metric, so a model can score high on recall by predicting what the old system already surfaced while being strictly worse at discovery, the thing you actually care about.
 ## References
 
 - Covington, Adams, Sargin. *Deep Neural Networks for YouTube Recommendations*. RecSys 2016.
