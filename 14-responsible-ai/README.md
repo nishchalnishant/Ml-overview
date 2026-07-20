@@ -31,7 +31,7 @@ Responsible-AI material is split across two homes **on purpose**:
 | LLM-specific behaviour — jailbreaks, prompt injection, guardrails, RLHF/DPO/Constitutional AI, sycophancy, reward hacking | [`../10-llms/interview-notes/`](../10-llms/interview-notes/) §10, §17, §18 |
 
 Those LLM files stay where they are: they are part of a numbered interview arc, several have
-paired `-snappy.md` modality files, and their framing is behavioural rather than mathematical.
+paired `-snappy.md` modality files, and their framing is behavioural rather than mathematical. <!-- noqa: filename -->
 The genuine overlap is narrow — bias measurement and PII handling — and is cross-linked rather
 than duplicated.
 
