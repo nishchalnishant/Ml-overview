@@ -15,6 +15,7 @@ Models that learn a distribution well enough to sample from it, rather than only
 | [01-autoencoders.md](01-autoencoders.md) | Undercomplete, denoising, sparse, VAE, reparameterization, KL collapse, β-VAE |
 | [02-gans.md](02-gans.md) | Minimax objective, mode collapse, vanishing gradients, oscillation, WGAN-GP |
 | [03-diffusion.md](03-diffusion.md) | Closed-form forward process, noise prediction, DDPM vs. DDIM, latent diffusion, consistency models |
+| [04-flows-and-autoregressive.md](04-flows-and-autoregressive.md) | Change of variables, RealNVP coupling layers, chain-rule factorization, PixelCNN, why LLMs are autoregressive generative models |
 
 ## Routing — this folder vs. 06-architectures
 
@@ -28,4 +29,6 @@ alongside `01-autoencoders.md`.
 gradient path) and why diffusion largely displaced GANs for image synthesis — and, if they are
 good, where it did not.
 
-**Known gap:** normalizing flows and autoregressive generative models are not yet covered.
+**Coverage note.** All five families are now present. The exact-likelihood pair (flows,
+autoregressive) is in `04-`; the bound-based and likelihood-free families are in `01-`–`03-`.
+The comparison table in `04-` is the fastest way to place them against each other.

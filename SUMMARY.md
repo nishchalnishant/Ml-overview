@@ -114,6 +114,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Autoencoders](08-generative/01-autoencoders.md)
 * [Generative Adversarial Networks](08-generative/02-gans.md)
 * [Diffusion Models](08-generative/03-diffusion.md)
+* [Normalizing Flows and Autoregressive Models](08-generative/04-flows-and-autoregressive.md)
 
 ## 09 — Reinforcement Learning
 
@@ -225,6 +226,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 
 * [Responsible AI](14-responsible-ai/README.md)
 * [Privacy and Fairness in Machine Learning](14-responsible-ai/01-privacy-and-fairness.md)
+* [Adversarial Robustness](14-responsible-ai/02-adversarial-robustness.md)
 
 ## 15 — System Design
 

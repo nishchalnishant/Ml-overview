@@ -1,9 +1,9 @@
 ---
-module: Classical Ml
+module: Evaluation
 topic: Model Interpretation
-subtopic: ""
+subtopic: Interpretability
 status: unread
-tags: [classicalml, ml, model-interpretation]
+tags: [evaluation, ml, model-interpretation, shap, lime, interpretability]
 ---
 # Model Interpretation: SHAP, LIME, and Feature Importance
 
@@ -32,6 +32,19 @@ Explaining ML model predictions is critical for debugging, regulatory compliance
 
 ---
 
+## 1b. Interpretability vs. Explainability
+
+Interviewers ask for this distinction directly. **Interpretability** is a property of the
+*model* — you can inspect the mechanism (linear model, shallow tree, GAM). **Explainability** is
+a property of an *account generated afterwards* — you produce a plausible reason for a model you
+did not constrain. A linear model is interpretable; a SHAP plot over a GBM is an explanation.
+
+Everything below except "model coefficients" is post-hoc explanation: a model *of* the model.
+That framing is what makes its failure modes predictable — the explanation can be wrong about
+the thing it explains.
+
+---
+
 ## 2. SHAP (SHapley Additive exPlanations)
 
 ### Mathematical Foundation
@@ -51,6 +64,35 @@ where:
 2. **Symmetry:** features contributing equally get equal SHAP values
 3. **Dummy:** features that never change the prediction get SHAP = 0
 4. **Linearity:** SHAP values add linearly for model ensembles
+
+### Why Shapley values specifically — the four axioms
+
+The uniqueness result is the answer to "why not just use feature importance?" Shapley values are
+the **only** attribution satisfying all four simultaneously:
+
+| Axiom | Meaning |
+| :--- | :--- |
+| **Efficiency** | Attributions sum exactly to $f(x) - \mathbb{E}[f(X)]$ |
+| **Symmetry** | Two features contributing identically get identical credit |
+| **Dummy** | A feature the model never uses gets exactly zero |
+| **Additivity** | Attributions compose across an ensemble of models |
+
+**Efficiency is the one to remember in an interview** — it is what makes SHAP usable in an
+adverse-action notice. Every prediction decomposes into baseline plus per-feature contributions,
+with nothing unexplained.
+
+### The correlated-feature failure
+
+The formula requires $f(S)$ — the model evaluated on a *subset* of features. Models don't accept
+subsets, so SHAP marginalizes the missing ones, typically by sampling from the marginal
+distribution. With correlated features this constructs impossible inputs (age 8, income \$200k)
+and evaluates the model far off-manifold. Attributions then depend partly on the imputation
+scheme rather than on the model. Same root cause as the PDP problem in §4 — and the reason SHAP
+is not a clean escape from it.
+
+**SHAP is not causal.** It reports what the *model* used, not what *causes* the outcome. A model
+using ZIP code as a race proxy produces an honest attribution to ZIP code — accurately
+describing the model while saying nothing about real causal structure.
 
 ### TreeSHAP (Exact, Polynomial Time)
 
@@ -318,3 +360,69 @@ A: PDP computes the marginal effect of feature $x_j$ by setting it to a value $v
 A: A SHAP waterfall plot showing the top features that reduced the probability below the approval threshold, with their actual values and how much each contributed. For the specific applicant, it shows: "Your income of $35K reduced your approval probability by -0.12; your debt-to-income ratio of 0.45 reduced it by -0.09; your 3 recent credit inquiries reduced it by -0.06." This is interpretable by a compliance officer, satisfies GDPR Article 22 "meaningful information about the logic involved," and is reproducible (same input always gives same SHAP). Importantly, also verify: none of the top features are proxies for protected attributes (race, gender), and the explanation aligns with domain knowledge (high debt-to-income should indeed reduce creditworthiness).
 
 For active-recall drilling on these terms, see [classical-ml-flashcards.md](../03-classical-ml/_flashcards.md).
+
+---
+
+## Interview Angles
+
+### Q: Why SHAP over the feature importances the model already gives me? [Medium]
+
+Three reasons. Tree MDI (`feature_importances_`) is *global* — it cannot explain one decision.
+It is *biased* toward high-cardinality and continuous features, which offer more split points and
+more chances to reduce impurity by chance. And it has no additivity guarantee, so the numbers
+don't decompose a prediction. SHAP is local, free of that particular bias, and satisfies
+efficiency.
+
+**Cross-questions to expect**
+- *"When is MDI fine?"* — Quick global screening during development, where cheapness beats rigour.
+- *"Cost of switching?"* — With TreeSHAP, low: polynomial and exact. KernelSHAP on a non-tree
+  model is a different story.
+
+**Trap:** Claiming SHAP is unbiased in general. It is axiomatically principled, but the
+correlated-feature/off-manifold problem above is a real and separate bias.
+
+### Q: LIME gives you a different explanation each time you run it. Is the model unstable? [Medium]
+
+No — LIME is. The perturbations are randomly sampled, so two runs on the same point with the same
+model can produce different explanations. Instability is in the explainer, not the model.
+
+**Cross-questions to expect**
+- *"How would you confirm that?"* — Run SHAP on the same point; it's deterministic. If SHAP is
+  stable across runs, the model is fine.
+- *"So when is LIME the right tool?"* — Text and images, where perturbation means removing words
+  or superpixels and reads more naturally than tabular feature masking.
+
+**Trap:** Fixing it by raising the sample count. That narrows the variance without removing it,
+and an explanation you cannot reproduce is not defensible to a regulator. Prefer SHAP where
+determinism matters.
+
+### Q: Your model's top SHAP feature is ZIP code. Legal asks whether the model is racially discriminatory. [Hard]
+
+SHAP alone cannot answer this. It faithfully reports what the model used — and the model does use
+ZIP code — but says nothing about whether ZIP is acting as a race proxy or carrying legitimate
+signal (cost of living, regional risk). Attribution is not causation.
+
+The actual investigation: measure whether ZIP predicts the protected attribute; measure outcome
+disparities across groups with fairness metrics; then run the counterfactual — retrain without ZIP
+and see whether disparity persists. If it does, the proxy is distributed across other features and
+dropping ZIP was cosmetic.
+
+**Cross-questions to expect**
+- *"So drop ZIP code?"* — Rarely sufficient. Correlated features reconstruct it; this is exactly
+  why fairness-through-unawareness fails.
+- *"Which fairness metric?"* — Depends on the harm. Lending usually means equal error rates among
+  qualified applicants — equalized odds. Demographic parity answers a different question.
+- *"What if accuracy drops when you fix it?"* — Real tradeoff, and a policy decision rather than
+  an engineering one. Present it; don't resolve it unilaterally.
+
+**Trap:** Answering with interpretability methodology. This is a fairness question wearing an
+interpretability costume, and recognizing that is what is being tested.
+
+---
+
+## Connections
+
+- [../14-responsible-ai/01-privacy-and-fairness.md](../14-responsible-ai/01-privacy-and-fairness.md) §7–9 — fairness metrics, impossibility theorems, bias mitigation (where the ZIP-code question actually gets answered)
+- [../14-responsible-ai/02-adversarial-robustness.md](../14-responsible-ai/02-adversarial-robustness.md) — the other half of "can I trust this model"
+- [../03-classical-ml/_comparison.md](../03-classical-ml/_comparison.md) — where TreeSHAP sits among tabular tradeoffs
+- [../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md](../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md) Q8 — LLM-behavioural framing of explainability

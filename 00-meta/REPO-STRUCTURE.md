@@ -220,6 +220,26 @@ missing" — written from the plan, not from the files. It was two-thirds right.
 normalizing flows and autoregressive models in `08-generative/`; interpretability mechanics and
 adversarial robustness in `14-responsible-ai/`.
 
+## Phase 5 — gap closure (COMPLETE)
+
+Four "gaps" were listed. Survey reduced them to two.
+
+| Claimed gap | Reality | Action |
+| :--- | :--- | :--- |
+| Normalizing flows / autoregressive | Genuine. No substantive coverage anywhere. | Wrote `08-generative/04-flows-and-autoregressive.md`. |
+| Adversarial robustness | Genuine. Every prior hit was adversarial *training* (GANs, domain adaptation, debiasing) — zero on FGSM/PGD. | Wrote `14-responsible-ai/02-adversarial-robustness.md`. |
+| Interpretability (SHAP/LIME) | **Not a gap.** `04-evaluation/05-model-interpretation.md` — 320 lines, TreeSHAP/KernelSHAP with code, LIME, PDP **and ALE**, permutation importance, attention-as-explanation. | Merged the genuinely-new material (Shapley axioms, off-manifold correlation failure, Interview Angles) into the existing file. Fixed its stale `module: Classical Ml` frontmatter. |
+| Standalone recsys | **Not a gap.** Four case studies (`10-personalization`, `11-recommendation-system`, `12-video-recommendation`, `08-news-feed-ranking`) plus MF/ALS/two-tower math in `15-system-design/02-ml-system-design.md`. | Routing table in `07-domains/README.md`. Removed the false "genuine gap" claim. |
+
+**I committed the failure I had been documenting.** I wrote a duplicate
+`14-responsible-ai/02-interpretability.md` before checking, and caught it only when updating
+SUMMARY.md surfaced the existing file. My pre-write grep had filtered `-viE 'sublime|limit'`,
+which dropped the real hits. Deleted the duplicate; kept the stronger original.
+
+**Standing rule, now fifth occurrence:** grep for the *content*, not the folder you expect it in,
+and check SUMMARY.md before writing any new file. Two of four gaps in this phase were bookkeeping
+errors in READMEs written from the target structure rather than from the files.
+
 - [ ] Decide whether standalone recsys coverage is in scope (see Phase 1 survey table)
 - [ ] Decide whether gradient boosting should be consolidated to one home (currently 3) — a merge decision, not a split
 - [ ] If Interview Angles format is wanted repo-wide, author cross-questions/traps per topic rather than relocating existing Q&A
