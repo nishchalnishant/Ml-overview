@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Fine Tuning And Model Adaptation
 status: unread

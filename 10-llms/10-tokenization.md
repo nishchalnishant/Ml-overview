@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Tokenization
 subtopic: ""
 status: unread

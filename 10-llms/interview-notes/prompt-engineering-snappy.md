@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Prompt Engineering Snappy
 status: unread

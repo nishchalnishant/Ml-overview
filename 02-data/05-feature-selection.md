@@ -1,5 +1,5 @@
 ---
-module: Classical Ml
+module: Classical ML
 topic: Feature Selection
 subtopic: ""
 status: unread

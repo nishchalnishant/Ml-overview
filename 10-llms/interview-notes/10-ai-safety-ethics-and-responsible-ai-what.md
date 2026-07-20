@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Ai Safety Ethics And Responsible Ai What
 status: unread

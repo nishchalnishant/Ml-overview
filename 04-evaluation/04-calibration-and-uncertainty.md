@@ -1,5 +1,5 @@
 ---
-module: Classical Ml
+module: Classical ML
 topic: Calibration And Uncertainty
 subtopic: ""
 status: unread

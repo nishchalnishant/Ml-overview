@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Efficient Llm Deployment Snappy
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Context Window Extension
 subtopic: ""
 status: unread

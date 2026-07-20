@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Multi Modal Ai
 status: unread

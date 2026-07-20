@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Scaling And Data
 subtopic: ""
 status: unread

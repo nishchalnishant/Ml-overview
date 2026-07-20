@@ -1,5 +1,5 @@
 ---
-module: Classical Ml
+module: Classical ML
 topic: Time Series Analysis
 subtopic: ""
 status: unread

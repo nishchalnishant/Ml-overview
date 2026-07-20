@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Training Stability
 subtopic: ""
 status: unread

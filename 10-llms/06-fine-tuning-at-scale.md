@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Fine Tuning At Scale
 subtopic: ""
 status: unread

@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Retrieval Augmented Generation Rag Snappy
 status: unread

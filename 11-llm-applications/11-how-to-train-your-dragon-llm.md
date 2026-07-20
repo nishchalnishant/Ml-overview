@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Applications
 subtopic: How To Train Your Dragon Llm
 status: unread

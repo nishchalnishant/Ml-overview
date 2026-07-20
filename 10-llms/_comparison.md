@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Cheatsheet
 subtopic: Comparison
 status: reference

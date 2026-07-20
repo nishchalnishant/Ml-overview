@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Ai Infrastructure And Scalability Snappy
 status: unread

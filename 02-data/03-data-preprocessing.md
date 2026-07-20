@@ -1,5 +1,5 @@
 ---
-module: Classical Ml
+module: Classical ML
 topic: Data Preprocessing
 subtopic: ""
 status: unread

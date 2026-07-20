@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Books
 subtopic: Agentic Design Pattern
 status: unread

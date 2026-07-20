@@ -1,5 +1,5 @@
 ---
-module: Classical Ml
+module: Classical ML
 topic: Hyperparameter Optimization
 subtopic: ""
 status: unread

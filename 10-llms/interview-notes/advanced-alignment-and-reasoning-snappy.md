@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Interview Notes
 subtopic: Advanced Alignment And Reasoning Snappy
 status: unread

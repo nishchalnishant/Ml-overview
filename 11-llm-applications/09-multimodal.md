@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Applications
 subtopic: Multimodal
 status: unread

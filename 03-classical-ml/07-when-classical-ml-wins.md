@@ -1,5 +1,5 @@
 ---
-module: Classical Ml
+module: Classical ML
 topic: When Classical Ml Wins
 subtopic: ""
 status: unread

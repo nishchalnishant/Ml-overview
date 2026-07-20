@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Evaluation Benchmarks
 subtopic: ""
 status: unread

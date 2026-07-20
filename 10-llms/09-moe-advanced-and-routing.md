@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Moe Advanced And Routing
 subtopic: ""
 status: unread

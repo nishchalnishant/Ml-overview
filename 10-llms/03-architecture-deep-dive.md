@@ -1,5 +1,5 @@
 ---
-module: Llms
+module: LLMs
 topic: Architecture Deep Dive
 subtopic: ""
 status: unread
