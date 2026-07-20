@@ -823,7 +823,7 @@ rdd.count()       # trigger checkpoint write to S3
 
 ---
 
-## Interview Questions
+## Interview Angles
 
 **Q1: Your training pipeline takes 6 hours and costs $500 per run. How would you reduce both?**
 
@@ -845,7 +845,7 @@ Handling: distinguish additive vs breaking changes. New nullable columns → saf
 
 ---
 
-**Q3: Explain the difference between Lambda and Kappa architectures. When would you choose each?**
+### Q3: Explain the difference between Lambda and Kappa architectures. When would you choose each? [Medium]
 
 Lambda maintains a batch layer (reprocesses all historical data for accuracy) and a speed layer (processes recent data with low latency). Queries merge results from both. The fundamental problem is that the same feature must be computed in two different codebases (e.g., Spark batch + Flink streaming), and they must produce identical results — which they often don't due to subtle differences in handling late data, time zones, or null values.
 
@@ -857,6 +857,12 @@ Choose Kappa when: operational simplicity is paramount, you have a Kafka-based a
 
 ---
 
+**Cross-questions to expect:**
+
+- *Kappa promises "one codebase" by replaying the log. What does a replay actually cost you when the logic changes, and when is that cost prohibitive?* -> Replaying two years of events through the stream job to rebuild a feature can take hours-to-days and competes with live processing for the same cluster -- during that window your new feature definition and old are both partially live. If your event log doesn't retain full history (Kafka retention is finite and expensive at scale), you *can't* replay at all, and Kappa's core promise silently fails. The "one codebase" saving is real; the reprocessing tax is the hidden other side.
+- *Lambda's stated flaw is two codebases diverging. Give the case where you accept that flaw on purpose.* -> When late-arriving events beyond the watermark genuinely matter (financial close, attribution windows), the batch layer *reprocesses* them correctly and the streaming layer structurally cannot. There you keep the batch layer as the trusted baseline and treat streaming as a fast approximation -- the divergence isn't a bug, it's the batch layer catching what streaming provably drops.
+
+**Trap:** presenting this as a clean either/or. Most production systems are Lambda-in-practice even when they call themselves Kappa -- there's almost always a batch backfill/correction job somewhere, because pure streaming can't cheaply fix a historical logic bug.
 **Q4: What is the difference between Delta Lake and Apache Iceberg? When would you choose one over the other?**
 
 Both provide ACID transactions, time travel, and schema evolution on top of Parquet files in object storage. The key differences:
@@ -893,7 +899,7 @@ If you have feature logging at serving time (you should), compare the served fea
 
 ---
 
-**Q7: You need to backfill 2 years of a new feature. What are the risks and how do you handle them?**
+### Q7: You need to backfill 2 years of a new feature. What are the risks and how do you handle them? [Hard]
 
 The primary risk is temporal leakage: when computing the feature for a historical date, accidentally using data from after that date. For example, computing "user's 30-day purchase count as of Jan 15, 2022" but including purchases from Jan 16–Feb 15 because you read the full table and filtered incorrectly.
 
@@ -903,6 +909,12 @@ Secondary risks: cost (2 years × daily compute can be expensive — estimate an
 
 After backfilling, validate a sample: take 10 random (user_id, date) pairs, manually compute the feature from raw data, and compare to the backfilled values. This catches off-by-one errors in the time window logic before the feature is used in training.
 
+**Cross-questions to expect:**
+
+- *You correctly filter `transaction_date <= target_date` to avoid leakage. But the backfill uses today's snapshot of the source table. What subtle leakage survives that filter?* -> Late-arriving and *corrected* data. A row for Jan 2022 that was amended in March 2022 shows its corrected value in today's snapshot, so your "as of Jan 2022" feature silently contains information that didn't exist then. Date-filtering the event timestamp doesn't help if the *values* were revised after the fact -- you need the table's as-of/bitemporal version, not a date filter on a mutable current snapshot.
+- *You validate 10 random (user, date) pairs by hand and they match. Why is that reassuring but not sufficient?* -> 10 random samples over two years almost surely miss the rare boundary conditions where backfills actually break -- month/DST edges, the first day a user existed, days with zero events, leap day. Off-by-one window bugs cluster at boundaries, and uniform random sampling under-weights exactly those. Sample the edges deliberately, don't just sample uniformly.
+
+**Trap:** treating the backfilled feature as equivalent to what production will generate going forward. Backfill computes the feature in batch over historical data; live serving computes it incrementally in a streaming job -- if those two paths handle windows/nulls/late-data even slightly differently, every training example is backfilled-style and every serving example is streaming-style, which is training-serving skew baked in from day one.
 ## Flashcards
 
 **Why is Lambda architecture operationally expensive compared to Kappa?** #flashcard

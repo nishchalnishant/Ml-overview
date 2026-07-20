@@ -361,17 +361,29 @@ compare     - Score distribution
 
 ---
 
-## 5. Canonical Interview Q&As
+## 5. Interview Angles
 
 **Q: How do you distinguish data drift from concept drift in production?**  
 A: Data drift = P(X) changes; concept drift = P(Y|X) changes. Practically: compute PSI on input features (data drift). If features are stable but model accuracy degrades (requires delayed labels), it's concept drift. Proxy for concept drift without labels: residual distribution shift (KS test on predictions vs actuals from 30d ago). In fraud detection, concept drift is dominant and requires shorter retraining cycles.
 
-**Q: Your model AUC is 0.85 offline but CTR improvement is flat in A/B test. What happened?**  
+### Q: Your model AUC is 0.85 offline but CTR improvement is flat in A/B test. What happened? [Hard]  
 A: Classic training-serving skew or metric misalignment. Check: (1) feature distribution match between training set and live traffic using KS test, (2) was offline eval done with temporal split? Random splits leak future information, inflating offline AUC, (3) offline AUC measures ranking on historical distribution — if the candidate set differs in production, AUC is not predictive of CTR. (4) Calibration issue: model ranks correctly but predicted probabilities are wrong, affecting downstream threshold logic.
 
-**Q: Walk me through diagnosing a P99 latency spike from 80ms to 350ms in a recommendation API.**  
+**Cross-questions to expect:**
+
+- *You confirm the offline split was temporal, features match live traffic, and calibration is fine. AUC is still 0.85, CTR still flat. What's left?* -> The candidate set. Offline AUC ranks over a *logged* candidate pool; in production the ranker sees a differently-generated pool (different retrieval, different filters), so a model that ranks the historical pool beautifully has nothing to improve if retrieval already surfaces near-optimal candidates -- the ranking headroom you measured offline doesn't exist online. AUC on the wrong candidate distribution is not predictive of live CTR.
+- *Could a genuinely better model produce flat CTR for a reason that isn't a bug at all?* -> Yes -- a ceiling/substitution effect. If users have a roughly fixed click budget per session, a better-ranked slate can move *which* item they click without moving total CTR. The metric is flat because you improved relevance, not appetite. That's not a skew bug; it's a sign CTR is the wrong success metric for this change.
+
+**Trap:** assuming flat CTR means the model is no better. A/B tests have finite power -- a real but small CTR lift can be statistically invisible at your traffic and horizon, and calling it "flat" is a power failure, not a model failure. Check the confidence interval before concluding no effect.
+### Q: Walk me through diagnosing a P99 latency spike from 80ms to 350ms in a recommendation API. [Medium]  
 A: Add distributed tracing if not present (record span per stage). Check each stage: (1) is it all requests or a fraction? Fraction → tail latency, likely outlier inputs or GC pause; (2) is feature store slow? Check Redis hit rate — cache eviction or memory pressure; (3) is model inference slow? Check GPU utilization — low GPU util means request queuing issue; (4) is ANN slow? Probe count too high or index rebuild in progress; (5) Check network — P99 vs P50 divergence signals TCP retransmit or DNS lookup. Fix based on bottleneck found.
 
+**Cross-questions to expect:**
+
+- *You trace every internal stage and each one's P99 looks normal. Yet end-to-end P99 is 350ms. How is that possible?* -> Because per-stage P99s don't compose -- the request that's slow end-to-end is the one that hit an unlucky *combination* of stages, and no single stage's P99 captures it. It can also live *between* spans: connection-pool waits, queueing before a stage, GC pauses, or thread-scheduling delays that your instrumentation doesn't span. "Every stage looks fine" often means the cost is in the gaps, not the stages.
+- *P50 is unchanged at 80ms; only P99 moved. What does that pattern rule in and rule out?* -> It rules out a broad regression (that would lift P50 too) and points at a *tail* cause affecting a small fraction: GC/allocation pauses, cache-miss cliffs on cold entities, a hot partition, or noisy-neighbor contention. A shift that leaves the median alone is almost never "the model got slower" -- it's a fraction of requests hitting a different, slower path.
+
+**Trap:** chasing average CPU/GPU utilization for a tail-latency problem. Mean utilization can look healthy while a small set of requests queues behind a saturated resource -- tail latency is about the unlucky fraction, and averages are exactly the statistic that hides it.
 **Q: When would you use ADWIN vs PSI for drift detection?**  
 A: PSI is batch (offline) — compare feature distributions between a reference window and current window. Good for scheduled monitoring, interpretable thresholds. ADWIN is streaming/online — maintains adaptive window over error rates, automatically shrinks window on detected change. Use ADWIN when you need real-time detection and have labels arriving continuously (click feedback, fraud flags). Use PSI when you only have input features (no labels yet) and run scheduled monitoring jobs.
 

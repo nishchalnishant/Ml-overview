@@ -669,7 +669,7 @@ Feature null rate       | >1%                  | Upstream data pipeline broken
 
 ---
 
-## 11. Interview Questions
+## 11. Interview Angles
 
 **Q1: You need to serve a gradient boosted model in <50ms P99. Walk me through how you'd architect this.**
 
@@ -683,12 +683,18 @@ First check Kafka consumer lag on the Flink job — if lag is high, the stream p
 
 ---
 
-**Q3: How do you prevent training-serving skew in a system where features are computed in real time?**
+### Q3: How do you prevent training-serving skew in a system where features are computed in real time? [Hard]
 
 Three things: (1) point-in-time correct training data — when generating training examples, use the feature value that existed at the label's event time, not the current value. Feature stores with time-travel support this. (2) Log features at serving time — attach the feature snapshot to the prediction log. Use that logged snapshot for training, not recomputed features. (3) Validate continuously — run a shadow job that recomputes features offline for recent predictions and compares to the logged values; alert on systematic differences.
 
 ---
 
+**Cross-questions to expect:**
+
+- *You log the served feature snapshot and train on that instead of recomputing. Doesn't that just bake whatever bug was in serving into training too?* -> Yes -- log-and-train guarantees train/serve *parity*, not *correctness*. If serving computed a feature wrong, the model learns the wrong feature consistently and performs fine in production precisely because the bug is symmetric. Parity is the right goal for skew, but you still need an independent offline recomputation to catch the case where both sides are consistently wrong.
+- *Point-in-time correctness fixes leakage in training. What serving-side failure does it do nothing for?* -> Freshness. PIT joins guarantee you *would have* had the right value at label time; they say nothing about whether serving actually *fetched* a fresh value under load. A feature that's correct-in-principle but stale-in-practice (Redis lag, TTL expiry) is skew that PIT correctness can't see -- it lives in the gap between "the value that existed" and "the value the request got."
+
+**Trap:** assuming a "shared feature pipeline" eliminates skew. Shared *code* still runs in two environments with different data freshness, different null-handling under partial failure, and different timeout/fallback behavior -- the skew migrates from the transformation logic into the runtime conditions.
 **Q4: A fraud model's precision drops from 92% to 78% in production over six weeks. The feature distributions look the same. What's happening?**
 
 Concept drift: P(fraud | X) changed even though P(X) is stable. Likely causes: fraudsters adapted to the model's decision boundary (adversarial shift), fraud patterns shifted seasonally, or the population of transactions changed (new merchant categories, new payment rails). Investigate: look at the cases where the model is newly wrong — are they concentrated in a segment? Check if the decision boundary itself shifted (score distribution vs outcome). Short-term fix: lower threshold to restore recall. Medium-term: retrain with recent labeled data. Long-term: add adversarial training, shorter retraining cadence, ensemble with rule-based signals that are harder to game.
@@ -707,10 +713,16 @@ At 10ms, every network hop is expensive. Design principles: (1) embed the model 
 
 ---
 
-**Q7: You're designing a recommendation system that must serve 10,000 RPS with P99 < 100ms. What are the main risks and how do you mitigate them?**
+### Q7: You're designing a recommendation system that must serve 10,000 RPS with P99 < 100ms. What are the main risks and how do you mitigate them? [Hard]
 
 Main risks: (1) Feature fetch fan-out — if each request fetches features for 50 candidates, that's 500k Redis reads/sec. Mitigate with batch pipelining and candidate pre-filtering. (2) Model inference throughput — at 10k RPS, you need ~10k inferences/sec. Profile batch size vs latency tradeoff; GPU with dynamic batching likely required. (3) Cold start — new users/items have no features; need a fallback (popularity-based, demographic features). (4) Thundering herd — cache expiry causes simultaneous re-fetches; use staggered TTLs and probabilistic early expiration. (5) Feedback loop — showing only top-ranked items creates exposure bias; add exploration (epsilon-greedy or UCB) and log counterfactuals for unbiased offline evaluation.
 
+**Cross-questions to expect:**
+
+- *You add GPU dynamic batching to hit throughput. What did that just do to your P99, and why might it blow the SLA you were protecting?* -> Batching trades latency for throughput -- a request now waits to fill a batch, and the max wait plus batch inference time can exceed your per-request budget under bursty load. You've optimized the average machine cost at the expense of the tail you're actually graded on. You need a max-batch-delay cap and to size it against P99, not mean; the two objectives (utilization vs tail latency) are in direct tension.
+- *You add epsilon-greedy exploration for unbiased eval. What does that cost the user whose request you're currently serving?* -> Every exploration impression is, in expectation, a worse recommendation shown to a real user right now -- you're spending their experience to buy the *system* unbiased training data later. At 10k RPS that's a large aggregate quality tax, and it's borne by users, not by the offline eval that benefits. The exploration rate is an ethical/business trade, not a free logging trick.
+
+**Trap:** budgeting P99 as a sum of component P50s. Tail latencies compound -- a request hitting the P99 of the feature store *and* the P99 of inference is rarer but far worse than either alone, so end-to-end P99 exceeds the sum of the parts. You must measure the tail end-to-end, not add up per-stage medians.
 ## Flashcards
 
 **What four things typically cause a large P99/P50 latency gap?** #flashcard

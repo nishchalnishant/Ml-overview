@@ -370,7 +370,7 @@ SageMaker FS | S3             | DynamoDB               | Partial   | AWS only   
 
 ---
 
-## Feature Store Interview Questions
+## Feature Store Interview Angles
 
 **Design a Feature Store for a fraud detection system:**
 - Identify real-time (velocity) vs batch (user history) features
@@ -379,12 +379,24 @@ SageMaker FS | S3             | DynamoDB               | Partial   | AWS only   
 - Define SLAs: <5ms online lookup, <100ms offline retrieval
 - Address schema evolution (adding a new feature)
 
-**Q: What is point-in-time correctness and why does it matter?**
+### Q: What is point-in-time correctness and why does it matter? [Medium]
 A: Each training example must use only features available at the time of its target event. Violating this leaks future information into training, inflating offline metrics. The classic bug: joining on entity key without a timestamp constraint, so "30-day spend" includes transactions after the label event. Fix: store a computation timestamp per feature and fetch the most recent value with `timestamp ≤ event_timestamp`.
 
-**Q: How do you ensure online/offline parity?**
+**Cross-questions to expect:**
+
+- *Your PIT join uses `timestamp <= event_timestamp` and picks the most recent value. A feature whose upstream data arrives late still lands with an early timestamp. Are you actually leak-free?* -> Not necessarily. If the feature's *value* was computed from data that arrived after the feature timestamp (late events attributed to an earlier window), the timestamp says "available then" but the information wasn't. PIT correctness on the *feature* timestamp is only as honest as the pipeline that stamped it -- a late-data or watermark bug upstream produces feature rows that look point-in-time-correct and aren't.
+- *PIT joins are the leakage fix in training. Why can a model be PIT-correct in training and still degrade in production for a leakage-shaped reason?* -> Because training PIT-correctness guarantees no *future* leaked in offline; it says nothing about a *serving* feature being computed from a richer/fresher state than existed at training's cutoffs. If serving assembles features with data that training deliberately excluded, you've created a train/serve gap that behaves like negative leakage -- the model saw less at train time than it gets at serve time, and its calibration is off.
+
+**Trap:** thinking the naive `JOIN ON entity_id` bug is the only PIT hazard. The subtler ones are aggregation windows that straddle the cutoff and slowly-changing dimensions where the "current" row overwrote the historical value -- both pass an entity-key join and still leak.
+### Q: How do you ensure online/offline parity? [Medium]
 A: (1) Same transformation code for both paths, ideally a shared library; (2) online pipeline writes derived features back to the offline store so both use identical materialized values; (3) shadow testing before launch — compare online vs offline values for the same entity/timestamp, alert if KS > 0.1 or mean diff > 5%; (4) continuous hourly parity monitoring, rollback on regression. Root causes are usually null handling, timezone bugs, freshness gaps, or upstream schema changes.
 
+**Cross-questions to expect:**
+
+- *You share a transformation library across both paths, so the code is identical. Name three ways parity still breaks.* -> Data freshness (online reads a value batch hasn't materialized yet), null/default handling under partial failure (online times out and substitutes a default the offline path never sees), and time semantics (online uses wall-clock arrival, offline uses event time). Identical code over different *runtime conditions* produces different values -- shared code removes one class of skew and leaves the operational class untouched.
+- *Your parity monitor alerts on KS > 0.1 between online and offline. It's green. Does that prove parity where it matters?* -> No -- a distribution-level KS test can pass while the specific high-value entities (your biggest users, your fraud cases) diverge, because they're a tiny mass the aggregate statistic drowns out. Parity has to be checked on the segments that drive decisions, not just on the marginal distribution, or you get a green dashboard over a skewed tail.
+
+**Trap:** trusting online-writes-back-to-offline as a parity guarantee. It makes offline *match whatever online computed*, so if online is buggy you've propagated the bug into training and made the two paths agree on the wrong answer -- parity achieved, correctness lost.
 **Q: When would you use streaming vs batch features?**
 A: Depends on how fast the feature changes and how much it affects the model. Velocity features (transactions in last hour) change in minutes and drive fraud/risk decisions — need streaming. Lifetime value or 90-day patterns change slowly — daily batch is enough. Validate by delaying refresh in offline eval and measuring the metric drop.
 

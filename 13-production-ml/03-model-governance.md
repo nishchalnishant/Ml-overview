@@ -908,24 +908,36 @@ async def _shadow_predict(challenger_model, request, champion_prediction, shadow
 
 ---
 
-## Interview Questions
+## Interview Angles
 
 **Q: How do you handle model versioning when you need to support rollback but also need to comply with data retention regulations that require you to be able to reproduce a decision years later?**
 
 A: The requirements are in tension. Rollback requires keeping old model weights accessible and deployable. Data retention requires keeping inference records and the ability to reconstruct the decision environment. The solution is to separate these concerns: model artifacts are versioned in the registry indefinitely (compressed, not running), inference events are logged to an immutable audit store with the model version tag, and the deployment rollback mechanism operates on the registry. When an auditor asks to reproduce a decision from two years ago, you query the audit store for the inference event, identify the model version from the event metadata, and use the archived model artifact to reproduce the prediction. You never need to run the old model live — you just need to preserve the artifact.
 
-**Q: A customer exercises their GDPR right to erasure. Walk through your response.**
+### Q: A customer exercises their GDPR right to erasure. Walk through your response. [Hard]
 
 A: First, delete their raw training data. Second, query the model registry for all model versions trained on datasets that included the customer. Third, use influence functions or a proxy (leave-one-out on a small validation set) to estimate whether the customer's data materially affected the model weights. For most customers in a large dataset, influence is negligible — document this assessment and consider it resolved. For high-influence cases (a small dataset where the customer was a significant fraction), schedule retraining. Fourth, the inference audit logs cannot be fully erased because financial regulations require retaining decision records. Since you logged the entity ID hash (not the raw ID), you are already pseudonymized. Document the conflict between GDPR Article 17 and your financial audit obligations — most DPAs accept this explanation.
 
+**Cross-questions to expect:**
+
+- *You delete raw data and argue influence on the weights is "negligible," so no retrain. A regulator says the model still contains information derived from that customer. Who's right?* -> Both positions are defensible and unsettled -- the law is about "personal data," and whether trained weights count as personal data of a training subject is genuinely open. "Negligible influence" is a risk-management stance, not a legal guarantee; membership-inference attacks show the data isn't always as forgotten as an influence estimate suggests. The honest answer is you document a defensible position and accept residual legal risk, not that you've provably erased them.
+- *Your audit logs can't be erased due to financial retention rules, and you cite the GDPR-vs-audit conflict. What if the DPA doesn't accept it?* -> Then you've discovered that "pseudonymized hash" may not be enough -- a hash of a stable ID is re-identifiable by anyone who can recompute it, so it may still be personal data. The fallback is keyed hashing or tokenization where the mapping itself is subject to retention rules, but you should concede up front that "we hashed the ID" is a weaker defense than it sounds.
+
+**Trap:** treating erasure as a one-time data-deletion task. The obligation propagates into every downstream artifact -- backups, derived aggregates, feature-store materializations, and model checkpoints -- and the parts you *can't* cheaply reach (weights, immutable audit logs) are exactly where the conflict lives.
 **Q: How do you make TreeSHAP explanations legally defensible for adverse action notices?**
 
 A: Three requirements. First, the explanation must be at the level of the original features (not latent representations), because the explanation is given to a human who does not understand internal model representations. TreeSHAP on tree ensembles gives exact Shapley values — not approximations — which makes it mathematically auditable. Second, the top reasons must be mapped to human-readable language before delivery, and the mapping must be documented and consistent. Third, the explanation must be generated from the exact model and feature values that produced the decision — not a surrogate. The inference event log must store the feature snapshot so the explanation can be reproduced from the audit record, not reconstructed from a different feature state.
 
-**Q: What is the right way to set rollback thresholds?**
+### Q: What is the right way to set rollback thresholds? [Medium]
 
 A: Set them before deployment, not after the model is in production. The sequence is: (1) during the business sign-off gate, agree on what constitutes "unacceptable model behavior" in terms the business understands — this is usually expressed as revenue impact or error rate, not AUC; (2) translate that business threshold into the metric the monitoring system observes — typically: champion AUC minus current AUC delta, P99 latency, and error rate; (3) document the thresholds in the model registry; (4) configure the monitoring system to fire the rollback alert automatically if thresholds are exceeded. The goal is to make the rollback decision non-discretionary: if metric X exceeds threshold Y, roll back. This removes the political negotiation under pressure.
 
+**Cross-questions to expect:**
+
+- *You want rollback non-discretionary: metric X past threshold Y auto-fires. What breaks the first time the metric moves for a legitimate reason?* -> A one-off event (a holiday, a real distribution shift, an upstream outage) trips the threshold and auto-rolls-back to a model that's *also* wrong for the current conditions, and now you've thrashed. Non-discretionary rollback needs a debounce (sustained breach over a window, not a single reading) and a floor on how often it can fire -- otherwise you've automated flapping. The political negotiation you removed reappears as alert-tuning.
+- *Rollback assumes the previous champion is safe to return to. When is that assumption false?* -> When the world moved. If fraud patterns or user behavior shifted, the old champion may be *worse* than the degraded challenger on today's data -- you'd be rolling back to a model validated on a distribution that no longer exists. Rollback is a safety net for bad *deploys*, not for genuine drift; conflating the two sends you backward when you should be retraining forward.
+
+**Trap:** expressing the threshold only in AUC delta. The business signed off in revenue/error terms; a fixed AUC-delta trigger can fire on a statistically real but commercially trivial change, or stay silent through an AUC-stable failure that's bleeding money on a high-value segment.
 **Q: How do you prevent training-serving skew from becoming a governance problem?**
 
 A: Training-serving skew is a governance problem when: (a) it causes model behavior to differ from what was evaluated and approved, and (b) no one detects it until an external audit or customer complaint. Prevention requires two things. First, use a shared feature pipeline — the same code that computes features for serving must also be used to generate features for training. This is implemented via a feature store with a point-in-time correct join capability. Second, monitor Population Stability Index on input features in production continuously. If PSI exceeds 0.2 on any feature, the model is operating outside its evaluated distribution, and the approval effectively does not apply. This triggers a re-evaluation gate, not a rollback — the model may still be performing, but the governance coverage must be renewed.
