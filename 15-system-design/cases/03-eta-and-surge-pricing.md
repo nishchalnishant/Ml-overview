@@ -461,47 +461,107 @@ def get_eta_with_fallback(origin, destination, city, timeout_ms=400):
 
 ---
 
-## 11. Interview Questions
+## 11. Interview Angles
 
-**Q1: Why does ETA accuracy matter beyond rider satisfaction?**
+### Q1: Why does ETA accuracy matter beyond rider satisfaction? [Easy]
 
 ETA feeds the matching engine's dispatch decisions — poor ETA means sub-optimal driver assignment even with enough supply. It also drives upfront fare estimation; systematic under-prediction means drivers earn less than the quoted fare, hurting driver retention.
 
 ---
 
-**Q2: How would you handle ETA for airport pickups, which behave very differently from street hailing?**
+**Cross-questions to expect:**
+- *"Would you rather be 2 minutes early or 2 minutes late?"* → Early, and this asymmetry should be in the loss. Late costs cancellations and trust; early costs a little idle time. A symmetric MAE trains a model that treats those as equal, so quantile loss at something above the median is the standard fix.
+- *"Does ETA feed its own training data?"* → Yes, and that's the subtle risk. A bad ETA changes dispatch, which changes which trips happen, which becomes tomorrow's training set. Trips that were never dispatched because the ETA looked bad are absent from your data entirely.
+
+**Trap:** Optimizing mean error. Riders experience the tail — the 95th-percentile miss drives cancellations, and a model can improve MAE while making the tail worse.
+
+---
+
+### Q2: How would you handle ETA for airport pickups, which behave very differently from street hailing? [Medium]
 
 Treat it as a separate model with airport-specific features: flight landing time (aviation APIs), baggage claim wait by terminal, staging-lot-to-curb time. Use a two-stage prediction — staging lot → curb transition, then curb ETA once dispatched. Per-airport data density supports dedicated models.
 
 ---
 
-**Q3: Why H3 hex cells instead of square grids for surge?**
+**Cross-questions to expect:**
+- *"Separate model or one model with a flag?"* → Start with a flag plus airport-specific features; split only when you can show the residuals differ structurally and the segment has enough volume to support its own training. Every extra model is a permanent maintenance and monitoring cost.
+- *"What breaks when the flight API fails?"* → You need a degradation path to a scheduled-time prior rather than a null feature. Airports are exactly where a silently-zeroed feature produces a confidently wrong answer, and it's a segment with high visibility.
+
+**Trap:** Presenting airports as one case. Each has its own geometry, staging rules, and terminal layout — a per-airport calibration layer usually beats one clever global airport model.
+
+---
+
+### Q3: Why H3 hex cells instead of square grids for surge? [Easy]
 
 Square grids have unequal neighbor distances (diagonal is √2× farther), causing anisotropic smoothing artifacts at grid corners. Hex cells are equidistant to all six neighbors, giving isotropic smoothing, plus clean hierarchical aggregation (each resolution-7 cell = 7 resolution-8 cells).
 
 ---
 
-**Q4: How do you prevent surge from oscillating (surge up → drivers join → SDR flips → surge drops → drivers leave → repeat)?**
+**Cross-questions to expect:**
+- *"Is the hierarchy exact?"* → No, and it's a real gotcha. Hexagons don't tile hierarchically the way squares do, so H3's parent-child relation is approximate — a child cell isn't perfectly contained in its parent. Fine for aggregation, wrong if you need exact partitioning for accounting.
+- *"How do you pick the resolution?"* → By data density, not geometry. Cells need enough demand and supply events per interval to make SDR a stable statistic; too fine and you're modelling noise, too coarse and you smear distinct neighbourhoods together. Dense city centres and suburbs often warrant different resolutions.
+
+**Trap:** Over-arguing geometry. The isotropy point is real but minor next to the practical wins — a stable global cell ID scheme, cheap neighbour lookups, and clean aggregation. Interviewers notice when a candidate treats tessellation elegance as the main benefit.
+
+---
+
+### Q4: How do you prevent surge from oscillating (surge up → drivers join → SDR flips → surge drops → drivers leave → repeat)? [Hard]
 
 Temporal hysteresis (require SDR to stay past a threshold for N minutes before changing surge), supply-response forecasting instead of pure reactive thresholds, capped multiplier change per interval, and spatial smoothing so neighboring cells dampen local volatility.
 
 ---
 
-**Q5: How would you detect ETA model degradation in production?**
+**Cross-questions to expect:**
+- *"Name the control-theory failure."* → Feedback with delay. Drivers respond minutes after the price changes, so a purely reactive controller is always correcting a state that has already moved. Hysteresis and rate limiting are damping; forecasting supply response is the actual fix because it puts the delay in the model.
+- *"What does hysteresis cost?"* → Responsiveness during genuine demand shocks — a concert letting out needs a fast response, and the same damping that prevents oscillation delays it. Event calendars exist partly to let you relax the damping when a spike is expected.
+- *"How would you detect oscillation in production?"* → Autocorrelation of the multiplier per cell, or counting sign changes per hour. A cell flipping several times an hour is oscillating regardless of whether riders complain.
+
+**Trap:** Treating this as a smoothing problem. Spatial smoothing hides oscillation from dashboards without removing it — drivers still experience the flipping, and the trust cost is what actually matters.
+
+---
+
+### Q5: How would you detect ETA model degradation in production? [Medium]
 
 Monitor rolling ETA residual (`predicted - actual`) stratified by city/trip type/time, alerting on mean error or MAPE thresholds. Secondary signals: cancellation spikes right after ETA is shown, driver rating dips correlated with underestimates, and city-specific drift vs. peers. Use shadow mode to compare new vs. old model residuals before cutover.
 
 ---
 
-**Q6: How do you handle a 10x traffic spike (New Year's Eve)?**
+**Cross-questions to expect:**
+- *"Aggregate residual is flat but something's wrong — what do you check?"* → Stratify. Offsetting errors across segments cancel in the mean: a model over-predicting suburbs and under-predicting downtown looks perfect globally. City, time-of-day, trip length, and weather are the standard cuts.
+- *"How do you separate model degradation from the world changing?"* → You often can't from residuals alone, which is why shadow mode matters. If a retrained challenger shows the same residuals, the world moved; if it recovers, your model went stale. Road closures and construction are the common genuine causes.
+- *"Any signal available before the trip completes?"* → Yes — prediction distribution shift is immediate, while residuals wait for trip completion. On a long trip that's a 30-minute-plus lag on your only ground truth.
+
+**Trap:** Alerting on MAPE alone. It's unstable for short trips: a 2-minute miss on a 4-minute trip is 50% error and largely unavoidable, so a shift in trip-length mix fires the alert without any model change.
+
+---
+
+### Q6: How do you handle a 10x traffic spike (New Year's Eve)? [Medium]
 
 Pre-provisioned autoscaling for model serving and feature store replicas, cache pre-warming for top OD pairs hours ahead, graceful degradation to cached/historical ETAs under load instead of timing out, pre-configured surge parameters for known events, and load shedding on low-priority (non-booking) ETA calls.
 
 ---
 
-**Q7: Surge pricing raises revenue but completion rate drops 2%. Roll back or not?**
+**Cross-questions to expect:**
+- *"Autoscaling is reactive — is that enough?"* → No. Scale-up takes minutes and the spike is faster, so you pre-provision against a forecast for known events. Autoscaling handles the unforeseen; the calendar handles New Year's Eve.
+- *"What does the model do that's wrong on that night?"* → Everything it learned about typical traffic is off-distribution — travel times, demand patterns, and cancellation behaviour all shift. Historical same-event data is worth more than recent data, and holding out last year's NYE is a reasonable validation choice.
+- *"What do you shed first?"* → Speculative ETA calls — map browsing, pre-request estimates — before anything on the booking path. Deciding this under load is too late; the priority tiers have to exist beforehand.
+
+**Trap:** Answering purely with infrastructure. The failure on peak nights is usually accuracy, not availability: the system stays up and quotes confidently wrong ETAs, which is worse than a visible degradation banner.
+
+---
+
+### Q7: Surge pricing raises revenue but completion rate drops 2%. Roll back or not? [Hard]
 
 Not necessarily bad — could reflect shedding low-value demand that was congesting the platform. Check driver utilization (did it improve?), wait times for completed trips, and driver earnings (retention signal). Also consider the counterfactual: in a supply-constrained market, the no-surge baseline's "completion rate" is inflated by requests that never get a driver anyway. Use a holdout-cell A/B test to measure the true causal effect, and roll back only if net marketplace value (fulfilled trips × fare) actually decreased.
+
+---
+
+**Cross-questions to expect:**
+- *"Who is being priced out, and does that matter beyond revenue?"* → It matters a great deal. If the shed demand concentrates in lower-income areas or specific times, you have an equity and regulatory problem that the aggregate marketplace-value number will never surface. Segment the shed demand before declaring the trade-off acceptable.
+- *"How do you A/B test a marketplace at all?"* → Not by randomizing riders — treatment and control compete for the same drivers, so interference biases the result. Switchback tests over time within a region, or region-level randomization, are the standard answers, and both cost statistical power.
+- *"Which single number decides it?"* → There isn't one. Fulfilled trips, driver earnings per hour, rider wait time, and the equity cut all matter, and they trade off. Naming the decision criteria before running the test is the discipline being tested.
+
+**Trap:** Defending surge purely as efficient rationing. That's the economics answer and it's incomplete — it ignores distributional effects and the reputational cost, both of which have forced real policy changes at these companies.
 
 ---
 

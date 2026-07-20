@@ -854,45 +854,93 @@ Invalid clicks inflate CTR, poison training labels, waste advertiser budgets.
 
 ---
 
-## 11. Interview Questions
+## 11. Interview Angles
 
-**Q1: Why is log loss a better training objective than AUC for CTR models?**
+### Q1: Why is log loss a better training objective than AUC for CTR models? [Medium]
 
 AUC is not differentiable and measures ranking, not calibration. Log loss directly minimizes the negative log-likelihood of the click labels — it penalizes confidently wrong predictions (predicting pCTR=0.9 when the user didn't click costs much more than predicting 0.6). In the auction, we need calibrated absolute probabilities, not just relative ranking. A model with perfect AUC but systematic 2× overestimation of pCTR would cause every advertiser to overpay. Log loss optimizes for both ranking and calibration simultaneously.
 
 ---
 
-**Q2: How do you handle the fact that embedding tables for user IDs don't fit on a single GPU?**
+**Cross-questions to expect:**
+- *"Is log loss actually optimizing calibration, or does it just happen to?"* → It's a strictly proper scoring rule: its expected value is uniquely minimized by the true conditional probability. Calibration isn't a side effect, it's what properness means. Brier score is also proper — log loss is preferred because it penalizes confident errors much harder, which is what you want when the output feeds a price.
+- *"If it's proper, why do you still need a Platt/isotonic layer on top?"* → Because properness holds at the optimum over an unrestricted hypothesis class. A real model is misspecified, early-stopped, regularized, and trained on negatively-sampled data — all of which break the guarantee. The post-hoc layer repairs the gap you actually have, not the one in theory.
+- *"You negatively sample. What does that do to the output?"* → Biases it upward by a known factor. Sampling negatives at rate $r$ gives $p_{\text{obs}} = p/(p + (1-p)r)$; you invert it to recover the true scale. Forgetting this recalibration is one of the most common sources of a systematic overbid.
+
+**Trap:** Saying "AUC isn't differentiable" as the whole answer. There are differentiable ranking surrogates, so that objection alone is weak. The real reason is that the auction consumes an absolute probability — a rank is not a price.
+
+---
+### Q2: How do you handle the fact that embedding tables for user IDs don't fit on a single GPU? [Hard]
 
 Meta's DLRM paper describes the solution: model parallelism for embedding tables, data parallelism for dense layers. Each GPU (or host) owns a shard of each embedding table. When a forward pass needs embedding lookups, an all-to-all communication collective sends each lookup request to the shard that owns it and returns the embedding vector. Dense MLP layers are replicated on all workers and synchronized via all-reduce (standard DDP). The communication overhead is the main scaling bottleneck — minimizing embedding dimension and table size is critical.
 
 ---
 
-**Q3: You ship a new CTR model and revenue drops 3% despite the offline AUC improving by 0.002. What happened?**
+**Cross-questions to expect:**
+- *"All-to-all is the bottleneck — how do you shrink it?"* → Shard by table for small tables and row-wise for large ones so load stays even; fuse many lookups into one collective; keep embedding dimensions small (8–32 is common for tail features, not 128). Frequency-based hashing so rare IDs share rows cuts table size at a modest accuracy cost.
+- *"Do you need a row per user ID at all?"* → Usually not. Most user IDs appear a handful of times and their embeddings never leave the initialization neighbourhood. Hashing the tail into a shared bucket, or dropping IDs below a frequency floor and relying on aggregate features, costs little and saves most of the table.
+- *"Why is a parameter server acceptable here when DDP is standard elsewhere?"* → Because embedding gradients are extremely sparse — a batch touches a tiny fraction of rows, so all-reduce over the full table is enormous waste. Async parameter-server updates suit sparse access; the staleness that would hurt dense training is tolerable for rarely-touched rows.
+
+**Trap:** Describing this as "just model parallelism." The split is the point: model-parallel embeddings, data-parallel dense layers, in one model. Candidates who apply a single strategy to both halves miss the design.
+
+---
+### Q3: You ship a new CTR model and revenue drops 3% despite the offline AUC improving by 0.002. What happened? [Hard]
 
 Classic calibration regression. The new model has better ranking (AUC) but worse calibration — it systematically underestimates or overestimates pCTR. Even if it ranks ad A above ad B correctly, if the predicted probabilities are too low, the eCPMs computed in the auction are too low, causing the platform to charge advertisers less per click (revenue drop). Always check ECE (Expected Calibration Error) in offline evaluation, not just AUC. Also check: was negative sampling rate changed? Was the post-hoc calibration layer (isotonic regression / Platt) retrained on the new model's outputs?
 
 ---
 
-**Q4: Explain position bias and how you correct for it in training.**
+**Cross-questions to expect:**
+- *"Name a cause other than calibration."* → An auction-dynamics shift. Better ranking reallocates impressions toward ads with higher pCTR but lower bids, so eCPM per impression falls even with correct calibration. Revenue depends on the bid–pCTR joint distribution, not pCTR quality alone.
+- *"How would you distinguish those two in an hour?"* → Plot a reliability diagram on the holdout for both models. Miscalibration shows as a curve off the diagonal; if both are calibrated, the cause is allocation, and you check the eCPM and bid distribution of the newly-winning ads.
+- *"Is 0.002 AUC even a real improvement?"* → Probably not on its own. On billions of rows it may be statistically significant and still practically meaningless — well inside the variance from seed and data window. Treat it as noise unless it reproduces across reseeds.
+
+**Trap:** Rolling back and stopping. The rollback is right; the finding is that your offline gate lets a revenue regression through. If ECE isn't a blocking check alongside AUC, the same failure ships again next quarter.
+
+---
+### Q4: Explain position bias and how you correct for it in training. [Medium]
 
 Position bias is the tendency for users to click more on higher-positioned ads regardless of ad quality, because they are more likely to look at them (the "examination hypothesis"). If we train without correction, the model learns that ad IDs historically served in position 1 have high CTR — because they were examined more, not because they're better. This creates a feedback loop where ads that happened to win early auctions dominate forever. Correction approaches: (1) include position as a training feature and set position=1 at inference time; (2) inverse propensity score weighting where examples from lower positions are upweighted by the inverse of the position's click probability; (3) dueling bandits or randomized experiments to estimate position propensities.
 
 ---
 
-**Q5: Why can't you just use a standard train/validation split for offline evaluation of a CTR model?**
+**Cross-questions to expect:**
+- *"Where do the propensities come from?"* → Ideally from deliberate randomization — swapping positions on a small traffic slice gives an unbiased estimate. Without that, intervention harvesting mines naturally-occurring position changes for the same ad, or you estimate position and relevance jointly with an EM-style model. Assuming a decay curve is the weakest option.
+- *"What does IPS cost you?"* → Variance. Low-position examples get large weights, so a few rare events dominate the gradient. Clipping the weights trades a little bias for a large variance reduction and is standard practice.
+- *"Position-as-a-feature is simpler — why not just do that?"* → It only works if position is conditionally independent of quality given your features, which is false when the previous ranker placed better ads higher. The feature then absorbs relevance signal, and forcing position=1 at inference extrapolates off-distribution.
+
+**Trap:** Treating this as a ranking-metrics nuisance. It's a feedback loop: uncorrected, today's winners are tomorrow's training signal, and the system slowly stops being able to discover anything new.
+
+---
+### Q5: Why can't you just use a standard train/validation split for offline evaluation of a CTR model? [Medium]
 
 Two problems. First, **temporal leakage**: if you randomly split data, you're evaluating on examples that are earlier in time than some training examples. The model has "seen the future." Always use a temporal split: train on days 1–29, validate on day 30. Second, **survivorship bias / policy bias**: the validation set only contains ads that were shown by the previous model. If the new model would show a different set of ads, you have no data for those impressions — you cannot measure the new model's performance on counterfactual decisions. This requires counterfactual evaluation (IPS) or online A/B testing to resolve.
 
 ---
 
-**Q6: How would you design the system to handle 100B training examples per day?**
+**Cross-questions to expect:**
+- *"Temporal split fixes leakage — what does it break?"* → Your validation set is now one specific day, so it carries that day's idiosyncrasies: a holiday, an outage, a campaign launch. Use several consecutive holdout days, or rolling-origin evaluation, before believing a small delta.
+- *"How do you evaluate counterfactually without shipping?"* → IPS or doubly-robust estimators over logged propensities, which requires you to have logged the serving policy's probabilities. Most teams discover too late that they never logged them — the fix is architectural and has to precede the need.
+- *"So why not skip offline evaluation and A/B everything?"* → Traffic is the scarce resource. Offline evaluation is a filter that decides what deserves an experiment slot; it is not a substitute for one.
+
+**Trap:** Claiming a temporal split makes the estimate unbiased. It removes leakage, not policy bias — the holdout still only contains ads the old model chose to show.
+
+---
+### Q6: How would you design the system to handle 100B training examples per day? [Hard]
 
 At 100B examples/day ≈ 1.16M examples/second, single-machine training is impossible. Key decisions: (1) **Data pipeline**: stream examples through Kafka → Flink for feature joins → write to distributed storage (HDFS/S3) as Parquet shards; (2) **Training**: PyTorch DDP for dense layers across 100+ GPUs; parameter server or model-parallel sharding for embedding tables; (3) **Mini-batch SGD** with ~4K–64K batch size per step; (4) **Continuous training**: rather than full retraining daily, continuously fine-tune on recent data with a sliding window; new model checkpoint every 15–60 minutes; (5) **Sparse updates**: use EmbeddingBag with `sparse=True` to update only the embeddings that appeared in each batch — crucial for efficiency when vocabulary is billions of IDs but each batch only touches thousands.
 
 ---
 
-**Q7: An advertiser complains their ads stopped getting impressions after your new CTR model deployed. How do you investigate?**
+**Cross-questions to expect:**
+- *"Do you need all 100B?"* → Almost never. Negatives massively outnumber positives; sampling negatives at 1–10% and recalibrating retains nearly all the signal at a fraction of the cost. Say this first — a candidate who scales the cluster before questioning the data volume is solving the expensive version of the problem.
+- *"One pass or many epochs?"* → One. At this volume, fresh data beats re-reading old data, and single-pass streaming training avoids the memorization that multi-epoch training invites on high-cardinality IDs.
+- *"What breaks with a 64K batch?"* → The effective learning rate. You need LR scaling with warmup, and past a critical batch size the returns flatten — you're buying throughput, not convergence. Very large batches also smooth away the rare-event gradients that sparse features depend on.
+
+**Trap:** Answering only with infrastructure. The interviewer is usually probing whether you know that continuous incremental training, not nightly full retraining, is what the freshness requirement actually demands.
+
+---
+### Q7: An advertiser complains their ads stopped getting impressions after your new CTR model deployed. How do you investigate? [Medium]
 
 Structured debugging checklist:
 1. **Check pCTR trend for their ads**: Did the new model assign systematically lower pCTR to their ads vs old model? Pull impression logs and compare pCTR distributions before/after model swap.
@@ -902,6 +950,14 @@ Structured debugging checklist:
 5. **Check for category-level calibration bug**: If their ads belong to a specific category where the model is miscalibrated, run category-level calibration curves.
 6. **Compare model scores on held-out examples for their specific ads**: Use shadow mode (run old and new model in parallel) to compare score distributions.
 7. **Check for data leakage in training**: If their ads' recent impressions were excluded from the training window by accident, the model would have no signal for them.
+
+---
+**Cross-questions to expect:**
+- *"What do you check before touching the model?"* → Whether anything changed on their side — budget exhausted, pacing, bid lowered, targeting narrowed, creative rejected. A model deploy is a salient coincidence, and advertiser-side changes are the more common cause. Confirm the correlation is real before investigating it.
+- *"Suppose the model genuinely deprioritized them and is correctly calibrated. Is that a bug?"* → No — that's the system working. The response is commercial, not technical. Knowing which findings need a fix and which need an account conversation is part of the answer.
+- *"How do you get an answer without a rollback?"* → Shadow scoring. You are already logging both models' scores on live traffic, so you can compare pCTR distributions for their ad IDs directly. If you aren't, that's the actual gap the incident exposed.
+
+**Trap:** Diving into feature-store debugging first. Start by segmenting: is this advertiser, their vertical, or everyone? A single complaint is a sample of one, and the segment size determines whether you're chasing a bug or a rounding error.
 
 ---
 

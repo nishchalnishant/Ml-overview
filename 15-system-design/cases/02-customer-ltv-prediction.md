@@ -503,35 +503,94 @@ def bid_ltv(predicted_ltv, prediction_std, segment_n):
 
 ---
 
-## 12. Interview Questions and Answers
+## 12. Interview Angles
 
-**Q1: Why not just use historical average LTV as the prediction?**
+### Q1: Why not just use historical average LTV as the prediction? [Easy]
 
 Historical LTV is censored — churned customers have low historical LTV, while active customers are right-censored and still adding revenue. Using the raw average systematically underestimates true expected LTV for active customers. You need a model that conditions on current engagement and projects forward.
 
-**Q2: BG/NBD assumes purchase rate and churn are independent. Is that realistic?**
+**Cross-questions to expect:**
+- *"Which direction does the bias run?"* → Both, depending on who you average. Pool everyone and you understate active customers (still accruing) while overstating churned ones (already complete). The average is not wrong by a fixable constant — it's wrong differently per customer, which is exactly what a model has to fix.
+- *"Isn't this just survival analysis?"* → Structurally yes, and saying so is a strong answer. LTV is expected accumulated value under a survival curve; BG/NBD is a specific parametric survival model for non-contractual settings where the churn event is never observed.
+
+**Trap:** Framing censoring as missing data. The data isn't missing — it hasn't happened yet. Dropping or imputing censored rows discards your most valuable customers, since the longest-lived are the most censored.
+
+---
+
+### Q2: BG/NBD assumes purchase rate and churn are independent. Is that realistic? [Hard]
 
 Frequently violated — customers who buy more often tend to be more engaged and less likely to churn. Options: (1) accept the approximation, since BG/NBD is empirically fairly robust; (2) use a correlated latent variable model; (3) layer ML features (session depth, support tickets) on top to capture engagement signal BG/NBD misses.
 
-**Q3: LTV predictions used for bidding create a feedback loop — how do you handle it?**
+**Cross-questions to expect:**
+- *"If the assumption is violated, why does it still work?"* → Because the decision it feeds is usually coarse — budget planning, decile targeting. Rank ordering survives assumption violations far better than point estimates do. Match the model's precision to the decision's precision.
+- *"How would you test it on your data?"* → Bucket customers by observed frequency and compare realized churn across buckets. Under independence the curves overlap; a monotone gap is the violation, and its size tells you whether to care.
+- *"What's the cost of the correlated latent-variable version?"* → No closed form, so you lose the fast fit and move to MCMC or variational inference. That's a real operational cost for a model that gets refit constantly, and it's usually why teams stay with BG/NBD.
+
+**Trap:** Listing the model's assumptions as if listing them were the answer. The interviewer wants to know whether the violation changes your decision — name the decision.
+
+---
+
+### Q3: LTV predictions used for bidding create a feedback loop — how do you handle it? [Hard]
 
 Bidding more on high-predicted-LTV customers changes who gets acquired, which shifts training data distribution and can compound model bias. Mitigations: exploration (occasionally bid regardless of prediction to keep an unbiased sample), channel-level holdouts for causal identification, and doubly-robust estimators to correct for acquisition propensity.
 
-**Q4: Product wants LTV as the primary A/B test metric. Concerns?**
+**Cross-questions to expect:**
+- *"How much exploration, and who pays for it?"* → Typically a few percent of spend, and it is a real, visible cost against short-term ROAS. The argument is that without it your training data collapses onto the current policy's preferences and the model slowly loses the ability to score anyone else. Budget it explicitly rather than hoping for incidental randomness.
+- *"How would you notice the loop had already closed?"* → Your predictions look increasingly accurate while incremental performance stalls — the model is good at scoring the narrowing population it selects. Watch prediction variance and the diversity of acquired-cohort features, not just calibration.
+- *"Isn't a channel holdout wasteful?"* → It's the only clean causal read you get. Without it you cannot separate "this channel delivers good customers" from "we bid more there, so we won the good ones."
+
+**Trap:** Treating this as a data-drift problem to be caught by monitoring. Drift monitoring flags the symptom after the distribution has already moved; the fix has to be in the acquisition policy.
+
+---
+
+### Q4: Product wants LTV as the primary A/B test metric. Concerns? [Medium]
 
 (1) **Label delay** — LTV takes 90+ days to realize, slowing iteration; use validated 30-day surrogate metrics instead. (2) **Variance** — LTV is Pareto-distributed, so tests need far more samples than conversion-rate tests. (3) **Model dependence** — the LTV model was trained on pre-change behavior and may not generalize to a new experience. Prefer realized revenue when timelines allow.
 
-**Q5: How does LTV prediction differ for subscription vs e-commerce?**
+**Cross-questions to expect:**
+- *"What makes a surrogate valid?"* → It has to capture the treatment effect, not merely correlate with the outcome. Validate on past experiments: did the surrogate move in the same direction and rough proportion as realized LTV? A metric that correlates cross-sectionally but doesn't track treatment effects will mislead you confidently.
+- *"How do you handle the Pareto tail?"* → Winsorize or cap at a high percentile, and report both capped and uncapped. A single whale can flip significance, and an uncapped test is measuring who got the whale, not what the treatment did.
+- *"Predicted LTV as the metric — acceptable?"* → Only with care. If the model is insensitive to what the treatment changes, you'll measure zero effect regardless of the truth. It biases toward the null, which reads as a safe result and isn't.
+
+**Trap:** Agreeing because LTV is the "real" business metric. It's the right north star and often the wrong test metric — that tension is the answer, not a reason to pick one side.
+
+---
+
+### Q5: How does LTV prediction differ for subscription vs e-commerce? [Medium]
 
 Subscriptions (contractual): churn is an explicit event, so LTV ≈ MRR / churn_rate, or survival analysis for more precision — the hard part is predicting upgrades/downgrades. E-commerce (non-contractual): churn is latent, so BG/NBD or survival analysis is needed to estimate "are they still active?" A hybrid business needs separate models or a contractual-indicator feature.
 
-**Q6: How would you detect that your LTV model has gone stale?**
+**Cross-questions to expect:**
+- *"`MRR / churn_rate` — when does that break?"* → Immediately, if churn isn't constant. Real churn hazard is high early and falls with tenure, so a single blended rate understates long-lived cohorts badly. It's a back-of-envelope figure, not a model.
+- *"What's the hard part in contractual settings?"* → Not churn — it's expansion. Upgrades, seat growth, and usage-based overage often dominate the value of retained accounts, and they're modelled separately from retention.
+
+**Trap:** Assuming contractual is the easier case because churn is observed. Observed churn makes the label clean; it doesn't make the revenue trajectory predictable.
+
+---
+
+### Q6: How would you detect that your LTV model has gone stale? [Medium]
 
 (1) Cohort calibration drift — compare 90-day-old predictions to realized revenue; retrain if actual/predicted drifts outside ~0.9–1.1, tracked per channel. (2) Feature distribution shift — weekly KS-tests on RFM inputs. (3) Rank stability — a drop in top-decile capture rate signals lost discriminative power even with stable mean calibration. Trigger full retraining if at least two signals fire together.
 
-**Q7: What have companies like Shopify and Airbnb found that differs from textbook approaches?**
+**Cross-questions to expect:**
+- *"90-day validation means a 90-day-late signal. What do you do in between?"* → Watch leading indicators: early-window realized revenue against the model's implied trajectory, feature drift, and rank stability. You accept that the authoritative signal is lagging and build faster proxies around it.
+- *"Requiring two signals reduces false alarms — what does it cost?"* → Detection time, and any failure that shows up on one axis only. A calibration shift with stable features is real and would be missed. Prefer paging on the confirmed pair and logging single-signal fires for review.
+
+**Trap:** Retraining on the drift alert alone. If the world changed, retraining on recent data helps; if the acquisition mix changed, retraining bakes the new mix in as normal and you lose the ability to see it.
+
+---
+
+### Q7: What have companies like Shopify and Airbnb found that differs from textbook approaches? [Medium]
 
 Shopify found BG/NBD performs well even on sparse merchant history, and that cohort-level calibration matters more than individual accuracy for planning use cases; cohort "vintage" predicts LTV almost as strongly as behavioral features. Airbnb models bidirectional host/guest LTV jointly via multi-task learning, and found naive long-horizon (1-year) models suffer badly from cohort-maturity bias, addressed with propensity-weighted correction. Both emphasize that an accurate model applied to the wrong decision produces no business value.
+
+---
+
+**Cross-questions to expect:**
+- *"Cohort vintage predicting as well as behaviour — why?"* → Because acquisition conditions are shared shocks: channel mix, promo intensity, and competition move together for everyone who joined that month. Vintage is a proxy for the whole acquisition environment, which no individual-level feature captures.
+- *"What is cohort-maturity bias concretely?"* → Training on cohorts old enough to have full 1-year data means training only on cohorts acquired a year ago, under conditions that no longer hold. The freshest and most relevant cohorts are structurally excluded.
+
+**Trap:** Reciting company names as evidence. The transferable point is that cohort-level calibration beat individual accuracy for planning — the right granularity is set by the decision, not by what scores best.
 
 ---
 
