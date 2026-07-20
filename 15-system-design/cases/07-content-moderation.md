@@ -337,29 +337,53 @@ def estimate(self, population_score_distribution, stratum_labels):
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: How do you measure whether the system is working if the classifier itself might be biased?**
+### Q: How do you measure whether the system is working if the classifier itself might be biased? [Hard]
 A: Never use classifier output as the measurement — that's circular. Sample content stratified by ML score decile, have human experts apply policy, then use weighted (Horvitz-Thompson-style) estimation for unbiased prevalence. Separately track proactive rate (caught before report) and over-removal rate (reversed on appeal) — each needs its own ground truth, since appeal rates alone are biased by non-appealing users.
 
+**Cross-questions to expect:**
+
+- *You stratify by ML score decile and reweight. But your human reviewers apply policy inconsistently too -- now your "ground truth" is noisy. How do you trust the prevalence estimate?* -> You measure reviewer agreement (kappa) and route the low-agreement strata to adjudicated panels, not single reviewers. The honest prevalence estimate carries a confidence interval that widens where reviewers disagree -- and disagreement is highest on exactly the borderline content that matters most. There is no single number; there's an estimate with uncertainty concentrated where policy itself is ambiguous.
+- *Stratifying by score decile means you sample almost nothing from the huge low-score bucket. Doesn't rare violating content there dominate total harm?* -> Yes -- this is the tail problem. A tiny violation rate over a massive low-score volume can exceed all the caught high-score violations combined. You must oversample the low-score tail deliberately (that's what the Horvitz-Thompson weights correct for), or your prevalence estimate is blind to where most missed harm actually lives.
+
+**Trap:** using appeal/reversal rates as your quality signal. Appeals are filed by a self-selected, non-representative population -- users who wrongly got removed and don't appeal, and violating content that was correctly removed and never appealed, are both invisible to that metric.
 **Q: Your classifier works well in English but poorly in Swahili — how do you close the gap without millions of labeled examples?**
 A: Combine cross-lingual transfer (XLM-RoBERTa fine-tuned on ~5K quality Swahili examples), translate-then-classify as a fast stopgap, active-learning-prioritized human review to generate labels weekly, and local NGO partnerships for labeling expertise. Track per-language metrics explicitly — without that, the gap surfaces only after real-world harm.
 
-**Q: How do you guarantee <1s action on CSAM at 500M uploads/day?**
+### Q: How do you guarantee <1s action on CSAM at 500M uploads/day? [Medium]
 A: PhotoDNA hash matching runs at ingestion before any ML scoring, against an in-memory FAISS IVF index, sub-millisecond per lookup. A match holds the content immediately and queues it for NCMEC reporting — the classifier isn't in the critical path. Novel CSAM not yet in the hash database goes through the image classifier (~200ms) and is held pending confirmation; once confirmed, its hash is added so future copies are caught instantly.
 
+**Cross-questions to expect:**
+
+- *Hash matching only catches known CSAM. An adversary applies a small perturbation (crop, re-encode, one-pixel change) to defeat the exact hash. Does PhotoDNA break?* -> PhotoDNA is a perceptual hash, robust to mild transforms -- resizing, re-compression, minor crops still match. But it is not adversarially robust; a determined attacker who optimizes against the hash function can evade it. That's precisely why novel/evasive content still has to fall through to the ML classifier, and why the hash database is continuously expanded from confirmed detections.
+- *You hold-and-report on a hash match with no human in the critical path. What's the cost of a false positive here?* -> Extremely high -- a false CSAM match means wrongly flagging a user to NCMEC/law enforcement, a legal and reputational catastrophe. PhotoDNA's operating point is set for near-zero false positives, accepting more false negatives (which the classifier backstops). The asymmetry is the opposite of most moderation: here you never auto-act on an uncertain signal.
+
+**Trap:** describing this as "the classifier handles CSAM fast." The classifier is explicitly *not* in the critical path for known CSAM -- deterministic hash matching is, precisely because you cannot afford model latency or model uncertainty on this class.
 **Q: A viral video shows police using force at a protest — how does the system decide whether to remove it?**
 A: This is a paradigm borderline case — graphic but also newsworthy. Not auto-removed (graphic violence alone isn't zero-tolerance). Classifiers flag graphic_violence and news/political signals; the policy engine down-weights action for verified news accounts and captions indicating documentation intent. Routes to a high-priority human queue with account history and context. Typical outcome: an interstitial sensitivity label rather than removal. The key principle: don't auto-remove high-score but context-dependent content — a review delay is cheaper than wrongly silencing news coverage.
 
-**Q: How do you prevent a feedback loop where the model never improves on content it consistently misclassifies?**
+### Q: How do you prevent a feedback loop where the model never improves on content it consistently misclassifies? [Medium]
 A: Send a random 2% sample of all content to human review regardless of score, so every score region keeps getting labeled. Include confirmed-clean low-score content in training as negatives, so the model doesn't drift toward over-flagging. Monitor for score-distribution shifts unaccompanied by matching changes in reviewed violation rate — that signals miscalibration and should trigger an audit.
 
+**Cross-questions to expect:**
+
+- *A random 2% sample sounds clean, but 2% of 500M/day is 10M items -- you cannot human-review that. So what actually gets labeled?* -> The 2% is a sampling *frame*, not a review target; you subsample within it and weight. The real constraint is reviewer capacity, so you allocate it -- most to uncertain/high-impact strata, a thin uniform layer everywhere else to keep the blind spots visible. The uniform layer is small precisely because its job is drift detection, not volume labeling.
+- *Confirmed-clean low-score content added as negatives -- couldn't that entrench the model's existing blind spot, teaching it those items are fine?* -> Only if your labels come from the model. They come from humans applying policy, so a genuinely-missed violation in the low-score region gets labeled as positive and corrects the model. The risk is real if you shortcut and use model-confident-clean as pseudo-negatives -- that's how blind spots calcify.
+
+**Trap:** relying on user reports to surface misclassifications. Content the model consistently misses is often content users don't report (they don't see it, or it targets people who can't report), so report-driven labeling has exactly the same blind spot as the model.
 **Q: An organized group discovers a watermark that evades your visual classifier — how do you respond?**
 A: Coordinated evasion leaves signals beyond the individual post: many accounts posting the same artifact in a short window (a CIB signal), and those accounts likely form a detectable network. Short-term, add the watermark as a rule-based signal (hours, no retraining). Medium-term, retrain with augmented data including it. Long-term, use adversarial training for robustness. Don't publish detection details — that just informs the next iteration.
 
-**Q: Policy changes to add a new hate-speech category — how do you update without inconsistency?**
+### Q: Policy changes to add a new hate-speech category -- how do you update without inconsistency? [Hard]
 A: Three problems at once: old labels reflect old policy, the deployed model reflects old policy, and previously-allowed content may now need action. Process: policy team defines an effective date and examples; relabel a sample under the new policy and measure kappa against old labels to size the change; retrain using only new-policy-labeled data (version-tagged); run the new model in shadow mode over recently-allowed content and queue newly-flagged items for review rather than auto-removing retroactively (trust risk); for previously removed content that's now allowed, sample-review rather than mass-reinstate. Never mix pre/post-policy labels in one training batch without explicit version conditioning.
 
+**Cross-questions to expect:**
+
+- *You retrain only on new-policy labels and throw away the old-labeled data. Isn't that a huge, expensive loss of training signal?* -> Most of the old labels are unaffected by the policy change -- only the boundary of the new category shifted. The right move is version-conditioning: keep old data, tag it with policy version, and either relabel only the affected slice or add a policy-version feature so the model can represent both regimes. Discarding everything is the safe-but-wasteful default; conditioning is better if you can size the affected slice reliably.
+- *You measure kappa between old and new labels to size the change. Kappa comes back high -- so is the change small?* -> Not necessarily. A high overall kappa can hide a large flip concentrated in one narrow, high-volume topic. Aggregate agreement is the same aggregation trap as aggregate AUROC -- slice the kappa by topic and language before concluding the change is minor.
+
+**Trap:** retroactively auto-removing previously-allowed content under the new policy. Users posted it in good faith under the old rules; mass retroactive removal is a trust catastrophe. Shadow-flag and review forward; don't rewrite history.
 ## Flashcards
 
 **Content types?** #flashcard

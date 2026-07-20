@@ -620,32 +620,56 @@ class TwoLevelBudgetGuard:
 
 ---
 
-## 11. Interview Q&A
+## 11. Interview Angles
 
-**Q1: Why is calibration more important than AUC for a bidding model?**
+### Q1: Why is calibration more important than AUC for a bidding model? [Medium]
 
 AUC measures ranking quality; it doesn't guarantee bid prices are correct in absolute terms. If pCTR is 3x overestimated, the DSP bids 3x too much and destroys ROI even though impressions are still ranked correctly. Since `bid = pCTR × pCVR × CPA_target`, both ranking and scale must be right. ECE < 0.005 is a production gate; a 0.73→0.75 AUC bump is secondary.
 
-**Q2: How do you handle the delayed feedback problem in pCVR training?**
+**Cross-questions to expect:**
+
+- *Your ECE is 0.004 and passes the gate, but ROI still dropped after launch. Where do you look?* -> Global ECE hides segment miscalibration. A model can be perfectly calibrated on average while overbidding on high-value inventory and underbidding on cheap inventory -- the errors cancel in the aggregate. Slice ECE by inventory tier, campaign, and pCTR decile; the money is made or lost in the tails, not the mean.
+- *If calibration is what matters, why not just fit an isotonic/Platt layer on top of any ranker and stop worrying about AUC?* -> A recalibration layer is monotonic -- it cannot fix ranking, only rescale it. If AUC is poor, two impressions with genuinely different value get mapped to the same probability, and no post-hoc calibration separates them. You need both: AUC for the ordering, calibration for the scale.
+
+**Trap:** treating ECE < 0.005 as a single deployable gate. It is necessary, not sufficient -- a globally-calibrated model can still be systematically wrong on the exact slices where bids are largest.
+### Q2: How do you handle the delayed feedback problem in pCVR training? [Hard]
 
 Conversion labels can arrive 7–30 days after a click. Training on the last 24 hours alone systematically undercounts recent positives. The Delayed Feedback Model (Chapelle 2014) applies importance weights inversely proportional to P(no conversion observed yet), estimated from the empirical delay distribution. Alternatively, model conversion timing with a survival model, separate from conversion probability, and combine at inference.
 
+**Cross-questions to expect:**
+
+- *The Delayed Feedback Model reweights by P(no conversion yet). What breaks if your delay distribution is itself non-stationary?* -> The importance weights are estimated from a historical delay distribution assumed fixed. A checkout-flow change, a holiday, or a new attribution window shifts that distribution, and the weights silently become wrong -- you over-correct for delays that no longer exist. The model looks fine offline because you validate against the same shifted labels. Re-estimate the delay distribution on a rolling window and monitor its drift.
+- *Why not just wait 30 days for labels to mature and train on clean data?* -> Then your model is always 30 days stale, which in RTB is fatal -- creative, competition, and inventory turn over weekly. The whole point of delayed-feedback correction is to trade a small bias for freshness.
+
+**Trap:** counting unconverted-but-recent clicks as hard negatives. They are censored, not negative -- labeling them 0 teaches the model that recent high-intent clicks don't convert, suppressing bidding on exactly the freshest traffic.
 **Q3: Explain bid shading and when it is/isn't necessary.**
 
 In second-price auctions, truthful bidding (bid = true value) is dominant — you only pay the second-highest bid, so shading just lowers win rate without improving profit. In first-price auctions you pay exactly your bid, so bidding true value gives zero surplus; optimal strategy shades toward the expected clearing price, estimated from historical win/loss data. Most exchanges moved to first-price after 2019.
 
-**Q4: How does the PID pacing controller handle sudden traffic drops (e.g. midnight)?**
+### Q4: How does the PID pacing controller handle sudden traffic drops (e.g. midnight)? [Medium]
 
 A naive PID sees spend rate drop near zero and opens the spend tap wide, then overbids when traffic resumes. Fixes: a traffic-aware target (`budget_remaining / expected_impressions_remaining` using a time-of-day forecast) instead of a flat schedule, a feedforward term for forecasted traffic change, and clamping lambda to a reasonable range.
 
+**Cross-questions to expect:**
+
+- *You added a feedforward term from a traffic forecast. The forecast is wrong on an anomalous day (a big news event). What now?* -> Feedforward trusts the forecast; on a black-swan day it feeds a confidently wrong signal and the controller amplifies the error instead of damping it. The forecast should gate the feedforward term by its own confidence, and the feedback (integral) term must remain able to override -- feedforward is a prior, not a command.
+- *Integral windup is the classic PID failure. Where does it bite here specifically?* -> When lambda is clamped at its ceiling during a traffic drought, the integral term keeps accumulating error it can't act on; when traffic returns, that accumulated integral dumps into an overbid spike before it unwinds. You need anti-windup -- freeze or leak the integral while the output is saturated.
+
+**Trap:** tuning the PID gains once on average traffic. The controller that is stable at midday oscillates at midnight, because loop gain scales with traffic volume -- the same gains are effectively far higher when impressions are sparse.
 **Q5: How would you design the system for a world without third-party cookies?**
 
 Three tracks: (1) contextual targeting — an NLP model over page content produces topic embeddings, achieving ~60–70% of the AUC of user-identified models; (2) first-party data activation via clean rooms and hashed email matching; (3) Privacy Sandbox — FLEDGE for retargeting, Topics API for prospecting, Private Aggregation API for measurement. Measurement shifts from user-level to aggregate/modeled attribution.
 
-**Q6: A campaign has a 5% win rate. Feature problem or budget problem?**
+### Q6: A campaign has a 5% win rate. Feature problem or budget problem? [Medium]
 
 Compare bid price to clearing price. If bids are well below clearing price, it's a bidding/CPA-target issue. If bids are competitive but win rate is still low, check targeting breadth, frequency caps, creative quality scores, and pacing throttle (lambda too high). Plotting empirical win rate vs. bid price shows whether raising bids is worth it — a steep curve means yes, a flat one means inventory is genuinely scarce.
 
+**Cross-questions to expect:**
+
+- *You plot win rate vs. bid price and the curve is steep -- raising bids clearly buys wins. Is raising bids the right call?* -> Not automatically. A steep win-rate curve near your operating point often means you're bidding just under the clearing price of a competitive segment; winning more there may mean winning exactly the impressions a savvier competitor declined to chase (the winner's curse). Check the *value* of the marginal impressions you'd win, not just their price.
+- *The 5% is an average. Why might that number be meaningless?* -> Win rate is bimodal in practice: near-100% on cheap inventory you always clear, near-0% on premium inventory you never reach. A 5% average can be a mix of those two with almost nothing in between, and the fix for each half is opposite. Diagnose per-segment before touching a global bid multiplier.
+
+**Trap:** reading low win rate as "bid higher." Low win rate is a symptom with at least four causes (bid level, targeting breadth, frequency caps, pacing throttle) -- three of which get worse if you respond by raising bids.
 **Q7: How would you prevent training-serving skew in this system?**
 
 RTB has severe skew: only ~5% of eligible requests reach the model after filtering, only won impressions produce labels, and offline feature computation can differ from real-time serving. Mitigations: log the exact feature vector used at bid time, train only on served (won) impressions, apply inverse propensity weighting (1/P(selected)) to correct exposure-selection bias, and replay logged features for training rather than recomputing them.

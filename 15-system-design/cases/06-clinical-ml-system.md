@@ -423,32 +423,56 @@ CDS Hooks fire (e.g., `patient-view`), the model service fetches FHIR resources 
 
 ---
 
-## 12. Interview Questions
+## 12. Interview Angles
 
-**Q1: Validation AUROC is 0.85 for a sepsis model. Is it ready for deployment?**
+### Q1: Validation AUROC is 0.85 for a sepsis model. Is it ready for deployment? [Medium]
 
 No. AUROC is threshold-agnostic and insensitive to calibration — a well-ranked but miscalibrated model isn't deployable. Validation must be temporal and external, since random splits on retrospectively-coded EHR data leak information. Subgroup performance must be checked — aggregate AUROC can hide large sensitivity gaps across demographics. And shadow-mode prospective validation is needed to measure real-world alert burden and acceptance. AUROC 0.85 is necessary, not sufficient.
 
-**Q2: How do you handle missing labs? Population mean imputation?**
+**Cross-questions to expect:**
+
+- *You add temporal + external validation and AUROC holds at 0.83. Now is it deployable?* -> Still not from AUROC alone. The binding constraint in clinical deployment is usually alert burden at the chosen threshold, not discrimination. At 0.1% sepsis prevalence, even a strong model can generate an untenable false-alert rate that causes alarm fatigue and clinicians ignoring it -- the model then fails in practice while looking fine on the ROC curve.
+- *Why can a higher-AUROC model be worse for patients than a lower one?* -> If the lower-AUROC model is better calibrated at the operating threshold, its alerts are more trustworthy and get acted on; a higher-AUROC but poorly-calibrated model floods the unit with alerts that get overridden. Adoption, not discrimination, determines outcomes.
+
+**Trap:** citing AUROC as the readiness metric. It is threshold-free and prevalence-free -- two properties that make it almost irrelevant to the actual deployment decision, which is entirely about a specific threshold at a specific prevalence.
+### Q2: How do you handle missing labs? Population mean imputation? [Hard]
 
 No — missingness is MNAR. A normal-looking WBC may be missing *because* the patient looked well; mean imputation biases scores toward "normal" for patients too sick to have labs drawn. Better: add missingness indicators and time-since-last-observation features; use attention masking for sequence models; let gradient boosting handle NaN natively; forward-fill only within a clinically meaningful window.
 
+**Cross-questions to expect:**
+
+- *You add missingness indicators so the model can use "not measured" as signal. What happens when you deploy to a hospital with a different ordering culture?* -> The informativeness of missingness is site-specific -- one hospital draws lactate routinely, another only when worried. A model that learned "lactate missing = patient looked well" inverts its meaning at a site where lactate is simply not on the standard panel. Missingness-as-signal is powerful and non-portable; it's a leading cause of models that validate externally but fail after deployment.
+- *If missingness encodes clinician suspicion, isn't the model just learning to predict what the clinician already suspected -- leaking the label?* -> Partly, yes. "Lab was ordered" is downstream of the clinician's concern, which is downstream of the outcome. The feature can shortcut real physiology and inflate retrospective AUROC while adding little at the moment you actually need an early warning -- before anyone was worried enough to order the test.
+
+**Trap:** mean imputation on MNAR clinical data. It pulls sick-but-untested patients toward "normal," which is the exact opposite of the safe failure direction for a triage model.
 **Q3: A hospital wants to A/B test the sepsis model — one ICU gets alerts, the other doesn't. How?**
 
 Needs IRB approval, since the control arm may get inferior care. The application must establish clinical equipoise, define a stopping rule, and justify a consent waiver. Expect 3–6 months for IRB. Faster alternatives: a pre/post study (confounded by temporal trends) or a cluster-randomized design by unit to reduce contamination.
 
-**Q4: Six months post-launch, the model "never alerts anymore." What happened?**
+### Q4: Six months post-launch, the model "never alerts anymore." What happened? [Hard]
 
 Likely a feedback loop or distribution shift. Check: whether the alert rate dropped sharply and score distribution shifted (PSI); whether an EHR upgrade or protocol change altered feature availability; whether clinicians overrode thresholds locally; whether the ETL pipeline is silently failing and zeroing out features. Re-run the model on historical patients with known outcomes to isolate model drift from delivery-pipeline bugs.
 
+**Cross-questions to expect:**
+
+- *Score distribution is unchanged but alert count collapsed. What does that rule in?* -> It rules out model/feature drift (scores would move) and points at the *delivery* layer: a threshold changed in the EHR config, alerts suppressed by an override rule, or a downstream notification service silently dropping them. Unchanged scores + fewer alerts is a plumbing bug, not a modeling bug -- and the two get diagnosed in completely different places.
+- *Could the model be a victim of its own success?* -> Yes -- if it worked, clinicians intervened earlier, fewer patients progressed to meeting the sepsis label, and any auto-retrain now sees fewer positives and raises its effective bar. The intervention erodes the very signal the model was trained on. This is the feedback-loop trap and it looks identical to drift until you inspect labels vs. scores.
+
+**Trap:** assuming "no alerts" means "no risk." Silence is the failure mode that gets no attention precisely because nothing fires -- a zeroed-out feature pipeline produces a confidently quiet model.
 **Q5: How do you validate radiology AI when the ask is "just compare to my reads"?**
 
 Necessary but not sufficient. Inter-reader variability for chest X-ray is real (κ≈0.6–0.7), so use a multi-reader adjudicated panel, not one radiologist. Use consecutive real-world cases, not a curated interesting-case set (spectrum bias). The real question isn't "as good as a radiologist" but "does it improve the workflow" — measure time-to-read, missed-finding rate. Also require temporal/site validation and subgroup analysis by imaging equipment.
 
-**Q6: How do you address the feedback loop where alerts change future training data?**
+### Q6: How do you address the feedback loop where alerts change future training data? [Hard]
 
 The intervention confounds its own label — early treatment prevents the outcome, so a genuinely high-risk case gets labeled negative. Mitigations: an IRB-approved randomized holdout that skips alerts for some patients; counterfactual/causal labeling; using process labels (antibiotics given) instead of outcome labels; upweighting untreated-but-positive cases during retraining. No perfect fix exists — ignoring it causes gradual degradation over 12–18 months.
 
+**Cross-questions to expect:**
+
+- *You propose a randomized holdout that withholds alerts for some patients to get clean labels. Ethics board's objection?* -> You are deliberately withholding a tool you believe helps, so the holdout must rest on genuine clinical equipoise -- you must be able to argue you do *not* yet know the model improves outcomes. Once you have strong evidence it helps, the clean-label holdout becomes hard to justify, which means your best window for unbiased evaluation is early, before you're confident.
+- *Process labels (antibiotics given) instead of outcome labels -- what do you lose?* -> You stop predicting sepsis and start predicting clinician behavior. If clinicians are systematically slow for a subgroup, the model learns that delay as correct and perpetuates it. Process labels dodge the confounding-by-treatment problem at the cost of inheriting every bias in current practice.
+
+**Trap:** ignoring the loop because the model still looks accurate. The degradation is slow (12-18 months) and self-masking -- the model's own interventions keep its apparent accuracy up while the underlying label distribution rots.
 **Q7: An advocacy group flags worse sensitivity for Black patients in your readmission model. What do you do?**
 
 First confirm the disparity is statistically real. Audit features for race/SES proxies (ZIP code, insurance, prior no-shows) and check training data representation. Convene a clinical/ethics review with patient advocates. Consider group-specific recalibration (equity gain, legal complexity) and whether the gap reflects a real biased-care pattern the model is faithfully learning rather than a modeling artifact. Report per FDA post-market surveillance requirements, and publish — suppressing known bias creates liability and continued harm.

@@ -380,20 +380,38 @@ class FraudRuleEngine:
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: How do you handle the 30–90 day label delay in fraud model training?**  
+### Q: How do you handle the 30–90 day label delay in fraud model training? [Hard]  
 A: Three approaches: (1) Tiered labels — use immediate signals (rule-based blocks, manual review) for frequent model updates, and delayed chargeback labels for periodic full retraining; (2) Censored label handling — transactions within 90 days without a chargeback are "censored" (potentially fraud not yet reported), treat them as unlabeled rather than negative; use survival analysis to estimate fraud probability; (3) Proxy labels — use dispute initiation (faster signal, ~7 days) as a leading indicator before chargeback confirmation. For drift detection without true labels: monitor prediction score distribution and feature PSI to catch new attack patterns before labels arrive.
 
-**Q: Your fraud model has 98% accuracy. Is that good?**  
+**Cross-questions to expect:**
+
+- *You treat un-charged-back transactions within 90 days as censored/unlabeled rather than negative. Doesn't that throw away 99.9% of your negatives?* -> No -- the vast majority of clean transactions are genuinely negative and you keep them. Censoring applies only to the recent window where a chargeback *could still arrive*. The subtlety is that fraud reporting delay is not uniform: disputes on large amounts surface faster, so the censoring window should be conditioned on amount and merchant type, not a flat 90 days.
+- *Your fast 7-day dispute-based labels and your 90-day chargeback labels disagree on which transactions are fraud. Which do you trust for retraining?* -> They measure different things -- disputes include non-fraud (item-not-received, buyer's remorse) and chargebacks are the confirmed ground truth. Training the fast model on dispute labels means it learns to predict *disputes*, not *fraud*. Keep them as separate targets; don't let the noisy fast label contaminate the confirmed-label retrain.
+
+**Trap:** using calendar-recent data as if labels were complete. The most recent weeks look like they have almost no fraud simply because the chargebacks haven't arrived yet -- train on that naively and the model learns fraud is disappearing.
+### Q: Your fraud model has 98% accuracy. Is that good? [Easy]  
 A: No — with 0.1% fraud rate, a model that always predicts "not fraud" gets 99.9% accuracy while catching zero fraud. Accuracy is useless for imbalanced fraud detection. The right metrics: PR-AUC (measures precision-recall trade-off), recall at fixed FPR (e.g., recall at 0.1% FPR), and dollar-weighted metrics (how much fraud value was prevented vs how many good customers were declined). The operational question is: at our target false positive rate, what fraction of fraud do we catch?
 
+**Cross-questions to expect:**
+
+- *You switch to PR-AUC. Two models have identical PR-AUC but very different business value. How?* -> PR-AUC integrates over all thresholds, but you operate at exactly one. Two curves can cross: one dominates at low-recall/high-precision (good for auto-decline), the other at high-recall (good for review queues). The right metric is recall at your *actual* operating FPR, weighted by dollar value -- a model that catches slightly less fraud by count but concentrates on high-value fraud can be worth more.
+- *Why is a dollar-weighted metric still not the whole story?* -> It ignores the asymmetric cost of a false positive: declining a good customer's legitimate purchase can cost future lifetime value far beyond the transaction amount, and that cost isn't in the transaction ledger. The objective is a cost matrix, and two of its four cells aren't directly observable.
+
+**Trap:** reaching for F1 as the "imbalanced" fix. F1 weights precision and recall equally, which almost never matches the real fraud cost ratio -- it just replaces one arbitrary metric with another.
 **Q: How would you design the feedback loop for a real-time fraud model?**  
 A: (1) Log every decision with features at decision time; (2) Join chargeback and dispute labels back to original transaction records using transaction_id; (3) Build training dataset with point-in-time correct features (use feature values at decision time, not current values); (4) Daily model refresh using ~7-day labeled data (fast cycle, handles emerging patterns); (5) Monthly full retrain with 90-day confirmed labels (higher quality); (6) Shadow new model against production before cutover — compare fraud rate, FPR, score distribution; (7) Monitor for training-serving skew by comparing feature distributions at training time vs live traffic.
 
-**Q: A fraudster is testing stolen cards with small $1 transactions before a large purchase. How do you detect this?**  
+### Q: A fraudster is testing stolen cards with small $1 transactions before a large purchase. How do you detect this? [Medium]  
 A: Card testing leaves velocity signatures: rapid succession of small transactions followed by a larger one. Features: txn_count_1h (spike of 10+ small transactions), amount_variance_1h (low then high), time_between_txns (very fast — bot-like). Sequence model captures this temporal pattern better than tabular GBM. Additionally: merchant category diversity in 1h (card testers try different merchants), micro-transaction flag (amount < $2 on a card that usually spends >$50). Rule: if txn_count_1h > 5 AND any_amount_under_$2 in last hour AND current_amount > $200 → escalate to manual review.
 
+**Cross-questions to expect:**
+
+- *Your velocity rule (`txn_count_1h > 5 AND amount < $2 AND current > $200`) works. What legitimate user does it also flag?* -> A parent topping up multiple kids' small in-app purchases then buying a console; a business card running several small vendor authorizations before a bulk order. Hard velocity rules have a real false-positive population, and card-testing patterns evolve to stay just under whatever threshold you publish through your decline behavior.
+- *The fraudster spreads the $1 tests across many cards, one test each, instead of many tests on one card. Your per-card velocity features go blind. Now what?* -> Per-card aggregation misses it entirely; you need entity resolution above the card -- device fingerprint, IP, merchant, BIN range. Card testing is often a graph phenomenon (one actor, many cards), so the signal lives in shared-entity velocity, not per-card velocity.
+
+**Trap:** encoding the attack as a fixed rule. Rules are trivially probed -- the fraudster learns your exact thresholds from your decline responses and steps under them. Rules buy time; the model and graph features are what generalize.
 ## Flashcards
 
 **Why is accuracy a useless metric for fraud detection, even at 98%?** #flashcard
