@@ -126,6 +126,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Bandits and the Exploration–Exploitation Trade-off](09-reinforcement-learning/02-bandits-and-exploration.md)
 * [Value-Based Methods — TD Learning, Q-Learning, and DQN](09-reinforcement-learning/03-value-based-methods.md)
 * [Policy Gradient Methods — REINFORCE, Actor-Critic, and PPO](09-reinforcement-learning/04-policy-gradient-methods.md)
+* [Advanced and Deep RL — Offline, Model-Based, Planning, and Imitation](09-reinforcement-learning/05-advanced-and-deep-rl.md)
 
 ## 10 — LLMs
 
