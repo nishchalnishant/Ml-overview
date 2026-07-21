@@ -45,6 +45,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Data Preprocessing and Feature Engineering](02-data/04-feature-engineering.md)
 * [Feature Selection](02-data/05-feature-selection.md)
 * [Imbalanced Data](02-data/06-imbalanced-data.md)
+* [Data Engineering for ML](02-data/07-data-engineering.md)
 
 ## 03 — Classical ML
 
