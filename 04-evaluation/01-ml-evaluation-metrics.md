@@ -413,7 +413,7 @@ A guardrail metric violation stops the experiment even if the north star improve
 
 ---
 
-## 11. Interview Questions
+## 11. Interview Angles
 
 **Q1: You have a highly imbalanced binary classification problem (1% positives). Your colleague says the model has 99% accuracy. What's your response?**
 
@@ -433,24 +433,36 @@ NDCG handles graded relevance (0/1/2/3) and applies a logarithmic position disco
 
 ---
 
-**Q4: Your model's PR-AUC improved by 2% in offline evaluation but the A/B test showed no lift. Why?**
+### Q4: Your model's PR-AUC improved by 2% in offline evaluation but the A/B test showed no lift. Why? [Hard]
 
 Several possible causes: (a) the offline evaluation was on a different distribution than production (covariate shift), (b) the held-out set had label noise or selection bias, (c) the metric doesn't correlate with the business outcome — PR-AUC measures ranking quality but users might not respond to the margin of improvement at the operating threshold, (d) the experiment was underpowered (insufficient sample or duration), (e) novelty effects masked or amplified the signal.
 
 ---
 
+**Cross-questions to expect:**
+
+- *You list five causes. Rank them: which one do you actually check first, and why not "underpowered experiment"?* -> Check operating-point alignment first, because it's the cheapest to rule out and the most common silent killer: PR-AUC integrates over all thresholds, but production runs at ONE threshold, and a 2% area gain can live entirely in a recall region you never operate in. If the improvement is all below your serving threshold, the offline win is real and irrelevant. Underpowered-experiment is checked before you even trust "no lift" -- but it explains a null result, not a genuine offline/online gap.
+- *Suppose the offline gain IS at your operating threshold and the experiment is powered. What structural reason could still kill the lift?* -> The metric measures ranking of items the user was going to be shown anyway, but the business outcome depends on a downstream stage (a UI slot, a dedup, a diversity re-rank) that clips the ranking difference. Your +2% reshuffles positions 8-15; the surface only shows 5. Offline metrics score the model's output; the user experiences the output of the whole pipeline after the model.
+
+**Trap:** assuming offline and online measure the same thing at different fidelity. They measure different objects -- PR-AUC scores a ranking; the A/B scores a behavior change mediated by the entire serving stack and user psychology. A perfect offline metric can be genuinely disconnected from the online one, and "improve the offline metric harder" won't fix it.
 **Q5: How would you compare two models statistically when you only have a single hold-out set?**
 
 Use McNemar's test for classifiers — it tests whether the two models make systematically different errors on the same examples. Build the $2\times2$ disagreement matrix (both correct, A correct/B wrong, A wrong/B correct, both wrong), compute $\chi^2 = (b-c)^2/(b+c)$. For regression models, use a paired t-test (or Wilcoxon if normality is questionable) on per-example losses. Never just compare point estimates — a 0.3% lift that isn't statistically significant could easily be noise.
 
 ---
 
-**Q6: A recommendation system has very high NDCG but users are churning. What metrics might explain this?**
+### Q6: A recommendation system has very high NDCG but users are churning. What metrics might explain this? [Hard]
 
 NDCG measures relevance but not diversity, novelty, or coverage. Possible causes: (a) the system recommends the same popular items repeatedly — measure intra-list diversity and coverage, (b) the system over-exploits user history with no serendipity — users feel stuck in a filter bubble, (c) the relevance labels used to train/evaluate are stale and don't reflect current user intent, (d) the system optimizes for clicks but not for session satisfaction or task completion. The gap between offline NDCG and online engagement is the fundamental problem.
 
 ---
 
+**Cross-questions to expect:**
+
+- *You say "measure diversity and coverage." A PM asks: if we add a diversity term and NDCG drops, how do you know you didn't just make the product worse?* -> You can't settle it offline -- NDCG and diversity trade off, and both are proxies. The honest answer is that the arbiter is a long-horizon online metric (retention, session depth over weeks), not either offline number. Adding diversity is a hypothesis that short-term relevance is over-fit to immediate clicks at the expense of long-term satisfaction; you validate it with a holdout measured on churn, not by picking a better offline score.
+- *NDCG is computed against relevance labels. If users are churning, what does that imply about the labels themselves?* -> The labels are probably self-fulfilling: they're derived from what this system already showed and got engagement on, so high NDCG means "the model predicts its own past behavior well," not "users are satisfied." The churn is evidence the label-generating policy is the thing that's wrong -- you're optimizing fidelity to a feedback loop. No amount of NDCG improvement escapes a biased label source.
+
+**Trap:** treating the offline/online gap as a modeling failure to be closed. The gap is often the signal: NDCG measures relevance-as-labeled, churn measures value-as-experienced, and their divergence tells you the label definition (immediate engagement) is not the objective (retained users). The fix is redefining the target, not a better ranker for the old one.
 **Q7: What is a proper scoring rule and why does it matter for model training?**
 
 A proper scoring rule is one whose expected value is minimized (or maximized) when the model outputs the true probability. Log loss and Brier score are both strictly proper — any deviation from the true probability increases expected loss. This matters because: (a) optimizing a proper scoring rule incentivizes the model to output calibrated probabilities, not just correct hard decisions; (b) improper scoring rules (e.g., accuracy, hinge loss) can be minimized by confidently wrong models; (c) log loss = cross-entropy is the standard choice for neural networks because it has good gradients and is strictly proper.
