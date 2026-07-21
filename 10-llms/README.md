@@ -47,6 +47,8 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 
 > This is a small, first-principles-reasoning-focused set (why the trap exists, how to reason to the answer) — for a much larger topic-by-topic Q&A bank (deep + snappy versions, RAG/agents/fine-tuning/evals/system design), see [interview-notes/README.md](interview-notes/README.md).
 
+**Applied companion:** [_interview-questions-applied.md](_interview-questions-applied.md) — a 37-question bank concentrated on RAG pipelines, agent patterns (ReAct, MCP, prompt injection), serving optimizations (PagedAttention, continuous batching, prefix caching), quantization, and LLMOps/eval design.
+
 There is also [interviewquestions.md](../16-interview-prep/study-plans/interviewquestions.md) — a rapid-fire Easy/Medium/Hard tiered Q&A bank spanning the whole folder (tokenization through RLHF math), calibrated to interview round depth rather than organized by topic.
 
 ---

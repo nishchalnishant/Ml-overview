@@ -1,14 +1,14 @@
 ---
 module: LLMs
 topic: Interview Questions
-subtopic: ""
+subtopic: Applied — RAG, Agents, Serving, Ops
 status: unread
-tags: [llms, interview-questions, revision]
+tags: [llms, interview-questions, revision, rag, agents, serving]
 ---
 
-# LLM — Interview Questions
+# LLM — Applied Interview Questions (RAG · Agents · Serving · Ops)
 
-**For:** SDE-2 / AI Engineer interviews — calibrated to what's actually asked Round 1 and beyond.
+**For:** SDE-2 / AI Engineer interviews — calibrated to what's actually asked Round 1 and beyond. This is the *applied* companion to [_interview-questions.md](_interview-questions.md) (first-principles theory): it concentrates on RAG pipelines, agent patterns (ReAct, MCP, prompt injection), serving optimizations (PagedAttention, continuous batching, prefix caching), quantization choices, and LLMOps/eval design.
 **Difficulty guide:**
 - **Easy** → Round 1 basics: definitions, intuition, tokenization basics, RAG pipeline, prompting techniques. Know these cold.
 - **Medium** → Round 2 depth: applied debugging, serving optimizations (PagedAttention, continuous batching), RAG evaluation, RLHF/SFT trade-offs, agent architectures.
