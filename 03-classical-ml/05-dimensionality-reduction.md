@@ -449,7 +449,7 @@ Has labels?
 
 ---
 
-## Interview Questions
+## Interview Angles
 
 **Q1: Why does PCA fail on non-linear manifolds, and how would you detect this?**
 
@@ -479,20 +479,33 @@ In high dimensions, a volume element at distance $r$ scales as $r^{d-1}$. In 2D,
 
 ---
 
-**Q5: Why can't you use t-SNE embeddings as features for a downstream classifier?**
+### Q5: Why can't you use t-SNE embeddings as features for a downstream classifier? [Hard]
 
 Three reasons: (1) No out-of-sample transform — you cannot embed test points the same way without rerunning the entire algorithm on the combined dataset. Rerunning changes the embeddings of training points. (2) Distance is not preserved — two points that are far apart in t-SNE may be close in the original space, so the classifier would learn spurious distance-based features. (3) Stochasticity — t-SNE embeddings vary across runs; features are not reproducible. Use PCA, UMAP (which has a `transform()` method), or autoencoders for DR as a preprocessing step before classification.
 
 ---
 
+**Cross-questions to expect:**
+
+- *You say "use UMAP instead, it has a transform() method." Does UMAP's out-of-sample transform actually make its embeddings safe as classifier features?* -> Only partly. UMAP fixes reproducibility and out-of-sample embedding, but it still optimizes a local-structure objective and warps global distances -- inter-cluster gaps and densities are not faithful, so a downstream model still learns partly-spurious geometry. UMAP is *usable* as a feature step where t-SNE isn't, but "has transform()" solves the leakage problem, not the distance-distortion problem. Treat UMAP features as a compressed view, not a metric-preserving one.
+- *If the whole point is dimensionality reduction before a classifier, why is PCA the safer default here despite being "just linear"?* -> Because PCA is a fixed linear projection: it has an exact out-of-sample transform, preserves global variance directions, is deterministic, and its axes mean something stable across train and test. The classifier sees a consistent, distance-respecting subspace. t-SNE/UMAP optimize *visualization* objectives that deliberately distort distances; PCA optimizes reconstruction, which is what a downstream metric-sensitive model actually wants. "Just linear" is a feature, not a bug, when you need consistency.
+
+**Trap:** thinking the problem is only reproducibility. Even a perfectly deterministic t-SNE would be wrong as features, because its objective *intentionally* breaks the distance relationships a classifier relies on -- moderate-distance pairs are pushed apart to make clusters visible. The distortion is the design goal of the method, not a fixable side effect.
 **Q6: When would you prefer NMF over PCA, and what is the main algorithmic challenge?**
 
 Prefer NMF when: (1) data is non-negative by construction (pixel intensities, word counts, gene expression, audio spectra) and you need the decomposition to be physically interpretable — PCA components can have negative values that cancel each other out, making them hard to interpret; (2) you want a parts-based representation where each feature is a non-negative mixture of basis parts. The algorithmic challenge is non-convexity: the objective $\|X - WH\|_F^2$ is convex in $W$ alone or $H$ alone, but not jointly. Multiplicative updates converge to a local minimum; result depends on initialization. `nndsvda` initialization (SVD-based, non-negative double SVD) substantially improves results over random initialization.
 
 ---
 
-**Q7: A t-SNE plot shows three clearly separated clusters. A colleague concludes the three groups are well-separated in the original space. What do you say?**
+### Q7: A t-SNE plot shows three clearly separated clusters. A colleague concludes the three groups are well-separated in the original space. What do you say? [Hard]
 
 Cluster separation in t-SNE is not a reliable indicator of separation in the original space. The KL divergence objective heavily penalizes placing nearby high-dimensional points far apart in 2D (attractive forces dominate for close pairs). Repulsive forces push unrelated clusters apart regardless of their original distance. This means: (1) distinct clusters in t-SNE almost certainly correspond to distinct groups, but their inter-cluster distances are meaningless; (2) a single blob in t-SNE does not mean the data is unimodal — it may mean all structure is at a scale smaller than the perplexity. To assess actual separation, compute class-conditional distributions, run a classifier, or compute Mahalanobis distances in the original space.
 
 For active-recall drilling on these terms, see [classical-ml-flashcards.md](_flashcards.md).
+
+**Cross-questions to expect:**
+
+- *Your colleague re-runs t-SNE at a different perplexity and now sees five clusters. Which plot is "right," and what does the disagreement tell you?* -> Neither is ground truth -- perplexity sets the scale of "neighborhood," so it's choosing how much local vs global structure to render, and cluster count is partly an artifact of that choice. Disagreement across perplexities tells you the apparent cluster count is not robust and must not be reported as a finding. The correct response is to stop reading structure off any single t-SNE and validate in the original space (classifier, class-conditional stats), which is scale-explicit.
+- *The colleague says "fine, but at least the gaps prove the three groups don't overlap." Why is even that weaker claim unsafe?* -> Because t-SNE's repulsive forces manufacture gaps between components regardless of their true separation -- empty space in the plot is an optimization outcome, not a measured margin. Two groups that overlap substantially in the original space can still be pushed into visually distinct blobs. The gap encodes "the algorithm separated them on screen," which is nearly tautological, not "they are separable in the data."
+
+**Trap:** reading inter-cluster *distance* off a t-SNE at all. The method preserves local neighbor relations and explicitly does not preserve global distances, so how far apart two blobs sit -- and how big each blob is -- carries essentially no information about the original geometry. Cluster *membership* may be meaningful; cluster *spacing and size* are not.

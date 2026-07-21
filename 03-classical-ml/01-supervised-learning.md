@@ -475,7 +475,7 @@ print("ROC-AUC:", roc_auc_score(y_test, y_prob))
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
 **Q: Derive the logistic regression gradient update and explain the connection to cross-entropy loss.**  
 A: Logistic regression models p(y=1|x) = σ(wᵀx) = 1/(1 + e^{-wᵀx}). The negative log-likelihood (cross-entropy loss) for n samples is L(w) = -Σ[y_i·log(σ(wᵀx_i)) + (1-y_i)·log(1-σ(wᵀx_i))]. Taking the gradient: ∂L/∂w = Σ(σ(wᵀx_i) - y_i)·x_i. This has a beautiful form: the gradient is simply the sum of (prediction - label) weighted by the input features. The prediction error directly tells you how to update each weight. Connection to cross-entropy: the log-likelihood of a Bernoulli distribution is exactly cross-entropy. So logistic regression is MLE under a Bernoulli likelihood assumption. The sigmoid function arises naturally from assuming log-odds are linear: log(p/(1-p)) = wᵀx → p = σ(wᵀx). When output is multi-class, generalize to softmax + categorical cross-entropy — same structure, multinomial MLE.
@@ -483,7 +483,14 @@ A: Logistic regression models p(y=1|x) = σ(wᵀx) = 1/(1 + e^{-wᵀx}). The neg
 **Q: How do you handle class imbalance at the algorithm level vs the data level?**  
 A: See [11-imbalanced-data.md](../02-data/06-imbalanced-data.md) for the full algorithm-level (class weights, threshold tuning, focal loss), data-level (SMOTE, undersampling), and metric-level (PR-AUC over ROC-AUC) breakdown, plus imbalance-ratio rules of thumb.
 
-**Q: A classification model has 95% accuracy but the product team says it's useless. Why might this be, and how do you debug it?**  
+### Q: A classification model has 95% accuracy but the product team says it's useless. Why might this be, and how do you debug it? [Hard]  
 A: Classic class imbalance trap. If 95% of examples are negative class, a model that always predicts negative achieves 95% accuracy without learning anything. Debug steps: (1) check class distribution — if majority class > 90%, accuracy is misleading; (2) compute confusion matrix — if precision or recall on the minority class is near zero, the model is failing on the important cases; (3) switch to appropriate metric: F1-score for balanced precision/recall, PR-AUC for overall performance across thresholds, or a business metric (e.g., revenue recovered for fraud detection); (4) check if the model learned a trivial solution — inspect prediction distribution: if all predictions are >0.9 or <0.1, the model isn't discriminating; (5) inspect feature importances — if the top feature is a proxy for the label or a data leakage feature, the accuracy is inflated. Fix: use class_weight='balanced', tune classification threshold to maximize the business metric, retrain with proper evaluation on held-out stratified splits.
 
 
+
+**Cross-questions to expect:**
+
+- *You jump to "class imbalance." Name a case where the model is at 95% accuracy, the classes are balanced 50/50, and it's still useless.* -> The model can be right on the easy 95% and wrong on exactly the 5% the product exists to catch. A fraud or churn model that nails obvious cases but misses the novel, high-value ones is useless despite balanced accuracy -- the errors are concentrated in the costly region. Aggregate accuracy is blind to *which* cases you miss; a balanced dataset doesn't save you if the value is unevenly distributed across cases.
+- *You switch to F1 to "fix" the metric. Why might F1 also mislead the product team here?* -> F1 weights precision and recall equally, but the product almost never values them equally -- a fraud team may accept 10 false alarms to catch one real fraud, or the opposite for a user-facing block. F1's implicit 1:1 cost is just as arbitrary as accuracy's. The right object is the cost-weighted decision at the *operating threshold* the product actually uses, not any threshold-free or equal-weight summary.
+
+**Trap:** treating this as a metric-selection problem. The metric is a symptom; the real question is what decision the model drives and what each error costs. "Useless" is a statement about the deployed decision, and no offline metric substitutes for eliciting the cost structure and evaluating at the threshold the product runs.

@@ -347,14 +347,26 @@ for value in stream:
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Your time series model performs well on the test set but poorly in production. What are the likely causes?**  
+### Q: Your time series model performs well on the test set but poorly in production. What are the likely causes? [Hard]  
 A: (1) Data leakage: used random split instead of temporal split — test set contains future information; (2) training-serving skew: features computed differently at training vs serving time; (3) concept drift: the underlying pattern changed (e.g., COVID effect on demand forecasting); (4) evaluation metric mismatch: offline MAPE looks good but you're measuring on high-volume periods while serving includes quiet periods; (5) missing exogenous variables: production needs real-time signals (weather, promotions) that weren't in training. Fix: temporal cross-validation, shadow serve before cutover, monitor PSI on model features.
 
-**Q: When would you use ARIMA vs Prophet vs XGBoost for time series forecasting?**  
+**Cross-questions to expect:**
+
+- *You used a temporal split, so "no leakage." How does leakage still sneak in through feature engineering even with a correct time split?* -> Through features computed with global statistics -- a target-encoded category, a normalization, or an imputation fitted on the *whole* series leaks future information into past rows even though the rows themselves are ordered correctly. A rolling window that accidentally includes the current step, or a label-derived feature (e.g., "days since last event" where the event is the target), leaks too. The split protects row order; it does not protect against features that were built using data from the future relative to each row's timestamp.
+- *You say "monitor PSI on features to catch drift." Why can PSI be flat while the model still degrades badly?* -> Because PSI watches *marginal* input distributions, but forecasting failure is usually a change in the *relationship* between inputs and target (concept drift) -- the features can look statistically identical while their mapping to the outcome has shifted (a COVID-style regime change, a promotion mechanic change). PSI is also blind to a new exogenous driver that was never a feature. Stable inputs with a moved target relationship is exactly the case monitoring input drift misses.
+
+**Trap:** treating good test-set error as evidence the model generalizes. A single held-out tail is one draw from one regime; time series live through regime changes, so test performance certifies the past, not the future. Walk-forward evaluation across multiple windows -- and a shadow-serve period before cutover -- is what actually estimates production behavior.
+### Q: When would you use ARIMA vs Prophet vs XGBoost for time series forecasting? [Medium]  
 A: ARIMA: stationary series, univariate, short horizon (days/weeks), need interpretable coefficients, limited data. Prophet: strong seasonality (holidays, weekly/annual patterns), irregular frequency, non-expert users who need tunable components, robust to missing data. XGBoost with lag features: many simultaneous series (e.g., sales forecast for 10K SKUs), external regressors dominate (price, promotions), complex non-linear patterns, sufficient history. Deep learning (TCN/Transformer): very long horizon, multivariate with complex cross-series dependencies, when data volume justifies training cost.
 
+**Cross-questions to expect:**
+
+- *You'd pick XGBoost-with-lags for 10K SKUs and complex patterns. What's the failure mode of tree models on time series that ARIMA doesn't have?* -> Trees cannot extrapolate -- they predict within the range of values seen in training, so a series with a genuine upward trend gets forecast flat once it exits the training range, because no split can output a value it never saw. ARIMA's differencing models the trend explicitly and projects it forward. For trending series you must detrend/difference before feeding a tree, or add explicit trend features; hand XGBoost raw levels on a growing series and it silently caps the forecast.
+- *You say Prophet is good for "strong seasonality and non-expert users." When does that convenience become a liability in production?* -> Prophet's curve-fitting decomposition is robust and easy but it's not a generative model of the dynamics -- it can produce confident, smooth forecasts that miss autocorrelated shocks, and its uncertainty intervals are often miscalibrated (too narrow, and not respecting that shocks persist). The "non-expert friendly" framing invites teams to ship it without checking residual autocorrelation or interval coverage, so it fails quietly on series where recent errors carry information Prophet ignores.
+
+**Trap:** treating this as a fixed decision tree of "which model for which data." The real answer is workload-dependent -- horizon, number of series, extrapolation needs, and who maintains it all move the choice -- and the honest interview answer names the *deciding axis* for the specific case rather than reciting the menu.
 **Q: How do you choose the order (p, d, q) for ARIMA?**  
 A: (1) Test stationarity with ADF — if p-value > 0.05, difference (d++); (2) plot ACF: if it cuts off at lag q, MA(q) component; (3) plot PACF: if it cuts off at lag p, AR(p) component; (4) if both tail off, need ARMA. Use auto_arima (pmdarima) for automated search via AIC/BIC optimization. Validate with walk-forward cross-validation, not just in-sample AIC. Common mistake: over-differencing (d=2 when d=1 suffices) or selecting p too large, leading to overfitting.
 
