@@ -7,6 +7,8 @@ tags: [llms, ml, applications-inference-optimiz]
 ---
 # Inference Optimization
 
+> **Related:** application-level techniques here (batching, caching, decoding). For the systems layer see [12-systems-and-scale/03-llm-serving.md](../12-systems-and-scale/03-llm-serving.md) and [04-llm-inference-ops.md](../12-systems-and-scale/04-llm-inference-ops.md); for the attention/KV-cache mechanism see [10-llms/08-kv-cache-and-mqa-gqa.md](../10-llms/08-kv-cache-and-mqa-gqa.md); speculative decoding gets its own file at [07-speculative-decoding.md](07-speculative-decoding.md).
+
 ---
 
 ## The Asymmetry Between Training and Inference

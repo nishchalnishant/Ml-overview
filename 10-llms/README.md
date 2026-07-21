@@ -39,6 +39,15 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 
 ---
 
+## Related Directories
+
+This folder is the *theory/training* layer. Applied and systems treatments of the same topics live next door:
+- **[11-llm-applications/](../11-llm-applications/)** — building with LLMs: RAG, agentic workflows, prompt optimization, multimodal, inference optimization, MCP.
+- **[12-systems-and-scale/](../12-systems-and-scale/)** — the serving/systems layer: model compression, LLM serving, inference ops.
+- **[interview-notes/](interview-notes/)** — topic-by-topic interview Q&A in deep + snappy modalities.
+
+---
+
 ## [Interview Question Bank](_interview-questions.md)
 *Direct answers to high-signal LLM interview questions.*
 - Architecture deep-dives.

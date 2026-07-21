@@ -7,6 +7,8 @@ tags: [llms, ml, applications-rag]
 ---
 # Retrieval-Augmented Generation (RAG)
 
+> **Related:** this is the *production/engineering* treatment (ingestion, ANN, context assembly). For the interview-lens deep-dive (RAGAS, Self-RAG, GraphRAG, multi-hop) see [10-llms/interview-notes/03-retrieval-augmented-generation-rag.md](../10-llms/interview-notes/03-retrieval-augmented-generation-rag.md) (and its [snappy version](../10-llms/interview-notes/retrieval-augmented-generation-rag-snappy.md)).
+
 ---
 
 ## The Core Problem

@@ -12,6 +12,8 @@ See also: [RAG deep dive](../../11-llm-applications/02-rag.md)
 
 # Retrieval-Augmented Generation (RAG) — Interview Notes
 
+> **Related:** this is the *interview-lens* treatment. For the production/engineering deep-dive (document ingestion, ANN indexes, vector DBs, context assembly) see [11-llm-applications/02-rag.md](../../11-llm-applications/02-rag.md).
+
 ---
 
 ## Why RAG Exists
