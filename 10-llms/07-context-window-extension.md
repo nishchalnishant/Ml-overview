@@ -331,7 +331,7 @@ Mamba is a selective state-space model offering O(n) training and O(1)-memory in
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
 **Q: Why does naive RoPE fail beyond the training context length?**  
 A: RoPE encodes position m via rotation matrix with frequencies θᵢ = base^(-2i/d). At m > L_train, the rotation angles are out-of-distribution — the model has never seen these values during training. The query-key dot products produce attention patterns that don't correspond to any learned position relationship. Empirically, perplexity spikes sharply at the training length boundary. The fix is to rescale positions or adjust base frequencies so in-distribution rotations cover the desired context length.
@@ -339,12 +339,24 @@ A: RoPE encodes position m via rotation matrix with frequencies θᵢ = base^(-2
 **Q: What's the difference between NTK-aware scaling and YaRN?**  
 A: NTK-aware globally increases the RoPE base to extend the period of all frequency components proportionally. YaRN is more nuanced: it applies different scaling to different frequency dimensions — high frequencies (short-range dependencies) are left largely unchanged, while low frequencies (long-range) are interpolated. YaRN also corrects attention entropy (attention becomes too uniform at long contexts) via a learned temperature factor. YaRN generally outperforms NTK at the same context extension factor but requires ~400 fine-tuning steps.
 
-**Q: You're building an LLM application that needs 500K context. What architecture and deployment choices do you make?**  
+### Q: You're building an LLM application that needs 500K context. What architecture and deployment choices do you make? [Hard]  
 A: (1) Model choice: Qwen3 (10M context) or Gemini 1.5 Pro (1M) — both use techniques specifically designed for extreme context; (2) serving: need chunked prefill to avoid OOM on long prompts, PagedAttention for KV cache management, multi-GPU with tensor parallelism; (3) KV cache: at 500K context, 7B fp16 model needs ~265GB KV cache — must use quantized KV (int8 saves 2×), or use MLA (DeepSeek-style) which compresses KV to low-rank representation; (4) architecture decision: consider whether all 500K tokens actually need attention to each other, or if a sliding window + retrieved context pattern suffices.
 
-**Q: What is the "lost in the middle" problem and how do you mitigate it?**  
+**Cross-questions to expect:**
+
+- *You reach for a 500K-context model. Before touching serving, why should you challenge the 500K requirement itself?* -> Because attention cost and KV memory scale with context, and models degrade in the middle of long contexts ("lost in the middle") -- so stuffing 500K tokens often buys worse recall at higher cost than retrieving the right 8K. The right first question is whether the task needs *global* attention over 500K tokens or whether RAG + a modest window gives better accuracy per dollar. Many "we need 500K" requirements are really "we need to search a large corpus," which is a retrieval problem, not a context problem.
+- *You'd quantize the KV cache to int8 to fit 500K tokens. Why is long context exactly where KV quantization hurts most?* -> Because quantization error is per-token and attention *aggregates* over all cached tokens, so the noise accumulates precisely as context grows -- the regime where you needed the memory savings is the regime where the accuracy cost is largest. You've coupled the fix to the failure: the longer the context, the more int8 KV degrades the very long-range recall the long context was for. MLA-style low-rank compression is often a better trade because it compresses structurally rather than adding per-token noise.
+
+**Trap:** treating 500K context as purely a memory-engineering problem (PagedAttention, TP, quantized KV). The harder problem is quality: extended-context models lose mid-context recall and their effective attention is far shorter than their nominal window, so a system that *fits* 500K tokens can still *use* them poorly. Fitting the cache and using the context well are different problems.
+### Q: What is the "lost in the middle" problem and how do you mitigate it? [Medium]  
 A: LLMs recall information at the beginning and end of context much better than the middle — U-shaped recall curve (Liu et al. 2023). Caused by attention primacy (early tokens are attention sinks) and recency bias. For RAG: place most relevant retrieved chunks at the start of context, not the middle. For long-document summarization: use recursive summarization (chunk → summarize → summarize summaries). For retrieval: use a reranker to ensure the top-1 result is placed first. Some research uses position-aware loss during fine-tuning to reduce this bias.
 
+**Cross-questions to expect:**
+
+- *Your fix is "put the most relevant chunk first." How does that interact badly with prefix caching and with multi-document reasoning?* -> Two ways. First, if you reorder retrieved chunks per query to front-load relevance, you change the prompt prefix every time and destroy prefix-cache hits on the shared context -- a latency cost you may not have priced in. Second, front-loading assumes a single most-relevant chunk; for multi-hop questions the answer needs several chunks *jointly*, and whichever you demote to the middle gets under-attended, so you can't position your way out of a genuinely distributed answer.
+- *You'd "use a reranker to put top-1 first." Why can a better reranker make lost-in-the-middle worse in aggregate?* -> Because a sharper reranker concentrates confidence on rank-1 and pushes the rest into the low-recall middle -- if rank-1 is wrong (rerankers are not perfect), the actually-correct chunk is now buried in the worst position. A flatter ordering spreads risk; an aggressive reranker bets everything on its top pick landing in the one position the model reads well. The reranker quality and the positional bias interact, and optimizing recall@k alone ignores it.
+
+**Trap:** treating lost-in-the-middle as a fixed model property you route around with ordering. It's a symptom of attention primacy/recency, and every mitigation (reordering, recursive summarization) trades something else -- cache hits, multi-hop coverage, or added summarization error. There's no free repositioning; you're moving the failure, not removing it.
 **Q: ALiBi vs RoPE — when would you choose ALiBi for a new model?**  
 A: ALiBi natively extrapolates to longer sequences without any rescaling — if you're training a model where inference context will vary widely and you don't want to engineer context extension, ALiBi is simpler. Trade-off: ALiBi slightly underperforms RoPE on short-context tasks (the linear bias is suboptimal for close-range attention patterns). For a model where you know the context length upfront and want maximum quality, RoPE + NTK/YaRN is better. ALiBi is rarely chosen for new foundation models since 2023 — RoPE with high base has largely superseded it.
 

@@ -265,17 +265,29 @@ Qwen3 uses **iRoPE**: every 4th layer drops positional encoding (NoPE) instead o
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: What is the FLOPs vs parameter trade-off in MoE models?**  
+### Q: What is the FLOPs vs parameter trade-off in MoE models? [Medium]  
 A: MoE decouples model capacity (parameters) from compute cost (FLOPs). Mixtral 8×7B has 46.7B total parameters but only 12.9B are active per token (top-2 of 8 experts). Training and inference FLOPs are close to a 13B dense model, but the model has the capacity of a 46.7B model — because different experts can specialize. The catch: all 46.7B parameters must reside in memory, so serving Mixtral 8×7B requires ~93GB (fp16), similar to a 47B dense model despite dense-equivalent compute.
 
+**Cross-questions to expect:**
+
+- *You say MoE has "dense-13B compute at 47B capacity." A cost model that only counts active FLOPs will mis-price MoE serving. Where's the money actually going?* -> Into memory and communication, not FLOPs. All 47B parameters must sit in HBM regardless of how few are active, so your GPU count is set by *total* params (memory-bound), while your throughput is set by active FLOPs -- the two decouple, and MoE looks cheap only on the FLOP axis. Add expert-parallel all-to-all traffic and load imbalance (some GPUs' experts get more tokens), and effective utilization drops. Pricing MoE like a 13B dense model because it "computes like one" undercounts the memory footprint and the interconnect it actually needs.
+- *Batch behavior differs from dense models: why can MoE throughput be worse than a dense 13B at small or skewed batches?* -> Because expert utilization depends on the token distribution in the batch. At small batch, only a few experts get hit, so most of the resident 47B params sit idle while you still paid to hold them -- the "capacity" is stranded. With skewed routing, a hot expert becomes a straggler that the all-to-all waits on. Dense models have no such load-balance dependence; MoE's efficiency assumes large, well-mixed batches that saturate experts evenly.
+
+**Trap:** the headline "same FLOPs as 13B dense." True per-token compute, false for total cost of ownership -- memory footprint scales with total parameters and serving adds all-to-all communication and load-balancing overhead the FLOP count never shows. MoE trades memory and network for compute; a FLOP-only comparison hides exactly the axis where it's expensive.
 **Q: Why does the router collapse and how does the load-balancing loss fix it?**  
 A: Without regularization, the router has a feedback loop: a slightly better expert receives more tokens → better gradient signal → improves further → receives even more tokens. Eventually all tokens route to 1–2 experts (collapse). The load-balancing loss L_balance = α·N·Σ f_i·P_i penalizes uneven routing. f_i (token fraction) is non-differentiable, but P_i (mean routing probability) provides the gradient. When expert i is overloaded (high f_i), the loss increases proportionally to P_i, pushing the router to reduce routing probability to that expert. α = 0.01 is typical — too high breaks task performance, too low doesn't prevent collapse.
 
-**Q: How would you debug an MoE model that shows degraded performance after 50K training steps?**  
+### Q: How would you debug an MoE model that shows degraded performance after 50K training steps? [Hard]  
 A: Check routing entropy at each MoE layer — if entropy dropped significantly, expert collapse is happening. Also monitor: (1) per-expert token fraction distribution (should be roughly uniform); (2) dropped token percentage (should be <5%); (3) load balance loss magnitude; (4) gradient norm per expert (dead experts have near-zero gradient). If collapse is detected: increase α for load balance loss, or switch to expert-choice routing which guarantees balance. If token dropping is the issue: increase capacity_factor from 1.0 to 1.5.
 
+**Cross-questions to expect:**
+
+- *You'd "increase alpha on the load-balance loss" once you see collapse. Why can cranking alpha make the model worse than the collapse it fixes?* -> Because the load-balance loss is an *auxiliary* objective fighting the task loss -- push alpha too high and you force uniform routing regardless of whether uniformity serves the tokens, so experts stop specializing and the model regresses toward an averaged, lower-quality mixture. You can trade a collapse failure for a homogenization failure. The fix isn't "more balancing pressure," it's finding the alpha where routing is balanced *enough* to avoid dead experts without overriding genuine specialization -- and possibly switching to expert-choice routing that balances by construction.
+- *Routing entropy dropped but per-expert token fractions still look roughly uniform. What subtler failure could explain the degradation?* -> Uniform token *fractions* with low *entropy* means the router is confident and near-deterministic per token while still spreading load across experts on average -- consistent with the router latching onto a shortcut feature (e.g., routing purely by surface token identity rather than context), so experts are balanced but specialized on the wrong axis. Aggregate balance metrics look healthy while the routing decision has degenerated. You'd inspect what the router conditions on, not just the load histogram.
+
+**Trap:** reading balanced per-expert load as proof routing is healthy. Balance and usefulness are different properties -- a router can be perfectly balanced and still route on a degenerate signal, and it can be collapsing on one layer while the aggregate looks fine. Diagnose per-layer entropy and *what* the router keys on, not just the token-fraction histogram.
 **Q: How does expert parallelism differ from tensor parallelism?**  
 A: Tensor parallelism splits a single weight matrix across GPUs — each GPU computes a partial result and all-reduces to get the full result. Every token uses every GPU. Expert parallelism assigns entire experts to different GPUs — each token only uses the GPU holding its assigned expert. EP requires all-to-all communication (each token goes to its expert's GPU, then returns), while TP requires all-reduce (sum across GPUs). EP is better when experts can fit on individual GPUs and all-to-all bandwidth is sufficient; TP is better when individual matrices are too large for one GPU and high-bandwidth NVLink is available.
 

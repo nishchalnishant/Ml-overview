@@ -314,20 +314,32 @@ KV cache (batch=100, ctx=8K)   100 × 268MB = 26.8 GB (same, but 2× requests)
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
 **Q: Derive the memory savings of GQA over MHA for Llama-3 70B at 4K context.**  
 A: MHA KV bytes = 2 × L × H × d_k × S × dtype_bytes = 2 × 80 × 64 × 128 × 4096 × 2 = 10.7 GB per request. GQA (n_kv=8): 2 × 80 × 8 × 128 × 4096 × 2 = 1.34 GB per request. Savings = 8×. In practice, this is the difference between fitting ~6 requests vs ~50 requests in an 80GB A100 (after subtracting 35GB for model weights). GQA is what makes 70B serving practical with reasonable batch sizes.
 
-**Q: What is the quality trade-off between MHA, GQA, and MQA?**  
+### Q: What is the quality trade-off between MHA, GQA, and MQA? [Hard]  
 A: MHA gives the best attention expressivity — each head can specialize to different token relationships. MQA (1 KV head) is the most extreme compression; it degrades on tasks requiring diverse attention patterns (multi-hop reasoning, structured output). GQA (8 KV heads) recovers most of the quality gap: empirically within 1–2% of MHA on standard benchmarks, while providing 8–32× KV memory savings. The right trade-off is model-specific: Llama-3 uses n_kv=8 for 70B (8× savings, minimal quality loss). For 8B, 4× savings is still significant. MQA is now rarely used in new models.
 
+**Cross-questions to expect:**
+
+- *You cite "GQA is within 1-2% of MHA on benchmarks." Which capabilities does that aggregate hide, and why does it matter for a serving decision?* -> The same way quantization damage concentrates: shared KV heads hurt tasks needing *diverse* attention patterns -- multi-hop reasoning, long structured output, retrieval over many distinct entities -- far more than the benchmark mean shows. A model 1.5% down on average can be meaningfully worse at exactly the agentic, many-entity workloads you might be building for. The KV-head count is chosen at pretraining for the *training* task mix; your serving task may stress attention diversity differently.
+- *If MQA gives the most KV savings and "GQA recovers most of the gap," why not just always pick GQA and stop thinking?* -> Because the right n_kv is model- and scale-dependent and it's a *pretraining* decision, not a serving knob -- you can't dial GQA on an existing MHA checkpoint without uptraining. And GQA's savings and quality both depend on head count relative to model size (8x on a 70B is different from 8x on an 8B), so "always GQA" hides the fact that someone already made this choice for you at train time and you're stuck with it at serve time. The interesting question is how to *serve* the head config you were given, not which to pick.
+
+**Trap:** treating MHA/GQA/MQA as a knob you turn at deployment. It's baked into the checkpoint. At serving time your real levers are quantized KV, MLA-style compression (if the model has it), and batch/context scheduling -- not switching attention variants. Answering as if you can swap GQA in at serve time misreads where the decision lives.
 **Q: How does DeepSeek MLA achieve 13.5× KV compression vs MHA?**  
 A: MLA stores only the compressed latent c_KV ∈ ℝ^{d_c} per token, not full K and V matrices. For DeepSeek-V2: d_model=5120, H=128, d_k=128, d_c=512. Standard MHA KV per token = 2 × 128 × 128 = 32,768 floats. MLA KV per token = 512 floats. Ratio = 64×. The "13.5×" figure accounts for the additional decoupled RoPE key component and implementation overhead. At attention time, K and V are reconstructed from c_KV via learned up-projection matrices — adds FLOPs but dramatically reduces KV cache size.
 
-**Q: When would prefix caching not help, and what are its failure modes?**  
+### Q: When would prefix caching not help, and what are its failure modes? [Medium]  
 A: Prefix caching only helps when multiple requests share an identical token prefix. Failure modes: (1) slight prefix variation (different system prompt version → cache miss) — requires exact token match; (2) high cardinality — if each user has a personalized system prompt, cache hit rate is low; (3) memory pressure — the prefix KV must stay cached long enough to be reused; under heavy load, LRU eviction may evict prefixes before they're hit. Mitigation: pin high-value prefixes (shared system prompts for all users), use session affinity routing (send same user's requests to same server to hit warm cache).
 
+**Cross-questions to expect:**
+
+- *You'd "pin high-value shared prefixes." What does pinning cost the rest of the server, and when does it backfire?* -> Pinned prefix KV occupies HBM that can no longer hold live-sequence KV cache, so you've traded concurrency for prefix-hit latency -- pin too much and you reduce the batch size you can serve, which can raise *aggregate* latency even as the pinned path gets faster. Pinning is a static reservation against a dynamic memory demand; under a traffic mix that doesn't hit the pinned prefix often, it's pure waste of your scarcest resource.
+- *Prefix caching needs an EXACT token match. How does a well-meaning feature (per-request timestamp, user name, A/B-tested system-prompt variant) silently destroy your hit rate?* -> Any of those injected early in the prompt changes the token sequence, so the shared prefix diverges at that token and everything after it is a cache miss -- one dynamic token near the top invalidates the entire downstream cache. Teams add "just a small personalization" to the system prompt and watch hit rate collapse without connecting the two. The cache rewards *identical* prefixes, and product features naturally push toward per-request uniqueness.
+
+**Trap:** modeling prefix caching as free upside for shared system prompts. It's a memory-for-latency trade with an exact-match fragility: it competes with live KV for HBM, and its benefit evaporates the moment early tokens vary. Report expected hit rate under your *actual* prompt construction, not the best case.
 ## Flashcards
 
 **What does the KV cache store, and why does it avoid recomputation?** #flashcard
