@@ -31,6 +31,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Canonical Statistics Interview Questions](01-math-foundations/05-canonical-stats-questions.md)
 * [Optimization for ML Interviews](01-math-foundations/06-optimization.md)
 * [Optimization Theory — Deep Dive for ML Interviews](01-math-foundations/07-optimization-theory.md)
+* [Statistical Learning Theory — Deep Dive for ML Interviews](01-math-foundations/08-learning-theory.md)
 * [Foundations — Comparison Cheat Sheet](01-math-foundations/_comparison.md)
 * [Machine Learning Foundations Flashcards](01-math-foundations/_flashcards.md)
 * [Statistics and Probability — Interview Reference](01-math-foundations/_rapid-fire.md)
