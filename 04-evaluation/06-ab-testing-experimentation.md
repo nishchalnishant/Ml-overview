@@ -29,7 +29,7 @@ flowchart TD
 
 ---
 
-> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the underlying statistics (PSM, IPW, doubly robust estimators, diff-in-diff, RDD, IV), see [Canonical Stats Questions](../01-math-foundations/05-canonical-stats-questions.md) §3 and [Statistics & Probability Rapid-Fire](../01-math-foundations/_rapid-fire.md).
+> This file covers the infrastructure side (traffic splitting, SRM detection, interference/switchback designs, rollout mechanics). For the *observational* case — estimating an effect when you **couldn't** randomize (confounding, PSM/IPW/doubly-robust, diff-in-diff, RDD, IV) — see [Causal Inference When You Can't Randomize](07-causal-inference.md). For the rapid-fire study-design taxonomy see [Canonical Stats Questions](../01-math-foundations/05-canonical-stats-questions.md) §3 and [Statistics & Probability Rapid-Fire](../01-math-foundations/_rapid-fire.md).
 
 ## Why Experimentation Infrastructure Matters
 

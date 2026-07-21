@@ -71,6 +71,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Calibration and Uncertainty Quantification](04-evaluation/04-calibration-and-uncertainty.md)
 * [Model Interpretation: SHAP, LIME, and Feature Importance](04-evaluation/05-model-interpretation.md)
 * [A/B Testing & Experimentation Infrastructure for ML Systems](04-evaluation/06-ab-testing-experimentation.md)
+* [Causal Inference When You Can't Randomize](04-evaluation/07-causal-inference.md)
 
 ## 05 — Deep Learning Core
 

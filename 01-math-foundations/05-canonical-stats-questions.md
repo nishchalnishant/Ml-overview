@@ -45,6 +45,8 @@ A trend in subgroups reverses in the aggregate, caused by a confounder correlate
 
 ## 3. Causal Study Design
 
+> Deep-dive with worked examples, back-door/DAG reasoning, and "can't randomize" interview angles: [Causal Inference When You Can't Randomize](../04-evaluation/07-causal-inference.md).
+
 | Design | Causal strength | Example |
 |---|---|---|
 | RCT (A/B test) | Gold standard | Feature flag experiment |
