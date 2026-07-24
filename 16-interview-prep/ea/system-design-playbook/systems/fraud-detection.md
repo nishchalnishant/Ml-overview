@@ -570,3 +570,9 @@ At SDE2 scope, treat this as a checklist rather than a design exercise: **backup
 9. **Online/offline feature drift**: Detected via a prediction-serving-skew monitor (Section 21) comparing online-computed feature values against an offline recomputation for the same event, alerting above ~5% divergence. Typically root-caused to either a bug in one of the two parallel implementations (mitigated by sharing a UDF library across streaming/batch) or a windowing definition mismatch.
 
 10. **Post-promotion false-positive spike**: This is a known, anticipated pattern — the monitoring stack should distinguish "new-account-high-value" reason-code spikes correlated with a known marketing-campaign window from spikes with no such correlation (real attack signal). Practically, temporarily relax that rule during pre-approved promo windows, route affected transactions to `challenge`/step-up rather than `deny`, and retrain afterward so the model learns the pattern isn't inherently risky.
+
+---
+
+## Connections
+
+This file covers the *systems/infra* side — API contracts, database and caching design, capacity estimation, autoscaling. For the *ML methodology* side of the same problem — feature engineering, GBT vs sequence models, class imbalance, label delay — see [15-system-design/cases/05-fraud-detection.md](../../../../15-system-design/cases/05-fraud-detection.md).

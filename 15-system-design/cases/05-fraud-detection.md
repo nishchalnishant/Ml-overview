@@ -443,3 +443,9 @@ A precision drop signals a new fraud pattern is bypassing the model (missed posi
 
 **Why treat unconfirmed recent transactions (<90 days old) as censored rather than as negative labels?** #flashcard
 A transaction with no chargeback yet isn't confirmed non-fraud — it may simply not have been reported yet within the observation window. Treating it as a hard negative teaches the model a wrong ground truth; survival-analysis framing (or excluding it until the window closes) avoids this bias.
+
+---
+
+## Connections
+
+This file covers the *ML methodology* side — feature engineering, model choice, class imbalance, label delay. For the *systems/infra* side of the same problem — API contracts, database and caching design, capacity estimation, autoscaling — see [16-interview-prep/ea/system-design-playbook/systems/fraud-detection.md](../../16-interview-prep/ea/system-design-playbook/systems/fraud-detection.md).

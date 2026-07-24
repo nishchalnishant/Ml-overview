@@ -399,3 +399,9 @@ Increasing sample size to hit a target MDE can require impractically large popul
 
 **Why must Sample Ratio Mismatch be checked before reading any other experiment metric?** #flashcard
 If the actual traffic split between arms deviates from the intended split (e.g. 48/52 instead of 50/50), it signals a broken randomization or logging pipeline — any metric difference measured under a broken assignment mechanism is confounded and cannot be trusted, so SRM must be cleared first or the whole experiment's conclusions are invalid.
+
+---
+
+## Connections
+
+This file covers the *ML methodology* side — two-tower retrieval, ranking models, cold start, feature store. For the *systems/infra* side of the same problem — API contracts, database and caching design, capacity estimation, sharded ANN at scale — see [16-interview-prep/ea/system-design-playbook/systems/recommendation-engine.md](../../16-interview-prep/ea/system-design-playbook/systems/recommendation-engine.md).

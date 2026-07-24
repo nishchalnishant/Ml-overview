@@ -126,6 +126,38 @@ GPT-4 uses ~100K; LLaMA uses 32K; BERT uses 30K (WordPiece).
 
 ---
 
+## Bag-of-Words and TF-IDF
+
+### The problem
+
+Before any embedding is learned, a document needs *some* numeric representation. The simplest option, bag-of-words, counts word occurrences and discards order entirely — "man bites dog" and "dog bites man" produce identical vectors. That is acceptable when word identity matters more than word order (e.g. routing support tickets by category) and unacceptable when it doesn't (e.g. detecting negation).
+
+### The core insight
+
+Raw counts overweight words that are frequent everywhere ("the", "is") and underweight words that are rare but discriminative for a given document. TF-IDF corrects this by multiplying term frequency by inverse document frequency:
+
+$$\text{tf-idf}(t,d) = \text{tf}(t,d)\cdot\text{idf}(t), \qquad \text{idf}(t) = \log\frac{N}{\text{df}(t)+1}$$
+
+A term that appears often in one document but rarely across the corpus gets a high score; a term that appears everywhere (including "the") gets driven toward zero.
+
+```python
+from sklearn.feature_extraction.text import TfidfVectorizer
+from sklearn.linear_model import LogisticRegression
+from sklearn.pipeline import Pipeline
+
+pipe = Pipeline([
+    ('tfidf', TfidfVectorizer(max_features=50000, ngram_range=(1, 2), sublinear_tf=True)),
+    ('clf', LogisticRegression(C=1.0, max_iter=1000)),
+])
+pipe.fit(X_train, y_train)
+```
+
+TF-IDF + logistic regression is a legitimate production baseline — fast, cheap, interpretable, and often 85-90% accurate on well-defined categories. It is worth running before reaching for a fine-tuned transformer.
+
+**What breaks**: TF-IDF has no notion of syntax or negation — "server is not responding" and "server is responding" produce nearly identical vectors, differing only in the presence of "not." Bigrams partially mitigate this but don't solve it.
+
+---
+
 ## Word Embeddings
 
 ### The problem
@@ -264,6 +296,32 @@ sentence_embedding = outputs.pooler_output     # (1, 768) — CLS token
 
 ---
 
+## RNNs, LSTMs, and the Road to Attention
+
+### The problem
+
+Feedforward networks and bag-of-word representations have no notion of sequence order beyond what's hand-engineered (e.g. n-grams). Language is inherently sequential — a recurrent architecture that carries a hidden state forward through time is the natural fit: $h_t = f(x_t, h_{t-1})$.
+
+### What breaks with vanilla RNNs
+
+Backpropagation through time multiplies gradients by the recurrent weight matrix at every step. Over long sequences this product either shrinks toward zero (vanishing gradient — the dominant failure mode) or grows without bound (exploding gradient). In practice, a vanilla RNN's ability to use information from many steps in the past decays sharply with distance.
+
+### LSTMs
+
+LSTMs address vanishing gradients with a gating mechanism and a separate cell state $c_t$ that gradients can flow through with minimal attenuation:
+
+- **Forget gate**: decides what to discard from the cell state. Can stay near 1.0 for long stretches, letting gradient signal pass through largely unchanged.
+- **Input gate**: decides what new information to write into the cell state.
+- **Output gate**: decides what part of the cell state to expose as the hidden state.
+
+GRUs simplify this to two gates (reset, update) with comparable performance and fewer parameters.
+
+### What still breaks
+
+Even with gating, LSTMs are fundamentally sequential: computing $h_t$ requires $h_{t-1}$, which blocks parallelization across the time dimension and caps training throughput on long sequences. This sequential bottleneck — not just gradient decay — is what Transformer self-attention was built to remove, since attention lets any position access any other position directly, in parallel. See [03-nlp-transformers.md §3](03-nlp-transformers.md) for the full mechanism. RNNs still see use where the $O(n^2)$ cost of attention is prohibitive.
+
+---
+
 ## Sequence-to-Sequence Models
 
 ### Encoder-Decoder Architecture
@@ -329,6 +387,34 @@ def beam_search(model, start_token, beam_width=4, max_len=50):
 **Length penalty**: beam search accumulates negative log-probabilities — longer sequences have lower scores simply because they have more terms. Apply length penalty `score / len(seq)^α` (α ≈ 0.6-0.9) to avoid preference for short outputs.
 
 **What breaks**: beam search is still an approximation — the globally optimal sequence may not be in any of the `K` beams. Wider beams improve quality but slow inference linearly. For open-ended generation (story writing, dialogue), beam search produces repetitive, overly safe text — sampling methods (top-k, nucleus) are preferred.
+
+---
+
+## Stemming vs Lemmatization
+
+### The problem
+
+"Run", "running", and "ran" carry the same core meaning but are distinct tokens to a classical pipeline (bag-of-words, TF-IDF, keyword search). Grouping inflected forms under a shared root reduces sparsity and improves recall.
+
+### Two approaches
+
+**Stemming** chops suffixes with mechanical rules, without regard for whether the result is a real word — fast but crude ("universal" → "univers", "studies" → "studi"). **Lemmatization** looks up the dictionary base form (the lemma), using part-of-speech information to disambiguate ("better" → "good" as an adjective) — slower, since it needs a vocabulary/POS tagger, but linguistically accurate.
+
+**What breaks**: modern transformer pipelines mostly skip both — subword tokenization already captures morphological structure statistically ("running" → "run" + "##ning"). Stemming and lemmatization still matter in classical pipelines, keyword search/indexing, and anywhere TF-IDF-style exact matching is used.
+
+---
+
+## Dependency Parsing
+
+### The problem
+
+Bag-of-words and even sequence labeling (NER) don't capture grammatical relationships — who did what to whom. "The bank approved the loan" and "The loan approved the bank" have the same bag-of-words representation but opposite meaning.
+
+### The core insight
+
+Represent a sentence as a tree of typed grammatical relations (subject, object, modifier) between words, rooted at the main verb. This gives an explicit, verifiable structure — useful for structured information extraction and semantic role labeling where you need to guarantee "who did what to whom" rather than infer it statistically.
+
+**What breaks**: transformers implicitly encode a good deal of syntax in their attention patterns without an explicit parse tree, and for most downstream tasks that implicit encoding is sufficient. Explicit dependency parsers still earn their keep when the output must be guaranteed, verifiable structured data rather than a soft signal inside a larger model.
 
 ---
 
@@ -433,6 +519,24 @@ trainer.train()
 ```
 
 **What breaks**: BERT's max input length is 512 tokens. Documents longer than this must be truncated or chunked. For long documents, chunking with overlapping windows and aggregating (mean/max pooling) CLS vectors is a common workaround, but it loses global context.
+
+---
+
+## Perplexity
+
+### The problem
+
+Language models need an intrinsic, reference-free way to measure how well they predict text — useful during training and for comparing checkpoints, before any downstream task exists to evaluate against.
+
+### The core insight
+
+Perplexity exponentiates the average negative log-likelihood the model assigns to a held-out sequence:
+
+$$\text{PPL}(W) = \exp\left(-\frac1N\sum_i \log P(w_i \mid w_{<i})\right)$$
+
+A perplexity of $k$ means the model is, on average, as uncertain at each step as if it were choosing uniformly among $k$ options. Lower is better.
+
+**What breaks**: perplexity is only comparable across models sharing the same tokenizer and vocabulary — a smaller vocabulary can mechanically produce lower perplexity without the model being better. Low perplexity also doesn't imply good generation: a model can score well on training-adjacent text and still hallucinate on novel prompts, so perplexity gains are not a reliable proxy for downstream task quality.
 
 ---
 
@@ -545,10 +649,15 @@ Goal: complete a specific task (book a restaurant, check flight status). Compone
 
 ## Key Points
 
+- TF-IDF downweights globally common terms and upweights document-discriminative ones; paired with logistic regression it's a fast, interpretable baseline worth trying before a transformer.
 - BPE merges most frequent byte pairs iteratively; WordPiece merges by likelihood. Both create subword vocabularies. SentencePiece works on raw text with no whitespace assumption.
 - Word2Vec: local context windows. GloVe: global co-occurrence statistics. FastText: extends with character n-grams for OOV handling.
 - ELMo = contextual embeddings from bidirectional LSTM. BERT = bidirectional Transformer with masked language modeling.
+- LSTMs fix vanishing gradients with gating, but remain sequential — this sequential bottleneck (not just gradient decay) is what Transformer attention removes.
 - Seq2Seq + Bahdanau attention: decoder attends over all encoder hidden states at each step — this is the direct precursor to Transformer self-attention.
 - Beam search: maintain top-K hypotheses at each step. Better than greedy but still an approximation. Length penalty prevents preference for short sequences.
+- Stemming chops suffixes mechanically; lemmatization returns dictionary base forms using POS. Subword tokenization makes both largely unnecessary in transformer pipelines.
+- Dependency parsing gives an explicit, verifiable grammatical structure tree — still useful when output must be guaranteed structured data, not just a soft signal.
+- Perplexity = exp(average negative log-likelihood); only comparable across models with the same tokenizer, and not a reliable proxy for downstream quality.
 - BLEU measures precision of n-gram overlap; ROUGE measures recall; BERTScore uses contextual embedding similarity — semantic not surface-level.
 - NER: BIO tagging converts span extraction to token classification. BERT + token classification head is the standard approach.

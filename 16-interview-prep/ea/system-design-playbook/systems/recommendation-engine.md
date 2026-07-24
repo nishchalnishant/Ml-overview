@@ -474,3 +474,9 @@ Biggest p99 contributor: ranking batching queue delay (5ms max-wait tuned to cap
 9. **Entitlement write-primary outage**: blast radius is scoped to new purchase writes and reads dependent on that primary; other regions' async replicas keep serving (slightly stale). System fails closed — excludes ambiguous items rather than risk showing owned content as unowned.
 
 10. **Catalog growth to 50M (UGC marketplace)**: in-memory full-copy HNSW per replica stops scaling — shift to sharded ANN (by category/creator-tier/recency) or a disk-backed system like DiskANN. Candidate generation needs a stronger pre-filter stage (coarse category/tag) to keep search tractable.
+
+---
+
+## Connections
+
+This file covers the *systems/infra* side — API contracts, database and caching design, capacity estimation, sharded ANN at scale. For the *ML methodology* side of the same problem — two-tower retrieval, ranking models, cold start, feature store — see [15-system-design/cases/11-recommendation-system.md](../../../../15-system-design/cases/11-recommendation-system.md).

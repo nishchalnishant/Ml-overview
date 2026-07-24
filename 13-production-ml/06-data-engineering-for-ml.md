@@ -703,6 +703,27 @@ GROUP BY user_id;
 
 ---
 
+### Feature Stores: Offline/Online Split and Point-in-Time Correctness
+
+**The problem unique to ML data engineering**: training computes a feature one way (batch SQL over historical data); serving computes it another way (a live function on a request). Any discrepancy — different code path, different window, different null handling — is **train-serve skew**, and it's insidious because nothing errors; the model just quietly underperforms in production while offline metrics look fine.
+
+A feature store fixes this with two synchronized stores fed by one shared feature definition:
+
+```
+Store   | Backing tech          | Optimized for          | Serves
+--------|------------------------|-------------------------|---------------------------
+Offline | Warehouse / lake       | Large historical scans | Training set construction
+Online  | Redis, DynamoDB        | Low-latency key lookup | Real-time inference
+```
+
+Because both stores are populated from the same definition, training and serving compute the feature identically **by construction** — skew becomes structurally hard to introduce rather than something you catch after the fact. Examples: Feast, Tecton, Databricks Feature Store.
+
+**Point-in-time correctness** is the subtler half of what a feature store buys you. When building a training set, each label must be joined to feature values **as they were at that label's timestamp**, not their current values — an "as-of" join. Using a feature's present value for a past label leaks future information into training, inflating offline metrics that then collapse in production. This is the same failure mode as `transaction_date <= target_date` leakage in feature backfilling below, generalized: any time a training-time join can see the future, metrics lie. Feature stores with offline stores that support as-of joins (Feast, Tecton) do this automatically instead of relying on every pipeline author to get the join condition right.
+
+**When you don't need one**: if features are simple, batch-only, and used by a single model, a feature store is over-engineering — a warehouse table plus disciplined shared SQL (e.g., the same dbt model feeding both training and a batch-scored serving table) gets you most of the benefit at a fraction of the operational cost. The store earns its complexity when multiple models share features (so skew risk multiplies across teams), or when a feature must be served online at sub-100ms latency *and* reproduced identically offline — that combination is what actually requires two synchronized stores.
+
+---
+
 ### Feature Backfilling
 
 **The problem**: a new feature is defined today, but you need it for all historical training data going back 2 years. The feature doesn't exist in the offline store for past dates.
@@ -915,6 +936,22 @@ After backfilling, validate a sample: take 10 random (user_id, date) pairs, manu
 - *You validate 10 random (user, date) pairs by hand and they match. Why is that reassuring but not sufficient?* -> 10 random samples over two years almost surely miss the rare boundary conditions where backfills actually break -- month/DST edges, the first day a user existed, days with zero events, leap day. Off-by-one window bugs cluster at boundaries, and uniform random sampling under-weights exactly those. Sample the edges deliberately, don't just sample uniformly.
 
 **Trap:** treating the backfilled feature as equivalent to what production will generate going forward. Backfill computes the feature in batch over historical data; live serving computes it incrementally in a streaming job -- if those two paths handle windows/nulls/late-data even slightly differently, every training example is backfilled-style and every serving example is streaming-style, which is training-serving skew baked in from day one.
+
+---
+
+### Q8: Your Airflow task failed halfway through writing a day's data and retried. How do you make sure you don't get duplicates? [Hard]
+
+**Idempotency** is the property that makes pipelines survivable: a task must produce the same result whether it runs once or five times. The standard pattern is partition-scoped overwrite — *delete-then-insert* (or `MERGE`) for the target partition, e.g. "delete 2026-07-22, then insert 2026-07-22" — never a blind `APPEND`. A retry re-runs the whole partition and overwrites the partial write instead of stacking a second copy on top of it.
+
+**Cross-questions to expect:**
+
+- *"What if a downstream consumer already read the partial data?"* -> That's why you also want atomic publish: write to a staging location and swap/commit atomically, which is exactly what lakehouse table formats give you via ACID commits (the Delta `_delta_log/` or Iceberg manifest commit in the sections above) — consumers never see a half-written partition, because the table's visible state only advances on a successful, atomic transaction.
+- *"How does this interact with exactly-once in streaming?"* -> Same goal, harder setting: streaming has no clean "partition" to overwrite, so exactly-once is achieved with idempotent writes plus offset/transaction coordination (e.g., Kafka transactions) rather than a delete-then-insert.
+
+**Trap:** answering "add a retry limit" or "alert on failure." Those handle the *symptom* — a failed run — not the *cause*. Idempotency is what makes a retry safe in the first place; retry limits and alerting are complementary, not a substitute.
+
+---
+
 ## Flashcards
 
 **Why is Lambda architecture operationally expensive compared to Kappa?** #flashcard
@@ -934,3 +971,15 @@ Reading the full/current table and filtering incorrectly can leak future data in
 
 **dbt: what do `not_null`, `unique`, and `accepted_range` tests enforce, and where do they run?** #flashcard
 They enforce data-contract-like guarantees (non-null values, uniqueness, valid numeric ranges) on model output columns, run as part of the dbt DAG so a violation fails the pipeline before bad data reaches downstream consumers.
+
+**What specific bug do a feature store's offline/online stores prevent, and how?** #flashcard
+Train-serve skew — training and serving computing a feature differently. Both stores are populated from the same shared feature definition, so the two computations can't diverge by construction.
+
+**What is point-in-time correctness, and what happens without it?** #flashcard
+Each training label must be joined to feature values as they were at the label's timestamp (an "as-of" join), not their current values. Joining to current values leaks future information into training, inflating offline metrics that then collapse in production.
+
+**When is a feature store over-engineering?** #flashcard
+When features are simple, batch-only, and used by a single model — a warehouse table plus disciplined shared SQL suffices. A feature store earns its complexity when features are shared across many models or need sub-100ms online serving reproduced identically offline.
+
+**Why does a blind `APPEND` break idempotency in a retried Airflow task, and what's the fix?** #flashcard
+A retry re-runs the append, duplicating the partition's rows. Fix: partition-scoped overwrite — delete-then-insert (or `MERGE`) for the target partition — so a retry overwrites the partial write instead of stacking a duplicate on top.

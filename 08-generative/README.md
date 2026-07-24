@@ -16,6 +16,7 @@ Models that learn a distribution well enough to sample from it, rather than only
 | [02-gans.md](02-gans.md) | Minimax objective, mode collapse, vanishing gradients, oscillation, WGAN-GP |
 | [03-diffusion.md](03-diffusion.md) | Closed-form forward process, noise prediction, DDPM vs. DDIM, latent diffusion, consistency models |
 | [04-flows-and-autoregressive.md](04-flows-and-autoregressive.md) | Change of variables, RealNVP coupling layers, chain-rule factorization, PixelCNN, why LLMs are autoregressive generative models |
+| [05-frontier-generative-models.md](05-frontier-generative-models.md) | Flow matching / rectified flow, consistency models and distillation, DiT backbones (SD3/FLUX), video generation as diffusion over time |
 
 ## Routing — this folder vs. 06-architectures
 

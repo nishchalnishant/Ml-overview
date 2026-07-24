@@ -7,7 +7,7 @@ tags: [interviewprep, llm, llm-nlp-transformers, interview-framing]
 ---
 # NLP and Transformers — First-Principles Interview Guide
 
-> For classical NLP (bag-of-words, TF-IDF, word embeddings, RNNs/LSTMs, stemming, dependency parsing), see [ml/13-nlp.md](02-nlp.md).
+> For classical NLP (bag-of-words, TF-IDF, word embeddings, RNNs/LSTMs, stemming, dependency parsing), see [01-nlp-fundamentals.md](01-nlp-fundamentals.md).
 
 ---
 
@@ -345,3 +345,11 @@ Perplexity $k$ means the model is, on average, as uncertain as if choosing unifo
 
 **Why ROUGE-L for summarization:**
 LCS (Longest Common Subsequence) between generated and reference summary. Captures key phrases in order without requiring exact contiguous n-grams. More robust than ROUGE-1/2 for paraphrased summaries.
+
+---
+
+## Closing Notes
+
+**Why Transformers won:** self-attention handles long-range dependencies with $O(n^2)$ per-layer cost instead of forcing information through $O(n)$ sequential hidden states (§3-4 above). This removes the RNN/LSTM training bottleneck and lets any position access any other position directly, in a single operation, fully in parallel.
+
+**Choosing an approach for a new NLP task:** before picking an architecture, ask — in this order — how much labeled data exists, what the latency budget is, whether the task is generative or discriminative, and how much interpretability is required. TF-IDF + logistic regression (see [01-nlp-fundamentals.md](01-nlp-fundamentals.md)) is a legitimate production answer under tight data, latency, or interpretability constraints; it is not merely a toy baseline to beat.

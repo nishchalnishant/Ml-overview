@@ -15,6 +15,7 @@ in the math.
 | :--- | :--- |
 | [01-privacy-and-fairness.md](01-privacy-and-fairness.md) | Privacy fundamentals, machine unlearning, differential privacy, DP-SGD, federated learning, fairness metrics, the impossibility theorems, bias mitigation, fairness in LLMs, membership inference |
 | [02-adversarial-robustness.md](02-adversarial-robustness.md) | Threat models, FGSM, PGD, adversarial training min-max, certified defenses, gradient masking |
+| [03-llm-safety-and-governance.md](03-llm-safety-and-governance.md) | Direct vs. indirect prompt injection, reward hacking/sycophancy (responsible-ai framing), refusal calibration, red-teaming methodology, model/system cards, responsible scaling policies, EU AI Act risk tiers |
 
 **Interpretability lives in [`../04-evaluation/05-model-interpretation.md`](../04-evaluation/05-model-interpretation.md)**
 — SHAP (axioms, TreeSHAP/KernelSHAP), LIME, PDP/ALE, permutation importance, attention-as-explanation.
