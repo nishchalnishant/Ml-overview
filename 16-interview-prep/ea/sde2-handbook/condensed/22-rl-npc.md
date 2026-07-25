@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Rl Npc"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 22 — Deep RL for NPC AI (Condensed)
 
 Design + train a Deep RL agent to control a 1v1 shooter NPC (navigate/aim/shoot), replacing predictable Behavior-Tree enemies. Core challenge is reward/observation design + making millions of training steps fast, not the algorithm itself.

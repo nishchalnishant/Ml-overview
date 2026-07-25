@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Llm Rag Pipeline"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 15 — Production RAG Pipeline (Condensed)
 
 Build a production RAG assistant over EA's internal developer docs (Markdown + Confluence HTML, heavy C++ code blocks) so developers get accurate, cited answers instead of hallucinated API calls.

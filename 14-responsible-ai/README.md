@@ -40,5 +40,6 @@ than duplicated.
 fairness as a single metric — demographic parity and equalized odds are mathematically
 incompatible except in degenerate cases, and knowing *that* is the answer.
 
-**Known gap:** interpretability (SHAP/LIME mechanics, attention attribution) and adversarial
-robustness have no deep-dive file; both are currently only touched in passing.
+**Coverage status:** interpretability (SHAP/LIME mechanics, attention attribution) lives in
+[`../04-evaluation/05-model-interpretation.md`](../04-evaluation/05-model-interpretation.md).
+Adversarial robustness is covered in [`02-adversarial-robustness.md`](02-adversarial-robustness.md).

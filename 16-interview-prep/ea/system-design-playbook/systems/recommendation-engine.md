@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Recommendation Engine"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Recommendation Engine
 
 ## 1. Problem Framing

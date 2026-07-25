@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Fraud Detection"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Fraud Detection
 
 ## 1. Problem Framing & Requirement Gathering

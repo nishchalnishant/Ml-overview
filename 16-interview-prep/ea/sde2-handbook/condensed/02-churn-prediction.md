@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Churn Prediction"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Churn Prediction & Intervention (Apex Legends) — Cheat Sheet
 
 MoM active users are dropping. Design + build a system to predict player churn and trigger automated interventions (email, XP boost, cosmetics) before players leave for good.

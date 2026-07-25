@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Chatbot"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Chatbot (Customer/Player Support)
 
 ## 1. Problem Framing & Requirement Gathering

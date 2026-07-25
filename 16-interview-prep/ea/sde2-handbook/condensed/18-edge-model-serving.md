@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Edge Model Serving"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 18 — Model Serving on Edge Devices (Cheat Sheet)
 
 Deploy a PyTorch swipe-classification model (pass/shoot/skill) directly onto iOS/Android game clients to kill the ~150ms cloud round-trip and hit real-time gameplay latency.

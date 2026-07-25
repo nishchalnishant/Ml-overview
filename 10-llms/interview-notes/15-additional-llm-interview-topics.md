@@ -10,6 +10,20 @@ tags: [llms, ml, interview-notes-additional-llm]
 
 # Additional LLM Interview Topics
 
+Appendix material, not core syllabus. Use this file when the basics are already stable and you want extra breadth.
+
+Canonical source-of-truth files for the main interview loop:
+- [LLM fundamentals](01-llm-fundamentals.md)
+- [Prompt engineering](02-prompt-engineering.md)
+- [RAG](03-retrieval-augmented-generation-rag.md)
+- [Agents](04-ai-agents-and-agentic-systems.md)
+- [Fine-tuning](05-fine-tuning-and-model-adaptation.md)
+- [System design](07-ai-system-design.md)
+- [LLMOps](08-llmops-and-production-ai.md)
+- [Evaluation](09-evaluation-and-testing.md)
+- [Safety](10-ai-safety-ethics-and-responsible-ai-what.md)
+- [Alignment and reasoning](17-advanced-alignment-and-reasoning.md)
+
 Concrete failures first, then derived solutions. Each concept: problem → core insight → mechanics → what breaks → what the interviewer is testing → common traps.
 
 ---

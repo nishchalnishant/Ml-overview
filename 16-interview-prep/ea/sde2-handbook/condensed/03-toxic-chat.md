@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Toxic Chat"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 03 — Toxic Chat Moderation (Cheat Sheet)
 
 Real-time microservice to detect/block toxic messages (hate speech, harassment) in in-game chat across multiple titles before they reach other players. Core tension: sub-50ms latency at 20k QPS vs. accuracy needed to catch obfuscated/nuanced toxicity.

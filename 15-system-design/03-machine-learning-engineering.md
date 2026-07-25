@@ -9,6 +9,18 @@ tags: [productionml, ml, system-design-machine-learning]
 
 Based on Andriy Burkov's _Machine Learning Engineering_.
 
+## What A Senior Answer Should Sound Like
+
+When you explain an ML system, do not stop at "train model, deploy model." A senior answer names:
+
+- the business metric and proxy metric
+- the data contract and label latency
+- the serving constraint and fallback plan
+- the monitoring signal and rollback trigger
+- the ownership boundary between data, platform, and model
+
+That is the difference between describing a notebook and describing a system.
+
 ---
 
 ## What Machine Learning Engineering Is
@@ -28,6 +40,7 @@ Based on Andriy Burkov's _Machine Learning Engineering_.
 Each stage's output feeds the next; failures propagate forward. Most production failures start in stages 1-4 (problem framing, data), not model architecture.
 
 **What breaks**: excellent accuracy on a metric that doesn't matter. 97% precision at 30% recall passes offline eval but misses 70% of opportunities — worthless commercially. Goal-definition failures propagate through every later stage.
+The fix is usually not a larger model. It is a better problem statement, better labels, or a different decision threshold.
 
 ---
 
@@ -51,6 +64,7 @@ Required accuracy    Relative cost
 Going from 90% to 99% isn't twice as hard — it's ~10x as hard. Data collection, labeling, and edge cases each multiply cost per accuracy point. Use pilot projects on a data slice to validate feasibility before full commitment.
 
 **What breaks**: teams anchor to accuracy targets set by stakeholders who don't see the cost curve. "We need 99%" costs 10x more than "we need 95%." Push back with the curve and let the business decide what it can afford.
+If the business cannot name the marginal value of the extra accuracy, the project is probably under-scoped.
 
 ---
 
@@ -75,6 +89,7 @@ Static (computed offline on a schedule) vs. dynamic (computed at request time) p
 Define baselines before training: majority-class, rule-based, and simple linear model. If ML can't beat these, it shouldn't ship.
 
 **What breaks**: optimizing a proxy metric that diverges from the business goal. A fraud model chasing AUC might block legitimate transactions and drive customers away. Track the real business KPI alongside the ML metric.
+The interview follow-up is always: what would you do if the proxy improves but the business metric gets worse?
 
 ---
 

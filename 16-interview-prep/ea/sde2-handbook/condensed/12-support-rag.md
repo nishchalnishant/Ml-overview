@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Support Rag"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 12 — Customer Support RAG Assistant (Condensed)
 
 CS agents waste 60% of time searching Confluence/Jira for fixes. Build a RAG system that answers agent questions with citations, respecting per-agent document permissions and near-real-time freshness.

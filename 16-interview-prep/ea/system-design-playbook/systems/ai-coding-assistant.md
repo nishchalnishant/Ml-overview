@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Ai Coding Assistant"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # AI Coding Assistant
 
 ## 1. Problem Framing & Requirement Gathering

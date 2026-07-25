@@ -41,8 +41,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Data](02-data/README.md)
 * [Python and Data Tooling](02-data/01-python-and-data-tooling.md)
 * [Data Processing and EDA](02-data/02-data-processing-and-eda.md)
-* [Data Preprocessing and Feature Engineering](02-data/03-data-preprocessing.md)
-* [Data Preprocessing and Feature Engineering](02-data/04-feature-engineering.md)
+* [Feature Engineering](02-data/04-feature-engineering.md)
 * [Feature Selection](02-data/05-feature-selection.md)
 * [Imbalanced Data](02-data/06-imbalanced-data.md)
 * [Data Engineering for ML](02-data/07-data-engineering.md)
@@ -208,6 +207,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [LLM Serving — Production Inference Systems](12-systems-and-scale/03-llm-serving.md)
 * [LLM Inference Operations](12-systems-and-scale/04-llm-inference-ops.md)
 * [Cost Optimization in ML Systems](12-systems-and-scale/05-cost-optimization.md)
+* [Distributed Training and Serving Reliability](12-systems-and-scale/06-distributed-training-and-serving-reliability.md)
 
 ## 13 — Production ML
 

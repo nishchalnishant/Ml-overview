@@ -609,77 +609,23 @@ MACHINE LEARNING
 ## Navigation Guide
 
 **By skill level:**
-- Beginner → `01-foundations` → `09-study-plans/week-1`
-- Intermediate → `02-classical-ml` → `03-deep-learning/components` → `07-interview-prep/ml`
-- Advanced → `04-specialized-domains` → `05-llms` → `06-production-ml/system-design`
-- Expert → `08-emerging-topics` → `05-llms/applications` → `10-references`
+- Beginner → [00-meta](00-meta/README.md) → [01-math-foundations](01-math-foundations/README.md) → [02-data](02-data/README.md)
+- Intermediate → [03-classical-ml](03-classical-ml/README.md) → [05-deep-learning-core](05-deep-learning-core/README.md) → [06-architectures](06-architectures/README.md)
+- Advanced → [07-domains](07-domains/README.md) → [10-llms](10-llms/README.md) → [15-system-design](15-system-design/README.md)
+- Expert → [08-generative](08-generative/README.md) → [11-llm-applications](11-llm-applications/README.md) → [12-systems-and-scale](12-systems-and-scale/README.md) → [18-resources](18-resources/README.md)
 
 **By interview type:**
 - Classical ML coding → [16-interview-prep/11-ml-coding-patterns.md](16-interview-prep/11-ml-coding-patterns.md) + [16-interview-prep/10-coding.md](16-interview-prep/10-coding.md)
-- ML system design → `06-production-ml/system-design/03-machine-learning-design-interview.md`
-- LLM theory → `05-llms/03-architecture-deep-dive.md` + `05-llms/interview-notes/01-llm-fundamentals.md`
-- LLM system design → `05-llms/interview-notes/07-ai-system-design.md`
-- Data scientist → `11-data-scientist/01-data-scientist-interview-prep.md`
-- Behavioral → `07-interview-prep/ml/17-behavioral-and-scenario-based-questions.md`
+- ML system design → [15-system-design/01-design-interview-framework.md](15-system-design/01-design-interview-framework.md)
+- LLM theory → [10-llms/03-architecture-deep-dive.md](10-llms/03-architecture-deep-dive.md) + [10-llms/interview-notes/01-llm-fundamentals.md](10-llms/interview-notes/01-llm-fundamentals.md)
+- LLM system design → [10-llms/interview-notes/07-ai-system-design.md](10-llms/interview-notes/07-ai-system-design.md)
+- Behavioral → [16-interview-prep/09-behavioral.md](16-interview-prep/09-behavioral.md)
 
 **By domain:**
-- Vision → `03-deep-learning/methods/03-computer-vision.md`
-- NLP → `03-deep-learning/methods/nlp.md` + `05-llms/`
-- Time Series → `02-classical-ml/20-time-series-analysis.md` + `03-deep-learning/methods/09-time-series.md`
-- RL → `04-specialized-domains/reinforcement-learning/`
-- RecSys → `04-specialized-domains/recommender-systems/`
-- GNNs → `04-specialized-domains/graph-neural-networks/`
-- Emerging → `08-emerging-topics/experimentation-and-causal-inference/`
-
-## Flashcards
-
-**Beginner → 01-foundations → 09-study-plans/week-1?** #flashcard
-Beginner → 01-foundations → 09-study-plans/week-1
-
-**Intermediate → 02-classical-ml → 03-deep-learning/components → 07-interview-prep/ml?** #flashcard
-Intermediate → 02-classical-ml → 03-deep-learning/components → 07-interview-prep/ml
-
-**Advanced → 04-specialized-domains → 05-llms → 06-production-ml/system-design?** #flashcard
-Advanced → 04-specialized-domains → 05-llms → 06-production-ml/system-design
-
-**Expert → 08-emerging-topics → 05-llms/applications → 10-references?** #flashcard
-Expert → 08-emerging-topics → 05-llms/applications → 10-references
-
-**Classical ML coding → 07-interview-prep/ml/08-algorithms.md + coding.md?** #flashcard
-Classical ML coding → 07-interview-prep/ml/08-algorithms.md + coding.md
-
-**ML system design → 06-production-ml/system-design/03-machine-learning-design-interview.md?** #flashcard
-ML system design → 06-production-ml/system-design/03-machine-learning-design-interview.md
-
-**LLM theory → 05-llms/03-architecture-deep-dive.md + 05-llms/interview-notes/01-llm-fundamentals.md?** #flashcard
-LLM theory → 05-llms/03-architecture-deep-dive.md + 05-llms/interview-notes/01-llm-fundamentals.md
-
-**LLM system design → 05-llms/interview-notes/07-ai-system-design.md?** #flashcard
-LLM system design → 05-llms/interview-notes/07-ai-system-design.md
-
-**Data scientist → 11-data-scientist/01-data-scientist-interview-prep.md?** #flashcard
-Data scientist → 11-data-scientist/01-data-scientist-interview-prep.md
-
-**Behavioral → 07-interview-prep/ml/17-behavioral-and-scenario-based-questions.md?** #flashcard
-Behavioral → 07-interview-prep/ml/17-behavioral-and-scenario-based-questions.md
-
-**Vision → 03-deep-learning/methods/03-computer-vision.md?** #flashcard
-Vision → 03-deep-learning/methods/03-computer-vision.md
-
-**NLP → 03-deep-learning/methods/nlp.md + 05-llms/?** #flashcard
-NLP → 03-deep-learning/methods/nlp.md + 05-llms/
-
-**Time Series → 02-classical-ml/20-time-series-analysis.md + 03-deep-learning/methods/09-time-series.md?** #flashcard
-Time Series → 02-classical-ml/20-time-series-analysis.md + 03-deep-learning/methods/09-time-series.md
-
-**RL → 04-specialized-domains/reinforcement-learning/?** #flashcard
-RL → 04-specialized-domains/reinforcement-learning/
-
-**RecSys → 04-specialized-domains/recommender-systems/?** #flashcard
-RecSys → 04-specialized-domains/recommender-systems/
-
-**GNNs → 04-specialized-domains/graph-neural-networks/?** #flashcard
-GNNs → 04-specialized-domains/graph-neural-networks/
-
-**Emerging → 08-emerging-topics/experimentation-and-causal-inference/?** #flashcard
-Emerging → 08-emerging-topics/experimentation-and-causal-inference/
+- Vision → [07-domains/04-computer-vision.md](07-domains/04-computer-vision.md)
+- NLP → [07-domains/01-nlp-fundamentals.md](07-domains/01-nlp-fundamentals.md) + [10-llms/](10-llms/README.md)
+- Time Series → [03-classical-ml/06-time-series-analysis.md](03-classical-ml/06-time-series-analysis.md) + [07-domains/06-time-series.md](07-domains/06-time-series.md)
+- RL → [09-reinforcement-learning/](09-reinforcement-learning/README.md)
+- RecSys → [15-system-design/cases/11-recommendation-system.md](15-system-design/cases/11-recommendation-system.md)
+- GNNs → [06-architectures/04-dl-architectures.md](06-architectures/04-dl-architectures.md)
+- Causal Inference / Experimentation → [04-evaluation/06-ab-testing-experimentation.md](04-evaluation/06-ab-testing-experimentation.md) + [04-evaluation/07-causal-inference.md](04-evaluation/07-causal-inference.md)

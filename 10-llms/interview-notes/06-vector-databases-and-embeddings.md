@@ -10,6 +10,18 @@ tags: [llms, ml, interview-notes-vector-databas]
 
 # Vector Databases and Embeddings — Interview Notes
 
+## What A Senior Answer Should Sound Like
+
+A senior answer about embeddings and vector search should separate:
+
+- representation quality
+- retrieval quality
+- index quality
+- access control
+- migration/versioning
+
+If you blur those together, you end up debugging the wrong layer.
+
 ---
 
 ## What Embeddings Are and Why They Exist
@@ -28,6 +40,7 @@ At inference: query is embedded to q, documents are embedded to {d1, d2, ..., dN
 If an embedding model normalizes its output (most do), cosine and dot product are equivalent. Always match your similarity metric to what the model was trained with — using L2 on a model trained with cosine can degrade retrieval quality.
 
 **What breaks**: embeddings encode what was similar in the training distribution. Out-of-domain text (specialized legal or medical jargon, rare product codes, code in a non-English context) may not embed accurately because the training distribution did not represent it well. Embeddings are also insensitive to exact string matching — "SKU-7734-B" embeds near other product descriptions, not at the exact identifier. This is why hybrid search (dense + sparse) is necessary for enterprise use cases.
+The practical implication is that embedding quality is only half the system; the rest is chunking, indexing, filtering, and evaluation.
 
 **What the interviewer is testing**: do you understand that embeddings are trained representations, not a magic semantic lookup — and that their accuracy is bounded by the training distribution?
 
@@ -94,6 +107,7 @@ And provides:
 Choices: Pinecone (managed, serverless), Weaviate (open-source, graph features), Qdrant (open-source, Rust-based, efficient filtering), pgvector (PostgreSQL extension, no new infrastructure), Milvus/Zilliz (high-scale, distributed).
 
 **What breaks**: vector databases are approximate — ANN search can miss the true nearest neighbor. Metadata filtering interacts with ANN search: some DBs pre-filter before ANN search (can reduce recall), others post-filter after ANN (can reduce effective top-K). Know which your database does. At very high dimensionality (>3000), ANN index quality degrades — the "curse of dimensionality" makes all vectors approximately equidistant.
+At staff level, the question becomes whether the index is accurate enough for the product SLA, not whether it is mathematically exact.
 
 **What the interviewer is testing**: whether you understand the distinction between approximate and exact nearest neighbor search, and why approximate is necessary at scale.
 
@@ -152,6 +166,7 @@ Query complexity: approximately O(log N) expected, versus O(N) brute-force.
 **Matryoshka Representation Learning (MRL)**: train the embedding model so that the first 256 dimensions alone carry most of the retrieval signal (the first 512 even more, the first 1024 more still). You can then truncate vectors to a shorter length (e.g., 256 from 1536) with modest recall loss. Used in OpenAI's text-embedding-3 models and BGE models.
 
 **What breaks**: quantization reduces recall. Always benchmark recall@K before and after quantization on your actual query distribution — generic benchmarks may not reflect your domain. After quantizing, ANN index parameters (M, efSearch) need retuning because quantization changes the neighborhood structure.
+If recall drops in a narrow slice, that slice is usually more important than the aggregate metric suggests.
 
 **What the interviewer is testing**: whether you can explain the memory-recall tradeoff concretely and know which technique to apply when.
 
@@ -182,6 +197,7 @@ Key selection criteria:
 - **Domain coverage**: models trained on domain-specific data (legal, biomedical, code) outperform general models in those domains.
 
 **What breaks**: evaluating on publicly available benchmarks without domain data can select the wrong model. Selecting a model based on average recall without inspecting its failure cases (which query types does it miss?) misses systematic gaps.
+The right question is not "what ranked highest?" It is "which model behaves best on my queries, my corpus, and my latency budget?"
 
 **What the interviewer is testing**: whether you would run a domain-specific evaluation, not just defer to public rankings.
 
@@ -209,6 +225,7 @@ Key selection criteria:
 4. Evaluate recall@K before and after on a held-out evaluation set.
 
 **What breaks**: fine-tuning without hard negatives trains the model only on easy positives — recall improves slightly but precision does not (the model still cannot distinguish between plausible-but-wrong documents). Re-embedding the full corpus after fine-tuning is mandatory — skipping this produces an index where query vectors live in the new space and document vectors live in the old space, making retrieval worse than before.
+This is a migration problem as much as a training problem.
 
 **What the interviewer is testing**: whether you understand the role of hard negatives and know that re-indexing after fine-tuning is not optional.
 
@@ -233,6 +250,7 @@ Key selection criteria:
 **Monitoring for drift**: track recall@K proxies (e.g., fraction of queries where the model's answer cites a retrieved chunk) and answer faithfulness on sampled queries. A sudden drop in these metrics often indicates an embedding version mismatch before it reaches incident severity.
 
 **What breaks**: in-place partial updates (re-embedding a subset of documents with the new model while the rest remain in old model coordinates) produce a mixed-space index that degrades retrieval for all queries. Always re-embed all documents atomically.
+Any embedding rollout should be treated like a schema change, not a hot patch.
 
 **What the interviewer is testing**: whether you understand that the index and the query encoder must always be in the same embedding space — and that migration requires rebuilding, not patching.
 
@@ -256,6 +274,7 @@ Key selection criteria:
 3. **Permission invalidation**: when a user's permissions change (role change, document reclassification), update the metadata in the vector DB and invalidate any cached results for that user. Do not cache retrieval results across permission changes.
 
 **What breaks**: pre-filter semantics vary across vector DB implementations. Some DBs first filter by metadata (may reduce recall if the filtered subset is small), then search by similarity within that subset. Others search by similarity first, then filter (may produce fewer than top-K results if many are filtered out). Know your DB's behavior and tune top-K accordingly.
+If access control is wrong, it is not a retrieval bug. It is a security bug.
 
 **What the interviewer is testing**: whether you know that access control must be enforced at the retrieval layer and can describe how metadata filtering works.
 

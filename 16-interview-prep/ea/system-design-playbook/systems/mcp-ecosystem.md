@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Mcp Ecosystem"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # MCP Ecosystem
 
 ## 1. Problem Framing

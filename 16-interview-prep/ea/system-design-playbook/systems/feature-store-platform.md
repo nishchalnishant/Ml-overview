@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Feature Store Platform"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Feature Store Platform
 
 ## 1. Problem Framing & Requirement Gathering

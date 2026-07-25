@@ -9,6 +9,8 @@ tags: [interview, checklist, revision]
 
 Three windows: 48 hours out, 24 hours out, morning-of.
 
+Use this checklist as a final filter, not as your only source of truth. If a box is weak, jump back to the canonical deep dive first, then return here to rehearse it under time pressure.
+
 ---
 
 ## 48 Hours Out — Knowledge Check
@@ -22,6 +24,13 @@ Goal: identify gaps, not fill them. If you find a genuine hole, address it now. 
 - [ ] [Deep Learning](../05-deep-learning-core/_cheatsheet.md) — backprop, attention, training tricks
 - [ ] [LLMs](../10-llms/_revision.md) — architecture, RLHF/DPO, LoRA, inference
 - [ ] [Production ML](../13-production-ml/_revision.md) — MLOps, drift, deployment strategies
+
+### Fast Recall Layer
+
+If you want a tighter interview-specific pass before the final review, use:
+- [Tradeoff bank](04-tradeoffs.md)
+- [Top ML questions](12-top-ml-questions.md)
+- [Round 3 production drills](05-round3-tradeoff-drills.md)
 
 ### Verify These Are Solid (Not Just Familiar)
 

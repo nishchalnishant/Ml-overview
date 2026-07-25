@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Agent Platform"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Agent Platform
 
 ## 1. Problem Framing & Requirement Gathering

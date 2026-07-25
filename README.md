@@ -16,18 +16,28 @@ This repo is your **two-track studio album**: fast interview-ready takes, and de
 ## Repo Structure
 
 ```
-01-foundations/          Intro to AI/ML systems, glossary, flashcards
-02-classical-ml/         Supervised, unsupervised, preprocessing, evaluation, calibration
-03-deep-learning/        Components + methods (NLP, CV, time series) + transfer learning + PyTorch
-05-llms/                 Architecture, training, applications, interview notes
-06-production-ml/        MLOps, system design, case studies
-07-interview-prep/       ML + DL + LLM interview Q&As, scenarios, coding
-09-study-plans/          35-day week-by-week study plan (includes LLM deep-dive week)
-12-projects/             Runnable end-to-end projects: tabular ML, RAG, LoRA, multi-agent A2A+MCP
-13-interview-prep/       EA-specific SDE-2 AI engineer mock interviews (30 scenarios)
-14-ea-ai-system-design-playbook/  23 full system design chapters (46 sections each)
-MIND-MAP.md              Full topic mind map + gap analysis
-FLOWCHARTS.md            Decision flowcharts across topics
+00-meta/                    How to use this repo, applied AI/ML systems guide
+01-math-foundations/        Probability, stats, optimization theory, learning theory
+02-data/                    Data tooling, EDA, preprocessing, feature engineering, data engineering
+03-classical-ml/            Supervised/unsupervised, ensembles, time series, HPO, anomaly detection
+04-evaluation/              Metrics, calibration, interpretation, A/B testing, causal inference
+05-deep-learning-core/      Backprop, activations, losses, optimizers, normalization, PyTorch
+06-architectures/           RNN/LSTM/GRU, attention, transformers, GNN, DL architecture selection
+07-domains/                 NLP, computer vision, time series (domain-specific applications)
+08-generative/              Autoencoders, GANs, diffusion, flows, frontier generative models
+09-reinforcement-learning/  MDPs, bandits, value/policy methods, offline & deep RL
+10-llms/                    Architecture, training, scaling, evaluation, interview notes
+11-llm-applications/        RAG, agents, prompt optimization, inference optimization, MCP
+12-systems-and-scale/       Compression, quantization, serving, distributed training, cost
+13-production-ml/           MLOps, deployment, feature stores, model registry, monitoring
+14-responsible-ai/          Privacy, fairness, adversarial robustness, LLM safety/governance
+15-system-design/           Design frameworks, patterns, case studies
+16-interview-prep/          Communication, playbooks, tradeoffs, coding, EA mock interviews
+17-projects/                Runnable end-to-end projects: tabular ML, RAG, LoRA, MCP agent system
+18-resources/               Reading lists, glossaries, external references
+MIND-MAP.md                 Full topic mind map + gap analysis
+FLOWCHARTS.md               Decision flowcharts across topics
+SUMMARY.md                  Complete file-by-file table of contents
 ```
 
 ---
@@ -37,22 +47,24 @@ FLOWCHARTS.md            Decision flowcharts across topics
 **Where to start tonight**
 
 - **[AI/ML systems & application](00-meta/01-ai-ml-systems-and-application.md)** — Golden rules, architectures, infra patterns, gotchas.
-- **[35-day roadmap](16-interview-prep/study-plans/README.md)** — Structured reps from zero to "I can hold the room."
-- **[Math derivations hub](01-math-foundations/03-math-derivations.md)** — Chain rule to attention, with your pen.
 - **[Interview hub](16-interview-prep/README.md)** — canonical entry point for interview prep.
-- **[ML interview notes](README.md)** — full classical + DL Q&A bank.
-- **[LLM deep dives](10-llms/interview-notes/README.md)** — RAG, agents, alignment, serving.
+- **[Math derivations hub](01-math-foundations/03-math-derivations.md)** — Chain rule to attention, with your pen.
+- **[LLM interview notes](10-llms/interview-notes/README.md)** — RAG, agents, alignment, serving.
+- **[LLM applications](11-llm-applications/README.md)** — retrieval, prompting, agents, tuning, inference optimization.
+- **[Systems and scale](12-systems-and-scale/README.md)** — distributed training, serving, compression, cost.
 - **[Pre-interview checklist](16-interview-prep/03-pre-interview-checklist.md)** — 48h → 24h → morning-of: what to review, verify, and do before walking in.
+- **[EA mock interview handbook](16-interview-prep/ea/sde2-handbook/README.md)** — 30 structured SDE-2 AI engineer scenarios.
 
 **10-Minute Revision Cards** (skim before any topic or interview)
 
 | Section | Quick-review card |
 |---------|--------------|
-| Foundations | [flashcards.md](01-math-foundations/_flashcards.md) |
-| Classical ML | [classical-ml-flashcards.md](03-classical-ml/_flashcards.md) |
-| Deep Learning | [deep-learning-cheatsheet.md](05-deep-learning-core/_cheatsheet.md) · [flashcards](05-deep-learning-core/_flashcards.md) |
-| LLMs | [REVISION.md](10-llms/_revision.md) |
-| Production ML | [REVISION.md](13-production-ml/_revision.md) |
+| Math Foundations | [_flashcards.md](01-math-foundations/_flashcards.md) · [_rapid-fire.md](01-math-foundations/_rapid-fire.md) |
+| Classical ML | [_flashcards.md](03-classical-ml/_flashcards.md) · [_comparison.md](03-classical-ml/_comparison.md) |
+| Deep Learning | [_cheatsheet.md](05-deep-learning-core/_cheatsheet.md) · [_flashcards.md](05-deep-learning-core/_flashcards.md) |
+| LLMs | [_revision.md](10-llms/_revision.md) · [_comparison.md](10-llms/_comparison.md) |
+| Production ML | [_revision.md](13-production-ml/_revision.md) · [_comparison.md](13-production-ml/_comparison.md) |
+| Interview Prep | [_revision-cheatsheet.md](16-interview-prep/_revision-cheatsheet.md) |
 
 **Engineering bridge:** *Training is your build job; the model artifact is your release candidate; inference is the always-on service; MLOps is CI/CD when the "code" and the "data" both change.*
 
@@ -62,24 +74,25 @@ FLOWCHARTS.md            Decision flowcharts across topics
 
 | Section | What's inside |
 |---|---|
-| [Foundations](01-foundations/) | Intro to AI, glossary, revision guide |
-| [Classical ML](02-classical-ml/) | Bias–variance, trees, calibration, when classical beats DL |
-| [Deep Learning](03-deep-learning/) | Activations, backprop, attention, PyTorch |
-| [Computer Vision](07-domains/04-computer-vision.md) | CNNs, detection, ViT, CLIP, self-supervised |
-| [Time Series](07-domains/06-time-series.md) | ARIMA through Transformers, forecasting, anomaly detection |
-| [LLMs](10-llms/README.md) | Architecture, training, scaling, evaluation |
-| [LLM Applications](README.md) | RAG, agents, tuning, inference optimization |
-| [Multimodal AI](11-llm-applications/09-multimodal.md) | CLIP, VLMs, fusion architectures, audio, video, deployment |
-| [Speculative Decoding](11-llm-applications/07-speculative-decoding.md) | Medusa, Eagle, standard SD, production trade-offs |
-| [LLM Training Stability](10-llms/05-training-stability.md) | Loss spikes, mixed precision, RLHF failure modes |
-| [Production ML](13-production-ml/README.md) | MLOps, CI/CD for ML, deployment |
-| [Model Governance](13-production-ml/03-model-governance.md) | Model registry, audit trails, GDPR, champion-challenger |
-| [ML System Design](06-production-ml/system-design/) | Design patterns, case studies, engineering |
-| [Model Compression](12-systems-and-scale/01-model-compression.md) | Quantization, distillation, pruning |
+| [Math Foundations](01-math-foundations/README.md) | Probability, optimization theory, statistical learning theory |
+| [Data](02-data/README.md) | EDA, preprocessing, feature engineering, imbalanced data, data engineering |
+| [Classical ML](03-classical-ml/README.md) | Trees, ensembles, clustering, time series, HPO |
+| [Evaluation](04-evaluation/README.md) | Metrics, calibration, SHAP/LIME, A/B testing, causal inference |
+| [Deep Learning Core](05-deep-learning-core/README.md) | Backprop, activations, losses, optimizers, PyTorch |
+| [Architectures](06-architectures/README.md) | RNN/LSTM/GRU, attention, transformers, GNN |
+| [Domains](07-domains/README.md) | NLP, computer vision, time series applications |
+| [Generative Models](08-generative/README.md) | Autoencoders, GANs, diffusion, flow matching, consistency models |
+| [Reinforcement Learning](09-reinforcement-learning/README.md) | MDPs, bandits, policy gradients, offline/deep RL |
+| [LLMs](10-llms/README.md) | Architecture, training, scaling, evaluation, interview notes |
+| [LLM Applications](11-llm-applications/README.md) | RAG, agents, tuning, inference optimization, MCP |
+| [Systems & Scale](12-systems-and-scale/README.md) | Compression, serving, distributed training, cost optimization |
+| [Production ML](13-production-ml/README.md) | MLOps, deployment, feature stores, registry, monitoring |
+| [Responsible AI](14-responsible-ai/README.md) | Privacy, fairness, robustness, safety, governance |
+| [ML System Design](15-system-design/README.md) | Design patterns, case studies, infra tradeoffs |
 | [Transfer Learning & Domain Adaptation](05-deep-learning-core/10-transfer-learning.md) | Fine-tuning, DANN, few-shot, MAML, zero-shot |
 | [Hands-On Projects](17-projects/README.md) | Runnable tabular ML pipeline, RAG system, and LoRA fine-tuning — not just prose |
 | [EA Mock Interviews](16-interview-prep/ea/sde2-handbook/README.md) | 30 structured SDE-2 AI engineer interview scenarios |
-| [EA System Design Playbook](16-interview-prep/ea/system-design-playbook/README.md) | 23 full system design chapters with 46-section template |
+| [EA System Design Playbook](16-interview-prep/ea/system-design-playbook/README.md) | Full system design chapters with worked scenarios |
 
 ---
 

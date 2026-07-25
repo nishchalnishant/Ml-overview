@@ -12,6 +12,17 @@ See also: [Fine-tuning deep dive](../../11-llm-applications/10-tuning-optimizati
 
 # Fine-Tuning and Model Adaptation — Interview Notes
 
+## What A Senior Answer Should Sound Like
+
+When you answer a fine-tuning question, separate these four things:
+
+- capability you already have
+- behavior you want to change
+- data you need to express that change
+- evaluation that proves the change helped
+
+If those are not explicit, the choice between prompt, RAG, and fine-tuning is probably underexplained.
+
 ---
 
 ## When to Fine-Tune vs. Prompt vs. RAG
@@ -32,6 +43,7 @@ See also: [Fine-tuning deep dive](../../11-llm-applications/10-tuning-optimizati
 | Knowledge changes AND style needs to change | RAG + fine-tune |
 
 **What breaks**: fine-tuning to inject facts into weights fails because: (1) facts go stale but weights don't update automatically; (2) the model can still hallucinate the fact when uncertain even after fine-tuning. Fine-tuning is for behavior change, not knowledge injection.
+If the issue is freshness or source-of-truth drift, the right fix is usually retrieval or data plumbing, not more gradient steps.
 
 **What the interviewer is testing**: whether you know that these approaches are complementary — not a ranked list where fine-tuning is always "better."
 
@@ -57,6 +69,7 @@ See also: [Fine-tuning deep dive](../../11-llm-applications/10-tuning-optimizati
 Memory drops from ~112 GB to ~6–16 GB for a 7B model. Forgetting risk drops because base weights are untouched. Start with LoRA; consider full fine-tuning only when LoRA has demonstrably plateaued on your task and you have both the data and compute.
 
 **What breaks**: PEFT does not help when the task requires knowledge that is genuinely absent from the base model — the frozen weights don't know what they were never trained on. PEFT with too low capacity (very low rank) may miss complex task structure.
+That is why the interview answer should always ask whether the problem is missing capability or just missing adaptation.
 
 **What the interviewer is testing**: that you understand the memory breakdown of full fine-tuning, not just that PEFT "uses less memory."
 
@@ -71,6 +84,7 @@ Memory drops from ~112 GB to ~6–16 GB for a 7B model. Forgetting risk drops be
 **The core insight**: the change to the weight matrix during fine-tuning has low intrinsic rank — it lives in a much smaller subspace than the full d×d weight matrix. Parameterize just that low-rank subspace: freeze W, add ΔW = BA (B zero-init), merge at inference for zero added latency. Full math, parameter-count worked example, and code: see [06-fine-tuning-at-scale.md](../06-fine-tuning-at-scale.md#2-lora-low-rank-adaptation).
 
 **What breaks**: LoRA doesn't help with tasks requiring genuine new knowledge (the frozen W doesn't know it). Very low rank (r=1, 2) may miss complex task structure. The rank choice has no principled selection rule — it is tuned on validation performance. LoRA on the wrong target modules can underperform relative to full fine-tuning on tasks requiring deep representation changes.
+LoRA is usually the default because it gives the best cost-quality tradeoff, not because it is universally optimal.
 
 **What the interviewer is testing**: do you understand why parameter-efficient fine-tuning works at all, or just that it saves memory?
 
@@ -85,6 +99,7 @@ Memory drops from ~112 GB to ~6–16 GB for a 7B model. Forgetting risk drops be
 **The core insight**: if the base model weights are frozen during fine-tuning, they never need to be in full precision — quantize them aggressively (NF4), dequantize just-in-time during the forward pass, and keep only the LoRA adapters and quantization constants (double quantization) at higher precision, with paged optimizers to absorb memory spikes. Result: a 65B model that needed 8×80GB A100s fits on a single 48GB GPU. Full mechanics, memory-breakdown table, and `BitsAndBytesConfig` code: see [06-fine-tuning-at-scale.md](../06-fine-tuning-at-scale.md#4-qlora).
 
 **What breaks**: 4-bit quantization introduces small precision loss in the base model forward pass — not training imprecision per se, but accumulated rounding errors. Always evaluate on your task; some domains (precision math, structured output) are more sensitive. Training is slightly slower than plain LoRA due to the dequantization step.
+If a task is numerically brittle, QLoRA is an engineering tradeoff, not a free lunch.
 
 **What the interviewer is testing**: that you understand the distinction between the frozen base model memory problem (QLoRA solves this) and the trainable parameter memory problem (LoRA already addresses this).
 
@@ -109,6 +124,7 @@ Memory drops from ~112 GB to ~6–16 GB for a 7B model. Forgetting risk drops be
 Critically: compute loss only on the response tokens, not the instruction tokens. This prevents the model from memorizing instructions as completions. A few thousand carefully curated pairs is often enough (LIMA: 1,000 examples matched the quality of 52,000 automatically filtered examples).
 
 **What breaks**: SFT teaches the format and basic helpfulness but does not reliably produce safe, non-sycophantic, or consistently honest behavior — because bad behavior also appears in training data, and the model can learn any pattern with sufficient frequency. This is why RLHF/DPO is needed on top of SFT, not instead of it.
+Instruction tuning gives you a chatty assistant. It does not, by itself, give you a trustworthy one.
 
 **What the interviewer is testing**: that you understand SFT as the prerequisite step that makes RLHF possible — and that "instruction tuning" and "alignment" are separate things.
 

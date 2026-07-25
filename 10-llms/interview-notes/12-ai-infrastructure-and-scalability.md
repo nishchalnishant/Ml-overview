@@ -18,6 +18,17 @@ Not quality. Not the model. **Memory**. The GPU runs out of space to hold the in
 
 Every technique in this file exists to fix a specific failure in that scenario. Learn which bottleneck each one addresses, and the "what should I do first?" question answers itself.
 
+## Staff-Level Lens
+
+If you want this to sound senior, keep answering the same four questions:
+
+- **What is the bottleneck?** compute, memory, network, or storage
+- **What is the constraint?** latency, throughput, quality, or cost
+- **What is the control knob?** batch size, precision, parallelism, routing, or cache policy
+- **What is the failure mode?** OOM, queue buildup, cold start, or quality regression
+
+If you can answer those four quickly, the rest of the file becomes a toolbox instead of a trivia list.
+
 ---
 
 ## Q1: LLM optimization techniques — the full map
@@ -38,6 +49,7 @@ Every technique in this file exists to fix a specific failure in that scenario. 
 | Scale beyond 1 GPU | Tensor / pipeline parallelism | Fit and serve huge models |
 
 **What breaks:** Applying techniques without profiling. Using batching improvements when the actual bottleneck is memory fragmentation. Applying quantization when the task is sensitivity-critical without evaluating task metrics.
+Treating infrastructure questions like model questions: more parameters does not automatically mean more performance if the serving path is the real bottleneck.
 
 **What the interviewer is testing:** Whether you think "bottleneck first" or just list techniques. They want to hear you profile, identify the constraint, then choose a tool.
 
@@ -90,6 +102,7 @@ For multi-GPU inference: NVLink (~600 GB/s) vs PCIe (~64 GB/s) determines whethe
 - Without PagedAttention: admitting new requests requires contiguous KV memory that may not be available even if total free memory is sufficient (fragmentation)
 - Long requests can still monopolize batch slots — need preemption or length-based admission
 - p99 tail latency: short requests behind a long queue may still wait if admission control isn't length-aware
+- No admission control by request length: one long prompt can starve a whole queue.
 
 **What the interviewer is testing:** That you understand why static batching wastes GPU time and how iteration-level scheduling fixes it. That you connect it to PagedAttention as the enabling memory mechanism.
 

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Communication Framework"
+tags: [interview-prep, communication, strategy]
+prerequisites: []
+---
 # Communication Framework
 
 ## Goal

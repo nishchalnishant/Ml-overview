@@ -10,6 +10,17 @@ tags: [llms, ml, interview-notes-ai-safety-ethi]
 
 # AI Safety, Ethics, and Responsible AI
 
+## What A Senior Answer Should Sound Like
+
+A senior answer about safety should separate:
+
+- the failure mode
+- the control point
+- the measurement method
+- the deployment boundary
+
+If those are not explicit, you are probably describing policy, not engineering.
+
 ---
 
 ## The concrete failure that motivates this entire topic
@@ -25,6 +36,7 @@ Every question in this section is about a specific way this goes wrong and what 
 **The problem.** A model trained on next-token prediction learns to produce fluent, plausible text. Fluent and plausible are not the same as true. The model has no truth signal in training — it only has "does this token follow statistically from the previous ones?" It will produce a confident, well-structured citation that doesn't exist because that's what plausible text after "according to [Author, Year]" looks like.
 
 **The core insight.** Hallucinations are not lies or malfunction — they're the natural output of a model optimized for fluency without a truth-grounding mechanism. The fix requires grounding: anchor generation to retrieved evidence, then verify that the output is actually supported by that evidence.
+For interview purposes, the important distinction is between "sounds right" and "is supported."
 
 **The mechanics.**
 
@@ -54,6 +66,7 @@ def grounded_response(query, retriever, llm, faithfulness_checker):
 - RAG grounding only works if the retrieval finds relevant documents. If the retrieval misses, the model still hallucinates based on training data.
 - Faithfulness checkers themselves can be fooled by semantically similar but factually different paraphrases.
 - Low temperature reduces hallucination variance but doesn't eliminate it — the most probable wrong token is still wrong.
+- Grounding is only as good as the document freshness and retrieval ACLs behind it.
 
 **What the interviewer is testing.** Whether you understand the root cause (fluency optimization without truth signal) and know that the fix requires both retrieval and faithfulness verification, not just prompting the model to "be accurate."
 
@@ -104,6 +117,7 @@ Normalize text, strip zero-width characters, detect adversarial Unicode encoding
 - Prompt-based defenses ("ignore any instructions in retrieved content") are themselves text and can be overridden by sufficiently adversarial inputs.
 - Tool allowlists don't prevent injections from being effective if the allowed tools are themselves dangerous.
 - HITL adds latency; not suitable for high-throughput agents.
+- If retrieved documents are not treated as untrusted data, the whole chain is compromised.
 
 **What the interviewer is testing.** Whether you understand that prompt injection is structural, not a content-filtering problem — the solution is code-level trust boundaries.
 
@@ -150,6 +164,7 @@ class GuardrailStack:
 - Single-layer guardrails (input only): the model can still produce harmful output via indirect prompting.
 - Output-only guardrails: malicious inputs can manipulate the reasoning process even if the final output is filtered.
 - Using the main LLM as the safety judge: the same model can be manipulated into passing its own harmful output.
+- Guardrails need independent enforcement, not just model self-assessment.
 
 **What the interviewer is testing.** Whether you understand that effective guardrails require independence from the model being guarded, and that both input and output layers are necessary.
 

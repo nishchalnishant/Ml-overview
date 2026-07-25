@@ -16,6 +16,8 @@ Mental model:
 - **fine-tuning** = building a customized artifact
 - **agent workflow** = an orchestrated multi-step pipeline with retries, tools, and guardrails
 
+**Boundary rule:** this folder is about making LLMs useful in products and workflows. If the question is about pretraining, scaling laws, tokenization, or model internals, go to [../10-llms](../10-llms/README.md). If the question is about serving throughput, quantization, batching, or inference cost, go to [../12-systems-and-scale](../12-systems-and-scale/README.md).
+
 ## Start Here
 
 Read these in order:
@@ -69,6 +71,18 @@ That journey gives you the clean progression:
 
 - `12-mcp.md`
   Understand the Model Context Protocol — the standard interface that makes tools reusable across agent frameworks.
+
+## Interview Shape
+
+If you need to answer quickly in an interview, frame LLM applications as a pipeline:
+
+1. **Grounding** — RAG, search, citations, freshness
+2. **Adaptation** — prompting, tuning, synthetic data
+3. **Orchestration** — agents, tools, retries, guardrails
+4. **Efficiency** — batching, caching, speculative decoding, routing
+5. **Quality control** — evaluation, regression tests, safety checks
+
+If your answer does not mention at least one of those, it is probably too shallow for a senior round.
 
 ## Debugging Mental Model
 

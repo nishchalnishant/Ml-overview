@@ -40,7 +40,7 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 ## 1. Feature Engineering
 
 - [01-foundations/04-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md) — leakage, missing data, encoding
-- [02-classical-ml/04-data-preprocessing.md](../../02-data/03-data-preprocessing.md)
+- [02-data/02-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md)
 - [02-classical-ml/09-feature-selection.md](../../02-data/05-feature-selection.md)
 - [02-classical-ml/10-dimensionality-reduction.md](../../03-classical-ml/05-dimensionality-reduction.md)
 - [02-classical-ml/11-imbalanced-data.md](../../02-data/06-imbalanced-data.md) — churn/fraud-style targets are almost always imbalanced

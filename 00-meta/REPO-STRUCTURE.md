@@ -1,3 +1,9 @@
+---
+module: Meta
+topic: "REPO-STRUCTURE"
+tags: [meta, repo-maintenance]
+prerequisites: []
+---
 # Repo Structure — Target State and Migration Plan
 
 **Purpose:** This repo is an **interview-preparation knowledge base** for ML/DL engineering roles (SDE-2 / AI Engineer and above). Every structural decision below serves that goal: content is organized so you can find a concept, understand it deeply, and defend it under cross-examination.

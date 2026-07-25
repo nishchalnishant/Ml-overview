@@ -1,3 +1,9 @@
+---
+module: Projects
+topic: Interview Template
+tags: [projects, interview-template, ml-coding]
+prerequisites: []
+---
 # Scenario Brief — Fraud Risk Scoring for a Payments Platform
 
 Read this once, then close it. Everything below is what "the interviewer" would tell you verbally

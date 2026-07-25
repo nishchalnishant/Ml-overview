@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Recommendation System"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 17 — Large-Scale Collaborative Filtering Recommender (Condensed)
 
 Build "Recommended Games for You" for EA Play (millions of users, thousands of games) using only implicit signals (installs + playtime), no explicit ratings.

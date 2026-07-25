@@ -9,6 +9,23 @@ tags: [productionml, ml, system-design-index]
 
 Structured prompts and full-system walkthroughs. Start with [ML Engineering & Production](03-machine-learning-engineering.md) for lifecycle framing, then [Design Interview Case Studies](01-design-interview-framework.md) for whiteboard rhythm.
 
+## How This Section Differs
+
+- This folder is the **interview-facing case study layer**.
+- [13-production-ml](../13-production-ml/README.md) is the **production mechanics layer**.
+- [16-interview-prep](../16-interview-prep/README.md) is the **drill and recall layer**.
+- If a question is about “how would you structure the answer,” use the framework files here. If it is about “how does the system actually work in prod,” go back to `13-production-ml`.
+
+## What Makes This Section Staff-Level
+
+The goal is not to memorize one architecture. The goal is to explain:
+
+- why one design is better than another under a latency or cost constraint
+- how data flows through the system end to end
+- what breaks first at scale
+- where to place observability and rollback points
+- how to defend a tradeoff under pressure
+
 ## Core guides
 
 | Guide | Focus |
@@ -46,6 +63,7 @@ Structured prompts and full-system walkthroughs. Start with [ML Engineering & Pr
 | Data engineering for ML | [data-engineering-for-ml.md](../13-production-ml/06-data-engineering-for-ml.md) |
 | Streaming ML pipeline | [streaming-ml-pipeline.md](../13-production-ml/05-streaming-ml-pipeline.md) |
 | Real-time ML systems | [real-time-ml-systems.md](../13-production-ml/04-real-time-ml-systems.md) |
+| Distributed training & serving reliability | [distributed-training-and-serving-reliability.md](../12-systems-and-scale/06-distributed-training-and-serving-reliability.md) |
 | Cost optimization | [cost-optimization.md](../12-systems-and-scale/05-cost-optimization.md) |
 | A/B testing & experimentation | [ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md) |
 | LLM inference ops | [llm-inference-ops.md](../12-systems-and-scale/04-llm-inference-ops.md) |
@@ -56,3 +74,11 @@ Structured prompts and full-system walkthroughs. Start with [ML Engineering & Pr
 - [MLOps](../13-production-ml/01-mlops.md)
 - [ML interview: system design](../13-production-ml/11-system-design-and-mlops.md)
 - [LLM interview: system design](../10-llms/interview-notes/07-ai-system-design.md)
+
+## Canonical Reading Order
+
+1. [ML Engineering & Production](03-machine-learning-engineering.md)
+2. [Design Interview Case Studies](01-design-interview-framework.md)
+3. The relevant case study under [cases/](cases/)
+4. [Production ML](../13-production-ml/README.md) for operational depth
+5. [Interview Prep](../16-interview-prep/README.md) for fast recall and drill practice

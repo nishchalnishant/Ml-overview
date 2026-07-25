@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Ab Testing"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 19 — A/B Testing & Experimentation Platform (Condensed)
 
 Design a scalable platform to route players between matchmaking Algorithm A (current) and Algorithm B (new), track telemetry, and prove statistical significance without bias. Core challenge: this is a matchmaking system, so naive per-user bucketing breaks the player pool (interference/SUTVA).

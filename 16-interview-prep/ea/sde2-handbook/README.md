@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: EA SDE-2 Handbook
+tags: [interview-prep, ea, sde2]
+prerequisites: []
+---
 # 🎮 Electronic Arts – SDE-2 AI Engineer Mock Interview Handbook
 
 > **Format:** 30 complete interview scenarios · Each ~60–90 min · 20 structured parts per interview  

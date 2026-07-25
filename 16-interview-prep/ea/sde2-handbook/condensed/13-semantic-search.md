@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Semantic Search"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 13 — Semantic Search for Game Asset Discovery (Condensed)
 
 Design multimodal search over 10M+ EA game assets (3D models, textures, audio) so artists can query by text ("rusty sci-fi container") or by uploaded image, instead of relying on exact filenames/manual tags.

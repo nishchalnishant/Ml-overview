@@ -1,3 +1,9 @@
+---
+module: Projects
+topic: Interview Template
+tags: [projects, interview-template, ml-coding]
+prerequisites: []
+---
 # Solution Walkthrough — read only after attempting the drill
 
 This is the answer key. If you haven't run the drill yourself against

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Anomaly Detection"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 16 — Real-Time Anomaly Detection on Streaming Data (Condensed)
 
 Design an ML system that monitors 1-second server telemetry (CPU, memory, bandwidth, players, latency) across EA's game server fleet and fires an alert when a server behaves erratically (memory leak, DDoS, hardware failure) before players notice.

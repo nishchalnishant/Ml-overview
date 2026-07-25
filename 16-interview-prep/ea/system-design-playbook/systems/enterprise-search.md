@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Enterprise Search"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Enterprise Search
 
 ## 1. Problem Framing & Requirement Gathering

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Streaming Ml"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Streaming ML Platform
 
 ## 1. Problem Framing

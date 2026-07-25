@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Feature Store"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 14 — Real-Time Feature Store (Condensed)
 
 Multiple game teams need to join batch features ("lifetime spend") with streaming features ("items bought in last 5 min") at inference time, in <10ms, with training/serving consistency. Design a real-time feature store.

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Store Recommendations"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 09 — In-Game Store Recommendation Engine (Cheat Sheet)
 
 Build the "For You" carousel (top 6 of 5,000 cosmetic items) for 50M players to maximize purchase conversion. Core challenge: item/user cold start + real-time inventory filtering on top of heavy offline ML.

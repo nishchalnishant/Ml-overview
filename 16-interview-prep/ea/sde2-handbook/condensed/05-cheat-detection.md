@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Cheat Detection"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Cheat Sheet — Real-Time Cheat Detection (Aimbot)
 
 Server-side ML system to detect FPS aimbots purely from player telemetry (pitch/yaw/fire events), replacing bypassable client-side memory scanning. Must run at scale (millions of players, 60Hz) with near-real-time action (mid-match kicks).

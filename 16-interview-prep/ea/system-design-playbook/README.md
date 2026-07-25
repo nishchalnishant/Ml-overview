@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: EA System Design Playbook
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # EA AI System Design Playbook
 
 An interview-prep playbook for **SDE-2 / Principal-level AI system design interviews at EA** (Electronic Arts). It covers 23 realistic AI/ML systems spanning LLM-based products, gameplay/player ML, telemetry pipelines, and ML platform infrastructure — the kind of systems an EA interviewer would ask you to design end-to-end on a whiteboard. All 23 chapters below are written and populated (audited at 658–879 lines each).

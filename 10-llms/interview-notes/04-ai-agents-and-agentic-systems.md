@@ -16,6 +16,18 @@ tags: [llms, ml, interview-notes-ai-agents-and-]
 
 You ask an LLM: "Search the web for the top 5 ML papers from last month, summarize each one, save them to a file, and send me a Slack notification." A single LLM call cannot do this. It doesn't remember what it found in step 1 when it's writing step 3. It can't execute code. If step 2 fails, it can't retry. It has no way to know when it's done. Everything in this section is derived from solving these concrete problems.
 
+## What A Senior Answer Should Sound Like
+
+Senior answers about agents should separate:
+
+- the reasoning loop
+- the memory model
+- the tool boundary
+- the safety boundary
+- the stopping condition
+
+If those are not explicit, the design sounds clever but incomplete.
+
 ---
 
 ## Q1: What is an AI agent, and how does it differ from a single LLM call?
@@ -63,6 +75,7 @@ Each component solves a specific failure:
 - Without max_steps: infinite loops, especially on ambiguous tasks.
 - Without memory management: context window overflow; early context is truncated and the agent forgets the original task.
 - Without structured stopping conditions: the agent hallucinates completion or loops indefinitely.
+- Without clear tool permissions: the agent will attempt actions it should never be allowed to perform.
 
 **What the interviewer is testing.** Whether you derive the agent architecture from the failure modes of a single LLM call, not memorize a definition.
 
@@ -123,6 +136,7 @@ memory = {
 - Using only long-term memory without short-term: no coherence in the current task thread.
 - Retrieving too much long-term context: injects irrelevant information that confuses the model.
 - Not managing episodic memory: agent retries actions that already failed without knowing they failed.
+- Storing everything in vector memory is not a strategy; it just moves the context-window problem into the retrieval layer.
 
 **What the interviewer is testing.** Whether you understand that memory is a retrieval system, not just "the conversation history."
 
@@ -184,6 +198,7 @@ class ToolRouter:
 - Tools that return huge outputs: fill the context window, crowd out relevant information.
 - Tools without clear descriptions: the model doesn't know when to use them.
 - Too many tools in context: model can't distinguish which to use; tool routing is required.
+- Tool design is a control-plane problem, not just an API problem.
 
 **What the interviewer is testing.** Whether you understand that the model is the reasoning layer and the application is the execution layer — the model never directly executes anything.
 
@@ -242,6 +257,7 @@ def react_agent(task, tools, max_steps=10):
 - Thoughts can be hallucinated rationalizations that precede wrong tool calls.
 - Long ReAct traces fill the context window; step 15 can no longer see step 1's reasoning.
 - The model may generate a "Thought" that ignores the previous Observation.
+- ReAct is only useful when the observation actually changes the next action; otherwise it is just verbose prompting.
 
 **What the interviewer is testing.** Whether you understand that Thought and Action are not independent — the interleaving is the mechanism, not a stylistic choice.
 

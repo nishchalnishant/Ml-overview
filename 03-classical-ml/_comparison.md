@@ -1,3 +1,9 @@
+---
+module: Classical ML
+topic: Algorithm Comparison
+tags: [classical-ml, comparison, decision-guide]
+prerequisites: [supervised-learning, unsupervised-learning]
+---
 # Classical ML — Rapid Comparison Cheat Sheet
 
 Exhaustive, comparison-first review of every model/algorithm/technique in this folder. Scan a section, compare rows, then check the per-entry pick-criteria before an interview answer.

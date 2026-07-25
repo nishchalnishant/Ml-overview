@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Live Game Analytics"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Live Game Analytics
 
 ## 1. Problem Framing & Requirement Gathering

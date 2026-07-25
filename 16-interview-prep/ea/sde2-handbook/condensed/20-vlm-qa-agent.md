@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Vlm Qa Agent"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 20 — Multimodal VLM Game Testing Agent (Condensed)
 
 Traditional coordinate/ID-based UI automation (Selenium/Appium) breaks whenever a game's UI shifts. Design an AI agent that uses a Vision-Language Model to read a screenshot + natural-language goal ("Buy a gold pack") and drive the game purely visually — no engine hooks.

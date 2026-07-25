@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Player Churn Prediction"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Player Churn Prediction
 
 ## 1. Problem Framing

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Dynamic Difficulty"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 29 — AI-Driven Dynamic Game Difficulty (Condensed)
 
 **Problem:** Single-player Action RPG — players quit on difficulty spikes or get bored when it's too easy. Design a DDA (Dynamic Difficulty Adjustment) AI system that tunes enemy stats/spawns in real time to keep players in "Flow State" without them noticing.

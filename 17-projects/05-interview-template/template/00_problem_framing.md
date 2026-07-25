@@ -1,3 +1,9 @@
+---
+module: Projects
+topic: Interview Template
+tags: [projects, interview-template, ml-coding]
+prerequisites: []
+---
 # 00 — Problem Framing (do this before writing any code)
 
 Say this out loud, in this order, before touching the keyboard. ~2 minutes.

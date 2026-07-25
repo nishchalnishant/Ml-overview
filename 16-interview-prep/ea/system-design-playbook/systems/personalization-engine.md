@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Personalization Engine"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Personalization Engine
 
 ## 1. Problem Framing

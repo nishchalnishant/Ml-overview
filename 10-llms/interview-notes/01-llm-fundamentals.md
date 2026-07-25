@@ -10,6 +10,17 @@ tags: [llms, ml, interview-notes-llm-fundamenta]
 
 # LLM Fundamentals — Interview Notes
 
+## What A Senior Answer Should Sound Like
+
+When an interviewer asks about LLM fundamentals, do not stop at definitions. The stronger answer ties the concept to:
+
+- the training objective
+- the inference constraint
+- the failure mode
+- the production implication
+
+That is the difference between knowing the vocabulary and being able to operate the system.
+
 ---
 
 ## Foundation Models
@@ -21,6 +32,7 @@ tags: [llms, ml, interview-notes-llm-fundamenta]
 **The mechanics**: self-supervised pretraining on raw text (next-token prediction or masked token prediction), followed by task-specific adaptation via prompting or fine-tuning. The pretraining loss is free — no human annotation needed at scale. Adaptation is cheap because the base knowledge is already there.
 
 **What breaks**: the model freezes its knowledge at training time (staleness), inherits biases from the pretraining corpus, and has no principled way to distinguish what it learned from what it hallucinated. Emergent capabilities appear unpredictably above certain parameter thresholds, making capability forecasting unreliable. A flaw in the foundation (bias, factual error, misaligned behavior) propagates to every downstream application.
+At interview level, the key production implication is simple: better pretraining does not remove the need for retrieval, policy controls, and evals.
 
 **What the interviewer is testing**: do you understand *why* transfer learning at this scale works — not just that it works?
 
@@ -37,6 +49,7 @@ tags: [llms, ml, interview-notes-llm-fundamenta]
 **The mechanics**: at each step, the model takes a sequence of token IDs, runs them through a stack of transformer layers, and outputs a probability distribution over the vocabulary via softmax. Sample (or greedily select) the next token, append it to the sequence, repeat. During training: compute cross-entropy loss between the predicted distribution and the true next token; backpropagate; update weights. The same model is used for training and inference — the causal mask ensures token t cannot attend to tokens t+1, t+2, ... so the training on all positions can be parallelized.
 
 **What breaks**: hallucination — the model produces the most statistically plausible continuation, not the most factually accurate one. It cannot "decide not to answer" unless trained to do so. It cannot look ahead before generating — it is committed to each token as it produces it. Context window limits are hard: attention is O(N²) in sequence length.
+The useful follow-up is: if the model is just predicting the next token, where do you inject truth, safety, and freshness? The answer is outside the base objective.
 
 **What the interviewer is testing**: whether you understand that generation is just prediction on a loop, not "retrieval" or "thinking" in any classical sense.
 
@@ -85,6 +98,7 @@ tags: [llms, ml, interview-notes-llm-fundamenta]
 Result: common English words become single tokens; rare words decompose into known substrings; non-English text uses more tokens per word (the "token tax").
 
 **What breaks**: tokenization is computed outside the neural network. The model never sees individual characters — only token IDs. This is why LLMs fail to count letters ("how many r's in strawberry?") — they receive "strawberry" as a single opaque token. Low-resource languages are penalized: if the tokenizer was trained on 99% English data, a Hindi word that would be 1 English-equivalent token becomes 6–10 byte tokens, consuming context and costing more.
+In production, the token tax is also a budget tax: every extra token costs latency and money, so multilingual performance and cost are tied together.
 
 **What the interviewer is testing**: do you know that tokenization is a lossy preprocessing step that has downstream consequences for model behavior, cost, and multilingual performance?
 
@@ -111,6 +125,7 @@ Running H parallel attention heads lets the model simultaneously resolve differe
 KV cache: during autoregressive generation, K and V matrices for past tokens do not change. Caching them eliminates recomputation, making inference tractable. KV cache size scales as O(n_layers × n_heads × sequence_length × d_head) — this is the primary memory cost at inference for long contexts.
 
 **What breaks**: attention cannot distinguish which relationships are causal versus correlational — it just learns what co-occurs in training data. Attending to all tokens equally is the right thing at train time (via teacher forcing) but expensive at inference. For 128k-token contexts, the KV cache alone can exceed GPU memory.
+If context gets very long, the bottleneck is rarely "model intelligence" first. It is usually memory pressure and retrieval quality.
 
 **What the interviewer is testing**: whether you understand why QKV is split into three projections rather than just doing raw dot-products, and what the KV cache is.
 
@@ -131,6 +146,7 @@ KV cache: during autoregressive generation, K and V matrices for past tokens do 
 - **Encoder-decoder (T5, BART)**: encoder processes the full input bidirectionally; decoder generates output with cross-attention to the encoder's hidden states. Natural for tasks with explicit input/output structure (translation, summarization). More parameters to serve, slower inference.
 
 **What breaks**: decoder-only models technically have access to their full generated history (the KV cache) but cannot revise what they have already emitted — no backtracking. Encoder-only models are not generative. Encoder-decoder models require running both branches at inference, increasing latency.
+That is why architecture choice is usually a latency and training-objective decision, not just a modeling-preference decision.
 
 **What the interviewer is testing**: whether you can reason about *why* modern LLMs are decoder-only, not just *that* they are.
 
@@ -154,6 +170,7 @@ D_optimal ≈ C^0.5
 with the approximate rule: D ≈ 20 × N (20 tokens per parameter). Earlier models (GPT-3) were significantly undertrained — massive models trained on too little data. Chinchilla showed that for the same compute, a smaller model trained on more data beats a larger model trained on fewer tokens.
 
 **What breaks**: scaling laws predict loss on the pretraining distribution, not task performance or safety. "Emergent abilities" (tasks that are near-zero performance, then suddenly useful above a threshold) are not well captured by smooth power laws — they appear as phase transitions. Inference cost scales with parameter count even if training was optimal, creating a tension between training efficiency and serving cost.
+So a staff-level answer always separates training economics from serving economics.
 
 **What the interviewer is testing**: do you know that "bigger is always better" was disproven by Chinchilla, and why compute-optimal training matters?
 
@@ -176,6 +193,7 @@ with the approximate rule: D ≈ 20 × N (20 tokens per parameter). Earlier mode
 - **Beam search**: maintain B candidate sequences simultaneously, expanding the most probable ones. Better for constrained tasks (translation, summarization) but produces generic text in open-ended generation.
 
 **What breaks**: top-p can still sample low-probability tokens if the distribution is flat (many equiprobable tokens). Repetition penalty hacks are often needed on top of sampling to prevent looping. Beam search produces text that scores high on likelihood metrics but reads as bland to humans.
+For product use, the choice is usually not "best decoding algorithm" but "best decoding strategy for the user experience we want."
 
 **What the interviewer is testing**: can you explain why greedy decoding is bad for quality, and what top-p actually does?
 
@@ -202,6 +220,7 @@ with the approximate rule: D ≈ 20 × N (20 tokens per parameter). Earlier mode
    The KL penalty prevents reward hacking — the policy gaming the reward model by exploiting patterns that score high but are not actually preferred by humans.
 
 **What breaks**: RLHF requires a high-quality reward model, which is itself a trained model that can be wrong. Reward hacking occurs when the policy finds reward model exploits (e.g., verbose responses score higher if annotators equate length with quality). DPO (Direct Preference Optimization) eliminates the reward model entirely by reparameterizing the RLHF objective, producing equivalent alignment with a simple cross-entropy loss on preference pairs.
+The practical interview answer is that alignment is still an engineering problem: data quality, preference design, and evals matter more than the acronym.
 
 **What the interviewer is testing**: do you understand why all three phases are necessary and what each one actually changes?
 
@@ -222,6 +241,7 @@ with the approximate rule: D ≈ 20 × N (20 tokens per parameter). Earlier mode
 3. **Context infidelity**: in RAG or long-context settings, the model generates answers consistent with its parametric knowledge rather than the retrieved context. The context contradicts what was "learned," and the model discounts it.
 
 **What breaks the mitigations**: RAG reduces knowledge-gap hallucination but not sycophancy or context infidelity. Chain-of-thought reduces reasoning errors but not factual invention. Grounding prompts ("answer only from context") reduce context infidelity but only when the model has been trained to follow such instructions reliably.
+If the question is "can we trust the answer?", the answer is almost always "only after we define what kind of error we are defending against."
 
 **What the interviewer is testing**: whether you understand that hallucination is structural, not a single fixable bug — and that different types require different interventions.
 

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Liveops Agent"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 08 — LiveOps Campaign Agent (Cheat Sheet)
 
 LiveOps managers manually write SQL, emails, and JSON configs to run campaigns (e.g. double-XP weekends). Build a conversational LLM agent that finds a player cohort, drafts an email, and prepares an item-grant/campaign trigger from a single natural-language prompt.

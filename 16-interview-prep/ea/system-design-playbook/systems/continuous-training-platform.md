@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Continuous Training Platform"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Continuous Training Platform
 
 ## 1. Problem Framing

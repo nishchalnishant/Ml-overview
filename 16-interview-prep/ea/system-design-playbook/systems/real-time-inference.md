@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Real Time Inference"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Real-Time Inference Platform
 
 ## 1. Problem Framing

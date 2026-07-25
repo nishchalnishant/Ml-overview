@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Npc Assistant"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 04 — LLM-Powered NPC Dialogue Assistant (Condensed)
 
 **Problem:** Design the backend "brain" service for a real-time voice-driven NPC in a game (e.g. Mass Effect). Player speaks → STT → your service returns streaming text → TTS → NPC voice. Must stay in-character, avoid hallucinating lore, resist jailbreaks, and hit tight voice-to-voice latency.

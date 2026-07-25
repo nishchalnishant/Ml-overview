@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Dynamic Pricing"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Dynamic In-Game Store Pricing & Promotions — Cheat Sheet
 
 Ultimate Team wants personalized discount coupons instead of static pack prices, to lift revenue without players feeling cheated. Design an ML system that picks the optimal discount per player.

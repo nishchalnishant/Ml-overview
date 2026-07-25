@@ -12,9 +12,20 @@ that flips you to the alternative. Treat these as starting positions, not script
 in your own words and adjust for the specifics of whatever role/problem you're given. Practice
 saying the whole 4-part shape out loud in under 20 seconds.
 
+Use this file for rapid decision-making drills. If you need the full mechanism, go to the
+canonical deep dives first:
+- [Classical ML](../03-classical-ml/README.md)
+- [Deep Learning Core](../05-deep-learning-core/README.md)
+- [LLMs](../10-llms/README.md)
+- [LLM Applications](../11-llm-applications/README.md)
+- [Production ML](../13-production-ml/README.md)
+- [System Design](../15-system-design/README.md)
+
 ---
 
 ## Part 1 — Classical ML
+
+Use these when the interviewer is testing inductive bias, not just model names.
 
 ### Model choice
 
@@ -180,6 +191,8 @@ saying the whole 4-part shape out loud in under 20 seconds.
 
 ## Part 2 — Deep Learning
 
+Use these when the interviewer wants the mechanism, optimization behavior, and failure modes.
+
 ### Architecture choice
 
 **CNN vs. Vision Transformer (ViT) for an image task?**
@@ -308,6 +321,8 @@ saying the whole 4-part shape out loud in under 20 seconds.
 ---
 
 ## Part 3 — LLMs
+
+Use these when the interviewer is asking about training, alignment, serving, or retrieval tradeoffs.
 
 ### Architecture & scaling
 

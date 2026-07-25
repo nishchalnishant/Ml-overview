@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Knowledge Graph"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 24 — Knowledge Graph Construction for Lore & Story (Condensed)
 
 BioWare narrative team needs an automated pipeline to turn 20 years of unstructured lore (wikis, GDDs, scripts, novels) into a queryable Knowledge Graph, so writers stop creating plot holes. Query example: "Who are all the enemies of Commander Shepard born on Earth?"

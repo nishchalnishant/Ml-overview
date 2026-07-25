@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Genai 3d Assets"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 23 — GenAI for 3D Asset Creation (Condensed)
 
 **Problem:** Artists spend days modeling simple background props (crates, barrels, streetlamps). Design an internal tool where an artist types a prompt ("Rusty sci-fi crate") and gets an instant, game-ready textured 3D model usable in Frostbite.

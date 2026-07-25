@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Generative Audio"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 26 — Generative Audio: Dynamic NPC Voice Cloning (Condensed)
 
 Design a TTS/voice-cloning pipeline to voice 500 NPCs across 1M+ dialogue lines generated dynamically by an LLM, matching original actors' voices, emotionally expressive, fast enough for live gameplay.

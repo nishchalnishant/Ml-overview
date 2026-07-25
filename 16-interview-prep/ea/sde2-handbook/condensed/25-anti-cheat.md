@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Anti Cheat"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Anti-Cheat: Client-side Memory Anomaly Detection — Cheat Sheet
 
 EAAC's kernel driver collects mouse/memory telemetry to catch aimbots/wallhacks that mimic human behavior. Design an ML system that runs **on the game client** (not just server) under brutal CPU/RAM limits, with a safe escalation path so false positives don't instant-ban innocent players.

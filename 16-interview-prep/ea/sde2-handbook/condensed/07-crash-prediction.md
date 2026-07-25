@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Crash Prediction"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Crash Prediction Cheat Sheet
 
 Predict if a game client will crash in the next 60 seconds from live telemetry (memory, CPU temp, frame drops), so the client can auto-save or degrade gracefully before it happens. The catch: inference must run on the player's device, under brutal latency/size constraints.

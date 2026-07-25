@@ -9,6 +9,18 @@ tags: [productionml, ml, system-design-production-diagn]
 
 Decision trees for the four most common production ML incidents. Each tree is a structured interview framework — walk the interviewer through it to demonstrate systematic thinking.
 
+## How To Use This
+
+When you answer in an interview, always start with:
+
+1. what changed
+2. what metric moved
+3. whether the failure is sudden or gradual
+4. where you would check first
+5. how you would roll back safely
+
+That sequence keeps you from jumping straight to retraining when the problem might be data, serving, or deployment.
+
 ---
 
 ## 1. Model Accuracy Drop
@@ -50,6 +62,8 @@ issue?       or concept drift?
    Check: serving version matches trained version
    Check: feature serving latency (stale features?)
    Check: model binary integrity (checksum)
+
+**If the answer is still unclear:** compare the same input batch against the old and new model, then diff the features, not just the predictions.
 ```
 
 ### Gradual Drop — Drift Diagnosis
@@ -120,6 +134,13 @@ def detect_concept_drift(residuals_old, residuals_new, alpha=0.01):
 | Concept drift | P(Y\|X) changes, P(X) stable | Fraud pattern changes | Retrain, possibly new features |
 | Label drift | P(Y) changes | Click rates drop seasonally | Recalibrate threshold |
 | Virtual drift | P(X) changes into unexplored region | New product category | Cold start treatment |
+
+## Staff-Level Incident Questions
+
+- What is the first metric you would page on?
+- Do you need rollback, retraining, or a data fix?
+- Is the issue isolated to one slice or system-wide?
+- Which artifact version changed first: data, features, model, prompt, or deployment config?
 
 ---
 

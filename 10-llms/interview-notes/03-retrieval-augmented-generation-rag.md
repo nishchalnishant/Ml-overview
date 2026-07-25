@@ -14,6 +14,18 @@ See also: [RAG deep dive](../../11-llm-applications/02-rag.md)
 
 > **Related:** this is the *interview-lens* treatment. For the production/engineering deep-dive (document ingestion, ANN indexes, vector DBs, context assembly) see [11-llm-applications/02-rag.md](../../11-llm-applications/02-rag.md).
 
+## What A Senior Answer Should Sound Like
+
+A strong RAG answer should always separate:
+
+- retrieval quality
+- grounding quality
+- security boundaries
+- freshness/versioning
+- evaluation
+
+If you cannot say which of those is failing, you are probably not debugging RAG, you are just describing it.
+
 ---
 
 ## Why RAG Exists
@@ -31,6 +43,7 @@ See also: [RAG deep dive](../../11-llm-applications/02-rag.md)
 The critical constraint: ingestion and query-time embedding must use the same model. Different models produce different vector spaces — a query vector from model B cannot retrieve documents embedded with model A.
 
 **What breaks**: RAG reduces knowledge-gap hallucination but does not eliminate context infidelity (the model ignoring the retrieved context and answering from its weights). RAG adds latency (embedding + search + generation) and operational complexity (maintaining a separate retrieval system). Knowledge in the store can itself be wrong or outdated if ingestion is not maintained.
+That means the real production question is not "is there retrieval?" but "is retrieval good enough, current enough, and secure enough to trust?"
 
 **What the interviewer is testing**: whether you understand why RAG and fine-tuning are complementary, not competing. RAG changes what the model knows at inference time. Fine-tuning changes how the model behaves. A medical assistant might be fine-tuned to write in clinical note format but still use RAG to retrieve current drug interactions.
 
@@ -55,6 +68,7 @@ Industry starting point: 512 tokens with 10–20% overlap for most structured do
 **Parent-child chunking**: index small chunks (256 tokens) for retrieval precision; return the parent chunk (1024 tokens) for LLM context. This resolves the tension between retrieval precision and answer context richness.
 
 **What breaks**: chunks too small lose the grammatical subject of a sentence; retrieval scores semantically empty text. Chunks too large embed over too much irrelevant content; the query vector matches text about one subsection but retrieves the whole page. Wrong chunk sizes are the silent killer — the eval metrics look reasonable but the system is missing answers it could retrieve.
+If the model seems clever but the system misses obvious answers, chunking and retrieval recall are usually the first places to inspect.
 
 **What the interviewer is testing**: whether you can diagnose chunking problems from symptoms (retrieval misses, context bloat) and know which chunking strategy fits which document type.
 
@@ -77,6 +91,7 @@ RRF_score(d) = Σ 1 / (k + rank_i(d))   where k = 60
 A document ranked #1 in both retrieval systems wins decisively. A document ranked in only one system can still surface if it ranks highly there. RRF does not require score normalization — you are combining ranks, not scores, so incompatible score scales do not matter.
 
 **What breaks**: hybrid search adds a second retrieval path, increasing ingestion complexity (separate BM25 index) and query latency. RRF does not have a semantic interpretation — it is a fusion heuristic that works empirically but does not optimize for a ground-truth relevance measure. Tuning the fusion weight (α in weighted hybrid) requires a labeled evaluation set.
+Hybrid search is worth the extra moving parts when exact identifiers matter. If your queries are mostly paraphrased questions, dense retrieval may be enough.
 
 **What the interviewer is testing**: whether you know the specific failure mode of dense-only retrieval (exact-match queries) and can describe RRF concretely.
 
@@ -95,6 +110,7 @@ A document ranked #1 in both retrieval systems wins decisively. A document ranke
 Why 50–100 candidates and not 20? The re-ranker often promotes a document from rank 40 to rank 1 — it is not just polishing the top results. If you pass only 20 candidates, you constrain the re-ranker's ability to recover missed relevant content.
 
 **What breaks**: re-ranking adds 100–300ms latency depending on candidate count. Do not re-rank more than 50–100 chunks — latency spikes are unacceptable. The re-ranker itself is a model that can be wrong. A re-ranker trained on general-domain pairs may not perform well in your domain — domain-specific fine-tuning helps.
+The staff-level tradeoff is that you are buying precision with latency. If the latency budget is already tight, you spend that budget on better retrieval first.
 
 **What the interviewer is testing**: whether you can articulate the bi-encoder vs. cross-encoder tradeoff and why the two-stage design is necessary.
 
@@ -116,6 +132,7 @@ Why 50–100 candidates and not 20? The re-ranker often promotes a document from
 4. **Explicit labeling**: number chunks and include "Cite the evidence by number" instructions, which forces the model to actively locate the relevant chunk.
 
 **What breaks**: aggressively reducing top-K increases the risk of excluding the relevant chunk entirely if retrieval recall is imperfect. The mitigation is investing in better retrieval (re-ranker, hybrid search) not increasing top-K.
+This is usually the right place to say: "more context is not a substitute for better context."
 
 **What the interviewer is testing**: whether you know that more context can hurt quality and understand why — it is an attention positional bias, not a capacity limit.
 
@@ -142,6 +159,7 @@ Why 50–100 candidates and not 20? The re-ranker often promotes a document from
 **Retrieval-only metrics**: Hit Rate (does the relevant document appear in top-K?), MRR (Mean Reciprocal Rank — at what rank does the relevant document first appear?).
 
 **What breaks**: faithfulness measurement requires an NLI (natural language inference) model or an LLM-as-judge. Both can be wrong. RAGAS scores are noisy on small evaluation sets — you need at least 100–200 examples for stable metrics. Context recall requires knowing the gold answer in advance, which means maintaining a labeled evaluation set.
+At interview level, the important point is that RAG evaluation is component-level, not just end-to-end.
 
 **What the interviewer is testing**: whether you know to evaluate retrieval and generation independently, and can name specific metrics for each.
 

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Model Registry"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Model Registry
 
 ## 1. Problem Framing

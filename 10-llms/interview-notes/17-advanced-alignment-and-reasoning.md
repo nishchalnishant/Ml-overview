@@ -10,6 +10,17 @@ tags: [llms, ml, interview-notes-advanced-align]
 
 # Advanced Alignment and Reasoning
 
+## What A Senior Answer Should Sound Like
+
+A senior answer about alignment should separate:
+
+- the proxy objective
+- the deployment incentive
+- the failure mode
+- the eval you would trust
+
+If you do not name the proxy gap, you are probably still describing training, not alignment.
+
 ---
 
 ## The concrete failure that motivates this entire topic
@@ -25,6 +36,7 @@ Every technique in this section exists because of variants of this failure.
 **The problem.** Pretraining produces a model that can generate fluent text. It can't follow instructions reliably and it has no sense of what humans actually want. You need to align it to human preferences. But "human preferences" is not a single thing — it includes accuracy, helpfulness, safety, and the feeling of satisfaction from a response, which are all different signals and sometimes in tension.
 
 **The core insight.** RLHF trains a separate reward model on human preference comparisons, then uses that reward model as a training signal for the policy. The reward model is a proxy for human judgment. Like any proxy, it diverges from the real thing when over-optimized. Raters systematically prefer confident, fluent, agreeable answers — so the policy learns to be confident and agreeable, which is not the same as being accurate.
+That is why alignment questions are never just about loss functions. They are about incentives.
 
 **The mechanics.**
 
@@ -69,6 +81,7 @@ The KL term prevents the policy from drifting too far from the SFT model. Withou
 - **Reward model distributional shift**: the RM was trained on SFT-model outputs. As PPO shifts the policy distribution, the RM sees out-of-distribution inputs and its scores become unreliable.
 - **Mode collapse in diversity**: PPO with a single RM can collapse to a narrow style even if many styles would be good.
 - **Instability**: 4-model PPO setup is computationally expensive and training-unstable.
+- In production, the user-facing issue is usually not "alignment failed" in the abstract; it is that a proxy metric improved while the actual user outcome got worse.
 
 **What the interviewer is testing.** Whether you understand the proxy-objective gap, not just the training pipeline. Most candidates can describe the 3-stage pipeline. Fewer can explain why it produces sycophancy and reward hacking.
 
@@ -136,6 +149,7 @@ def dpo_loss(policy_model, ref_model, x, y_w, y_l, beta=0.1):
 - DPO is sensitive to the reference model choice. A weak reference model means small KL budget and limited room to improve.
 - Length exploitation: the model can increase `log(π_θ(y_w|x))` by increasing response length. SimPO's length normalization addresses this.
 - Out-of-distribution preference pairs: if `y_w` and `y_l` are both unlikely under `π_ref`, the gradients are noisy.
+- DPO simplifies the training loop, but it does not remove the need for good preference data and strong evals.
 
 **What the interviewer is testing.** Whether you can derive why DPO works (the reparametrization insight), not just state that it "eliminates the reward model." The key is the equivalence between the RL objective and the supervised DPO objective.
 
@@ -183,6 +197,7 @@ The constitution itself is a list of natural language principles covering harmle
 - If the model is bad at critiquing, the training data quality suffers.
 - The principles still require careful human authorship — writing a constitution is hard and the choices are non-obvious.
 - AI-generated preference data still requires human validation to catch systematic failures.
+- Constitutional AI is a control strategy, not a proof of safety.
 
 **What the interviewer is testing.** Whether you understand the scalability motivation (replacing human raters with model-generated critiques) and the key limitation (model bias in critiques). Also whether you can distinguish RLAIF from RLHF.
 
@@ -235,6 +250,7 @@ ToT is useful when the problem has clear intermediate states that can be evaluat
 - CoT chains can be grammatically coherent but logically wrong. The model generates plausible-sounding steps, not necessarily correct ones.
 - For simple factual questions, CoT adds noise — you don't need intermediate reasoning to retrieve a memorized fact.
 - Self-consistency requires sampling diversity; if temperature is too low, all N samples agree even when wrong.
+- CoT helps most when the answer can be decomposed into verifiable intermediate steps.
 
 **What the interviewer is testing.** Whether you understand *why* CoT works (autoregressive computation-as-scratchpad) rather than just knowing it exists. Also whether you know the failure mode: CoT generates *plausible* reasoning, not *correct* reasoning.
 

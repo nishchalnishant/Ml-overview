@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Mlops Pipeline"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 30 — End-to-End MLOps Pipeline (Condensed)
 
 **Problem:** Take a Data Scientist's Jupyter Notebook model ("In-Game Ad Targeting" — predict which cosmetic a player buys) and design the end-to-end MLOps pipeline to serve it in real-time to millions of DAU with 200ms SLA.

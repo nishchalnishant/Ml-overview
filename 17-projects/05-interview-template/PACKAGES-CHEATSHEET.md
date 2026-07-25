@@ -1,3 +1,9 @@
+---
+module: Projects
+topic: Interview Template
+tags: [projects, interview-template, ml-coding]
+prerequisites: []
+---
 ```python
 # --- core ---
 import numpy as np

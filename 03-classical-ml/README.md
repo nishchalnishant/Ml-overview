@@ -30,7 +30,7 @@ Several files here cover **the same algorithms on purpose**. They are different 
 | [supervised-learning.md](01-supervised-learning.md) | **Deep dive.** Linear/Logistic Regression, SVM, Decision Trees, Ensembles (RF/XGBoost), KNN, Naive Bayes |
 | [algorithms.md](03-algorithms.md) | **Interview framing** of the same algorithms + K-Means, PCA, and a selection framework |
 | [unsupervised-learning.md](02-unsupervised-learning.md) | K-Means, DBSCAN, GMM, Hierarchical Clustering, PCA/t-SNE/UMAP |
-| [data-preprocessing.md](../02-data/03-data-preprocessing.md) | Data Leakage, Missing Data, Scaling, Categorical Encoding, Concept Drift |
+| [data-processing-and-eda.md](../02-data/02-data-processing-and-eda.md) | Data Leakage, Missing Data, Scaling, Categorical Encoding, Concept Drift |
 | [classical-ml-flashcards.md](_flashcards.md) | Active recall flashcards for all classical ML concepts |
 
 ## Files in This Folder

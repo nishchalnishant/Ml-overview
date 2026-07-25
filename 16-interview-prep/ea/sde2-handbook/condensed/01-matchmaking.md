@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Matchmaking"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Matchmaking (FIFA Online) — 60-Min Cheat Sheet
 
 Fixed ±200 Elo search radius causes long queues off-peak, lopsided matches when radius widens, and smurfs ruining beginner lobbies. Design a real-time, production-grade skill-based matchmaking (SBMM) system that balances fairness vs. queue time.

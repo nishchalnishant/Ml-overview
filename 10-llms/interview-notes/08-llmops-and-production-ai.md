@@ -18,6 +18,18 @@ This creates a new class of operational problem. Your "model" is not fixed. Your
 
 LLMOps is the discipline of operating systems like this reliably: versioning non-code artifacts, measuring quality continuously, rolling out changes safely, and recovering quickly when things break.
 
+## What A Senior Answer Must Include
+
+When you answer an LLMOps question, name these explicitly:
+
+- the versioned artifact bundle, not just the model checkpoint
+- the eval gate that blocks bad releases
+- the rollback path for prompts, retrieval, policy, and model versions
+- the monitoring signal that would catch regressions first
+- the incident boundary between code, data, and model behavior
+
+If your answer does not mention artifact versioning or rollback, it is not really about LLMOps yet.
+
 ---
 
 ## 1. The AI Product Lifecycle
@@ -45,6 +57,7 @@ The deployment unit is not a model checkpoint — it's a **versioned bundle**: p
 ### What Breaks
 
 Deploying without eval gates — you don't know if the new bundle is better or worse. No rollback plan — when quality degrades in production, you scramble to identify what changed. Not tracking retrieval index versions — a rebuilt index changes behavior even if the model and prompt are identical.
+Not tracking prompt or policy versions — you cannot reproduce a regression when the application code stayed fixed.
 
 ### What the Interviewer Is Testing
 
@@ -90,6 +103,7 @@ artifact_bundle = {
 ### What Breaks
 
 Applying traditional MLOps processes without accounting for non-code artifacts — prompt changes are not tracked in your model registry. Not measuring quality metrics specific to LLM failures (hallucination, format, safety) because your MLOps tooling only measures accuracy/F1.
+Treating the retrieval index as "data" instead of a release artifact — if the index changes, the system changes.
 
 ### What the Interviewer Is Testing
 
@@ -134,6 +148,7 @@ Every serving optimization targets one of these two bottlenecks. Diagnosing whic
 ### What Breaks
 
 Vertical scaling (bigger GPU) when the problem is batching inefficiency. Optimizing TTFT when users are complaining about slow generation (TPOT is the issue). Running without profiling — guessing at the bottleneck.
+Ignoring cold start is another common failure: model load time, container start, and kernel warmup can dominate the p95 even if steady-state is fine.
 
 ### What the Interviewer Is Testing
 

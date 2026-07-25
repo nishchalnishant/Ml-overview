@@ -248,6 +248,42 @@ model.predict(X_val)               # same fitted transforms applied to val autom
 
 ---
 
+## 9. Data Drift
+
+**The problem**: You deploy a model and it degrades over months without any code change. The world changed. The distribution of inputs the model sees in production diverged from the distribution it was trained on. Without monitoring, you discover this only when business metrics fall — too late.
+
+**The core insight**: A model assumes the future looks like the past. When inputs shift, predictions based on the old model become wrong. You need a quantitative way to detect this shift before predictions go bad.
+
+Three types of drift:
+- **Covariate shift**: $P(X)$ changes — the input distribution shifts. The relationship $P(y|X)$ may be stable.
+- **Label shift**: $P(y)$ changes — the prior probability of each class changes.
+- **Concept drift**: $P(y|X)$ changes — the underlying relationship the model learned no longer holds.
+
+**Population Stability Index (PSI)**: Compares binned distributions between a reference (training) window and a production window.
+
+$$\text{PSI} = \sum_{i} (A_i - E_i) \cdot \ln\left(\frac{A_i}{E_i}\right)$$
+
+where $A_i$ = actual fraction in bin $i$ (production), $E_i$ = expected fraction in bin $i$ (training).
+
+- PSI < 0.1: stable
+- PSI 0.1–0.25: moderate shift, investigate
+- PSI > 0.25: major shift, retrain
+
+**Kolmogorov-Smirnov test**: Compares the empirical CDFs of two samples. The KS statistic is the maximum difference between the CDFs; the p-value tests whether they come from the same distribution.
+
+```python
+from scipy.stats import ks_2samp
+
+for col in numeric_features:
+    stat, p_val = ks_2samp(X_train[col], X_production[col])
+    if p_val < 0.05:
+        print(f"Drift detected: {col}  KS={stat:.3f}  p={p_val:.4f}")
+```
+
+**What breaks**: Drift detection on individual features misses multivariate drift — two features can each look stable while their joint distribution has shifted. High-dimensional drift detection requires either dimensionality reduction or multivariate tests (MMD). PSI thresholds are rules of thumb, not guarantees — a feature can show PSI > 0.25 due to seasonal variation that does not impair model performance.
+
+---
+
 ## Interview Questions
 
 1. **Walk through how you'd detect and fix data leakage in a pipeline that has a suspiciously high validation AUC.**
@@ -272,6 +308,6 @@ model.predict(X_val)               # same fitted transforms applied to val autom
 
 ## Where to Next
 
-- **Python/Pandas mechanics underlying this workflow** → [03-python-and-data-tooling.md](01-python-and-data-tooling.md)
-- **Classical algorithms this data feeds** → [02-classical-ml/](../02-classical-ml/)
-- **Applied end-to-end walkthroughs** → [12-projects/](../12-projects/)
+- **Python/Pandas mechanics underlying this workflow** → [01-python-and-data-tooling.md](01-python-and-data-tooling.md)
+- **Classical algorithms this data feeds** → [03-classical-ml/](../03-classical-ml/)
+- **Applied end-to-end walkthroughs** → [17-projects/](../17-projects/)

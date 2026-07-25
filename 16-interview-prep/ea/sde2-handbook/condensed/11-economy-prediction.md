@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Economy Prediction"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 11 — In-Game Economy Inflation Prediction (Cheat Sheet)
 
 MMORPG auction house prices spiked 400%; designers suspect a gold-injection bug. Design an ML system to detect macro-inflation and exploits in near real-time.

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: EA SDE-2 Handbook
+tags: [interview-prep, ea, sde2]
+prerequisites: []
+---
 # Quick Review Index — EA AI/SDE2 Interview Handbook
 
 Master index for the 30 condensed cheat sheets in `condensed/`. **Skim this file first** — it's the single most important page to reread right before the interview.

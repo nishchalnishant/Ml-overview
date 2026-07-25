@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Experiment Platform"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Experiment Platform (A/B Testing)
 
 ## 1. Problem Framing & Requirement Gathering

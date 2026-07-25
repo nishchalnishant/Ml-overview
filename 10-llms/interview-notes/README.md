@@ -9,7 +9,14 @@ tags: [llms, ml, llm-interview-notes-genai-without-the-fog]
 
 > **Primary interview hub:** [Interview Hub](../../16-interview-prep/README.md)
 >
-> Use this folder as the deeper GenAI supplement when you need more than the general ML interview path.
+> Use this folder as the GenAI supplement when you need interview-ready answers without re-reading the theory layers.
+
+## How To Use This Folder
+
+- Start with the **snappy** file when you are revising fast.
+- Open the **deep** file when the interviewer pushes on mechanisms, failure modes, or implementation detail.
+- Use the adjacent deep-dive folders when you need the full training, inference, or system-design path.
+- Do not read both versions line-by-line. The point is coverage without repetition.
 
 > **Priority order** (read the "snappy" version of each first):
 > 1. `llm-fundamentals` — non-negotiable foundation
@@ -20,9 +27,11 @@ tags: [llms, ml, llm-interview-notes-genai-without-the-fog]
 > 6. `llmops-and-production-ai` — for ML engineer roles
 >
 > **Deep dives** (when the interview panel is specialist):
-> [Architecture](../03-architecture-deep-dive.md) | [Training](../01-training-process.md) | [Inference optimization](../../11-llm-applications/06-inference-optimization.md)
+> [Architecture](../03-architecture-deep-dive.md) | [Training](../01-training-process.md) | [Inference optimization](../../11-llm-applications/06-inference-optimization.md) | [RAG](../../11-llm-applications/02-rag.md) | [Production ML](../../13-production-ml/README.md)
 
 LLMs are **services** that eat tokens and return distributions. Your job in an interview is to sound like you’ve **operated** them: context, retrieval, safety, cost, evals — not just read the brochure.
+
+**Boundary rule:** this folder should not re-explain the full theory. If you need the long-form architecture or training mechanics, jump back to [10-llms](../README.md). If you need the app/system view, jump next door to [11-llm-applications](../../11-llm-applications/README.md) or [12-systems-and-scale](../../12-systems-and-scale/README.md).
 
 **DevOps translation:** Prompting is **config**. RAG is **read-through cache + citations**. Fine-tuning is **shipping a patch** to behavior. Agents are **orchestration** with tools — same story as your favorite workflow engine, just with a stochastic brain.
 
@@ -56,9 +65,20 @@ You now have **two versions** of most notes:
 | Alignment & reasoning | `17-advanced-alignment-and-reasoning.md` | `advanced-alignment-and-reasoning-snappy.md` | RLHF/DPO, ReAct, agents — the “senior” layer |
 | Production failures | [18-production-alignment-failures.md](18-production-alignment-failures.md) | *(no snappy version)* | Real-world alignment/safety incidents and postmortems |
 
+## Canonical Deep-Dive Pointers
+
+When a note starts sounding too compressed, use these as the source of truth:
+
+- [LLM architecture and training](../03-architecture-deep-dive.md)
+- [Training process](../01-training-process.md)
+- [LLM inference optimization](../../11-llm-applications/06-inference-optimization.md)
+- [RAG](../../11-llm-applications/02-rag.md)
+- [Production ML and MLOps](../../13-production-ml/README.md)
+- [System design patterns](../../15-system-design/README.md)
+
 ---
 
-**Gulzar-adjacent intuition:** A good LLM answer isn’t a single word — it’s **what the last hundred tokens did to the next one**. That’s **context** and **attention** in one sentence.
+**Gulzar-adjacent intuition:** A good LLM answer isn’t a single word — it’s **what the last hundred tokens did to the next one**. That is context and attention in one sentence.
 
 **Mini prompt for you:** *Sketch RAG on a whiteboard as three boxes: ingest, index, serve. Where does your “pipeline” analogy break?* (Hint: **freshness** and **citation** trust.)
 

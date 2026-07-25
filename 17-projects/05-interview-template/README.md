@@ -195,7 +195,7 @@ Point-by-point mapping into the rest of the repo, same phases as
 
 | Phase | Theory |
 |---|---|
-| Feature engineering | [01-foundations/04-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md), [02-classical-ml/04-data-preprocessing.md](../../02-data/03-data-preprocessing.md), [02-classical-ml/09-feature-selection.md](../../02-data/05-feature-selection.md), [02-classical-ml/11-imbalanced-data.md](../../02-data/06-imbalanced-data.md) |
+| Feature engineering | [02-data/02-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md), [02-data/04-feature-engineering.md](../../02-data/04-feature-engineering.md), [02-data/05-feature-selection.md](../../02-data/05-feature-selection.md), [02-data/06-imbalanced-data.md](../../02-data/06-imbalanced-data.md) |
 | Deep learning model | [03-deep-learning/01-pytorch-fundamentals.md](../../05-deep-learning-core/09-pytorch-fundamentals.md), [03-deep-learning/deep-learning-cheatsheet.md](../../05-deep-learning-core/_cheatsheet.md) |
 | Hyperparameter selection | [02-classical-ml/07-hyperparameter-optimization.md](../../03-classical-ml/08-hyperparameter-optimization.md) |
 | Cross-validation | [02-classical-ml/06-cross-validation.md](../../04-evaluation/03-cross-validation.md) |

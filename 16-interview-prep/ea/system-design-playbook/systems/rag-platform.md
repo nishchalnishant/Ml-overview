@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Rag Platform"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # RAG Platform
 
 ## 1. Problem Framing

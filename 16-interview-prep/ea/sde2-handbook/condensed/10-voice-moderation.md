@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Voice Moderation"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 10 — Real-Time Voice Toxicity Moderation (Condensed)
 
 Design a real-time system that listens to VoIP voice chat (e.g. Apex Legends), detects hate speech/harassment, and mutes the offending player within seconds — building on an existing text-moderation system.

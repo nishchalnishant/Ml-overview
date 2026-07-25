@@ -1,3 +1,9 @@
+---
+module: Meta
+topic: "REMOVED-CONTENT"
+tags: [meta, repo-maintenance]
+prerequisites: []
+---
 # Removed SUMMARY.md Entries — Phase 0 Record
 
 **Date:** 2026-07-19

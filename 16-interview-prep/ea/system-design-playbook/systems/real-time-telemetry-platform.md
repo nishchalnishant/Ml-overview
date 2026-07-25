@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Real Time Telemetry Platform"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Real-Time Telemetry Platform
 
 ## 1. Problem Framing

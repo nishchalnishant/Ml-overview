@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Data Drift"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 21 — Automated Data Drift Detection Pipeline (Condensed)
 
 Dozens of production models (Matchmaking, Churn, Fraud) degrade silently as game patches shift input distributions. Design a pipeline that detects covariate/concept drift on input features and alerts *before* accuracy drops — no real-time ground truth available.

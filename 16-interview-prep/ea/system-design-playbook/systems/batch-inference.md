@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Batch Inference"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Batch Inference Platform
 
 ## 1. Problem Framing & Requirement Gathering

@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Latency Prediction"
+tags: [interview-prep, ea, sde2, system-design]
+prerequisites: []
+---
 # Interview 27 — Multiplayer Latency Compensation (Time-Series Prediction)
 
 Design an ML model for **client-side prediction** in a multiplayer shooter: predict an enemy's position 100ms ahead so shots feel accurate despite 20-200ms network ping, beating naive linear interpolation/dead reckoning.

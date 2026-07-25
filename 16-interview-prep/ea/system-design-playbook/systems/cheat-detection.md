@@ -1,3 +1,9 @@
+---
+module: Interview Prep
+topic: "Cheat Detection"
+tags: [interview-prep, ea, system-design]
+prerequisites: []
+---
 # Cheat Detection
 
 ## 1. Problem Framing & Requirement Gathering
