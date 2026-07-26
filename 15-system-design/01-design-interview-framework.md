@@ -825,6 +825,25 @@ When offline and online diverge: investigate position bias in offline data, chec
 
 **What breaks**: A/B tests have minimum detectable effect sizes. A 0.1% revenue improvement requires millions of users to detect at 95% confidence. Teams run underpowered experiments, see "no significant difference," and ship anyway — accumulating many small errors that compound over time.
 
+## Interview Angles
+
+### Q: Why do you need both candidate generation and ranking? [Medium]
+A: Candidate generation optimizes for high recall and fast latency over a massive catalog (e.g. millions of items in <10ms via FAISS). Ranking optimizes for high precision over a small candidate set (e.g. 500 items) using a heavier, more complex model (Wide & Deep, XGBoost) that would be computationally impossible to run on the entire catalog.
+**Trap:** Proposing a complex neural network that scores all 10 million items in a database per user request.
+
+### Q: In a Two-Tower model, how do you handle "hard negatives"? [Hard]
+A: Standard two-tower training uses random in-batch negatives. But a random movie is an "easy negative" because it's completely unrelated. The model learns to separate obvious positives from obvious negatives, but fails to distinguish a "good" candidate from a "great" candidate. You must sample "hard negatives" (e.g., items the user saw but didn't click, or items ranked high by the previous model but rejected by the user) to force the model to learn fine-grained boundaries.
+
+### Q: Your offline AUC went up by 3%, but online CTR went down by 1%. What happened? [Hard]
+A: There's an offline-online metric divergence. Common causes: 
+1. **Position Bias in Training:** The offline model learned to prefer items historically shown at the top, but the live system is now ranking them differently.
+2. **Train-Serve Skew:** The features computed in batch for offline training (e.g. 30-day rolling avg) have different null rates or semantics than the real-time features assembled during the A/B test.
+3. **Cannibalization:** The new model might be recommending items that users click but immediately bounce from, cannibalizing the high-quality engagement the old model produced.
+**Cross-questions to expect:**
+- *How do you fix the feature skew?* -> Log the exact feature vector used at serving time, and train the next iteration of the model on those logged features instead of recomputing them.
+
+---
+
 ## Flashcards
 
 **What are the seven steps of the ML design interview framework?** #flashcard

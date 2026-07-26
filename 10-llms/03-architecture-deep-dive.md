@@ -324,6 +324,20 @@ English: "the cat is on the mat"  → Le chat est sur le tapis.
 
 **The meta-learning interpretation**: ICL works because LLM pretraining on diverse text implicitly trains a meta-learner. The model has seen countless (task description, example, solution) patterns across many domains. At inference, the few-shot prompt provides a new task description and examples; the model applies learned meta-learning patterns from pretraining to complete the query. This interpretation explains why larger models exhibit stronger ICL — they've seen more varied pattern types and generalize more robustly.
 
+## Interview Angles
+
+### Q: Why does the KV Cache exist, and what problem does it solve? [Medium]
+A: During autoregressive generation, a transformer must attend to all previous tokens to generate the next token. Without a KV cache, you would have to re-run the full forward pass for the entire prompt and all previously generated tokens just to generate one new token. By caching the Keys (K) and Values (V) of past tokens, we only compute Q, K, and V for the single new token, saving massive amounts of compute at the expense of memory.
+**Cross-questions to expect:**
+- *Why don't we cache Q?* -> We only need the Query of the current token to compute attention scores against the Keys of all past tokens. Past Queries are never reused.
+
+### Q: Explain the difference between Multi-Head Attention (MHA), Grouped-Query Attention (GQA), and Multi-Query Attention (MQA). [Medium]
+A: In standard MHA, every Query head has its own Key and Value head, leading to a massive KV cache memory footprint. MQA goes to the extreme: all Query heads share a single Key head and a single Value head, minimizing memory but noticeably degrading quality. GQA is the optimal middle ground: we divide Query heads into groups (e.g., 8 groups) and each group shares one Key and Value head. It reduces KV cache size by 8x with almost no quality loss.
+
+### Q: How does FlashAttention achieve a speedup if it requires the same number of FLOPs? [Hard]
+A: FlashAttention is entirely about bypassing the memory wall. Standard attention materializes a massive $T \times T$ attention matrix in the GPU's slow High Bandwidth Memory (HBM). FlashAttention uses a tiling strategy to load blocks of Q, K, and V into the GPU's ultra-fast SRAM, computes the attention incrementally, and writes the final output directly back to HBM without ever materializing the $T \times T$ matrix. It trades a slight increase in FLOPs (due to recomputation in the backward pass) for a massive reduction in HBM reads/writes, resulting in a 2-4x speedup.
+**Trap:** Believing FlashAttention reduces the $O(T^2)$ computational complexity. It doesn't; it reduces the memory footprint to $O(T)$ and eliminates memory bandwidth bottlenecks.
+
 ---
 
 ## 11. Architecture Comparison

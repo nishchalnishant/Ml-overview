@@ -54,6 +54,7 @@ The answer "it depends" is always correct — but only if you say what it depend
 | [MLOps Full Notes](01-mlops.md) | CI/CD for ML, pipelines, monitoring, retraining triggers |
 | [Deployment Patterns](02-deployment-patterns.md) | Rollout strategies, latency optimization, serving patterns |
 | [Model Governance](03-model-governance.md) | Registry, versioning, approval gates, audit trails, regulatory compliance |
+| [System Design and MLOps](11-system-design-and-mlops.md) | Interview-ready production walkthrough tying MLOps, deployment, and system design together |
 | [Distributed Training and Serving Reliability](../12-systems-and-scale/06-distributed-training-and-serving-reliability.md) | Training at scale, serving reliability, bottlenecks, failure recovery |
 | [ML Engineering & Production](../15-system-design/03-machine-learning-engineering.md) | Full lifecycle: data, training, evaluation, deployment, monitoring. Best single-file summary. |
 | [Building ML-Powered Applications](../15-system-design/05-building-ml-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |

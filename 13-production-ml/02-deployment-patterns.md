@@ -570,37 +570,7 @@ patch: threshold adjustment, serving config change only
 
 ### MLflow Model Registry Lifecycle
 
-```python
-import mlflow
-from mlflow.tracking import MlflowClient
-
-client = MlflowClient()
-
-# Register model after training run
-run_id = mlflow.active_run().info.run_id
-registered = mlflow.register_model(f"runs:/{run_id}/model", "fraud_detector")
-
-# Lifecycle: None → Staging → Production → Archived
-client.transition_model_version_stage(
-    name="fraud_detector",
-    version=registered.version,
-    stage="Staging"
-)
-
-# After validation, promote to production
-client.transition_model_version_stage(
-    name="fraud_detector",
-    version=registered.version,
-    stage="Production"
-)
-
-# Archive the previous version (keep artifact for rollback and audit)
-client.transition_model_version_stage(
-    name="fraud_detector",
-    version=str(int(registered.version) - 1),
-    stage="Archived"
-)
-```
+Registry stage transitions (`None → Staging → Production → Archived`) are what make rollback possible — full MLflow API walkthrough (tracking, registration, stage transitions, version loading) lives in [09-model-registry-versioning.md](09-model-registry-versioning.md#mlflow-model-registry).
 
 ### Automated Rollback Trigger
 
@@ -717,27 +687,51 @@ def serve_prediction(user_id: str, features: dict) -> dict:
 
 ---
 
-## Key Interview Points
+## Interview Angles
 
-**"How would you deploy a model to production?"**
+### Q1: When would you use Shadow Mode vs Canary vs Blue/Green deployment? [Medium]
 
-Choose the deployment strategy based on risk tolerance: shadow (zero risk, maximum visibility) → canary (partial exposure, statistical validation) → blue-green (instant switchover, full replacement). Package the model with its preprocessing pipeline. Instrument for latency and quality monitoring. Define rollback criteria before deployment and automate rollback. Graduate from canary to full traffic based on business metrics, not just ML metrics.
+This is the classic risk vs. speed tradeoff:
+- **Shadow Mode**: Zero risk to users, but you can't measure business impact (clicks, revenue) because the user never sees the prediction. Use this for the initial sanity check of a brand new architecture or to verify latency/throughput at production load.
+- **Canary**: Partial exposure (e.g., 5% of traffic). You take real risk on a small subset of users, allowing you to measure both ML metrics and business metrics (A/B testing). Use this as the standard graduation path for any model that affects user experience.
+- **Blue/Green**: Instant switchover of 100% of traffic, with the ability to instantly rollback if it fails. Use this for simple, low-risk models (e.g., internal tools) or when a canary is mathematically impossible (e.g., a massive structural change to a database schema that must happen atomically).
 
-**"What is training-serving skew?"**
+---
 
-Feature values computed at training time differ from feature values at inference time. Root causes: different code paths computing the same feature, different timing (batch vs real-time aggregation), data leakage in training. Detection: PSI and KS test on feature distributions comparing training data against production traffic. Fix: shared preprocessing library, serialize full pipeline, feature store with point-in-time guarantees.
+**Cross-questions to expect:**
+- *"If Shadow Mode is zero risk, why not leave it running forever?"* → Compute cost. Running a massive transformer model on 100% of traffic in the background doubles your inference bill with zero revenue gain.
+- *"How do you decide when to graduate a Canary from 5% to 100%?"* → You must define a statistical threshold (e.g., $p < 0.05$ on CTR improvement) and a time threshold (e.g., at least one full week to capture weekend/weekday seasonality). Do not just "eyeball" it after an hour.
 
-**"Batch vs real-time inference trade-offs?"**
+**Trap:** Suggesting Blue/Green for a consumer-facing recommendation engine. If the new model is bugged and tanks engagement, you just exposed 100% of your user base to a terrible experience before you realized it and rolled back. Always canary user-facing ML.
 
-Batch: high throughput, offline, can use large models, predictions become stale between runs. Real-time: low latency (< 100ms), online, constrained model size, always fresh. Choose based on the freshness requirement: if a 24-hour-old recommendation is acceptable, batch is cheaper. If you need to respond to user behavior in the current session, you need real-time.
+---
 
-**"How do you detect if a model is degrading?"**
+### Q2: Batch vs real-time inference — how do you choose? [Medium]
 
-Three signals in order of detection speed: (1) data drift — input feature distributions shift, detected within hours using PSI/KS tests; (2) prediction drift — output score distribution changes, detected within hours; (3) performance degradation — actual accuracy drops once labels become available, detected with days-to-weeks lag. Set up automated alerts on all three. Do not wait for labels — by then the damage is done.
+Batch gives high throughput, allows complex heavy models, and is easy to debug because it runs offline. But predictions become stale between runs. Real-time provides fresh predictions based on in-session behavior, but requires strict latency limits (<100ms) and high-availability infrastructure (Redis, streaming). Choose based purely on the **freshness requirement**: if a 24-hour-old recommendation is acceptable (e.g., "Weekly Discover Playlist"), batch is cheaper and safer. If you must respond to the user's last click immediately (e.g., TikTok feed), you must build a real-time system.
 
-**"How do you handle a bad model in production?"**
+---
 
-Rollback immediately to the previous versioned artifact. Do not investigate while users are affected. After rollback: run a post-mortem, compare training data distribution vs production at time of failure, check shadow logs for prediction divergence, review feature pipeline for any upstream data changes. Automate rollback triggers so humans only need to approve, not execute.
+**Cross-questions to expect:**
+- *"Can you get the best of both?"* → Yes, the lambda/kappa architecture. You pre-compute the heavy base embeddings in batch overnight, cache them in Redis, and then use a lightweight real-time model to combine those base embeddings with the user's in-session clicks.
+
+**Trap:** Over-engineering. Default to batch until product requirements *force* you into real-time. Real-time ML is an order of magnitude harder to maintain.
+
+---
+
+### Q3: You deploy a model and user engagement drops. How do you debug? [Hard]
+
+First, **rollback immediately** to the previous stable version. Do not debug while users are bleeding. Then, investigate in this order:
+1. **Pipeline Bugs**: Did the feature pipeline break? Check for nulls, zeroed-out embeddings, or missing logs.
+2. **Distribution Shift**: Did the distribution of input features in production match the training data? Run PSI (Population Stability Index) or KS tests on the logged features.
+3. **Training-Serving Skew**: Did the real-time feature computation diverge from the offline batch computation? Log the exact feature vector at inference time and compare it to the offline equivalent.
+
+---
+
+**Cross-questions to expect:**
+- *"What if the model looks completely healthy on ML metrics (high AUC) but business metrics dropped?"* → You optimized the wrong proxy. For example, you trained a model to maximize "clicks" (AUC is high), but the model started serving clickbait, which annoyed users and tanked long-term "session length" (business metric). This means you need a new labeling strategy, not a new model architecture.
+
+**Trap:** Leaving the broken model in production while you run SQL queries to figure out what's wrong. Roll back first, ask questions later.
 
 ## Flashcards
 

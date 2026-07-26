@@ -1,6 +1,6 @@
 ---
 module: Architectures
-topic: Components
+topic: Architectures
 subtopic: Transformers
 status: unread
 tags: [deeplearning, ml, components-transformers]

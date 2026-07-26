@@ -6,7 +6,7 @@ prerequisites: []
 ---
 # 🎮 Electronic Arts – SDE-2 AI Engineer Mock Interview Handbook
 
-> **Format:** 30 complete interview scenarios · Each ~60–90 min · 20 structured parts per interview  
+> **Format:** 29 complete interview scenarios (numbered 01–27, 29–30; #28 is a numbering gap) · Each ~60–90 min · 20 structured parts per interview  
 > **Level:** SDE-2 (Senior Individual Contributor, 3–6 years experience)  
 > **Hiring Bar:** Production AI systems, not academic exercises
 
@@ -61,7 +61,7 @@ Every interview follows this 20-part structure:
 | 12 | Customer Support RAG Knowledge-Base Assistant |
 | 13 | Semantic Search for Game Asset Discovery (Dev Tools) |
 
-### 🤖 General AI Engineering (17 Scenarios — 57%)
+### 🤖 General AI Engineering (16 Scenarios — 55%)
 
 | # | Topic |
 |---|-------|
@@ -69,18 +69,20 @@ Every interview follows this 20-part structure:
 | 15 | Production RAG Pipeline with LLMs |
 | 16 | Real-Time Anomaly Detection on Streaming Data |
 | 17 | Large-Scale Collaborative Filtering Recommender |
-| 18 | A/B Testing Platform for ML Models |
-| 19 | ML Model Drift Detection & Monitoring |
-| 20 | Multimodal Image+Text Search Engine |
-| 21 | Low-Latency Real-Time Inference (<10ms p99) |
-| 22 | Automated ML Training Pipeline (MLflow + Airflow) |
-| 23 | Multi-Label NLP Document Classifier |
-| 24 | Multi-Horizon Time-Series Forecasting |
-| 25 | Payment Fraud Detection at EA Play |
-| 26 | Billion-Scale Approximate Nearest Neighbor Search |
-| 27 | Domain-Specific LLM Fine-Tuning & RLHF |
-| 29 | Shadow Deployment & Canary Rollout Strategy |
-| 30 | ML Infrastructure Cost Optimization |
+| 18 | Edge Model Serving (PyTorch→ONNX/CoreML Quantization) |
+| 19 | A/B Testing & Experimentation Platform |
+| 20 | Multimodal VLM Game Testing Agent |
+| 21 | Automated Data Drift Detection Pipeline |
+| 22 | Deep RL for NPC AI |
+| 23 | GenAI for 3D Asset Creation |
+| 24 | Knowledge Graph Construction for Lore & Story |
+| 25 | Anti-Cheat: Client-Side Memory Anomaly Detection |
+| 26 | Generative Audio: Dynamic NPC Voice Cloning |
+| 27 | Multiplayer Latency Compensation (Time-Series Prediction) |
+| 29 | AI-Driven Dynamic Game Difficulty |
+| 30 | End-to-End MLOps Pipeline |
+
+> **Note:** #28 is a gap in the original numbering — there is no scenario 28 in `condensed/`. The handbook covers 29 scenarios (01–27, 29–30), not 30.
 
 ---
 

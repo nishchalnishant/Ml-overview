@@ -286,6 +286,23 @@ When scaling token count hits data walls and scaling parameters hits memory wall
 | Reasoning (inference-time) | Extended thinking (o1, R1, DeepSeek) | Verification accuracy at hard problems |
 | Modalities | Text + image + audio (GPT-4o) | Video, 3D, physical-world grounding |
 
+## Interview Angles
+
+**Q: The Chinchilla paper states that a compute-optimal 70B model requires ~1.4T training tokens. Why then did Meta train Llama-3 70B on 15T tokens?**
+A: Chinchilla defines optimality for a fixed *training* compute budget. It answers: "If I only have $X to spend on training, what size model should I train, and for how long?" However, product companies (like Meta) care more about *inference* compute. Once a model is deployed, inference costs dominate. A smaller model trained way past the Chinchilla-optimal point (e.g., Llama-3 70B on 15T tokens) will cost the same to serve as a Chinchilla-optimal 70B, but will be significantly smarter. It's an intentional choice to spend excessive compute upfront during training to minimize the lifetime cost of serving a highly capable model.
+
+### Q: How do we continue improving reasoning models (like o1 or DeepSeek-R1) when we have exhausted the supply of high-quality human text on the internet? [Hard]
+A: We hit the "Data Wall" for pretraining, so we must shift focus to two areas: **Synthetic Data Verification** and **Test-Time Compute**.
+1. *Verified Synthetic Data*: Instead of just training on human text, we use strong models to generate math, code, or logic problems and their step-by-step solutions. We programmatically verify the answers (e.g., running the Python code, or checking the math proof). If correct, it goes into the training set. This creates an infinite, perfectly accurate training curriculum.
+2. *Test-Time Compute*: Instead of training a bigger model, we spend more compute during inference. We give the model "thinking tokens" to plan, self-correct, or search multiple paths (Monte Carlo Tree Search) before outputting the final answer. This scales capability logarithmically with inference time.
+
+**Cross-questions to expect:**
+
+- *You mentioned "Emergent Abilities" in large models. Are they real?* -> Recent research (Schaeffer et al.) argues they are largely a mirage caused by discontinuous metrics (like exact-match accuracy). If a model's underlying probability of getting a step right improves smoothly from 20% to 80% as it scales, its exact-match accuracy on a 5-step problem will remain near zero until a critical threshold, at which point it seemingly "emerges." The model's capabilities scale smoothly; our binary metrics just hide the progress.
+- *If fuzzy deduplication (MinHash LSH) removes near-duplicate documents, doesn't that hurt the model's ability to memorize important facts?* -> Yes, extreme deduplication can hurt fact recall. If a fact only appeared once in the corpus, the model might not learn it robustly. However, the tradeoff is worth it: near-duplicates waste massive amounts of training compute and heavily bias the model's generation distribution toward repetitive SEO spam.
+
+**Trap:** Assuming that adding more data always improves the model. Training on low-quality data (machine-translated spam, repetitive boilerplate) actually *consumes* model capacity, forcing the network to model noise. This is why small, highly curated datasets (like Phi-1's "textbook quality" data) can outperform massive, unfiltered web scrapes.
+
 ## Flashcards
 
 **What did the Chinchilla paper find that contradicted Kaplan et al.'s 2020 scaling laws?** #flashcard

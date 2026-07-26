@@ -723,6 +723,43 @@ Main risks: (1) Feature fetch fan-out — if each request fetches features for 5
 - *You add epsilon-greedy exploration for unbiased eval. What does that cost the user whose request you're currently serving?* -> Every exploration impression is, in expectation, a worse recommendation shown to a real user right now -- you're spending their experience to buy the *system* unbiased training data later. At 10k RPS that's a large aggregate quality tax, and it's borne by users, not by the offline eval that benefits. The exploration rate is an ethical/business trade, not a free logging trick.
 
 **Trap:** budgeting P99 as a sum of component P50s. Tail latencies compound -- a request hitting the P99 of the feature store *and* the P99 of inference is rarer but far worse than either alone, so end-to-end P99 exceeds the sum of the parts. You must measure the tail end-to-end, not add up per-stage medians.
+## Interview Angles
+
+### Q1: How do you guarantee exactly-once processing in a real-time ML pipeline? [Hard]
+
+In streaming (e.g., Flink + Kafka), network failures can cause messages to be dropped or re-sent.
+- **At-most-once**: Process immediately, drop on failure. (Acceptable for video view counts).
+- **At-least-once**: Retry on failure. Can cause duplicate events (e.g., counting the same click twice).
+- **Exactly-once**: Requires transactional guarantees end-to-end. Flink achieves this using the Chandy-Lamport algorithm to take distributed snapshots of the stream state. When combined with a transactional sink (like writing to Kafka with `transaction.id`), the system guarantees that even if a node crashes, the final downstream feature store reflects the event exactly one time.
+
+---
+
+**Cross-questions to expect:**
+- *"Exactly-once adds latency and overhead. When would you intentionally choose at-least-once instead?"* → For training data logging. If you log a feature vector twice, it slightly skews the training distribution, but the system stays fast and highly available. You can deduplicate offline during the batch training run. Exactly-once is strictly required for financial transactions (e.g., fraud prevention counters).
+- *"How does Kafka handle out-of-order events?"* → Using event-time processing and watermarks. The system waits for a "watermark" (a signal that no more events older than time $T$ will arrive) before closing the time window and emitting the aggregated feature.
+
+**Trap:** Claiming "Kafka guarantees exactly-once natively." Kafka provides the *primitives* (idempotent producers, transactional API), but exactly-once requires the entire pipeline — the source, the stream processor (Flink), and the sink — to support distributed transactions.
+
+---
+
+### Q2: What are the specific trade-offs of using Kafka for feature serving instead of a REST API? [Medium]
+
+A REST API (synchronous HTTP) is request/response: the client blocks until the ML model returns a prediction. Kafka (asynchronous pub/sub) decouples the producer from the consumer.
+**Trade-offs:**
+- **Latency**: REST is typically faster for a single round-trip. Kafka adds queueing latency (often ~10-50ms).
+- **Backpressure**: If the ML model gets overwhelmed, a REST API drops requests (HTTP 503). Kafka simply queues the messages, allowing the ML model to process them at its own pace without data loss (though predictions become delayed).
+- **Multi-cast**: If you need multiple models to process the same event (e.g., a "transaction" event needs to be scored by the Fraud model, the LTV model, and the Recommendation model), Kafka allows all three to subscribe to the same topic independently. REST would require the client to orchestrate three separate API calls.
+
+---
+
+**Cross-questions to expect:**
+- *"When MUST you use REST?"* → When the user interface is blocked waiting for the prediction. For example, rendering a personalized feed or approving a credit card swipe. You cannot afford the variance of a Kafka queue.
+- *"When MUST you use Kafka?"* → For background processing where throughput and fault-tolerance matter more than latency. For example, updating a user's long-term embedding after they finish a video, or running heavy offline content moderation.
+
+**Trap:** Saying "Kafka is faster." Kafka is for high *throughput* and durability, not low *latency*. Synchronous gRPC/REST is always lower latency than writing to disk-backed message brokers.
+
+---
+
 ## Flashcards
 
 **What four things typically cause a large P99/P50 latency gap?** #flashcard

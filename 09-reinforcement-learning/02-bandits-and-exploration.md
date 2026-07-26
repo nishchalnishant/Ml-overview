@@ -228,5 +228,5 @@ A second contributing mechanism: with no discounting, thousands of early success
 
 - **Foundations:** [01-rl-foundations.md](01-rl-foundations.md) — MDPs, and why bandits are the stateless special case
 - **When it becomes sequential:** [03-value-based-methods.md](03-value-based-methods.md)
-- **A/B testing:** [../06-production-ml/system-design/14-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md)
+- **A/B testing:** [../04-evaluation/06-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md)
 - **Statistical background:** [../07-interview-prep/ml/24-statistics-probability-rapid-fire.md](../01-math-foundations/_rapid-fire.md)

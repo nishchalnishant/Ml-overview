@@ -600,6 +600,40 @@ If the fraud model degrades a week later, you can replay the entire pipeline wit
 
 ---
 
+## Interview Angles
+
+### Q1: Your model's probabilities are miscalibrated. Do you use Platt Scaling or Isotonic Regression? [Medium]
+
+Miscalibration means a predicted probability of 0.8 doesn't actually correspond to an 80% true positive rate.
+- **Platt Scaling (Logistic Calibration)**: Fits a logistic regression over the uncalibrated outputs. Use this when the miscalibration follows a sigmoid shape and you have a **small dataset**. It's less prone to overfitting but assumes a specific parametric shape.
+- **Isotonic Regression**: Fits a non-decreasing step function. It is non-parametric and can fit any monotonic shape. Use this when you have a **large dataset** (e.g., >10,000 samples). If used on a small dataset, it will severely overfit the noise.
+
+---
+
+**Cross-questions to expect:**
+- *"Why do Tree models (like XGBoost/Random Forest) need calibration?"* → Tree models push probabilities away from 0 and 1 because leaf nodes are averages of multiple samples. A pure leaf (100% positive) is rare unless the tree is completely overfit. Thus, tree outputs are inherently "compressed" toward the mean and usually require Isotonic Regression.
+- *"Why do Neural Networks need calibration?"* → Modern deep neural networks with batch normalization, weight decay, and negative log-likelihood loss are notoriously overconfident. They will predict 0.99 for classes they are actually unsure about. They often require Platt Scaling or Temperature Scaling.
+
+**Trap:** Calibrating on the training set. You *must* calibrate on a held-out validation set (or use cross-validation). Calibrating on the training set just memorizes the training overconfidence.
+
+---
+
+### Q2: What is "Point-in-Time Correctness" in a Feature Store, and why is it mandatory? [Hard]
+
+When you join labels with historical features to create a training dataset, you must join the label with the feature values *exactly as they were at the time of the event*. 
+If a user clicked an ad on Tuesday, you must join that label with the user's "30-day click count" as it was computed on *Tuesday at 08:00 AM*. If you just join on the current database value (which includes clicks from Wednesday and Thursday), you have introduced **Temporal Leakage**. The model will learn from the future and perform perfectly offline, but fail in production.
+A Feature Store solves this by storing a time-series log of all feature updates and performing a "time-travel join" (AS OF join), guaranteeing no future data leaks into the row.
+
+---
+
+**Cross-questions to expect:**
+- *"Why is a time-travel join computationally expensive?"* → Because instead of a standard `JOIN ON user_id`, it requires an inequality join: `JOIN ON user_id AND feature_timestamp <= event_timestamp`, filtering for the `MAX(feature_timestamp)` that satisfies the condition. This usually requires window functions or specialized temporal indexing in engines like Spark or Snowflake.
+- *"If I just use Airflow to dump a daily snapshot of my database, do I still need a Feature Store?"* → Daily snapshots give you daily granularity. If your events happen intra-day (e.g., fraud prevention where features change every minute), a daily snapshot will still leak up to 24 hours of future data (or use 24-hour stale data). Real-time ML requires real-time point-in-time correctness.
+
+**Trap:** Claiming that caching features in Redis prevents temporal leakage. Redis is the *online* store (serving the freshest data). It has no history. Point-in-time correctness requires an *offline* store (data lake/warehouse) that appends every change immutably.
+
+---
+
 # Quick Diagnostics
 
 **If your model performs well offline but degrades in production two weeks after deployment:**

@@ -39,7 +39,7 @@ This is why PCA works. The covariance matrix encodes how your features vary toge
 
 **Where it bites in production.** A singular (or near-singular) matrix means your features are linearly dependent — some column is a combination of others. Linear regression's normal equation requires inverting `XᵀX`; perfect multicollinearity makes that inversion undefined and near-collinearity makes it numerically unstable, which is one motivation for ridge regularization: adding `λI` to the diagonal guarantees invertibility. Condition number is the diagnostic worth knowing by name.
 
-**→ Drill:** [07-interview-prep/ml/19-maths.md](02-maths.md) — eigenvalues, SVD, the PCA/SVD connection, Jacobian and Hessian, PSD matrices, L1/L2 norms.
+**→ Drill:** [02-maths.md](02-maths.md) — eigenvalues, SVD, the PCA/SVD connection, Jacobian and Hessian, PSD matrices, L1/L2 norms.
 **→ Applied:** [02-classical-ml/10-dimensionality-reduction.md](../03-classical-ml/05-dimensionality-reduction.md)
 
 ---
@@ -58,8 +58,8 @@ That principle is doing more work than it appears. Minimizing squared error is m
 
 **Where it bites in production.** A p-value is the probability of seeing data this extreme *if the null hypothesis were true* — it is not the probability that your model is better. Peeking at an A/B test until it turns significant inflates the false positive rate. Testing twenty metrics and reporting the one that moved is the same error wearing a different hat. Multiple-testing corrections exist because this failure is so easy and so tempting.
 
-**→ Drill:** [07-interview-prep/ml/24-statistics-probability-rapid-fire.md](_rapid-fire.md) — distributions, Bayes, MLE/MAP, hypothesis testing, confidence intervals, CLT, A/B testing.
-**→ Traps:** [07-interview-prep/ml/11-canonical-stats-questions.md](05-canonical-stats-questions.md) — multiple testing, Simpson's paradox, causal design.
+**→ Drill:** [_rapid-fire.md](_rapid-fire.md) — distributions, Bayes, MLE/MAP, hypothesis testing, confidence intervals, CLT, A/B testing.
+**→ Traps:** [05-canonical-stats-questions.md](05-canonical-stats-questions.md) — multiple testing, Simpson's paradox, causal design.
 **→ Applied:** [02-classical-ml/14-calibration-and-uncertainty.md](../04-evaluation/04-calibration-and-uncertainty.md)
 
 ---
@@ -78,7 +78,7 @@ The AdamW correction is worth understanding rather than memorizing: standard Ada
 
 **Where it bites in production.** Vanishing and exploding gradients are chain-rule arithmetic: multiply many numbers below one and you approach zero; above one and you diverge. Residual connections, normalization layers, careful initialization, and gradient clipping are all responses to that single multiplication problem. When a training run diverges at step 400, you are debugging calculus.
 
-**→ Drill:** [07-interview-prep/ml/03-optimization.md](06-optimization.md) — gradient descent, batch size, learning rate, momentum, Adam/AdamW, vanishing gradients, LR scheduling, optimizer selection.
+**→ Drill:** [06-optimization.md](06-optimization.md) — gradient descent, batch size, learning rate, momentum, Adam/AdamW, vanishing gradients, LR scheduling, optimizer selection.
 **→ Applied:** [03-deep-learning/components/06-optimisers.md](../05-deep-learning-core/06-optimisers.md) · [03-deep-learning/components/01-backpropagation.md](../05-deep-learning-core/01-backpropagation.md)
 
 ---
@@ -93,8 +93,8 @@ Because the true distribution's entropy is fixed by the data, minimizing cross-e
 
 Note the asymmetry — `KL(p‖q) ≠ KL(q‖p)` — and that it has real consequences. One direction is mode-covering, the other mode-seeking, which is why the choice matters in variational inference.
 
-**→ Drill:** [07-interview-prep/ml/19-maths.md](02-maths.md) (§7 KL Divergence, §9 Information Theory)
-**→ Derivation:** [07-interview-prep/ml/18-math-derivations.md](03-math-derivations.md) (§10 ELBO, §11 KL and cross-entropy)
+**→ Drill:** [02-maths.md](02-maths.md) (§7 KL Divergence, §9 Information Theory)
+**→ Derivation:** [03-math-derivations.md](03-math-derivations.md) (§10 ELBO, §11 KL and cross-entropy)
 
 ---
 
@@ -114,8 +114,8 @@ Interviewers rarely ask you to derive something obscure. They ask for a small se
 
 All but the last are worked line by line in the derivations file, which also carries a whiteboard template for structuring your answer under pressure. Bias–variance lives with the algorithms instead.
 
-**→ Full derivations:** [07-interview-prep/ml/18-math-derivations.md](03-math-derivations.md)
-**→ Bias–variance:** [07-interview-prep/ml/08-algorithms.md](../03-classical-ml/03-algorithms.md)
+**→ Full derivations:** [03-math-derivations.md](03-math-derivations.md)
+**→ Bias–variance:** [03-classical-ml/03-algorithms.md](../03-classical-ml/03-algorithms.md)
 
 ---
 
@@ -135,6 +135,6 @@ If you can answer these without notes, this file has done its job:
 ## Where to Next
 
 - **Vocabulary for everything above** → [06-ml-glossary.md](../18-resources/02-ml-glossary.md)
-- **Putting it to work on real algorithms** → [02-classical-ml/](../02-classical-ml/)
-- **Where the calculus becomes backprop** → [03-deep-learning/components/01-backpropagation.md](../05-deep-learning-core/01-backpropagation.md)
-- **Rapid-fire recall before an interview** → [07-interview-prep/ml/](../07-interview-prep/ml/)
+- **Putting it to work on real algorithms** → [03-classical-ml/](../03-classical-ml/)
+- **Where the calculus becomes backprop** → [05-deep-learning-core/01-backpropagation.md](../05-deep-learning-core/01-backpropagation.md)
+- **Rapid-fire recall before an interview** → [16-interview-prep/](../16-interview-prep/)

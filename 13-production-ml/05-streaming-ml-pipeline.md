@@ -280,6 +280,38 @@ feature_age = Gauge('feature_age_seconds', 'Feature staleness', ['feature_view']
 
 **What breaks**: monitoring Kafka broker health but not consumer lag. The cluster appears healthy while the pipeline falls minutes behind, silently degrading feature freshness. Always monitor consumer lag per group with lag-based alerts.
 
+## Interview Angles
+
+### Q1: In a streaming pipeline, how do you handle training-serving skew caused by feature timing? [Hard]
+
+If you compute a feature like "clicks in the last 5 minutes" in Flink during real-time serving, and compute the *same* feature using Spark SQL for offline training, they will almost certainly diverge due to distributed clock skew, out-of-order events, and processing delays. 
+**The fix**: Do not recompute time-windowed features offline. Instead, log the exact feature vector that Flink computed *at the moment of inference*, and join those logged features with the delayed labels for training. This guarantees zero skew because you train on the exact bits the model saw in production.
+
+---
+
+**Cross-questions to expect:**
+- *"Logging every feature vector at 10k QPS is too expensive. What now?"* → You can sample the logs (e.g., log 100% of clicks, but only 1% of non-clicks). Or, you use a Feature Store with point-in-time correctness (time-travel joins), which strictly guarantees that offline training queries only see feature values that were logically committed *before* the inference timestamp.
+- *"What if Flink goes down and features aren't computed for an hour?"* → The inference service must gracefully degrade. It should fetch the last-known-good feature from Redis, and the model must be trained to handle stale features (e.g., by including a `feature_age_seconds` feature so the model learns to distrust old data).
+
+**Trap:** Assuming Spark and Flink will output the exact same numbers if the code logic is identical. Event-time vs processing-time semantics mean offline batch and online streaming will naturally diverge.
+
+---
+
+### Q2: How do you handle late-arriving events in a streaming window? [Medium]
+
+A user clicks on a mobile app, but they enter a subway tunnel and lose connection. The click event arrives 10 minutes late. If your Flink job already closed the "last 5 minutes" window, how do you handle it?
+You use **Watermarks** and **Allowed Lateness**. A watermark is a threshold indicating "I do not expect to see any events older than time $T$." You can configure Flink to allow late events (e.g., up to 15 minutes late) and emit an *updated* feature value when the late event finally arrives, updating the Feature Store retroactively.
+
+---
+
+**Cross-questions to expect:**
+- *"If the feature is updated retroactively, what happens to the prediction that was already made?"* → The prediction is already done and shown to the user — you can't change the past. But the retroactive update ensures that the *next* prediction for that user uses the accurate count.
+- *"What do you do with events that arrive after the allowed lateness window?"* → They are sent to a Dead Letter Queue (DLQ) or side output for offline auditing, but they are dropped from the real-time aggregations to prevent unbounded memory growth in the streaming engine.
+
+**Trap:** Using processing-time windows instead of event-time windows. If you use processing-time, the delayed subway click is counted as occurring *when it hit the server*, corrupting the user's timeline. Always use the client-side event timestamp.
+
+---
+
 ## Flashcards
 
 **Why is monitoring Kafka broker health insufficient for a streaming ML pipeline?** #flashcard

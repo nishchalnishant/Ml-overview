@@ -25,7 +25,8 @@ The most frequent mistake in RL interviews is reaching for full RL when a bandit
 | [01-rl-foundations.md](01-rl-foundations.md) | MDPs, the Markov property, return and discounting, V/Q/advantage, Bellman equations |
 | [02-bandits-and-exploration.md](02-bandits-and-exploration.md) | Regret, ε-greedy, UCB, Thompson sampling, contextual bandits, non-stationarity |
 | [03-value-based-methods.md](03-value-based-methods.md) | TD learning, Q-learning vs SARSA, DQN and its fixes, the deadly triad |
-| [04-policy-gradient-methods.md](04-policy-gradient-methods.md) | REINFORCE, baselines and advantage, actor-critic, TRPO/PPO, SAC, RLHF |
+| [04-policy-gradient-methods.md](04-policy-gradient-methods.md) | REINFORCE, baselines and advantage, actor-critic, TRPO/PPO, GRPO, SAC, RLHF |
+| [05-advanced-and-deep-rl.md](05-advanced-and-deep-rl.md) | Model-based RL, offline RL, multi-agent RL, and other advanced/deep-RL topics |
 
 **Reading order is sequential.** File 01 defines the vocabulary the rest assume. Files 03 and 04 are the two competing answers to the same question — how do you actually optimize a policy — and are best read as a pair.
 
@@ -57,6 +58,6 @@ If you are short on time and preparing for an LLM role: read 01, skim 02, and re
 
 ## Connections
 
-- **Bandits and experimentation:** [../06-production-ml/system-design/14-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md)
-- **RLHF and alignment:** [../05-llms/interview-notes/17-advanced-alignment-and-reasoning.md](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
-- **Training pipeline context:** [../05-llms/01-training-process.md](../10-llms/01-training-process.md)
+- **Bandits and experimentation:** [../04-evaluation/06-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md)
+- **RLHF and alignment:** [../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
+- **Training pipeline context:** [../10-llms/01-training-process.md](../10-llms/01-training-process.md)

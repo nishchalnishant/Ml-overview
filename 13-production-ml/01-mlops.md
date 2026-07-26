@@ -526,27 +526,30 @@ Teams don't jump from "notebook in production" to full automation overnight. Whe
 
 ---
 
-## Interview Topics
+## Interview Angles
 
-**"Explain the difference between model drift and data drift"**
+### Q: Explain the difference between model drift and data drift. [Easy]
+A: Data drift (covariate shift) means the input distribution $P(X)$ changes — e.g., a new demographic of users. Concept drift means the relationship $P(Y|X)$ changes — e.g., the same demographic now buys different products due to a trend. 
+**Cross-questions to expect:**
+- *How do you detect them?* -> Data drift is detectable immediately without labels by comparing input distributions (PSI/KS test). Concept drift requires ground-truth labels to detect a drop in accuracy, which are often delayed.
+**Trap:** Using the terms interchangeably. They require entirely different monitoring infrastructure.
 
-Data drift: input distribution P(X) changes — different users, behavior, or seasonality. Concept drift: the relationship P(Y|X) changes — the same features now predict a different outcome. Both need retraining but have different detection signals: data drift is detectable without labels (compare input distributions); concept drift needs labels (compare accuracy on recent vs historical data).
+### Q: How would you deploy a model to production? [Medium]
+A: Never direct to full traffic. 1) Shadow mode: run parallel to the current system, record predictions but serve the old system's output to ensure no latency or crash regressions. 2) Canary: serve to 5% of traffic and monitor business metrics for statistical significance. 3) Full rollout.
+**Cross-questions to expect:**
+- *How do you handle preprocessing?* -> Package the model and the preprocessing pipeline in the same container. If they are versioned separately, they will inevitably drift and cause a train-serve skew.
+**Trap:** Forgetting rollback triggers. You must define automatic rollback thresholds on latency regression or error rate spikes before deploying.
 
-**"How would you deploy a model to production?"**
+### Q: How do you ensure ML reproducibility? [Medium]
+A: Four pillars: version code (git commit hash), data (DVC or snapshot hash), model (registry version), and environment (Docker image). 
+**Cross-questions to expect:**
+- *What if the data changes daily?* -> Store a read-only snapshot of the exact training set at the time of training, separate from the live transactional database. 
+**Trap:** "I set random seeds." Random seeds aren't enough if the underlying data or pandas version changed.
 
-Shadow mode first (zero risk, builds confidence) → canary (5% traffic, monitor business metrics for significance) → full rollout. Package model and preprocessing together. Define rollback triggers on accuracy drop, latency regression, error spikes. Monitor data drift from day one.
-
-**"How do you ensure reproducibility?"**
-
-Version code (commit hash), data (DVC pointer/snapshot hash), model (registry version), environment (Docker image with pinned deps). Set random seeds. Log all hyperparameters. Store the training snapshot separately from the live dataset.
-
-**"How would you detect if a model is degrading?"**
-
-Three signal layers: input drift (PSI/KS on features, detectable in hours), prediction drift (output distribution shift, detectable in hours), and performance degradation (accuracy vs ground truth, delayed by label lag). Monitor all three — don't wait for customer complaints.
-
-**"Batch vs real-time inference trade-offs?"**
-
-Batch: high throughput, larger models, cheaper, but predictions go stale between runs. Real-time: low latency (< 100ms target), always fresh, but constrained model complexity and higher serving cost. The deciding factor is how fast ground truth changes and whether a stale prediction is still useful.
+### Q: How would you detect if a model is degrading? [Hard]
+A: Relying solely on accuracy vs ground truth is a trap because labels often have a lag (e.g., loan defaults take months). I'd monitor three layers: 1) Input drift (PSI on features, detectable in hours), 2) Prediction drift (shift in the output score distribution, detectable in hours), and 3) Performance degradation (when labels finally arrive).
+**Cross-questions to expect:**
+- *What if you have no ground truth labels for months?* -> Use proxy signals. If a user clicks, we can infer short-term interest even if the actual purchase happens later.
 
 ## Flashcards
 

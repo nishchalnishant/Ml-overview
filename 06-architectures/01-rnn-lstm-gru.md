@@ -1,6 +1,6 @@
 ---
 module: Architectures
-topic: Components
+topic: Architectures
 subtopic: Rnn Lstm Gru
 status: unread
 tags: [deeplearning, ml, components-rnn-lstm-gru]

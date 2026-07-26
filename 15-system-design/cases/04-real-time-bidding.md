@@ -642,9 +642,17 @@ Conversion labels can arrive 7–30 days after a click. Training on the last 24 
 - *Why not just wait 30 days for labels to mature and train on clean data?* -> Then your model is always 30 days stale, which in RTB is fatal -- creative, competition, and inventory turn over weekly. The whole point of delayed-feedback correction is to trade a small bias for freshness.
 
 **Trap:** counting unconverted-but-recent clicks as hard negatives. They are censored, not negative -- labeling them 0 teaches the model that recent high-intent clicks don't convert, suppressing bidding on exactly the freshest traffic.
-**Q3: Explain bid shading and when it is/isn't necessary.**
+### Q3: Explain bid shading and when it is/isn't necessary. [Medium]
 
 In second-price auctions, truthful bidding (bid = true value) is dominant — you only pay the second-highest bid, so shading just lowers win rate without improving profit. In first-price auctions you pay exactly your bid, so bidding true value gives zero surplus; optimal strategy shades toward the expected clearing price, estimated from historical win/loss data. Most exchanges moved to first-price after 2019.
+
+---
+
+**Cross-questions to expect:**
+- *"How do you estimate the clearing price when you only observe it if you win?"* → Survival analysis. A winning bid tells you the clearing price was lower; a losing bid tells you the clearing price was higher (right-censored). You fit a distribution (e.g., log-normal) to these censored observations to estimate the landscape.
+- *"If everyone shades, doesn't the auction just collapse back to second-price dynamics?"* → Theoretically, yes. In practice, the bidder with the better bid landscape model extracts more surplus, so shading algorithms are a major competitive advantage for DSPs.
+
+**Trap:** Shading in a second-price auction. That's mathematically suboptimal and shows a fundamental misunderstanding of auction theory.
 
 ### Q4: How does the PID pacing controller handle sudden traffic drops (e.g. midnight)? [Medium]
 
@@ -656,9 +664,17 @@ A naive PID sees spend rate drop near zero and opens the spend tap wide, then ov
 - *Integral windup is the classic PID failure. Where does it bite here specifically?* -> When lambda is clamped at its ceiling during a traffic drought, the integral term keeps accumulating error it can't act on; when traffic returns, that accumulated integral dumps into an overbid spike before it unwinds. You need anti-windup -- freeze or leak the integral while the output is saturated.
 
 **Trap:** tuning the PID gains once on average traffic. The controller that is stable at midday oscillates at midnight, because loop gain scales with traffic volume -- the same gains are effectively far higher when impressions are sparse.
-**Q5: How would you design the system for a world without third-party cookies?**
+### Q5: How would you design the system for a world without third-party cookies? [Hard]
 
 Three tracks: (1) contextual targeting — an NLP model over page content produces topic embeddings, achieving ~60–70% of the AUC of user-identified models; (2) first-party data activation via clean rooms and hashed email matching; (3) Privacy Sandbox — FLEDGE for retargeting, Topics API for prospecting, Private Aggregation API for measurement. Measurement shifts from user-level to aggregate/modeled attribution.
+
+---
+
+**Cross-questions to expect:**
+- *"Contextual models are stateless. How do they handle frequency capping?"* → They can't. Without an ID, you cannot count impressions per user. You have to rely on publisher-side frequency caps or probabilistic modeling based on IP/device (which is increasingly restricted).
+- *"How does FLEDGE change the bidding architecture?"* → Completely. The bidding model moves from your server to the user's browser via WebAssembly. You can't join real-time features on the server anymore; you provide a function that the browser executes locally.
+
+**Trap:** Treating cookie deprecation as a machine learning problem. It's fundamentally an architecture and business model problem. The best ML model cannot recover signal that is structurally withheld.
 
 ### Q6: A campaign has a 5% win rate. Feature problem or budget problem? [Medium]
 
@@ -670,9 +686,37 @@ Compare bid price to clearing price. If bids are well below clearing price, it's
 - *The 5% is an average. Why might that number be meaningless?* -> Win rate is bimodal in practice: near-100% on cheap inventory you always clear, near-0% on premium inventory you never reach. A 5% average can be a mix of those two with almost nothing in between, and the fix for each half is opposite. Diagnose per-segment before touching a global bid multiplier.
 
 **Trap:** reading low win rate as "bid higher." Low win rate is a symptom with at least four causes (bid level, targeting breadth, frequency caps, pacing throttle) -- three of which get worse if you respond by raising bids.
-**Q7: How would you prevent training-serving skew in this system?**
+### Q7: How would you prevent training-serving skew in this system? [Hard]
 
 RTB has severe skew: only ~5% of eligible requests reach the model after filtering, only won impressions produce labels, and offline feature computation can differ from real-time serving. Mitigations: log the exact feature vector used at bid time, train only on served (won) impressions, apply inverse propensity weighting (1/P(selected)) to correct exposure-selection bias, and replay logged features for training rather than recomputing them.
+
+---
+
+**Cross-questions to expect:**
+- *"If you only train on won impressions, how do you explore new inventory?"* → You must enforce exploration (e.g., epsilon-greedy bidding or contextual bandits) to randomly win impressions you otherwise wouldn't. This prevents the feedback loop where you never win new inventory and thus never learn its value.
+- *"Why is logging the feature vector at bid time so hard at scale?"* → Storage cost. Logging 1M QPS with 1KB feature vectors is 1GB/s. You must sample heavily (e.g., log 100% of won bids, 0.1% of lost bids) or use compact binary representations.
+
+**Trap:** Suggesting you just "recompute features offline exactly the same way." Time-based features (e.g., "ads shown in last 5 minutes") are notoriously difficult to reconstruct perfectly offline due to distributed state and race conditions. Always log what the model actually saw.
+
+---
+
+### Q8: What happens when the Exchange gives you a strict 10ms latency limit? [Medium]
+
+This defines the entire architecture. 10ms means network round-trip + feature lookup + model inference.
+1. **Network**: The DSP servers must be physically co-located with the Exchange (same AWS region/availability zone).
+2. **Features**: No database queries. All user profiles and context must live in an in-memory cache (Redis/Memcached) on the same rack, or pre-fetched.
+3. **Model**: Deep learning models must be heavily optimized (quantization, ONNX, TensorRT) or you fall back to shallow trees / Factorization Machines.
+4. **Fallback**: If inference takes >8ms, the circuit breaker trips and returns a default/cached bid to ensure a response before 10ms, avoiding timeout penalties.
+
+---
+
+**Cross-questions to expect:**
+- *"How do you handle feature lookups for 100 million users in <2ms?"* → Sharded in-memory key-value stores. You might even push the most active profiles directly into the bidding server's RAM.
+- *"What is the business cost of a timeout?"* → Exchanges penalize DSPs that frequently time out, either by throttling traffic (sending fewer bid requests) or dropping them from the auction entirely. A 100% timeout rate means $0 revenue.
+
+**Trap:** Treating latency as an afterthought to accuracy. In RTB, a model with 0.80 AUC that takes 15ms generates less revenue than a model with 0.70 AUC that takes 5ms, because the slower one times out and loses the auction.
+
+---
 
 ---
 

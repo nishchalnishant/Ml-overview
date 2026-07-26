@@ -1,6 +1,7 @@
 ---
 module: Classical ML
 topic: Algorithm Comparison
+status: unread
 tags: [classical-ml, comparison, decision-guide]
 prerequisites: [supervised-learning, unsupervised-learning]
 ---

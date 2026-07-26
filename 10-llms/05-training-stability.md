@@ -332,6 +332,21 @@ A production LLM training run should log the following every 10–50 steps:
 | Slow creeping increase over many steps | Distribution shift in data pipeline |
 | Immediate NaN at step 1 | Learning rate far too high |
 
+## Interview Angles
+
+**Q: During a multi-week pretraining run, the loss suddenly spikes to infinity. How do you recover?**
+A: A loss spike is usually caused by a "bad batch" (e.g., degenerate repeated tokens, corrupted encoding) or a sharp curvature in the loss landscape. First, I would wait 100-200 steps to see if the optimizer recovers naturally. If it doesn't, I will roll back to a checkpoint from ~500 steps prior (not 5,000 steps, to avoid wasting valid progress). I'll resume training with a slightly reduced learning rate (e.g., 20% lower) for a short warmup period to help the model bypass the instability, and I would investigate the data shard that caused the spike to quarantine the bad data.
+
+### Q: Why do we use norm-based Gradient Clipping instead of value-based clipping, and why is the threshold almost always set to 1.0? [Hard]
+A: Value-based clipping ($g_i = clip(g_i, -c, c)$) clips large components of the gradient vector independently. This physically changes the *direction* of the gradient vector, biasing it toward the smaller, unclipped parameters. This sends the model in the wrong optimization direction. Norm-based clipping scales the entire vector down uniformly by a constant factor, preserving the exact direction of the gradient while bounding the maximum step size. The threshold is set to 1.0 because, during healthy training, gradient norms naturally hover around 0.3 to 0.7. A threshold of 1.0 ensures that clipping *only* activates during anomalous spikes, without throttling normal learning.
+
+**Cross-questions to expect:**
+
+- *Why do models train fine in BF16, but frequently fail in FP16?* -> FP16 has only 5 exponent bits, giving it a maximum value of ~65,504 and a minimum representable positive value around $6 \times 10^{-8}$. Deep learning gradients often fall below this minimum and silently underflow to zero. BF16 has 8 exponent bits (the same as FP32), giving it a massive dynamic range that completely eliminates overflow and underflow risks, at the cost of less precision in the mantissa.
+- *How can a model's loss curve look perfectly healthy and decreasing, yet the model is entirely useless at generation?* -> This is called Token Collapse (or Mode Collapse). If a model is trained on repetitive data or an RLHF reward model that rewards length, it becomes extremely confident in outputting a narrow, degenerate distribution (e.g., repeating the same phrase over and over). Because it predicts this narrow distribution with near 100% confidence, the cross-entropy loss is very low. You detect this by monitoring Attention Entropy (which crashes) or N-gram repetition rates (which skyrocket).
+
+**Trap:** Suggesting that a high clipping fraction (e.g., clipping 60% of steps) is a good thing because "the model is being protected." If you are clipping more than a small fraction of steps, your base learning rate is too high, or your data is fundamentally broken. Clipping is a safety net for anomalies, not a substitute for proper hyperparameter tuning.
+
 ## Flashcards
 
 **What causes token collapse during RLHF, SFT, or PPO training?** #flashcard

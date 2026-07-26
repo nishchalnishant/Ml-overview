@@ -333,6 +333,21 @@ def regression_check(baseline_scores: dict, new_scores: dict, threshold: float =
 
 A 2% regression on a critical category can matter far more than a 5% improvement on aggregate metrics.
 
+## Interview Angles
+
+**Q: If you suspect a model is highly contaminated on standard benchmarks, how do you prove it without access to its training data?**
+A: Since you can't check the training corpus, you use proxies. (1) **Paraphrasing**: Rephrase the benchmark questions to be semantically identical but lexically different. If performance drops significantly, the model memorized the exact string. (2) **Chronological Splits**: Test the model on recent news, CVEs, or competition math problems released *after* the model's training cutoff date. (3) **Living Benchmarks**: Use datasets that update continuously (like LiveCodeBench), guaranteeing the test set didn't exist when the model was trained. 
+
+### Q: Why might a model score higher on MMLU than another model, but score significantly lower in the LMSYS Chatbot Arena? Which metric do you trust more for a consumer app? [Hard]
+A: MMLU measures pure knowledge retrieval on multiple-choice questions. It tests *if* the model knows a fact, but not *how* the model interacts with users. Chatbot Arena uses blind A/B testing on real user queries to calculate Elo ratings. A model might be highly knowledgeable (high MMLU) but give overly verbose, robotic, or improperly formatted answers (low Arena Elo). For a consumer app, Chatbot Arena is much more predictive of user retention because it captures tone, instruction following, and formatting preferences. However, for a strict data extraction task in a pipeline, MMLU or a specialized metric might be more useful.
+
+**Cross-questions to expect:**
+
+- *You mentioned using LLM-as-a-judge for speed. How do you prevent "Position Bias"?* -> Position bias is when an LLM judge always prefers the first option (Option A) in a pairwise comparison. You mitigate it by running both orderings (A vs B, and B vs A) and averaging the results, or requiring the judge to output a tie if the order changes its decision.
+- *Why is pass@10 more useful than pass@1 for evaluating a coding model?* -> Pass@1 is the probability that the very first generated code snippet passes all unit tests. Pass@10 is the probability that *at least one* of 10 generated snippets passes. In real-world software engineering, developers iterate; a model that can find the correct answer in a few tries (high pass@10) is highly capable, even if its zero-shot formatting is slightly off on the first try (low pass@1).
+
+**Trap:** Recommending BLEU or ROUGE for open-ended generation tasks. These metrics measure raw string overlap. If a model generates "The physician examined the patient" and the reference is "The doctor checked the sick person," BLEU will score it near zero, despite it being a perfect semantic match. Interviewers will instantly down-level you if you suggest BLEU for a summarization or QA task.
+
 ## Flashcards
 
 **When should you build a custom eval instead of relying on standard benchmarks?** #flashcard

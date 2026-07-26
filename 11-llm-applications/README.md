@@ -22,7 +22,7 @@ Mental model:
 
 Read these in order:
 
-1. `11-how-to-train-your-dragon-llm.md`
+1. [../10-llms/03-architecture-deep-dive.md](../10-llms/03-architecture-deep-dive.md) — architecture, attention, and inference internals live in `10-llms`, not here
 2. `02-rag.md`
 3. `10-tuning-optimization.md`
 4. `01-agentic-workflows.md`
@@ -35,9 +35,6 @@ That journey gives you the clean progression:
 - how they become useful systems
 
 ## What Each File Helps You Do
-
-- `11-how-to-train-your-dragon-llm.md`
-  Understand attention, tokens, inference, scaling, and why LLMs behave the way they do.
 
 - `02-rag.md`
   Learn how to ground answers in fresh documents instead of hoping the model memorized everything.

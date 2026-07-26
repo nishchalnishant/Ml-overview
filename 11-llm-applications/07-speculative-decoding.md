@@ -178,6 +178,21 @@ Any reasonable draft model achieves α > 0.5 at small batch sizes. Speculative d
 
 *Related: [Inference Optimization](06-inference-optimization.md) | [Tuning and Optimization](10-tuning-optimization.md)*
 
+## Interview Angles
+
+**Q: Explain the exact physical bottleneck that makes Speculative Decoding necessary.**
+A: At small batch sizes (e.g., batch size 1 for interactive chat), LLM inference is **memory-bandwidth bound**, not compute bound. To generate a single token, the GPU must load the entire multi-gigabyte weight matrix from High Bandwidth Memory (HBM) into SRAM/Registers. The Tensor Cores finish the math instantly and then sit idle waiting for the next layer's weights. Because autoregressive generation requires token $T$ to predict token $T+1$, you can't parallelize the sequence. Speculative Decoding solves this by using a cheap draft model to propose $K$ future tokens, allowing the large target model to verify all $K$ tokens simultaneously in a single forward pass (loading the weights only once). This converts wasted memory bandwidth into useful arithmetic.
+
+### Q: Why does Speculative Decoding provide a massive 3-4x speedup for code generation, but only a 1.5x speedup for creative writing or open-ended chat? [Hard]
+A: The speedup from speculative decoding is directly proportional to the **acceptance rate** — how often the large target model agrees with the small draft model's predictions. Code has extremely low entropy and high local predictability (e.g., repeating variable names, standard boilerplate, strict syntax). A small draft model can easily guess the next 4-5 tokens of a `for` loop accurately. Creative writing has high entropy; there are hundreds of valid ways to continue a sentence. The small draft model's guess is much more likely to be rejected by the target model, meaning the compute spent on drafting is wasted. 
+
+**Cross-questions to expect:**
+
+- *If Speculative Decoding is so great, why don't we use it for large batch processing (like offline data extraction)?* -> At large batch sizes, the GPU is no longer memory-bandwidth bound; it is compute-bound. The Tensor Cores are fully saturated doing matrix multiplication for the large batch. Adding a draft model introduces overhead (running the draft model, comparing logits) that eats into the compute budget, actually *slowing down* total throughput. Speculative Decoding is strictly a latency optimization for small batch sizes, not a throughput optimization.
+- *Compare standard Speculative Decoding with Medusa/Eagle.* -> Standard SD requires a separate, smaller draft model (e.g., a 7B model drafting for a 70B model). This requires extra GPU memory and deployment complexity. Medusa and Eagle attach extra linear heads (or a tiny 1-layer transformer) directly to the target model's final hidden state to predict future tokens. This removes the need for a separate model, simplifying deployment, but often results in slightly lower acceptance rates because the heads lack the full recurrent context of a true draft model.
+
+**Trap:** Stating that Speculative Decoding is an approximation technique. It is **lossless**. Because of the rejection sampling step, the mathematical guarantee of Speculative Decoding is that the final output distribution is *exactly* identical to what the target model would have produced alone. It changes the speed, not the output.
+
 ## Flashcards
 
 **Why does speculative decoding speed up generation without changing the output distribution?** #flashcard

@@ -370,7 +370,7 @@ SageMaker FS | S3             | DynamoDB               | Partial   | AWS only   
 
 ---
 
-## Feature Store Interview Angles
+## Interview Angles
 
 **Design a Feature Store for a fraud detection system:**
 - Identify real-time (velocity) vs batch (user history) features

@@ -252,6 +252,21 @@ Span-level hallucination detection. Labels individual sentences as factual or ha
 
 *Related: [RAG](02-rag.md) | [Tuning and Optimization](10-tuning-optimization.md) | [Agentic Workflows](01-agentic-workflows.md)*
 
+## Interview Angles
+
+**Q: Why do LLMs hallucinate, and why doesn't training them on more factual data fix it?**
+A: LLMs hallucinate because they are trained to minimize next-token prediction loss (fluency), not to distinguish "I know this" from "this sounds plausible." A recalled fact and a fluent confabulation look identical to the training objective. Training on more factual data increases the *probability* that the model memorizes a fact, but it doesn't give the model an internal oracle to know its own uncertainty. When forced to predict the next token in an unfamiliar context, it will confidently interpolate using the closest statistical patterns, resulting in plausible-sounding falsehoods.
+
+### Q: How do you detect and mitigate hallucinations in a production system without using RAG? [Hard]
+A: Without RAG (which provides external grounding), you must rely on detecting the model's own uncertainty. (1) **Self-consistency**: Sample N responses at high temperature; if the answers contradict each other, the model is hallucinating. (2) **SelfCheckGPT**: Generate a primary response, then sample N variants and check if the primary claims are contradicted in the variants. (3) **Calibration/Prompting**: Instruct the model to say "I don't know" or express uncertainty ("I believe"). (4) **Constrained Decoding**: For format hallucinations, use an FSM/Regex mask during decoding to physically prevent invalid tokens. (5) **Factuality Fine-Tuning**: Fine-tune on a highly curated dataset with TruthfulQA-style adversarial examples to penalize confident but wrong answers.
+
+**Cross-questions to expect:**
+
+- *Why does RLHF often make hallucinations and calibration worse, even as it makes the model more helpful?* -> RLHF trains the model against human preferences. Human raters often unknowingly reward confident, fluent, and comprehensive answers over cautious, hedged ones. The reward model learns this bias. Thus, the policy learns that "sounding confident" yields high reward, leading it to assert false claims confidently rather than admitting ignorance (sycophancy and overconfidence).
+- *Self-consistency detects variance. When will self-consistency fail to detect a hallucination?* -> It fails on **systematic hallucinations**. If the model has memorized a common misconception (e.g., "bats are blind") or has a deeply ingrained bias, all N samples will confidently assert the same wrong fact. Self-consistency only catches random fabrication/uncertainty, not confident misinformation.
+
+**Trap:** Conflating "faithful" with "factual." If you use an NLI model to check if an LLM's output matches a retrieved document, you are checking *faithfulness*. If the document itself is wrong, the LLM is faithful but not factual. Interviewers will test if you know the difference between grounding an answer (faithfulness) and world-truth (factuality).
+
 ## Flashcards
 
 **Why do LLMs hallucinate in the first place?** #flashcard

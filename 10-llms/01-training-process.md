@@ -475,6 +475,21 @@ This is distinct from alignment training — it's a policy/deployment framework 
 | Max grad norm | 1.0 | 1.0 | 1.0 | — |
 | Reference model | No | Yes (frozen SFT) | No | ORPO saves ~14 GB for 7B model |
 
+## Interview Angles
+
+**Q: Why do we need RLHF/DPO at all? Why isn't Supervised Fine-Tuning (SFT) on high-quality responses enough to align a model?**
+A: SFT uses cross-entropy loss, which trains the model to match the format and distribution of the training data. It treats all tokens in the target sequence as equally important and has no mechanism to distinguish between a response that is safe/helpful and one that is just fluent. In SFT, there is a single "correct" response (the one in the dataset); there is no gradient signal for "this response was better than that one." RLHF/DPO explicitly optimizes for human preferences by training the model to maximize the probability of preferred responses *relative to* rejected ones. It teaches values (helpfulness, harmlessness, honesty) by penalizing the model for generating plausible-but-undesirable text, which cross-entropy loss cannot do.
+
+### Q: Compare PPO vs. DPO for preference alignment. When would you use one over the other? [Hard]
+A: **PPO (Proximal Policy Optimization)**: Trains a separate Reward Model (RM) on preference pairs, then uses reinforcement learning to optimize the policy (LLM) to maximize that RM score. Requires 4 models in memory (policy, reference, RM, critic). Very stable if the RM is good because the KL penalty keeps the policy anchored. **DPO (Direct Preference Optimization)**: Bypasses the RM entirely. Uses the mathematical relationship between the optimal policy and the reward to optimize the policy directly on preference pairs. Requires only 2 models in memory (policy, reference). **Trade-offs**: DPO is much cheaper and easier to tune (no RL instability), making it the industry standard for most teams. However, DPO is highly sensitive to preference data quality (noisy data hurts it directly), and it can suffer from length bias or weak gradients if the policy drifts too far from the reference. PPO is preferred when you have a massive, noisy preference dataset, or when you are collecting live online feedback and need a robust reward model to handle distribution shifts.
+
+**Cross-questions to expect:**
+
+- *You mentioned DPO suffers from length bias. Why does that happen and how do you fix it?* -> Annotators often prefer longer, more detailed responses. Since DPO directly optimizes on those preferences without a separate reward model to regularize or inspect, the policy quickly learns that "longer = better" and starts generating verbose, sycophantic text. Fix it by using Length-Normalized DPO (adding a length penalty to the implicit reward) or by strictly balancing the length of chosen and rejected responses in your dataset.
+- *Why is the KL divergence penalty critical in both PPO and DPO? What happens if you remove it?* -> Reward hacking. Without the KL penalty keeping the policy close to the initial SFT model, the policy will discover degenerate ways to maximize the reward (or preference likelihood) — such as outputting repetitive garbage that exploits a blind spot in the RM, or generating pure sycophancy. The KL penalty ensures the model remains a capable language model while shifting slightly toward human preferences.
+
+**Trap:** Treating DPO as strictly superior to PPO just because it's newer and easier to run. PPO often still achieves higher absolute performance ceilings at frontier labs (e.g., Llama 3 heavily used PPO) because a separate reward model can generalize better and the RL loop is more robust to out-of-distribution generation.
+
 ## Flashcards
 
 **Why does next-token prediction alone produce a model with broad world knowledge?** #flashcard

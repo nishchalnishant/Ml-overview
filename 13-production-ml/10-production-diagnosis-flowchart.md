@@ -411,6 +411,56 @@ A: PSI is batch (offline) — compare feature distributions between a reference 
 **Q: How do you prevent silent failures in ML pipelines?**  
 A: Defense in depth: (1) schema validation at every pipeline boundary (Great Expectations or custom), (2) feature distribution alerts via PSI on daily batch, (3) prediction distribution monitoring (score histogram) — catches bugs even before labels arrive, (4) shadow mode for new models before full traffic, (5) canary deployment with automated rollback trigger on P99 latency or score distribution shift, (6) data lineage tracking so you can trace any feature value to its source.
 
+## Interview Angles
+
+### Q1: You notice high feature drift. Should you use PSI or a KS Test to trigger an alert? [Hard]
+
+You should use **PSI (Population Stability Index)** for categorical features and business metrics, and **KS (Kolmogorov-Smirnov) Test** for continuous numerical features.
+- **PSI**: Measures the shift in the *distribution of buckets*. It is robust, interpretable, and doesn't trigger on tiny, meaningless variations. A PSI > 0.2 indicates significant shift.
+- **KS Test**: Measures the maximum distance between two cumulative distribution functions (CDFs). It is highly sensitive. For large datasets (e.g., millions of rows in production), the KS test will almost *always* return a p-value < 0.05, alerting on mathematically significant but practically irrelevant shifts (like a mean shifting from 4.001 to 4.002).
+
+---
+
+**Cross-questions to expect:**
+- *"How do you handle the over-sensitivity of the KS test at scale?"* → You don't use the p-value. Instead, you threshold on the KS statistic (the actual distance $D$) itself (e.g., alert if $D > 0.1$), or you downsample the production data before running the test to compute a meaningful p-value.
+- *"If PSI > 0.2, do you immediately retrain?"* → No. Data drift doesn't always cause concept drift. First, check if the *prediction distribution* also shifted. If the model's output is stable despite the input shifting, the model has generalized well. Only retrain if performance degrades or output shifts dangerously.
+
+**Trap:** Using p-values from statistical tests on big data to trigger automated pipelines. P-values shrink to zero as sample size approaches infinity, causing alert fatigue. Always alert on effect size, not just statistical significance.
+
+---
+
+### Q2: How do you distinguish Target Leakage from Temporal Leakage when debugging an impossibly good model? [Medium]
+
+- **Target Leakage**: A feature explicitly contains the label, but it wouldn't be available at inference time. E.g., predicting if a user will churn, and using "Date of Account Cancellation" as a feature. (Fix: Drop the feature).
+- **Temporal Leakage**: A feature is valid, but the *value* of the feature used during training includes data from the future. E.g., predicting a stock price on Tuesday using the 7-day moving average calculated on Friday. (Fix: Implement point-in-time correctness / time-travel joins in your feature store).
+
+---
+
+**Cross-questions to expect:**
+- *"How do you catch leakage before deploying?"* → Look for features with suspiciously high feature importance (e.g., one feature has 90% of the split weight in XGBoost). Also, plot the partial dependence — if a single feature perfectly separates the classes, it's likely leakage.
+- *"What is a 'process label' and how does it cause leakage?"* → Predicting "sepsis" but the label is defined as "doctor prescribed antibiotics." You are training the model to predict the doctor's action, not the disease. The model learns to trigger exactly when the doctor already knows to trigger, rendering it useless for early warning.
+
+**Trap:** Thinking cross-validation prevents leakage. If the temporal leak is in your pandas dataframe *before* you call `train_test_split`, cross-validation will just confidently validate the leaked data. You must split by time *first*, then compute rolling features.
+
+---
+
+### Q3: How do you handle Concept Drift (the relationship between X and Y changes)? [Hard]
+
+Concept drift happens when user behavior fundamentally changes (e.g., COVID lockdowns changing shopping patterns). The feature distributions might look identical, but the *meaning* of the features changed.
+**Solutions**:
+1. **Shorter Training Windows**: Train on the last 14 days instead of the last 6 months so the model unlearns the old concept faster.
+2. **Instance Weighting**: Exponentially decay the sample weights in your loss function based on the age of the data point. A row from today has a weight of 1.0, a row from 3 months ago has a weight of 0.1.
+3. **Continuous Retraining**: Implement an automated pipeline (Champion/Challenger) that retrains daily, evaluating on the freshest possible holdout set.
+
+---
+
+**Cross-questions to expect:**
+- *"If you shrink the training window, what do you lose?"* → You lose long-term seasonality (e.g., Christmas shopping patterns) and you increase variance because the sample size is smaller. A hybrid approach uses a large dataset to train a base model, and then fine-tunes the top layers on only the last 14 days.
+
+**Trap:** Trying to "fix" concept drift by adding more features. Concept drift is a temporal problem, not a representation problem. The world changed; the model's weights simply need to be updated.
+
+---
+
 ## Flashcards
 
 **Sudden accuracy drop vs. gradual drop — what's the first branch in diagnosis?** #flashcard

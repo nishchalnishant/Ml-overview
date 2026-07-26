@@ -254,6 +254,21 @@ Optimization targets: reduce image resolution (448px vs 1024px gives 5× fewer p
 
 *Related: [Context Window Extension](../10-llms/07-context-window-extension.md) | [Hallucination Mitigation](05-hallucination-mitigation.md) | [Inference Optimization](06-inference-optimization.md)*
 
+## Interview Angles
+
+**Q: Why does the standard CLIP image encoder struggle with tasks like counting objects or reading text (OCR) inside an image?**
+A: CLIP processes an image by converting it into patches, passing it through a Vision Transformer, and aggregating the final output into a single, global `[CLS]` embedding. Because it relies on this global embedding to match against text, all fine-grained spatial information is averaged out or lost. The model knows "there is a cat in this image," but it cannot tell you *where* the cat is, nor can it resolve small text. This is why modern VLMs prefer models like DINOv2 or extract the raw patch embeddings rather than just the `[CLS]` token for dense tasks.
+
+### Q: Compare the architecture of LLaVA (Linear Projection) with BLIP-2 (Q-Former). Which one would you deploy for a high-traffic image Q&A service? [Hard]
+A: LLaVA is a "Linear Projection" model. It takes every single image patch from the ViT (e.g., 256 patches) and linearly projects them directly into the LLM's context window. This preserves all visual detail but is extremely expensive for serving, as every image adds 256+ tokens to the prompt. BLIP-2 uses a Q-Former, which uses a fixed number of learnable queries (e.g., 32) to cross-attend to the image features, compressing the image into just 32 tokens before passing it to the LLM. For a high-traffic service where compute and TTFT (Time To First Token) are the bottlenecks, the Q-Former is vastly superior because it reduces the context window burden by 8x, at the cost of a slight loss in fine-grained spatial detail.
+
+**Cross-questions to expect:**
+
+- *Why did OpenAI move from the Whisper pipeline to native audio in GPT-4o?* -> The old pipeline was ASR (Audio to Text) -> LLM (Text to Text) -> TTS (Text to Audio). This pipeline introduces massive latency (2-3 seconds). More importantly, the ASR step discards all non-lexical information: tone, emotion, sarcasm, and background noise. GPT-4o is a native multimodal model that ingests raw audio waveforms (discretized into tokens via Neural Audio Codecs) directly into the transformer, allowing it to process and generate emotion, tone, and pacing with ~320ms latency.
+- *Why don't we just process Video frames the same way we process Image patches?* -> Computing full self-attention over every patch in a 1-minute 30fps video would result in tens of millions of visual tokens. Self-attention is $O(N^2)$. It is computationally intractable. Instead, we have to use sparse frame sampling (picking 1-4 frames per second) or factorized spatiotemporal attention (attending spatially within a frame, then temporally across frames, changing the complexity from $O((N \cdot T)^2)$ to $O(N \cdot T^2) + O(T \cdot N^2)$).
+
+**Trap:** Treating Multimodal models identically to text LLMs in production sizing. An image isn't "one token"—depending on the resolution and architecture, an image can inject thousands of tokens into the prefill phase. If you do capacity planning assuming standard text lengths, your KV cache will immediately OOM when users start uploading high-resolution images.
+
 ## Flashcards
 
 **Why can't a language model process images or audio directly, and why not just convert them to text first (OCR/ASR)?** #flashcard

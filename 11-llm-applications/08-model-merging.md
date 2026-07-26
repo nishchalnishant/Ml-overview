@@ -234,13 +234,17 @@ Supported methods: `linear`, `slerp`, `task_arithmetic`, `ties`, `dare_ties`, `d
 
 *Related: [Tuning and Optimization](10-tuning-optimization.md) | [Inference Optimization](06-inference-optimization.md)*
 
-## Flashcards
+## Interview Angles
 
-**model?** #flashcard
-path/to/math-model
+**Q: Why does linear interpolation of weights (Weight Averaging) work for some models, but completely break for others?**
+A: Weight averaging only works when the two models occupy the same convex basin in the loss landscape. In practice, this means they must have been fine-tuned from the **exact same pretrained base checkpoint** (e.g., both must be fine-tunes of Llama-3-8B-Base). If they start from the same initialization, their fine-tuning trajectories are close enough that their midpoint is also in a low-loss region. If you try to average a Llama-3 model and a Mistral model—or even two models trained from scratch on the same data—their weights are in totally different regions of the loss landscape, and the interpolated model will just output garbage.
 
-**model?** #flashcard
-path/to/code-model
+### Q: What is the concept of a "Task Vector" in model merging, and how does it relate to word embeddings? [Hard]
+A: A task vector is the difference between a fine-tuned model's weights and its pretrained base model's weights ($\tau = \theta_{finetuned} - \theta_{base}$). This vector isolates the exact parameter changes that gave the model its new capability. Just like word embeddings allow semantic arithmetic (King - Man + Woman = Queen), task vectors allow capability arithmetic. If you take the base model and add the task vector for Math and the task vector for Coding ($\theta_{new} = \theta_{base} + \tau_{math} + \tau_{code}$), the resulting model will possess both capabilities without requiring an expensive multi-task training run. 
 
-**model?** #flashcard
-path/to/instruct-model
+**Cross-questions to expect:**
+
+- *When adding multiple task vectors together, what is "Sign Conflict" and how does TIES merging solve it?* -> If the Math task vector pushes a specific weight positive, but the Coding task vector pushes that exact same weight negative, adding them naively will cancel them out to zero, erasing both capabilities. TIES (TrIm, Elect sign, diScard) solves this by having all task vectors vote on the dominant sign for a parameter, and then zeroing out any vectors that disagree with the majority before averaging. This prevents destructive interference.
+- *What is DARE merging and why does it apply Dropout to weights?* -> DARE randomly drops out a large percentage (e.g., 80-90%) of the parameters in a task vector and scales up the remaining ones (exactly like Dropout during training). Because fine-tuning updates are highly redundant, dropping most of them removes noise and reduces interference when merging multiple models, while the scaled-up remaining parameters preserve the actual learned capability.
+
+**Trap:** Suggesting Model Merging as the go-to solution for combining capabilities in an enterprise production environment. While model merging is a fascinating research area and popular in the open-source hobbyist community (e.g., MergeKit), enterprise teams rarely use it for primary models. Instead, they prefer multi-task instruction tuning (which guarantees the model learns to balance the tasks) or Multi-Agent setups (where specialized models handle different steps). Merging is too unpredictable for strict SLAs.

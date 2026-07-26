@@ -458,6 +458,36 @@ Profile Store  ANN Index   Item Features
 
 ---
 
+## Interview Angles
+
+### Q1: How do you balance explore-exploit in personalization? [Medium]
+
+A pure exploit model only shows the user what it already knows they like. Over time, the user's profile becomes a self-fulfilling filter bubble and the system never discovers new interests. To solve this, you need **Multi-Armed Bandits** (MAB). Instead of serving the top 10 ranked items deterministically, you use techniques like **Thompson Sampling** or **Upper Confidence Bound (UCB)**. This means items with high uncertainty (new items or categories the user rarely sees) get occasional artificial boosts. You intentionally dedicate a small fraction of the screen real-estate (e.g., 5-10%) to exploration to continuously gather unbiased labels.
+
+---
+
+**Cross-questions to expect:**
+- *"Epsilon-greedy vs Thompson Sampling. Which do you choose and why?"* → Thompson Sampling is usually preferred in personalization. Epsilon-greedy explores uniformly at random (which can serve terrible items and hurt user experience), whereas Thompson Sampling samples from the posterior distribution of the item's expected reward, naturally favoring "promising but uncertain" items over definitively bad ones.
+- *"How do you measure the cost of exploration?"* → You run an A/B test comparing the bandit model against a pure-exploit greedy baseline. The short-term metric (e.g., day 1 CTR) will drop in the bandit group (the "exploration tax"), but the long-term metric (e.g., day 30 retention or lifetime value) should be higher as the bandit discovers better content for users.
+
+**Trap:** Assuming exploration is just "adding random noise to the scores." Random noise explores inefficiently and damages the user experience. Bandit algorithms provide mathematically optimal ways to minimize regret while exploring.
+
+---
+
+### Q2: A user complains their feed is too repetitive. How do you balance diversity vs relevance? [Hard]
+
+Pure relevance scoring maximizes the probability of a click on each individual item independently. If the user loves Marvel movies, the top 10 most relevant items might all be Marvel movies. But the marginal utility of the 10th Marvel movie is zero if they just clicked the 1st one. To fix this, we implement **intra-list diversity**. We penalize items that are too similar to items already ranked higher in the list. This can be done via **Maximal Marginal Relevance (MMR)** or Determinantal Point Processes (DPP). MMR iteratively selects the next item by maximizing a combination of its relevance score and its dissimilarity to the already-selected items.
+
+---
+
+**Cross-questions to expect:**
+- *"How do you compute 'dissimilarity' for MMR?"* → You use the distance between the items' dense embeddings (e.g., 1 minus cosine similarity). If a candidate item's embedding is nearly identical to an item already in the top 3, its MMR penalty is huge.
+- *"Where does this diversity logic live in the architecture?"* → It must live in the final re-ranking/fusion layer, right before the UI. You cannot do diversity in the retrieval step because retrieval operates on items independently; diversity is a property of the *list*, not the item.
+
+**Trap:** Trying to solve diversity by tuning the deep learning model's loss function. The ML model predicts *pointwise* relevance (probability of clicking item X). Diversity is a *listwise* constraint best handled by a post-processing algorithm (like MMR) applied to the ML model's outputs.
+
+---
+
 ## Flashcards
 
 **Why does category affinity use an exponential moving average instead of a simple running average of all-time events?** #flashcard

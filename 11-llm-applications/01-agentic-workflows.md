@@ -211,6 +211,44 @@ Tooling: LangSmith, Weights & Biases Weave, Arize Phoenix, or custom OpenTelemet
 
 ---
 
+## Interview Angles
+
+### Q: Why does an agent looping on a single tool call happen, and how do you fix it? [Medium]
+
+It happens because the LLM fails to recognize the stopping condition, or the tool returns an unhelpful error message that the LLM tries to solve by calling the tool again with the exact same parameters. 
+
+**Cross-questions to expect**
+- *"What if the tool fails with a timeout?"* — If the LLM just gets "timeout", it'll retry indefinitely. The tool wrapper should return a semantic error like "The database took too long. Try a narrower query."
+- *"How do you prevent catastrophic cost from this?"* — Hard guardrails. A state-machine limit on the number of steps (e.g., max 10 iterations) that terminates the agent forcefully.
+
+**Trap:** Proposing to "prompt the model to not loop." Prompting is a soft constraint; the model can and will ignore it in edge cases. Always use hard state-machine constraints outside the model.
+
+### Q: You are building a coding agent that can execute generated code. How do you secure it? [Hard]
+
+The primary risk is the model generating destructive commands (e.g., `rm -rf /`) or exfiltrating environment variables. 
+1. **Sandboxing:** Execute the code in an isolated, ephemeral environment (Docker, E2B, Firecracker) with no network access and a strict execution timeout.
+2. **Permissions:** The container must run as a non-root user with zero IAM permissions to production resources.
+3. **Pre-execution Guardrails:** Add a static analysis step (like AST parsing) to block obviously malicious syscalls before execution.
+
+**Cross-questions to expect**
+- *"What if the user asks the agent to write a script that fetches data from their own database?"* — If network access is required, restrict egress to a strict whitelist of domains, or run the sandbox in a locked-down VPC.
+
+**Trap:** Trusting the LLM to self-censor. You can prompt an LLM to "only write safe code," but a prompt injection from the user will easily override this. Security must be enforced by the execution host, not the language model.
+
+### Q: A multi-agent system (Researcher, Writer, Reviewer) is producing low-quality output. How do you debug it? [Hard]
+
+The failure could be in the researcher's tool calls, the writer's synthesis, or the reviewer's leniency.
+1. Enable full-trace observability (LangSmith/Phoenix) to see the exact inputs and outputs of each agent.
+2. Inspect the handoff context: is the Researcher passing the full source text, or a lossy summary?
+3. Check the Reviewer's critique: is it hallucinating praise?
+
+**Cross-questions to expect**
+- *"How do you fix it systematically rather than by eyeballing traces?"* — Extract intermediate outputs from the traces and run them against a deterministic evaluator or an LLM-as-a-judge to pinpoint exactly which subagent's success rate is degrading.
+
+**Trap:** Trying to fix the system by tweaking the orchestrator's prompt. Multi-agent systems fail at the boundaries; you must inspect the state transitions, not just the top-level instructions.
+
+---
+
 ## Frameworks
 
 | Framework | Strengths | Best for |

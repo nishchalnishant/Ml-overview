@@ -33,7 +33,7 @@ All of these reduce to the same pipeline: tabular or sequential telemetry featur
 (MLP / RNN-LSTM / Transformer over event sequences) → binary or regression target. Prepare the
 **one end-to-end story** you know cold — see [PRE-INTERVIEW-CHECKLIST.md](../03-pre-interview-checklist.md#system-design---know-one-end-to-end-example-cold).
 Churn or LTV is the safest choice since it maps directly to existing content:
-[17-customer-ltv-prediction.md](../../15-system-design/cases/02-customer-ltv-prediction.md).
+[02-customer-ltv-prediction.md](../../15-system-design/cases/02-customer-ltv-prediction.md).
 
 ---
 
@@ -115,11 +115,11 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 - [06-production-ml/01-mlops.md](../../13-production-ml/01-mlops.md)
 - [06-production-ml/02-deployment-patterns.md](../../13-production-ml/02-deployment-patterns.md) — batch vs. online serving, shadow deployment, canary
 - [06-production-ml/03-model-governance.md](../../13-production-ml/03-model-governance.md)
-- [06-production-ml/system-design/01-machine-learning-engineering.md](../../15-system-design/03-machine-learning-engineering.md)
-- [06-production-ml/system-design/07-data-engineering-for-ml.md](../../13-production-ml/06-data-engineering-for-ml.md)
-- [06-production-ml/system-design/10-model-registry-versioning.md](../../13-production-ml/09-model-registry-versioning.md)
-- [06-production-ml/system-design/17-customer-ltv-prediction.md](../../15-system-design/cases/02-customer-ltv-prediction.md) — closest full system-design writeup to a likely EA scenario
-- [06-production-ml/system-design/20-fraud-detection-full-system.md](../../15-system-design/cases/05-fraud-detection.md) — if the exercise leans anti-cheat/toxicity
+- [15-system-design/03-machine-learning-engineering.md](../../15-system-design/03-machine-learning-engineering.md)
+- [13-production-ml/06-data-engineering-for-ml.md](../../13-production-ml/06-data-engineering-for-ml.md)
+- [13-production-ml/09-model-registry-versioning.md](../../13-production-ml/09-model-registry-versioning.md)
+- [15-system-design/cases/02-customer-ltv-prediction.md](../../15-system-design/cases/02-customer-ltv-prediction.md) — closest full system-design writeup to a likely EA scenario
+- [15-system-design/cases/05-fraud-detection.md](../../15-system-design/cases/05-fraud-detection.md) — if the exercise leans anti-cheat/toxicity
 
 **Points to hit:**
 - Batch scoring (nightly churn scores) vs. real-time inference (in-session matchmaking/recommendation) — state the latency requirement first, it determines the whole serving architecture.

@@ -340,56 +340,20 @@ Vision-language models (e.g., LLaVA, Flamingo) learn visual "tokens" via patch e
 
 ---
 
-## 11. Interview Questions
+## Interview Angles
 
-**Q1: Why do LLMs struggle with simple arithmetic like 99 + 1?**
+**Q: Why do LLMs struggle with simple multi-digit arithmetic, and how does tokenization cause this?**
+A: Numbers tokenize inconsistently in standard BPE. For example, "100" might be a single token `[1041]`, but "10000" might fragment into `[1251, 15, 12279]`. The model never explicitly sees digits; it must implicitly learn that the sub-token `[15]` represents the hundreds place in this specific context. To perform arithmetic, the model must map token IDs to digit values, perform carry operations across token boundaries, and generalize this across inconsistent splits. Modern tokenizers (like OpenAI's `cl100k_base` or Llama 3's) fix this by pre-tokenizing (splitting) all numbers into individual digits so "1234" always becomes `["1", "2", "3", "4"]`.
 
-Because numbers tokenize inconsistently. "99" might be a single token; "100" is a different single token — the model never sees explicit digit manipulation during standard forward passes. It must implicitly learn carry rules from token-level patterns, which fails for numbers outside the training distribution. Digit-by-digit tokenization (cl100k_base) and scratchpad prompting both reduce this failure mode.
+### Q: Discuss the tradeoff of vocabulary size. Why not just use a massive 1-million token vocabulary to perfectly capture every word? [Hard]
+A: Vocabulary size dictates the size of the embedding layer and the final output projection matrix ($V \times d_{model}$). A 1M vocab with $d=4096$ in fp16 would require 8GB of memory just for the embeddings, which is massively inefficient and creates a severe memory bandwidth bottleneck during inference (the softmax bottleneck). Furthermore, a massive vocabulary leads to **sparse gradient updates**: rare words (like specific names or jargon) will have their own tokens, but because they appear so infrequently in the training data, their embeddings will be severely undertrained. A smaller vocab forces the model to compose rare concepts from well-trained subword units (like prefixes/suffixes), which generalizes better.
 
----
+**Cross-questions to expect:**
 
-**Q2: What is the difference between BPE and WordPiece?**
+- *If small vocabularies generalize better, why are models moving from 32K (Llama 2) to 128K (Llama 3)?* -> Multilingual coverage and fertility. A 32K vocab optimized for English forces non-English languages to heavily fragment (high fertility). This means a Spanish prompt takes 2x the tokens, burning sequence length and quadratic attention compute. A larger vocab (128K) provides enough budget to allocate dedicated tokens to non-English languages, dramatically improving their inference efficiency without hitting the sparse update problem.
+- *What is byte-level BPE and why is it preferred over character-level BPE?* -> Character-level BPE can still encounter Out-Of-Vocabulary (OOV) tokens if it sees a rare Unicode character it wasn't trained on. Byte-level BPE maps the 256 possible bytes to a fixed base vocabulary. Since any text can be represented as UTF-8 bytes, byte-level BPE guarantees zero OOV tokens — it can fall back to raw bytes for anything it doesn't recognize.
 
-Both are greedy subword algorithms but differ in the merge criterion:
-- BPE: selects the **most frequent** adjacent pair.
-- WordPiece: selects the pair that **maximizes corpus likelihood**, equivalent to choosing pairs with highest PMI: score = count(AB) / (count(A) × count(B)).
-
-WordPiece tends to merge pairs that are mutually informative rather than just common. BPE is used in GPT-2/GPT-4; WordPiece is used in BERT.
-
----
-
-**Q3: Why does a larger vocabulary help multilingual models?**
-
-A fixed vocabulary must cover all languages. With a small vocab (32K), each language gets a proportionally tiny budget — rare languages are forced to decompose words into many small pieces (high fertility). This means: longer sequences, higher compute cost, and weaker semantic representations for those languages. A 200K+ vocab can give reasonable coverage to dozens of languages simultaneously.
-
----
-
-**Q4: What is byte-level BPE and why does GPT-2 use it?**
-
-Standard character-level BPE starts with a base vocabulary of all Unicode characters, which can be large and includes many rare codepoints. Byte-level BPE instead maps each byte (0–255) to a printable character, giving a fixed base vocab of exactly 256. All UTF-8 encoded text is thus tokenizable without any `<UNK>`. Merges operate on these byte-level symbols. GPT-2 uses this to guarantee coverage of any input string.
-
----
-
-**Q5: How does SentencePiece handle whitespace differently from BPE?**
-
-BPE typically pre-tokenizes on whitespace (splits words first, then runs BPE within words). SentencePiece treats whitespace as a normal character and tokenizes the raw string. Leading spaces become part of tokens via the `▁` prefix. This is language-agnostic: languages without whitespace word boundaries (Chinese, Japanese, Thai) are handled without special rules.
-
----
-
-**Q6: What is "fertility" and why does it matter for non-English languages?**
-
-Fertility is the number of tokens generated per word (or per character). A model has a fixed sequence length budget (e.g., 4K tokens). If English averages 1.3 tokens/word but Arabic averages 7 tokens/word, the Arabic content of a 4K-token context is ~7× shorter in terms of meaningful content. This reduces the effective context window, increases attention cost, and means the model sees fewer training examples' worth of information per token for high-fertility languages.
-
----
-
-**Q7: If you had to design a tokenizer for a code-heavy LLM, what would you change vs. a standard BPE setup?**
-
-Key changes:
-1. **Preserve indentation tokens**: merge spaces specifically so common indentation levels (2, 4, 8 spaces) become single tokens — reduces sequence length for Python/YAML.
-2. **Digit-by-digit numbers**: prevent multi-digit merges to make arithmetic and version strings consistent.
-3. **Common symbol bigrams**: `->`, `=>`, `::`, `//`, `/*`, `*/` should each be single tokens.
-4. **Train on code-heavy corpus**: BPE merge priorities reflect corpus statistics — a code-heavy corpus will naturally promote code-relevant merges.
-5. **Preserve identifier boundaries at `_`**: avoid merging across underscores so `snake_case` parts are semantically consistent.
+**Trap:** Forgetting that tokenization happens *before* the model. If an interviewer asks how a Transformer parses whitespace or capitalization, the answer is usually "it doesn't, the tokenizer handles it." For instance, standard BPE treats `" dog"` and `"dog"` as completely different tokens, forcing the model to learn their semantic equivalence entirely through context.
 
 ---
 

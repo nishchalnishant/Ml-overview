@@ -56,7 +56,7 @@ With all weights identical, every neuron in a layer computes the same output and
 - **Too small**: activations shrink toward zero through depth, gradients vanish, early layers receive negligible learning signal. Both are addressed by variance-preserving schemes — **Xavier/Glorot** for tanh/sigmoid, **He/Kaiming** for ReLU (scales by 2/n_in to compensate for ReLU zeroing ~half of activations).
 
 ### Q: What is the vanishing gradient problem, and why is it worse with sigmoid than ReLU?
-Backprop multiplies local derivatives across all layers; sigmoid's derivative maxes at 0.25 so it systematically shrinks gradients, while ReLU's is exactly 1 in the active region. Full derivation, numeric example, and fixes: see [components/01-backpropagation.md](01-backpropagation.md#vanishing-gradients).
+Backprop multiplies local derivatives across all layers; sigmoid's derivative maxes at 0.25 so it systematically shrinks gradients, while ReLU's is exactly 1 in the active region. Full derivation, numeric example, and fixes: see [01-backpropagation.md](01-backpropagation.md#vanishing-gradients).
 
 ### Q: How does dropout work and why is it regularization?
 During training, each unit's activation is independently zeroed with probability p, and remaining activations are scaled by 1/(1−p) (inverted dropout) so expected magnitude matches inference. It prevents **co-adaptation** — units can't rely on any specific other unit always being present, forcing more robust representations. Interpreted as implicitly training an ensemble of exponentially many subnetworks sharing weights, averaged at test time.
@@ -123,7 +123,7 @@ LSTM maintains a cell state c_t updated **additively**: c_t = f_t ⊙ c_{t-1} + 
 Because c_t is updated additively (not via repeated matrix multiplication), the gradient path ∂c_t/∂c_{t-1} = f_t can stay close to 1 when the forget gate is near 1, letting gradients flow across many timesteps largely undiminished — a "gradient highway" analogous to residual connections.
 
 ### Q: Explain the Query/Key/Value formulation of self-attention.
-Each input token is projected into three vectors: Q = XW_Q, K = XW_K, V = XW_V. Attention scores are the scaled dot product softmax(QKᵀ/√d_k)·V — scaling by √d_k prevents dot-product variance from growing with dimension (derivation: [components/10-attention.md](../06-architectures/02-attention.md)). Intuitively: each token "queries" all other tokens' "keys" to decide how much of each "value" to incorporate into its updated representation.
+Each input token is projected into three vectors: Q = XW_Q, K = XW_K, V = XW_V. Attention scores are the scaled dot product softmax(QKᵀ/√d_k)·V — scaling by √d_k prevents dot-product variance from growing with dimension (derivation: [../06-architectures/02-attention.md](../06-architectures/02-attention.md)). Intuitively: each token "queries" all other tokens' "keys" to decide how much of each "value" to incorporate into its updated representation.
 
 ### Q: What is causal masking and why is it needed?
 Causal masking sets attention scores for future positions to −∞ before the softmax (→ zero weight), ensuring position i can only attend to positions ≤ i. This preserves the autoregressive property: during training with teacher forcing the model sees the whole sequence at once, but each position must only use past context — matching inference-time generation where future tokens genuinely don't exist yet.

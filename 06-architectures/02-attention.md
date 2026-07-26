@@ -1,6 +1,6 @@
 ---
 module: Architectures
-topic: Components
+topic: Architectures
 subtopic: Attention
 status: unread
 tags: [deeplearning, ml, components-attention]

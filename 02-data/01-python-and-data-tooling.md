@@ -289,4 +289,4 @@ sys.getsizeof(df) / 1e6                  # rough object size in MB (use df.memor
 
 - **Data cleaning, EDA, and pipelines** → [04-data-processing-and-eda.md](02-data-processing-and-eda.md)
 - **Math foundations these operations implement** → [02-math-and-theory-foundations.md](../01-math-foundations/01-math-and-theory-foundations.md)
-- **Classical algorithms that consume this data** → [02-classical-ml/](../02-classical-ml/)
+- **Classical algorithms that consume this data** → [03-classical-ml/](../03-classical-ml/)

@@ -7,7 +7,7 @@ tags: [productionml, cheatsheet, comparison, interview-prep]
 ---
 # Production ML — Comparison Cheat Sheet
 
-Exhaustive, comparison-oriented rapid-review reference for `06-production-ml/`. Every entry grounded in what the folder's files actually cover (`01-mlops.md`, `02-deployment-patterns.md`, `03-model-governance.md`, [_revision.md](_revision.md), and `system-design/*.md`).
+Exhaustive, comparison-oriented rapid-review reference for `13-production-ml/`. Every entry grounded in what the folder's files actually cover (`01-mlops.md`, `02-deployment-patterns.md`, `03-model-governance.md`, [_revision.md](_revision.md), and `../15-system-design/*.md`).
 
 ---
 

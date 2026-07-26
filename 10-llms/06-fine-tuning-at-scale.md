@@ -557,16 +557,25 @@ adapter_config = AdapterConfig(
 
 ---
 
-## Canonical Interview Q&As
+## Interview Angles
 
-**Q: Why does LoRA work well despite only updating 1% of parameters?**  
-A: The key insight is that fine-tuning updates lie in a low intrinsic dimensionality subspace. Empirically, when you SVD the delta-W from full fine-tuning, most of the signal is captured by the top few singular vectors. Pre-trained LLMs already encode rich representations — fine-tuning mostly adjusts how those representations map to task-specific outputs, which requires only a small directional change in weight space. The rank-r decomposition $\Delta W = BA$ constrains updates to lie in an r-dimensional subspace, and r=16 is usually sufficient to capture this intrinsic dimensionality. Evidence: LoRA fine-tuned models on instruction following reach 95%+ of full fine-tuning performance at <1% of the trainable parameters.
+### Q: Why does LoRA work well despite only updating 1% of parameters? [Hard]
+A: The key insight is that fine-tuning updates lie in a *low intrinsic dimensionality subspace*. Pre-trained LLMs already encode rich representations; fine-tuning mostly adjusts how those representations map to task-specific outputs, which requires only a small directional change in weight space. The rank-$r$ decomposition $\Delta W = BA$ constrains updates to lie in an $r$-dimensional subspace.
+**Cross-questions to expect:**
+- *What is the empirical evidence?* -> When you SVD the $\Delta W$ from full fine-tuning, most of the signal is captured by the top few singular vectors. LoRA simply enforces this structure mathematically from the start.
 
-**Q: What's the memory breakdown for QLoRA fine-tuning a 70B model?**  
-A: Base model frozen in NF4 (4-bit): ~35 GB. LoRA adapters in bf16 (r=16): ~3 GB. Adam optimizer states only for LoRA parameters: ~6 GB. Activations for a seq=512, batch=4: ~5 GB. Total ~49 GB — fits on a single A100 80GB. Compare to full bf16 fine-tuning: weights 140 GB + gradients 140 GB + optimizer 840 GB = 1.12 TB. QLoRA achieves ~95% of full fine-tuning quality at 2.3% of the memory cost by combining NF4 quantization for the base model with bf16 precision LoRA adapters that never need to backprop through the quantized weights.
+### Q: Walk me through the memory breakdown for QLoRA fine-tuning a 70B model. [Hard]
+A: 1) Base model frozen in NF4 (4-bit): ~35 GB. 2) LoRA adapters in bf16 (r=16): ~3 GB. 3) Adam optimizer states (only for LoRA params): ~6 GB. 4) Activations (e.g., seq=512, batch=4): ~5 GB. Total: ~49 GB.
+**Cross-questions to expect:**
+- *How does that compare to full fine-tuning?* -> Full fine-tuning requires 1.12 TB (140GB weights + 140GB gradients + 840GB Adam states), which means QLoRA gives you ~95% of full fine-tuning quality at ~4% of the memory cost, enabling it to fit on a single 80GB A100.
+**Trap:** Forgetting that optimizer states take 3x the memory of the parameters they optimize (Adam needs fp32 master weights, momentum, and variance).
 
-**Q: How do you decide between LoRA and full fine-tuning?**  
-A: Four factors: (1) Data scale — less than 100K examples generally doesn't justify full fine-tuning; LoRA is less prone to overfitting; (2) Task shift — if the task is far from pretraining distribution (e.g., medical domain with specialized terminology and reasoning), full fine-tuning learns better representations; if it's just format/instruction following, LoRA is sufficient; (3) Compute budget — LoRA enables fine-tuning 70B models on a single GPU; full fine-tuning needs 16+ A100s; (4) Deployment — LoRA adapters can be hot-swapped for different tasks on the same base model (100MB adapter vs 140GB weights), crucial for multi-tenant serving. In practice: start with LoRA, evaluate quality gap vs full fine-tuning on held-out test set, only invest in full fine-tuning if the gap exceeds 3–5%.
+### Q: How do you decide between LoRA and full fine-tuning? [Medium]
+A: I look at four factors:
+1. **Data scale:** < 100K examples rarely justifies full fine-tuning.
+2. **Task shift:** If the task is just format following, LoRA is perfect. If it's a completely new domain (e.g., specialized medical terminology), full fine-tuning learns better representations.
+3. **Compute budget:** 1 GPU vs 16+ GPUs.
+4. **Deployment:** LoRA adapters are ~100MB and can be hot-swapped for multi-tenant serving on a single frozen 140GB base model.
 
 ## Flashcards
 

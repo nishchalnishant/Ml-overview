@@ -128,3 +128,46 @@ $$\text{RMSNorm}(x) = \frac{x}{\text{RMS}(x)} \cdot \gamma, \quad \text{RMS}(x) 
 - Transformer FFN (2 linear layers with a 4× width expansion in the middle)
 
 **Output layer**: always match to task — $K$ outputs for $K$-class softmax, 1 output for binary/regression. Never apply activation before the loss function expects raw logits (e.g., `CrossEntropyLoss` in PyTorch applies softmax internally).
+
+---
+
+## Interview Angles
+
+### Q: Why is depth more parameter-efficient than width? [Easy]
+
+Depth enables hierarchical composition — each layer builds on abstractions the previous layer already learned, so a deep narrow network can represent functions that a shallow wide one would need exponentially more neurons to match. Width, in contrast, adds capacity within a single level of abstraction: extra neurons increasingly capture redundant features rather than new structure, so returns diminish quickly.
+
+**Cross-questions to expect**
+- *"Doesn't the Universal Approximation Theorem say one hidden layer is enough?"* — It says width alone is *sufficient* in theory, not efficient. A one-layer net that approximates a complex function may need exponentially many neurons; depth reaches the same approximation with far fewer parameters.
+- *"When would you choose width over depth anyway?"* — When optimization stability matters more than parameter efficiency, or the problem genuinely has no hierarchical structure to exploit (e.g., some tabular tasks) — depth's advantage assumes there's hierarchy to compose.
+
+**Trap:** Treating "deeper is always better" as the takeaway. Depth's advantage requires hierarchical structure in the data and requires residual connections past ~5-10 layers to stay trainable — depth without that support just adds optimization difficulty.
+
+### Q: Why do residual connections need matching dimensions across the skip, and what do you do when they don't match? [Medium]
+
+The residual formula $H(x) = F(x) + x$ is an elementwise sum, so $F(x)$ and $x$ must have identical shape. When a block changes dimensionality (e.g., a ResNet stage that downsamples spatially and doubles channels), the raw input can't be added directly — you route it through a projection (typically a 1×1 convolution with stride, or a linear layer) so the skip path matches the output shape before the sum.
+
+**Cross-questions to expect**
+- *"Does the projection defeat the purpose of the skip connection?"* — Partially — a projection is itself a learned transformation, so the identity-mapping guarantee is weaker there than at a pure identity skip. It's still far easier to optimize than a non-residual block, just not literally free.
+- *"Where does this show up in Transformers?"* — It doesn't, by design — every residual block in a Transformer preserves the model dimension exactly, so all skip connections are pure identity. Dimensionality changes are pushed into projections outside the residual stream (e.g., the embedding layer, the final unembedding).
+
+**Trap:** Assuming residual connections require no architectural planning. Every dimension change in a residual network is a design decision about where to place a projection, and getting it wrong (e.g., projecting inside the branch instead of on the skip) reintroduces the optimization difficulty residuals exist to solve.
+
+### Q: You add BatchNorm to a model that's deployed with batch size 1 at inference. What breaks? [Medium]
+
+BatchNorm computes mean/variance across the batch dimension at training time, but at inference it uses running statistics accumulated during training — not the current batch — so batch size 1 at inference is actually fine *if* those running stats were tracked correctly. The real failure mode is upstream: if the model was *trained* with very small batches (1-2), the per-batch statistics used during training are too noisy to produce meaningful running estimates, so the eval-time normalization is unstable regardless of inference batch size.
+
+**Cross-questions to expect**
+- *"So what's the fix for small-batch training?"* — Switch normalization type: GroupNorm or LayerNorm don't depend on batch statistics at all, so they're stable at any batch size, training or inference.
+- *"Why do Transformers default to LayerNorm instead of BatchNorm?"* — Sequence length varies per example and batches mix padded and unpadded positions, so batch statistics are contaminated by padding; LayerNorm normalizes per-token, sidestepping the batch dimension entirely.
+
+**Trap:** Conflating "small batch at inference" with "small batch at training." Inference-time BatchNorm doesn't compute fresh statistics at all — the risk is entirely in whether the running statistics were estimated well during training.
+
+---
+
+## Connections
+
+- [07-normalization.md](07-normalization.md) — full treatment of normalization layers, pre-norm vs. post-norm placement
+- [01-backpropagation.md](01-backpropagation.md) — why residual connections fix vanishing gradients, at the derivative level
+- [03-weight-initialization.md](03-weight-initialization.md) — initialization schemes that keep activation scale stable across depth
+- [../06-architectures/](../06-architectures/) — how these building blocks compose into CNNs, RNNs, and Transformers

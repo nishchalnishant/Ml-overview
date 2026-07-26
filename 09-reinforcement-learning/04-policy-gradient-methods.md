@@ -99,6 +99,18 @@ def ppo_loss(logp, logp_old, adv, eps=0.2):
 
 The `min` is the whole design. When the advantage is positive, the objective is capped at $(1+\epsilon)\hat{A}$ — no reward for pushing the probability far beyond the old policy. When negative, capped at $(1-\epsilon)\hat{A}$. Either way the incentive to move far from $\pi_{\text{old}}$ is removed, so multiple epochs of minibatch updates on the same batch stay safe. That reuse is why PPO is far more sample-efficient than vanilla policy gradient.
 
+### GRPO — dropping the critic
+
+PPO for RLHF needs a learned value function to produce $\hat{A}_t$, and that critic is itself a full-size model — for LLM-scale policies, roughly doubling training memory and compute. **GRPO** (Group Relative Policy Optimization, introduced with DeepSeek-Math and used to train DeepSeek-R1) removes the critic entirely.
+
+For each prompt, GRPO samples a *group* of $G$ completions from the current policy, scores each with the reward model (or a rule-based verifier, for math/code), and computes advantage as the z-score within the group:
+
+$$\hat{A}_i = \frac{r_i - \text{mean}(r_1, \dots, r_G)}{\text{std}(r_1, \dots, r_G)}$$
+
+That group-relative baseline replaces the value network — no critic to train, no value-function bias to worry about. The rest of the update reuses PPO's clipped surrogate objective on top of this advantage estimate, plus an explicit KL penalty to a reference policy (rather than folding KL into the reward, as classic RLHF does).
+
+The tradeoff: GRPO needs multiple samples per prompt to form a meaningful group (more rollout compute per update), and the group-relative baseline is a coarser signal than a trained critic's per-state estimate. It wins when rollouts are cheap relative to critic training — which is why it shows up in reasoning-model post-training, where a math or code answer can be verified programmatically instead of scored by a learned reward model.
+
 ### The continuous-control family
 
 | Method | On/Off-policy | Key idea |
@@ -228,5 +240,5 @@ Classic **reward over-optimization** — Goodhart's law with a learned proxy. Th
 - **Foundations:** [01-rl-foundations.md](01-rl-foundations.md) — advantage function, why $A = Q - V$
 - **Value methods:** [03-value-based-methods.md](03-value-based-methods.md) — the critic is TD learning
 - **Exploration:** [02-bandits-and-exploration.md](02-bandits-and-exploration.md)
-- **RLHF in context:** [../05-llms/interview-notes/17-advanced-alignment-and-reasoning.md](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
-- **RLHF in the training pipeline:** [../05-llms/01-training-process.md](../10-llms/01-training-process.md)
+- **RLHF in context:** [../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
+- **RLHF in the training pipeline:** [../10-llms/01-training-process.md](../10-llms/01-training-process.md)

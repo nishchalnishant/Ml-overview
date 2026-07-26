@@ -851,6 +851,54 @@ This is the **missing data / counterfactual evaluation problem** — the fundame
 - Dean et al. *Outrageously Large Neural Networks: The Sparsely-Gated Mixture-of-Experts Layer*. ICLR 2017.
 - Johnson, Douze, Jégou. *Billion-scale similarity search with GPUs (FAISS)*. IEEE T-BD 2021.
 
+## Interview Angles
+
+### Q1: A video has no text metadata. How do you extract features for retrieval? [Hard]
+
+This requires **Multi-Modal Feature Fusion**. You process the raw video through three separate pipelines: (1) **Visual**: Sample frames every $X$ seconds and pass them through a CNN/ViT to get image embeddings. (2) **Audio**: Convert the audio track to a mel-spectrogram and pass it through a VGGish/AudioSpectrogramTransformer to get audio embeddings. (3) **Temporal**: Use a Video-specific architecture like TimeSformer or I3D to capture motion (e.g., dancing vs standing still). You then fuse these embeddings (usually via a late-fusion concat layer or cross-attention) into a single dense vector.
+
+---
+
+**Cross-questions to expect:**
+- *"Extracting frame-level CNN embeddings for millions of videos is too expensive. How do you optimize this?"* → You don't run it on every frame. You use shot-boundary detection to find keyframes (when the scene changes) and only run the heavy CNN on those keyframes. You also run this offline asynchronously, not in the critical path of the upload.
+- *"How do you align the modalities if the audio and visual don't match perfectly?"* → Contrastive learning (like CLIP but for video/audio). You train a model to maximize the cosine similarity between the audio embedding of a 3-second clip and the visual embedding of the exact same 3-second clip, while minimizing it against negative pairs.
+
+**Trap:** Suggesting you just use an LLM to "describe the video." Transcribing the audio with Whisper is great, but it misses all visual semantics (gameplay, tutorials without talking, music videos). You must address the raw pixels and audio waves.
+
+---
+
+### Q2: How do you handle a user's watch history when it varies from 1 video to 10,000 videos? [Medium]
+
+This is the variable-length sequence problem. The modern standard is a **Transformer (SASRec/BERT4Rec)** or **GRU/RNN**. You pass the sequence of watched video embeddings into the sequence model to produce a fixed-size "user state" embedding. To handle the scale variance: (1) **Truncation**: You only look at the last $N$ videos (e.g., last 100) for real-time short-term intent. (2) **Long-term Aggregation**: For videos older than $N$, you fall back to simple average pooling or count-based histograms of categories they watched, which is O(1) to store and query.
+
+---
+
+**Cross-questions to expect:**
+- *"Why not just average the embeddings of all 10,000 videos they watched?"* → Average pooling destroys sequential structure. If they watched 5 Minecraft videos followed by 5 Python tutorials, their average embedding is halfway between gaming and coding. A Transformer understands that Python is their *current* intent and will weight the recent items much higher via self-attention.
+- *"Transformers have $O(N^2)$ complexity. Can you run that in real-time?"* → Yes, if $N$ is small (e.g., 50). But for scaling, the user's hidden state is usually computed incrementally. When they watch a new video, you append it to the sequence and run a fast forward pass, caching the new hidden state in Redis.
+
+**Trap:** Forgetting that "watch history" isn't just a list of IDs. It must include *contextual features* (how long they watched, did they skip, time of day). A sequence of IDs treats a 2-second bounce exactly the same as a 20-minute completion.
+
+---
+
+### Q3: Your re-ranking model is a massive Two-Tower + Cross-Network architecture. How do you keep latency under 50ms? [Hard]
+
+You rely heavily on **multi-level caching** and **feature pre-computation**.
+1. **Candidate Cache**: The retrieval layer's output (the top 500 candidates for this user) is cached in Redis for 10-15 minutes. We don't re-run retrieval on every single page refresh.
+2. **Feature Cache**: Video features (length, category, global CTR) are completely static and cached in Memcached/Redis.
+3. **User State Cache**: The user's complex sequential embedding is pre-computed asynchronously by a stream processor (Flink) every time they finish a video, and stored in Redis.
+4. **Batch Inference**: During the request, the 500 user-video pairs are batched together into a single GPU/TPU matrix multiplication for the ranking forward pass.
+
+---
+
+**Cross-questions to expect:**
+- *"If the candidate list is cached for 15 minutes, how do they get new recommendations when they watch a video?"* → We use a hybrid approach. The cache holds the base recommendations. When they watch a new video, a fast "Item-to-Item" similarity lookup (e.g., ANN) fetches 20 videos similar to the one they *just* watched, and we inject those into the cached candidate pool before re-ranking.
+- *"What if the user cache lookup times out?"* → Fallback to a "cold-start" or "logged-out" state. You serve the most globally popular videos for their region. It's better to serve a generic feed in 50ms than a personalized feed in 500ms.
+
+**Trap:** Suggesting you just buy more GPUs. Latency in recommendation systems is almost always dominated by network I/O (fetching features for 500 items from a database), not the pure compute of the forward pass. The architecture must minimize network hops.
+
+---
+
 ## Flashcards
 
 **Why do two-tower user/video embeddings get L2-normalized before the dot product at retrieval time?** #flashcard

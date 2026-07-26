@@ -142,3 +142,44 @@ Higher $\beta$ forces the latent space to be smoother and more disentangled — 
 | **Flow** | Exact likelihood | Good | Exact inversion | Medium |
 
 VAEs generate blurrier images because the MSE/BCE reconstruction loss averages over multiple plausible pixel configurations. Their value is not in image generation per se — it is in the structured, continuous, well-behaved latent space that makes anomaly detection, interpolation, and representation learning reliable.
+
+---
+
+## Interview Angles
+
+### Q: Why are VAE samples blurry while GAN samples are sharp? [Easy]
+
+Because their training objectives penalize different kinds of error. A VAE's reconstruction term is a pixel-wise likelihood (MSE/BCE) — when the true output distribution is multimodal (several plausible reconstructions for one input), minimizing expected pixel error pushes toward the *average* of the modes, which looks blurry. A GAN never averages over modes: the discriminator only ever sees one sample at a time and asks "is this realistic," so the generator has no incentive to hedge.
+
+**Cross-questions to expect**
+- *"Does higher-capacity decoder fix the blur?"* — No. The blur is a property of the loss, not the architecture; a bigger decoder still averages over modes.
+- *"So why use a VAE at all?"* — Not for sample sharpness — for the smooth, structured latent space, which GANs don't reliably give you.
+
+**Trap:** Blaming the blur on "VAEs being weaker models." It's a direct, predictable consequence of the reconstruction objective, not a capacity limitation.
+
+### Q: What does posterior collapse look like in practice, and how do you fix it? [Medium]
+
+The KL term goes to zero, the encoder ignores the input and outputs the prior regardless, and the decoder produces the same (or near-same) output for every latent sample. Reconstruction loss can look deceptively reasonable if the data has low diversity, which is why teams miss it.
+
+**Cross-questions to expect**
+- *"Why does the optimizer even prefer this?"* — Because the KL term is easy to drive to zero, and when the decoder is powerful enough to model $p(x)$ without conditioning on $z$, that's a valid (if useless) local optimum.
+- *"Is a bigger β always the fix?"* — No — too large a β causes the same collapse for the opposite reason (KL pressure dominates before the decoder learns to use $z$). KL annealing (ramping β from 0) or a weaker decoder are more common fixes.
+
+**Trap:** Reaching straight for β-VAE without diagnosing whether the collapse is decoder-driven (too powerful) or KL-driven (β too high) — the fix differs.
+
+### Q: When would you pick an autoencoder over PCA for dimensionality reduction? [Easy]
+
+When the manifold is non-linear. PCA finds the best *linear* subspace; an autoencoder's non-linear encoder/decoder can capture curved manifolds PCA cannot, at the cost of losing PCA's closed-form solution, orthogonality guarantees, and interpretability of components.
+
+**Cross-questions to expect**
+- *"How would you verify the non-linearity is actually needed?"* — Compare reconstruction error of PCA vs. a linear autoencoder (should match) vs. a non-linear one — if the non-linear model doesn't beat PCA by much, the manifold is close to linear and PCA's simplicity wins.
+
+**Trap:** Assuming autoencoders are strictly better than PCA. For genuinely linear structure, a linear autoencoder converges to the same subspace as PCA but with more training cost and less stability.
+
+---
+
+## Connections
+
+- [02-gans.md](02-gans.md) — the adversarial alternative to likelihood-based generation; sharper samples, less stable training
+- [03-diffusion.md](03-diffusion.md) — denoising-based generation that dominates current image-synthesis quality
+- [../06-architectures/04-dl-architectures.md](../06-architectures/04-dl-architectures.md) — architecture selection framework

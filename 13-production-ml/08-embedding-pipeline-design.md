@@ -391,6 +391,40 @@ Return top-K results — total: <20ms
 
 **What breaks**: index sharding requires a merge step across shards. If shard 3 goes down, results from that shard are missing — the system silently returns fewer results without error. Implement health checks per shard; degrade gracefully by routing to replica shards.
 
+## Interview Angles
+
+### Q1: Exact KNN vs Approximate Nearest Neighbors (ANN) — when do you use which? [Medium]
+
+Exact KNN computes the distance (cosine or L2) between the query vector and *every single item* in the database. This is $O(N)$ and scales terribly. If you have 10 million vectors, it's impossible to do in real-time.
+ANN (like HNSW or FAISS IVF-PQ) trades a small amount of accuracy (recall) for massive speedups ($O(\log N)$ or better). You use ANN for real-time retrieval (e.g., fetching the top 100 candidate videos out of 100 million). You only use Exact KNN if the pool of candidates is already very small (e.g., <10,000) or if the computation is happening offline in a batch job where latency doesn't matter.
+
+---
+
+**Cross-questions to expect:**
+- *"What is the tradeoff in HNSW?"* → Memory vs Speed. HNSW (Hierarchical Navigable Small World) gives the best recall and speed, but it requires keeping the entire graph in RAM. If you have a billion vectors, RAM costs become prohibitive, so you have to switch to Product Quantization (PQ) which compresses the vectors to fit in memory, at the cost of lower recall.
+- *"How do you update an HNSW graph when a new item is added?"* → HNSW supports incremental insertions, but deletes are tricky (they often leave "tombstones" which degrade graph quality over time). If the inventory turns over rapidly, you usually have to periodically rebuild the entire graph from scratch offline and hot-swap it.
+
+**Trap:** Suggesting you just use a standard relational database (like PostgreSQL) to compute vector distances in real-time. While pgvector exists and uses HNSW under the hood, naive exact distance queries in SQL will time out on large tables.
+
+---
+
+### Q2: How do you handle out-of-vocabulary (OOV) or cold-start entities in an embedding model? [Hard]
+
+If you use simple ID-based embeddings (e.g., mapping `user_id_123` to a vector), a new user or a new item has no embedding. The model will crash or return a random initialized vector.
+**Solutions**:
+1. **Content-based fallback**: Do not rely purely on IDs. Map the item's *features* (text, categories, image) to an embedding using a pre-trained model (like a text encoder). The new item immediately has a meaningful vector based on its description.
+2. **Sub-word embeddings**: For text, use Byte-Pair Encoding (BPE) or FastText (character n-grams) so that unseen words are constructed from known sub-components.
+3. **Graph aggregation**: If a new user follows 3 existing users, initialize the new user's embedding as the average of the 3 people they follow (a simple GNN approach).
+
+---
+
+**Cross-questions to expect:**
+- *"If you average the features for a cold-start item, isn't that less accurate than an ID embedding that has seen a million clicks?"* → Yes. That's the cold-start penalty. As the new item gathers interactions, you slowly transition from relying on the content-based heuristic to updating a dedicated ID-based embedding. This is often handled by a contextual bandit.
+
+**Trap:** Suggesting you just retrain the entire embedding matrix every time a new user signs up. Re-training is a heavy batch process (daily or weekly). The system must handle cold starts *between* retrains at inference time.
+
+---
+
 ## Flashcards
 
 **Why use ANN instead of exact brute-force search for large-scale retrieval?** #flashcard

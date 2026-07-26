@@ -52,6 +52,7 @@ The goal is not to memorize one architecture. The goal is to explain:
 | [Clinical ML System](cases/06-clinical-ml-system.md) | Healthcare |
 | [Content Moderation System](cases/07-content-moderation.md) | Trust & safety |
 | [ETA & Surge Pricing](cases/03-eta-and-surge-pricing.md) | Marketplace / logistics |
+| [LLM-Powered Product Assistant](cases/13-llm-product-assistant.md) | LLM product / RAG |
 
 ## Platform & infra patterns
 

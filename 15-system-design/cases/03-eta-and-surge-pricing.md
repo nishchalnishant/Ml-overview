@@ -565,6 +565,50 @@ Not necessarily bad — could reflect shedding low-value demand that was congest
 
 ---
 
+### Q8: Road networks are essentially graphs. Why don't you just use Graph Neural Networks (GNNs) for the ETA model? [Hard]
+
+While GNNs model the spatial connectivity of road segments perfectly, they are computationally expensive and often unnecessary for the core ETA task. The routing engine (e.g., A* or Dijkstra on the road graph) *already* understands the graph structure to compute the baseline route and distance. The ML model's job is to predict the *residual* (actual time minus baseline time) based on real-time traffic and temporal features. A deep MLP or Gradient Boosted Tree using the baseline ETA, distance, and local real-time traffic embeddings as dense features is much faster to serve (<10ms) and often achieves identical accuracy to a GNN, without the massive graph-convolution overhead at inference time.
+
+---
+
+**Cross-questions to expect:**
+- *"When WOULD a GNN be appropriate in this system?"* → Not for the point-to-point ETA request, but for the upstream traffic state prediction (e.g., predicting average speed for every road segment 15 minutes into the future). That's a batch/streaming process where spatial dependencies matter deeply, and the latency budget is much looser.
+- *"If you use an MLP, how do you encode the spatial route?"* → You don't encode the whole route. You use summary statistics (total distance, baseline ETA) and embeddings of the origin and destination hex cells.
+
+**Trap:** Forgetting the latency budget. A GNN doing multi-hop aggregations across a massive road network at 100K QPS is an architectural anti-pattern. Separate the routing logic from the ML residual logic.
+
+---
+
+### Q9: A freak snowstorm hits a city that rarely gets snow. Your ETA and Surge models break. How do you design the system to handle this? [Medium]
+
+This is a classic non-stationary distribution shift (out-of-distribution event). If the model has never seen snow in this city, it will severely underestimate ETAs and underprice Surge. Solutions: (1) **Global Feature Sharing**: include a generic "weather severity" feature so the model can learn from snowstorms in *other* cities and apply that penalty here. (2) **Real-Time Recalibration**: use a streaming correction factor. If the last 100 trips in the city took 40% longer than predicted, multiply all outgoing ETA predictions by 1.4 automatically. (3) **Manual Circuit Breakers**: Ops teams must have a big red button to override ML models, manually capping surge (to avoid PR disasters) or injecting a flat ETA penalty during declared emergencies.
+
+---
+
+**Cross-questions to expect:**
+- *"Why does the streaming correction factor work?"* → Because it doesn't need to know *why* the ETAs are wrong (snow, parade, alien invasion), it just observes the error residual and corrects for it in near-real-time.
+- *"If Ops caps surge during a disaster, how do you get drivers on the road?"* → You can't rely on price. This is a policy/business problem. You cap surge to prevent price-gouging accusations, but you might pay drivers a flat bonus out of pocket (subsidized by the company) to ensure critical mobility.
+
+**Trap:** Trying to solve emergencies purely with ML. If it's a true black swan, the ML will fail. The engineering solution is real-time feedback loops and manual override capabilities.
+
+---
+
+### Q10: What is the strict latency budget for ETA, and how does it restrict your feature engineering? [Medium]
+
+ETA must be calculated while the user has the app open waiting to see the price, so the P99 latency budget for the ML component is typically <20ms (with routing taking maybe 50ms). This strictly prohibits online joins or complex real-time feature computation. You cannot query a database for "driver's average speed over the last week." All features must be pre-computed.
+
+---
+
+**Cross-questions to expect:**
+- *"How do you handle real-time traffic features within that budget?"* → Flink/Spark Streaming computes average segment speeds continuously and pushes them to an in-memory datastore (Redis). The ETA model does a single fast O(1) key-value lookup for the origin/destination hexes.
+- *"What if the Redis lookup times out?"* → You must have a fallback. If Redis times out, the model falls back to the historical average speed for that time-of-day (which is baked into the model weights or stored locally), accepting a slight accuracy hit to guarantee a fast response.
+
+**Trap:** Suggesting live SQL queries or complex stream processing *inside* the synchronous request path. The request path must be completely dumb: fetch pre-computed feature, run forward pass, return.
+
+---
+
+
+
 ## Flashcards
 
 **Why is asymmetric loss used for ETA prediction instead of standard MSE?** #flashcard

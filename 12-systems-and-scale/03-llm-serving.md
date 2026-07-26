@@ -538,7 +538,7 @@ class VLLMDeployment:
 
 ## Where to Next
 
-- **Speculative decoding algorithm** → [05-llms/applications/07-speculative-decoding.md](../11-llm-applications/07-speculative-decoding.md)
-- **KV cache and GQA math** → [05-llms/08-kv-cache-and-mqa-gqa.md](../10-llms/08-kv-cache-and-mqa-gqa.md)
-- **Model quantization (GPTQ, AWQ, GGUF)** → [quantization-pruning-detailed.md](02-quantization-pruning.md)
-- **System design for LLM inference ops** → [06-production-ml/system-design/12-llm-inference-ops.md](04-llm-inference-ops.md)
+- **Speculative decoding algorithm** → [11-llm-applications/07-speculative-decoding.md](../11-llm-applications/07-speculative-decoding.md)
+- **KV cache and GQA math** → [10-llms/08-kv-cache-and-mqa-gqa.md](../10-llms/08-kv-cache-and-mqa-gqa.md)
+- **Model quantization (GPTQ, AWQ, GGUF)** → [02-quantization-pruning.md](02-quantization-pruning.md)
+- **System design for LLM inference ops** → [04-llm-inference-ops.md](04-llm-inference-ops.md)

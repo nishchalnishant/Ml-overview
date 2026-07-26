@@ -515,5 +515,5 @@ Use these when the interviewer is asking about training, alignment, serving, or 
 ## Where to Next
 
 - **Pre-written defaults + flip conditions in a production-system framing (fraud/ranking/etc.)** → [ROUND3-tradeoff-drills.md](05-round3-tradeoff-drills.md)
-- **LLM-specific deep-dive material to ground your reasoning** → [09-study-plans/week-5-llm-deep-dive/README.md](study-plans/week-5-llm-deep-dive/README.md)
-- **System design references by domain** → [06-production-ml/system-design/](../06-production-ml/system-design/)
+- **LLM-specific deep-dive material to ground your reasoning** → [study-plans/week-5-llm-deep-dive/README.md](study-plans/week-5-llm-deep-dive/README.md)
+- **System design references by domain** → [15-system-design/](../15-system-design/)

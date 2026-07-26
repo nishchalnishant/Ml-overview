@@ -10,7 +10,19 @@ prerequisites: []
 
 Applied areas where general methods meet domain-specific constraints and vocabulary.
 
-**What lives here:** NLP, computer vision, time series, speech, recommender systems, tabular.
+**What lives here:** NLP and time series, in depth; computer vision, at interview depth; recommender systems, routed elsewhere (see below). Speech and tabular are not separately covered — tabular is classical ML's default case ([`../03-classical-ml/`](../03-classical-ml/)), and speech-specific modeling isn't in scope for this repo's target roles.
+
+## Core Modules
+
+| File | What it covers |
+| :--- | :--- |
+| [01-nlp-fundamentals.md](01-nlp-fundamentals.md) | Classical and pre-transformer NLP: tokenization, embeddings, sequence models |
+| [03-nlp-transformers.md](03-nlp-transformers.md) | Transformer-era NLP from first principles, interview-focused |
+| [04-computer-vision.md](04-computer-vision.md) | CV fundamentals: CNNs, detection, segmentation |
+| [05-computer-vision-interview.md](05-computer-vision-interview.md) | CV interview questions and drills, companion to file 04 |
+| [06-time-series.md](06-time-series.md) | Time series ML: forecasting, decomposition, evaluation |
+
+*Numbering skips `02-*`: no gap in coverage, the number was retired in an earlier reorganization.*
 
 **Recsys — where it actually lives.** Recommender systems are covered, but under
 `../15-system-design/`, because the interview question is nearly always a design question rather

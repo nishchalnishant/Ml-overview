@@ -50,4 +50,5 @@ Several files here cover **the same algorithms on purpose**. They are different 
 | [time-series-analysis.md](06-time-series-analysis.md) | ARIMA, exponential smoothing, classical forecasting methods |
 | [anomaly-detection.md](10-anomaly-detection.md) | Isolation Forest, LOF, One-Class SVM, autoencoders — when labels are scarce |
 | [interviewquestions.md](../16-interview-prep/study-plans/interviewquestions.md) | Interview-style Q&A across classical ML topics |
+| [ml-fundamentals.md](09-ml-fundamentals.md) | Interview framing of core ML fundamentals: bias-variance, over/underfitting, regularization, cross-entropy, cross-validation, curse of dimensionality |
 

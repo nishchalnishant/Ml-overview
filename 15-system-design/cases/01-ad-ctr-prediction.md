@@ -960,6 +960,33 @@ Structured debugging checklist:
 **Trap:** Diving into feature-store debugging first. Start by segmenting: is this advertiser, their vertical, or everyone? A single complaint is a sample of one, and the segment size determines whether you're chasing a bug or a rounding error.
 
 ---
+### Q8: Conversions can happen days after a click. How do you train a CVR model when the labels are delayed? [Hard]
+
+You can't wait 7 days for every label before training — the model would be permanently stale. But if you train immediately, recent clicks look like negatives because the conversion hasn't arrived yet (false negatives), severely under-predicting CVR. The standard fix is **Survival Analysis / Delayed Feedback modeling** (e.g., Chapelle's model): train a joint model that predicts (1) will they convert? and (2) if yes, how long will it take? Alternatively, use **importance weighting**: train on observed data but upweight the positives to account for the expected number of delayed conversions, or use a short-window proxy metric (e.g., "added to cart within 1 hour") that strongly correlates with the final conversion.
+
+---
+
+**Cross-questions to expect:**
+- *"If you use a proxy metric, how do you fix the calibration?"* → The proxy (add-to-cart) overpredicts or underpredicts the true conversion rate by some factor. You train the model on the proxy to get the ranking/feature interactions right, then apply a separate calibration layer (trained on the fully-matured, 7-day-old labels) to correct the absolute probabilities.
+- *"Why not just update the negative label to a positive when the conversion arrives?"* → You can, but you have to replay the training step for that example. This requires an architecture (like Lambda architecture or streaming updates) that supports retracting and replacing gradients, which is complex and can cause training instability if not tuned well.
+
+**Trap:** Suggesting you just wait for the labels. Ad campaigns launch and burn through budgets in hours; a model that is 7 days stale cannot adapt to a new campaign's traffic. Stale models cost more money than slightly biased models.
+
+---
+### Q9: A brand new ad has no historical click data. How do you rank it? [Medium]
+
+This is the cold start problem. If you use standard ID embeddings, the new ad's embedding is uninitialized (or random), so its pCTR prediction is garbage. Solutions: (1) **Content/Context Features**: rely heavily on text/image embeddings, advertiser ID, and category features which are known immediately. (2) **Exploration Budget (Epsilon-Greedy / UCB)**: artificially boost the pCTR of new ads (or add an exploration upper confidence bound) so they win enough auctions to gather a statistically significant number of impressions. (3) **Fallback/Prior**: initialize the new ad's bias term to the average CTR of its advertiser or category, not zero.
+
+---
+
+**Cross-questions to expect:**
+- *"If you boost new ads, you're knowingly losing money on those auctions. Why?"* → It's an investment in the exploration-exploitation trade-off. Without it, the system only exploits historical winners. The cost of exploration is the price of discovering the next big winner. You cap this by allocating a fixed percentage of total traffic (e.g., 2%) to exploration.
+- *"How do you know when an ad is no longer 'cold'?"* → It's not about time, it's about statistical confidence. You track the number of impressions and clicks. Once the confidence interval around its empirical CTR shrinks below a threshold, you remove the exploration boost and let it compete on its learned merits.
+
+**Trap:** Answering "just use an LLM to read the ad text." Content embeddings help, but they cannot predict exact market response. Behavioral feedback (clicks) is the only ground truth for CTR; you *must* have an exploration strategy to gather it.
+
+---
+
 
 ## Appendix: Key Papers and Systems
 

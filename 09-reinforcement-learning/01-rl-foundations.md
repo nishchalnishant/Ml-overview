@@ -223,5 +223,5 @@ Start by interrogating the framing rather than accepting it — that is what's b
 - **Next:** [02-bandits-and-exploration.md](02-bandits-and-exploration.md) — the stateless special case, and the one you should usually try first
 - **Value methods:** [03-value-based-methods.md](03-value-based-methods.md) — Q-learning, DQN, and the deadly triad
 - **Policy methods:** [04-policy-gradient-methods.md](04-policy-gradient-methods.md) — REINFORCE, actor-critic, PPO
-- **RLHF:** [../05-llms/](../05-llms/) — where these ideas meet language models
+- **RLHF:** [../10-llms/](../10-llms/README.md) — where these ideas meet language models
 - **Probability background:** [../01-foundations/02-math-and-theory-foundations.md](../01-math-foundations/01-math-and-theory-foundations.md)

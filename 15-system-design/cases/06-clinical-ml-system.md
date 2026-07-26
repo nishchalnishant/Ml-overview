@@ -445,9 +445,17 @@ No — missingness is MNAR. A normal-looking WBC may be missing *because* the pa
 - *If missingness encodes clinician suspicion, isn't the model just learning to predict what the clinician already suspected -- leaking the label?* -> Partly, yes. "Lab was ordered" is downstream of the clinician's concern, which is downstream of the outcome. The feature can shortcut real physiology and inflate retrospective AUROC while adding little at the moment you actually need an early warning -- before anyone was worried enough to order the test.
 
 **Trap:** mean imputation on MNAR clinical data. It pulls sick-but-untested patients toward "normal," which is the exact opposite of the safe failure direction for a triage model.
-**Q3: A hospital wants to A/B test the sepsis model — one ICU gets alerts, the other doesn't. How?**
+### Q3: A hospital wants to A/B test the sepsis model — one ICU gets alerts, the other doesn't. How? [Hard]
 
 Needs IRB approval, since the control arm may get inferior care. The application must establish clinical equipoise, define a stopping rule, and justify a consent waiver. Expect 3–6 months for IRB. Faster alternatives: a pre/post study (confounded by temporal trends) or a cluster-randomized design by unit to reduce contamination.
+
+---
+
+**Cross-questions to expect:**
+- *"Why is a pre/post study confounded?"* → Temporal trends. If sepsis mortality dropped nationwide during those months (e.g., a new Surviving Sepsis Campaign guideline launched), you will falsely attribute the improvement to your model.
+- *"What is a cluster-randomized design?"* → Instead of randomizing patients, you randomize entire units (ICU A gets the model, ICU B gets standard care). This prevents contamination where a doctor works on both arms and changes their behavior based on the model's alerts for some patients, improving their intuition for the control group.
+
+**Trap:** Suggesting a standard A/B test without mentioning the IRB or clinical equipoise. You cannot just run engineering experiments on patient lives; the ethical and regulatory hurdles define the testing strategy.
 
 ### Q4: Six months post-launch, the model "never alerts anymore." What happened? [Hard]
 
@@ -459,9 +467,17 @@ Likely a feedback loop or distribution shift. Check: whether the alert rate drop
 - *Could the model be a victim of its own success?* -> Yes -- if it worked, clinicians intervened earlier, fewer patients progressed to meeting the sepsis label, and any auto-retrain now sees fewer positives and raises its effective bar. The intervention erodes the very signal the model was trained on. This is the feedback-loop trap and it looks identical to drift until you inspect labels vs. scores.
 
 **Trap:** assuming "no alerts" means "no risk." Silence is the failure mode that gets no attention precisely because nothing fires -- a zeroed-out feature pipeline produces a confidently quiet model.
-**Q5: How do you validate radiology AI when the ask is "just compare to my reads"?**
+### Q5: How do you validate radiology AI when the ask is "just compare to my reads"? [Medium]
 
 Necessary but not sufficient. Inter-reader variability for chest X-ray is real (κ≈0.6–0.7), so use a multi-reader adjudicated panel, not one radiologist. Use consecutive real-world cases, not a curated interesting-case set (spectrum bias). The real question isn't "as good as a radiologist" but "does it improve the workflow" — measure time-to-read, missed-finding rate. Also require temporal/site validation and subgroup analysis by imaging equipment.
+
+---
+
+**Cross-questions to expect:**
+- *"Why consecutive cases?"* → Because sampling "interesting" cases heavily overrepresents rare pathologies and clear-cut positives. A model trained/tested on that dataset will have a much lower positive predictive value (PPV) in the wild where the prevalence is tiny.
+- *"What if the model disagrees with the adjudicated panel?"* → You must track patient outcomes. Sometimes the model is right and the radiologists are wrong. Without outcome data (e.g., biopsy results), you are capping the model's ceiling at human performance.
+
+**Trap:** Treating a single doctor's retrospective dataset as a gold standard. The gold standard in imaging is often noisy, and tying your metrics to it limits your ability to prove the model actually works better.
 
 ### Q6: How do you address the feedback loop where alerts change future training data? [Hard]
 
@@ -473,9 +489,45 @@ The intervention confounds its own label — early treatment prevents the outcom
 - *Process labels (antibiotics given) instead of outcome labels -- what do you lose?* -> You stop predicting sepsis and start predicting clinician behavior. If clinicians are systematically slow for a subgroup, the model learns that delay as correct and perpetuates it. Process labels dodge the confounding-by-treatment problem at the cost of inheriting every bias in current practice.
 
 **Trap:** ignoring the loop because the model still looks accurate. The degradation is slow (12-18 months) and self-masking -- the model's own interventions keep its apparent accuracy up while the underlying label distribution rots.
-**Q7: An advocacy group flags worse sensitivity for Black patients in your readmission model. What do you do?**
+### Q7: An advocacy group flags worse sensitivity for Black patients in your readmission model. What do you do? [Hard]
 
 First confirm the disparity is statistically real. Audit features for race/SES proxies (ZIP code, insurance, prior no-shows) and check training data representation. Convene a clinical/ethics review with patient advocates. Consider group-specific recalibration (equity gain, legal complexity) and whether the gap reflects a real biased-care pattern the model is faithfully learning rather than a modeling artifact. Report per FDA post-market surveillance requirements, and publish — suppressing known bias creates liability and continued harm.
+
+---
+
+**Cross-questions to expect:**
+- *"If you remove ZIP code and race, does the bias go away?"* → Rarely. Health disparities are deeply embedded in clinical variables too (e.g., fewer preventative visits leading to higher acute severity). Removing demographic variables ("fairness through blindness") often makes predictions *less* accurate for marginalized groups without solving the underlying disparity.
+- *"How do you fix it algorithmically?"* → You can enforce equalized odds or demographic parity during training (via constraints/adversarial networks), or you can use group-specific thresholds (lower the alert threshold for Black patients). The latter is clinically effective but legally untested in some jurisdictions.
+
+**Trap:** Defending the model by saying "it didn't include race as a feature." It's well-understood that ML will reconstruct race from proxies; blindness is not a defense against disparate impact.
+
+---
+
+### Q8: How does HIPAA compliance change the architecture of your data pipelines and model serving? [Medium]
+
+HIPAA mandates strict PHI (Protected Health Information) boundaries. You must enforce: (1) **De-identification** at the boundary (hashing/dropping MRNs, dates, names) before data enters the ML research environment; (2) **Encryption** in transit (TLS 1.2+) and at rest (KMS); (3) **Audit logging** for every read access to PHI, retaining logs for 6 years; (4) **BAAs (Business Associate Agreements)** with all cloud vendors (AWS/GCP).
+
+---
+
+**Cross-questions to expect:**
+- *"If you de-identify data for training, how do you serve alerts for real patients?"* → You train on de-identified data, but inference happens inside the PHI boundary. The model takes real-time PHI features, generates a score, and the downstream system links that score back to the MRN. The model artifact itself doesn't contain PHI.
+- *"Can you use OpenAI/ChatGPT for clinical notes?"* → Only if you have a BAA with OpenAI or Microsoft Azure (which offers HIPAA-compliant OpenAI endpoints). Sending PHI to the public API is an immediate breach.
+
+**Trap:** Assuming de-identification is just "removing the name column." HIPAA's Safe Harbor method requires removing 18 specific identifiers, including dates (admission, discharge, birth) and geographical subdivisions smaller than a State. This breaks temporal and spatial modeling unless you use the Expert Determination method.
+
+---
+
+### Q9: Doctors demand to know WHY the model predicted a 90% risk of sepsis. How do you balance explainability with model performance? [Medium]
+
+There is often a tradeoff: linear/logistic regression is highly interpretable but less accurate; deep learning is highly accurate but a black box. The industry standard is to use a high-performing black-box model (XGBoost/Transformers) and layer a post-hoc explainer like SHAP (SHapley Additive exPlanations) or LIME on top. For each prediction, SHAP outputs the top 3–5 features driving the score (e.g., "Lactate = 4.2 (+0.15), Heart Rate = 120 (+0.10)").
+
+---
+
+**Cross-questions to expect:**
+- *"SHAP is computationally expensive. How do you run it in real-time?"* → For XGBoost, TreeSHAP is fast enough for real-time. For deep learning, you can use pre-computed baseline references or train a fast surrogate model to mimic the complex model locally.
+- *"Are SHAP values causal?"* → No. SHAP tells you what the model *paid attention to*, not what caused the disease. If the model heavily weighted "blood culture ordered" as a predictor of sepsis, SHAP will surface it. If a doctor sees that and decides *not* to order a blood culture to "lower the risk," the patient still dies. This must be explicitly trained into user education.
+
+**Trap:** Using interpretability tools as a substitute for clinical validation. SHAP values build trust, but they do not prove the model is safe or effective — only randomized trials and prospective validation can do that.
 
 ---
 

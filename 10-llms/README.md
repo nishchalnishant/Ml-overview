@@ -37,6 +37,47 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 - Model-as-a-Judge.
 - LMSYS Chatbot Arena.
 
+### 5. [Training Stability](05-training-stability.md)
+*Keeping a large run from diverging.*
+- Loss spikes and recovery.
+- Mixed precision and numerical issues.
+- Checkpointing strategy.
+
+### 6. [Fine-Tuning at Scale](06-fine-tuning-at-scale.md)
+*Adapting a pre-trained model efficiently.*
+- LoRA/QLoRA and adapter methods.
+- Full fine-tuning vs. PEFT tradeoffs.
+- Catastrophic forgetting.
+
+### 7. [Context Window Extension](07-context-window-extension.md)
+*Making long context actually work.*
+- RoPE scaling and interpolation.
+- Attention approximations for long sequences.
+- Effective vs. claimed context length.
+
+### 8. [KV Cache, MQA, GQA](08-kv-cache-and-mqa-gqa.md)
+*Memory-efficient inference attention.*
+- KV cache memory math.
+- Multi-query and grouped-query attention.
+- Serving-time tradeoffs.
+
+### 9. [MoE — Advanced and Routing](09-moe-advanced-and-routing.md)
+*Scaling parameters without scaling compute per token.*
+- Routing algorithms and load balancing.
+- Expert capacity and dropped tokens.
+- Sparse vs. dense compute tradeoffs.
+
+### 10. [Tokenization](10-tokenization.md)
+*Where the model's view of text is decided.*
+- BPE, WordPiece, SentencePiece.
+- Vocabulary size tradeoffs.
+- Tokenizer failure modes (numbers, non-English text).
+
+### 11. [Large Language Models](11-large-language-model.md)
+*Model-family survey and synthesis.*
+- GPT/Llama/Claude family comparisons.
+- How the pieces above compose into a shipped model.
+
 ---
 
 ## Related Directories
@@ -64,5 +105,5 @@ There is also [interviewquestions.md](../16-interview-prep/study-plans/interview
 
 ---
 
-## [Recommended Reading](README.md)
+## [Recommended Reading](../18-resources/llm-books/README.md)
 *Deep-dive books and resources on LLM development.*

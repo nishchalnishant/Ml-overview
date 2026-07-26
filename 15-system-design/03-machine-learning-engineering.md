@@ -407,3 +407,21 @@ compute offline on a schedule (e.g., nightly churn scores)
 
 **Dynamic?** #flashcard
 compute at request time (e.g., real-time fraud score)
+
+**What is data leakage, and what's the most common source of it in a pipeline?** #flashcard
+Information from outside the training set (often from the future, or from the target itself) leaking into features. Most common source: computing features over a window that includes data not yet available at prediction time (e.g., using a customer's full-history aggregate instead of the aggregate as-of the label date).
+
+**Why prefer median/model-based imputation over mean imputation for missing values?** #flashcard
+Mean imputation is sensitive to outliers and collapses variance, distorting the feature's distribution. Median is robust to skew; model-based imputation (e.g., predicting the missing value from other features) preserves relationships between features that mean imputation destroys.
+
+**How do you prevent training-serving skew?** #flashcard
+Use a feature store (or shared feature-computation code) so training and serving compute features with identical logic; add integration tests comparing training-time vs serving-time feature distributions; log production inputs and replay them for validation.
+
+**Batch vs online deployment — what's the deciding factor?** #flashcard
+Latency requirement of the consumer. Batch: predictions can be precomputed on a schedule and looked up (cheap, simple, stale between runs). Online: prediction must reflect the latest request-time signal (real-time fraud, ranking) — requires a low-latency serving path.
+
+**Data drift vs concept drift — what's the difference?** #flashcard
+Data drift: the input distribution P(X) shifts, but the relationship between X and y is unchanged. Concept drift: the relationship P(y|X) itself changes, so even a model seeing the same inputs now predicts the wrong outcome. Concept drift requires retraining; data drift may only need monitoring or feature normalization.
+
+**What's the tradeoff differential privacy forces you to make?** #flashcard
+Privacy budget (epsilon) vs accuracy. Smaller epsilon = more injected gradient noise = stronger privacy guarantee but slower/worse convergence. Calibrate epsilon to the actual sensitivity of the data rather than defaulting to an arbitrary value.

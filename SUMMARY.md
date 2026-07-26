@@ -100,6 +100,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Attention](06-architectures/02-attention.md)
 * [Transformers](06-architectures/03-transformers.md)
 * [Deep Learning Architectures — First-Principles Interview Guide](06-architectures/04-dl-architectures.md)
+* [Graph Neural Networks](06-architectures/05-gnn.md)
 
 ## 07 — Domains
 
@@ -196,7 +197,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Model Merging](11-llm-applications/08-model-merging.md)
 * [Multimodal AI](11-llm-applications/09-multimodal.md)
 * [Tuning and Optimization](11-llm-applications/10-tuning-optimization.md)
-* [How LLMs Actually Work](11-llm-applications/11-how-to-train-your-dragon-llm.md)
 * [MCP — Model Context Protocol](11-llm-applications/12-mcp.md)
 
 ## 12 — Systems & Scale
@@ -255,6 +255,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Personalization System Design](15-system-design/cases/10-personalization.md)
   * [End-to-End Recommendation System Design](15-system-design/cases/11-recommendation-system.md)
   * [Video Recommendation System Design](15-system-design/cases/12-video-recommendation.md)
+  * [LLM-Powered Product Assistant System Design](15-system-design/cases/13-llm-product-assistant.md)
 
 ## 16 — Interview Prep
 

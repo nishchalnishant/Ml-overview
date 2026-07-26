@@ -515,21 +515,25 @@ This iterative flywheel is how Phi-3, Qwen, DeepSeek, and Llama 3 achieve their 
 
 ---
 
-## 10. Interview Questions
+## Interview Angles
 
-**Q: What is knowledge distillation and how does it differ from self-instruct?**  
-*A:* Knowledge distillation trains a smaller "student" model to mimic a larger "teacher" model's outputs. Self-instruct uses the model being trained to generate its own instruction data — bootstrapping from a seed set. In practice, most modern fine-tuning combines both: use a stronger external model (GPT-4, Claude) as teacher to generate diverse high-quality completions, then fine-tune the target model on those. The key constraint (from OpenAI/Anthropic ToS): you cannot use their API outputs to train a model that competes with them directly.
+**Q: What is knowledge distillation and how does it differ from self-instruct?**
+A: Knowledge distillation trains a smaller "student" model to mimic a larger "teacher" model's outputs (e.g., generating responses with GPT-4 to fine-tune Llama-3-8B). Self-instruct uses the *same* model being trained to generate its own instruction data — bootstrapping from a seed set to improve itself. In practice, most modern fine-tuning combines both: use a stronger external model as a teacher to generate diverse high-quality completions, then fine-tune the target model on those. The key constraint (from OpenAI/Anthropic ToS): you cannot legally use their API outputs to train a model that competes with them directly.
 
-**Q: What is model collapse and why does it matter?**  
-*A:* Model collapse (also called "generational degradation") occurs when you repeatedly train models on their own outputs without grounding in real data. The model's output distribution progressively narrows — early generations miss the tails of the human data distribution, and each subsequent generation amplifies this bias. Eventually the model produces repetitive, low-diversity outputs that don't reflect the full range of human knowledge or expression. Mitigation: always maintain real data in the training mix (even if only 10-20%), never do pure self-distillation for multiple generations.
+### Q: What is model collapse and how do you design a synthetic data pipeline to avoid it? [Hard]
+A: Model collapse (or generational degradation) occurs when you repeatedly train models on their own synthetic outputs across multiple generations without grounding in real data. The model's output distribution progressively narrows — early generations miss the tails of the human data distribution, and each subsequent generation amplifies this bias until the model produces highly repetitive, low-diversity outputs. **Mitigation:** (1) Always maintain a fraction of real (human-generated or verified) data in the training mix; (2) Introduce strict quality filtering (e.g., LLM-as-a-judge) so you only train on synthetic data that exceeds a high threshold; (3) Use rejection sampling against a verifier (like code execution or math proof checking) so the synthetic data is anchored in objective correctness, not just fluent LLM generation.
 
-**Q: How do you verify quality of synthetic training data?**  
-*A:* Multiple strategies depending on the task type: (1) Execution-based verification for code — run the generated code and check outputs against test cases; (2) Answer verification for math — use a symbolic solver or formal verifier to check the final answer; (3) Constitutional AI / LLM-as-judge — use a strong judge model to score examples for quality dimensions (accuracy, clarity, helpfulness), filter below a threshold; (4) Embedding similarity filtering — compute TF-IDF or embedding similarity across examples, remove near-duplicates; (5) Human spot-checking — sample 1-5% of data for human review, especially for high-stakes domains. In practice, you want multiple complementary filters since each catches different failure modes.
+**Cross-questions to expect:**
+
+- *You mentioned using a teacher model to generate synthetic data. How do you prevent the student model from just learning the teacher's hallucinations?* -> This is the core risk of distillation. You mitigate it by relying on verifiable domains (code, math) where you can execute the output to prove correctness before training on it. For open-ended text, you use ensemble filtering (only keep data where multiple teacher models agree) or ground the teacher's generation in retrieved documents (RAG-backed synthetic generation) to anchor it to facts.
+- *Why is generating synthetic reasoning data (Chain-of-Thought) so much more effective than just generating final answers?* -> Distilling just the final answer teaches the student the mapping from X to Y, but not the distribution of intermediate steps required to get there. It forces the model to memorize rather than generalize. Training on the reasoning trace ("<think>...</think>") instills the algorithmic process, which generalizes to novel problems.
+
+**Trap:** Assuming more synthetic data is always better. The LIMA paper proved that 1,000 highly curated, diverse human examples can beat 50,000 mediocre synthetic examples. Synthetic data is a volume multiplier, but if the diversity or quality is low, you just accelerate model collapse.
 
 ---
 
 ## Where to Next
 
-- **Instruction tuning SFT** → [05-llms/applications/10-tuning-optimization.md](10-tuning-optimization.md)
-- **RLHF, DPO, GRPO** → [05-llms/applications/10-tuning-optimization.md](10-tuning-optimization.md)
-- **RAG (augmenting with real data)** → [rag.md](02-rag.md)
+- **Instruction tuning SFT** → [10-tuning-optimization.md](10-tuning-optimization.md)
+- **RLHF, DPO, GRPO** → [10-tuning-optimization.md](10-tuning-optimization.md)
+- **RAG (augmenting with real data)** → [02-rag.md](02-rag.md)
