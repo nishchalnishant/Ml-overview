@@ -204,8 +204,8 @@ Worked examples of this pattern (bias-variance, imbalanced data, model selection
 
 ## 9. Deep-Dive Links
 
-- [LLM Fundamentals](../10-llms/interview-notes/01-llm-fundamentals.md)
-- [AI System Design](../10-llms/interview-notes/07-ai-system-design.md)
+- [LLM Fundamentals](../16-interview-prep/llm-interview-notes/01-llm-fundamentals.md)
+- [AI System Design](../16-interview-prep/llm-interview-notes/07-ai-system-design.md)
 - [Math Derivations](../01-math-foundations/03-math-derivations.md)
 - [MLOps](../13-production-ml/01-mlops.md)
 - [Causal Inference & A/B Testing](../04-evaluation/06-ab-testing-experimentation.md)

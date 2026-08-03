@@ -17,7 +17,7 @@ that fact.
 > **Scope note.** This is the *responsible-ai lens* on LLM safety — how to reason about it,
 > evaluate it, and govern it. The attack taxonomy, prompt-injection code patterns, sycophancy
 > benchmarks, and reward-hacking mechanics have a code-level treatment in
-> [`../10-llms/interview-notes/18-production-alignment-failures.md`](../10-llms/interview-notes/18-production-alignment-failures.md);
+> [`../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md`](../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md);
 > the RLHF/PPO math is in
 > [`../09-reinforcement-learning/04-policy-gradient-methods.md`](../09-reinforcement-learning/04-policy-gradient-methods.md).
 > This file doesn't repeat either — it adds the production-hardness argument, eval methodology,
@@ -332,7 +332,7 @@ launch-date conflict of interest) is the substantive point; trust is a downstrea
 ## Connections
 
 - [`../09-reinforcement-learning/04-policy-gradient-methods.md`](../09-reinforcement-learning/04-policy-gradient-methods.md) — RLHF/PPO mechanics, the KL guard rail, and the reward-overoptimization inverted-U that §2 builds on
-- [`../10-llms/interview-notes/18-production-alignment-failures.md`](../10-llms/interview-notes/18-production-alignment-failures.md) — jailbreak taxonomy, prompt-injection code patterns, sycophancy eval harness, specification-gaming case studies §1–2 reference rather than repeat
+- [`../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md`](../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md) — jailbreak taxonomy, prompt-injection code patterns, sycophancy eval harness, specification-gaming case studies §1–2 reference rather than repeat
 - [`01-privacy-and-fairness.md`](01-privacy-and-fairness.md) §7 — the precision/recall-shaped reasoning behind reporting refusal calibration as a paired metric
 - [`02-adversarial-robustness.md`](02-adversarial-robustness.md) — evasion attacks against a deployed model in general; this file is the LLM-specific, natural-language-channel case
-- [`../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md`](../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md) — hallucination and broader AI-safety Q&A coverage
+- [`../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md`](../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md) — hallucination and broader AI-safety Q&A coverage

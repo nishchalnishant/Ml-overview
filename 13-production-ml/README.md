@@ -155,5 +155,5 @@ If you want the most complete treatment of a topic, use these as the source of t
 
 - [ML Interview Notes: System Design](11-system-design-and-mlops.md)
 - [MLOps Full Notes](01-mlops.md)
-- [LLM System Design](../10-llms/interview-notes/07-ai-system-design.md)
+- [LLM System Design](../16-interview-prep/llm-interview-notes/07-ai-system-design.md)
 - [Distributed Training and Serving Reliability](../12-systems-and-scale/06-distributed-training-and-serving-reliability.md)

@@ -27,11 +27,11 @@ tags: [llms, ml, llm-interview-notes-genai-without-the-fog]
 > 6. `llmops-and-production-ai` — for ML engineer roles
 >
 > **Deep dives** (when the interview panel is specialist):
-> [Architecture](../03-architecture-deep-dive.md) | [Training](../01-training-process.md) | [Inference optimization](../../11-llm-applications/06-inference-optimization.md) | [RAG](../../11-llm-applications/02-rag.md) | [Production ML](../../13-production-ml/README.md)
+> [Architecture](../../10-llms/03-architecture-deep-dive.md) | [Training](../../10-llms/01-training-process.md) | [Inference optimization](../../11-llm-applications/06-inference-optimization.md) | [RAG](../../11-llm-applications/02-rag.md) | [Production ML](../../13-production-ml/README.md)
 
 LLMs are **services** that eat tokens and return distributions. Your job in an interview is to sound like you’ve **operated** them: context, retrieval, safety, cost, evals — not just read the brochure.
 
-**Boundary rule:** this folder should not re-explain the full theory. If you need the long-form architecture or training mechanics, jump back to [10-llms](../README.md). If you need the app/system view, jump next door to [11-llm-applications](../../11-llm-applications/README.md) or [12-systems-and-scale](../../12-systems-and-scale/README.md).
+**Boundary rule:** this folder should not re-explain the full theory. If you need the long-form architecture or training mechanics, jump back to [10-llms](../../10-llms/README.md). If you need the app/system view, jump next door to [11-llm-applications](../../11-llm-applications/README.md) or [12-systems-and-scale](../../12-systems-and-scale/README.md).
 
 **DevOps translation:** Prompting is **config**. RAG is **read-through cache + citations**. Fine-tuning is **shipping a patch** to behavior. Agents are **orchestration** with tools — same story as your favorite workflow engine, just with a stochastic brain.
 
@@ -69,8 +69,8 @@ You now have **two versions** of most notes:
 
 When a note starts sounding too compressed, use these as the source of truth:
 
-- [LLM architecture and training](../03-architecture-deep-dive.md)
-- [Training process](../01-training-process.md)
+- [LLM architecture and training](../../10-llms/03-architecture-deep-dive.md)
+- [Training process](../../10-llms/01-training-process.md)
 - [LLM inference optimization](../../11-llm-applications/06-inference-optimization.md)
 - [RAG](../../11-llm-applications/02-rag.md)
 - [Production ML and MLOps](../../13-production-ml/README.md)

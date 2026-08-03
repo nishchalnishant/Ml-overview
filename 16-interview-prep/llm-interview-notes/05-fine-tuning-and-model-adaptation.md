@@ -81,7 +81,7 @@ That is why the interview answer should always ask whether the problem is missin
 
 **The problem**: full fine-tuning a 70B parameter model requires as much GPU memory as pretraining it. For most adaptation tasks, you don't need to change all 70B parameters — the task adaptation is a relatively small "delta" on top of the pretrained knowledge.
 
-**The core insight**: the change to the weight matrix during fine-tuning has low intrinsic rank — it lives in a much smaller subspace than the full d×d weight matrix. Parameterize just that low-rank subspace: freeze W, add ΔW = BA (B zero-init), merge at inference for zero added latency. Full math, parameter-count worked example, and code: see [06-fine-tuning-at-scale.md](../06-fine-tuning-at-scale.md#2-lora-low-rank-adaptation).
+**The core insight**: the change to the weight matrix during fine-tuning has low intrinsic rank — it lives in a much smaller subspace than the full d×d weight matrix. Parameterize just that low-rank subspace: freeze W, add ΔW = BA (B zero-init), merge at inference for zero added latency. Full math, parameter-count worked example, and code: see [06-fine-tuning-at-scale.md](../../10-llms/06-fine-tuning-at-scale.md#2-lora-low-rank-adaptation).
 
 **What breaks**: LoRA doesn't help with tasks requiring genuine new knowledge (the frozen W doesn't know it). Very low rank (r=1, 2) may miss complex task structure. The rank choice has no principled selection rule — it is tuned on validation performance. LoRA on the wrong target modules can underperform relative to full fine-tuning on tasks requiring deep representation changes.
 LoRA is usually the default because it gives the best cost-quality tradeoff, not because it is universally optimal.
@@ -96,7 +96,7 @@ LoRA is usually the default because it gives the best cost-quality tradeoff, not
 
 **The problem**: LoRA reduces the number of trainable parameters, but the frozen base model still sits in GPU memory at full precision (fp16: 2 bytes/param). A 65B model at fp16 requires ~130 GB — still inaccessible to a single GPU.
 
-**The core insight**: if the base model weights are frozen during fine-tuning, they never need to be in full precision — quantize them aggressively (NF4), dequantize just-in-time during the forward pass, and keep only the LoRA adapters and quantization constants (double quantization) at higher precision, with paged optimizers to absorb memory spikes. Result: a 65B model that needed 8×80GB A100s fits on a single 48GB GPU. Full mechanics, memory-breakdown table, and `BitsAndBytesConfig` code: see [06-fine-tuning-at-scale.md](../06-fine-tuning-at-scale.md#4-qlora).
+**The core insight**: if the base model weights are frozen during fine-tuning, they never need to be in full precision — quantize them aggressively (NF4), dequantize just-in-time during the forward pass, and keep only the LoRA adapters and quantization constants (double quantization) at higher precision, with paged optimizers to absorb memory spikes. Result: a 65B model that needed 8×80GB A100s fits on a single 48GB GPU. Full mechanics, memory-breakdown table, and `BitsAndBytesConfig` code: see [06-fine-tuning-at-scale.md](../../10-llms/06-fine-tuning-at-scale.md#4-qlora).
 
 **What breaks**: 4-bit quantization introduces small precision loss in the base model forward pass — not training imprecision per se, but accumulated rounding errors. Always evaluate on your task; some domains (precision math, structured output) are more sensitive. Training is slightly slower than plain LoRA due to the dequantization step.
 If a task is numerically brittle, QLoRA is an engineering tradeoff, not a free lunch.
@@ -160,7 +160,7 @@ Instruction tuning gives you a chatty assistant. It does not, by itself, give yo
 
 **The problem**: RLHF requires training and maintaining a separate reward model, then running a complex, unstable RL training loop (PPO). Three separate training phases, three separate model checkpoints, sensitive hyperparameters. For many teams, this is impractical.
 
-**The core insight**: the optimal policy under the RLHF objective can be expressed analytically as a function of the reward and the reference policy. This means the reward model is implicit — you can write a training objective directly in terms of the policy's probabilities, eliminating the need for a separate reward model. Full derivation (the $Z(x)$-cancellation trick), loss formula, and `DPOTrainer` code: see [01-training-process.md](../01-training-process.md#8-dpo-cutting-the-reward-model-out-entirely).
+**The core insight**: the optimal policy under the RLHF objective can be expressed analytically as a function of the reward and the reference policy. This means the reward model is implicit — you can write a training objective directly in terms of the policy's probabilities, eliminating the need for a separate reward model. Full derivation (the $Z(x)$-cancellation trick), loss formula, and `DPOTrainer` code: see [01-training-process.md](../../10-llms/01-training-process.md#8-dpo-cutting-the-reward-model-out-entirely).
 
 **What breaks**: DPO is still sensitive to the quality of the preference data — bad preference pairs teach wrong behavior just as surely as bad SFT data. DPO can suffer from "chosen token probability collapse" where the model learns to maximize the chosen/rejected log-ratio by reducing probability of rejected, without genuinely improving the preferred response. Some evidence suggests RLHF outperforms DPO on highly complex alignment tasks, though DPO is competitive on most.
 
@@ -331,3 +331,164 @@ Alternatives when merging fails: run adapters sequentially (apply one then the o
 **What the interviewer is testing**: whether you know the family of PEFT approaches beyond LoRA and can explain why LoRA has become dominant.
 
 **Common traps**: saying prompt tuning and prompt engineering are the same (prompt engineering modifies input text; prompt tuning learns continuous embedding vectors); not knowing that prefix tuning adds per-layer computation while LoRA adds none after merging; confusing "soft prompts" (learned vectors) with "hard prompts" (text).
+
+
+## Rapid Recall (Snappy Answers)
+
+> _Quick-recall companion. For the full deep-dive, see [fine-tuning-and-model-adaptation.md](05-fine-tuning-and-model-adaptation.md)._
+
+# Fine-tuning & model adaptation — the “remaster, not rewrite” playbook
+
+Fine-tuning is how you change **behavior**. RAG is how you change **knowledge at runtime**. Prompting is how you change **instructions**.
+
+**One-line:** Prompting = config. RAG = read-through cache. Fine-tuning = shipping a patch.
+
+---
+
+# Q1: What is fine-tuning, and when should you fine-tune an LLM?
+- **Direct answer:** Fine-tuning updates model parameters (fully or partially) so it behaves differently on your task.
+- **Use it when:** you need consistent style/format, domain behaviors, tool reliability, or latency/cost improvements vs huge prompts.
+- **Avoid when:** you just need fresh facts → use RAG.
+
+---
+
+# Q2: Full fine-tuning vs PEFT?
+- **Full FT:** updates all weights → most flexible, most expensive, risk of forgetting.
+- **PEFT:** train a small set of params (LoRA/adapters/prefix) → cheaper, safer, easier multi-tenant.
+- **DevOps bridge:** full FT = fork the whole service; PEFT = ship a lightweight plugin.
+
+---
+
+# Q3: What is LoRA and how does it work?
+- **Direct answer:** Freeze base weights; learn low-rank update \(\Delta W pprox BA\) with tiny matrices.
+- **Analogy (music):** You don’t re-record the track—you add an EQ/remix layer.
+
+---
+
+# Q4: What is QLoRA?
+- **Direct answer:** Quantize base weights (e.g., 4-bit NF4) during training while keeping LoRA adapters in 16-bit.
+- **Why it matters:** makes big-model tuning feasible on small GPUs.
+
+---
+
+# Q5: Prefix tuning vs prompt tuning vs LoRA?
+- **Prompt tuning:** learn soft prompt vectors.
+- **Prefix tuning:** learn soft “prefix” vectors injected into attention.
+- **LoRA:** modifies linear layers via low-rank updates; often stronger and widely used.
+
+---
+
+# Q6: Adapter-based fine-tuning?
+- **Direct answer:** Insert small trainable modules between layers while freezing the base.
+- **Note:** can add inference overhead unless merged/optimized.
+
+---
+
+# Q7: What is RLHF and how is it used to align LLMs?
+- **Direct answer:** Use preference feedback to push outputs toward helpful/safe behavior (often via reward model + PPO historically).
+- **DevOps bridge:** policy training + compliance gates for a system that would otherwise “do whatever works.”
+
+---
+
+# Q8: What is instruction tuning?
+- **Direct answer:** SFT on instruction→response pairs to make base models follow commands/chat format reliably.
+
+---
+
+# Q9: How do you prepare a dataset for fine-tuning?
+- **Checklist:** clear objective, clean templates, dedupe, balance, red-team examples, train/val split, PII scrubbing.
+- **Mini prompt:** What kills you fastest? → leakage (train examples repeated in eval).
+
+---
+
+# Q10: Catastrophic forgetting — what is it and how prevent?
+- **Direct answer:** Model overwrites general skills while learning new domain.
+- **Fixes:** PEFT, mix in general data, lower LR, fewer epochs, regularization, rehearsal.
+
+---
+
+# Q11: Fine-tuning vs RAG vs prompt engineering?
+- **Prompting:** fastest iteration; best for formatting/instructions.
+- **RAG:** best for changing/adding facts + citations.
+- **Fine-tuning:** best for stable behavior, tone, domain style, tool reliability, latency/cost.
+
+---
+
+# Q12: How do you evaluate a fine-tuned model?
+- **Direct answer:** task success + format validity + safety + regression tests.
+- **DevOps bridge:** treat evals like CI checks; block promotion if regressions.
+
+---
+
+# Q13: Synthetic data generation for fine-tuning?
+- **Direct answer:** generate training pairs using a strong model/humans; filter and validate.
+- **Risk:** model learns your generator’s quirks; must diversify and audit.
+
+---
+
+# Q14: Key hyperparameters (LR, epochs, batch size, LoRA rank)?
+- **LR:** too high = forget/instability; too low = no learning.
+- **Epochs:** too many = memorization.
+- **Batch size:** affects stability; use grad accumulation.
+- **LoRA rank:** small ranks often saturate; higher ranks can overfit.
+
+---
+
+# Q15: Fine-tune for legal/medical/finance domains?
+- **Direct answer:** domain templates + terminology + safety constraints + eval sets.
+- **Best practice:** pair with RAG for latest policies/guidelines.
+
+---
+
+# Q16: What is continual pre-training?
+- **Direct answer:** continue pre-training on large unlabeled domain text to shift the base distribution.
+- **When:** you need domain language modeling improvements, not just instruction format.
+
+---
+
+# Q17: How do you merge multiple LoRA adapters?
+- **Options:** merge sequentially (risk interference), route by task, or compose via weighted merges.
+- **DevOps bridge:** multiple plugins need versioning + compatibility tests.
+
+---
+
+# Q18: SFT vs alignment training?
+- **SFT:** learn “ideal answers.”
+- **Alignment:** learn preferences/safety trade-offs (RLHF/DPO/RLAIF).
+
+---
+
+# Q19: What is RLAIF?
+- **Direct answer:** reinforcement learning from **AI** feedback instead of humans (model judges with a constitution/rubric).
+
+---
+
+# Q20: Distillation for fine-tuning + legal considerations?
+- **Direct answer:** compress behavior from teacher to student.
+- **Legal note:** licensing/data provenance matters; don’t distill proprietary outputs into redistributable weights without rights.
+
+---
+
+# Q21: Fine-tuned model outputs wrong facts due to bad data. Fix?
+- **Fixes:** clean data, dedupe, add retrieval grounding, strengthen evals, add counterexamples, reduce epochs.
+
+---
+
+# Q22: Decide LoRA vs full fine-tuning?
+- **Choose LoRA/PEFT:** limited GPUs, multi-tenant adapters, lower risk.
+- **Choose full FT:** you need deep capability shift and can afford the cost.
+
+---
+
+# Q23: Model memorized training data verbatim (overfitting). Fix?
+- **Fixes:** more/cleaner data, stronger regularization, early stopping, lower LR, fewer epochs, better splits.
+
+---
+
+# Q24: Model forgot general capabilities after domain FT. Fix?
+- **Fixes:** PEFT, rehearsal mix, lower LR, fewer steps, add general eval gates.
+
+---
+
+# Q25: RLHF preference data has low annotator agreement. Ensure quality?
+- **Fixes:** clearer rubric, training raters, adjudication, calibration tasks, remove ambiguous prompts, measure inter-annotator agreement.

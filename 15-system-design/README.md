@@ -74,7 +74,7 @@ The goal is not to memorize one architecture. The goal is to explain:
 - [Production ML overview](../README.md)
 - [MLOps](../13-production-ml/01-mlops.md)
 - [ML interview: system design](../13-production-ml/11-system-design-and-mlops.md)
-- [LLM interview: system design](../10-llms/interview-notes/07-ai-system-design.md)
+- [LLM interview: system design](../16-interview-prep/llm-interview-notes/07-ai-system-design.md)
 
 ## Canonical Reading Order
 

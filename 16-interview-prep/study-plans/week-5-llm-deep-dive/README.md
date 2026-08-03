@@ -54,25 +54,25 @@ tags: [studyplans, ml, week-5-days-31-35-llm-deep-dive]
 - [KV Cache and MQA/GQA](../../../10-llms/08-kv-cache-and-mqa-gqa.md)
 - [Inference Optimization](../../../11-llm-applications/06-inference-optimization.md)
 - [Speculative Decoding](../../../11-llm-applications/07-speculative-decoding.md)
-- [Efficient LLM Deployment](../../../10-llms/interview-notes/16-efficient-llm-deployment.md)
+- [Efficient LLM Deployment](../../../16-interview-prep/llm-interview-notes/16-efficient-llm-deployment.md)
 
 ### Alignment & Safety
-- [Advanced Alignment and Reasoning](../../../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
-- [Production Alignment Failures](../../../10-llms/interview-notes/18-production-alignment-failures.md)
-- [AI Safety, Ethics, and Responsible AI](../../../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md)
+- [Advanced Alignment and Reasoning](../../../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md)
+- [Production Alignment Failures](../../../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md)
+- [AI Safety, Ethics, and Responsible AI](../../../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md)
 
 ### Agentic Systems & RAG
 - [Agentic Workflows](../../../11-llm-applications/01-agentic-workflows.md)
 - [MCP](../../../11-llm-applications/12-mcp.md)
-- [Retrieval-Augmented Generation (RAG)](../../../10-llms/interview-notes/03-retrieval-augmented-generation-rag.md)
+- [Retrieval-Augmented Generation (RAG)](../../../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md)
 - [Hallucination Mitigation](../../../11-llm-applications/05-hallucination-mitigation.md)
-- [AI Agents and Agentic Systems](../../../10-llms/interview-notes/04-ai-agents-and-agentic-systems.md)
+- [AI Agents and Agentic Systems](../../../16-interview-prep/llm-interview-notes/04-ai-agents-and-agentic-systems.md)
 
 ### Applied & Production LLMs
 - [Multimodal](../../../11-llm-applications/09-multimodal.md)
 - [Context Window Extension](../../../10-llms/07-context-window-extension.md)
-- [LLMOps and Production AI](../../../10-llms/interview-notes/08-llmops-and-production-ai.md)
-- [AI System Design](../../../10-llms/interview-notes/07-ai-system-design.md)
+- [LLMOps and Production AI](../../../16-interview-prep/llm-interview-notes/08-llmops-and-production-ai.md)
+- [AI System Design](../../../16-interview-prep/llm-interview-notes/07-ai-system-design.md)
 
 Day files in this folder: 01-day-31-32, 02-day-33-34, 03-day-35
 

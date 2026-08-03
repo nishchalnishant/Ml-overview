@@ -97,7 +97,7 @@ This folder is the *theory/training* layer. Applied and systems treatments of th
 - Training strategies.
 - Production trade-offs.
 
-> This is a small, first-principles-reasoning-focused set (why the trap exists, how to reason to the answer) — for a much larger topic-by-topic Q&A bank (deep + snappy versions, RAG/agents/fine-tuning/evals/system design), see [interview-notes/README.md](interview-notes/README.md).
+> This is a small, first-principles-reasoning-focused set (why the trap exists, how to reason to the answer) — for a much larger topic-by-topic Q&A bank (deep + snappy versions, RAG/agents/fine-tuning/evals/system design), see [llm-interview-notes/README.md](../16-interview-prep/llm-interview-notes/README.md).
 
 **Applied companion:** [_interview-questions-applied.md](_interview-questions-applied.md) — a 37-question bank concentrated on RAG pipelines, agent patterns (ReAct, MCP, prompt injection), serving optimizations (PagedAttention, continuous batching, prefix caching), quantization, and LLMOps/eval design.
 

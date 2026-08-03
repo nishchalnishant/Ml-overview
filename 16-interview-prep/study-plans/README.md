@@ -82,7 +82,7 @@ The core sprint is 30 days (Weeks 1-4). If LLM depth is a major axis of your tar
 *Focus: LLM-specific topics, rapid-fire Q&A, mock interviews.*
 
 - **Day 26-27: LLM Specialist Training**
-    - Study: [LLM Fundamentals](../../10-llms/interview-notes/01-llm-fundamentals.md) & [RAG](../../10-llms/interview-notes/03-retrieval-augmented-generation-rag.md)
+    - Study: [LLM Fundamentals](../../16-interview-prep/llm-interview-notes/01-llm-fundamentals.md) & [RAG](../../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md)
     - Key Concept: Tokenization, RLHF, Prompt Engineering, LoRA, Vector DBs.
 - **Day 28: Implementation Fluency**
     - Practice: Implement attention, backprop, k-means from scratch.

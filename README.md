@@ -49,7 +49,7 @@ SUMMARY.md                  Complete file-by-file table of contents
 - **[AI/ML systems & application](00-meta/01-ai-ml-systems-and-application.md)** — Golden rules, architectures, infra patterns, gotchas.
 - **[Interview hub](16-interview-prep/README.md)** — canonical entry point for interview prep.
 - **[Math derivations hub](01-math-foundations/03-math-derivations.md)** — Chain rule to attention, with your pen.
-- **[LLM interview notes](10-llms/interview-notes/README.md)** — RAG, agents, alignment, serving.
+- **[LLM interview notes](16-interview-prep/llm-interview-notes/README.md)** — RAG, agents, alignment, serving.
 - **[LLM applications](11-llm-applications/README.md)** — retrieval, prompting, agents, tuning, inference optimization.
 - **[Systems and scale](12-systems-and-scale/README.md)** — distributed training, serving, compression, cost.
 - **[Pre-interview checklist](16-interview-prep/03-pre-interview-checklist.md)** — 48h → 24h → morning-of: what to review, verify, and do before walking in.

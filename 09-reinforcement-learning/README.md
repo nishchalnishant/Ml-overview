@@ -59,5 +59,5 @@ If you are short on time and preparing for an LLM role: read 01, skim 02, and re
 ## Connections
 
 - **Bandits and experimentation:** [../04-evaluation/06-ab-testing-experimentation.md](../04-evaluation/06-ab-testing-experimentation.md)
-- **RLHF and alignment:** [../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
+- **RLHF and alignment:** [../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md](../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md)
 - **Training pipeline context:** [../10-llms/01-training-process.md](../10-llms/01-training-process.md)

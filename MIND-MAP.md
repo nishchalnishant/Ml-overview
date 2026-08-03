@@ -617,8 +617,8 @@ MACHINE LEARNING
 **By interview type:**
 - Classical ML coding → [16-interview-prep/11-ml-coding-patterns.md](16-interview-prep/11-ml-coding-patterns.md) + [16-interview-prep/10-coding.md](16-interview-prep/10-coding.md)
 - ML system design → [15-system-design/01-design-interview-framework.md](15-system-design/01-design-interview-framework.md)
-- LLM theory → [10-llms/03-architecture-deep-dive.md](10-llms/03-architecture-deep-dive.md) + [10-llms/interview-notes/01-llm-fundamentals.md](10-llms/interview-notes/01-llm-fundamentals.md)
-- LLM system design → [10-llms/interview-notes/07-ai-system-design.md](10-llms/interview-notes/07-ai-system-design.md)
+- LLM theory → [10-llms/03-architecture-deep-dive.md](10-llms/03-architecture-deep-dive.md) + [16-interview-prep/llm-interview-notes/01-llm-fundamentals.md](16-interview-prep/llm-interview-notes/01-llm-fundamentals.md)
+- LLM system design → [16-interview-prep/llm-interview-notes/07-ai-system-design.md](16-interview-prep/llm-interview-notes/07-ai-system-design.md)
 - Behavioral → [16-interview-prep/09-behavioral.md](16-interview-prep/09-behavioral.md)
 
 **By domain:**

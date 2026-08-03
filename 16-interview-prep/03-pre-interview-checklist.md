@@ -66,7 +66,7 @@ Format: Situation → Task → Action → Result (with numbers where possible).
 - [ ] Story 2: Project that failed or pivoted — what you learned
 - [ ] Story 3: Cross-functional collaboration or stakeholder management
 
-**Reference:** [Behavioral Questions](../10-llms/interview-notes/14-behavioral-and-scenario-based-questions.md)
+**Reference:** [Behavioral Questions](../16-interview-prep/llm-interview-notes/14-behavioral-and-scenario-based-questions.md)
 
 ---
 

@@ -240,5 +240,5 @@ Classic **reward over-optimization** — Goodhart's law with a learned proxy. Th
 - **Foundations:** [01-rl-foundations.md](01-rl-foundations.md) — advantage function, why $A = Q - V$
 - **Value methods:** [03-value-based-methods.md](03-value-based-methods.md) — the critic is TD learning
 - **Exploration:** [02-bandits-and-exploration.md](02-bandits-and-exploration.md)
-- **RLHF in context:** [../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
+- **RLHF in context:** [../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md](../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md)
 - **RLHF in the training pipeline:** [../10-llms/01-training-process.md](../10-llms/01-training-process.md)

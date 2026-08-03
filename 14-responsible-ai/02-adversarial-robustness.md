@@ -20,7 +20,7 @@ Adversarial examples live there.
 
 > **Scope note.** This file covers adversarial examples against a *deployed model* — evasion at
 > inference. For LLM-specific attacks (jailbreaks, prompt injection), see
-> [`../10-llms/interview-notes/18-production-alignment-failures.md`](../10-llms/interview-notes/18-production-alignment-failures.md).
+> [`../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md`](../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md).
 > For adversarial *training* as a fairness technique, see
 > [`01-privacy-and-fairness.md`](01-privacy-and-fairness.md) §9 — same word, different goal.
 
@@ -217,4 +217,4 @@ interviewer is testing whether you match the defense to the actual adversary.
 - [../04-evaluation/05-model-interpretation.md](../04-evaluation/05-model-interpretation.md) — the other half of "can I trust this model"
 - [01-privacy-and-fairness.md](01-privacy-and-fairness.md) §9 — adversarial *training* for debiasing; §11 membership inference as a different attack surface
 - [../15-system-design/cases/05-fraud-detection.md](../15-system-design/cases/05-fraud-detection.md) — the adaptive-adversary setting end to end
-- [../10-llms/interview-notes/18-production-alignment-failures.md](../10-llms/interview-notes/18-production-alignment-failures.md) — jailbreaks and prompt injection
+- [../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md](../16-interview-prep/llm-interview-notes/18-production-alignment-failures.md) — jailbreaks and prompt injection

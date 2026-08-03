@@ -503,9 +503,9 @@ Mitigation sequence:
 
 # 10. Fairness in LLMs
 
-> **See also:** [`../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md`](../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md)
+> **See also:** [`../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md`](../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md)
 > covers the behavioural side — guardrails, prompt injection, content-moderation calibration —
-> and [`../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md`](../10-llms/interview-notes/17-advanced-alignment-and-reasoning.md)
+> and [`../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md`](../16-interview-prep/llm-interview-notes/17-advanced-alignment-and-reasoning.md)
 > covers RLHF/DPO/Constitutional AI. This section stays with the fairness mathematics.
 
 

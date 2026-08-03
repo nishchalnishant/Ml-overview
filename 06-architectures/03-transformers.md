@@ -5,7 +5,7 @@ subtopic: Transformers
 status: unread
 tags: [deeplearning, ml, components-transformers]
 ---
-**Primary reference:** [LLM Architecture Deep Dive](../10-llms/03-architecture-deep-dive.md) | [Interview Q&As](../10-llms/interview-notes/01-llm-fundamentals.md)
+**Primary reference:** [LLM Architecture Deep Dive](../10-llms/03-architecture-deep-dive.md) | [Interview Q&As](../16-interview-prep/llm-interview-notes/01-llm-fundamentals.md)
 
 # Transformers
 

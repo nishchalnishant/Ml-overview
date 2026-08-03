@@ -40,7 +40,7 @@ It is the drill layer, not the deep-dive layer.
 - [ea/sde2-handbook/README.md](ea/sde2-handbook/README.md) — 30 structured SDE-2 AI engineer mock interview scenarios
 - [ea/system-design-playbook/README.md](ea/system-design-playbook/README.md) — full system design chapters
 
-**For deeper LLM-specific interview material:** [../10-llms/interview-notes/README.md](../10-llms/interview-notes/README.md)
+**For deeper LLM-specific interview material:** [../16-interview-prep/llm-interview-notes/README.md](../16-interview-prep/llm-interview-notes/README.md)
 
 **For application/system depth:** [../11-llm-applications/README.md](../11-llm-applications/README.md), [../12-systems-and-scale/README.md](../12-systems-and-scale/README.md), [../13-production-ml/README.md](../13-production-ml/README.md), [../15-system-design/README.md](../15-system-design/README.md)
 
@@ -53,7 +53,7 @@ If you want the shortest path to interview readiness:
 3. [04-tradeoffs.md](04-tradeoffs.md) → [05-round3-tradeoff-drills.md](05-round3-tradeoff-drills.md)
 4. [12-top-ml-questions.md](12-top-ml-questions.md) for a final tiered drill pass
 5. [03-pre-interview-checklist.md](03-pre-interview-checklist.md)
-6. [../10-llms/interview-notes/README.md](../10-llms/interview-notes/README.md) when the interview turns heavily LLM-specific
+6. [../16-interview-prep/llm-interview-notes/README.md](../16-interview-prep/llm-interview-notes/README.md) when the interview turns heavily LLM-specific
 
 ## Why This Exists
 

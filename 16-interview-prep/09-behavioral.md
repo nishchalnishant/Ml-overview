@@ -7,7 +7,7 @@ tags: [interviewprep, ml, ml-behavioral-and-scenario-bas]
 ---
 # Behavioral and Scenario-Based Questions
 
-> **LLM-heavy behavioral bank:** For GenAI-specific scenarios (RAG failures, prompt injection incidents, alignment tradeoffs), see [Behavioral & Scenario Questions (LLM track)](../10-llms/interview-notes/14-behavioral-and-scenario-based-questions.md) or the snappy version [here](../10-llms/interview-notes/behavioral-and-scenario-based-questions-snappy.md).
+> **LLM-heavy behavioral bank:** For GenAI-specific scenarios (RAG failures, prompt injection incidents, alignment tradeoffs), see [Behavioral & Scenario Questions (LLM track)](../16-interview-prep/llm-interview-notes/14-behavioral-and-scenario-based-questions.md) or the snappy version [here](../16-interview-prep/llm-interview-notes/behavioral-and-scenario-based-questions-snappy.md).
 
 ## What This File Is For
 

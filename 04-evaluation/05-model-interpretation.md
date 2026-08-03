@@ -425,4 +425,4 @@ interpretability costume, and recognizing that is what is being tested.
 - [../14-responsible-ai/01-privacy-and-fairness.md](../14-responsible-ai/01-privacy-and-fairness.md) §7–9 — fairness metrics, impossibility theorems, bias mitigation (where the ZIP-code question actually gets answered)
 - [../14-responsible-ai/02-adversarial-robustness.md](../14-responsible-ai/02-adversarial-robustness.md) — the other half of "can I trust this model"
 - [../03-classical-ml/_comparison.md](../03-classical-ml/_comparison.md) — where TreeSHAP sits among tabular tradeoffs
-- [../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md](../10-llms/interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md) Q8 — LLM-behavioural framing of explainability
+- [../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md](../16-interview-prep/llm-interview-notes/10-ai-safety-ethics-and-responsible-ai-what.md) Q8 — LLM-behavioural framing of explainability

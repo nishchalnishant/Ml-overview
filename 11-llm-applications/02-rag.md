@@ -7,7 +7,7 @@ tags: [llms, ml, applications-rag]
 ---
 # Retrieval-Augmented Generation (RAG)
 
-> **Related:** this is the *production/engineering* treatment (ingestion, ANN, context assembly). For the interview-lens deep-dive (RAGAS, Self-RAG, GraphRAG, multi-hop) see [10-llms/interview-notes/03-retrieval-augmented-generation-rag.md](../10-llms/interview-notes/03-retrieval-augmented-generation-rag.md) (and its [snappy version](../10-llms/interview-notes/retrieval-augmented-generation-rag-snappy.md)).
+> **Related:** this is the *production/engineering* treatment (ingestion, ANN, context assembly). For the interview-lens deep-dive (RAGAS, Self-RAG, GraphRAG, multi-hop) see [16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md](../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md) (and its [snappy version](../16-interview-prep/llm-interview-notes/retrieval-augmented-generation-rag-snappy.md)).
 
 ---
 
@@ -187,7 +187,7 @@ Question: What was Apple's Q3 revenue?
 
 ### Self-RAG
 
-Fine-tunes the model to emit reflection tokens (`[Retrieve]`, `[IsRel]`, `[IsSup]`, `[IsUse]`) so retrieval-need, relevance, and answer quality become learned model behaviors rather than external orchestration logic. Requires a specially fine-tuned model — not replicable with prompting alone. Full token taxonomy and interview framing: see [interview-notes/03-retrieval-augmented-generation-rag.md](../10-llms/interview-notes/03-retrieval-augmented-generation-rag.md#self-rag).
+Fine-tunes the model to emit reflection tokens (`[Retrieve]`, `[IsRel]`, `[IsSup]`, `[IsUse]`) so retrieval-need, relevance, and answer quality become learned model behaviors rather than external orchestration logic. Requires a specially fine-tuned model — not replicable with prompting alone. Full token taxonomy and interview framing: see [interview-notes/03-retrieval-augmented-generation-rag.md](../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md#self-rag).
 
 ### CRAG (Corrective RAG)
 
@@ -197,7 +197,7 @@ Fine-tunes the model to emit reflection tokens (`[Retrieve]`, `[IsRel]`, `[IsSup
 
 ### GraphRAG
 
-Build a knowledge graph from documents (entity-relationship triples) so multi-hop and corpus-wide summarization queries can be answered via graph traversal instead of flat chunk retrieval — expensive to construct, wins only when relationships or global themes matter. Local/global search split and tool comparison: see [interview-notes/03-retrieval-augmented-generation-rag.md](../10-llms/interview-notes/03-retrieval-augmented-generation-rag.md#graph-rag).
+Build a knowledge graph from documents (entity-relationship triples) so multi-hop and corpus-wide summarization queries can be answered via graph traversal instead of flat chunk retrieval — expensive to construct, wins only when relationships or global themes matter. Local/global search split and tool comparison: see [interview-notes/03-retrieval-augmented-generation-rag.md](../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md#graph-rag).
 
 ---
 
