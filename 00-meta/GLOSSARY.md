@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml done. Remaining: 04-evaluation through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation done. Remaining: 05-deep-learning-core through 18-resources.
 
 ---
 
@@ -3899,3 +3899,1276 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Why it matters / pitfall / interview trap:* against Random Forest, XGBoost generally achieves better accuracy through sequential error correction but is more sensitive to hyperparameters (learning rate, depth, regularization) and easier to overfit without careful tuning/early stopping.
 
 ---
+
+## 04-evaluation
+
+**Accuracy**
+
+*The problem:* Teams need a single headline number to summarize how often a classifier is right.
+
+*Core insight / definition:* Accuracy = (TP+TN)/(TP+TN+FP+FN), the fraction of all predictions that were correct. It treats false positives and false negatives as equally costly and treats all classes as equally important.
+
+*Why it matters / pitfall / interview trap:* On a 99/1 imbalanced dataset, a model that always predicts the majority class gets 99% accuracy while being useless — always pair accuracy with precision/recall/F1 or PR-AUC on imbalanced problems.
+
+---
+
+**Accumulated Local Effects (ALE)**
+
+*The problem:* Partial Dependence Plots extrapolate into unrealistic feature combinations when features are correlated.
+
+*Core insight / definition:* ALE computes the average change in prediction within narrow bins of the feature of interest (using only real neighboring data), then accumulates these local differences into a global effect curve, avoiding the need to average over unrealistic combinations of correlated features.
+
+*Why it matters / pitfall / interview trap:* ALE is preferred over PDP whenever features are correlated, since it isolates the true marginal effect without extrapolating off-manifold.
+
+---
+
+**Adjusted R²**
+
+*The problem:* Plain R² always increases (or stays the same) as more features are added, even useless ones, making model comparison across different feature counts misleading.
+
+*Core insight / definition:* $R^2_{\text{adj}} = 1-(1-R^2)\frac{n-1}{n-p-1}$ penalizes for the number of predictors $p$, only increasing when a new feature improves fit more than chance would predict.
+
+*Why it matters / pitfall / interview trap:* Use adjusted R² (not raw R²) when comparing regression models with different numbers of predictors.
+
+---
+
+**Aleatoric Uncertainty**
+
+*The problem:* Not all model uncertainty is the same — some is irreducible noise, some reflects the model's own ignorance, and each demands a different response.
+
+*Core insight / definition:* Aleatoric uncertainty is the variance of the label given the input, $\text{Var}[Y|X=x]$ — inherent noise in the data-generating process (e.g., label noise, sensor error) that cannot be reduced by collecting more data. Estimated as the average entropy of predictions across stochastic forward passes.
+
+*Why it matters / pitfall / interview trap:* Aleatoric uncertainty should be communicated to the downstream decision-maker, not "fixed" — routing genuinely ambiguous cases to human review wastes reviewer time on cases no additional data can resolve. Also, the aleatoric/epistemic split is a property of the model and estimation method, not a clean fact about the data.
+
+---
+
+**AIPW (Augmented Inverse Propensity Weighting)** — see Doubly Robust Estimation
+
+---
+
+**Alpha Spending / Sequential Testing**
+
+*The problem:* Continuously monitoring an experiment and stopping as soon as p < 0.05 inflates the true false-positive rate far above 5%.
+
+*Core insight / definition:* Sequential testing methods (alpha spending) allocate the total error budget across multiple looks at the data over time, allowing valid early stopping without inflating the false-positive rate, as an alternative to committing to one fixed sample size and duration.
+
+*Why it matters / pitfall / interview trap:* "Peeking" without a sequential-testing correction can push the effective false-positive rate to 20-30%.
+
+---
+
+**Anscombe's Quartet**
+
+*The problem:* A single summary statistic like R² can look identical for datasets with wildly different underlying structure.
+
+*Core insight / definition:* Anscombe's quartet is four datasets with nearly identical R² (and other summary statistics) but visually and structurally very different distributions (linear, curved, outlier-driven, etc.).
+
+*Why it matters / pitfall / interview trap:* High R² alone does not guarantee a good model fit — always visualize residuals, don't rely on a single summary number.
+
+---
+
+**Attention Weights as Explanation**
+
+*The problem:* For transformer models, practitioners often visualize attention weights and call them "explanations" of the model's decision.
+
+*Core insight / definition:* Attention weights are intermediate computations, not causal attributions — the same attention pattern can be produced by different underlying weight matrices, so attention does not reliably indicate what drove the prediction.
+
+*Why it matters / pitfall / interview trap:* Prefer principled attribution methods (Integrated Gradients, SHAP) over raw attention visualization when the audience needs a real explanation.
+
+---
+
+**Average Precision (AP) / Mean Average Precision (MAP)**
+
+*The problem:* Ranking metrics need to reward putting relevant documents early in a list of binary-relevance results, not just anywhere in the top k.
+
+*Core insight / definition:* AP = $\frac{1}{R}\sum_k P@k \cdot \mathbf{1}[\text{doc}_k \text{ relevant}]$, averaging precision at each rank where a relevant item appears; MAP = the mean of AP across all queries.
+
+*Why it matters / pitfall / interview trap:* MAP assumes binary relevance and is sensitive to missing relevant items (unlike NDCG at a fixed k) — use NDCG instead when relevance is graded.
+
+---
+
+**ATE (Average Treatment Effect) vs. ATT (Average Treatment Effect on the Treated)**
+
+*The problem:* "What effect?" is ambiguous — the effect of treating everyone can differ from the effect on the people who were actually treated, if the effect is heterogeneous.
+
+*Core insight / definition:* With potential outcomes $Y(1)$, $Y(0)$: ATE = $\mathbb{E}[Y(1)-Y(0)]$ over the whole population ("if we treated everyone vs. no one"); ATT = $\mathbb{E}[Y(1)-Y(0)\mid T=1]$, the effect for units that actually got treated.
+
+*Why it matters / pitfall / interview trap:* DiD estimates ATT; IPW can target either. Rollout decisions usually care about ATT; policy decisions about scaling to everyone want ATE — conflating them misstates what a causal estimate implies.
+
+---
+
+**Back-door Path / Back-door Criterion**
+
+*The problem:* Confounders create spurious statistical association between treatment and outcome that has nothing to do with a causal effect.
+
+*Core insight / definition:* A back-door path is a non-causal path connecting treatment $T$ to outcome $Y$ through a confounder, e.g. $T \leftarrow C \to Y$. The back-door criterion says: block every back-door path by conditioning on an appropriate set of variables to recover the true causal effect.
+
+*Why it matters / pitfall / interview trap:* "Throw all features into the regression" is not automatically safe — conditioning on the wrong variable (a collider or mediator) can introduce bias rather than remove it.
+
+---
+
+**Benjamini-Hochberg Procedure**
+
+*The problem:* Running many hypothesis tests inflates the number of expected false positives, but a fully conservative correction like Bonferroni may be too strict when some false positives are acceptable.
+
+*Core insight / definition:* Benjamini-Hochberg controls the False Discovery Rate (FDR) — the expected proportion of false positives among rejected hypotheses — rather than the family-wise error rate, allowing more power when many tests are run.
+
+*Why it matters / pitfall / interview trap:* Benjamini-Hochberg is almost always preferable to Bonferroni in ML contexts where many comparisons (e.g., many metrics or many segments) are tested simultaneously.
+
+---
+
+**BERTScore**
+
+*The problem:* n-gram overlap metrics (BLEU, ROUGE) miss semantic similarity when generated text paraphrases the reference.
+
+*Core insight / definition:* BERTScore measures similarity using contextual embeddings (e.g., from BERT) rather than exact token overlap, capturing semantic closeness between generated and reference text.
+
+*Why it matters / pitfall / interview trap:* Expensive to compute and biased toward text that is fluent in the embedding model's own style, so it can still be gamed or misleading.
+
+---
+
+**Bias-Variance of CV Estimate**
+
+*The problem:* Practitioners assume more folds is strictly better for cross-validation.
+
+*Core insight / definition:* Increasing K reduces bias of the CV estimate (each training set is larger, closer to the full dataset) but increases variance because folds overlap more and become correlated; the variance does not shrink as 1/K.
+
+*Why it matters / pitfall / interview trap:* Leave-one-out CV (K=n) has near-zero bias but very high variance and n training runs — more folds is not automatically a better estimate.
+
+---
+
+**BLEU**
+
+*The problem:* Evaluating machine-generated text against reference text needs an automatable proxy for translation/generation quality.
+
+*Core insight / definition:* BLEU scores n-gram overlap between generated text and one or more reference texts, rewarding matches at multiple n-gram lengths.
+
+*Why it matters / pitfall / interview trap:* BLEU rewards short, "safe" outputs and misses semantic correctness — a perfect translation using different words than the reference can score near 0.
+
+---
+
+**Bonferroni Correction**
+
+*The problem:* Testing k hypotheses at α=0.05 each yields an expected ~0.05k false positives.
+
+*Core insight / definition:* Bonferroni controls the family-wise error rate (FWER) by dividing the significance threshold α by the number of tests k, so each individual test uses α/k.
+
+*Why it matters / pitfall / interview trap:* Bonferroni becomes very conservative (low power) as the number of comparisons grows; Holm-Bonferroni is a less conservative FWER-controlling alternative, and Benjamini-Hochberg (FDR control) is usually preferred with many tests.
+
+---
+
+**Brier Score**
+
+*The problem:* Need a single number to evaluate probability forecasts, not just hard classification correctness.
+
+*Core insight / definition:* Brier score = $\frac{1}{n}\sum_i(\hat p_i - y_i)^2$, the mean squared error between predicted probabilities and binary outcomes; range [0,1], lower is better. Decomposes (Murphy decomposition) into Calibration + Resolution − Uncertainty, and is a strictly proper scoring rule.
+
+*Why it matters / pitfall / interview trap:* Because it's proper, the minimum is only achieved by outputting true probabilities — a model can't game Brier score by being confidently wrong. Brier Skill Score (BSS) = $1-\text{Brier}/\text{Brier}_{\text{ref}}$ compares against a base-rate baseline.
+
+---
+
+**Calibration**
+
+*The problem:* A model's hard predictions can be accurate while its probability outputs are numerically meaningless — dangerous for any downstream system that consumes the probability directly (pricing, risk thresholds).
+
+*Core insight / definition:* A classifier is calibrated if $P(Y=1\mid \hat p(X)=p)=p$ for all $p$: among all predictions assigned probability $p$, the empirical fraction of positives should equal $p$. Calibration and ranking quality (AUC) are orthogonal properties.
+
+*Why it matters / pitfall / interview trap:* A model can have AUC = 1.0 (perfect ranking) and be arbitrarily miscalibrated (e.g., all positives at 0.52, all negatives at 0.48). Skipping calibration assessment because "AUC looks good" is a very common trap.
+
+---
+
+**Calibration Set**
+
+*The problem:* Any post-hoc calibration method (Platt, isotonic, temperature scaling, conformal prediction) needs data to fit the mapping from raw scores to calibrated probabilities, but using training or test data for this leaks information.
+
+*Core insight / definition:* A calibration set is a held-out split, separate from both training and test data, used exclusively to fit a calibration mapping or to compute conformal nonconformity score quantiles.
+
+*Why it matters / pitfall / interview trap:* Fitting calibration on the training set makes the calibration curve optimistic; using the test set for calibration is data leakage that invalidates the final evaluation.
+
+---
+
+**Canary Release**
+
+*The problem:* Even offline-validated and shadow-tested models can behave unexpectedly at scale in production; a full rollout risks broad damage.
+
+*Core insight / definition:* A canary release serves the new model to a small fraction of live traffic (1-5%) while closely monitoring business metrics, with readiness to roll back before wider exposure.
+
+*Why it matters / pitfall / interview trap:* Canary is a stage after shadow mode in the standard evaluation progression: offline → shadow → canary → full rollout with guardrails.
+
+---
+
+**Class Imbalance**
+
+*The problem:* Real-world classification problems (fraud, disease, spam) often have a rare positive class, which breaks metrics and default thresholds designed for balanced data.
+
+*Core insight / definition:* Class imbalance refers to a skewed ratio between classes (e.g., 1% positive, 99% negative), under which accuracy, ROC-AUC, and the 0.5 threshold all become misleading or suboptimal.
+
+*Why it matters / pitfall / interview trap:* Under severe imbalance, PR-AUC, F-beta, expected cost, and a cost-derived threshold are more informative than accuracy or ROC-AUC alone.
+
+---
+
+**Cluster Randomization**
+
+*The problem:* In social networks, marketplaces, or ride-sharing, individually randomizing users violates independence because treated and control users interact and contaminate each other.
+
+*Core insight / definition:* Cluster randomization assigns entire clusters (social groups, geographic regions) to treatment or control as a unit, rather than individual users, to preserve the independence assumption behind standard statistical tests — an application of avoiding SUTVA violations.
+
+*Why it matters / pitfall / interview trap:* Failing to cluster-randomize in an interference-prone setting means the estimated treatment effect is biased by contamination between arms.
+
+---
+
+**Coefficient of Determination** — see R²
+
+---
+
+**Collider**
+
+*The problem:* Practitioners often assume "control for more variables = safer," but this is false in causal analysis.
+
+*Core insight / definition:* A collider is a variable caused by both the treatment and the outcome (or by two other variables in the DAG). Conditioning on (or controlling for) a collider opens a spurious association path and introduces bias rather than removing it.
+
+*Why it matters / pitfall / interview trap:* "Throw all covariates into the regression" is a common but dangerous heuristic — the causal DAG determines which variables are safe to control for, and colliders are not.
+
+---
+
+**Conditional Coverage vs. Marginal Coverage**
+
+*The problem:* A prediction-interval method might guarantee correct average coverage overall while still being badly wrong for specific subgroups.
+
+*Core insight / definition:* Marginal coverage is the guarantee $P(Y_{n+1}\in C(X_{n+1}))\geq 1-\alpha$ averaged over the whole population; conditional coverage would guarantee this within any subgroup or region of covariate space, which conformal prediction does NOT guarantee.
+
+*Why it matters / pitfall / interview trap:* Conformal prediction's guarantee is only marginal — a specific subgroup can be systematically under-covered even while the overall average meets the target.
+
+---
+
+**Confidence Interval (for A/B test effect)**
+
+*The problem:* A point-estimate effect size alone hides how much sampling uncertainty surrounds it.
+
+*Core insight / definition:* The 95% CI for a treatment effect is computed as effect_size ± 1.96·SE, where SE = $\sqrt{\text{Var(treatment)}/n_t + \text{Var(control)}/n_c}$, giving a range of plausible true effect sizes.
+
+*Why it matters / pitfall / interview trap:* Report effect size and CI alongside p-value — "p<0.001" alone doesn't reveal whether the effect is practically meaningful.
+
+---
+
+**Confounder**
+
+*The problem:* Comparing treated and untreated (or exposed and unexposed) units directly can produce an association that reflects pre-existing differences rather than a causal effect.
+
+*Core insight / definition:* A confounder is a variable that causes both the treatment and the outcome, opening a back-door path that creates spurious association independent of any real causal effect (e.g., user "intent" driving both feature adoption and spend).
+
+*Why it matters / pitfall / interview trap:* Every adjustment method except IV assumes all confounders are measured (ignorability) — this assumption can never be fully verified, and unmeasured confounding silently biases the result with no built-in warning.
+
+---
+
+**Confusion Matrix**
+
+*The problem:* A single summary metric aggregates four qualitatively different types of errors, hiding which failure mode a model actually has.
+
+*Core insight / definition:* The confusion matrix is the 2×2 (or n×n) table of TP, TN, FP, FN counts from which every classification metric (precision, recall, specificity, accuracy, F1, MCC) can be derived.
+
+*Why it matters / pitfall / interview trap:* Two models with identical accuracy can have completely different confusion matrices (one high-recall/low-precision, the other the reverse) — always inspect the full matrix before choosing a summary metric.
+
+---
+
+**Conformal Prediction**
+
+*The problem:* Standard prediction intervals (e.g., $\hat y \pm 2\sigma$) assume a distributional form that may not hold, and don't come with a provable coverage guarantee.
+
+*Core insight / definition:* Conformal prediction uses a calibration set of nonconformity scores $s_i=|y_i-\hat y_i|$ to build a prediction interval/set that provably contains the true label with probability ≥ 1−α under only the assumption of exchangeability, with no distributional assumptions on the model or data.
+
+*Why it matters / pitfall / interview trap:* The guarantee is marginal (averaged over all test points), not conditional per subgroup, and it breaks under distribution shift because shift violates exchangeability.
+
+---
+
+**Cost Matrix / Expected Cost**
+
+*The problem:* Standard accuracy assumes all four confusion-matrix cells have equal cost, which is rarely true in business settings (e.g., missing fraud vs. a false alarm).
+
+*Core insight / definition:* A cost matrix assigns a distinct cost/benefit to each cell (TP, FP, FN, TN); expected cost = $\frac1n\sum_i[y_i(\hat y_i C(TP)+(1-\hat y_i)C(FN)) + (1-y_i)(\hat y_i C(FP)+(1-\hat y_i)C(TN))]$.
+
+*Why it matters / pitfall / interview trap:* Once costs are asymmetric, the optimal decision threshold is generally not 0.5 — it should be derived from the cost ratio (see Optimal Threshold Under Cost).
+
+---
+
+**Coverage (Recommendation Diversity Metric)**
+
+*The problem:* A recommender can maximize relevance metrics like NDCG while only ever recommending a handful of popular items, providing poor user experience and failing long-tail users.
+
+*Core insight / definition:* Coverage = |unique items recommended across all users| / |catalog size| — measures whether the system explores the full catalog or concentrates on a few items.
+
+*Why it matters / pitfall / interview trap:* A system with 1% coverage is vulnerable to cold-start problems and systematically fails users interested in the long tail, even with high relevance scores.
+
+---
+
+**Coverage Guarantee (Prediction Intervals)**
+
+*The problem:* A prediction interval is only useful if it reliably contains the true value at some known rate.
+
+*Core insight / definition:* A prediction interval $[\hat l(x),\hat u(x)]$ has coverage $1-\alpha$ if $P(Y_{n+1}\in[\hat l(X_{n+1}),\hat u(X_{n+1})])\geq 1-\alpha$.
+
+*Why it matters / pitfall / interview trap:* A trivial model can achieve 100% coverage by returning $[-\infty,+\infty]$ — coverage must always be judged jointly with interval width (MPIW), never alone.
+
+---
+
+**Cross-Entropy Loss** — see Log Loss
+
+---
+
+**Cross-Validation (K-Fold)**
+
+*The problem:* A single train/validation split gives one noisy estimate of generalization performance that depends heavily on which examples happened to land in the test set.
+
+*Core insight / definition:* K-fold CV splits training data into K folds, trains on K−1 folds and evaluates on the held-out fold, rotating which fold is held out, then averages the K scores; each sample is used as a test point exactly once.
+
+*Why it matters / pitfall / interview trap:* CV reduces variance of the performance estimate, but it operates only on training data — the test set stays untouched. Preprocessing steps (scalers, imputers) must be refit inside each fold, not on the full dataset beforehand, to avoid leakage.
+
+---
+
+**CUPED (Controlled-experiment Using Pre-Experiment Data)**
+
+*The problem:* High-variance metrics (e.g., revenue per user) require huge sample sizes and long experiment durations to reach statistical significance.
+
+*Core insight / definition:* CUPED adjusts the outcome metric by subtracting the portion of variance explained by a user's pre-experiment behavior: $Y_{\text{cuped}} = Y - \theta(X-\mathbb{E}[X])$, where $\theta=\text{Cov}(Y,X)/\text{Var}(X)$; this reduces variance by roughly 30–70% for metrics correlated with historical behavior.
+
+*Why it matters / pitfall / interview trap:* CUPED requires the same metric to be measurable before the experiment starts — it cannot be applied to genuinely new metrics with no pre-period history.
+
+---
+
+**DAG (Directed Acyclic Graph, Causal)**
+
+*The problem:* Deciding which variables to "control for" by intuition often leads to including variables that bias, rather than fix, a causal estimate.
+
+*Core insight / definition:* A causal DAG makes explicit which variables are confounders (open a back-door path), mediators (lie on the causal path $T\to M\to Y$), or colliders (caused by both $T$ and $Y$), and dictates which should be adjusted for (confounders only).
+
+*Why it matters / pitfall / interview trap:* Conditioning on a mediator removes part of the real causal effect; conditioning on a collider introduces bias — "control for everything" is not a safe default.
+
+---
+
+**Deep Ensembles**
+
+*The problem:* A single deterministic model gives no signal about how confident it should be, and simpler uncertainty methods (MC Dropout) can underestimate true epistemic uncertainty.
+
+*Core insight / definition:* Deep ensembles train N independently initialized models on the same data; the variance of their predictions estimates epistemic uncertainty, and their average is typically better calibrated than any single model.
+
+*Why it matters / pitfall / interview trap:* Deep ensembles outperform MC Dropout for uncertainty quality but cost N× the training and inference compute; also, correlated ensemble members can be jointly, confidently wrong on truly novel (OOD) inputs, so low ensemble variance is not proof of reliable knowledge.
+
+---
+
+**Difference-in-Differences (DiD)**
+
+*The problem:* Treatment turned on for one group but not another at a known time, and you have before/after data for both, but a naive treated-group-only before/after comparison confounds the treatment effect with any concurrent trend.
+
+*Core insight / definition:* DiD cancels time-invariant confounders and common time trends by double-differencing: $\widehat{\text{ATT}} = (\bar Y_{\text{treat,post}}-\bar Y_{\text{treat,pre}}) - (\bar Y_{\text{ctrl,post}}-\bar Y_{\text{ctrl,pre}})$.
+
+*Why it matters / pitfall / interview trap:* Relies on the parallel trends assumption (absent treatment, both groups would have moved identically) — supported by checking pre-period trends move in parallel, and testable with a placebo/pre-trend test. With staggered adoption across many units and heterogeneous effects, classic two-way fixed effects is biased — use a Callaway–Sant'Anna style estimator instead.
+
+---
+
+**Discounted Cumulative Gain (DCG)** — see NDCG
+
+---
+
+**Doubly Robust Estimation (AIPW)**
+
+*The problem:* Both propensity-score methods and outcome-regression methods for causal effects rely on one model being correctly specified, and you don't know in advance which (if either) is right.
+
+*Core insight / definition:* AIPW combines an outcome model $\hat\mu(x)$ with an inverse-propensity-weighted correction term; it is consistent if either the propensity model OR the outcome model is correctly specified — "two shots at getting it right."
+
+*Why it matters / pitfall / interview trap:* This is the modern default for observational causal estimation and underlies double/debiased ML, where both nuisance models are fit with ML estimators and cross-fitting.
+
+---
+
+**ECE (Expected Calibration Error)**
+
+*The problem:* Reliability diagrams are visual; teams need a single scalar to compare calibration between models, track it over time, and set alert thresholds.
+
+*Core insight / definition:* $\text{ECE}=\sum_m \frac{|B_m|}{n}|\text{acc}(B_m)-\text{conf}(B_m)|$, the bin-population-weighted average gap between predicted confidence and empirical accuracy across bins.
+
+*Why it matters / pitfall / interview trap:* ECE depends on bin count and binning strategy — only compare ECE across models computed with identical binning settings. ECE < 0.01 is excellent; > 0.10 means raw probabilities should not be used for downstream decisions.
+
+---
+
+**Efficiency (Shapley Axiom)**
+
+*The problem:* An attribution method is only useful for explanation if the individual feature contributions add up to something meaningful about the prediction.
+
+*Core insight / definition:* Efficiency is the Shapley axiom stating $\sum_i \phi_i = f(x) - \mathbb{E}[f(x)]$ — SHAP values sum exactly to the difference between the prediction and the baseline (expected) prediction.
+
+*Why it matters / pitfall / interview trap:* This is the axiom to remember for interviews — it's what makes SHAP usable in an adverse-action notice: baseline plus per-feature contributions leaves nothing unexplained.
+
+---
+
+**Epistemic Uncertainty**
+
+*The problem:* Distinguishing "this input is inherently ambiguous" from "the model just hasn't seen enough like this" requires different remedies (accept vs. collect more data / flag for review).
+
+*Core insight / definition:* Epistemic uncertainty is uncertainty about model parameters given finite training data — $\text{Var}_\theta[\mathbb{E}[Y|X,\theta]]$ — and decreases as more data is collected in the uncertain region. Estimated via variance across stochastic forward passes (MC Dropout) or across ensemble members.
+
+*Why it matters / pitfall / interview trap:* High epistemic uncertainty should trigger human review or active learning, but ensemble/MC-Dropout variance can be small even on genuinely novel inputs if all members share the same blind spot — variance measures disagreement, not distance from training data.
+
+---
+
+**Exchangeability**
+
+*The problem:* Conformal prediction needs some assumption connecting calibration data to future test data, but wants to avoid strong distributional assumptions.
+
+*Core insight / definition:* Exchangeability means the joint distribution of the data is invariant to the order of the samples — a weaker assumption than i.i.d. that is sufficient for conformal prediction's coverage guarantee.
+
+*Why it matters / pitfall / interview trap:* Under distribution shift, exchangeability breaks, and with it the conformal coverage guarantee.
+
+---
+
+**Exclusion Restriction (IV)**
+
+*The problem:* An instrumental variable must not have any path to the outcome except through the treatment, or the estimate is biased.
+
+*Core insight / definition:* The exclusion restriction is the requirement that instrument $Z$ affects outcome $Y$ only through treatment $T$, never directly or through any other path.
+
+*Why it matters / pitfall / interview trap:* Exclusion (along with independence) is untestable — it must be argued from domain knowledge, and a skeptic can always propose an alternative path from $Z$ to $Y$.
+
+---
+
+**Expected Cost** — see Cost Matrix
+
+---
+
+**Explainability vs. Interpretability**
+
+*The problem:* Interviewers probe whether candidates conflate two related but distinct concepts describing how understandable a model's behavior is.
+
+*Core insight / definition:* Interpretability is a property of the model itself — you can inspect its mechanism directly (e.g., a linear model or shallow tree). Explainability is a property of an account generated after the fact for a model you did not constrain (e.g., a SHAP plot over a GBM) — it's a model of the model.
+
+*Why it matters / pitfall / interview trap:* Because post-hoc explanations are themselves models, their failure mode is being wrong about the thing they explain — this framing is central to understanding why SHAP/LIME can mislead.
+
+---
+
+**Exposure Fairness**
+
+*The problem:* Standard ranking metrics don't check whether protected groups receive proportional visibility relative to their relevance in the corpus.
+
+*Core insight / definition:* Exposure fairness requires that protected groups receive ranking exposure proportional to their relevance, used in hiring/lending/content platforms to prevent systematic suppression of minority groups.
+
+*Why it matters / pitfall / interview trap:* A niche but real concern in specialized ranking/fairness roles — standard relevance metrics can be maximized while still systematically under-exposing a protected group.
+
+---
+
+**F1 Score / F-beta Score**
+
+*The problem:* Precision and recall trade off against each other, and stakeholders often want one number, but a naive average can hide extreme imbalance between the two.
+
+*Core insight / definition:* F1 = $2PR/(P+R)$, the harmonic mean of precision and recall (not the arithmetic mean) — it punishes extreme imbalance (P=1.0, R=0.1 gives F1=0.18, not 0.55). $F_\beta = (1+\beta^2)PR/(\beta^2P+R)$ generalizes this, with $\beta>1$ weighting recall more and $\beta<1$ weighting precision more.
+
+*Why it matters / pitfall / interview trap:* Defaulting to F1 without justifying that precision and recall have equal cost is a common trap — derive $\beta$ from the actual cost ratio of false positives vs. false negatives.
+
+---
+
+**Feature Independence Assumption (PDP)**
+
+*The problem:* Partial Dependence Plots compute marginal effects by averaging over other features, which silently assumes those features are independent of the feature being studied.
+
+*Core insight / definition:* PDP's feature-independence assumption means that when the feature of interest is correlated with others, the averaging process creates unrealistic/impossible feature combinations (e.g., age=90 with a $20K student income).
+
+*Why it matters / pitfall / interview trap:* This is exactly the failure mode that motivates using ALE instead of PDP under correlated features.
+
+---
+
+**FID (Fréchet Inception Distance)**
+
+*The problem:* Evaluating image-generation quality needs a quantitative proxy since human evaluation at scale is expensive.
+
+*Core insight / definition:* FID = $||\mu_r-\mu_g||^2+\text{Tr}(\Sigma_r+\Sigma_g-2(\Sigma_r\Sigma_g)^{1/2})$, the distance between Inception-feature distributions of real vs. generated images; lower is better.
+
+*Why it matters / pitfall / interview trap:* Sensitive to sample size (needs 10k+ samples), and the Inception features it relies on may not generalize to all image domains.
+
+---
+
+**Friedman Test + Nemenyi Post-hoc**
+
+*The problem:* Comparing more than two classifiers across multiple datasets needs a statistical test that isn't limited to pairwise comparisons.
+
+*Core insight / definition:* The Friedman test is a rank-based, non-parametric test for comparing multiple classifiers across multiple datasets; the Nemenyi test is the post-hoc procedure used to identify which specific pairs differ significantly after a significant Friedman result.
+
+*Why it matters / pitfall / interview trap:* Appropriate specifically for the "multiple classifiers × multiple datasets" comparison setting, distinct from the two-model paired tests (McNemar, paired t-test, Wilcoxon).
+
+---
+
+**Grad-CAM**
+
+*The problem:* Neural network image classifiers need a fast, localized explanation of which image regions drove a prediction.
+
+*Core insight / definition:* Grad-CAM is a gradient-based method for neural networks that produces a local, class-discriminative localization map (heatmap) highlighting important regions of an input image.
+
+*Why it matters / pitfall / interview trap:* Fast but gradient-based (approximate), positioned in the interpretability spectrum as local and neural-net-specific, distinct from model-agnostic methods like SHAP/LIME.
+
+---
+
+**Group K-Fold**
+
+*The problem:* When multiple records belong to the same entity (e.g., 5 records per patient), random K-fold can place some of an entity's records in train and others in validation, letting the model implicitly memorize that entity and inflating validation performance.
+
+*Core insight / definition:* Group K-Fold ensures all records belonging to a given group (patient, user, session, region) appear in the same fold, so the model is validated on truly unseen entities. `StratifiedGroupKFold` combines this with class-balance preservation.
+
+*Why it matters / pitfall / interview trap:* Without grouping, in-production performance on genuinely new entities will be worse than the (leaked) validation estimate suggested.
+
+---
+
+**Guardrail Metrics**
+
+*The problem:* Optimizing a single north-star metric can hide serious regressions in other important dimensions (latency, spam, unsubscribes).
+
+*Core insight / definition:* Guardrail metrics are metrics that must not regress beyond a defined threshold during an experiment, defined before launch alongside the primary metric; a guardrail violation stops the experiment or blocks shipping even if the primary metric improves.
+
+*Why it matters / pitfall / interview trap:* "We'll watch for negative effects" is not a plan — guardrails must be pre-specified with explicit rollback triggers and ownership, turning vague monitoring into an operational procedure.
+
+---
+
+**Holdback Group**
+
+*The problem:* Long-term effects of a feature (e.g., habituation, engagement decay) may not show up in a short experiment window.
+
+*Core insight / definition:* A holdback group is a permanent group of users kept on the old experience (no crossover) used to measure long-term treatment effects that a short-duration A/B test would miss.
+
+*Why it matters / pitfall / interview trap:* Useful when a launch to 100% of traffic prevents future clean causal comparison — proactively reserving a holdback preserves the ability to measure long-run impact.
+
+---
+
+**Holm-Bonferroni Correction**
+
+*The problem:* Bonferroni correction is valid but overly conservative, losing power unnecessarily.
+
+*Core insight / definition:* Holm-Bonferroni is a step-down procedure that also controls the family-wise error rate (FWER) but is slightly less conservative than plain Bonferroni, giving more statistical power while retaining the same FWER guarantee.
+
+*Why it matters / pitfall / interview trap:* Choose Holm-Bonferroni over plain Bonferroni when FWER control is required but conservatism needs to be minimized; choose Benjamini-Hochberg instead if FDR control is acceptable.
+
+---
+
+**Huber Loss**
+
+*The problem:* MSE over-penalizes outliers; MAE is robust but non-differentiable at zero and doesn't distinguish moderate vs. severe errors.
+
+*Core insight / definition:* Huber loss is quadratic (MSE-like) for small errors ($|a|\leq\delta$) and linear (MAE-like) for large errors ($|a|>\delta$), combining the smoothness of MSE with the outlier-robustness of MAE. The threshold $\delta$ is a hyperparameter, typically set near the 90th–95th percentile of residuals.
+
+*Why it matters / pitfall / interview trap:* Well suited to production systems with occasional bad labels or anomalous inputs where full MAE robustness isn't needed but MSE's outlier sensitivity is too costly.
+
+---
+
+**Ignorability (No Unmeasured Confounders)**
+
+*The problem:* Every observational causal-adjustment method (PSM, IPW, doubly robust) needs some assumption to justify that the comparison is fair.
+
+*Core insight / definition:* Ignorability is the assumption that, conditional on measured covariates $X$, treatment assignment is independent of potential outcomes — i.e., there are no unmeasured confounders.
+
+*Why it matters / pitfall / interview trap:* This assumption can never be fully tested and fails silently — if a real confounder isn't in $X$, PSM/IPW/DR are all biased with no built-in warning; sensitivity analysis (Rosenbaum bounds, E-values) is used to gauge robustness to this risk.
+
+---
+
+**Instrumental Variables (IV)**
+
+*The problem:* When you suspect unmeasured confounding — the one case propensity-based adjustment can't fix — you still need a way to recover a causal estimate.
+
+*Core insight / definition:* IV uses an instrument $Z$ satisfying relevance ($Z$ affects $T$), exclusion ($Z$ affects $Y$ only through $T$), and independence ($Z$ is as-good-as-random w.r.t. unobserved confounders) to recover the causal effect from the part of $T$'s variation explained by $Z$ (via two-stage least squares).
+
+*Why it matters / pitfall / interview trap:* Exclusion and independence are untestable and must be argued from domain knowledge; IV estimates a LATE (local average treatment effect) — the effect only for "compliers," not the whole population. Weak instruments (low relevance) give badly biased, high-variance estimates.
+
+---
+
+**Integrated Gradients**
+
+*The problem:* Attention weights are not a principled causal attribution for neural network predictions.
+
+*Core insight / definition:* $\text{IG}_i(x)=(x_i-x_i')\cdot\int_0^1 \frac{\partial F(x'+\alpha(x-x'))}{\partial x_i}d\alpha$ — interpolates between a baseline input $x'$ and the actual input $x$, integrating the gradient along the path to attribute importance to each input dimension.
+
+*Why it matters / pitfall / interview trap:* Considered more principled than raw attention visualization for explaining neural network (including transformer) predictions.
+
+---
+
+**Intent-Aware NDCG**
+
+*The problem:* When a query has multiple valid interpretations (e.g., "jaguar" = car or animal), standard NDCG rewards systems that cover only the single most common intent.
+
+*Core insight / definition:* IA-NDCG weights each result by the probability of the subtopic/intent it satisfies and penalizes redundancy within a single subtopic, rewarding coverage across multiple query intents.
+
+*Why it matters / pitfall / interview trap:* Niche, specialized-role metric — standard NDCG can look great while systematically ignoring minority query intents.
+
+---
+
+**Interference / Network Effects (SUTVA Violation)**
+
+*The problem:* Standard A/B testing assumes users are independent, but in social networks, marketplaces, and ride-sharing, treated and control users interact and contaminate each other's outcomes.
+
+*Core insight / definition:* Interference occurs when a treated unit's outcome depends on other units' treatment status (violating the Stable Unit Treatment Value Assumption, SUTVA) — e.g., a treated driver affects a control rider's wait time. Solutions include cluster randomization, geographic/market splits, switchback testing, and holdback groups.
+
+*Why it matters / pitfall / interview trap:* Applying naive individual-level A/B testing under interference biases the estimated effect because the "control" group is contaminated by treatment effects.
+
+---
+
+**Interleaving (Ranker Comparison)**
+
+*The problem:* Comparing two ranking models via standard A/B testing on user-level CTR requires weeks because between-user variance is high.
+
+*Core insight / definition:* Interleaving mixes items from both rankers into a single list shown to the same user (e.g., via Team-Draft Interleaving) and tracks which model's attributed items receive more clicks, removing between-user variance entirely.
+
+*Why it matters / pitfall / interview trap:* Reaches statistical significance far faster (often ~100x) than A/B testing because it compares within the same user session rather than across independent users.
+
+---
+
+**Intra-List Diversity (ILD)**
+
+*The problem:* A recommendation list can score perfectly on relevance while consisting of nearly identical items, providing little value to users seeking variety.
+
+*Core insight / definition:* $\text{ILD}=\frac{1}{\binom k2}\sum_{i\neq j\in L} d(i,j)$, the average pairwise dissimilarity (e.g., cosine distance in embedding space) between items in the recommended list $L$.
+
+*Why it matters / pitfall / interview trap:* Trades off against precision — high ILD can hurt relevance if dissimilar items are less relevant; typically balanced via re-ranking with maximal marginal relevance (MMR).
+
+---
+
+**Inverse Propensity Weighting (IPW)**
+
+*The problem:* Comparing treated and untreated groups directly is confounded when treatment assignment correlates with covariates that also affect the outcome.
+
+*Core insight / definition:* IPW reweights each unit by the inverse of its probability of receiving the treatment it actually got, constructing a pseudo-population in which treatment is independent of covariates: $\widehat{\text{ATE}}=\frac1n\sum_i[\frac{T_iY_i}{e(x_i)}-\frac{(1-T_i)Y_i}{1-e(x_i)}]$.
+
+*Why it matters / pitfall / interview trap:* Propensities near 0 or 1 create enormous weights that explode variance — must clip/trim extreme weights and check overlap/positivity (regions with only treated or only control units cannot be compared by any method).
+
+---
+
+**Isotonic Regression Calibration**
+
+*The problem:* Platt scaling imposes a rigid sigmoid functional form on the calibration mapping, which fails when miscalibration is non-monotone or has a complex shape.
+
+*Core insight / definition:* Isotonic regression fits a non-parametric, non-decreasing step function from raw scores to probabilities using the Pool Adjacent Violators algorithm, requiring only monotonicity (higher scores map to higher probabilities), no parametric functional form.
+
+*Why it matters / pitfall / interview trap:* With small calibration sets (<500 examples), isotonic regression overfits by memorizing empirical frequencies of individual bins — prefer Platt scaling when the calibration set is small.
+
+---
+
+**LATE (Local Average Treatment Effect)**
+
+*The problem:* Instrumental variables don't estimate the effect for the whole population — they estimate it for a specific, often unobservable, subgroup.
+
+*Core insight / definition:* LATE is the causal effect estimated by IV specifically for "compliers" — the units whose treatment status the instrument actually moved — not the whole population's average effect.
+
+*Why it matters / pitfall / interview trap:* Reporting an IV estimate as if it applies to everyone overstates its generality; it's only valid for compliers, a subpopulation defined by the instrument itself.
+
+---
+
+**Leave-One-Out Cross-Validation**
+
+*The problem:* With small datasets, standard K-fold might not use enough data per training fold, but full CV needs to balance bias and computational cost.
+
+*Core insight / definition:* Leave-one-out CV is K-fold with K=n — each fold holds out exactly one example, training on all others. Near-zero bias, but very high variance due to fold correlation and n training runs required.
+
+*Why it matters / pitfall / interview trap:* More folds does not straightforwardly mean a better estimate — LOO-CV's high variance is a classic gotcha.
+
+---
+
+**LIME (Local Interpretable Model-agnostic Explanations)**
+
+*The problem:* Explaining a single black-box prediction in a human-understandable way, without needing global model transparency.
+
+*Core insight / definition:* LIME samples N perturbed versions around an input, gets model predictions for each, weights samples by proximity to the original input, and fits a weighted local linear regression whose coefficients serve as feature importances for that one prediction.
+
+*Why it matters / pitfall / interview trap:* Not additive (explanations for feature subsets don't combine predictably), sensitive to hyperparameters (kernel width, sample count), and stochastic — different runs on the same point/model can yield different explanations, unlike SHAP, which is deterministic.
+
+---
+
+**LLM-as-Judge**
+
+*The problem:* Human evaluation of generated text is the gold standard but slow and expensive at scale.
+
+*Core insight / definition:* LLM-as-judge uses a (typically larger/stronger) model to rate the outputs of another model, providing faster automated evaluation than human review.
+
+*Why it matters / pitfall / interview trap:* Biased toward the judge model's own stylistic preferences — always calibrate LLM-judge scores against spot human checks.
+
+---
+
+**Log Loss (Cross-Entropy Loss)**
+
+*The problem:* Accuracy treats a barely-correct prediction the same as a highly confident correct one, and doesn't punish confident wrong predictions any more than uncertain wrong ones.
+
+*Core insight / definition:* $\text{Log Loss}=-\frac1n\sum_i[y_i\log\hat p_i+(1-y_i)\log(1-\hat p_i)]$; it penalizes confident wrong predictions severely through the logarithm (predicting 0.99 for the wrong class gives loss ≈4.6, vs. ≈0.92 for a 0.6 wrong prediction), and is a strictly proper scoring rule.
+
+*Why it matters / pitfall / interview trap:* Log loss is not scale-free — comparisons are only valid within the same problem/class-balance, not across different datasets. Minimizing expected log loss is equivalent to minimizing KL divergence from the model's distribution to the true distribution.
+
+---
+
+**MAE (Mean Absolute Error)**
+
+*The problem:* Need a regression error metric that treats all deviations proportionally, without letting a few large errors dominate the score.
+
+*Core insight / definition:* $\text{MAE}=\frac1n\sum_i|y_i-\hat y_i|$ — treats a 10-unit error as exactly 10x worse than a 1-unit error (linear cost); robust to outliers but not differentiable at 0.
+
+*Why it matters / pitfall / interview trap:* Use MAE (median regression) when outliers are expected and shouldn't dominate the metric; use MSE/RMSE when large errors are genuinely more costly.
+
+---
+
+**MAPE (Mean Absolute Percentage Error) / sMAPE / MASE**
+
+*The problem:* Stakeholders often want error expressed as a percentage for intuitive interpretation across different scales.
+
+*Core insight / definition:* $\text{MAPE}=\frac{100}{n}\sum|\frac{y_i-\hat y_i}{y_i}|$. Alternatives: sMAPE (symmetric MAPE, still has issues) and MASE (mean absolute scaled error, normalized against an in-sample naive forecast — best for time series).
+
+*Why it matters / pitfall / interview trap:* MAPE is undefined at $y_i=0$, asymmetric (over- and under-predictions of equal magnitude are penalized differently), penalizes under-forecasting more heavily (bad for inventory/safety use cases), and meaningless when the target can be negative.
+
+---
+
+**Matthews Correlation Coefficient (MCC)**
+
+*The problem:* F1 ignores true negatives entirely and can still be misleading under extreme imbalance; a metric using all four confusion-matrix cells is needed.
+
+*Core insight / definition:* $\text{MCC}=\frac{TP\cdot TN-FP\cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}$, ranging [-1,1], where +1 is perfect, 0 is random, -1 is perfectly inverted; it is invariant to class-balance manipulation in a way accuracy is not.
+
+*Why it matters / pitfall / interview trap:* A model predicting all negatives on a 99/1 split gets MCC=0 (correctly reflecting uselessness), not the misleadingly high accuracy score — but MCC is harder to explain to non-technical stakeholders than F1.
+
+---
+
+**MC Dropout (Monte Carlo Dropout)**
+
+*The problem:* Estimating predictive uncertainty for a deterministic neural network normally requires an ensemble, which is expensive to train.
+
+*Core insight / definition:* Keeping dropout active at inference time (`model.train()` during prediction) and running N stochastic forward passes approximates sampling from an approximate posterior over network weights (Gal & Ghahramani 2016); the variance across passes estimates epistemic uncertainty, and average entropy estimates aleatoric uncertainty.
+
+*Why it matters / pitfall / interview trap:* N forward passes multiply inference latency by N; MC Dropout underestimates epistemic uncertainty relative to deep ensembles because it samples from a restricted variational posterior, not the true Bayesian posterior.
+
+---
+
+**McNemar's Test**
+
+*The problem:* Comparing two classifiers' point-estimate accuracy on a shared hold-out set doesn't tell you whether the difference is statistically meaningful.
+
+*Core insight / definition:* McNemar's test builds a 2×2 disagreement table (b = model A correct/B wrong, c = model B correct/A wrong) and computes $\chi^2=(b-c)^2/(b+c)$ to test whether the models' error patterns are systematically different.
+
+*Why it matters / pitfall / interview trap:* Appropriate specifically for paired classifier comparisons on the same examples; report effect size alongside p<0.05, not significance alone.
+
+---
+
+**MDE (Minimum Detectable Effect)**
+
+*The problem:* Before running an experiment, you need to know how large a sample is required, which depends on the smallest effect worth being able to detect.
+
+*Core insight / definition:* MDE is the smallest improvement considered worth detecting; it directly determines the required sample size via the power-analysis formula $n=\frac{2(z_{\alpha/2}+z_\beta)^2\sigma^2}{\delta^2}$.
+
+*Why it matters / pitfall / interview trap:* An MDE too small relative to available traffic makes an experiment infeasible in reasonable time; an MDE set too loosely misses real, valuable effects — must be computed before starting, not chosen after the fact.
+
+---
+
+**Mediator**
+
+*The problem:* Practitioners often assume any variable correlated with treatment and outcome should be controlled for, without checking its causal role.
+
+*Core insight / definition:* A mediator is a variable lying on the causal path from treatment to outcome ($T\to M\to Y$); conditioning on it removes part of the true causal effect rather than removing bias.
+
+*Why it matters / pitfall / interview trap:* Distinguishing mediators from confounders is essential — controlling for a mediator is a mistake that a naive "throw everything into the regression" strategy will make.
+
+---
+
+**Metric Drift**
+
+*The problem:* A model that was well-calibrated and performant at launch can silently degrade as the world (and its own feedback effects) change.
+
+*Core insight / definition:* Metric drift is the phenomenon where the deployed model's data distribution shifts toward the model's own behavior (via feedback loops, self-selection, or behavioral change), causing offline-validated properties like calibration to degrade over time.
+
+*Why it matters / pitfall / interview trap:* Requires continuous monitoring of ECE, coverage, and prediction distribution in production, with retraining alerts triggered when drift exceeds a threshold.
+
+---
+
+**MMR (Maximal Marginal Relevance)**
+
+*The problem:* Optimizing pure relevance in a ranked list can produce highly redundant results.
+
+*Core insight / definition:* MMR is a re-ranking technique applied after initial retrieval that balances relevance against diversity, used to improve intra-list diversity without abandoning relevance-based retrieval.
+
+*Why it matters / pitfall / interview trap:* Typical production solution to the ILD/relevance trade-off — re-rank for diversity rather than optimizing diversity from scratch.
+
+---
+
+**Model Coefficients (Linear Interpretability)**
+
+*The problem:* Some stakeholders need an exact, not approximate, account of how a model computes its output.
+
+*Core insight / definition:* For linear models, the fitted coefficients themselves are an exact, global, fast interpretation of feature contribution — no post-hoc approximation is needed since the model mechanism is directly readable.
+
+*Why it matters / pitfall / interview trap:* Positioned as the one method in the interpretation spectrum that is inherently interpretable rather than a post-hoc explanation of a black box.
+
+---
+
+**MPIW (Mean Prediction Interval Width)**
+
+*The problem:* Coverage alone can be trivially satisfied by an infinitely wide interval, so interval quality needs a second axis.
+
+*Core insight / definition:* $\text{MPIW}=\frac1n\sum(\hat u_i-\hat l_i)$, the average width of prediction intervals, measuring the efficiency/informativeness of the intervals.
+
+*Why it matters / pitfall / interview trap:* Good interval methods maximize PICP for a given MPIW, or equivalently minimize MPIW subject to a target PICP — never judge PICP without MPIW.
+
+---
+
+**MRR (Mean Reciprocal Rank)**
+
+*The problem:* Some ranking tasks (QA, spelling correction, entity lookup) care only about how quickly the first correct answer appears, not the whole ranking.
+
+*Core insight / definition:* $\text{MRR}=\frac1Q\sum_q \frac{1}{\text{rank}_q}$, the average of the reciprocal rank of the first relevant result across queries.
+
+*Why it matters / pitfall / interview trap:* Ignores all relevant results after the first one — inappropriate for tasks where finding multiple relevant items matters (use MAP or NDCG instead).
+
+---
+
+**MSE / RMSE (Mean Squared Error / Root Mean Squared Error)**
+
+*The problem:* When large regression errors are disproportionately more costly than small ones, an error metric needs to reflect that.
+
+*Core insight / definition:* $\text{MSE}=\frac1n\sum(y_i-\hat y_i)^2$ squares errors before averaging, making large errors quadratically more costly (a 10-unit error contributes 100, a 1-unit error contributes 1); $\text{RMSE}=\sqrt{\text{MSE}}$ returns to the original units for interpretability.
+
+*Why it matters / pitfall / interview trap:* A model optimized for RMSE aggressively minimizes large errors, sometimes at the cost of more frequent small errors — using RMSE when outliers shouldn't dominate the metric (e.g., rare, low-stakes anomalies) is a common mistake; use MAE or Huber instead in that case.
+
+---
+
+**Multiple Hypothesis Correction**
+
+*The problem:* Running many statistical tests (many metrics, many segments) raises the expected number of false positives well above the nominal α.
+
+*Core insight / definition:* Multiple hypothesis correction adjusts the significance threshold or interprets p-values differently to account for the number of tests run; family-wise methods (Bonferroni, Holm-Bonferroni) control the probability of any false positive, while FDR methods (Benjamini-Hochberg) control the expected proportion of false positives among rejections.
+
+*Why it matters / pitfall / interview trap:* Testing 10 metrics without correction means roughly one will show p<0.05 by chance alone — this is a very common experimentation pitfall.
+
+---
+
+**Multi-Armed Bandit / Thompson Sampling**
+
+*The problem:* A fixed 50/50 A/B split wastes traffic on a worse variant for the full experiment duration, even after enough evidence accumulates to know it's worse.
+
+*Core insight / definition:* Bandits adaptively allocate more traffic to better-performing variants while continuing to explore. Thompson Sampling is a Bayesian approach: maintain a Beta distribution per variant (posterior over conversion rate), sample from each, and route traffic to the variant with the highest sample.
+
+*Why it matters / pitfall / interview trap:* Use bandits when the reward signal is immediate (clicks, purchases) and there's real business cost to serving a worse variant; use fixed A/B tests when the primary metric has delayed feedback (e.g., D7 retention), since bandits need fast reward signal to adapt.
+
+---
+
+**Nested Cross-Validation**
+
+*The problem:* Using the same CV loop to both select hyperparameters and report a final performance estimate is optimistic — you selected the configuration that happened to score best on that particular split.
+
+*Core insight / definition:* Nested CV separates hyperparameter tuning from performance estimation with two loops: an outer loop splits data into outer-train/outer-test for unbiased performance estimation, while an inner loop (run within each outer-train fold) tunes hyperparameters.
+
+*Why it matters / pitfall / interview trap:* The final deployed model is retrained on all data using the best hyperparameters from a separate, non-nested tuning run — the nested CV score is only for honest performance reporting, not for producing the deployment model itself. Expensive (inner_K × outer_K × n_candidates evaluations).
+
+---
+
+**Novelty Effect**
+
+*The problem:* Users may respond more positively to a new UI or feature simply because it is new, not because it is genuinely better, inflating short-term experiment results.
+
+*Core insight / definition:* The novelty effect is a bias where users behave differently toward something simply because it's unfamiliar/new, which fades over time; mitigated by running experiments for 2+ weeks and comparing new vs. returning user cohorts.
+
+*Why it matters / pitfall / interview trap:* Long-running experiments risk accumulating novelty effects (early positive reaction) as well as selection effects (early adopters being unrepresentative) — both must be accounted for in experiment duration planning.
+
+---
+
+**NDCG (Normalized Discounted Cumulative Gain)**
+
+*The problem:* When relevance is graded (not just binary) and position in a ranked list matters (rank 1 is far more valuable than rank 10), standard precision/recall don't capture ranking quality.
+
+*Core insight / definition:* $\text{DCG@}k=\sum_{i=1}^k\frac{2^{rel_i}-1}{\log_2(i+1)}$ discounts relevance by log position; $\text{NDCG@}k=\text{DCG@}k/\text{IDCG@}k$ normalizes by the DCG of the ideal (perfectly sorted) ranking, giving a [0,1] score where 1 is perfect ordering.
+
+*Why it matters / pitfall / interview trap:* Undefined when there are no relevant documents (IDCG=0). NDCG can be high while offline relevance labels are self-fulfilling (derived from what the current system already showed), masking whether users are actually satisfied — a common trap when churn coexists with high NDCG.
+
+---
+
+**Optimal Threshold Under Cost**
+
+*The problem:* Choosing 0.5 as the decision threshold implicitly assumes false positives and false negatives cost the same, which is almost never true in practice.
+
+*Core insight / definition:* Given asymmetric costs, the optimal threshold is $\hat p(x)\geq \frac{C(FP)-C(TN)}{C(FP)-C(TN)+C(FN)-C(TP)}$ — e.g., in fraud detection with $C(FN)=\$500$ and $C(FP)=\$5$, the optimal threshold is ≈0.01.
+
+*Why it matters / pitfall / interview trap:* The threshold is a business/operational parameter set after training based on cost structure and capacity constraints, not a model hyperparameter — and it must never be tuned on the test set, since that inflates the reported metric.
+
+---
+
+**Overlap / Positivity**
+
+*The problem:* Causal comparison methods need treated and control units that are actually comparable in covariate space; without any overlap, no method can produce a valid estimate.
+
+*Core insight / definition:* Overlap (positivity) requires that for every region of covariate space, there exist both treated and untreated units with non-degenerate probability; a violation means the propensity score is 0 or 1 in some region.
+
+*Why it matters / pitfall / interview trap:* Poor overlap (treated and control distributions barely overlapping) leads to extrapolation and unreliable estimates — always check propensity-score distributions and report how many units were discarded due to poor matches.
+
+---
+
+**PDP (Partial Dependence Plot)**
+
+*The problem:* Stakeholders want to see the marginal effect of a single feature on model predictions, averaged over all other features.
+
+*Core insight / definition:* $\text{PDP}(x_j)=E_{X_C}[f(x_j,X_C)]=\frac1n\sum_i f(x_j,x_C^{(i)})$ — fixes feature $x_j$ to a value and averages predictions over the observed distribution of all other features $X_C$.
+
+*Why it matters / pitfall / interview trap:* Assumes feature independence; when $x_j$ correlates with other features, averaging creates unrealistic/impossible feature combinations (extrapolation) — use ALE instead when features are correlated.
+
+---
+
+**Peeking**
+
+*The problem:* Checking an experiment's results repeatedly and stopping as soon as significance appears feels natural but statistically invalidates the test.
+
+*Core insight / definition:* Peeking is evaluating experiment results continuously and stopping whenever p < 0.05 is observed, rather than committing to a fixed sample size/duration in advance.
+
+*Why it matters / pitfall / interview trap:* Inflates the effective false-positive rate well above the nominal 5%, sometimes to 20-30% — the fix is a fixed horizon or a proper sequential-testing (alpha-spending) method.
+
+---
+
+**PICP (Prediction Interval Coverage Probability)**
+
+*The problem:* Need a way to empirically measure whether prediction intervals actually contain the true values at the promised rate.
+
+*Core insight / definition:* $\text{PICP}=\frac1n\sum \mathbf{1}[y_i\in[\hat l_i,\hat u_i]]$, the empirical fraction of true values falling within their predicted intervals.
+
+*Why it matters / pitfall / interview trap:* Must always be evaluated jointly with MPIW — a trivial model achieves 100% PICP with infinitely wide intervals, which is useless.
+
+---
+
+**Pinball Loss (Quantile Loss)**
+
+*The problem:* Standard symmetric losses (MAE, MSE) target the conditional mean or median, but many applications need calibrated prediction intervals at arbitrary quantiles.
+
+*Core insight / definition:* $\rho_\tau(y,\hat q)=\tau(y-\hat q)$ if $y\geq\hat q$, else $(1-\tau)(\hat q-y)$ — minimizing this loss at quantile $\tau$ produces the $\tau$-th conditional quantile; $\tau=0.5$ recovers MAE.
+
+*Why it matters / pitfall / interview trap:* Used to build prediction intervals by fitting separate models at, e.g., $\tau=0.1$ and $\tau=0.9$ to get an 80% interval; it is a proper scoring rule for quantiles, unlike symmetric losses.
+
+---
+
+**Platt Scaling**
+
+*The problem:* Model outputs like SVM decision values or raw boosting scores are not probabilities and need to be converted into trustworthy calibrated probabilities.
+
+*Core insight / definition:* Platt scaling fits a logistic regression on top of raw model scores using a held-out calibration set: $P(Y=1)=\sigma(A\cdot f(x)+B)$, learning parameters $A,B$ that map scores to calibrated probabilities.
+
+*Why it matters / pitfall / interview trap:* Assumes the miscalibration is monotone and roughly sigmoid-shaped; if the true miscalibration pattern is non-monotone or complex, the parametric fit will be wrong — use isotonic regression instead (with sufficient calibration data).
+
+---
+
+**Position Bias**
+
+*The problem:* Offline click/relevance labels reflect where items were positioned when shown to users, not their true relevance, contaminating both training and evaluation.
+
+*Core insight / definition:* Position bias is the tendency for items shown in higher positions to receive more clicks/engagement regardless of true relevance, which biases offline metrics like CTR when used as surrogates for online outcomes.
+
+*Why it matters / pitfall / interview trap:* Listed as a known gap between offline CTR and real production CTR — a major reason offline and online metrics diverge.
+
+---
+
+**PR-AUC (Precision-Recall AUC) vs. ROC-AUC**
+
+*The problem:* On imbalanced data, ROC-AUC can look impressive while the model is operationally nearly useless, because false-positive rate is normalized by an abundant true-negative count.
+
+*Core insight / definition:* ROC-AUC plots TPR vs. FPR across thresholds; its value equals P(random positive ranked above random negative), with baseline 0.5 regardless of class balance. PR-AUC plots precision vs. recall across thresholds, with baseline equal to prevalence; both quantities have TP in the denominator's complement, making PR-AUC directly sensitive to positive-prediction quality.
+
+*Why it matters / pitfall / interview trap:* With rare positives (e.g., <10% prevalence), ROC-AUC=0.95 can coexist with PR-AUC=0.20-0.30 on the same model — use PR-AUC whenever the positive class is rare and false positives are costly.
+
+---
+
+**Precision, Recall (Sensitivity), Specificity**
+
+*The problem:* Different error types (false alarms vs. missed detections) have different real-world costs, and a single accuracy number can't distinguish which type of mistake a model makes.
+
+*Core insight / definition:* Precision = TP/(TP+FP) — of predicted positives, how many were right (measures false-alarm cost). Recall/Sensitivity = TP/(TP+FN) — of actual positives, how many were caught (measures missed-positive cost). Specificity = TN/(TN+FP) — of actual negatives, how many were correctly ignored.
+
+*Why it matters / pitfall / interview trap:* Reporting precision or recall in isolation is trivially gameable in opposite directions (predict nothing positive → perfect precision, 0 recall; predict everything positive → perfect recall, base-rate precision) — always report both together.
+
+---
+
+**Precision@K / Recall@K**
+
+*The problem:* In ranking/recommendation, users mostly see the top of a list, so metrics need to focus on a fixed cutoff rather than the whole ranking.
+
+*Core insight / definition:* $P@k$ = fraction of the top-k items that are relevant; $R@k$ = fraction of all relevant items that appear in the top k.
+
+*Why it matters / pitfall / interview trap:* P@k is right when the corpus is large/unbounded and users only see the top k; R@k matters when all relevant items matter (e.g., legal document retrieval) — choosing the wrong one misaligns the metric with the actual user experience.
+
+---
+
+**Precision/Recall for Generative Models**
+
+*The problem:* FID and Inception Score conflate "quality" and "diversity" into one number, hiding whether a generative model fails on one dimension specifically.
+
+*Core insight / definition:* In generative-model evaluation, Precision measures sample quality (fidelity to the real distribution) and Recall measures diversity (coverage of the real distribution) via k-NN manifold estimation.
+
+*Why it matters / pitfall / interview trap:* Requires careful k-NN radius selection — a poorly chosen radius distorts both the quality and diversity estimates.
+
+---
+
+**Primacy Effect**
+
+*The problem:* Users accustomed to the old experience may initially prefer the familiar control condition regardless of the treatment's true quality, biasing early experiment results.
+
+*Core insight / definition:* Primacy effect is the bias where control users prefer the familiar UX simply out of habit, the mirror image of the novelty effect.
+
+*Why it matters / pitfall / interview trap:* Mitigated the same way as the novelty effect (running longer, examining new vs. returning users).
+
+---
+
+**Prior/Base Rate — Threshold-Setting for Alerts** — see Optimal Threshold Under Cost, Class Imbalance
+
+---
+
+**Proper Scoring Rule**
+
+*The problem:* Not every loss function that "measures error" actually incentivizes a model to report its true beliefs about probability.
+
+*Core insight / definition:* A scoring rule $S(\hat p,y)$ is proper if its expected value is maximized (or minimized) only when $\hat p=P(y)$; it's strictly proper if that optimum is unique. Log loss and Brier score are strictly proper; 0-1 loss is not proper.
+
+*Why it matters / pitfall / interview trap:* Optimizing a proper scoring rule incentivizes calibrated probability outputs, not just correct hard decisions; improper rules (accuracy, hinge loss) can be minimized by confidently wrong models — this is why log loss (cross-entropy) is the standard neural-network training objective.
+
+---
+
+**Propensity Score**
+
+*The problem:* Directly matching or adjusting on a high-dimensional covariate vector $X$ to remove confounding is difficult or infeasible.
+
+*Core insight / definition:* The propensity score $e(x)=P(T=1|X=x)$ is the probability of receiving treatment given covariates, typically modeled via logistic regression or gradient boosting; by the Rosenbaum-Rubin result, conditioning on this single scalar is sufficient to remove confounding from all of $X$.
+
+*Why it matters / pitfall / interview trap:* Underlies PSM, IPW, and doubly robust estimation — all inherit the ignorability assumption (no unmeasured confounders), which is untestable.
+
+---
+
+**Propensity Score Matching (PSM)**
+
+*The problem:* You want an intuitive, transparent way to compare treated and untreated units that "look similar" on measured covariates.
+
+*Core insight / definition:* PSM pairs each treated unit with a control unit of similar propensity score and compares outcomes within matched pairs.
+
+*Why it matters / pitfall / interview trap:* Intuitive and transparent but discards unmatched units and is sensitive to the matching caliper (bandwidth) chosen — results that swing with the caliper indicate lack of robustness.
+
+---
+
+**Regression Discontinuity (RDD)**
+
+*The problem:* When treatment is assigned by a threshold on a continuous variable (credit score cutoff, test score for a scholarship), you want a near-experimental causal estimate without randomizing.
+
+*Core insight / definition:* RDD compares outcomes for units just above vs. just below the cutoff, since they are essentially identical on everything except treatment status; effect = $\lim_{x\downarrow c}\mathbb{E}[Y|X=x]-\lim_{x\uparrow c}\mathbb{E}[Y|X=x]$.
+
+*Why it matters / pitfall / interview trap:* Relies on the assumption that units can't precisely manipulate the running variable to land on their preferred side (tested via a McCrary density check for suspicious pile-ups); only identifies a local effect at the cutoff, and data near the threshold is often sparse.
+
+---
+
+**Reliability Diagram**
+
+*The problem:* A single calibration scalar (ECE, Brier) can obscure where in the probability range a model is over- or under-confident.
+
+*Core insight / definition:* A reliability diagram bins predictions by predicted probability and plots mean predicted probability against the empirical fraction of positives per bin; points on the diagonal indicate perfect calibration, below the diagonal indicates overconfidence, above indicates underconfidence.
+
+*Why it matters / pitfall / interview trap:* Sensitive to bin count and strategy (uniform vs. quantile) — the same model can look differently calibrated with 5 vs. 20 bins, and sparse extreme bins produce noisy, unreliable points that should be treated skeptically. Always report binning parameters used.
+
+---
+
+**Repeated K-Fold**
+
+*The problem:* With small datasets, a single K-fold arrangement's estimate has high variance — a different random seed can give a noticeably different result.
+
+*Core insight / definition:* Repeated K-Fold runs K-fold CV multiple times with different random shuffles (n_repeats), computing the mean and standard deviation over all (n_repeats × K) fold scores to further reduce variance.
+
+*Why it matters / pitfall / interview trap:* Fold scores across repeats are not independent (they share training samples), so the reported standard deviation underestimates true uncertainty — treat it as a diagnostic, not a rigorous confidence interval.
+
+---
+
+**Reweighting / Class Weights** — see Class Imbalance
+
+---
+
+**R² (Coefficient of Determination)**
+
+*The problem:* Stakeholders want a single number expressing what fraction of outcome variance a regression model explains.
+
+*Core insight / definition:* $R^2=1-\frac{\sum(y_i-\hat y_i)^2}{\sum(y_i-\bar y)^2}$ — fraction of variance explained; $R^2=1$ is perfect, $R^2=0$ matches a constant (mean) baseline, and $R^2$ can be negative for a model worse than predicting the mean.
+
+*Why it matters / pitfall / interview trap:* Adding features always increases raw $R^2$ even when useless (use adjusted $R^2$ instead); high $R^2$ does not guarantee a good model (Anscombe's quartet is the canonical counterexample) — always inspect residuals, not just $R^2$.
+
+---
+
+**Sample Ratio Mismatch (SRM)**
+
+*The problem:* If experiment assignment logic has a bug, the observed traffic split may not match the intended split, silently invalidating the entire analysis.
+
+*Core insight / definition:* SRM is detected via a chi-squared goodness-of-fit test comparing observed variant counts against expected ratios; a significant deviation (e.g., 48/52 instead of 50/50) signals an assignment bug, not a real effect.
+
+*Why it matters / pitfall / interview trap:* SRM is a "stop the experiment" signal, not just a metric to note — any treatment effect measured on top of a biased population is confounded and untrustworthy; SRM must always be checked before analyzing results.
+
+---
+
+**Sample Size / Power Analysis**
+
+*The problem:* Running an experiment without first computing the required sample size risks either wasting resources on an over-powered test or failing to detect a real effect with an under-powered one.
+
+*Core insight / definition:* The sample size formula for a two-sample proportions/means test is $n=\frac{2(z_{\alpha/2}+z_\beta)^2\sigma^2}{\delta^2}$ per group, where $\delta$ is the MDE and $\sigma^2$ is the metric's variance; default $\alpha=0.05$, power $(1-\beta)=0.80$.
+
+*Why it matters / pitfall / interview trap:* Most teams run experiments too small to detect real effects — a 1% improvement can require millions of users, while a 10K-user experiment can only reliably detect >10% improvements.
+
+---
+
+**Sensitivity Analysis (Rosenbaum Bounds / E-value)**
+
+*The problem:* Since ignorability (no unmeasured confounders) can never be directly verified, analysts need a way to gauge how fragile a causal estimate is to a hidden confounder.
+
+*Core insight / definition:* Sensitivity analysis (e.g., Rosenbaum bounds, E-values) quantifies how strong a hidden confounder would need to be — in terms of its association with both treatment and outcome — to fully explain away an observed effect.
+
+*Why it matters / pitfall / interview trap:* A propensity-matched positive result should always be accompanied by a sensitivity analysis; a result that could be explained away by a weak, plausible confounder is far less credible than one requiring an implausibly strong confounder.
+
+---
+
+**Serendipity (Recommendation Metric)**
+
+*The problem:* Relevance metrics reward recommending items users are known to want, but don't reward introducing genuinely useful unexpected discoveries.
+
+*Core insight / definition:* $\text{Serendipity}=\frac1{|U|}\sum_u\frac{|\text{relevant}\cap\text{unexpected}|}{k}$, where "unexpected" means not what a naive baseline (e.g., a popularity model) would have recommended.
+
+*Why it matters / pitfall / interview trap:* Captures a dimension of recommendation quality (novel-but-relevant discovery) invisible to standard precision/recall/NDCG metrics.
+
+---
+
+**Shadow Mode**
+
+*The problem:* Deploying a new model directly to real users risks exposing pathological outputs before they're caught.
+
+*Core insight / definition:* Shadow mode runs the new model in parallel with the production model, logging its predictions without serving them to users, allowing comparison of score distributions and detection of pathological outputs before any real exposure.
+
+*Why it matters / pitfall / interview trap:* Costs almost nothing operationally and catches distribution anomalies before they reach users — skipping straight from offline evaluation to canary/full rollout forfeits this cheap safety check.
+
+---
+
+**Shapley Value / SHAP (SHapley Additive exPlanations)**
+
+*The problem:* Practitioners need a theoretically principled way to attribute a model's prediction to individual input features, especially for a single prediction (not just globally).
+
+*Core insight / definition:* $\phi_i=\sum_{S\subseteq F\setminus\{i\}}\frac{|S|!(|F|-|S|-1)!}{|F|!}[v(S\cup\{i\})-v(S)]$ — the Shapley value of feature $i$ is its average marginal contribution across all possible feature-subset orderings. SHAP is the unique attribution method satisfying four axioms simultaneously: Efficiency, Symmetry, Dummy, and Linearity/Additivity.
+
+*Why it matters / pitfall / interview trap:* SHAP is not causal — it reports what the model used, not what causes the outcome (a model using ZIP code as a race proxy produces an "honest" attribution to ZIP code that says nothing about real causal structure). With correlated features, SHAP must marginalize missing features (typically by sampling from the marginal distribution), which constructs impossible off-manifold inputs and makes attributions partly dependent on the imputation scheme rather than purely on the model.
+
+---
+
+**Sliding Window Validation**
+
+*The problem:* Expanding-window time-series CV keeps growing the training set, which doesn't simulate a production scenario where models are periodically retrained on a fixed lookback period.
+
+*Core insight / definition:* Sliding window validation keeps the training window at a fixed size while moving both the training and validation windows forward through time, simulating fixed-lookback periodic retraining.
+
+*Why it matters / pitfall / interview trap:* Distinct from the expanding-window (TimeSeriesSplit) approach — choice depends on whether production retraining uses all history or a fixed recent window.
+
+---
+
+**Simpson's Paradox**
+
+*The problem:* A metric can appear to improve within every subgroup yet worsen overall, misleading decision-makers who only look at the aggregate number.
+
+*Core insight / definition:* Simpson's Paradox occurs when segment sizes shift such that a metric improves in every individual segment but worsens in aggregate — e.g., model A beats model B on both mobile and desktop separately but loses overall because it was evaluated on a harder mix of users.
+
+*Why it matters / pitfall / interview trap:* Defense is to always stratify metrics by subgroup and report both weighted and unweighted aggregates — trusting only the aggregate number can lead to shipping a genuinely worse model.
+
+---
+
+**Stratified K-Fold**
+
+*The problem:* With imbalanced classes, random fold assignment can produce folds with wildly different class ratios than the full dataset by chance, adding spurious variance to the CV estimate.
+
+*Core insight / definition:* Stratified K-Fold distributes samples from each class proportionally across all K folds so that every fold's class distribution matches the overall dataset's distribution.
+
+*Why it matters / pitfall / interview trap:* With extreme imbalance (e.g., 0.1% positives) and a large K, stratification still can't guarantee every fold has any minority-class examples at all.
+
+---
+
+**Switchback Testing**
+
+*The problem:* In marketplace/platform settings where individual users interact and contaminate each other (interference), user-level randomization doesn't cleanly isolate treatment effects, but stopping all randomization loses causal inference entirely.
+
+*Core insight / definition:* Switchback testing alternates the entire system between control and treatment over fixed time periods (e.g., every 30 minutes), avoiding the need for user-level tracking while still enabling causal comparison.
+
+*Why it matters / pitfall / interview trap:* Appropriate for time-varying interference-prone settings (marketplace/platform experiments) where per-user assignment isn't feasible due to interaction effects.
+
+---
+
+**Symmetry (Shapley Axiom)**
+
+*The problem:* An attribution method should give equal credit to features that contribute equally, or its outputs are arbitrary and untrustworthy.
+
+*Core insight / definition:* Symmetry is the Shapley axiom guaranteeing that two features contributing identically to every possible coalition receive identical attribution values.
+
+*Why it matters / pitfall / interview trap:* One of the four axioms that together uniquely determine the Shapley value as the only fair attribution scheme.
+
+---
+
+**SUTVA (Stable Unit Treatment Value Assumption)** — see Interference / Network Effects
+
+---
+
+**Temperature Scaling**
+
+*The problem:* Deep neural networks trained with modern techniques (batch norm, weight decay, deep architectures) are systematically overconfident in their softmax outputs.
+
+*Core insight / definition:* Temperature scaling divides all logits by a single learned scalar $T$ before the softmax, flattening the probability distribution without changing the argmax/predictions: $\hat q_i=\max_k\frac{\exp(z_k/T)}{\sum_j\exp(z_j/T)}$. $T$ is fit by minimizing NLL on a held-out calibration set; $T>1$ softens (reduces overconfidence).
+
+*Why it matters / pitfall / interview trap:* A single scalar cannot fix class-specific or region-specific miscalibration — if the reliability diagram is non-monotonic or miscalibration varies by subgroup, one $T$ can't address it; vector or matrix scaling generalize at the cost of more parameters. Also, fixing calibration says nothing about whether the underlying ranking or chosen threshold serves the actual cost structure.
+
+---
+
+**Time Series Cross-Validation (Expanding Window / TimeSeriesSplit)**
+
+*The problem:* Shuffling time-ordered data before splitting into folds trains a model on future data to predict the past — a form of leakage that produces a meaningless performance estimate.
+
+*Core insight / definition:* Time series CV enforces that training data always precedes validation data; the expanding-window approach (TimeSeriesSplit) trains on all data up to a cutoff and validates on the window immediately after, growing the training window with each fold.
+
+*Why it matters / pitfall / interview trap:* Even with correct time ordering, rolling-window features (e.g., 7-day averages) can still leak future information into training if they extend past the validation boundary — requires a gap parameter at least as long as the longest feature lookback window.
+
+---
+
+**TreeSHAP**
+
+*The problem:* Naive Shapley value computation is O(2^d) — intractable for models with many features.
+
+*Core insight / definition:* TreeSHAP exploits tree structure to compute exact Shapley values in O(T×L×D) time (T=trees, L=leaves, D=depth), making exact SHAP feasible for tree-based models (e.g., XGBoost).
+
+*Why it matters / pitfall / interview trap:* Exact and fast (milliseconds per sample) but limited to tree models — for other model types (neural nets, SVMs), KernelSHAP is needed instead, at much higher computational cost.
+
+---
+
+**KernelSHAP**
+
+*The problem:* Models without a tree-specific structure (neural networks, SVMs) still need SHAP-style explanations, but TreeSHAP's exact algorithm doesn't apply.
+
+*Core insight / definition:* KernelSHAP is model-agnostic: it samples random feature-subset coalitions, evaluates the model output with in-coalition features at actual values and others at baseline, and fits a specially weighted linear regression (weights emphasizing subsets near the empty set and the full set) to approximate Shapley values.
+
+*Why it matters / pitfall / interview trap:* Approximate and much slower (seconds per sample) than TreeSHAP — practical use requires trading off sample count against runtime.
+
+---
+
+**Two-Stage Least Squares (2SLS)**
+
+*The problem:* Instrumental variables need a concrete estimation procedure to translate the instrument's exogenous variation into a causal effect estimate.
+
+*Core insight / definition:* 2SLS is the standard IV estimation technique: first regress treatment $T$ on instrument $Z$ (and covariates) to get predicted treatment $\hat T$, then regress outcome $Y$ on $\hat T$ to recover the causal effect using only the instrument-driven variation in treatment.
+
+*Why it matters / pitfall / interview trap:* The strength of the first stage (relevance) is directly testable; a weak first stage produces badly biased, high-variance IV estimates even if exclusion and independence hold.
+
+---
+
+**Wilcoxon Signed-Rank Test**
+
+*The problem:* A paired t-test assumes normally distributed differences between two models' per-example losses, which may not hold, especially with small n.
+
+*Core insight / definition:* The Wilcoxon signed-rank test is a non-parametric alternative to the paired t-test for comparing two regression models' paired per-example errors, without assuming normality.
+
+*Why it matters / pitfall / interview trap:* Preferred over the paired t-test specifically when normality of differences is questionable or the sample size is small.
+
+---
+
+**Win Rate (Pairwise Human Preference)**
+
+*The problem:* Automated generative-model metrics (BLEU, FID, BERTScore) are all proxies that can be gamed or fail to track true quality.
+
+*Core insight / definition:* Win rate is the percentage of pairwise human preference judgments favoring one model's output over another's — treated as ground truth for generative model quality.
+
+*Why it matters / pitfall / interview trap:* Expensive and noisy to collect at scale, but remains the most reliable quality signal — for ranking model quality in practice, human win rate or preference evaluation is the only fully trustworthy signal.
+
+---
+
+**Youden Index**
+
+*The problem:* Practitioners need a principled way to pick a classification threshold when they believe sensitivity and specificity should be weighted equally.
+
+*Core insight / definition:* The Youden index $J=\text{Sensitivity}+\text{Specificity}-1$ identifies the threshold that maximizes the sum of sensitivity and specificity.
+
+*Why it matters / pitfall / interview trap:* Only sensible when sensitivity and specificity genuinely have equal value to the business — a claim that requires explicit justification, not a default choice.
+
