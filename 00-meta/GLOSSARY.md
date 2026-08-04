@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures done. Remaining: 07-domains through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains done. Remaining: 08-generative through 18-resources.
 
 ---
 
@@ -7373,6 +7373,1059 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* A classical graph isomorphism test; GIN is proven to match its expressive power exactly, which is also the provable ceiling for this class of message-passing GNN architectures.
 
 *Why it matters / pitfall / interview trap:* No message-passing GNN can exceed 1-WL expressiveness without additional structural features — a fact worth stating even without implementing GIN.
+
+---
+
+
+## 07-domains
+
+**Absolute Positional Encoding (Sinusoidal)**
+
+*The problem:* Transformers process tokens in parallel with no inherent notion of order, so the model needs a way to know where each token sits in the sequence.
+
+*Core insight / definition:* Sinusoidal positional encoding adds a fixed vector to each token embedding, built from sine and cosine functions of different frequencies across dimensions, so each position gets a unique, deterministic signature. It generalizes to sequence lengths not seen during training since it is a mathematical function rather than a learned table.
+
+*Why it matters / pitfall / interview trap:* Interviewers probe whether you know this doesn't naturally encode relative distance well, which motivated relative and rotary alternatives like RoPE.
+
+---
+
+**ACF / PACF (Autocorrelation / Partial Autocorrelation Function)**
+
+*The problem:* To choose AR and MA orders for ARIMA models, you need a systematic way to see how a series correlates with its own past values.
+
+*Core insight / definition:* ACF measures correlation between a series and its lagged values including indirect effects through intermediate lags; PACF measures the correlation at a given lag after removing the effect of shorter lags. A sharp cutoff in PACF suggests an AR order; a sharp cutoff in ACF suggests an MA order.
+
+*Why it matters / pitfall / interview trap:* Interviewers expect you to read ACF/PACF plots to justify (p,q) choices, and to recognize that slow-decaying ACF signals non-stationarity requiring differencing.
+
+---
+
+**ADF Test / KPSS Test (Stationarity Tests)**
+
+*The problem:* Many time series models (ARIMA, VAR) assume stationarity, but you need a statistical way to check whether a series has changing mean/variance over time.
+
+*Core insight / definition:* The Augmented Dickey-Fuller (ADF) test has a null hypothesis of a unit root (non-stationary); rejecting it suggests stationarity. KPSS has the opposite null (stationarity), so using both tests together avoids relying on a single, possibly misleading, hypothesis direction.
+
+*Why it matters / pitfall / interview trap:* A common trap is using only ADF and assuming "fail to reject" means stationary — failing to reject a null is not proof of it; KPSS as a complementary check catches this.
+
+---
+
+**ADWIN (Adaptive Windowing)**
+
+*The problem:* Detecting concept drift requires comparing recent behavior to historical behavior without a fixed, stale window size.
+
+*Core insight / definition:* ADWIN maintains a sliding window of observations and statistically compares two sub-windows; when their means differ significantly, it flags drift and shrinks the window, discarding stale data.
+
+*Why it matters / pitfall / interview trap:* It's applied directly on model residuals in production, but requires ground-truth labels, which arrive with a lag — feature-distribution monitoring (PSI, KL) catches drift earlier.
+
+---
+
+**AlpacaEval**
+
+*The problem:* Comparing instruction-tuned LLMs by human preference is expensive and slow to scale.
+
+*Core insight / definition:* AlpacaEval uses a strong LLM as an automated judge to compare model outputs pairwise against a reference model's outputs, producing a win-rate that correlates with human preference judgments.
+
+*Why it matters / pitfall / interview trap:* Being LLM-judged, it inherits judge biases (e.g., favoring longer or more verbose answers), which interviewers may ask you to name as a limitation.
+
+---
+
+**Anchor Boxes**
+
+*The problem:* Object detectors need a way to propose candidate bounding boxes of varying scale and aspect ratio at every spatial location without exhaustively regressing arbitrary boxes from scratch.
+
+*Core insight / definition:* Anchor boxes are a fixed set of predefined boxes (different scales/aspect ratios) tiled across the feature map; the network predicts offsets and objectness/class scores relative to each anchor rather than predicting raw coordinates.
+
+*Why it matters / pitfall / interview trap:* Anchor design is a hyperparameter that must match the target object size distribution — mismatched anchors hurt recall on small or unusual-aspect-ratio objects, motivating anchor-free methods like DETR and CenterNet.
+
+---
+
+**Anomaly Detection in Time Series (Z-score, Isolation Forest, LSTM Autoencoder, VAE)**
+
+*The problem:* Detecting unusual points or patterns in temporal data — such as sensor failures or fraud — is harder than in i.i.d. data because "unusual" must account for expected temporal dynamics, not just marginal value ranges.
+
+*Core insight / definition:* Simple statistical methods (Z-score, rolling Z-score) flag points far from a local mean; Isolation Forest isolates anomalies via random partitioning; LSTM autoencoders learn to reconstruct normal sequences and flag high reconstruction error as anomalous; VAEs add a probabilistic reconstruction-error framework, useful for capturing multimodal normal behavior.
+
+*Why it matters / pitfall / interview trap:* A naive Z-score threshold flags legitimate seasonal peaks as anomalies unless it's computed on deseasonalized residuals — a classic interview trap.
+
+---
+
+**ARIMA / SARIMA (AutoRegressive Integrated Moving Average)**
+
+*The problem:* Classical forecasting needs an interpretable statistical model that captures autocorrelation, trend, and (optionally) seasonality using a compact parameterization.
+
+*Core insight / definition:* ARIMA(p,d,q) combines autoregression (AR, dependence on p past values), differencing (I, d times, to induce stationarity), and a moving-average component (MA, dependence on q past forecast errors). SARIMA(p,d,q)(P,D,Q)[S] adds a second AR/I/MA structure operating at seasonal lag S.
+ 
+*Why it matters / pitfall / interview trap:* Applying plain ARIMA to seasonal data without a seasonal component leaves residual autocorrelation at seasonal lags, visible in the ACF plot of residuals — a frequent interview question.
+
+---
+
+**Attention Mechanism (Seq2Seq)**
+
+*The problem:* Fixed-length context vectors in vanilla encoder-decoder seq2seq models compress an entire source sentence into one vector, creating an information bottleneck that hurts performance on long sequences.
+
+*Core insight / definition:* At each decoding step, attention computes a weighted combination of all encoder hidden states, with weights determined by relevance (alignment) to the current decoder state, allowing the decoder to "look back" at different parts of the source dynamically.
+
+*Why it matters / pitfall / interview trap:* This mechanism is the direct precursor to Transformer self-attention; interviewers may ask you to trace the lineage from Bahdanau/Luong attention to scaled dot-product self-attention.
+
+---
+
+**AutoAugment / RandAugment**
+
+*The problem:* Manually designing data augmentation policies is time-consuming and suboptimal, since the best augmentation strategy is dataset- and task-dependent.
+
+*Core insight / definition:* AutoAugment searches over a space of augmentation operations and magnitudes using reinforcement learning to find task-optimal policies; RandAugment simplifies this by randomly sampling a fixed number of operations with a single global magnitude, removing the expensive search.
+
+*Why it matters / pitfall / interview trap:* RandAugment nearly matches AutoAugment's performance with far less compute, illustrating that the augmentation search space matters more than the exact search algorithm.
+
+---
+
+**Autocorrelation / Autoformer**
+
+*The problem:* Standard self-attention in Transformers computes pointwise similarity between time steps, which is inefficient and ignores the periodic, seasonal structure inherent to many time series.
+
+*Core insight / definition:* Autoformer replaces self-attention with an autocorrelation mechanism that discovers period-based dependencies via FFT and aggregates information from similar sub-series at the series' natural periodicity, paired with built-in series decomposition blocks (trend/seasonal) throughout the architecture.
+
+*Why it matters / pitfall / interview trap:* It's part of the lineage of long-horizon forecasting Transformers (with Informer, PatchTST) — interviewers may ask why plain self-attention underperforms on very long time series without such structural priors.
+
+---
+
+**Backpropagation Through Time (BPTT) / Vanishing Gradient**
+
+*The problem:* Training RNNs requires propagating gradients back through every timestep, but repeated multiplication by the same recurrent weight matrix can cause gradients to shrink or explode exponentially over long sequences.
+
+*Core insight / definition:* If the singular values of the recurrent weight matrix are consistently below 1, gradients from distant timesteps vanish, preventing the network from learning long-range dependencies; if above 1, gradients explode. LSTMs mitigate vanishing gradients via an additive cell-state update that avoids repeated matrix multiplication along the gradient path.
+
+*Why it matters / pitfall / interview trap:* A common interview question asks you to derive why LSTMs handle this better than vanilla RNNs — the answer hinges on the additive (not multiplicative) cell-state recurrence.
+
+---
+
+**Bag-of-Words (BoW)**
+
+*The problem:* Text needs to be converted into a fixed-size numeric representation before most classical ML algorithms can use it.
+
+*Core insight / definition:* Bag-of-words represents a document as a vector of word counts (or presence) over a fixed vocabulary, completely discarding word order and syntax.
+
+*Why it matters / pitfall / interview trap:* The "bag" name signals the key limitation — order-insensitivity — which interviewers ask you to identify as why BoW fails on tasks like sarcasm or negation detection ("not good" vs "good").
+
+---
+
+**Beam Search**
+
+*The problem:* Greedy decoding (always picking the highest-probability next token) in sequence generation often leads to globally suboptimal sequences because an early locally-optimal choice can foreclose better full sequences.
+
+*Core insight / definition:* Beam search maintains the top-k partial sequences ("beam width" k) at each decoding step, expanding each and keeping only the k highest-scoring continuations, trading compute for a better approximation of the globally most probable sequence than greedy search.
+
+*Why it matters / pitfall / interview trap:* Larger beam width doesn't always improve output quality (and can produce generic, repetitive text) — a known counterintuitive pitfall interviewers like to probe.
+
+---
+
+**BERT (Bidirectional Encoder Representations from Transformers) / Masked Language Modeling (MLM)**
+
+*The problem:* Traditional language models are unidirectional (left-to-right), limiting the contextual information available to represent a token, since they can't see future context.
+
+*Core insight / definition:* BERT is an encoder-only Transformer pretrained with masked language modeling — randomly masking tokens and predicting them from both left and right context — plus (in the original version) next-sentence prediction, producing deeply bidirectional contextual representations suited for understanding tasks (classification, NER, QA).
+
+*Why it matters / pitfall / interview trap:* BERT's bidirectionality makes it unsuitable for free-form autoregressive generation (unlike GPT), a distinction interviewers frequently test — "why can't you use BERT to generate text token by token?"
+
+---
+
+**BERT Fine-tuning**
+
+*The problem:* Pretrained BERT has general language understanding but needs adaptation to perform well on a specific downstream task with limited labeled data.
+
+*Core insight / definition:* Fine-tuning adds a small task-specific head (e.g., a classification layer on the [CLS] token, or a token-classification layer for NER) on top of pretrained BERT and updates some or all weights via supervised training on the target task, leveraging the pretrained representations as a strong initialization.
+
+*Why it matters / pitfall / interview trap:* Full fine-tuning updates all parameters and is expensive/prone to catastrophic forgetting at scale, motivating parameter-efficient approaches like LoRA.
+
+---
+
+**BERTScore**
+
+*The problem:* N-gram-overlap metrics (BLEU, ROUGE) penalize valid paraphrases that use different words, poorly reflecting semantic similarity.
+
+*Core insight / definition:* BERTScore computes similarity between generated and reference text using contextual embeddings (from a pretrained BERT-like model) matched via cosine similarity, rather than exact token overlap, better capturing semantic equivalence.
+
+*Why it matters / pitfall / interview trap:* It correlates better with human judgment than BLEU/ROUGE on paraphrase-heavy tasks, but is more compute-intensive and depends on the quality/domain-match of the underlying embedding model.
+
+---
+
+**BLEU (Bilingual Evaluation Understudy)**
+
+*The problem:* Automated evaluation of machine translation output needs a fast, reproducible metric that doesn't require human raters for every evaluation.
+
+*Core insight / definition:* BLEU computes n-gram precision between a candidate translation and one or more reference translations, combined with a brevity penalty to discourage overly short outputs, then geometrically averages precision across n-gram orders (typically 1-4).
+
+*Why it matters / pitfall / interview trap:* BLEU rewards exact n-gram overlap and penalizes valid paraphrases or synonyms, and is unreliable at the sentence level — commonly cited weaknesses interviewers expect you to know, contrasted with BERTScore/METEOR.
+
+---
+
+**Channel-Independent vs Channel-Dependent Forecasting**
+
+*The problem:* Multivariate time series forecasting must decide whether to model interactions between variables/channels explicitly or treat each channel separately.
+
+*Core insight / definition:* Channel-independent models (e.g., PatchTST) treat each variable as a separate univariate series sharing model weights, ignoring cross-channel correlation but gaining robustness and simplicity; channel-dependent models (e.g., VAR, some Transformer variants) explicitly model cross-variable dependencies, which can help when channels are genuinely correlated but risks overfitting spurious correlations.
+
+*Why it matters / pitfall / interview trap:* Empirically, channel-independent models often outperform channel-dependent ones on many benchmarks despite discarding cross-channel information — a counterintuitive finding worth citing.
+
+---
+
+**CLIP (Contrastive Language-Image Pretraining)**
+
+*The problem:* Vision models traditionally require task-specific labeled datasets and don't generalize to new classes or tasks phrased in natural language without retraining.
+
+*Core insight / definition:* CLIP jointly trains an image encoder and text encoder with a contrastive objective so matching image-text pairs have high cosine similarity in a shared embedding space and mismatched pairs have low similarity, learned from hundreds of millions of noisy web image-caption pairs, enabling zero-shot classification by comparing image embeddings to embeddings of class-name text prompts.
+
+*Why it matters / pitfall / interview trap:* CLIP's zero-shot capability depends heavily on prompt phrasing ("a photo of a {class}") — prompt engineering materially affects accuracy, a nuance interviewers probe.
+
+---
+
+**Concept Drift**
+
+*The problem:* A deployed model's accuracy silently degrades in production as the real-world data distribution shifts away from the training distribution, and automated threshold-based alerts may fire too late.
+
+*Core insight / definition:* Concept drift is a change over time in the relationship between inputs and target (or the input distribution itself). It can be sudden (e.g., COVID lockdowns), gradual (behavior shifting over months), or recurring (expected seasonal patterns). Detection uses statistical tests on residuals (Page-Hinkley, ADWIN) or feature-distribution monitoring (PSI, KL divergence).
+
+*Why it matters / pitfall / interview trap:* Waiting for ground-truth-label-based error monitoring introduces detection lag; monitoring input feature distributions catches drift earlier, before labels arrive — a key production nuance.
+
+---
+
+**Conformal Prediction / Adaptive Conformal Inference (ACI)**
+
+*The problem:* Parametric or Bayesian prediction intervals require distributional assumptions (e.g., Gaussian errors) that, if wrong, invalidate the stated coverage guarantees.
+
+*Core insight / definition:* Conformal prediction constructs prediction intervals with a guaranteed marginal coverage (e.g., 90% requested yields ~90% empirical coverage) without distributional assumptions, using calibration-set residual quantiles. Standard conformal prediction assumes exchangeability (i.i.d.), which time series violates; Adaptive Conformal Inference (ACI) updates the coverage target online as coverage errors are observed, handling non-stationarity.
+
+*Why it matters / pitfall / interview trap:* Conformal prediction guarantees only marginal (average), not conditional, coverage — intervals can be too narrow on hard examples and too wide on easy ones, a subtlety worth raising.
+
+---
+
+**ConvNeXt**
+
+*The problem:* Vision Transformers began outperforming CNNs on many benchmarks, raising the question of whether CNNs are fundamentally limited or simply under-modernized relative to Transformer training recipes.
+
+*Core insight / definition:* ConvNeXt systematically modernizes a ResNet using Transformer-inspired design choices (larger kernels, fewer activation/normalization layers, layer norm instead of batch norm, inverted bottlenecks, GELU) while remaining a pure CNN, showing that a well-tuned CNN can match ViT performance.
+
+*Why it matters / pitfall / interview trap:* It demonstrates that many of ViT's gains came from training recipe and macro-design choices rather than attention itself — a useful talking point on CNN vs. Transformer debates.
+
+---
+
+**Convolution (2D Convolution)**
+
+*The problem:* Fully-connected layers applied to images require an enormous number of parameters and ignore the spatial locality and translation structure of visual data.
+
+*Core insight / definition:* A convolution slides a small learnable kernel/filter across the input, computing a weighted sum (dot product) at each spatial location to produce a feature map; because the same kernel is reused across all positions (weight sharing), it exploits local spatial structure and dramatically reduces parameters versus full connectivity.
+
+*Why it matters / pitfall / interview trap:* Weight sharing plus locality gives convolution its key inductive bias (translation equivariance), which interviewers expect you to articulate when comparing CNNs to ViTs, which lack this bias and need more data to learn it.
+
+---
+
+**Cross-Attention (Encoder-Decoder Transformers)**
+
+*The problem:* In sequence-to-sequence tasks (translation, summarization), the decoder must condition its generation on the full source sequence representation, not just its own previously generated tokens.
+
+*Core insight / definition:* Cross-attention is an attention layer in the decoder where queries come from the decoder's own hidden states but keys and values come from the encoder's output, letting each decoding step attend over the entire source sequence representation.
+
+*Why it matters / pitfall / interview trap:* It's the architectural feature that distinguishes encoder-decoder models like T5 from decoder-only models like GPT — interviewers ask when you'd choose one over the other (structured input-to-output transformation vs. open-ended generation).
+
+---
+
+**Cross-Validation for Time Series (Walk-Forward / Expanding Window / TimeSeriesSplit)**
+
+*The problem:* Standard k-fold cross-validation randomly shuffles data into folds, which breaks temporal order — training on future data to predict the past and bleeding correlated adjacent observations across folds.
+
+*Core insight / definition:* TimeSeriesSplit (expanding window) or walk-forward validation (sliding window) preserves temporal order: each fold trains only on data prior to its validation period, and the training window either grows or slides forward across successive folds.
+
+*Why it matters / pitfall / interview trap:* This is one of the most common time-series interview questions — you must explain both the leakage-from-shuffling and the correlation-across-folds reasons, not just say "it breaks temporal order."
+
+---
+
+**CRPS (Continuous Ranked Probability Score)**
+
+*The problem:* Evaluating probabilistic (distributional) forecasts requires a metric that scores the entire predicted distribution against the observed outcome, not just a point estimate.
+
+*Core insight / definition:* CRPS generalizes MAE to probabilistic forecasts, measuring the squared difference between the predicted cumulative distribution function and the empirical step-function CDF of the actual outcome, integrated over all possible values; it reduces to MAE for a deterministic (point-mass) forecast.
+
+*Why it matters / pitfall / interview trap:* CRPS rewards both calibration and sharpness simultaneously, which point metrics like MAE cannot assess — useful when comparing probabilistic forecasting models like DeepAR.
+
+---
+
+**CutMix / Mixup**
+
+*The problem:* Standard data augmentation applies transformations to single images and can still leave models overconfident and poorly calibrated, especially near decision boundaries.
+
+*Core insight / definition:* Mixup creates synthetic training examples by linearly interpolating pairs of images and their labels; CutMix instead cuts and pastes a rectangular patch from one image onto another, mixing labels in proportion to patch area — both regularize the model and improve calibration/robustness.
+
+*Why it matters / pitfall / interview trap:* CutMix tends to preserve more spatial/local structure than Mixup's blended pixels, often yielding better performance on localization-sensitive tasks — a nuance worth citing when asked to compare them.
+
+---
+
+**Data Augmentation (General, Vision)**
+
+*The problem:* Deep vision models require large amounts of labeled data; augmentation increases effective dataset size and diversity without additional labeling cost, improving generalization.
+
+*Core insight / definition:* Data augmentation applies label-preserving transformations (crop, flip, rotate, color jitter, etc.) or label-mixing transformations (Mixup, CutMix) to training images, exposing the model to more variation than the raw dataset contains.
+
+*Why it matters / pitfall / interview trap:* "Label-preserving" is the key constraint — augmentations that would plausibly change the correct label (e.g., flipping digit "6" to look like "9") are a common interview trap to catch.
+
+---
+
+**DeepAR**
+
+*The problem:* Producing calibrated probabilistic forecasts (not just point forecasts) across many related time series, while sharing statistical strength between series, is difficult with classical univariate methods.
+
+*Core insight / definition:* DeepAR trains a single autoregressive RNN across many related time series, outputting parameters of a probability distribution (e.g., Gaussian or negative binomial) at each timestep rather than a point value, enabling both global pattern-sharing and per-series probabilistic forecasts.
+
+*Why it matters / pitfall / interview trap:* Because it's a global model, it needs careful per-series scaling/normalization; without it, series at very different magnitudes distort shared-weight learning.
+
+---
+
+**DeepLab (Atrous/Dilated Convolution)**
+
+*The problem:* Semantic segmentation needs to preserve fine spatial resolution while still capturing a large receptive field, but standard downsampling (pooling/strided conv) needed for large receptive fields destroys the resolution needed for pixel-accurate masks.
+
+*Core insight / definition:* DeepLab uses atrous (dilated) convolutions, which insert gaps between kernel elements to expand the receptive field without increasing parameters or reducing spatial resolution, combined with Atrous Spatial Pyramid Pooling (ASPP) to capture multi-scale context.
+
+*Why it matters / pitfall / interview trap:* Dilated convolution is the specific mechanism that lets DeepLab avoid the resolution-vs-context tradeoff that plain CNNs face — a common architecture-comparison question against U-Net/FCN.
+
+---
+
+**Degradation Problem (Deep Network Training)**
+
+*The problem:* Simply stacking more layers in a plain (non-residual) CNN can make training accuracy worse, not because of overfitting but because deeper plain networks become harder to optimize.
+
+*Core insight / definition:* The degradation problem is the empirical observation that adding depth to plain networks increases training error, indicating an optimization difficulty (not overfitting); ResNets solve this by adding skip/residual connections so layers only need to learn a residual mapping rather than a full transformation, making the identity function trivially learnable.
+
+*Why it matters / pitfall / interview trap:* Interviewers often ask you to distinguish this from overfitting — the tell is that both training and test error worsen with added depth in the plain network, not just test error.
+
+---
+
+**Dependency Parsing**
+
+*The problem:* Understanding grammatical structure and relationships between words in a sentence (who did what to whom) requires more than flat sequence labeling.
+
+*Core insight / definition:* Dependency parsing produces a directed graph (typically a tree) where each word is linked to its syntactic head via a labeled grammatical relation (e.g., subject, object, modifier), capturing sentence structure without requiring phrase-structure constituents.
+
+*Why it matters / pitfall / interview trap:* It's frequently confused with constituency parsing; dependency parsing captures direct word-to-word relations useful for tasks like relation extraction, while constituency parsing captures nested phrase structure.
+
+---
+
+**Depthwise Separable Convolution**
+
+*The problem:* Standard convolutions couple spatial filtering and channel mixing in one operation, which is computationally expensive, especially for mobile/edge deployment.
+
+*Core insight / definition:* Depthwise separable convolution factorizes a standard convolution into a depthwise convolution (one filter per input channel, spatial-only) followed by a pointwise (1x1) convolution (channel mixing only), drastically reducing parameters and FLOPs with minimal accuracy loss.
+
+*Why it matters / pitfall / interview trap:* This factorization is the core building block of efficient architectures (MobileNet, EfficientNet) — interviewers may ask you to compute the FLOP reduction versus standard convolution.
+
+---
+
+**DETR (Detection Transformer)**
+
+*The problem:* Traditional object detectors rely on hand-designed components — anchor generation, non-max suppression — that are heuristic and not end-to-end differentiable.
+
+*Core insight / definition:* DETR reframes object detection as a set prediction problem: a Transformer encoder-decoder processes CNN features and a fixed set of learned "object queries," each producing one prediction (class + box), matched to ground truth via bipartite (Hungarian) matching during training — removing the need for anchors and NMS entirely.
+
+*Why it matters / pitfall / interview trap:* DETR trades hand-engineered heuristics for a very long training schedule and weaker performance on small objects, a tradeoff interviewers may probe against Faster R-CNN/YOLO.
+
+---
+
+**Dialogue Systems (Task-Oriented vs. Open-Domain)**
+
+*The problem:* Building conversational agents requires different architectures depending on whether the goal is completing a specific task (booking a flight) versus sustaining open-ended, engaging conversation.
+
+*Core insight / definition:* Task-oriented dialogue systems use a structured pipeline (intent detection, slot filling, dialogue state tracking, and a policy that decides the next action) to accomplish narrow goals reliably; open-domain systems (often now LLM-based) generate free-form conversational responses without a fixed task structure, optimizing for coherence and engagement rather than task completion.
+
+*Why it matters / pitfall / interview trap:* A common trap is treating all chatbots the same; interviewers expect you to know task-oriented systems need explicit state tracking to avoid losing track of collected slots across turns.
+
+---
+
+**DINO / MoCo / SimCLR (Self-Supervised Learning)**
+
+*The problem:* Labeled data is expensive; self-supervised learning aims to learn useful visual representations from unlabeled images alone, that later transfer well to downstream tasks.
+
+*Core insight / definition:* SimCLR uses contrastive learning — pulling together embeddings of two augmented views of the same image while pushing apart embeddings of different images — using a large batch of negatives. MoCo achieves a similar contrastive objective more memory-efficiently via a momentum-updated encoder and a queue of negative representations. DINO uses self-distillation without labels or explicit negatives: a student network is trained to match a slowly-updated (momentum) teacher network's output on different augmented views, using only positive pairs.
+
+*Why it matters / pitfall / interview trap:* DINO's teacher-student setup without negative pairs demonstrates that contrastive negatives aren't strictly necessary for effective self-supervised learning, a point of frequent interview confusion with SimCLR/MoCo.
+
+---
+
+**Encoder-Decoder Transformer (T5)**
+
+*The problem:* Some NLP tasks are inherently transformation tasks — input sequence in, differently structured output sequence out (translation, summarization) — which don't fit neatly into pure encoder (understanding) or pure decoder (generation) paradigms alone.
+
+*Core insight / definition:* Encoder-decoder Transformers like T5 use a bidirectional encoder to build a full representation of the input and an autoregressive decoder (with cross-attention to the encoder output) to generate the output sequence, unifying many NLP tasks under a "text-to-text" framework.
+
+*Why it matters / pitfall / interview trap:* T5's key design choice — casting every task (classification, translation, QA) as text-to-text — lets one architecture and one training objective handle heterogeneous tasks, a point interviewers like to highlight versus task-specific heads.
+
+---
+
+**Exponential Smoothing (Holt-Winters)**
+
+*The problem:* Simple moving averages weight all historical points equally, but often more recent observations are more informative for forecasting.
+
+*Core insight / definition:* Exponential smoothing methods weight past observations with exponentially decreasing weights; Holt-Winters extends this with separate smoothing equations for level, trend, and seasonality, enabling forecasts that account for all three components.
+
+*Why it matters / pitfall / interview trap:* It's simple, robust with limited data, and was a component of the M4-competition-winning ensemble (combined with an LSTM) — a good answer when asked "what's a strong, cheap forecasting baseline?"
+
+---
+
+**Exposure Bias / Teacher Forcing**
+
+*The problem:* Training sequence generation models by always feeding the ground-truth previous token as input speeds up training, but creates a mismatch with inference, where the model must feed back its own (possibly imperfect) predictions.
+
+*Core insight / definition:* Teacher forcing uses ground-truth tokens as decoder input during training. Exposure bias is the resulting problem: the model never learned to handle its own prediction errors as input, so an early inference mistake shifts the input distribution into territory the model never trained on, potentially compounding errors across the sequence.
+
+*Why it matters / pitfall / interview trap:* Mitigations include scheduled sampling (gradually mixing in model predictions during training) and non-autoregressive decoders — knowing these mitigations is the usual interview follow-up.
+
+---
+
+**Fast R-CNN / Faster R-CNN / R-CNN (Region-Based CNN Family)**
+
+*The problem:* Early object detection needed a way to both localize and classify multiple objects per image, but running a full CNN classifier on thousands of hand-generated region proposals per image (as in R-CNN) is extremely slow.
+
+*Core insight / definition:* R-CNN runs a CNN separately on each of ~2000 externally-generated region proposals (e.g., Selective Search). Fast R-CNN speeds this up by computing CNN features once for the whole image and pooling region-specific features via RoI pooling. Faster R-CNN eliminates the external proposal step entirely by adding a learned Region Proposal Network (RPN) that shares the backbone features, making the whole pipeline trainable end-to-end.
+
+*Why it matters / pitfall / interview trap:* This progression (R-CNN → Fast R-CNN → Faster R-CNN) is a classic interview narrative about removing successive bottlenecks — know what specifically each version fixed.
+
+---
+
+**FastText**
+
+*The problem:* Standard word embeddings (Word2Vec) assign a single vector per word, so out-of-vocabulary words and rare morphological variants get no useful representation.
+
+*Core insight / definition:* FastText represents each word as a bag of character n-grams and sums their embeddings to form the word vector, so it can generate representations for unseen words (as long as their subword n-grams appeared in training) and naturally captures morphological similarity.
+
+*Why it matters / pitfall / interview trap:* The subword approach is exactly why FastText handles OOV words and morphologically rich languages better than Word2Vec/GloVe — a common comparison question.
+
+---
+
+**FCN (Fully Convolutional Network)**
+
+*The problem:* Standard CNN classifiers end with fully-connected layers that collapse spatial information into a single class prediction, which is unsuitable for tasks needing a per-pixel class output.
+
+*Core insight / definition:* FCN replaces fully-connected layers with convolutional (1x1) layers and adds upsampling (transposed convolution) layers to recover spatial resolution, producing a dense per-pixel class prediction map end-to-end trainable for semantic segmentation.
+
+*Why it matters / pitfall / interview trap:* FCN was the first architecture to make segmentation end-to-end trainable; interviewers may ask why naive upsampling alone loses fine detail, motivating skip connections used in later segmentation networks like U-Net.
+
+---
+
+**FID (Fréchet Inception Distance)**
+
+*The problem:* Evaluating generative image models (GANs, diffusion) requires a metric for how realistic and diverse generated images are, beyond simple pixel-level comparisons.
+
+*Core insight / definition:* FID computes the Fréchet distance between two multivariate Gaussians fit to Inception-network feature activations of real images versus generated images, capturing both quality (closeness to real image statistics) and diversity in a single number — lower is better.
+
+*Why it matters / pitfall / interview trap:* FID is sensitive to sample size and the specific Inception model/preprocessing used, so scores are only comparable when computed under identical protocols — a common pitfall when comparing reported numbers across papers.
+
+---
+
+**Flash Attention**
+
+*The problem:* Standard self-attention implementations materialize the full N×N attention matrix in slow GPU high-bandwidth memory (HBM), making memory bandwidth (not compute) the bottleneck for long sequences.
+
+*Core insight / definition:* Flash Attention is an IO-aware exact attention algorithm that tiles the computation to keep intermediate values in fast on-chip SRAM, avoiding materializing the full attention matrix in HBM, yielding the same mathematical result as standard attention but significantly faster and more memory-efficient.
+
+*Why it matters / pitfall / interview trap:* It's an exact algorithm (not an approximation) — a common misconception is that it trades accuracy for speed, when actually it's purely a memory-access optimization.
+
+---
+
+**Focal Loss**
+
+*The problem:* One-stage object detectors suffer from extreme foreground-background class imbalance (most anchor boxes are easy negatives), which can overwhelm the loss and swamp gradients from the rare, hard positive examples.
+
+*Core insight / definition:* Focal loss modifies standard cross-entropy by adding a modulating factor `(1-p_t)^γ` that down-weights well-classified (easy) examples, focusing training on hard, misclassified examples.
+
+*Why it matters / pitfall / interview trap:* Focal loss was introduced specifically to let one-stage detectors (RetinaNet) match two-stage detector accuracy without their explicit proposal-filtering stage — a key detail in one-stage vs. two-stage comparisons.
+
+---
+
+**Fourier Features / Calendar Features (Time Series Feature Engineering)**
+
+*The problem:* Many time series exhibit periodic (seasonal) patterns at multiple scales (daily, weekly, yearly) that a model needs explicit signal to learn, especially non-recurrent models like tree ensembles.
+
+*Core insight / definition:* Fourier features encode a seasonal period as pairs of sine/cosine terms at that period's frequency (and harmonics), giving any regression or tree-based model explicit periodic signal without needing recurrence. Calendar features (day-of-week, month, holiday flags) similarly inject known temporal structure directly as inputs.
+
+*Why it matters / pitfall / interview trap:* Fourier features are the most flexible way to handle multiple simultaneous seasonalities (daily + weekly + yearly) in models that don't natively support seasonal decomposition, like LightGBM.
+
+---
+
+**GAN / VAE / Diffusion Models (Generative Models Overview)**
+
+*The problem:* Generating novel, realistic images requires modeling a complex, high-dimensional data distribution, and different generative paradigms make different tradeoffs between sample quality, diversity, training stability, and likelihood tractability.
+
+*Core insight / definition:* GANs train a generator and discriminator adversarially, producing sharp samples but with unstable, hard-to-monitor training. VAEs learn a probabilistic encoder-decoder with a regularized latent space, providing stable training and a tractable (lower-bound) likelihood but blurrier samples. Diffusion models learn to iteratively denoise a sample from pure noise back to data, currently producing the highest-quality, most diverse samples at the cost of slow (multi-step) sampling.
+
+*Why it matters / pitfall / interview trap:* Diffusion models became state-of-the-art largely by trading fast single-pass generation (GANs) for iterative refinement — a tradeoff worth naming when asked why diffusion superseded GANs for image generation.
+
+---
+
+**Global vs. Local Time Series Models**
+
+*The problem:* When forecasting many related series (thousands of SKUs, sensors), training a separate model per series doesn't scale, but pooling all series into one model risks ignoring per-series scale differences.
+
+*Core insight / definition:* A local model (ARIMA, Prophet) is trained per individual series and works well for a small number of important series but doesn't scale. A global model (LSTM with series ID, LightGBM, N-BEATS) is trained once across all series, learning shared patterns, but requires careful per-instance normalization (e.g., RevIN) so series at wildly different scales don't distort learning.
+
+*Why it matters / pitfall / interview trap:* Global models without proper normalization fail to generalize to new series at different value ranges than seen in training — a frequently tested production pitfall.
+
+---
+
+**GloVe (Global Vectors)**
+
+*The problem:* Word2Vec learns embeddings purely from local context windows, potentially missing global co-occurrence statistics available across the whole corpus.
+
+*Core insight / definition:* GloVe learns word embeddings by factorizing a global word-word co-occurrence count matrix, explicitly optimizing embeddings so that dot products approximate the log of co-occurrence probabilities, combining the benefits of global matrix-factorization methods and local context-window methods.
+
+*Why it matters / pitfall / interview trap:* Unlike Word2Vec's predictive (local window) training, GloVe is explicitly count-based/global — a distinction interviewers use to test whether you understand the two dominant static-embedding paradigms.
+
+---
+
+**GQA (Grouped-Query Attention)**
+
+*The problem:* Multi-head attention's key-value cache grows large during autoregressive inference, since every head stores its own K/V, which strains memory bandwidth and limits batch/context size.
+
+*Core insight / definition:* Grouped-query attention has multiple query heads share a smaller number of key/value head groups (as opposed to full multi-head attention, where every query head has its own K/V, or multi-query attention, where all query heads share one K/V), reducing KV-cache size while retaining more representational capacity than full multi-query attention.
+
+*Why it matters / pitfall / interview trap:* GQA is a middle ground between MHA (best quality, largest cache) and MQA (smallest cache, quality loss) — interviewers may ask you to place it on this spectrum and explain why modern LLMs (Llama 2/3, Mistral) adopted it.
+
+---
+
+**IoU (Intersection over Union)**
+
+*The problem:* Object detection needs a quantitative way to measure how well a predicted bounding box matches the ground-truth box.
+
+*Core insight / definition:* IoU is the ratio of the area of overlap between predicted and ground-truth boxes to the area of their union, ranging from 0 (no overlap) to 1 (perfect overlap); a prediction is typically counted a "true positive" if IoU exceeds a chosen threshold (commonly 0.5).
+
+*Why it matters / pitfall / interview trap:* The choice of IoU threshold directly changes precision/recall and is the basis for mAP variants (e.g., mAP@0.5 vs. mAP@[0.5:0.95]) — interviewers expect you to know this threshold-dependence.
+
+---
+
+**Inception (GoogLeNet)**
+
+*The problem:* Choosing a single convolution kernel size per layer forces a tradeoff — small kernels capture fine detail, large kernels capture broader context — and picking wrong hurts accuracy.
+
+*Core insight / definition:* The Inception module runs several convolutions of different kernel sizes (and a pooling branch) in parallel on the same input and concatenates their outputs, letting the network learn which receptive field size is useful at each layer, while 1x1 convolutions reduce channel dimensionality to control compute cost.
+
+*Why it matters / pitfall / interview trap:* The 1x1 "bottleneck" convolutions before expensive larger convolutions are the specific trick that keeps Inception's parallel-branch design computationally tractable — often asked as a follow-up.
+
+---
+
+**Informer**
+
+*The problem:* Standard Transformer self-attention has O(L²) time and memory complexity, making it impractical for long time-series forecasting horizons with long input sequences.
+
+*Core insight / definition:* Informer introduces ProbSparse self-attention, which approximates full attention by selecting only the most informative queries (based on a sparsity measurement), reducing complexity to roughly O(L log L), plus a generative-style decoder that predicts the whole output sequence in one forward pass rather than autoregressively.
+
+*Why it matters / pitfall / interview trap:* Its non-autoregressive generative decoder avoids exposure bias and speeds up inference, but interviewers may note that on many benchmarks, simpler models (PatchTST, even linear models) outperform Informer — architecture complexity isn't automatically better.
+
+---
+
+**Isolation Forest**
+
+*The problem:* Detecting anomalies in data (including time series residuals) without a labeled anomaly dataset requires an unsupervised approach that doesn't assume any particular normal-data distribution.
+
+*Core insight / definition:* Isolation Forest builds random trees that recursively partition data by randomly selecting a feature and split value; anomalies, being "few and different," tend to be isolated in fewer splits (shorter average path length) than normal points, giving an anomaly score based on path length.
+
+*Why it matters / pitfall / interview trap:* It requires no distributional assumptions and scales well, making it a common baseline for anomaly detection on time-series-derived features (e.g., residuals, rolling statistics) rather than raw sequences.
+
+---
+
+**LeNet / AlexNet / VGG (Early CNN Architectures)**
+
+*The problem:* Early computer vision needed convolutional architectures proven to scale from small handwritten-digit recognition to large-scale, complex image classification.
+
+*Core insight / definition:* LeNet (1998) established the basic conv-pool-fc pattern for digit recognition. AlexNet (2012) scaled this up with ReLU activations, dropout, and GPU training to win ImageNet, kickstarting the deep learning era in vision. VGG (2014) showed that stacking many small (3x3) convolution filters, rather than fewer large filters, achieves better accuracy with a simple, uniform architecture.
+
+*Why it matters / pitfall / interview trap:* VGG's insight — that two stacked 3x3 convolutions have the same receptive field as one 5x5 convolution but fewer parameters and more nonlinearity — is a frequently asked receptive-field arithmetic question.
+
+---
+
+**Lag Features / Rolling Statistics (Time Series Feature Engineering)**
+
+*The problem:* Non-recurrent models (tree ensembles, linear regression) have no built-in notion of sequence order, so temporal dependence must be manually engineered into the feature set.
+
+*Core insight / definition:* Lag features directly include past values of the target (e.g., value at t-1, t-7, t-30) as input features; rolling statistics (rolling mean, std, min/max over a window) summarize recent trends and volatility. Together they let non-sequential models capture autocorrelation and local dynamics.
+
+*Why it matters / pitfall / interview trap:* A classic production bug is a lookahead leak in lag construction — using `shift(0)` or a negative shift accidentally includes the current or future value as a "lag" feature, producing unrealistically good validation metrics that collapse in production.
+
+---
+
+**LLaVA / BLIP-2 (Vision-Language Models)**
+
+*The problem:* Combining a pretrained vision encoder with a pretrained LLM to perform open-ended visual question answering and instruction-following requires bridging two separately-trained modalities efficiently.
+
+*Core insight / definition:* BLIP-2 uses a lightweight "Q-Former" module to bridge a frozen vision encoder and a frozen LLM, learning to extract the visual features most relevant for language generation, keeping both large pretrained models frozen and training only the bridge. LLaVA instead uses a simple linear (or MLP) projection layer to map vision encoder outputs directly into the LLM's embedding space, and instruction-tunes the combined model on visual instruction-following data.
+
+*Why it matters / pitfall / interview trap:* LLaVA's simpler projection-based bridging versus BLIP-2's more elaborate Q-Former illustrates a recurring theme in multimodal design: architectural complexity in the bridge module isn't always necessary if the base models and training data are strong enough.
+
+---
+
+**LoRA (Low-Rank Adaptation) / PEFT**
+
+*The problem:* Full fine-tuning of large pretrained models updates every parameter, which is expensive in compute and storage, especially when maintaining many task-specific fine-tuned copies of a large model.
+
+*Core insight / definition:* LoRA freezes the pretrained weight matrices and injects small trainable low-rank decomposition matrices (A and B, with rank r much smaller than the original dimension) alongside them; only these low-rank matrices are trained, and their product is added to the frozen weights, drastically reducing trainable parameters while approximating full fine-tuning quality.
+
+*Why it matters / pitfall / interview trap:* Because LoRA's update is low-rank, it can underperform full fine-tuning on tasks requiring large, high-rank weight shifts — the choice of rank r is a real tradeoff interviewers may ask you to reason about.
+
+---
+
+**LSTM (Long Short-Term Memory) / GRU (Gated Recurrent Unit)**
+
+*The problem:* Vanilla RNNs struggle to retain information over long sequences due to vanishing gradients, limiting their ability to model long-range dependencies.
+
+*Core insight / definition:* LSTMs introduce a separate cell state updated additively via input, forget, and output gates (`c_t = f_t ⊙ c_{t-1} + i_t ⊙ g_t`), which lets gradients flow across long sequences without repeated multiplication through the same weight matrix. GRUs simplify this with fewer gates (reset and update gates) and no separate cell state, achieving similar performance with fewer parameters.
+
+*Why it matters / pitfall / interview trap:* The additive (not purely multiplicative) cell-state update is the specific mechanism that solves vanishing gradients — interviewers expect this mechanistic explanation, not just "LSTMs remember better."
+
+---
+
+**Mask R-CNN**
+
+*The problem:* Object detection (bounding boxes) and semantic segmentation (per-pixel masks) were historically separate pipelines; a unified model for per-instance pixel-accurate segmentation was needed.
+
+*Core insight / definition:* Mask R-CNN extends Faster R-CNN by adding a parallel branch that predicts a binary segmentation mask for each detected object instance, using RoIAlign (a precise, non-quantized feature-pooling operation) instead of RoI pooling to preserve pixel-level spatial alignment.
+
+*Why it matters / pitfall / interview trap:* RoIAlign's fix for the misalignment caused by RoI pooling's quantization is the specific innovation that made pixel-accurate instance masks possible — often asked as "why not just reuse RoI pooling?"
+
+---
+
+**mAP (mean Average Precision)**
+
+*The problem:* Object detection performance depends jointly on both localization accuracy and classification confidence across many classes and confidence thresholds, requiring a single aggregate metric.
+
+*Core insight / definition:* mAP computes the average precision (area under the precision-recall curve) for each class at a given IoU threshold, then averages across classes; COCO's mAP further averages over multiple IoU thresholds (0.5 to 0.95) for a stricter, more comprehensive measure.
+
+*Why it matters / pitfall / interview trap:* mAP@0.5 vs. mAP@[0.5:0.95] measure meaningfully different things (loose vs. strict localization accuracy) — conflating them when comparing reported detector performance is a common mistake.
+
+---
+
+**MAPE / sMAPE / MASE (Time Series Point-Forecast Metrics)**
+
+*The problem:* Forecast accuracy metrics need to be interpretable and, ideally, comparable across series with different scales and units.
+
+*Core insight / definition:* MAPE (mean absolute percentage error) is scale-free but undefined at zero actuals and asymmetric (penalizes over- vs. under-forecasts differently). sMAPE symmetrizes the denominator but still has boundary issues near zero. MASE divides MAE by the MAE of a naive seasonal baseline (predicting today = same period last year); MASE < 1 means the model beats the naive baseline, and it's scale-free and well-defined even at zero actuals.
+
+*Why it matters / pitfall / interview trap:* "Why is MASE preferred over MAPE?" is a very common interview question — the answer must cite both the zero/near-zero undefined behavior and the asymmetry of MAPE.
+
+---
+
+**Mask R-CNN and Panoptic Segmentation** — *(see Panoptic Segmentation, Mask R-CNN)*
+
+---
+
+**METEOR**
+
+*The problem:* BLEU's strict n-gram matching misses valid translations that use synonyms, different word order, or morphological variants.
+
+*Core insight / definition:* METEOR aligns candidate and reference translations using exact matches, stemmed matches, and synonym matches, then computes a score combining precision and recall (weighted toward recall) with a penalty for fragmented alignments (word-order differences).
+
+*Why it matters / pitfall / interview trap:* METEOR correlates better with human judgment at the sentence level than BLEU precisely because of its synonym/stem matching — a specific advantage to cite when contrasting the two metrics.
+
+---
+
+**Mixture Model / MC Dropout (Uncertainty Quantification)**
+
+*The problem:* Point forecasts give no sense of confidence; deep learning models need a practical way to express predictive uncertainty without full Bayesian inference.
+
+*Core insight / definition:* MC Dropout keeps dropout active at inference time and runs multiple stochastic forward passes, treating the resulting spread of predictions as an approximation to Bayesian posterior uncertainty, at the cost of underestimating true uncertainty since the approximate posterior is often too concentrated.
+
+*Why it matters / pitfall / interview trap:* Because MC Dropout tends to underestimate uncertainty, its calibration must be checked against empirical coverage rather than trusted at face value — a common "what breaks" follow-up.
+
+---
+
+**MTEB (Massive Text Embedding Benchmark)**
+
+*The problem:* Comparing text embedding models across the many different downstream uses (retrieval, clustering, classification, semantic similarity) needs a standardized, multi-task benchmark rather than one narrow test.
+
+*Core insight / definition:* MTEB evaluates embedding models across dozens of datasets spanning multiple task categories (retrieval, classification, clustering, STS, reranking, etc.) and languages, producing a leaderboard reflecting broad embedding quality rather than performance on a single task.
+
+*Why it matters / pitfall / interview trap:* A model can top the MTEB leaderboard overall while being weak on the specific task category (e.g., retrieval) that actually matters for your application — always check the task-level breakdown, not just the aggregate score.
+
+---
+
+**MT-Bench**
+
+*The problem:* Evaluating multi-turn, open-ended conversational quality of LLMs is difficult to automate with traditional reference-based metrics like BLEU.
+
+*Core insight / definition:* MT-Bench uses a set of challenging multi-turn conversational prompts and a strong LLM judge to score model responses on a scale, specifically probing multi-turn coherence and instruction-following that single-turn benchmarks miss.
+
+*Why it matters / pitfall / interview trap:* Like AlpacaEval, it's subject to LLM-judge biases; interviewers may expect you to name this shared limitation across LLM-as-judge benchmarks.
+
+---
+
+**Multi-Head Attention**
+
+*The problem:* A single attention computation projects queries/keys/values into one subspace, which may only capture one type of relationship between tokens, limiting representational richness.
+
+*Core insight / definition:* Multi-head attention runs several independent scaled dot-product attention computations ("heads") in parallel, each with its own learned projection subspace, then concatenates and linearly projects the results, letting the model jointly attend to information from different representation subspaces at different positions.
+
+*Why it matters / pitfall / interview trap:* Interviewers frequently ask you to derive that splitting the model dimension across h heads keeps total compute roughly the same as one big attention head, while adding representational diversity — not extra parameters proportional to h.
+
+---
+
+**N-BEATS / N-HiTS**
+
+*The problem:* Recurrent and attention-based forecasting models are sequential or otherwise complex, and often lack interpretability into what temporal patterns (trend vs. seasonality) drive a forecast.
+
+*Core insight / definition:* N-BEATS is a pure feed-forward (MLP) architecture using stacked blocks with backcast/forecast outputs; its interpretable variant constrains blocks to trend (polynomial basis) and seasonality (Fourier basis) components, giving explicit decomposition. N-HiTS extends this with hierarchical, multi-rate input sampling and interpolation for efficient long-horizon forecasting.
+
+*Why it matters / pitfall / interview trap:* Despite architectural simplicity (no recurrence, no attention), N-BEATS frequently matches or beats Transformer-based models on M4/M5 benchmarks — a useful counterpoint when asked to justify architecture complexity.
+
+---
+
+**Named Entity Recognition (NER) / BIO Tagging**
+
+*The problem:* Extracting structured information (people, organizations, locations, dates) from unstructured text requires identifying and classifying spans of tokens, not just single tokens.
+
+*Core insight / definition:* NER is a sequence-labeling task that tags each token with an entity type; BIO tagging is the standard scheme where "B-" marks the beginning of an entity span, "I-" marks continuation inside a span, and "O" marks tokens outside any entity, allowing multi-token entities to be recovered unambiguously from per-token labels.
+
+*Why it matters / pitfall / interview trap:* Without the B/I distinction (i.e., using only entity-type labels), adjacent entities of the same type would be impossible to separate — a subtlety interviewers ask you to justify.
+
+---
+
+**Non-Max Suppression (NMS)**
+
+*The problem:* Object detectors typically produce many overlapping candidate boxes for the same object (from different anchors or proposals), which need to be reduced to one final detection per object.
+
+*Core insight / definition:* NMS greedily keeps the highest-confidence box, removes all other boxes that overlap it above an IoU threshold, and repeats on the remaining boxes until none are left, leaving one box per detected object.
+
+*Why it matters / pitfall / interview trap:* Standard NMS can incorrectly suppress a genuinely separate, heavily-overlapping object (e.g., in crowd scenes); Soft-NMS decays overlapping boxes' scores instead of deleting them outright, a common follow-up on NMS limitations. DETR removes the need for NMS entirely via set prediction.
+
+---
+
+**One-Stage vs. Two-Stage Detectors**
+
+*The problem:* Object detection architectures must choose between generating region proposals as a separate step before classification (accuracy-focused) or doing detection and classification in a single unified pass (speed-focused).
+
+*Core insight / definition:* Two-stage detectors (R-CNN family) first generate candidate regions, then classify/refine each one — generally more accurate but slower. One-stage detectors (YOLO, SSD, RetinaNet) predict boxes and classes directly from a dense grid of anchors in a single forward pass — generally faster but historically less accurate, until focal loss closed much of the gap.
+
+*Why it matters / pitfall / interview trap:* This is a canonical "speed vs. accuracy" interview tradeoff; focal loss's role in closing the one-stage accuracy gap (by fixing class imbalance) is the key detail expected in a strong answer.
+
+---
+
+**Panoptic Segmentation**
+
+*The problem:* Semantic segmentation labels every pixel with a class but doesn't distinguish separate instances of "countable" objects (two overlapping cars both labeled "car"); instance segmentation identifies individual object instances but ignores uncountable "stuff" classes (sky, road).
+
+*Core insight / definition:* Panoptic segmentation unifies both: it assigns every pixel a semantic class label and, for countable "thing" classes, also a distinct instance ID, giving a complete, non-overlapping scene parsing.
+
+*Why it matters / pitfall / interview trap:* Interviewers use this to test whether you clearly understand the semantic vs. instance segmentation distinction, since panoptic segmentation is literally defined as their union.
+
+---
+
+**PatchTST**
+
+*The problem:* Applying Transformers directly to raw per-timestep tokens in long time series is computationally expensive and may not capture local sub-sequence patterns well.
+
+*Core insight / definition:* PatchTST splits each univariate series into patches (analogous to ViT's image patches) before feeding them to a Transformer, and treats each channel independently (channel-independence) rather than mixing variables, reducing sequence length for attention and often outperforming more complex multivariate Transformer variants.
+
+*Why it matters / pitfall / interview trap:* Its channel-independent design and patch tokenization are directly analogous to ViT's patch embedding — interviewers may ask you to draw that parallel to test cross-domain (vision/time-series) understanding.
+
+---
+
+**Perplexity**
+
+*The problem:* Language models need an intrinsic evaluation metric that measures how well the model predicts held-out text, without requiring a downstream task.
+
+*Core insight / definition:* Perplexity is the exponentiated average negative log-likelihood the model assigns to a held-out sequence — intuitively, the effective number of equally-likely choices the model is "confused" between at each step. Lower perplexity means the model assigns higher probability to the actual data.
+
+*Why it matters / pitfall / interview trap:* Perplexity is not directly comparable across models with different tokenizers/vocabularies, since it depends on how text is segmented into tokens — a frequent interview gotcha.
+
+---
+
+**Pinball Loss / Quantile Regression**
+
+*The problem:* Point forecasts don't convey uncertainty; sometimes only specific quantiles of the outcome distribution (e.g., the 90th percentile for safety-stock decisions) are needed, without assuming a full parametric distribution.
+
+*Core insight / definition:* Quantile regression trains a model to predict a specific quantile τ of the target distribution by minimizing pinball (quantile) loss, which asymmetrically penalizes over- and under-predictions depending on τ — for τ=0.9, under-predictions are penalized 9x more heavily than over-predictions.
+
+*Why it matters / pitfall / interview trap:* Training multiple quantile models independently can produce "quantile crossing" (a higher quantile prediction below a lower one) — a known pitfall interviewers might ask how to fix (e.g., joint/monotonic quantile models).
+
+---
+
+**Positional Encoding (RoPE — Rotary Position Embedding)**
+
+*The problem:* Absolute sinusoidal positional encodings don't naturally or efficiently encode relative position/distance between tokens, which matters more than absolute position for many language tasks.
+
+*Core insight / definition:* RoPE encodes position by rotating query and key vectors in 2D subspaces by an angle proportional to their absolute position; because rotation is applied multiplicatively, the dot product between a rotated query and key naturally depends only on their relative position difference, and it extrapolates reasonably to longer sequences than seen in training.
+
+*Why it matters / pitfall / interview trap:* RoPE's key property — that attention scores become a function of relative position through the rotation math — is what modern LLMs (Llama, GPT-NeoX-style) rely on; interviewers may ask you to explain why this works mathematically, not just name it.
+
+---
+
+**Pre-Norm vs. Post-Norm (Transformer Architecture)**
+
+*The problem:* The original Transformer applies layer normalization after the residual addition (post-norm), which can cause training instability in very deep Transformer stacks.
+
+*Core insight / definition:* Pre-norm applies layer normalization before the sublayer (attention/FFN) rather than after the residual addition, keeping the residual stream itself unnormalized and additive, which empirically stabilizes gradients and enables training much deeper Transformers without learning-rate warmup being as critical.
+
+*Why it matters / pitfall / interview trap:* Nearly all modern large-scale Transformers (GPT-3+, Llama) use pre-norm specifically for this training-stability reason — interviewers may ask why post-norm was largely abandoned at scale.
+
+---
+
+**Prophet**
+
+*The problem:* Business analysts need an accessible forecasting tool that handles trend, multiple seasonalities, and holiday effects without deep statistical expertise, while still being robust to missing data and outliers.
+
+*Core insight / definition:* Prophet is an additive regression model: `y(t) = trend(t) + seasonality(t) + holidays(t) + error`, with trend modeled via piecewise linear or logistic growth (with automatically detected changepoints) and seasonality modeled via Fourier series terms at user-specified periods.
+
+*Why it matters / pitfall / interview trap:* Prophet's changepoint detection can overfit to noise if not regularized, and it assumes additive (or simply-transformed multiplicative) seasonality — it's not always a strong choice for series with complex, non-additive seasonal interactions, a nuance worth mentioning versus deep learning alternatives.
+
+---
+
+**Quantization / Pruning / Knowledge Distillation (Model Compression)**
+
+*The problem:* Large trained models are often too slow, memory-hungry, or power-intensive to deploy on edge devices or serve at scale with tight latency budgets.
+
+*Core insight / definition:* Quantization reduces numerical precision of weights/activations (e.g., FP32 to INT8) to shrink memory and speed up compute. Pruning removes redundant weights or entire structures (channels, heads) that contribute little to output, shrinking the model. Knowledge distillation trains a smaller "student" model to mimic a larger "teacher" model's outputs (often soft probabilities), transferring learned behavior into a more efficient architecture.
+
+*Why it matters / pitfall / interview trap:* These three techniques are complementary and often combined in production pipelines; naive post-training quantization without calibration can cause significant accuracy drops on outlier-sensitive layers, a common production gotcha.
+
+---
+
+**Receptive Field**
+
+*The problem:* Understanding how much of the input image influences a given output neuron's activation is necessary to reason about what spatial context a CNN layer can "see."
+
+*Core insight / definition:* The receptive field is the region of the input image that affects a particular unit's activation; it grows with network depth, kernel size, and stride/dilation, and stacking small kernels (e.g., two 3x3 layers) can achieve the same receptive field as one larger kernel (one 5x5) with fewer parameters.
+
+*Why it matters / pitfall / interview trap:* A common exam-style question asks you to compute the receptive field growth across several conv/pool layers — a skill interviewers test directly with worked examples.
+
+---
+
+**RevIN (Reversible Instance Normalization)**
+
+*The problem:* Global time series models trained across many series at different scales can't directly generalize, since a model trained on values in the millions won't naturally handle a new series with values under 1.
+
+*Core insight / definition:* RevIN normalizes each input instance (window) independently at inference time using its own mean/std, feeds the normalized values through the model, then reverses (de-normalizes) the output using the same statistics, letting a single global model adapt to per-series scale at runtime without retraining.
+
+*Why it matters / pitfall / interview trap:* RevIN assumes the input window's statistics remain representative of the forecast window — it breaks down under sudden level shifts, since the normalization stats become stale exactly when they're needed most.
+
+---
+
+**ResNet / Residual Learning (Skip Connections)**
+
+*The problem:* Very deep plain CNNs suffer from the degradation problem — added depth increases training error due to optimization difficulty, not overfitting.
+
+*Core insight / definition:* ResNet introduces residual (skip) connections that add a layer block's input directly to its output (`y = F(x) + x`), so each block only needs to learn a residual correction rather than a full transformation; if the optimal function is close to identity, this is trivial to learn, which stabilizes gradient flow and enables training networks with hundreds of layers.
+
+*Why it matters / pitfall / interview trap:* The core interview insight is that skip connections solve an optimization problem, not primarily a representational-capacity problem — conflating the two is a common mistake.
+
+---
+
+**RMSNorm**
+
+*The problem:* Standard LayerNorm computes both mean-centering and variance-scaling statistics, adding compute overhead in every Transformer sublayer at scale.
+
+*Core insight / definition:* RMSNorm simplifies LayerNorm by normalizing using only the root-mean-square of the activations (no mean-centering), reducing computation while empirically matching LayerNorm's training stability benefits in large Transformers.
+
+*Why it matters / pitfall / interview trap:* Its adoption in models like Llama is purely an efficiency win with negligible quality tradeoff — interviewers may ask you to justify why dropping mean-centering doesn't hurt performance much in practice.
+
+---
+
+**Scaled Dot-Product Attention (Self-Attention, QKV)**
+
+*The problem:* Sequence models need a mechanism to let every token directly gather information from every other token in the sequence, regardless of distance, without the sequential bottleneck of RNNs.
+
+*Core insight / definition:* Each token is projected into a query (Q), key (K), and value (V) vector; attention weights are computed as the softmax of the scaled dot product of Q and K (`softmax(QK^T / √d_k)`), then used to compute a weighted sum of V vectors — the scaling by `√d_k` prevents dot products from growing too large in magnitude and pushing softmax into saturated, low-gradient regions.
+
+*Why it matters / pitfall / interview trap:* Interviewers routinely ask why the `√d_k` scaling term exists — the answer is variance control on the dot product to keep softmax gradients well-behaved, not an arbitrary normalization.
+
+---
+
+**Scheduled Sampling** — *(see Exposure Bias / Teacher Forcing)*
+
+---
+
+**Seasonality Decomposition (Trend / Seasonal / Residual, STL)**
+
+*The problem:* Raw time series mix multiple overlapping signals (long-term direction, repeating periodic patterns, and irregular noise), making it hard to model or interpret any one component directly.
+
+*Core insight / definition:* Decomposition splits a series into trend (long-term direction), seasonality (repeating periodic pattern), and residual/remainder (irregular component), either additively (`y = trend + seasonal + resid`) or multiplicatively. STL (Seasonal-Trend decomposition using Loess) performs this decomposition robustly using local regression, handling changing seasonality over time better than classical fixed decomposition.
+
+*Why it matters / pitfall / interview trap:* Choosing additive vs. multiplicative decomposition incorrectly (e.g., additive when seasonal amplitude actually grows with the trend level) produces a poorly-fitting decomposition — interviewers may show a plot and ask which to use.
+
+---
+
+**SentencePiece / BPE / WordPiece (Subword Tokenization)**
+
+*The problem:* Word-level tokenization has an unbounded, sparse vocabulary and fails on unseen words; character-level tokenization avoids OOV but produces very long sequences and weak per-token semantics.
+
+*Core insight / definition:* Byte-Pair Encoding (BPE) iteratively merges the most frequent adjacent symbol pairs into new subword units, building a fixed-size vocabulary that balances sequence length and OOV robustness. WordPiece is a similar merge-based algorithm (used by BERT) that instead selects merges maximizing training-data likelihood. SentencePiece treats the input as a raw stream (including spaces) and applies BPE or unigram-language-model tokenization directly, making it language-agnostic (no whitespace-based pre-tokenization required).
+
+*Why it matters / pitfall / interview trap:* SentencePiece's whitespace-agnostic design is specifically what makes it work well for languages without clear word boundaries (e.g., Japanese, Chinese) — a detail interviewers use to test if you understand why different LLMs pick different tokenizers.
+
+---
+
+**Stemming / Lemmatization**
+
+*The problem:* Text often contains many surface forms of the same underlying word (run, running, ran), which can fragment vocabulary and hurt statistical text representations unless normalized.
+
+*Core insight / definition:* Stemming crudely chops word endings using fixed heuristic rules to reach a root form (which may not be a real word, e.g., "running" → "runn"); lemmatization uses vocabulary and morphological/grammatical analysis to map a word to its proper dictionary base form (lemma), e.g., "ran" → "run," and is more linguistically accurate but slower.
+
+*Why it matters / pitfall / interview trap:* Stemming can conflate unrelated words or produce non-words, so lemmatization is preferred when interpretability of normalized tokens matters — a tradeoff interviewers ask you to weigh against stemming's speed advantage.
+
+---
+
+**STL** — *(see Seasonality Decomposition)*
+
+---
+
+**Swin Transformer**
+
+*The problem:* Plain ViT computes global self-attention across all patches, which scales quadratically with image size/resolution and lacks the hierarchical, multi-scale feature pyramids that CNNs naturally provide for dense prediction tasks (detection, segmentation).
+
+*Core insight / definition:* Swin Transformer computes self-attention within local, non-overlapping windows (reducing complexity to linear in image size) and shifts the window partitioning between successive layers to allow cross-window information flow, while progressively merging patches across stages to build a hierarchical, multi-resolution feature representation similar to CNNs.
+
+*Why it matters / pitfall / interview trap:* The shifted-window mechanism is the specific fix for windowed attention's lack of cross-window interaction — a common follow-up after explaining the windowing itself.
+
+---
+
+**SwiGLU**
+
+*The problem:* Standard Transformer feed-forward blocks use a simple ReLU or GELU activation between two linear layers, which may limit the FFN's expressive gating capacity.
+
+*Core insight / definition:* SwiGLU replaces the standard FFN activation with a gated linear unit variant using the Swish (SiLU) activation — computing an element-wise product of a linear projection and a Swish-activated linear projection — which empirically improves model quality at equivalent parameter count.
+
+*Why it matters / pitfall / interview trap:* SwiGLU's adoption (Llama, PaLM) is an empirically-motivated architecture choice, and interviewers may ask you to note that it typically requires adjusting the hidden dimension to keep parameter count comparable to a standard FFN.
+
+---
+
+**TBATS**
+
+*The problem:* Series with multiple, possibly non-integer-period seasonalities (e.g., daily data with both weekly and yearly patterns) are hard to model with classical single-seasonality SARIMA.
+
+*Core insight / definition:* TBATS (Trigonometric seasonality, Box-Cox transformation, ARMA errors, Trend, Seasonal components) models multiple seasonal periods simultaneously using trigonometric (Fourier-like) terms within a state-space framework, plus a Box-Cox transform for variance stabilization.
+
+*Why it matters / pitfall / interview trap:* It's one of several valid approaches to multi-seasonality (alongside Prophet and manual Fourier features) — interviewers testing this topic want you to name multiple options and their tradeoffs, not just one.
+
+---
+
+**TCN (Temporal Convolutional Network)**
+
+*The problem:* RNNs process sequences step-by-step, which is slow to train (no parallelism across time) and can still struggle with very long-range dependencies despite gating mechanisms.
+
+*Core insight / definition:* TCNs use causal, dilated 1D convolutions (convolutions that only look at past inputs, with dilation increasing receptive field exponentially with depth) to model sequences, enabling full parallelism during training while still being able to reach long effective context via stacked dilated layers.
+
+*Why it matters / pitfall / interview trap:* Causality (no future leakage) must be enforced by construction (padding/masking), and interviewers may ask how dilation rate is chosen to cover a target receptive field length.
+
+---
+
+**Teacher Forcing** — *(see Exposure Bias / Teacher Forcing)*
+
+---
+
+**Text Classification (NLP)**
+
+*The problem:* Many practical NLP tasks (sentiment analysis, spam detection, topic labeling) reduce to assigning a document or sentence to one or more predefined categories.
+
+*Core insight / definition:* Text classification maps an input text to a label (or set of labels) using a trained model, ranging from classical approaches (TF-IDF + logistic regression/SVM) to fine-tuned pretrained transformer encoders (BERT with a classification head), with model choice depending on data volume, latency needs, and required accuracy.
+
+*Why it matters / pitfall / interview trap:* A common pitfall is applying only accuracy as the metric on imbalanced classification datasets (e.g., spam detection), when precision/recall/F1 or PR-AUC are usually more appropriate.
+
+---
+
+**TF-IDF (Term Frequency-Inverse Document Frequency)**
+
+*The problem:* Raw word counts (bag-of-words) overweight common but uninformative words (e.g., "the," "is") that appear in nearly every document, diluting the signal from more distinctive, informative words.
+
+*Core insight / definition:* TF-IDF weights each word's count in a document (term frequency) by the inverse of how many documents in the corpus contain that word (inverse document frequency), so words common across the whole corpus are downweighted while words distinctive to a given document are upweighted.
+
+*Why it matters / pitfall / interview trap:* TF-IDF still ignores word order and semantics — a classical baseline interviewers ask you to compare against embeddings, especially on the question "why would you ever still use TF-IDF over embeddings?" (interpretability, speed, no training needed).
+
+---
+
+**Time Series Cross-Validation** — *(see Cross-Validation for Time Series)*
+
+---
+
+**TimeGPT-1 / Chronos / Lag-Llama / Moirai / TimesFM (Time Series Foundation Models)**
+
+*The problem:* Every forecasting project traditionally starts from scratch — collecting data, engineering features, and training a model — which is infeasible at scale (tens of thousands of series) or with very limited history for a new series.
+
+*Core insight / definition:* Foundation models for time series are pretrained on massive, diverse corpora of time series and can forecast new series zero-shot at inference without retraining. TimeGPT-1 (Nixtla) is API-based and transformer-based; Chronos (Amazon) quantizes numeric values into discrete tokens and applies a T5-style language model to autoregressively generate forecast tokens; Lag-Llama uses a Llama-style decoder-only transformer with patch tokenization; Moirai (Salesforce) uses a masked encoder handling variable context/prediction lengths and variable counts; TimesFM (Google) is a decoder-only autoregressive patching model.
+
+*Why it matters / pitfall / interview trap:* Chronos's quantization introduces discretization error that loses very fine-grained (sub-0.1%) signal changes; more broadly, zero-shot foundation-model performance often lags fine-tuned task-specific models when ample task-specific data is actually available — know when NOT to reach for a foundation model.
+
+---
+
+**Tokenization (Word / Character / Subword)**
+
+*The problem:* Raw text must be split into discrete units before any numerical model can process it, and the granularity of this split has major consequences for vocabulary size, OOV handling, and sequence length.
+
+*Core insight / definition:* Word-level tokenization splits on whitespace/punctuation, giving intuitive units but an unbounded vocabulary and OOV problems. Character-level tokenization uses individual characters, giving a tiny vocabulary and no OOV issue but very long sequences and weak per-token meaning. Subword tokenization (BPE, WordPiece, SentencePiece) is the modern middle ground, balancing vocabulary size, sequence length, and OOV robustness.
+
+*Why it matters / pitfall / interview trap:* This word/character/subword tradeoff is the near-universal opening question in NLP interviews — expect to justify why virtually all modern LLMs use subword tokenization.
+
+---
+
+**U-Net**
+
+*The problem:* Segmentation, especially in domains with limited training data (e.g., biomedical imaging), needs an architecture that produces precise, high-resolution pixel-level output while still capturing broad contextual information.
+
+*Core insight / definition:* U-Net uses a symmetric encoder-decoder ("U-shaped") architecture where the decoder path is connected to corresponding encoder layers via skip connections, which pass high-resolution spatial detail directly to the decoder, restoring fine boundary detail lost during downsampling.
+
+*Why it matters / pitfall / interview trap:* The skip connections (concatenating encoder features into the decoder) are the specific fix for the resolution loss that plain FCN upsampling suffers from — a direct architecture-comparison question.
+
+---
+
+**VAR (Vector Autoregression)**
+
+*The problem:* Univariate forecasting models ignore potentially useful information from other correlated time series when multiple related series are being forecast simultaneously.
+
+*Core insight / definition:* VAR models multiple time series jointly, where each series is regressed on its own past values and the past values of all other series in the system, capturing linear cross-series (Granger-causal-style) dependencies.
+
+*Why it matters / pitfall / interview trap:* VAR's parameter count grows quadratically with the number of series, so it becomes impractical (overfits) at high dimensionality — this scaling limitation is a common contrast point against global deep learning models.
+
+---
+
+**ViT (Vision Transformer) / DeiT**
+
+*The problem:* CNNs bake in strong inductive biases (locality, translation equivariance) via convolution; researchers wanted to test whether a pure Transformer, with far weaker built-in visual assumptions, could match or exceed CNN performance given enough data.
+
+*Core insight / definition:* ViT splits an image into fixed-size patches, linearly embeds each as a token (plus a learnable [CLS] token and positional embeddings), and processes the sequence with a standard Transformer encoder, treating image classification as a sequence-modeling problem; because it lacks convolution's built-in locality bias, it requires large-scale pretraining data to match CNN performance. DeiT introduces a distillation token and training recipe that lets ViT-style models train effectively on much smaller datasets (e.g., ImageNet-scale only) using a CNN teacher.
+
+*Why it matters / pitfall / interview trap:* "ViT lacks inductive bias, so it needs more data" is the headline fact, but DeiT's distillation-based fix for the data-hungry problem is the necessary follow-up interviewers look for.
+
+---
+
+**Word2Vec (Skip-gram / CBOW)**
+
+*The problem:* Sparse, high-dimensional bag-of-words/TF-IDF representations don't capture semantic similarity between words (e.g., "king" and "queen" look unrelated as one-hot vectors).
+
+*Core insight / definition:* Word2Vec learns dense, low-dimensional word embeddings by training a shallow neural network to predict context words from a target word (skip-gram) or a target word from its context (CBOW), such that words appearing in similar contexts end up with similar vectors — famously supporting analogy arithmetic like `king - man + woman ≈ queen`.
+
+*Why it matters / pitfall / interview trap:* Word2Vec produces exactly one static vector per word regardless of context, so it cannot disambiguate polysemous words (e.g., "bank" the river vs. "bank" the institution) — the specific limitation that motivated contextual embeddings like ELMo and BERT.
+
+---
+
+**Word Embeddings — Contextual (ELMo, BERT) vs. Static (Word2Vec, GloVe, FastText)**
+
+*The problem:* Static embeddings assign a fixed vector per word regardless of surrounding context, failing to capture polysemy (a word's meaning changing based on usage).
+
+*Core insight / definition:* Static embeddings (Word2Vec, GloVe, FastText) produce one vector per word type, learned once from a large corpus. Contextual embeddings (ELMo, using bidirectional LSTMs; BERT, using bidirectional Transformers) instead compute a different vector for each word occurrence based on its surrounding sentence context, produced dynamically at inference time by the full model.
+
+*Why it matters / pitfall / interview trap:* Interviewers use polysemy ("bank," "bat") as the standard example to test whether you understand exactly why contextual embeddings represented a major leap over static ones, not just that they're "better."
+
+---
+
+**YOLO (You Only Look Once) / SSD**
+
+*The problem:* Two-stage detectors' separate proposal-then-classify pipeline is too slow for real-time detection applications (video, robotics).
+
+*Core insight / definition:* YOLO and SSD are one-stage detectors that directly predict bounding boxes and class probabilities from a dense grid of spatial locations (and anchors) in a single forward pass through the network, trading some accuracy (especially on small/overlapping objects) for large gains in inference speed, enabling real-time detection.
+
+*Why it matters / pitfall / interview trap:* Early YOLO versions struggled with small and closely-packed objects due to the coarse grid — a known limitation that later YOLO versions and anchor/focal-loss refinements addressed, worth mentioning if asked about YOLO's weaknesses.
+
+---
+
+**Z-score (Anomaly Detection)**
+
+*The problem:* Detecting whether a single observation is anomalous requires a simple, interpretable measure of how far it deviates from typical/expected behavior.
+
+*Core insight / definition:* The Z-score standardizes a value by subtracting the (local or global) mean and dividing by the standard deviation, flagging points beyond a chosen threshold (e.g., |Z| > 3) as anomalies.
+
+*Why it matters / pitfall / interview trap:* Applying Z-score directly to raw seasonal data flags legitimate seasonal peaks as false anomalies; it should be computed on deseasonalized/detrended residuals — a frequently tested pitfall.
 
 ---
 
