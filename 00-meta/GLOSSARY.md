@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core done. Remaining: 06-architectures through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures done. Remaining: 07-domains through 18-resources.
 
 ---
 
@@ -6472,6 +6472,907 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* Shard optimizer states, gradients, and/or parameters across data-parallel workers instead of replicating them fully, reconstructing what's needed on-the-fly during compute.
 
 *Why it matters / pitfall / interview trap:* Lets larger models fit without the added complexity of full tensor or pipeline parallelism — a middle-ground scaling strategy.
+
+---
+
+
+## 06-architectures
+
+**AlexNet**
+
+*The problem:* before 2012, deep CNNs couldn't be trained effectively — networks died during training due to gradient saturation, and overfitting was rampant.
+
+*Core insight / definition:* AlexNet used ReLU instead of tanh/sigmoid to prevent gradient saturation, and dropout to prevent co-adaptation of features, enabling successful training of deeper CNNs on ImageNet.
+
+*Why it matters / pitfall / interview trap:* Marked the beginning of the deep learning era in computer vision; interviewers expect you to name the specific fix (ReLU + dropout), not just "it was deep."
+
+---
+
+**ALiBi (Attention with Linear Biases)**
+
+*The problem:* absolute and learned positional encodings don't generalize past the training context length.
+
+*Core insight / definition:* Instead of modifying Q/K vectors, ALiBi subtracts a linear penalty from raw attention scores: $\text{score}_{ij} = q_i \cdot k_j - m_h|i-j|$, where $m_h$ is a per-head constant. Zero learned parameters.
+
+*Why it matters / pitfall / interview trap:* Extrapolates strongly to unseen lengths without fine-tuning (e.g., train at 1K, infer at 2K+), but its hardcoded local bias limits long-range task performance; slightly underperforms RoPE at trained lengths. Used in MPT, BLOOM.
+
+---
+
+**Aggregate step (message passing)**
+
+*The problem:* a node may have any number of neighbors in no canonical order — a naive concatenation would not be permutation-invariant.
+
+*Core insight / definition:* Combine incoming messages from all neighbors using a permutation-invariant operator — sum, mean, or max — so the result doesn't depend on neighbor ordering.
+
+*Why it matters / pitfall / interview trap:* Expressiveness ordering is sum > max > mean; interviewers probe whether you can justify which aggregator fits which task (e.g., sum for count-sensitive molecule properties, mean for scale invariance with variable neighbor counts).
+
+---
+
+**Attention (Query/Key/Value mechanism)**
+
+*The problem:* RNN-based encoder-decoder models compress an entire input into one fixed-size vector, losing information for long sequences ("fixed-context bottleneck").
+
+*Core insight / definition:* Split relevance-matching into three roles — a query (what is needed), keys (what each item offers), and values (what is returned). Compute similarity between query and all keys, normalize with softmax, and return a weighted sum of values: $\text{Attention}(Q,K,V) = \text{softmax}(QK^T/\sqrt{d_k})V$.
+
+*Why it matters / pitfall / interview trap:* This is the foundational mechanism behind Transformers; the $O(n^2)$ time/memory cost of $QK^T$ is the central scaling bottleneck for long contexts.
+
+---
+
+**Attention sink**
+
+*The problem:* at long contexts, some dot products in $QK^T$ become disproportionately large relative to others.
+
+*Core insight / definition:* Softmax becomes "peaky," concentrating almost all weight on a few tokens and assigning near-zero weight to many distant, potentially relevant tokens.
+
+*Why it matters / pitfall / interview trap:* Explains why naive softmax attention struggles at long context even before hitting compute limits — the distribution itself degenerates, not just cost.
+
+---
+
+**Autoencoder**
+
+*The problem:* need a way to learn a compressed representation of data by reconstructing it.
+
+*Core insight / definition:* An encoder compresses input $x$ into a bottleneck $z$, a decoder reconstructs $\hat{x}$ from $z$, trained with reconstruction loss. The bottleneck forces the network to learn compressed structure.
+
+*Why it matters / pitfall / interview trap:* A standard autoencoder's latent space is not a continuous, samplable manifold — points between two training examples' codes can decode to garbage — which is exactly the failure a VAE fixes.
+
+---
+
+**Autoregressive generation**
+
+*The problem:* generative language models must produce output sequentially, one token conditioned on prior tokens.
+
+*Core insight / definition:* Each output token is predicted using only previously generated (or given) tokens, never future ones — enforced via causal masking in Transformers or step-by-step recurrence in RNNs.
+
+*Why it matters / pitfall / interview trap:* Bidirectional models (BERT, bidirectional RNNs) cannot be used as autoregressive decoders because their representations already incorporate future tokens ("saw the answer").
+
+---
+
+**Backpropagation Through Time (BPTT)**
+
+*The problem:* training an RNN requires computing gradients through the unrolled computation graph across all timesteps.
+
+*Core insight / definition:* Backpropagation is applied to the RNN cell "unrolled" once per timestep (each copy sharing weights); gradients flow backward through the entire chain of timesteps.
+
+*Why it matters / pitfall / interview trap:* Full BPTT over long sequences is what causes vanishing/exploding gradients — the practical fix used everywhere is truncated BPTT.
+
+---
+
+**BatchNorm**
+
+*The problem:* internal distributional shift between layers during training slows convergence and constrains usable learning rates.
+
+*Core insight / definition:* Normalizes activations within a batch: $\frac{x-\mu}{\sigma}\gamma + \beta$, with learned scale $\gamma$ and shift $\beta$ restoring representational flexibility after normalization.
+
+*Why it matters / pitfall / interview trap:* Standard building block in CNNs (e.g., ResNet); interviewers may probe train/eval mode differences (running statistics vs batch statistics), though this file doesn't detail that.
+
+---
+
+**BERT**
+
+*The problem:* need rich bidirectional representations for understanding tasks (classification, NER, extractive QA).
+
+*Core insight / definition:* An encoder-only Transformer using bidirectional (unmasked) self-attention, pretrained with masked token prediction so every token can see the full context including "future" tokens.
+
+*Why it matters / pitfall / interview trap:* Cannot be used for autoregressive generation — during training it sees the answer at every position, which is exactly wrong for decoding.
+
+---
+
+**Bidirectional RNN**
+
+*The problem:* a standard (unidirectional) RNN at position $t$ only sees tokens $1,\ldots,t$, but tasks like NER or sentiment classification often need future context too.
+
+*Core insight / definition:* Run two RNNs, one processing the sequence forward and one backward, then concatenate their hidden states at each position: $h_t = [\overrightarrow{h}_t; \overleftarrow{h}_t]$.
+
+*Why it matters / pitfall / interview trap:* Requires the full sequence before the backward pass can start, making it non-autoregressive — usable only as an encoder, never as a decoder for token-by-token generation.
+
+---
+
+**Causal masking**
+
+*The problem:* during autoregressive generation, a model predicting token $t$ must not see tokens $t+1, t+2, \ldots$, or it trivially "cheats."
+
+*Core insight / definition:* Before softmax, attention scores to future positions are set to $-\infty$ (typically via a lower-triangular mask), so after softmax those positions receive ~0 weight.
+
+*Why it matters / pitfall / interview trap:* Makes the model strictly unidirectional/causal — correct for decoders (GPT-style) but wrong for encoders (BERT-style), which use no mask at all.
+
+---
+
+**Cell state (LSTM)**
+
+*The problem:* vanilla RNN hidden states are updated multiplicatively every step, causing gradients to vanish or explode over long sequences.
+
+*Core insight / definition:* A second recurrent state $c_t$ that is updated only additively: $c_t = f_t \odot c_{t-1} + i_t \odot \tilde{c}_t$, acting as a "gradient highway" separate from the hidden state $h_t$.
+
+*Why it matters / pitfall / interview trap:* The gradient $\partial c_t/\partial c_{t-1} = f_t$ is element-wise, not a matrix product — this is the mechanical reason LSTMs solve vanishing gradients (the "constant error carousel").
+
+---
+
+**Chinchilla scaling law**
+
+*The problem:* given a fixed compute budget, how should it be allocated between model parameters and training data?
+
+*Core insight / definition:* Loss follows $L(N,D) \approx A/N^\alpha + B/D^\beta + L_\infty$; the compute-optimal ratio is roughly $D \approx 20N$ training tokens per parameter — before this finding, most large models were undertrained relative to their size.
+
+*Why it matters / pitfall / interview trap:* Compute-optimal training is not the same as inference-optimal serving — a smaller model trained on more tokens than "optimal" can outperform and serve faster than a larger, less-trained model.
+
+---
+
+**CNN (Convolutional Neural Network)**
+
+*The problem:* fully-connected layers on image data have no notion of locality or translation invariance and require an explosion of parameters (a 224×224×3 image needs 617M params for one FC layer of 4096 units).
+
+*Core insight / definition:* Slide a shared kernel $W$ across spatial positions, computing $(f*W)[i,j] = \sum_{m,n} f[i+m,j+n]W[m,n]$; the same weights detect the same feature anywhere in the image (weight sharing).
+
+*Why it matters / pitfall / interview trap:* Solves parameter explosion, encodes locality, and gives translation equivariance — but this is frequently confused with translation invariance (a separate property introduced by pooling, not convolution).
+
+---
+
+**Compound scaling (EfficientNet)**
+
+*The problem:* scaling a CNN's depth, width, or input resolution independently is suboptimal.
+
+*Core insight / definition:* Scale depth, width, and resolution simultaneously at a fixed ratio derived via neural architecture search, rather than tuning one dimension alone.
+
+*Why it matters / pitfall / interview trap:* EfficientNet's headline contribution — shows that naive single-axis scaling (just "make it deeper") leaves performance on the table.
+
+---
+
+**Constant Error Carousel**
+
+*The problem:* need an explanation for why LSTM gradients don't vanish the way vanilla RNN gradients do.
+
+*Core insight / definition:* Because the cell-state gradient $\partial c_t/\partial c_{t-1} = f_t$ involves only element-wise multiplication (no matrix multiply, no tanh′ squashing), when the forget gate stays near 1, gradient flows backward essentially unattenuated — coined by Hochreiter & Schmidhuber (1997).
+
+*Why it matters / pitfall / interview trap:* This is the canonical, precise mechanistic answer interviewers want instead of the vague "LSTMs prevent vanishing gradients."
+
+---
+
+**Cross-attention**
+
+*The problem:* some architectures need one sequence (or modality) to attend to a different sequence, not itself.
+
+*Core insight / definition:* Queries come from one sequence while keys and values come from another — used in encoder-decoder Transformers (decoder attends to encoder output), multimodal models (text attending to image patches), and RAG (query attending to retrieved documents).
+
+*Why it matters / pitfall / interview trap:* Distinguish clearly from self-attention: the Q source and the K/V source differ, which is what enables translation-style architectures.
+
+---
+
+**Decoder-only Transformer**
+
+*The problem:* generation tasks (text completion, instruction following, agents) require predicting the next token without seeing the future.
+
+*Core insight / definition:* Uses causal self-attention only — every token attends solely to past tokens — pretrained on next-token prediction. Examples: GPT-2/3/4, LLaMA, Mistral, Claude.
+
+*Why it matters / pitfall / interview trap:* The dominant architecture for modern LLMs; contrast with encoder-only (bidirectional) and encoder-decoder (both).
+
+---
+
+**Deep / Stacked RNNs**
+
+*The problem:* a single RNN layer captures only one level of temporal abstraction.
+
+*Core insight / definition:* Stack multiple RNN layers so layer $l$'s hidden state at time $t$, $h_t^{(l)}$, is computed from the previous layer's output $h_t^{(l-1)}$ and its own prior state $h_{t-1}^{(l)}$ — lower layers learn local patterns, higher layers learn longer-range structure.
+
+*Why it matters / pitfall / interview trap:* Typically 2–4 layers; beyond that, gains diminish and training instability increases. Dropout should be applied between layers, never on recurrent connections (which would destroy temporal information) — use recurrent dropout (a single mask reused across all timesteps) instead.
+
+---
+
+**Diffusion Model**
+
+*The problem:* need stable, diverse, high-quality generative image synthesis without the training instability of GANs.
+
+*Core insight / definition:* (Referenced/moved to a dedicated file.) A noise-prediction/regression-based generative process; the default choice for image synthesis unless per-sample latency rules it out.
+
+*Why it matters / pitfall / interview trap:* Selection framing: no mode collapse, stable regression training, best sample diversity — the tradeoff versus GANs is speed at inference.
+
+---
+
+**Dot-product attention (Scaled Dot-Product Attention)**
+
+*The problem:* need a concrete, efficient way to compute "similarity" between a query and a set of keys.
+
+*Core insight / definition:* $\text{Attention}(Q,K,V) = \text{softmax}(QK^T/\sqrt{d_k})V$ — compatibility is measured by dot product, scaled by $\sqrt{d_k}$, normalized with softmax, then used to weight-average the values.
+
+*Why it matters / pitfall / interview trap:* The scaling factor is not cosmetic — omitting it causes softmax to saturate into near one-hot outputs and kills gradients.
+
+---
+
+**Dropout**
+
+*The problem:* deep networks overfit by co-adapting features/units to each other.
+
+*Core insight / definition:* Randomly zero out a fraction of units during training, forcing the network to not rely on any single unit — used e.g. in AlexNet, and between (not within) stacked RNN layers.
+
+*Why it matters / pitfall / interview trap:* In RNNs, applying dropout to recurrent connections destroys temporal information; must be restricted to inter-layer connections or use a single fixed mask per sequence (recurrent dropout).
+
+---
+
+**Encoder-decoder Transformer**
+
+*The problem:* transformation tasks like translation or summarization have distinct input and output sequences/spaces.
+
+*Core insight / definition:* An encoder processes the input with bidirectional attention; a decoder generates output using causal self-attention plus cross-attention to the encoder's output. Examples: T5, BART, Whisper, the original Transformer.
+
+*Why it matters / pitfall / interview trap:* Distinguish from decoder-only: the encoder can be fully bidirectional because the whole input is known upfront, while the decoder must remain causal.
+
+---
+
+**Encoder-only Transformer**
+
+*The problem:* understanding tasks (classification, NER, extractive QA, embeddings) require representations informed by the full input, not just the past.
+
+*Core insight / definition:* Uses bidirectional attention — every token attends to every other token — with no causal mask. Examples: BERT, RoBERTa, DeBERTa.
+
+*Why it matters / pitfall / interview trap:* Cannot generate autoregressively; the whole point is that every position already "sees" the whole sequence.
+
+---
+
+**Exploding gradients**
+
+*The problem:* during BPTT, gradients can grow rather than shrink, destabilizing training.
+
+*Core insight / definition:* When the dominant eigenvalue of the recurrent weight matrix $W_h$ satisfies $|\lambda_{\max}| > 1$, the repeated Jacobian product grows geometrically across timesteps, producing huge weight updates and NaN losses.
+
+*Why it matters / pitfall / interview trap:* Easy to detect (loss diverges/NaNs) and easy to fix (gradient clipping) — contrast with vanishing gradients, which are subtle and require an architecture change, not just clipping.
+
+---
+
+**Feed-Forward Network (FFN) / Position-wise FFN**
+
+*The problem:* attention aggregates information across positions but provides limited per-token nonlinear transformation capacity.
+
+*Core insight / definition:* A per-position (token-independent) two-layer network applied identically to every token after attention: $\text{FFN}(x) = \max(0, xW_1+b_1)W_2+b_2$, typically with hidden width $4\times d_\text{model}$.
+
+*Why it matters / pitfall / interview trap:* Roughly two-thirds of a standard Transformer's parameters live in the FFN — this is why FFN efficiency (SwiGLU, MoE) is a primary target for scaling improvements.
+
+---
+
+**Flash Attention**
+
+*The problem:* standard attention materializes the full $n \times n$ score matrix in slow GPU HBM, making it memory-bandwidth-bound rather than compute-bound.
+
+*Core insight / definition:* An IO-aware, tiled computation that loads Q/K/V blocks into fast on-chip SRAM and accumulates results via an online softmax (running max and running sum per tile), never writing the full $n\times n$ matrix to HBM. Produces mathematically identical output, reducing memory from $O(n^2)$ to $O(n)$; recomputes attention in the backward pass instead of storing it.
+
+*Why it matters / pitfall / interview trap:* A common trap is calling it an approximation — it is not; it's algorithmically identical output, just IO-efficient, not compute-efficient (compute remains $O(n^2 d)$). FA-1 (2022): 2–4× speedup via tiling; FA-2 (2023): better warp-level parallelism; FA-3 (2024): FP8 support, overlapped GEMM+softmax for H100.
+
+---
+
+**Forget gate**
+
+*The problem:* an LSTM needs to decide what old information in the cell state is no longer relevant.
+
+*Core insight / definition:* $f_t = \sigma(W_f[h_{t-1},x_t]+b_f) \in [0,1]$; multiplies element-wise against $c_{t-1}$, so 0 erases and 1 fully retains.
+
+*Why it matters / pitfall / interview trap:* Bias $b_f$ is conventionally initialized to 1.0–2.0 so the gate starts near "remember everything," letting the model learn what to forget rather than starting from amnesia.
+
+---
+
+**GAN (Generative Adversarial Network)**
+
+*The problem:* need fast, single-pass generative sampling.
+
+*Core insight / definition:* (Referenced/moved to a dedicated file.) An adversarial minimax setup between a generator and discriminator; a single forward pass suffices at inference.
+
+*Why it matters / pitfall / interview trap:* Choose GANs when inference latency is the binding constraint and training instability is acceptable; otherwise prefer diffusion for offline synthesis.
+
+---
+
+**GAT (Graph Attention Network)**
+
+*The problem:* GCN and GraphSAGE treat all neighbors as equally (or merely degree-) important, but not all edges carry equal information.
+
+*Core insight / definition:* Learns an attention weight per edge, analogous to Transformer attention but restricted to graph neighbors: $\alpha_{vu} = \text{softmax}_u(\text{LeakyReLU}(a^T[Wh_v \| Wh_u]))$, then aggregates $h_v^{(k)} = \sigma(\sum_u \alpha_{vu}Wh_u^{(k-1)})$. Multi-head attention stabilizes training.
+
+*Why it matters / pitfall / interview trap:* Strictly more expressive than GCN's fixed normalization, at higher parameter and compute cost per layer.
+
+---
+
+**GCN (Graph Convolutional Network)**
+
+*The problem:* need a graph analogue of convolution that handles irregular neighborhoods.
+
+*Core insight / definition:* $H^{(k)} = \sigma(\tilde{D}^{-1/2}\tilde{A}\tilde{D}^{-1/2}H^{(k-1)}W^{(k)})$, where $\tilde{A}=A+I$ adds self-loops and symmetric normalization by degree prevents high-degree nodes from dominating purely by summing more terms. Every node shares the same weight matrix $W^{(k)}$ (graph analogue of CNN weight sharing).
+
+*Why it matters / pitfall / interview trap:* Aggregation is fixed, not learned, and the original formulation is transductive — it can't naturally generalize to unseen nodes without GraphSAGE-style modification.
+
+---
+
+**Gradient clipping**
+
+*The problem:* exploding gradients cause NaN losses and destabilize training.
+
+*Core insight / definition:* If the global gradient $L_2$ norm exceeds threshold $\tau$, rescale the entire gradient vector: $\nabla \leftarrow (\tau/\|\nabla\|_2)\nabla$. Standard $\tau$ is 1.0–5.0.
+
+*Why it matters / pitfall / interview trap:* Clipping by global norm (preferred) preserves gradient direction, unlike clipping by value (per-element), which distorts direction. Frequent clipping suggests the learning rate is too high.
+
+---
+
+**GraphSAGE**
+
+*The problem:* production graphs grow (new users/items); GCN's fixed adjacency can't embed unseen nodes without retraining on the whole graph.
+
+*Core insight / definition:* Learns an aggregation *function* (shared, not tied to a fixed adjacency matrix) applied to a fixed-size random *sample* of each node's neighbors: $h_v^{(k)} = \sigma(W^{(k)}\cdot\text{CONCAT}(h_v^{(k-1)}, \text{AGG}(\{h_u^{(k-1)}: u\in\mathcal{S}(v)\})))$.
+
+*Why it matters / pitfall / interview trap:* "Inductive" here specifically means generalizing to nodes/graphs not seen in training; neighbor sampling also bounds per-node compute cost, preventing high-degree nodes from blowing up a batch.
+
+---
+
+**GIN (Graph Isomorphism Network)**
+
+*The problem:* mean/max aggregation cannot distinguish some non-isomorphic graphs — different neighbor multisets can produce identical means.
+
+*Core insight / definition:* Uses sum aggregation plus an MLP: $h_v^{(k)} = \text{MLP}^{(k)}((1+\epsilon)h_v^{(k-1)} + \sum_u h_u^{(k-1)})$, proven as powerful as the Weisfeiler-Lehman (WL) graph isomorphism test — the theoretical expressiveness ceiling for message-passing GNNs.
+
+*Why it matters / pitfall / interview trap:* Know cold: sum > max > mean in expressive power, and no message-passing GNN exceeds 1-WL expressiveness without extra structural features.
+
+---
+
+**GNN (Graph Neural Network)**
+
+*The problem:* graphs have neither a regular grid (CNN assumption) nor a sequence order (RNN/Transformer assumption) — any number of neighbors, no canonical ordering.
+
+*Core insight / definition:* Generalizes convolution to irregular, non-Euclidean structure via message passing: each node aggregates information from its graph neighbors, requiring permutation invariance (output unchanged by relabeling nodes).
+
+*Why it matters / pitfall / interview trap:* Nearly every variant (GCN, GraphSAGE, GAT, GIN) is an instance of the same message-passing template; the central, most-tested failure mode is over-smoothing.
+
+---
+
+**GPT-2 / GPT-family**
+
+*The problem:* need an architecture capable of open-ended autoregressive text generation at scale.
+
+*Core insight / definition:* Decoder-only Transformer using pre-LayerNorm and learned positional embeddings, causal self-attention, trained on next-token prediction.
+
+*Why it matters / pitfall / interview trap:* Cited as the point where pre-norm became the modern default over the original post-norm Transformer, for large-scale training stability.
+
+---
+
+**GQA (Grouped-Query Attention)**
+
+*The problem:* MQA reduces KV cache maximally but with real quality loss; full MHA has the largest possible KV cache.
+
+*Core insight / definition:* Groups of $g$ query heads share one K/V projection pair, reducing cache size by factor $n_\text{heads}/g$ — an interpolation between MHA and MQA.
+
+*Why it matters / pitfall / interview trap:* The standard in production LLMs (LLaMA 3, Gemma, Mistral) — empirically under 1% quality loss versus MHA with 4–8× memory reduction; the single most practically impactful serving optimization cited in these files.
+
+---
+
+**GRU (Gated Recurrent Unit)**
+
+*The problem:* LSTMs work but carry four gates and two separate states — can this be simplified without losing much performance?
+
+*Core insight / definition:* Merges cell and hidden state into one, and merges forget/input gates into a single update gate $z_t$, plus a reset gate $r_t$: $\tilde{h}_t = \tanh(W_h[r_t\odot h_{t-1}, x_t])$, $h_t = (1-z_t)\odot h_{t-1} + z_t\odot\tilde{h}_t$.
+
+*Why it matters / pitfall / interview trap:* Uses 3 weight matrices vs LSTM's 4 (fewer parameters, faster training); performance is generally comparable, occasionally slightly worse on very long-range tasks. Good default when experimenting.
+
+---
+
+**Hochreiter & Schmidhuber (1997) / LSTM origin**
+
+*The problem:* attribution for the LSTM's core mechanism.
+
+*Core insight / definition:* Original paper introducing the LSTM cell state and the "constant error carousel" concept that solves vanishing gradients via additive, gated state updates.
+
+*Why it matters / pitfall / interview trap:* Useful to cite by name in interviews to show grounding in the mechanism's origin, not just the modern usage.
+
+---
+
+**KV Cache**
+
+*The problem:* naive autoregressive generation recomputes keys and values for every past token at every generation step, costing $O(n^2)$ total.
+
+*Core insight / definition:* Since past tokens' keys/values don't change under causal masking, compute them once and cache them; at each step only the new token's $K_t$, $V_t$ are computed and appended, reducing per-step compute to $O(n)$.
+
+*Why it matters / pitfall / interview trap:* Cache size grows linearly as $2 \times n_\text{layers} \times n_\text{heads} \times d_k \times n_\text{ctx}$ and dominates GPU memory at long contexts (100K+ tokens) — this is why MQA/GQA exist.
+
+---
+
+**LayerNorm**
+
+*The problem:* deep networks need stable activation scales across layers to train reliably.
+
+*Core insight / definition:* Normalizes activations (mean/variance) within each token/example rather than across a batch; placed either after a sublayer (post-norm) or before it (pre-norm) relative to the residual stream.
+
+*Why it matters / pitfall / interview trap:* In pre-norm architectures the final residual stream is left unnormalized — a final LayerNorm before the output head is mandatory, or logit magnitudes become unpredictable.
+
+---
+
+**Learned positional embeddings**
+
+*The problem:* need a way to inject position information that the sinusoidal scheme's fixed pattern might not optimally capture.
+
+*Core insight / definition:* An embedding table of shape [max_seq_len, d] where each position index has its own learned vector, added to token embeddings. Used in BERT, GPT-2.
+
+*Why it matters / pitfall / interview trap:* Hard limit at training context length — position 2049 has no embedding if training used a 2048 window; no extrapolation beyond that.
+
+---
+
+**Linear Attention**
+
+*The problem:* standard attention's $O(n^2)$ cost is prohibitive at very long sequences.
+
+*Core insight / definition:* An approximate attention formulation with $O(nd^2)$ time and $O(d^2)$ memory, trading some quality for linear-in-sequence-length scaling.
+
+*Why it matters / pitfall / interview trap:* Explicitly framed as approximate (unlike Flash Attention) — there is a real quality tradeoff, not just an implementation change.
+
+---
+
+**LSTM (Long Short-Term Memory)**
+
+*The problem:* vanilla RNNs cannot retain information over long sequences due to vanishing gradients.
+
+*Core insight / definition:* Introduces a cell state $c_t$ updated additively and gated by four learned sigmoid/tanh gates (forget $f_t$, input $i_t$, cell candidate $\tilde{c}_t$, output $o_t$): $c_t = f_t\odot c_{t-1} + i_t\odot\tilde{c}_t$, $h_t = o_t\odot\tanh(c_t)$.
+
+*Why it matters / pitfall / interview trap:* Roughly 4× the parameters of a vanilla RNN ($4d_h(d_h+d_x+1)$); still cannot parallelize across time, which is why Transformers ultimately displaced it at scale.
+
+---
+
+**Mamba**
+
+*The problem:* Transformers are quadratic in sequence length; RNNs are linear but sequential and hard to parallelize during training.
+
+*Core insight / definition:* A selective State Space Model (Gu & Dao, 2023) that makes the SSM matrices $\bar{A}, \bar{B}, C$ input-dependent, recovering expressiveness that fixed (non-selective) SSMs lack, while retaining the dual convolution/recurrence form.
+
+*Why it matters / pitfall / interview trap:* Achieves competitive language modeling performance to Transformers at significantly reduced memory cost for long sequences; still considered promising rather than dominant.
+
+---
+
+**Masked token prediction**
+
+*The problem:* need a bidirectional pretraining objective that doesn't trivially let the model see the answer.
+
+*Core insight / definition:* Randomly mask a subset of input tokens and train the encoder to predict them from the surrounding (bidirectional) context — BERT's pretraining objective.
+
+*Why it matters / pitfall / interview trap:* Contrasted directly with next-token prediction (decoder-only objective); this is why BERT-style models can't generate autoregressively.
+
+---
+
+**Message-passing (Message step)**
+
+*The problem:* a GNN needs a way to propagate information from a node's neighbors into its own representation.
+
+*Core insight / definition:* The first of the three-step GNN template: compute a message from each neighbor $u \in \mathcal{N}(v)$, typically a function of $u$'s current representation (and optionally edge features).
+
+*Why it matters / pitfall / interview trap:* Nearly every GNN variant (GCN, GraphSAGE, GAT, GIN) is an instance of message → aggregate → update; recognizing this unifies otherwise-separate architectures in an interview answer.
+
+---
+
+**MHA (Multi-Head Attention)** — see Multi-Head Attention
+
+---
+
+**Mixture-of-Experts (MoE) FFN**
+
+*The problem:* widening a dense FFN increases capacity but also increases compute cost for every token, since 100% of parameters activate on every forward pass.
+
+*Core insight / definition:* Replace the single FFN with $N$ parallel expert FFNs plus a lightweight router that selects the top-$k$ experts (typically $k=1$ or $2$) per token: $y = \sum_{i\in\text{Top-}k(\text{router}(x))} g_i(x)\cdot\text{FFN}_i(x)$. Parameter count scales with $N$; compute per token scales only with $k$.
+
+*Why it matters / pitfall / interview trap:* Naive top-$k$ routing collapses — the router funnels most tokens to a few popular experts (rich-get-richer), requiring an auxiliary load-balancing loss and per-expert capacity limits; MoE serving also requires expert-parallel sharding with all-to-all communication, a genuinely new infra burden versus dense models.
+
+---
+
+**MLP (Multi-Layer Perceptron)**
+
+*The problem:* need a default architecture for data with no spatial or sequential structure.
+
+*Core insight / definition:* Fully-connected feedforward network; appropriate inductive-bias-free baseline for tabular data, alongside gradient boosting.
+
+*Why it matters / pitfall / interview trap:* Recommending Transformers/CNNs for tabular data without >1M rows or high-cardinality embedding needs is a common misstep — XGBoost/MLP is the right default.
+
+---
+
+**MQA (Multi-Query Attention)**
+
+*The problem:* full multi-head attention's KV cache scales with number of heads, dominating memory at long context.
+
+*Core insight / definition:* All query heads share a single K, V projection, dividing KV cache size by $n_\text{heads}$.
+
+*Why it matters / pitfall / interview trap:* Maximizes memory savings but with the most quality degradation among MHA/GQA/MQA — GQA is generally preferred in production as the better quality-memory tradeoff.
+
+---
+
+**Multi-Head Attention (MHA)**
+
+*The problem:* a single attention computation can only capture one type of relationship at a time (e.g., syntax OR semantics, not both).
+
+*Core insight / definition:* Run $h$ independent attention computations in parallel, each with its own learned projections to $d_k=d_v=d_\text{model}/h$, then concatenate and project: $\text{MultiHead}(Q,K,V)=\text{Concat}(\text{head}_1,\ldots,\text{head}_h)W^O$.
+
+*Why it matters / pitfall / interview trap:* Total compute equals one large attention head's compute, just split across heads — not more expensive. Some heads in trained models end up nearly inert (near-uniform weights, contributing little), which is a known empirical finding.
+
+---
+
+**Neighbor sampling**
+
+*The problem:* full-batch GNN training multiplies the entire adjacency matrix every forward pass, which doesn't fit in memory for graphs with tens of millions of nodes; a node with huge degree can also cause "neighbor explosion" across layers.
+
+*Core insight / definition:* Sample a fixed-size subset of neighbors per node per layer and construct only the computational subgraph needed for the current mini-batch (GraphSAGE-style).
+
+*Why it matters / pitfall / interview trap:* The standard answer to "your graph doesn't fit in memory"; Cluster-GCN (partition-then-train) is the alternative when even sampled neighborhoods are too large.
+
+---
+
+**Online softmax**
+
+*The problem:* Flash Attention needs to compute softmax over the full row of attention scores without ever materializing the full row in memory.
+
+*Core insight / definition:* Maintains a running max $m$ and running sum $\ell$, updated incrementally as tiles of the attention matrix are processed, producing output numerically identical to full softmax computed tile-by-tile.
+
+*Why it matters / pitfall / interview trap:* This is the mathematical trick that makes tiled, SRAM-resident attention computation possible without approximation.
+
+---
+
+**Orthogonal initialization**
+
+*The problem:* vanishing/exploding gradients in RNNs are partly caused by the eigenvalue spectrum of $W_h$ at initialization.
+
+*Core insight / definition:* Initialize $W_h$ as an orthogonal matrix so all its eigenvalues have $|\lambda|=1$, meaning the repeated product $W_h^T$ neither grows nor shrinks at the start of training.
+
+*Why it matters / pitfall / interview trap:* Only helps at initialization — it does not prevent eigenvalue drift as training proceeds, so it's a mitigation, not a fix.
+
+---
+
+**Output gate**
+
+*The problem:* the LSTM cell state $c_t$ carries a lot of information, but not all of it should be exposed to downstream computation at every step.
+
+*Core insight / definition:* $o_t = \sigma(W_o[h_{t-1},x_t]+b_o) \in [0,1]$; controls how much of $\tanh(c_t)$ becomes the exposed hidden state: $h_t = o_t \odot \tanh(c_t)$.
+
+*Why it matters / pitfall / interview trap:* Distinguishes the "memory" ($c_t$) from the "externally visible state" ($h_t$) — a common point of confusion when first learning LSTMs.
+
+---
+
+**Over-smoothing**
+
+*The problem:* naively stacking many GNN layers to increase receptive field, by analogy with deep CNNs, doesn't work the same way.
+
+*Core insight / definition:* After enough message-passing rounds, every node's representation converges toward the graph (or connected-component) average, because repeated averaging is a contraction; accuracy degrades past roughly 2–4 layers on most graphs.
+
+*Why it matters / pitfall / interview trap:* The single most-tested GNN failure mode. Conceptually distinct from vanishing gradients: it is a representational collapse in the forward pass, not an optimization/gradient-signal problem — better optimization doesn't fix it, only architectural mitigations do (residual connections, jumping knowledge/skip aggregation, fewer layers).
+
+---
+
+**Permutation invariance**
+
+*The problem:* a GNN's output must not depend on an arbitrary relabeling/reordering of graph nodes, since graphs have no canonical node order.
+
+*Core insight / definition:* The requirement that aggregation operators (sum, mean, max) and the overall GNN output remain unchanged under any permutation of neighbor ordering — this is what makes an operator valid for graph data.
+
+*Why it matters / pitfall / interview trap:* Applying a CNN or RNN to a graph requires imposing an artificial ordering, which throws away real structure and violates this property — the core reason GNNs exist as a distinct architecture family.
+
+---
+
+**Positional encoding**
+
+*The problem:* self-attention (and pure Transformers) is permutation-invariant/equivariant — swapping two input tokens produces the same set of outputs, just reordered, so word order information is lost.
+
+*Core insight / definition:* A position-dependent signal added to (or otherwise injected into) token embeddings before/within attention so the model can distinguish token order. Families: sinusoidal, learned, RoPE, ALiBi.
+
+*Why it matters / pitfall / interview trap:* Without it, "dog bites man" and "man bites dog" are indistinguishable to a pure attention layer.
+
+---
+
+**Post-Norm**
+
+*The problem:* where should LayerNorm sit relative to a sublayer and its residual connection?
+
+*Core insight / definition:* $x = \text{LayerNorm}(x + \text{Sublayer}(x))$ — the original "Attention is All You Need" formulation; gradients must pass through normalization on the residual path itself.
+
+*Why it matters / pitfall / interview trap:* Adds an extra scaling step into the gradient path, making very deep networks less stable — this is why pre-norm became the modern default; treating the choice as "cosmetic" is a common interview trap.
+
+---
+
+**Pre-Norm**
+
+*The problem:* post-norm training becomes unstable at large depth/scale because gradients on the residual path pass through normalization.
+
+*Core insight / definition:* $x = x + \text{Sublayer}(\text{LayerNorm}(x))$ — normalization happens only inside the sublayer branch, leaving the residual stream itself as a clean, unnormalized additive path with gradient magnitude exactly 1.
+
+*Why it matters / pitfall / interview trap:* Requires a final LayerNorm before the output head (since the residual stream is otherwise never normalized); this is the modern default (GPT-2+, LLaMA, most LLMs).
+
+---
+
+**Query, Key, Value (Q/K/V)**
+
+*The problem:* "look at relevant states" is vague — need concrete mechanics for what's being matched and what's returned.
+
+*Core insight / definition:* Query = what a token is currently looking for; Key = what each token advertises about its content; Value = the actual content returned if the match is strong. Similarity between query and keys determines the weighting used to combine values.
+
+*Why it matters / pitfall / interview trap:* Foundational vocabulary — nearly every attention variant (self, cross, multi-head, GAT) is described in these terms.
+
+---
+
+**Receptive field**
+
+*The problem:* both CNNs and GNNs need language for "how far information can propagate" as a function of depth.
+
+*Core insight / definition:* The set of input positions/nodes whose information can influence a given unit's output; grows with the number of stacked layers (conv layers for CNNs, message-passing layers for GNNs).
+
+*Why it matters / pitfall / interview trap:* In GNNs, receptive field growth is not free the way it is (mostly) in CNNs — too many layers causes over-smoothing rather than continued improvement, unlike deep CNNs where pixels stay distinguishable.
+
+---
+
+**Recurrent dropout**
+
+*The problem:* standard dropout applied per-timestep on recurrent connections would destroy temporal information carried through the hidden state.
+
+*Core insight / definition:* Sample one dropout mask per sequence (not per timestep) and reuse that same mask at every step (Gal & Ghahramani 2016), preserving gradient flow through time while still regularizing.
+
+*Why it matters / pitfall / interview trap:* The key distinction from naive dropout is "one mask per sequence," not "one mask per call" — getting this backwards breaks temporal coherence.
+
+---
+
+**Reparameterization trick**
+
+*The problem:* you cannot backpropagate through a random sampling operation $z \sim \mathcal{N}(\mu,\sigma^2)$, since sampling is not differentiable.
+
+*Core insight / definition:* Rewrite the sample as a deterministic, differentiable function of the encoder's outputs plus external noise: $z = \mu + \sigma \odot \epsilon$, $\epsilon \sim \mathcal{N}(0,I)$, treating $\epsilon$ as a constant with respect to gradients.
+
+*Why it matters / pitfall / interview trap:* This is what makes VAEs trainable end-to-end with standard backpropagation; a very common "derive this" interview question.
+
+---
+
+**ReLU (Rectified Linear Unit)**
+
+*The problem:* sigmoid/tanh activations saturate and zero out gradients in deep networks (gradient saturation).
+
+*Core insight / definition:* $\max(0,x)$ — a simple piecewise-linear activation with no saturation for positive inputs, which keeps gradients flowing in deep networks.
+
+*Why it matters / pitfall / interview trap:* The specific fix that made AlexNet-depth CNNs trainable; contrast with GELU/Swish used in later Transformer FFNs.
+
+---
+
+**ResNet / Residual (Skip) Connections**
+
+*The problem:* deeper CNNs empirically performed *worse* than shallower ones — a degradation problem, not overfitting.
+
+*Core insight / definition:* $y = F(x) + x$ — the network defaults to an identity mapping and only needs to learn the residual/deviation from identity. Gradient through a residual block is $\partial\mathcal{L}/\partial x = (\partial\mathcal{L}/\partial y)(\partial F/\partial x + 1)$, so the "+1" term always passes signal through even if $F$'s gradient shrinks to near zero.
+
+*Why it matters / pitfall / interview trap:* The precise mechanical answer ("+1 term in the gradient, identity is default") is expected, not just "prevents vanishing gradients" as a vague claim. This same mechanism underlies why pre-norm Transformer residual streams are stable.
+
+---
+
+**RMSNorm**
+
+*The problem:* LayerNorm's mean-subtraction step adds unnecessary compute and complexity.
+
+*Core insight / definition:* Removes the mean-centering step from LayerNorm, normalizing only by root-mean-square magnitude — used in LLaMA-style models.
+
+*Why it matters / pitfall / interview trap:* ~10% faster than LayerNorm with no measured quality loss; part of the "modern LLM recipe" alongside RoPE, SwiGLU, GQA.
+
+---
+
+**RoPE (Rotary Position Embedding)**
+
+*The problem:* absolute positional encodings make the attention score $q_m \cdot k_n$ depend on absolute positions $m,n$ rather than relative distance, hurting length extrapolation.
+
+*Core insight / definition:* Rotates each Q/K dimension pair $(x_{2i}, x_{2i+1})$ by an angle $m\theta_i$ (with $\theta_i = 1/10000^{2i/d}$), so that $(R_mq)^T(R_nk) = q^TR_{m-n}k$ — the dot product depends only on relative offset $m-n$. Low-frequency pairs capture long-range context; high-frequency pairs capture local structure.
+
+*Why it matters / pitfall / interview trap:* Generalizes better than learned/absolute encodings but still degrades somewhat beyond training length without fine-tuning; extension methods include NTK scaling, YaRN, and LongRoPE (used in Phi-3-mini-128K).
+
+---
+
+**Router (MoE)**
+
+*The problem:* need a mechanism to decide, per token, which experts in a Mixture-of-Experts FFN should process it.
+
+*Core insight / definition:* A lightweight learned function $\text{router}(x) = \text{softmax}(xW_r)$ producing per-expert scores; Top-$k$ selects the highest-scoring experts, whose outputs are combined with (renormalized) gate weights $g_i(x)$.
+
+*Why it matters / pitfall / interview trap:* Naive routers collapse onto a few popular experts without an auxiliary load-balancing loss — a key practical failure mode to name in interviews.
+
+---
+
+**Scaling laws** — see Chinchilla scaling law
+
+---
+
+**Self-attention**
+
+*The problem:* need a mechanism for a single sequence to build contextual representations by referencing its own other tokens (no separate encoder-decoder pair required, e.g. in GPT).
+
+*Core insight / definition:* Q, K, and V all derive from the same sequence; each token asks "which other tokens in this sequence matter for my representation?" — e.g., the word "bank" is disambiguated by attending to nearby "river" or "money."
+
+*Why it matters / pitfall / interview trap:* This is the mechanism that gives Transformers an $O(1)$ path length between any two positions, versus the $O(n)$ sequential path in RNNs — the key reason long-range dependencies are easier to learn.
+
+---
+
+**Sequence packing**
+
+*The problem:* batching variable-length sequences naively requires padding shorter ones and masking padded positions, wasting compute.
+
+*Core insight / definition:* Densely pack variable-length sequences (e.g., via PyTorch's `pack_padded_sequence`/`pad_packed_sequence`) so the RNN only processes actual tokens, not padding.
+
+*Why it matters / pitfall / interview trap:* Requires sorting by length (or `enforce_sorted=False`) — an implementation detail interviewers sometimes probe when discussing production RNN training efficiency.
+
+---
+
+**Sinusoidal positional encoding**
+
+*The problem:* need a parameter-free way to inject absolute position information into a permutation-invariant attention mechanism.
+
+*Core insight / definition:* $PE_{(pos,2i)} = \sin(pos/10000^{2i/d})$, $PE_{(pos,2i+1)} = \cos(pos/10000^{2i/d})$ — fixed, not learned; different frequencies encode different position scales. Used in the original Transformer.
+
+*Why it matters / pitfall / interview trap:* Encodes absolute positions independently, so the model must infer relative distance indirectly from two absolute values — this doesn't generalize well to very long sequences, which is why RoPE/ALiBi were developed.
+
+---
+
+**Sparse Attention**
+
+*The problem:* standard $O(n^2)$ attention is prohibitive at very long sequence lengths.
+
+*Core insight / definition:* Restricts each token's attention to a structured subset of other tokens rather than the full sequence, achieving $O(n\sqrt{n}\cdot d)$ time and $O(n\sqrt{n})$ memory. Examples: Longformer, BigBird.
+
+*Why it matters / pitfall / interview trap:* Listed as one of four complexity tiers alongside standard, Flash, and linear attention — useful for framing tradeoffs in a systems-style interview answer.
+
+---
+
+**SSM (State Space Model)**
+
+*The problem:* RNNs are linear-memory but sequential (can't parallelize training); Transformers are parallel but quadratic in sequence length.
+
+*Core insight / definition:* Model sequences via a latent state governed by learned (discretized) continuous-time dynamics: $h_t = \bar{A}h_{t-1} + \bar{B}x_t$, $y_t = Ch_t$. Can be computed as a convolution during training (parallel) and as a recurrence during inference (constant memory) — linear in sequence length, $O(n\cdot d)$.
+
+*Why it matters / pitfall / interview trap:* RNNs lack this dual convolution/recurrence form because their nonlinearities (tanh, sigmoid) prevent exact convolution — SSMs avoid this by keeping the recurrence linear; Mamba adds input-dependent (selective) parameters on top.
+
+---
+
+**Stateful LSTM / inference**
+
+*The problem:* very long sequences (audio, long documents) must be chunked into fixed-length windows for training/inference, but independent chunks lose continuity.
+
+*Core insight / definition:* Initialize a chunk's hidden state with the final hidden state from the previous chunk/batch, so the model sees a continuous stream rather than independent, disconnected windows.
+
+*Why it matters / pitfall / interview trap:* Requires consistent batch/chunk ordering; gradient flow is still truncated at chunk boundaries unless the full computation graph is carried (expensive); state must be reset carefully at true sequence boundaries to avoid contamination between unrelated sequences.
+
+---
+
+**SwiGLU**
+
+*The problem:* the standard ReLU-based FFN limits nonlinear expressiveness per parameter.
+
+*Core insight / definition:* $\text{FFN}(x) = (\text{Swish}(xW_1)\odot xW_2)W_3$ — a gated activation using three projections instead of two; hidden dimension typically scaled to $\frac{8}{3}d_\text{model}$ to keep parameter count matched to a standard FFN. Used in LLaMA-style models.
+
+*Why it matters / pitfall / interview trap:* Empirically converges 15–20% faster than ReLU-based FFNs despite the extra matrix, per the files' interview notes — a common "what changed since the original Transformer" answer.
+
+---
+
+**Transformer Block**
+
+*The problem:* need a repeatable unit that combines context-mixing and per-token computation with stable gradient flow.
+
+*Core insight / definition:* Two sublayers, each wrapped in a residual connection and layer norm: multi-head self-attention, then a feed-forward network, i.e. (pre-norm) $x = x + \text{Attention}(\text{LN}(x))$, then $x = x + \text{FFN}(\text{LN}(x))$. Stacked $L$ times.
+
+*Why it matters / pitfall / interview trap:* The residual connections give gradients a direct path (gradient magnitude 1) from the output head to early layers regardless of what the sublayers do — the same mechanism as ResNet's skip connections.
+
+---
+
+**Translation equivariance vs. invariance**
+
+*The problem:* interviewers frequently probe whether candidates conflate two related-but-distinct CNN properties.
+
+*Core insight / definition:* Convolutions are *equivariant*: shifting the input shifts the output by the same amount, preserving location information. Pooling (e.g., MaxPool) introduces *invariance*: small input shifts leave the output unchanged, discarding location information.
+
+*Why it matters / pitfall / interview trap:* Object detection wants equivariance (need to know *where*); classification wants invariance (a cat anywhere is still "cat"). Confusing the two is explicitly flagged as a common trap.
+
+---
+
+**Truncated BPTT**
+
+*The problem:* full backpropagation through time over very long sequences is computationally intractable and its gradients are dominated by vanishing/exploding effects anyway.
+
+*Core insight / definition:* Gradients are only propagated backward $k$ steps (typically 20–50, e.g. $k=35$); hidden states are carried forward across the boundary but without gradients beyond the window.
+
+*Why it matters / pitfall / interview trap:* Introduces bias — the model cannot learn dependencies longer than $k$ steps, and gradient estimates ignore how $h_t$ affects losses beyond the window — but is accepted in practice because most relevant context is local and it makes training tractable.
+
+---
+
+**Update gate (GRU)**
+
+*The problem:* GRU needs a single mechanism combining the roles LSTM splits across forget and input gates.
+
+*Core insight / definition:* $z_t = \sigma(W_z[h_{t-1},x_t]+b_z)$; blends old hidden state and new candidate: $h_t = (1-z_t)\odot h_{t-1} + z_t\odot\tilde{h}_t$. Near 0 keeps the old state; near 1 adopts the new candidate.
+
+*Why it matters / pitfall / interview trap:* This single gate is what lets GRUs match LSTM-like gradient-preserving behavior with fewer parameters than LSTM's separate forget/input gates.
+
+---
+
+**Reset gate (GRU)**
+
+*The problem:* GRU needs to be able to "start fresh," ignoring past hidden state when computing a new candidate.
+
+*Core insight / definition:* $r_t = \sigma(W_r[h_{t-1},x_t]+b_r)$; controls how much of the previous hidden state is used when computing the candidate hidden state $\tilde{h}_t$. Near 0 means ignore the past entirely.
+
+*Why it matters / pitfall / interview trap:* Distinct role from the update gate — reset controls candidate computation, update controls blending; conflating the two is a common error.
+
+---
+
+**Update step (message passing)**
+
+*The problem:* after aggregating neighbor messages, a node still needs to combine that with its own prior representation.
+
+*Core insight / definition:* The third step of the message-passing template: $h_v^{(k)} = \text{UPDATE}(h_v^{(k-1)}, \text{AGGREGATE}(\ldots))$ — combines the aggregated neighbor signal with the node's own previous state to produce its new representation.
+
+*Why it matters / pitfall / interview trap:* Forgetting the self-information term (no self-loop or residual-style update) means a node's own information gets diluted or lost entirely, purely a function of its neighbors.
+
+---
+
+**VAE (Variational Autoencoder)**
+
+*The problem:* a standard autoencoder's latent space isn't a continuous, sample-able manifold — nearby latent points can decode to unrelated outputs.
+
+*Core insight / definition:* The encoder outputs distribution parameters $\mu_\phi(x), \log\sigma_\phi^2(x)$ for $q_\phi(z|x)=\mathcal{N}(\mu_\phi(x),\sigma_\phi^2(x))$, regularized toward $\mathcal{N}(0,I)$ via KL divergence in the ELBO objective: $\mathcal{L}_\text{VAE} = \mathbb{E}_{q_\phi}[\log p_\theta(x|z)] - D_\text{KL}(q_\phi(z|x)\|\mathcal{N}(0,I))$. Requires the reparameterization trick to backpropagate through sampling.
+
+*Why it matters / pitfall / interview trap:* Posterior collapse (KL term too strong, encoder ignores $x$, decoder becomes a marginal model) is the *opposite* failure from a disorganized latent space (KL term too weak/absent) — both terms must remain non-negligible. A $\beta$-VAE weights the KL term to trade off disentanglement against reconstruction error.
+
+---
+
+**Vanilla RNN**
+
+*The problem:* process a variable-length sequence while maintaining context, which a feedforward network cannot do since it sees only one timestep with no memory.
+
+*Core insight / definition:* At each timestep, mix the current input with the previous hidden state using shared weights: $h_t = \tanh(W_hh_{t-1}+W_xx_t+b)$; the hidden state is a compressed summary of all previous inputs.
+
+*Why it matters / pitfall / interview trap:* Useful memory effectively spans only ~10–20 steps due to vanishing/exploding gradients through the repeated Jacobian product — this limitation motivated LSTM/GRU.
+
+---
+
+**Vanishing gradients**
+
+*The problem:* during BPTT, gradient signal from later timesteps must reach earlier timesteps through many multiplicative steps.
+
+*Core insight / definition:* When the dominant eigenvalue of $W_h$ satisfies $|\lambda_{\max}|<1$, the repeated Jacobian product shrinks geometrically with sequence length, so early timesteps receive near-zero gradient signal and the model cannot learn long-range dependencies.
+
+*Why it matters / pitfall / interview trap:* Harder to detect than exploding gradients (the model just performs subtly poorly rather than diverging) and cannot be fixed by clipping — requires an architecture change (LSTM/GRU) rather than a training-time patch.
+
+---
+
+**VGG**
+
+*The problem:* it was assumed large convolutional kernels (e.g., 5×5, 7×7) were necessary to capture sufficiently large receptive fields.
+
+*Core insight / definition:* Two stacked 3×3 convolutional layers cover the same receptive field as one 5×5 layer, but with fewer parameters and an extra nonlinearity in between.
+
+*Why it matters / pitfall / interview trap:* A clean example of how stacking small kernels can be strictly better (fewer params, more nonlinearity) than one large kernel — a common CNN design-tradeoff question.
+
+---
+
+**Weight sharing**
+
+*The problem:* fully-connected layers require a distinct set of weights for every spatial position, forcing the network to relearn the same feature detector independently at each location.
+
+*Core insight / definition:* A convolutional kernel (or, in the GNN case, a shared per-layer weight matrix $W^{(k)}$) uses the exact same weights at every position/node, so a learned feature detector transfers automatically across the image or graph.
+
+*Why it matters / pitfall / interview trap:* This is the direct answer to "why does convolution use so many fewer parameters than a fully-connected layer" and its GNN analogue ("why does every node use the same $W^{(k)}$ in a GCN").
+
+---
+
+**Weisfeiler-Lehman (WL) test**
+
+*The problem:* need a formal benchmark for how expressive a message-passing GNN can theoretically be.
+
+*Core insight / definition:* A classical graph isomorphism test; GIN is proven to match its expressive power exactly, which is also the provable ceiling for this class of message-passing GNN architectures.
+
+*Why it matters / pitfall / interview trap:* No message-passing GNN can exceed 1-WL expressiveness without additional structural features — a fact worth stating even without implementing GIN.
 
 ---
 
