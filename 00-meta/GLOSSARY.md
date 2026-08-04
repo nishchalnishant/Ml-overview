@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains done. Remaining: 08-generative through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative done. Remaining: 09-reinforcement-learning through 18-resources.
 
 ---
 
@@ -8426,6 +8426,499 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* The Z-score standardizes a value by subtracting the (local or global) mean and dividing by the standard deviation, flagging points beyond a chosen threshold (e.g., |Z| > 3) as anomalies.
 
 *Why it matters / pitfall / interview trap:* Applying Z-score directly to raw seasonal data flags legitimate seasonal peaks as false anomalies; it should be computed on deseasonalized/detrended residuals — a frequently tested pitfall.
+
+---
+
+
+## 08-generative
+
+**Anomaly Detection (via generative models)**
+
+*The problem:* you need to flag inputs that don't belong to the training distribution, without labeled anomaly examples.
+
+*Core insight / definition:* train a generative model (autoencoder, flow) on normal data only; use reconstruction error or likelihood as an anomaly score — high error/low likelihood suggests out-of-distribution input.
+
+*Why it matters / pitfall / interview trap:* likelihood-based anomaly detection is pathological for flows and deep generative models — they can assign higher likelihood to simpler/smoother out-of-distribution inputs (e.g., flows trained on CIFAR-10 rate SVHN higher) regardless of semantic distribution membership; this is not fixed by more training or a bigger model.
+
+---
+
+**Autoregressive Model**
+
+*The problem:* you want exact likelihood without requiring an invertible, dimension-preserving architecture like flows demand.
+
+*Core insight / definition:* factor the joint distribution exactly via the chain rule, $p_\theta(x) = \prod_{i=1}^{d} p_\theta(x_i \mid x_{<i})$, where each conditional is a tractable 1-D distribution (softmax over pixels/tokens). The product recovers the exact joint likelihood with no approximation.
+
+*Why it matters / pitfall / interview trap:* training is parallel (teacher forcing, one forward pass with causal masking) but sampling is inherently sequential ($d$ passes) because each $x_i$ requires $x_{<i}$ to exist — this asymmetry is the chain-rule factorization's property, not an architecture quirk, and applies identically to LLMs (next-token prediction is exactly this).
+
+---
+
+**β-VAE**
+
+*The problem:* standard VAEs don't reliably produce disentangled, interpretable latent dimensions.
+
+*Core insight / definition:* multiply the KL term in the ELBO by $\beta > 1$: $\mathcal{L} = \mathbb{E}[\log p_\theta(x|z)] - \beta \cdot D_{KL}(q_\phi(z|x)\|p(z))$. Higher $\beta$ pushes the latent space to be smoother and more disentangled, with dimensions tending to align with independent generative factors (pose, color, shape).
+
+*Why it matters / pitfall / interview trap:* increasing $\beta$ trades away reconstruction quality — too high causes posterior collapse for the opposite reason of the standard failure (KL pressure dominates before the decoder learns to use $z$); the fix for collapse depends on whether it's decoder-driven or KL-driven, and reaching for β-VAE without diagnosing which is a common trap.
+
+---
+
+**BERT / Masked Language Modeling (as denoising autoencoder)**
+
+*The problem:* illustrating that denoising autoencoding is a general training paradigm, not just an image technique.
+
+*Core insight / definition:* BERT's masked language modeling is structurally a denoising autoencoder — mask some tokens (corruption), predict the original tokens (reconstruction) — the same objective pattern applied to text.
+
+*Why it matters / pitfall / interview trap:* recognizing this connection signals a deeper understanding of generative/self-supervised objectives across modalities rather than treating each architecture as a special case.
+
+---
+
+**Change of Variables Formula**
+
+*The problem:* to get an exact density under an invertible transformation of a simple base distribution, you need a way to account for how the transformation distorts volume.
+
+*Core insight / definition:* for $x = f_\theta(z)$ with $z \sim p_Z$, $\log p_X(x) = \log p_Z(f_\theta^{-1}(x)) + \log|\det \partial f_\theta^{-1}/\partial x|$ — an equality, not a bound, that lets normalizing flows be trained by directly maximizing exact likelihood.
+
+*Why it matters / pitfall / interview trap:* the Jacobian determinant is $O(d^3)$ for a general transform — fatal for high dimensions — so every flow architecture exists specifically to make this determinant cheap to compute.
+
+---
+
+**Classifier-Free Guidance**
+
+*The problem:* diffusion models conditioned on text (or other signals) don't reliably follow the conditioning signal at generation time.
+
+*Core insight / definition:* scale the difference between conditional and unconditional noise predictions by a guidance weight to trade diversity for fidelity/prompt adherence; works reliably in diffusion models because training is stable regression, unlike adversarial setups.
+
+*Why it matters / pitfall / interview trap:* too low a guidance weight yields plausible images with weak prompt adherence; too high oversaturates and collapses diversity — it's a fidelity/diversity dial, not a pure quality dial, and cannot fix compositional failures (counting, spatial relations) rooted in the text encoder or cross-attention conditioning.
+
+---
+
+**Consistency Distillation**
+
+*The problem:* you want a fast consistency model but need an efficient way to define the ODE trajectories it must learn to shortcut.
+
+*Core insight / definition:* start from an already-trained diffusion/flow model as a teacher; use it with a numerical ODE solver to generate adjacent points on trajectories, then train the consistency model $f_\theta$ to agree on nearby $(x_t, x_{t'})$ pairs from the same trajectory.
+
+*Why it matters / pitfall / interview trap:* distillation requires a pretrained teacher — calling any consistency model "a distilled diffusion model" is wrong when it was built via consistency *training* instead, which has no teacher.
+
+---
+
+**Consistency Model**
+
+*The problem:* diffusion/flow sampling requires many sequential network evaluations (20-50+ steps), which dominates serving cost at scale; naively switching to a GAN reintroduces adversarial instability.
+
+*Core insight / definition:* train a function $f_\theta$ such that any point on a diffusion/flow model's ODE trajectory maps to the same origin: $f_\theta(x_t, t) = f_\theta(x_{t'}, t') = x_0$ for any $t, t'$ on the same trajectory, with identity-consistency enforced at $t=0$. Sampling becomes a single call: draw noise, apply $f_\theta$, done.
+
+*Why it matters / pitfall / interview trap:* 1-step consistency models visibly lag multi-step diffusion on fine detail and diversity, so production systems typically land at 4-8 steps rather than 1; also, the sampling-time function is a direct trajectory-shortcut regressor, not an iterative denoiser — calling it "diffusion with fewer steps" undersells the structurally different training objective (self-consistency vs. per-step noise/velocity regression).
+
+---
+
+**Consistency Training**
+
+*The problem:* consistency distillation depends on having a good pretrained teacher model, which may not always be available or optimal.
+
+*Core insight / definition:* train a consistency model with the same self-consistency loss as distillation, but estimate the trajectory locally from the forward-noising process directly instead of using a teacher model.
+
+*Why it matters / pitfall / interview trap:* slower to converge and historically lower quality than consistency distillation, but removes the teacher dependency — this is the key distinguishing fact interviewers probe for.
+
+---
+
+**Coupling Layer (RealNVP)**
+
+*The problem:* normalizing flows need an invertible transformation whose Jacobian determinant is cheap to compute, ruling out arbitrary neural network transforms.
+
+*Core insight / definition:* split the input in half; leave one half untouched and transform the other half using scale/shift parameters computed from the untouched half: $y_{1:k}=x_{1:k}$, $y_{k+1:d}=x_{k+1:d}\odot\exp(s(x_{1:k}))+t(x_{1:k})$. The Jacobian is triangular so its determinant is just the product of the diagonal, giving linear-time computation, and inversion is trivial algebra (subtract $t$, divide by $\exp(s)$) since $s$ and $t$ never need inverting.
+
+*Why it matters / pitfall / interview trap:* stacking many coupling layers while permuting which half is frozen accumulates expressiveness; the key insight is that $s$ and $t$ can be arbitrary (non-invertible) neural networks because they only ever operate on the passthrough half.
+
+---
+
+**Denoising Autoencoder (DAE)**
+
+*The problem:* an undercomplete autoencoder trained to reconstruct exactly can be gamed by memorizing training examples rather than learning generalizable structure, and is brittle to input noise at test time.
+
+*Core insight / definition:* corrupt the input (Gaussian noise, masking) before encoding, then train the decoder to reconstruct the clean original: $L = \|x - g_\theta(f_\phi(\tilde{x}))\|^2$. This forces the encoder to learn the underlying clean signal rather than memorize corrupted inputs.
+
+*Why it matters / pitfall / interview trap:* the corruption distribution used in training must match test-time corruption, or the model won't generalize (e.g., Gaussian noise training won't transfer to salt-and-pepper noise at deployment).
+
+---
+
+**Denoising Diffusion Implicit Models (DDIM)**
+
+*The problem:* DDPM's stochastic reverse process requires simulating all $T$ (typically 1000) steps, making inference slow.
+
+*Core insight / definition:* reframe the reverse diffusion process as a deterministic ODE rather than a stochastic process, using the same trained model. Because it's an ODE, a numerical solver can take larger steps, allowing 10-50 steps with minimal quality loss.
+
+*Why it matters / pitfall / interview trap:* DDIM does not retrain or distill the model — it's purely a different sampling scheme on the same weights; determinism also gives a reproducible noise→image map, enabling coherent latent interpolation and editing.
+
+---
+
+**Denoising Diffusion Probabilistic Model (DDPM)**
+
+*The problem:* GANs' adversarial min-max training is structurally unstable (mode collapse, vanishing gradients, oscillation) with no convergence guarantee.
+
+*Core insight / definition:* define a forward process that adds Gaussian noise over $T$ steps, with a closed form $q(x_t|x_0) = \mathcal{N}(\sqrt{\bar\alpha_t}x_0, (1-\bar\alpha_t)I)$; train a network $\epsilon_\theta$ to predict the noise added at a randomly sampled timestep via simple regression: $\mathcal{L}_\text{simple} = \mathbb{E}_{t,x_0,\epsilon}[\|\epsilon - \epsilon_\theta(\sqrt{\bar\alpha_t}x_0+\sqrt{1-\bar\alpha_t}\epsilon, t)\|^2]$.
+
+*Why it matters / pitfall / interview trap:* the closed-form forward process is a *training*-time optimization (decouples training cost from $T$) — inference still must walk the (reverse) steps sequentially since the reverse process has no closed form; this asymmetry is why training is cheap but inference is slow.
+
+---
+
+**Diffusion Transformer (DiT)**
+
+*The problem:* U-Net convolutional backbones don't scale as predictably with parameters/compute as transformers do elsewhere in deep learning.
+
+*Core insight / definition:* patchify the (usually latent-space) input into tokens and process with a standard transformer block stack, conditioning via adaptive layer norm rather than U-Net-style feature concatenation. Used in production systems like SD3 and FLUX.
+
+*Why it matters / pitfall / interview trap:* DiT is a backbone/architecture choice, decoupled from the training objective (e.g., flow matching) — the two are often paired in practice (straighter rectified-flow trajectories reduce forward passes needed; DiT's scaling makes each pass more worth paying for) but are not logically coupled.
+
+---
+
+**Discriminator**
+
+*The problem:* a GAN generator needs a training signal since there's no tractable likelihood to maximize directly.
+
+*Core insight / definition:* a network $D$ trained to distinguish real data from generator outputs, serving as a learned, adaptive loss function for the generator; trained jointly and adversarially with the generator $G$.
+
+*Why it matters / pitfall / interview trap:* saying the discriminator merely "classifies real vs. fake" misses the point — its purpose is to supply a gradient signal where no likelihood exists; being the loss function is also the source of instability, since the loss surface moves while you descend it.
+
+---
+
+**Disentanglement (latent factors)**
+
+*The problem:* raw latent dimensions in a VAE typically don't correspond to independent, human-interpretable generative factors.
+
+*Core insight / definition:* with sufficient KL pressure (β-VAE), latent dimensions tend to align with independent generative factors of variation (pose, color, shape) rather than entangled combinations.
+
+*Why it matters / pitfall / interview trap:* disentanglement comes at the direct cost of reconstruction fidelity — it is a trade-off dial (via β), not a free improvement.
+
+---
+
+**Earth-Mover (Wasserstein) Distance**
+
+*The problem:* the standard GAN's Jensen-Shannon-like objective provides poor or vanishing gradients when the generator and data distributions don't overlap.
+
+*Core insight / definition:* the metric underlying WGAN's critic objective, measuring the minimal "cost" to transform one distribution into another; unlike KL/JS divergence, it remains meaningful (non-zero, smooth) even for non-overlapping distributions.
+
+*Why it matters / pitfall / interview trap:* this is what structurally fixes the vanishing gradient problem in WGAN — it's not a training trick but a change in the underlying divergence being optimized.
+
+---
+
+**ELBO (Evidence Lower BOund)**
+
+*The problem:* the true marginal likelihood $\log p_\theta(x) = \log \int p_\theta(x|z)p(z)\,dz$ is intractable to compute directly for a VAE.
+
+*Core insight / definition:* a tractable lower bound on the log-likelihood, decomposed into a reconstruction term and a KL regularization term: $\mathcal{L} = \mathbb{E}_{q_\phi(z|x)}[\log p_\theta(x|z)] - D_{KL}(q_\phi(z|x)\|p(z))$. Maximizing the ELBO is the VAE training objective.
+
+*Why it matters / pitfall / interview trap:* the ELBO is a *bound*, not the exact likelihood, and the gap to the true likelihood is unknown — so ELBO values are not trustworthy for comparing different models' fit to data (unlike flows' exact likelihood).
+
+---
+
+**Encoder / Decoder**
+
+*The problem:* need a general vocabulary for the two halves of an autoencoding architecture.
+
+*Core insight / definition:* the encoder $f_\phi$ maps input $x$ to a latent representation $z$; the decoder $g_\theta$ maps $z$ back to reconstructed input space. In a VAE the encoder outputs distribution parameters rather than a point.
+
+*Why it matters / pitfall / interview trap:* the asymmetry in what encoder/decoder must learn (e.g., DAE encoder must denoise, VAE encoder must produce a distribution) is what differentiates the various autoencoder variants.
+
+---
+
+**Flow Matching**
+
+*The problem:* DDPM's training objective was never designed directly around the ODE that its reverse process implies, and the implied trajectories end up curved, requiring many small integration steps.
+
+*Core insight / definition:* define a probability path $p_t$ that continuously interpolates between data and noise distributions, and directly regress a velocity field $v_\theta$ that generates that path: $\mathcal{L}_\text{FM} = \mathbb{E}_{t,x_0,x_1}[\|v_\theta(x_t,t)-(x_1-x_0)\|^2]$, with $x_t = (1-t)x_0 + t x_1$. This is a generalization of DDPM — DDPM's forward process is one specific (curved) probability path; flow matching lets you choose the path, and choosing a straight one buys sampling speed.
+
+*Why it matters / pitfall / interview trap:* flow matching is not a different model family from diffusion — it's a different parameterization of the same "reverse a data→noise process" idea; describing it as merely "faster diffusion" misses that the speed is a downstream consequence of the (straight) path choice, not an independent trick.
+
+---
+
+**Gated PixelCNN (blind-spot fix)**
+
+*The problem:* PixelCNN's masked convolutions, enforcing causal raster order, create a "blind spot" in the receptive field that never sees certain valid context pixels.
+
+*Core insight / definition:* uses two separate convolutional stacks (horizontal and vertical) to fix PixelCNN's blind-spot problem while preserving the causal ordering constraint.
+
+*Why it matters / pitfall / interview trap:* illustrates that enforcing autoregressive causal ordering via masked convolutions is not trivial — naive masking leaves gaps in the effective receptive field.
+
+---
+
+**Generative Adversarial Network (GAN)**
+
+*The problem:* direct likelihood maximization is intractable for complex distributions like images because $p_\theta(x)$ cannot be evaluated in closed form for a neural generator.
+
+*Core insight / definition:* replace the likelihood criterion with an adversarial one via a minimax game between a generator $G$ and discriminator $D$: $\min_G \max_D \mathbb{E}_{x\sim p_\text{data}}[\log D(x)] + \mathbb{E}_{z\sim p_z}[\log(1-D(G(z)))]$. At Nash equilibrium, $D(x)=0.5$ everywhere — the discriminator cannot distinguish real from generated samples.
+
+*Why it matters / pitfall / interview trap:* reliably reaching the Nash equilibrium is the unsolved problem — the minimax formulation has no convergence guarantee, which is the root cause of mode collapse, vanishing gradients, and oscillation; GANs still retain one edge over diffusion: single-step (one forward pass) inference, which matters for real-time/low-latency generation.
+
+---
+
+**Generator**
+
+*The problem:* need a network that produces samples from the learned data distribution given random noise.
+
+*Core insight / definition:* the network $G$ in a GAN that maps noise $z \sim p_z$ to generated samples $G(z)$, trained to fool the discriminator into classifying its outputs as real.
+
+*Why it matters / pitfall / interview trap:* the generator has no direct access to real data or a likelihood signal — its only training signal is the discriminator's gradient, which is why discriminator quality/behavior directly determines training stability.
+
+---
+
+**Gumbel-Softmax**
+
+*The problem:* the reparameterization trick works for Gaussian (and other exponential-family) latents but breaks down for discrete/categorical latent variables, where sampling has no useful gradient.
+
+*Core insight / definition:* a specialized continuous relaxation/estimator that enables gradient-based training through discrete categorical sampling, used as an alternative to standard reparameterization for discrete latents.
+
+*Why it matters / pitfall / interview trap:* interviewers may probe whether you know reparameterization has limits — Gaussian-only naive application is a common oversight.
+
+---
+
+**Image Generation (VAE use case)**
+
+*The problem:* need to produce novel synthetic examples resembling training data.
+
+*Core insight / definition:* sample $z \sim \mathcal{N}(0, I)$ from the VAE's latent prior and pass through the trained decoder to generate new examples.
+
+*Why it matters / pitfall / interview trap:* VAE-generated images tend to be blurrier than GAN or diffusion outputs due to the reconstruction loss averaging over multiple plausible pixel configurations — VAE's real strength is the structured latent space, not raw sample sharpness.
+
+---
+
+**Interpolation (latent space)**
+
+*The problem:* want to generate smooth, semantically meaningful transitions between two inputs.
+
+*Core insight / definition:* because a VAE's latent space is densely covered (thanks to the KL regularization toward a smooth prior), linear interpolation between two encoded points, when decoded, produces a semantically meaningful blend rather than garbage.
+
+*Why it matters / pitfall / interview trap:* plain (non-variational) autoencoders don't reliably support this since their latent space has "holes" — regions never seen during training that decode to nonsense.
+
+---
+
+**Jacobian Determinant (in flows)**
+
+*The problem:* the change-of-variables formula requires computing $\log|\det \partial f_\theta^{-1}/\partial x|$, and a general $d\times d$ determinant costs $O(d^3)$ — intractable at scale.
+
+*Core insight / definition:* the determinant of the transformation's Jacobian matrix, which quantifies the local volume distortion introduced by the invertible map; every flow architecture is designed to make this determinant cheap (e.g., triangular via coupling layers, reducing cost to linear time).
+
+*Why it matters / pitfall / interview trap:* this cost is the central design constraint of all normalizing flow architectures — understanding why naive flows are infeasible hinges on recognizing this bottleneck.
+
+---
+
+**KL Divergence (regularization term)**
+
+*The problem:* an autoencoder's latent space can develop narrow, non-overlapping per-input distributions (or arbitrary point encodings) that leave gaps a decoder was never trained to handle.
+
+*Core insight / definition:* $D_{KL}(q_\phi(z|x)\|p(z))$ penalizes the encoder's output distribution for deviating from the prior $\mathcal{N}(0,I)$; for Gaussian encoder/prior it has closed form $D_{KL} = -\frac12\sum_j(1+\log\sigma_j^2-\mu_j^2-\sigma_j^2)$.
+
+*Why it matters / pitfall / interview trap:* this term is easy for the optimizer to drive to zero by ignoring the input entirely — the root mechanism behind posterior/KL collapse.
+
+---
+
+**KL Collapse / Posterior Collapse**
+
+*The problem:* during VAE training the model can find a shortcut that minimizes loss while making the latent space useless.
+
+*Core insight / definition:* the encoder learns to output a distribution matching the prior regardless of input (KL term → 0), and the decoder learns a fixed output independent of $z$ — the latent variable is effectively unused.
+
+*Why it matters / pitfall / interview trap:* reconstruction loss can look deceptively fine if the data has low diversity, so teams miss it; it's a valid (if useless) local optimum whenever the decoder is powerful enough to model $p(x)$ without conditioning on $z$ — fixes include KL annealing (ramping β from 0) or a weaker decoder, not just cranking β up (which causes collapse for the opposite reason).
+
+---
+
+**Latent Diffusion**
+
+*The problem:* running the diffusion denoising process directly in pixel space (e.g., 512×512) is computationally expensive per step.
+
+*Core insight / definition:* denoise in a compressed latent space (e.g., 64×64 instead of 512×512, via an autoencoder), reducing per-step cost by roughly 64×. Used in systems like Stable Diffusion.
+
+*Why it matters / pitfall / interview trap:* this is one of the main levers (alongside DDIM and consistency models) that closed diffusion's speed disadvantage relative to GANs' single-step inference.
+
+---
+
+**Latent Space / Latent Variable**
+
+*The problem:* need a compressed or structured intermediate representation that captures the essential generative factors of data.
+
+*Core insight / definition:* the (usually lower-dimensional) space $z$ that an encoder maps inputs into, and from which a decoder/generator reconstructs or generates data; different generative model families structure this space very differently (compressed & smooth for VAE, unstructured for GAN, same-dimension-as-data for flows/diffusion, absent for pure autoregressive models).
+
+*Why it matters / pitfall / interview trap:* comparing generative model families often reduces to comparing what constraints each imposes on the latent space (dimensionality, smoothness, invertibility) and what that buys or costs.
+
+---
+
+**Lipschitz Constraint (1-Lipschitz critic)**
+
+*The problem:* WGAN's critic objective is only theoretically valid (a true Wasserstein distance estimator) if the critic function is constrained to be 1-Lipschitz.
+
+*Core insight / definition:* a constraint requiring the critic's output to change no faster than its input — enforced in WGAN-GP via a gradient penalty term $\mathbb{E}[(\|\nabla_{\hat x} D(\hat x)\|_2 - 1)^2]$ added to the loss.
+
+*Why it matters / pitfall / interview trap:* this is what provides meaningful gradients even when generator and data distributions don't overlap at all, structurally solving vanishing gradients rather than patching around them.
+
+---
+
+**Mode Collapse**
+
+*The problem:* a GAN generator can "cheat" the adversarial game without learning the true data diversity.
+
+*Core insight / definition:* the generator converges to a small set of outputs that reliably fool the current discriminator, and diversity in generated samples disappears — while the loss curve can look fine.
+
+*Why it matters / pitfall / interview trap:* not detectable from loss curves alone — must track sample diversity directly; "train the discriminator less" is a common but wrong fix, since it just trades mode collapse for vanishing gradients — WGAN-GP addresses the underlying cause structurally. Diffusion models have no mechanism for mode collapse since each training step is an independent regression on a random noise level.
+
+---
+
+**Non-Saturating Loss**
+
+*The problem:* when the discriminator becomes too accurate, $\log(1-D(G(z))) \approx 0$ and the generator's gradient vanishes, halting learning.
+
+*Core insight / definition:* reformulate the generator's objective to maximize $\log D(G(z))$ instead of minimizing $\log(1-D(G(z)))$ — mathematically related but numerically well-behaved even when $D$ is confident.
+
+*Why it matters / pitfall / interview trap:* this is the standard fix for vanishing generator gradients, distinct from WGAN's structural Lipschitz-based solution.
+
+---
+
+**Normalizing Flow**
+
+*The problem:* need a generative model with exact (not bounded or absent) likelihood, for applications like anomaly detection, compression, or rigorous model comparison.
+
+*Core insight / definition:* push a simple base density through an invertible neural network map $x = f_\theta(z)$; the change-of-variables formula gives the exact density of $x$. Every architectural choice (e.g., coupling layers) exists to make the Jacobian determinant tractable.
+
+*Why it matters / pitfall / interview trap:* flows are dimension-preserving by construction (no bottleneck/compression), which is the structural reason they lost the image-synthesis race to diffusion despite exact likelihood; also, exact likelihood does not imply good anomaly detection — flows notoriously assign higher likelihood to simpler out-of-distribution images (e.g., CIFAR-10-trained flow rating SVHN higher).
+
+---
+
+**Progressive Distillation**
+
+*The problem:* want to reduce diffusion sampling steps but without a single-shot consistency objective.
+
+*Core insight / definition:* repeatedly train a student model to do in $N/2$ steps what a teacher does in $N$ steps, then repeat, halving the step count each round.
+
+*Why it matters / pitfall / interview trap:* distinct from consistency models — it reaches few-step generation through a sequence of distillation rounds (more training runs, conceptually simpler) rather than a single self-consistency objective targeting arbitrary trajectory points; often used as one stage in a longer pipeline alongside consistency-style objectives.
+
+---
+
+**Rectified Flow / Reflow**
+
+*The problem:* even flow matching with arbitrary interpolation paths can leave curved trajectories that need many integration steps.
+
+*Core insight / definition:* the simplest form of flow matching, where the target velocity is the straight line from data to noise. "Reflow" further straightens paths by resampling the model's own generated pairs $(x_0, x_1)$ and retraining, since a model trained on its own outputs learns non-crossing (straighter) trajectories.
+
+*Why it matters / pitfall / interview trap:* straight-line paths are exactly integrable with far fewer steps than curved ones — this is the mechanistic reason rectified flow enables 1-8 step (sometimes 1-step) sampling after reflow/distillation, versus DDIM's 20-50.
+
+---
+
+**Reparameterization Trick**
+
+*The problem:* training a VAE with gradient descent requires backpropagating through the stochastic sampling step $z \sim q_\phi(z|x)$, but sampling has no derivative with respect to $\mu$ or $\sigma$.
+
+*Core insight / definition:* separate randomness from learned parameters by sampling noise from a fixed external distribution and deterministically transforming it: $z = \mu + \epsilon \odot \sigma$, $\epsilon \sim \mathcal{N}(0,I)$. Gradients flow through $\mu$ and $\sigma$ normally; $\epsilon$ is a constant input with no gradient.
+
+*Why it matters / pitfall / interview trap:* works cleanly for Gaussian (and a few other exponential-family) distributions but breaks down for discrete latents (e.g., categorical), which require Gumbel-Softmax or other specialized estimators instead.
+
+---
+
+**Representation Learning (autoencoder use case)**
+
+*The problem:* want reusable, informative features from unlabeled data for downstream supervised tasks.
+
+*Core insight / definition:* pre-train an encoder unsupervised (via autoencoding), then fine-tune it on a downstream labeled task, leveraging the compressed representation as a feature extractor.
+
+*Why it matters / pitfall / interview trap:* the value of the encoder depends on the bottleneck actually forcing informative compression rather than a near-identity mapping.
+
+---
+
+**Score Matching / Score Function**
+
+*The problem:* diffusion models need an underlying mathematical object describing how to move samples from noise toward data.
+
+*Core insight / definition:* the (implicit) gradient of the log-density that DDPM's noise-prediction objective is equivalent to estimating; described as the "underlying object" DDPM models implicitly, versus flow matching's explicit velocity field.
+
+*Why it matters / pitfall / interview trap:* DDPM, score-based SDEs, and flow matching are different parameterizations of the same underlying idea (learning to reverse a data→noise process) — conflating them as unrelated model families is a common mistake.
+
+---
+
+**Sparse Autoencoder**
+
+*The problem:* want a large, interpretable latent space where features are disentangled and individually meaningful, rather than a maximally compressed dense code.
+
+*Core insight / definition:* allow a wide latent space but penalize simultaneous non-zero activations via an $L_1$ penalty: $L = \|x-\hat x\|^2 + \lambda\|z\|_1$. This drives most activations to zero per input, so each input activates only a small, interpretable subset of features.
+
+*Why it matters / pitfall / interview trap:* too large a $\lambda$ collapses reconstruction quality (achieves sparsity by zeroing everything); too small makes the sparsity constraint ineffective — tuning requires monitoring both reconstruction error and average activation fraction. Used in interpretability research (e.g., Anthropic's work on LLM activations) because sparse, high-dimensional codes map more readily to human-interpretable concepts.
+
+---
+
+**Speculative Decoding**
+
+*The problem:* autoregressive sampling is inherently sequential ($O(d)$), which is slow for long sequences like LLM generation.
+
+*Core insight / definition:* a technique that trades exactness or extra compute for parallelism in generation, mentioned as one way around the sequential-sampling bottleneck of autoregressive models.
+
+*Why it matters / pitfall / interview trap:* illustrates that the sequential-sampling limitation of autoregressive models (including LLMs) is fundamental to the chain-rule factorization, not the specific architecture (Transformer vs. LSTM) — workarounds must trade something away.
+
+---
+
+**Teacher Forcing**
+
+*The problem:* need an efficient way to train an autoregressive model without literally generating each token sequentially during training.
+
+*Core insight / definition:* during training, feed the ground-truth prefix so all conditionals $p(x_i|x_{<i})$ can be evaluated simultaneously in a single forward pass with causal masking, rather than sequentially.
+
+*Why it matters / pitfall / interview trap:* this is exactly why autoregressive training parallelizes while sampling does not — at sampling time no ground-truth prefix exists, so each token must be generated before conditioning on it.
+
+---
+
+**Temporal Attention / Consistency (video diffusion)**
+
+*The problem:* denoising video frames independently produces flicker — objects subtly change identity frame to frame since each frame's denoising trajectory is an independent sample.
+
+*Core insight / definition:* add temporal attention/convolution layers so the model attends across frames (not just within one), making denoising jointly consistent across a video clip rather than per-frame.
+
+*Why it matters / pitfall / interview trap:* treating video generation as "just diffusion with an extra dimension" is a trap — the training objective generalizes for free, but consistency across the temporal axis requires explicit architectural additions and compute strategies (chunking, temporal compression), not just a reshaped tensor.
+
+---
+
+**Undercomplete Autoencoder**
+
+*The problem:* you have high-dimensional, unlabeled data and want the model to discover informative structure on its own, without supervision.
+
+*Core insight / definition:* force the network to compress input $x \in \mathbb{R}^D$ through a narrow bottleneck $z \in \mathbb{R}^d$ ($d \ll D$) via encoder $f_\phi$, then reconstruct via decoder $g_\theta$, minimizing $L = \|x - g_\theta(f_\phi(x))\|^2$ (or BCE for binary data). Accurate reconstruction through the bottleneck forces the model to capture the most important structure.
+
+*Why it matters / pitfall / interview trap:* if the bottleneck isn't tight enough, or the network has capacity to route information around it, the model learns a near-identity mapping with no meaningful compression — $d$ must be small enough to force true compression.
+
+---
+
+**Variational Autoencoder (VAE)**
+
+*The problem:* a standard (deterministic) autoencoder maps each input to a single latent point, leaving gaps in latent space that decode to garbage when sampled.
+
+*Core insight / definition:* map each input to a distribution (typically Gaussian) instead of a point: $q_\phi(z|x) = \mathcal{N}(\mu_\phi(x), \text{diag}(\sigma_\phi^2(x)))$, train the decoder $p_\theta(x|z)$ to reconstruct from samples of this distribution, and regularize toward a standard Gaussian prior via KL divergence in the ELBO objective. This densely covers the latent space so any sampled point decodes to something meaningful.
+
+*Why it matters / pitfall / interview trap:* VAE samples are blurrier than GAN/diffusion samples because the pixel-wise reconstruction loss (MSE/BCE) is a likelihood that, under a multimodal true output distribution, gets minimized by averaging over modes — this is a direct consequence of the objective, not a capacity limitation of the decoder.
+
+---
+
+**Vanishing Gradient (GAN failure mode)**
+
+*The problem:* when the discriminator becomes too accurate too quickly, the generator receives essentially no useful learning signal.
+
+*Core insight / definition:* when $D$ is near-perfect, $\log(1-D(G(z))) \approx 0$, so the generator's gradient approaches zero and it stops improving despite the discriminator's apparent success.
+
+*Why it matters / pitfall / interview trap:* fixed either locally via non-saturating loss (reformulate the generator objective) or structurally via WGAN's Lipschitz-constrained critic, which provides meaningful gradients even under non-overlapping distributions.
+
+---
+
+**Video Diffusion (as diffusion over time)**
+
+*The problem:* extending image diffusion/flow matching to video introduces a temporal axis with its own consistency and compute challenges.
+
+*Core insight / definition:* video generation is conceptually diffusion/flow matching plus a temporal axis; production systems address temporal consistency via temporal attention layers, control compute cost via spatial and temporal latent-space compression, and some systems use autoregressive-over-time hybrids (diffusing short windows conditioned on prior windows) trading long-range consistency for bounded compute.
+
+*Why it matters / pitfall / interview trap:* the per-step compute cost is already much higher than image generation (video is a 3D time×height×width tensor with attention cost growing sharply), so few-step sampling techniques matter proportionally more for video than for images.
+
+---
+
+**Wasserstein GAN (WGAN / WGAN-GP)**
+
+*The problem:* standard GAN training suffers from vanishing gradients and oscillation, with no structural fix from loss reformulation alone.
+
+*Core insight / definition:* replace the classifier discriminator with a critic that estimates the Earth-mover (Wasserstein) distance: $\mathcal{L}_\text{WGAN} = \mathbb{E}_{x\sim p_\text{data}}[D(x)] - \mathbb{E}_z[D(G(z))]$, with the critic constrained to be 1-Lipschitz (enforced via gradient penalty in WGAN-GP). This provides meaningful gradients even when generator and data distributions don't overlap at all.
+
+*Why it matters / pitfall / interview trap:* this is a structural solution to vanishing gradients, not a tuning trick — it changes the underlying divergence being optimized (Wasserstein distance instead of a JS/KL-like divergence).
 
 ---
 
