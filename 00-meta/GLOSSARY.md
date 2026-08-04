@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations done. Remaining: 02-data through 18-resources.
+**Progress:** 01-math-foundations, 02-data done. Remaining: 03-classical-ml through 18-resources.
 
 ---
 
@@ -1435,3 +1435,887 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* `z = (x̄-μ₀)/(σ/√n)`; reject `H₀` if `|z| > 1.96` for `α=0.05` (two-tailed). The two-sample proportion version for A/B tests: `z = (p̂₁-p̂₂)/√(p̂(1-p̂)(1/n₁+1/n₂))`.
 
 *Why it matters / pitfall / interview trap:* Assumes known/large-sample variance — using it with a small sample and unknown true variance understates uncertainty; the t-test is the more defensible default in most practical (finite-sample) settings.
+
+## 02-data
+
+**ADASYN (Adaptive Synthetic Sampling)**
+
+*The problem:* SMOTE generates synthetic minority samples uniformly, giving equal coverage to easy and hard regions of the minority class, when the hard cases near the decision boundary need more attention.
+
+*Core insight / definition:* ADASYN generates more synthetic samples in regions where the minority class is harder to learn (surrounded by more majority-class neighbors) and fewer in easy regions, by weighting each minority sample's synthetic-sample count by the fraction of its k-nearest-neighbors that belong to the majority class.
+
+*Why it matters / pitfall / interview trap:* The adaptive weighting can amplify noise — outliers in the minority class near the boundary get extra synthetic samples generated around them, reinforcing rather than correcting the noise.
+
+---
+
+**ANOVA F-Statistic (filter feature selection)**
+
+*The problem:* You have continuous features and want to measure linear association between each feature and a categorical target.
+
+*Core insight / definition:* For each feature, compute F = (between-group variance) / (within-group variance) across target classes; a high F-statistic means the feature's class means differ significantly, implying discriminative signal.
+
+*Why it matters / pitfall / interview trap:* ANOVA is a linear test — a feature with a U-shaped relationship to the target (e.g., extreme values in both directions predict the same class) can show a near-zero F-statistic despite being highly predictive; use mutual information for non-linear relationships.
+
+---
+
+**apply() (Pandas)**
+
+*The problem:* Some row-wise or column-wise transformations can't be expressed as a single vectorized operation.
+
+*Core insight / definition:* `.apply()` runs a Python function over each row or column of a DataFrame/Series; it is still a Python-level loop under the hood, roughly 10-50x slower than a fully vectorized operation.
+
+*Why it matters / pitfall / interview trap:* Reach for vectorized ops first; use `.apply()` only as a last resort when logic genuinely can't be vectorized — never default to it out of convenience.
+
+---
+
+**Backward Elimination**
+
+*The problem:* You want the best-performing feature subset for a model using actual cross-validated performance rather than importance scores.
+
+*Core insight / definition:* A greedy sequential search that starts with all features and, at each step, removes the single feature whose removal least damages (or most improves) cross-validated score, repeating until a target feature count is reached.
+
+*Why it matters / pitfall / interview trap:* Like forward selection, it is greedy and can miss globally optimal subsets when features are only jointly (synergistically) predictive.
+
+---
+
+**BalancedRandomForest**
+
+*The problem:* You want an ensemble method to internally handle class imbalance without altering the global training distribution via a separate resampling step.
+
+*Core insight / definition:* Each tree in the forest is trained on a bootstrap sample drawn with equal class balance rather than the original imbalanced ratio, so every base learner sees a class-balanced view of the data.
+
+*Why it matters / pitfall / interview trap:* Balanced bootstrap sampling changes the effective class prior the model learns under, relative to the deployment distribution — this can cause probability miscalibration requiring post-hoc correction.
+
+---
+
+**Bivariate / Multivariate Analysis**
+
+*The problem:* Univariate summaries miss relationships between features and between features and the target.
+
+*Core insight / definition:* Techniques such as correlation heatmaps, pairplots, grouped boxplots, and crosstabs that examine relationships between two or more variables — catching multicollinearity and giving an early read on which features may predict the target.
+
+*Why it matters / pitfall / interview trap:* This exploration is cheap compared to training a full model just to discover a feature has no predictive relationship with the target.
+
+---
+
+**Broadcasting**
+
+*The problem:* Performing elementwise operations on arrays of different shapes would otherwise require manually copying/tiling one array to match the other's shape, wasting memory and code.
+
+*Core insight / definition:* NumPy's rule for operating on differently-shaped arrays without copying data: compare shapes right-to-left, pad missing leading dimensions with 1, and treat any dimension of size 1 as "stretched" to match the other array's size — done virtually, with no memory copy.
+
+*Why it matters / pitfall / interview trap:* Getting shapes wrong produces either a `ValueError` or, worse, a silent bug — e.g. adding a `(3,)` array to a `(3,1)` array broadcasts to `(3,3)` instead of the intended elementwise `(3,)` result, with no error raised.
+
+---
+
+**Cardinality (of a categorical feature)**
+
+*The problem:* The right encoding strategy for a categorical feature depends heavily on how many distinct values it has.
+
+*Core insight / definition:* Cardinality is the count of distinct categories in a feature. Low cardinality (e.g., 3-10 categories) suits one-hot encoding; high cardinality (thousands of categories, e.g., city or user ID) makes one-hot impractical and favors target encoding, frequency encoding, or embeddings.
+
+*Why it matters / pitfall / interview trap:* `df.nunique()` during EDA flags high-cardinality (often ID-like) columns early, before an encoding choice blows up feature-matrix size.
+
+---
+
+**Category dtype (Pandas)**
+
+*The problem:* Low-cardinality string (`object`) columns waste memory because Pandas stores each repeated string value as a separate boxed Python object.
+
+*Core insight / definition:* `astype("category")` stores each unique value once and represents rows via integer codes referencing that dictionary, dramatically reducing memory and speeding up groupby/comparison operations.
+
+*Why it matters / pitfall / interview trap:* Converting a low-cardinality `object` column to `category` can cut memory usage 10x or more — a classic memory-optimization interview question.
+
+---
+
+**Chained Indexing / SettingWithCopyWarning**
+
+*The problem:* Assigning into the result of two sequential indexing operations (`df[cond]["col"] = x`) may silently fail to modify the original DataFrame.
+
+*Core insight / definition:* `df[condition]` may return either a view or a copy depending on internal Pandas heuristics; chaining a second `[...]` on top makes it ambiguous whether the assignment touches the original data or a discarded temporary copy.
+
+*Why it matters / pitfall / interview trap:* Always use a single `.loc[row_selector, col_selector] = value` call for conditional assignment instead of chained indexing.
+
+---
+
+**Chi-Squared Test (feature selection)**
+
+*The problem:* You need to test whether a non-negative feature is statistically independent of a classification target.
+
+*Core insight / definition:* Chi-squared measures how much the observed cross-tabulation of feature values and class labels deviates from what would be expected if they were independent; a low p-value indicates dependence (likely informative feature).
+
+*Why it matters / pitfall / interview trap:* Requires non-negative features (fails on z-scored/standardized data) and a discrete/binned feature and label — doesn't directly extend to regression targets.
+
+---
+
+**Class Imbalance**
+
+*The problem:* When one class vastly outnumbers another (e.g., 99% legitimate vs 1% fraud), a model can achieve high accuracy while learning nothing about the minority class.
+
+*Core insight / definition:* The model's loss/gradients are dominated by majority-class examples, biasing it toward always predicting the majority class unless the loss function, sampling distribution, or class weights are explicitly adjusted.
+
+*Why it matters / pitfall / interview trap:* This is both a training problem (biased gradients) and a metric problem (accuracy is meaningless) — fixing only one without the other leaves a broken evaluation or a broken model.
+
+---
+
+**class_weight='balanced' (Cost-Sensitive Learning)**
+
+*The problem:* You want to correct for class imbalance without modifying the training data itself (no synthetic samples, no discarded rows).
+
+*Core insight / definition:* Assigns each class a weight inversely proportional to its frequency (`w_j = n_samples / (n_classes * n_j)`), multiplying the loss contribution of minority-class errors so the optimizer is forced to reduce them; sklearn, XGBoost (`scale_pos_weight`), and PyTorch (`pos_weight`) all support variants.
+
+*Why it matters / pitfall / interview trap:* Class weights change which errors are penalized, not the predicted probabilities' calibration — if calibrated probabilities are needed, apply post-hoc calibration after cost-sensitive training.
+
+---
+
+**Concept Drift**
+
+*The problem:* A deployed model's predictions can become wrong even if the input distribution hasn't changed, because the relationship between inputs and outcome has shifted.
+
+*Core insight / definition:* Concept drift is when P(y|X) changes — the underlying relationship the model learned no longer holds, distinct from covariate shift (P(X) changes) or label shift (P(y) changes).
+
+*Why it matters / pitfall / interview trap:* Distinguishing which type of drift occurred determines the fix — concept drift generally requires retraining with new labels, not just recalibrating on new input statistics.
+
+---
+
+**Correlation-Based Redundancy Removal**
+
+*The problem:* Two highly correlated features add no new information but double the noise and can cause multicollinearity in linear models.
+
+*Core insight / definition:* Compute the pairwise correlation matrix, flag feature pairs with |r| above a threshold (e.g., 0.95), and drop one feature from each redundant pair, keeping a single representative.
+
+*Why it matters / pitfall / interview trap:* Pearson correlation only detects linear relationships — two features can be highly redundant non-linearly (e.g., one is the square of the other) while showing zero Pearson correlation, so this method misses non-linear redundancy.
+
+---
+
+**Cost-Sensitive Learning**
+
+*The problem:* Resampling modifies training data (synthetic points, discarded rows), which can introduce artifacts; an alternative approach avoids touching the data at all.
+
+*Core insight / definition:* Keep the data unchanged but assign a higher weight/cost to misclassifying minority-class samples in the loss function, so the optimizer must reduce those errors to minimize total weighted loss — achieving a similar rebalancing effect as resampling without data modification.
+
+*Why it matters / pitfall / interview trap:* Preferred when interpretability or data integrity matters, since no synthetic or duplicated samples are introduced; but doesn't produce calibrated probabilities out of the box.
+
+---
+
+**Covariate Shift**
+
+*The problem:* Model performance can degrade in production even when the learned input-output relationship is still valid, because the inputs themselves have changed.
+
+*Core insight / definition:* Covariate shift is when P(X) — the distribution of the input features — changes between training and production, while P(y|X) may remain stable.
+
+*Why it matters / pitfall / interview trap:* Detected via distributional tests like PSI or KS test on individual features; but multivariate covariate shift (joint distribution shift with stable marginals) can be invisible to univariate drift checks.
+
+---
+
+**Data Drift**
+
+*The problem:* A model deployed and monitored only on accuracy metrics can degrade silently over months as the real world diverges from the training distribution, with no code change to blame.
+
+*Core insight / definition:* Data drift is any divergence between the distribution of inputs (or the input-output relationship) seen in production versus training; it encompasses covariate shift, label shift, and concept drift, and requires quantitative monitoring (PSI, KS test) to detect before business metrics visibly suffer.
+
+*Why it matters / pitfall / interview trap:* Waiting until business metrics fall to notice drift is too late — proactive statistical monitoring is required, but PSI/KS thresholds are rules of thumb, not guarantees (e.g., seasonal variation can trip a PSI threshold without true model degradation).
+
+---
+
+**Data Leakage**
+
+*The problem:* Information that would not be available at prediction time can accidentally enter the training features, making validation metrics look great while production performance collapses.
+
+*Core insight / definition:* Leakage is information from outside the (legitimate) training set — often, indirectly, from the target itself — leaking into features or preprocessing statistics. Common sources: preprocessing fit before the split, target-proxy or post-outcome features, temporal leakage (random splits on time series), group leakage (same entity in train and val), and target-encoding leakage (using a row's own label in its encoding).
+
+*Why it matters / pitfall / interview trap:* The rule of thumb: fit nothing on data the model won't see in production — split first, transform second, fit only on train. If a validation metric looks too good, leakage is the first hypothesis to check, not model excellence.
+
+---
+
+**Datetime Decomposition**
+
+*The problem:* A raw timestamp (e.g., Unix integer) is almost never directly useful as a model feature.
+
+*Core insight / definition:* Extracting components like day-of-week, hour, month, quarter, `is_weekend`, `is_month_end`, or days-since-last-event from a datetime column turns an opaque number into features the model can actually use to find cyclic or seasonal patterns.
+
+*Why it matters / pitfall / interview trap:* Feature engineering here bridges domain knowledge (e.g., "3am transactions are riskier") into a representation the model can exploit, since it cannot discover this from the raw timestamp alone.
+
+---
+
+**Dbt / Airflow**
+
+*The problem:* Data pipelines need reliable orchestration and transformation tooling to run reproducibly at scale.
+
+*Core insight / definition:* Airflow is a workflow orchestrator for scheduling and monitoring pipeline DAGs; dbt is a SQL-based transformation tool for defining and testing data warehouse transformations. (Full treatment moved to the production-ML data-engineering doc.)
+
+*Why it matters / pitfall / interview trap:* Referenced as part of the broader data-engineering-for-ML toolkit (batch/streaming, feature stores, data quality) consolidated outside this section.
+
+---
+
+**Dimensionality Reduction (vs. Feature Selection)**
+
+*The problem:* Both feature selection and dimensionality reduction shrink the number of model inputs, but they trade off interpretability differently and are often conflated.
+
+*Core insight / definition:* Feature selection keeps a subset of the original, interpretable features; dimensionality reduction (PCA, UMAP, t-SNE, autoencoders) creates new transformed features via compression, which may lack a clear real-world interpretation.
+
+*Why it matters / pitfall / interview trap:* For a regulated model requiring explanation of feature contributions to regulators, feature selection is necessary; PCA components can't be explained as original measurable variables, so using them with feature-importance explanations is a category error.
+
+---
+
+**dtype (NumPy/Pandas data type)**
+
+*The problem:* Choosing an inappropriately wide or generic numeric/data type wastes memory and can silently change computation semantics.
+
+*Core insight / definition:* `dtype` specifies the underlying binary representation of array/column values (e.g., `int64`, `float32`, `object`, `category`). Default float is `float64` (8 bytes); deep learning typically prefers `float32`/`float16`/`bfloat16`. Mixing types (int+float, float32+float64) silently upcasts to the wider type.
+
+*Why it matters / pitfall / interview trap:* Silent upcasting during mixed-type arithmetic is a common way to accidentally double a pipeline's memory footprint without any error being raised.
+
+---
+
+**Elastic Net**
+
+*The problem:* Lasso (L1) tends to arbitrarily pick one feature from a group of correlated features, discarding the rest even when several correlated features are jointly meaningful.
+
+*Core insight / definition:* Elastic Net combines the L1 penalty (which induces sparsity/feature selection) with the L2 penalty (which shrinks correlated features together as a group) rather than picking one arbitrarily.
+
+*Why it matters / pitfall / interview trap:* Preferred over plain Lasso when many correlated features should be selected/retained together instead of one survivor chosen essentially at random by the solver.
+
+---
+
+**Embedded Methods (Feature Selection)**
+
+*The problem:* Wrapper methods require training the model repeatedly on different feature subsets, which is expensive.
+
+*Core insight / definition:* Embedded methods perform feature selection as a byproduct of model training itself — one training pass, no extra cost — e.g., L1/Lasso regularization zeroing out coefficients, or tree-based feature importances.
+
+*Why it matters / pitfall / interview trap:* Cheaper than wrapper methods but still tied to the specific model's inductive biases (e.g., Lasso assumes linear relationships and a sparse true model).
+
+---
+
+**Embeddings (categorical encoding)**
+
+*The problem:* One-hot encoding a very-high-cardinality categorical (user IDs, words) creates an impractically large, mostly-empty sparse matrix.
+
+*Core insight / definition:* Embeddings represent each category as a learned, dense, low-dimensional vector trained jointly with the rest of a neural network, capturing semantic similarity between categories rather than treating them as equally distinct.
+
+*Why it matters / pitfall / interview trap:* Only practical inside a neural network training loop — not a preprocessing step usable with classical linear/tree models without a separate embedding-training step.
+
+---
+
+**EasyEnsemble**
+
+*The problem:* Undersampling the majority class to balance training data discards potentially useful majority examples in a single pass.
+
+*Core insight / definition:* Trains an ensemble of AdaBoost classifiers, each on a different random undersampled majority-class subset paired with all minority-class samples, effectively using many different majority subsets across the ensemble instead of throwing most of the majority data away once.
+
+*Why it matters / pitfall / interview trap:* Like BalancedRandomForest, this changes the effective class prior seen during training relative to deployment, risking probability miscalibration.
+
+---
+
+**EDA (Exploratory Data Analysis)**
+
+*The problem:* Committing modeling assumptions to data before understanding its actual shape, types, distributions, and anomalies risks building on faulty premises.
+
+*Core insight / definition:* EDA is the iterative process of building intuition about what's actually in the data — first-pass checks (`shape`, `info`, `describe`, `nunique`, `duplicated`), univariate analysis (histograms, boxplots, value counts), and bivariate/multivariate analysis (correlation heatmaps, pairplots, crosstabs) — before committing to cleaning or modeling decisions.
+
+*Why it matters / pitfall / interview trap:* EDA is a loop, not a line — insights from later pipeline stages (feature engineering, modeling) should send you back to re-explore, not just a one-time upfront step.
+
+---
+
+**Feature Crosses / Interaction Terms**
+
+*The problem:* Additive models (like linear regression) cannot learn that the joint combination of two features (e.g., "weekend AND beach location") predicts an outcome differently than either feature alone.
+
+*Core insight / definition:* A feature cross explicitly creates a new feature as the product (or combination) of two existing features, $f_1 \times f_2$, letting a linear model represent an interaction it otherwise couldn't discover automatically.
+
+*Why it matters / pitfall / interview trap:* Critical for linear models; tree-based models can discover some interactions natively through sequential splits, reducing (but not eliminating) the need for manual crosses.
+
+---
+
+**Feature Engineering**
+
+*The problem:* The model can only discover patterns representable in the features actually provided to it — raw data rarely presents domain knowledge in a directly usable form.
+
+*Core insight / definition:* Feature engineering is the practice of constructing new features (crosses, ratios, temporal decompositions, transforms) that encode domain knowledge in a form the model's inductive biases can exploit, bridging the gap between raw data and useful representation.
+
+*Why it matters / pitfall / interview trap:* Engineered features must be computable using only information available at prediction time (else it's leakage) and should be monitored for predictive stability, since a feature predictive historically can stop being predictive as underlying behavior shifts.
+
+---
+
+**Feature Selection (overview)**
+
+*The problem:* Training on all available features (e.g., 500) when only a fraction carry genuine signal invites overfitting to noise, slower training, and harder interpretability/debugging.
+
+*Core insight / definition:* Feature selection reduces the feature set to those carrying genuine predictive signal, pruning redundant, noisy, or causally-downstream (leaky) features. Three families: filter methods (score features independent of a model), wrapper methods (use actual model performance on subsets), and embedded methods (selection built into training).
+
+*Why it matters / pitfall / interview trap:* Must be fit only on training data — running any selection method (even simple univariate correlation) on the full dataset before splitting leaks test-label information into which features get kept.
+
+---
+
+**Filter Methods (Feature Selection)**
+
+*The problem:* With thousands of features, you need a cheap, model-agnostic way to prune obvious dead weight before spending compute on model training.
+
+*Core insight / definition:* Filter methods score each feature independently of any model — using variance, correlation, mutual information, chi-squared, or ANOVA F-statistic — and are fast but blind to feature interactions.
+
+*Why it matters / pitfall / interview trap:* A feature that's individually useless can still be jointly predictive with another feature; filter methods systematically miss such interaction effects.
+
+---
+
+**F1 Score**
+
+*The problem:* Precision and recall trade off against each other, and you often need a single number that captures both without favoring the one that's trivially easy to inflate.
+
+*Core insight / definition:* F1 is the harmonic mean of precision and recall: `F1 = 2*P*R/(P+R)`. The harmonic mean penalizes extreme imbalance between precision and recall more harshly than a simple average would.
+
+*Why it matters / pitfall / interview trap:* F1 ignores true negatives entirely — a model that aggressively predicts positive can inflate recall (and F1) while generating large false-positive volumes; MCC captures all four confusion-matrix quadrants where F1 does not.
+
+---
+
+**F-Beta Score**
+
+*The problem:* F1 treats false positives and false negatives as equally costly, but in domains like medical screening a missed positive is far more costly than a false alarm.
+
+*Core insight / definition:* $F_\beta = (1+\beta^2)\cdot \frac{P\cdot R}{\beta^2 P + R}$ generalizes F1 with a parameter β that weights recall more heavily (β>1) or precision more heavily (β<1), letting the metric reflect asymmetric real-world costs.
+
+*Why it matters / pitfall / interview trap:* Choosing β requires an explicit judgment about the relative cost of false positives vs. false negatives in the business context — it isn't a free hyperparameter to tune blindly.
+
+---
+
+**Focal Loss**
+
+*The problem:* In extreme imbalance settings (e.g., 1000:1 background-to-foreground ratio in object detection), standard cross-entropy is overwhelmed by easy majority-class examples, and even class weighting doesn't fully counteract their aggregate contribution to the loss.
+
+*Core insight / definition:* Focal loss adds a modulating factor $(1-p_t)^\gamma$ to cross-entropy that dynamically down-weights examples the model already classifies confidently, letting hard examples (regardless of class) dominate the gradient: $FL(p_t) = -\alpha_t(1-p_t)^\gamma \log(p_t)$.
+
+*Why it matters / pitfall / interview trap:* Requires tuning two extra hyperparameters (α, γ); designed for dense per-pixel prediction tasks, and its benefit on tabular binary classification is less consistent — try class weighting first.
+
+---
+
+**Forward Selection**
+
+*The problem:* You want to find the feature subset that actually maximizes cross-validated model performance, not just importance-score rankings.
+
+*Core insight / definition:* A greedy sequential search that starts with an empty feature set and, at each step, adds whichever single feature most improves cross-validated score, repeating until a target size is reached.
+
+*Why it matters / pitfall / interview trap:* Requires O(n_features × k) model fits to select k features from n — computationally expensive with slow estimators, and the greedy strategy can miss globally optimal, synergistic feature combinations.
+
+---
+
+**Frequency Encoding**
+
+*The problem:* High-cardinality categoricals are impractical to one-hot encode, but target encoding carries leakage risk if done incorrectly.
+
+*Core insight / definition:* Replace each category with its frequency (count or proportion) in the dataset, producing a single numeric column with no leakage risk, at the cost of weaker predictive signal than target encoding.
+
+*Why it matters / pitfall / interview trap:* A safe fallback when target-encoding leakage risk is a concern, but it discards the target-relationship signal that makes target encoding powerful in the first place.
+
+---
+
+**GroupBy / Split-Apply-Combine**
+
+*The problem:* Computing per-group aggregations (e.g., total revenue per user) via manual loops is slow and error-prone.
+
+*Core insight / definition:* Pandas' `.groupby()` implements split-apply-combine: split rows into groups by key, apply an aggregation (`.agg()`, reduces to one row per group) or `.transform()` (returns same-length output broadcasting the group statistic back to every row), then combine results. Implemented as roughly O(n) via hash-based grouping.
+
+*Why it matters / pitfall / interview trap:* `.transform()` is the idiomatic way to compute "subtract the group mean from every row" without a manual join; avoid `.groupby().apply(custom_python_fn)` on large data — it's as slow as `iterrows()`.
+
+---
+
+**Group K-Fold / Group Leakage**
+
+*The problem:* If multiple rows belong to the same entity (patient, user, device), a naive random split can place some of that entity's rows in train and others in validation, letting the model implicitly "recognize" the entity rather than generalize.
+
+*Core insight / definition:* Group leakage occurs when the same entity appears across the train/validation boundary; `GroupKFold` fixes this by splitting on the entity ID so all of one entity's rows land in a single fold.
+
+*Why it matters / pitfall / interview trap:* Easy to miss in interview settings because it looks like a normal random split just with row-level, not entity-level, structure — always check whether rows are grouped by an underlying entity before choosing a CV strategy.
+
+---
+
+**Imputation (Missing Value Handling)**
+
+*The problem:* Missing values in a feature can't be fed directly into most models, but the "right" way to fill them depends entirely on why they're missing.
+
+*Core insight / definition:* Simple imputation fills missing values with a summary statistic (median for numeric — robust to outliers — mode for categorical); model-based imputation (KNNImputer, IterativeImputer) predicts the missing value from other observed features. Must be fit only on training data and applied (not refit) to validation/test.
+
+*Why it matters / pitfall / interview trap:* Mean/median imputation is only safe under MCAR; under MAR or MNAR it can shrink variance, distort relationships, and mask the fact that "missingness itself" was predictive — often paired with a missingness indicator column instead of, or alongside, the imputed value.
+
+---
+
+**IQR (Interquartile Range) Outlier Detection**
+
+*The problem:* You need a distribution-agnostic rule of thumb to flag values far outside the typical range of a feature.
+
+*Core insight / definition:* IQR = Q3 − Q1 (75th minus 25th percentile); values below `Q1 - 1.5*IQR` or above `Q3 + 1.5*IQR` are flagged as outliers, a robust alternative to assuming normality.
+
+*Why it matters / pitfall / interview trap:* A statistically extreme value is not automatically an error — in fraud/anomaly domains, "outliers" flagged by IQR are often exactly the signal you're trying to model, so detection must be followed by domain judgment, not automatic removal.
+
+---
+
+**iterrows() (Pandas)**
+
+*The problem:* Looping over DataFrame rows in pure Python is a common but severe anti-pattern for performance.
+
+*Core insight / definition:* `.iterrows()` boxes every row into a `Series` object during iteration, making it roughly 100x+ slower than a vectorized column operation and 2-5x slower even than `.apply()`.
+
+*Why it matters / pitfall / interview trap:* Seeing `iterrows()` in a data pipeline is almost always a red flag for "why is this job so slow" — prefer vectorized ops, fall back to `.apply()` only when necessary, and essentially never use `iterrows()`.
+
+---
+
+**Kolmogorov-Smirnov (KS) Test**
+
+*The problem:* You need a statistical test to detect whether a feature's distribution has shifted between training and production.
+
+*Core insight / definition:* The KS test compares the empirical CDFs of two samples; the KS statistic is the maximum vertical difference between the two CDFs, and the associated p-value tests the null hypothesis that both samples come from the same distribution.
+
+*Why it matters / pitfall / interview trap:* A per-feature (univariate) KS test misses multivariate drift, where two features' individual distributions look stable but their joint distribution has shifted.
+
+---
+
+**Label Shift**
+
+*The problem:* A model's predictions can degrade if the base rate of the outcome itself changes, even if the input-output relationship and input distribution are stable.
+
+*Core insight / definition:* Label shift is when P(y) — the prior probability of each class — changes between training and production, distinguished from covariate shift (P(X) changes) and concept drift (P(y|X) changes).
+
+*Why it matters / pitfall / interview trap:* Recognizing which of the three drift types occurred (covariate, label, concept) determines the correct remediation — treating a label-shift problem as if it were concept drift wastes retraining effort on the wrong fix.
+
+---
+
+**Label Smoothing**
+
+*The problem:* Under class imbalance, cross-entropy loss rewards the model for outputting extremely confident probabilities on majority-class examples, which are not genuinely that certain and produce poorly calibrated outputs.
+
+*Core insight / definition:* Replace hard 0/1 targets with soft targets, $y_{smooth} = y(1-\varepsilon) + \varepsilon/K$, so the model can never perfectly minimize loss by outputting probability 1.0, reducing overconfidence.
+
+*Why it matters / pitfall / interview trap:* Reduces calibration error but also softens the signal on genuinely easy examples; it's complementary to focal loss and class weighting, not a replacement for either.
+
+---
+
+**Lasso (L1 Regularization) for Feature Selection**
+
+*The problem:* With L2 regularization, all model weights shrink toward zero but essentially never reach exactly zero, so you can't interpret the result as a feature selection.
+
+*Core insight / definition:* The L1 penalty (sum of absolute weight values) has a geometric constraint region with corners aligned to the coordinate axes; the optimum often lands exactly on a corner, driving many weights to precisely zero, so the model performs feature selection as a side effect of fitting: minimize `Loss + λΣ|w_j|`.
+
+*Why it matters / pitfall / interview trap:* When features are highly correlated, Lasso arbitrarily picks one from the group (the choice can depend on random seed); it also assumes the true underlying model is sparse and will underselect if many features each contribute small genuine effects.
+
+---
+
+**Matthews Correlation Coefficient (MCC)**
+
+*The problem:* F1 ignores true negatives, so a model that aggressively predicts positive can score well on F1/recall while generating excessive false positives — you need a metric sensitive to all four confusion-matrix outcomes.
+
+*Core insight / definition:* MCC is effectively the correlation coefficient between true and predicted binary labels: $\text{MCC} = \frac{TP\cdot TN - FP\cdot FN}{\sqrt{(TP+FP)(TP+FN)(TN+FP)(TN+FN)}}$, ranging from -1 (perfect inverse) through 0 (random) to +1 (perfect), and gives a high score only when the model performs well on both classes.
+
+*Why it matters / pitfall / interview trap:* Considered robust to class imbalance, making it a good complement (or alternative) to F1/PR-AUC in heavily skewed classification problems.
+
+---
+
+**Mean Decrease Impurity (MDI)**
+
+*The problem:* After training a random forest, you want to know which features it actually relied on.
+
+*Core insight / definition:* MDI sums, for each feature, the weighted impurity decrease across every node in every tree where that feature was used to split, normalized to sum to 1 across all features — the standard `feature_importances_` in sklearn tree ensembles.
+
+*Why it matters / pitfall / interview trap:* MDI is systematically biased toward high-cardinality features — a random ID column with thousands of unique values can rank near the top of importance even with zero genuine signal; permutation importance is the bias-free alternative.
+
+---
+
+**Merges / Joins (Pandas)**
+
+*The problem:* Combining two tables on a shared key is one of the most common — and most bug-prone — data operations.
+
+*Core insight / definition:* `pd.merge(a, b, on=key, how=...)` implements SQL-style joins: `inner` (matching keys only), `left`/`right` (all rows from one side, NaN where unmatched on the other), `outer` (all rows from both, NaN where unmatched).
+
+*Why it matters / pitfall / interview trap:* A many-to-many join on a key with duplicate values silently explodes the row count via a Cartesian product on the duplicated keys — always sanity-check `len(result)` against expectations after a join.
+
+---
+
+**Missingness Indicator**
+
+*The problem:* Imputing a missing value with a single number destroys the information that the value was originally missing, which can itself be predictive.
+
+*Core insight / definition:* A binary column (e.g., `col_was_missing`) added alongside an imputed feature that flags whether the original value was absent, letting the model separately learn the effect of the value's presence and the effect of its absence.
+
+*Why it matters / pitfall / interview trap:* Especially important under MNAR, where the missingness itself (e.g., "high earners refuse to report income") carries signal no imputation method can recover on its own.
+
+---
+
+**MCAR / MAR / MNAR (Missingness Mechanisms)**
+
+*The problem:* Choosing an imputation strategy without understanding *why* data is missing can bias the model or destroy predictive signal.
+
+*Core insight / definition:* MCAR (Missing Completely At Random) — missingness independent of any data; safe to impute simply. MAR (Missing At Random) — missingness depends on other *observed* variables; safe to impute conditioning on those variables. MNAR (Missing Not At Random) — missingness depends on the *unobserved* value itself (e.g., high earners refusing to report income); imputation can introduce bias, and a missingness indicator is often the better/complementary response.
+
+*Why it matters / pitfall / interview trap:* Treating all missingness as MCAR and defaulting to mean/median imputation is a classic mistake — under MAR/MNAR it introduces bias by ignoring the dependence between missingness and other variables.
+
+---
+
+**Min-Max Normalization**
+
+*The problem:* Some algorithms or downstream uses need feature values bounded within a known, fixed range.
+
+*Core insight / definition:* $(x - x_{min}) / (x_{max} - x_{min})$ rescales a feature to [0,1] (or another bounded range), preserving relative spacing but using the min/max as reference points.
+
+*Why it matters / pitfall / interview trap:* Sensitive to outliers — a single extreme value compresses the rest of the distribution into a tiny sub-range; use RobustScaler instead when outliers are present.
+
+---
+
+**Missing Value Diagnosis Tools**
+
+*The problem:* Before choosing a handling strategy, you need to see how much data is missing and whether missingness is correlated across columns.
+
+*Core insight / definition:* `df.isnull().mean()` reports the percentage missing per column; `missingno.matrix(df)` visualizes the missingness pattern across the whole DataFrame to reveal correlated missingness.
+
+*Why it matters / pitfall / interview trap:* Correlated missingness across columns is often a clue pointing toward MAR or MNAR rather than MCAR, changing the appropriate handling strategy.
+
+---
+
+**Mutual Information (Feature Selection)**
+
+*The problem:* Pearson correlation only detects linear relationships; a feature with zero correlation to the target can still carry genuine, non-linear predictive signal that a naive filter would discard.
+
+*Core insight / definition:* Mutual information $I(X_i;Y) = \sum P(x,y)\log\frac{P(x,y)}{P(x)P(y)}$ measures statistical dependence of any form (not just linear) between a feature and the target, estimated via k-nearest-neighbor density estimation; features are ranked by MI score and top-k selected.
+
+*Why it matters / pitfall / interview trap:* MI estimates are high-variance on small datasets, and MI still evaluates features individually — it does not detect interaction effects where a feature is only jointly predictive with another.
+
+---
+
+**NumPy Arrays (vs. Python Lists)**
+
+*The problem:* Python lists store pointers to boxed objects with significant per-element overhead, making numerical computation over large collections slow.
+
+*Core insight / definition:* NumPy arrays store raw typed values contiguously in memory with a shape/stride descriptor, with no per-element Python object overhead, enabling operations to run as compiled C loops (via BLAS/LAPACK) instead of interpreted Python loops.
+
+*Why it matters / pitfall / interview trap:* This contiguous-memory-plus-C-loop model is *why* NumPy (and everything built on it: Pandas, PyTorch tensors, JAX) is fast — the foundational fact interviewers probe first.
+
+---
+
+**One-Hot Encoding**
+
+*The problem:* Most ML algorithms require numeric input, but nominal categorical values have no inherent numeric ordering.
+
+*Core insight / definition:* Creates one new binary column per category, encoding the assumption that all categories are equally different from each other; best suited to low-cardinality, nominal (unordered) categoricals, especially for linear models. `pd.get_dummies(..., drop_first=True)` avoids the "dummy variable trap" (perfect multicollinearity) for linear models.
+
+*Why it matters / pitfall / interview trap:* At high cardinality it creates a huge, mostly-zero sparse matrix — impractical without switching to a sparse matrix representation or a different encoding (target/frequency/embeddings).
+
+---
+
+**Ordinal Encoding**
+
+*The problem:* Genuinely ordered categorical values (low/medium/high) need an encoding that preserves their order, unlike one-hot's assumption of equal distinctness.
+
+*Core insight / definition:* Maps each category to an integer preserving its natural order (e.g., low=1, medium=2, high=3).
+
+*Why it matters / pitfall / interview trap:* Applying ordinal encoding to nominal (unordered) categories incorrectly imposes a numeric ordering assumption the categories don't actually have — a common misuse flagged in interviews.
+
+---
+
+**Outliers**
+
+*The problem:* Extreme values in a feature can distort statistics (mean, std), dominate loss functions, and violate model assumptions — but removing them without investigation can also destroy the exact signal you care about.
+
+*Core insight / definition:* Detected via the IQR method or z-score (`|z| > 3`, assumes roughly normal data). The key judgment isn't detection but decision: distinguish data errors (age = 200 → fix/drop) from genuine extreme values (a large fraud transaction, a rare but valid measurement) that may be the most important rows in the dataset.
+
+*Why it matters / pitfall / interview trap:* In fraud/anomaly detection specifically, the "outlier" is frequently the actual target class — blind statistical outlier removal in these domains destroys the very signal being modeled.
+
+---
+
+**Pandas DataFrame / Series**
+
+*The problem:* Working with heterogeneous tabular data (mixed types across columns, labeled rows/columns) is awkward using raw NumPy arrays alone.
+
+*Core insight / definition:* A `Series` is a NumPy array plus an index; a `DataFrame` is a dict of `Series` (columns) sharing a common index. Every Pandas performance question reduces to whether an operation is vectorized (fast, C-level) or row-wise (slow, Python-level).
+
+*Why it matters / pitfall / interview trap:* Understanding this internal structure explains why certain operations (column-wise math) are fast while others (`iterrows`, row-wise `.apply`) are slow.
+
+---
+
+**Permutation Importance**
+
+*The problem:* MDI (mean decrease impurity) feature importance is biased toward high-cardinality features, making it unreliable for pruning.
+
+*Core insight / definition:* Shuffle one feature's values at a time and measure the resulting drop in validation performance; the size of the drop is that feature's importance — bias-free relative to MDI since it's measured directly on held-out predictive performance.
+
+*Why it matters / pitfall / interview trap:* Correlated features protect each other under permutation — if feature A and B carry the same signal, shuffling A alone doesn't hurt much because B compensates, so both can show artificially low importance despite being jointly critical.
+
+---
+
+**Pipeline (sklearn) / ColumnTransformer**
+
+*The problem:* Preprocessing steps applied inconsistently between training and inference (or across CV folds) is a major source of leakage and train/serve skew.
+
+*Core insight / definition:* A `Pipeline` chains preprocessing and modeling steps into one object that guarantees identical transformations at fit time and inference time; `ColumnTransformer` applies different pipelines to different column subsets (e.g., numeric vs. categorical) and combines the results.
+
+*Why it matters / pitfall / interview trap:* Leakage-proof by construction — `cross_val_score` on a Pipeline refits preprocessing on each fold's train split automatically, so you cannot accidentally fit a scaler on validation data; also enables single-object serialization (`joblib.dump`) so production doesn't need to reimplement feature engineering by hand.
+
+---
+
+**Polars**
+
+*The problem:* Pandas' eager execution model and single-threaded design becomes a bottleneck on multi-GB datasets or heavy aggregation workloads.
+
+*Core insight / definition:* Polars is a Rust-based DataFrame library with a lazy, query-optimizing execution engine (`pl.scan_csv(...).filter(...).select(...).collect()`); it builds a query plan first, pushing filters (predicate pushdown) and column selection (projection pushdown) into the file scan before reading data, using Apache Arrow memory layout and automatic multi-threading. `collect(streaming=True)` processes data in chunks at constant memory for out-of-core workloads.
+
+*Why it matters / pitfall / interview trap:* Beats Pandas by 5-10x on large multi-GB groupbys due to the query optimizer, but Pandas still wins on ecosystem maturity — most ML libraries (scikit-learn, XGBoost) expect Pandas/NumPy input directly, requiring `.to_pandas()` conversion.
+
+---
+
+**Population Stability Index (PSI)**
+
+*The problem:* You need a single quantitative score for how much a feature's distribution has shifted between a training reference window and a production window.
+
+*Core insight / definition:* PSI compares binned distributions: $\text{PSI} = \sum_i (A_i - E_i)\ln(A_i/E_i)$, where $A_i$ is the actual (production) fraction in bin i and $E_i$ is the expected (training) fraction. PSI < 0.1 = stable; 0.1-0.25 = moderate shift, investigate; > 0.25 = major shift, consider retraining.
+
+*Why it matters / pitfall / interview trap:* PSI thresholds are heuristics, not guarantees — a feature can exceed PSI 0.25 due to benign seasonal variation that doesn't actually impair model performance, so a PSI alarm should trigger investigation, not automatic retraining.
+
+---
+
+**PR-AUC (Precision-Recall AUC / Average Precision)**
+
+*The problem:* ROC AUC can look deceptively good on heavily imbalanced data because the enormous pool of true negatives keeps the true-negative rate high even when many positives are missed.
+
+*Core insight / definition:* PR-AUC (Average Precision) ignores true negatives entirely, measuring how well the model ranks actual positives among the examples it flags as positive — exactly the question that matters when positives are rare.
+
+*Why it matters / pitfall / interview trap:* Preferred over ROC-AUC specifically under class imbalance; ROC-AUC in this regime is "optimistic" and can mask a model that's actually failing to catch the minority class.
+
+---
+
+**Precision / Recall**
+
+*The problem:* Accuracy is meaningless on imbalanced data, so you need metrics that isolate performance specifically on the positive (often minority, rare-event) class.
+
+*Core insight / definition:* Precision = TP/(TP+FP) — of predicted positives, what fraction are real. Recall = TP/(TP+FN) — of real positives, what fraction were caught. The two are in tension: raising recall (predicting positive more aggressively) typically reduces precision.
+
+*Why it matters / pitfall / interview trap:* The classic imbalanced-data interview scenario: a 99% accurate model on a 1% positive-rate dataset can have 0% recall — always check recall, not just accuracy, on skewed classification problems.
+
+---
+
+**Ratio Features**
+
+*The problem:* Two absolute quantities individually may carry little predictive signal, but their ratio often captures the actual underlying relationship of interest.
+
+*Core insight / definition:* Engineering a feature as the ratio of two existing quantities (debt-to-income, click-through rate, `transaction_amount / account_balance`) that is more informative than either quantity alone.
+
+*Why it matters / pitfall / interview trap:* Classic fraud-detection example: a large transaction amount alone isn't suspicious, but a large transaction *relative to account balance* is — the ratio surfaces the signal neither raw feature reveals independently.
+
+---
+
+**Recursive Feature Elimination (RFE / RFECV)**
+
+*The problem:* You want the best feature subset for a specific model, iteratively removing the least useful features as importance estimates sharpen.
+
+*Core insight / definition:* Train the model on all features, rank by coefficient magnitude or importance, remove the least important feature(s), retrain on the remainder, and repeat until a target feature count is reached; RFECV adds cross-validation to select that target count automatically.
+
+*Why it matters / pitfall / interview trap:* Runs one full model refit per elimination step (O(n_features) fits minimum), making it slow with expensive models — use fast linear estimators for large feature sets; MDI-based RFE on random forests inherits the high-cardinality bias of MDI importance.
+
+---
+
+**Robust Scaling**
+
+*The problem:* StandardScaler's mean and standard deviation are themselves distorted by extreme outliers, defeating the purpose of "robust" normalization when outliers are present.
+
+*Core insight / definition:* $(x - \text{median}) / \text{IQR}$ centers and scales using the median and interquartile range instead of mean/std, since neither is dragged around by extreme values the way mean/std are.
+
+*Why it matters / pitfall / interview trap:* The go-to choice specifically when a feature has genuine, meaningful outliers you want to preserve (not remove) while still preventing them from dominating gradient-based training.
+
+---
+
+**Seaborn / Matplotlib**
+
+*The problem:* Effective EDA and reporting require both fast statistical visualization and full pixel-level plotting control.
+
+*Core insight / definition:* Matplotlib is the low-level plotting substrate offering full control; Seaborn is a high-level statistical visualization library built on Matplotlib that operates directly on DataFrames (histograms with KDE, pairplots, correlation heatmaps).
+
+*Why it matters / pitfall / interview trap:* Use Seaborn for fast statistical exploration during EDA; drop to Matplotlib when Seaborn has no recipe for what you need, or pixel-level control (custom annotations, publication figures) is required.
+
+---
+
+**Sequential Feature Selection**
+
+*The problem:* You want a wrapper-method feature subset chosen by actual cross-validated performance rather than model-internal importance scores.
+
+*Core insight / definition:* A greedy search (forward or backward) that at each step evaluates all possible single feature additions or removals via cross-validation and keeps whichever change most improves score, stopping at a target feature count.
+
+*Why it matters / pitfall / interview trap:* Computationally expensive — O(n_features × k) model fits for forward selection of k features from n — and, like all greedy searches, can miss globally optimal, synergistic feature combinations.
+
+---
+
+**SelectFromModel**
+
+*The problem:* You want to plug any model's feature-importance scores into an automated selection step inside a standard sklearn pipeline.
+
+*Core insight / definition:* Wraps any estimator exposing `feature_importances_` or `coef_`, dropping features below a specified (or automatic) importance threshold.
+
+*Why it matters / pitfall / interview trap:* `threshold='median'` drops exactly half the features by definition regardless of whether that's the meaningful cutoff — better to use a threshold grounded in a natural break in the importance distribution.
+
+---
+
+**SHAP (SHapley Additive exPlanations)**
+
+*The problem:* MDI importance is biased toward high-cardinality features and permutation importance misses redundancy between correlated features; you want importances consistent with the model's actual predictions and interaction effects.
+
+*Core insight / definition:* SHAP assigns each feature a contribution to each individual prediction by fairly distributing the prediction across all possible feature orderings (Shapley values from cooperative game theory); the mean absolute SHAP value across samples gives global importance. TreeSHAP computes exact SHAP values in polynomial time for tree models.
+
+*Why it matters / pitfall / interview trap:* SHAP values are consistent and locally accurate but can still be confounded by correlated features — highly correlated features split SHAP credit between them, making each individually look less important than their true combined contribution.
+
+---
+
+**SMOTE (Synthetic Minority Oversampling Technique)**
+
+*The problem:* Random oversampling merely duplicates minority-class samples, causing the model to memorize exact points instead of learning the underlying minority-class region.
+
+*Core insight / definition:* For each minority sample, find its k-nearest minority neighbors, pick one at random, and generate a new synthetic sample by interpolating between the two: $x_{new} = x + \lambda(x_{nn}-x)$, $\lambda \sim \text{Uniform}(0,1)$ — introducing diversity rather than exact copies.
+
+*Why it matters / pitfall / interview trap:* SMOTE interpolates without awareness of the decision boundary — when classes overlap, synthetic points can land inside majority-class territory while being labeled minority; also doesn't work on categorical features directly (use SMOTE-NC). Must only be applied inside the training fold (via `imblearn.pipeline.Pipeline`), never before CV splitting or on the test set.
+
+---
+
+**SMOTEENN / SMOTETomek**
+
+*The problem:* Oversampling alone (SMOTE) can generate synthetic samples in ambiguous regions near the decision boundary.
+
+*Core insight / definition:* Combination resamplers that oversample first (SMOTE) then clean the boundary: SMOTETomek removes Tomek-link majority members (gentler); SMOTEENN removes any sample (from either class) whose label disagrees with the majority of its k neighbors via Edited Nearest Neighbors (more aggressive).
+
+*Why it matters / pitfall / interview trap:* Both reduce total training set size after the resample-and-clean cycle — on very small datasets, the cleaning step can discard too much data.
+
+---
+
+**Sparse Matrices (CSR/CSC)**
+
+*The problem:* A one-hot encoded categorical with 100K categories over 1M rows would be an 800GB dense float64 matrix — infeasible to store or compute with.
+
+*Core insight / definition:* Sparse matrix formats (Compressed Sparse Row for fast row slicing, Compressed Sparse Column for fast column slicing/matrix-vector products) store only non-zero entries, reducing an infeasible dense footprint to a few MB for mostly-zero data like one-hot or TF-IDF features.
+
+*Why it matters / pitfall / interview trap:* Most sklearn linear models accept sparse input directly — any feature matrix from text (TF-IDF, bag-of-words) or high-cardinality categoricals should be constructed/stored as sparse, not densified.
+
+---
+
+**Standardization (Z-score Scaling)**
+
+*The problem:* Features on very different numeric scales (e.g., income 0-500,000 vs. age 0-100) cause distance-based and gradient-based algorithms to implicitly weight the larger-range feature as more "important," regardless of its actual informativeness.
+
+*Core insight / definition:* $(x - \mu)/\sigma$ centers a feature to zero mean and unit variance; required for distance-based models (KNN, SVM) and gradient-based models (linear/logistic regression, neural nets) so gradients and distances behave proportionally to actual information content rather than raw magnitude.
+
+*Why it matters / pitfall / interview trap:* Must be fit (`fit_transform`) only on the training set and applied (`transform` only) to validation/test — fitting on the full dataset before splitting is a textbook leakage bug; tree-based models need no scaling at all since splits are invariant to monotonic transforms of a single feature.
+
+---
+
+**Stratified K-Fold**
+
+*The problem:* A plain random K-fold split on an imbalanced classification dataset can produce folds with wildly different (or even zero) positive-class representation, making evaluation unreliable.
+
+*Core insight / definition:* Stratified K-Fold preserves the overall class ratio within every fold, so each fold is a representative miniature of the full class distribution.
+
+*Why it matters / pitfall / interview trap:* Without stratification on heavily imbalanced data, a fold may contain no minority-class examples at all, making both training and evaluation on that fold meaningless.
+
+---
+
+**Target Encoding**
+
+*The problem:* One-hot encoding a high-cardinality categorical produces thousands of mostly-empty sparse columns; you want a compact numeric representation that also captures the category's relationship to the target.
+
+*Core insight / definition:* Replace each category with (a smoothed version of) the mean target value for that category: $\text{enc}(c) = \lambda_c \bar{y}_c + (1-\lambda_c)\bar{y}_{global}$, $\lambda_c = n_c/(n_c+k)$ — shrinking toward the global mean for rare categories so small counts don't produce wild estimates.
+
+*Why it matters / pitfall / interview trap:* Must be computed out-of-fold (K-fold target encoding) — encoding a row using its own label (or same-fold labels) is direct label leakage; also requires a fallback strategy (global mean, "unseen" token) for categories not seen during training.
+
+---
+
+**Temporal Leakage / Time Series Split**
+
+*The problem:* A random train/validation split on time-ordered data can let the model "see the future" — training on data that would not exist yet at the moment predictions are actually made in production.
+
+*Core insight / definition:* Temporal leakage is any information flow from later-in-time rows into training for predicting earlier-in-time outcomes; the fix is a chronological/time-based split (`TimeSeriesSplit`), training on past folds and validating on the next chunk forward, never backward, and never shuffling across time.
+
+*Why it matters / pitfall / interview trap:* A model that "sees the future" during training can post an artificially strong validation score that will never be achievable in real deployment, since production data genuinely doesn't exist yet at prediction time.
+
+---
+
+**Threshold Moving**
+
+*The problem:* The default 0.5 decision threshold implicitly assumes balanced classes; on a 99/1 split, predicted probabilities for the rare positive class are naturally low, so a 0.5 cutoff misses most true positives.
+
+*Core insight / definition:* Since the model outputs probabilities, the threshold is a separate, post-hoc decision about where to draw the predicted-class boundary; sweeping thresholds and choosing the one that maximizes a target metric (F1, F-beta, or an explicit cost function) shifts the operating point on the precision-recall curve at zero additional training cost.
+
+*Why it matters / pitfall / interview trap:* Threshold tuning must be done on a separate validation set, never the test set (that's leakage); the chosen optimal threshold may not generalize perfectly to production, especially under class-distribution drift.
+
+---
+
+**Tomek Links**
+
+*The problem:* After oversampling, the class boundary can be cluttered with ambiguous samples from both classes, making a clean separation hard to learn.
+
+*Core insight / definition:* A Tomek link is a pair of samples from different classes that are each other's nearest neighbor — sitting exactly on or near the decision boundary; removing the majority-class member of each link cleans the boundary with minimal data loss.
+
+*Why it matters / pitfall / interview trap:* Produces only minimal undersampling on its own (only boundary-adjacent points are removed) — used primarily as a post-processing/cleaning step after oversampling (SMOTETomek), not as a standalone balancing technique.
+
+---
+
+**Train-Serve Skew**
+
+*The problem:* A feature computed one way during training and a different way (or from a different data source/freshness) in production creates a mismatch invisible to offline evaluation.
+
+*Core insight / definition:* Train-serve skew is any discrepancy between how a feature is computed in the training pipeline versus the real-time production serving pipeline — e.g., training on a complete historical database but serving from a cache updated every 6 hours.
+
+*Why it matters / pitfall / interview trap:* Especially insidious because it doesn't show up in offline validation (which uses the same training pipeline to construct the validation set) — it only manifests once real production serving-time feature values differ, making it a common cause of "the model was fine in testing but degraded in production."
+
+---
+
+**Transformations (Log, Polynomial, Yeo-Johnson)**
+
+*The problem:* Skewed distributions cause gradient-based models to be dominated by long-tail extreme values, and violate normality assumptions in statistical methods.
+
+*Core insight / definition:* `log1p(x)` compresses a right-skewed, non-negative distribution's long tail while safely handling x=0 (unlike plain `log`, which is undefined at 0); polynomial features (`x**2`) let linear models capture curvature; Yeo-Johnson generalizes log-style transforms to handle zero and negative values.
+
+*Why it matters / pitfall / interview trap:* Log-transforming a target requires remembering to invert the transform (`expm1`) before reporting predictions in the original units — a common bug is forgetting this and reporting log-space numbers as if they were dollars/counts.
+
+---
+
+**Validation Strategy (K-Fold / Nested CV)**
+
+*The problem:* Choosing the wrong cross-validation scheme for the data's structure (i.i.d., temporal, grouped, imbalanced) silently invalidates the resulting performance estimate.
+
+*Core insight / definition:* Random K-Fold suits i.i.d. tabular data with no time or group structure; Stratified K-Fold preserves class ratio for imbalanced classification; `TimeSeriesSplit` respects chronological order; `GroupKFold` keeps an entity's rows within one fold; Nested CV runs an outer loop for unbiased performance evaluation around an inner loop used for hyperparameter tuning, avoiding tuning-induced optimism.
+
+*Why it matters / pitfall / interview trap:* Nested CV specifically addresses the subtle leakage of using the same CV loop for both hyperparameter selection and final performance reporting, which otherwise overstates generalization performance.
+
+---
+
+**Variance Threshold**
+
+*The problem:* A feature that barely varies across samples cannot help discriminate between different labels and wastes a model weight/split.
+
+*Core insight / definition:* Compute each feature's variance and drop any feature below a chosen threshold, since a near-constant feature carries no discriminative information regardless of the model used downstream.
+
+*Why it matters / pitfall / interview trap:* Binary features that are 99% one class have naturally low variance (≈0.01) even if the rare 1% is highly predictive — applying a variance threshold too aggressively can discard exactly these useful rare-event indicator features.
+
+---
+
+**Vectorization**
+
+*The problem:* Explicit Python-level loops over array elements are slow because each iteration pays interpreter overhead.
+
+*Core insight / definition:* Vectorization expresses a computation as array-level operations (NumPy/Pandas column ops) so the actual looping happens in compiled C/Fortran (BLAS/LAPACK) rather than the Python interpreter — often 100x faster for large N.
+
+*Why it matters / pitfall / interview trap:* Any explicit `for` loop iterating over array/DataFrame elements in numerical code is treated as a code smell — the reflex should be "how do I express this as an array operation instead?"
+
+---
+
+**Views vs. Copies (NumPy)**
+
+*The problem:* Some indexing operations share memory with the original array while others create independent copies, and mixing up which is which causes silent data-corruption bugs.
+
+*Core insight / definition:* Basic slicing (`a[2:5]`) returns a view that shares memory with the parent — mutating it mutates the original. Fancy indexing (`a[[2,3,4]]`, `a[mask]`) and most arithmetic operations return copies, independent of the source.
+
+*Why it matters / pitfall / interview trap:* The number-one source of "why did my original array change?!" bugs in multi-stage data pipelines — call `.copy()` explicitly whenever independence is required and you're not certain which behavior an operation has.
+
+---
+
+**Wrapper Methods (Feature Selection)**
+
+*The problem:* Filter methods evaluate features in isolation and cannot detect that a feature is only useful in combination with another.
+
+*Core insight / definition:* Wrapper methods (Recursive Feature Elimination, Sequential Feature Selection) train the actual model on different feature subsets and use its measured generalization performance to guide selection, making the choice a function of the specific learning algorithm rather than a model-agnostic statistic.
+
+*Why it matters / pitfall / interview trap:* Far more computationally expensive than filter methods since each step requires (re-)training the model — impractical with slow estimators and large feature counts unless a fast surrogate model is used during selection.
+
+---
+
+**Yeo-Johnson Transform** — see Transformations (Log, Polynomial, Yeo-Johnson)
