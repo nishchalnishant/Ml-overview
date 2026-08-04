@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data done. Remaining: 03-classical-ml through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml done. Remaining: 04-evaluation through 18-resources.
 
 ---
 
@@ -2319,3 +2319,1583 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 ---
 
 **Yeo-Johnson Transform** — see Transformations (Log, Polynomial, Yeo-Johnson)
+
+## 03-classical-ml
+
+**AIC / BIC (Akaike/Bayesian Information Criterion)**
+
+*The problem:* Choosing among candidate ARIMA/statistical models by likelihood alone always favors more parameters, overfitting in-sample.
+
+*Core insight / definition:* AIC = 2k − 2ln(L̂); BIC = k·ln(n) − 2ln(L̂), where k is the number of parameters and n the sample size. Both penalize model complexity against goodness of fit; lower is better. BIC penalizes complexity more heavily than AIC because its penalty scales with ln(n).
+
+*Why it matters / pitfall / interview trap:* auto_arima uses AIC/BIC to search (p,d,q) automatically, but in-sample AIC is not a substitute for walk-forward validation — a model can win on AIC and still fail out-of-sample.
+
+---
+
+**ACF / PACF (Autocorrelation / Partial Autocorrelation Function)**
+
+*The problem:* To specify an ARIMA model's AR and MA orders, you need to see how a series correlates with its own past.
+
+*Core insight / definition:* ACF at lag k is Cov(Xₜ, Xₜ₋ₖ)/Var(Xₜ) — total correlation including indirect paths through intermediate lags. PACF is the correlation at lag k after removing the effects of lags 1..k-1. If ACF tails off and PACF cuts off at lag p → AR(p); if ACF cuts off at lag q and PACF tails off → MA(q); both tailing off → ARMA(p,q).
+
+*Why it matters / pitfall / interview trap:* neither tailing off (slow ACF decay) signals non-stationarity — difference the series before fitting.
+
+---
+
+**ADASYN (Adaptive Synthetic Sampling)**
+
+*The problem:* SMOTE generates synthetic minority points uniformly, even in regions already well-represented, ignoring that harder-to-learn regions need more help.
+
+*Core insight / definition:* A variant of SMOTE that generates more synthetic samples for minority examples that are harder to classify (near the decision boundary, surrounded by majority-class neighbors) and fewer for those already easy to classify.
+
+*Why it matters / pitfall / interview trap:* like SMOTE, still interpolates in feature space and can create unrealistic points in multimodal minority distributions.
+
+---
+
+**ADWIN (Adaptive Windowing)**
+
+*The problem:* Streaming data distributions drift over time; a fixed-window anomaly/drift detector either reacts too slowly or too noisily.
+
+*Core insight / definition:* An online drift-detection algorithm that maintains a variable-length window of recent values and statistically tests whether the window can be split into two sub-windows with significantly different means, shrinking the window when drift is detected.
+
+*Why it matters / pitfall / interview trap:* used for streaming anomaly/drift detection in time series where re-fitting a batch model is impractical.
+
+---
+
+**AdaBoost**
+
+*The problem:* Combine many weak learners (e.g., decision stumps) into a strong classifier by focusing sequentially on the examples previous learners got wrong.
+
+*Core insight / definition:* Trains learners sequentially; after each round, misclassified examples get higher sample weights so the next learner focuses on them. Each learner's vote is weighted by αₘ, a function of its weighted error rate (lower error → higher α). Final prediction is a weighted majority vote.
+
+*Why it matters / pitfall / interview trap:* highly sensitive to noisy labels and outliers, since misclassified noisy points keep gaining weight round after round.
+
+---
+
+**Agglomerative Clustering (see Hierarchical Clustering)**
+
+---
+
+**ALE (Accumulated Local Effects)**
+
+*The problem:* Partial Dependence Plots assume feature independence, giving misleading curves when features are correlated (extrapolating into unrealistic feature combinations).
+
+*Core insight / definition:* ALE plots compute the effect of a feature by accumulating local differences in predictions within small windows of the feature's actual conditional distribution, avoiding the need to extrapolate outside the observed data manifold.
+
+*Why it matters / pitfall / interview trap:* preferred over PDP when features are correlated; still an average effect, not per-instance explanation.
+
+---
+
+**Anomaly Detection**
+
+*The problem:* Flagging rare, evolving events (fraud, intrusions, defects) where positive labels are scarce, biased toward attacks already caught, and future anomalies may not resemble past ones.
+
+*Core insight / definition:* Instead of learning "what fraud looks like" (supervised), model what normal looks like and flag deviations — isolation (Isolation Forest), boundary (One-Class SVM, Elliptic Envelope), density (LOF), or reconstruction (Autoencoder) framings. Generalizes to unseen anomaly types since it models absence of normalcy rather than presence of a known signature.
+
+*Why it matters / pitfall / interview trap:* choosing unsupervised detection when reliable labels are actually plentiful is a common, expensive mistake — supervised classification wins when labels are good and anomalies resemble each other.
+
+---
+
+**ANOVA F-test (feature selection)**
+
+*The problem:* Quickly rank numeric features by relevance to a categorical target before modeling.
+
+*Core insight / definition:* A filter method that computes, for each feature, the F-statistic from a one-way ANOVA comparing feature means across target classes; high F-value implies the feature's distribution differs meaningfully between classes.
+
+*Why it matters / pitfall / interview trap:* assumes roughly normal, equal-variance feature distributions per class; captures only linear/mean differences, missing non-linear relevance.
+
+---
+
+**ARIMA(p, d, q)**
+
+*The problem:* Model and forecast a univariate time series whose past values and past errors both carry predictive signal, after removing non-stationarity.
+
+*Core insight / definition:* Combines AR(p) (regression on p past values), differencing d times to induce stationarity, and MA(q) (regression on q past error terms): Xₜ = c + Σφᵢ Xₜ₋ᵢ + εₜ + Σθⱼ εₜ₋ⱼ applied to the d-times-differenced series.
+
+*Why it matters / pitfall / interview trap:* over-differencing (d too large) or excessive p/q leads to overfitting; order should be chosen via ADF test + ACF/PACF inspection or AIC/BIC search, validated with walk-forward CV.
+
+---
+
+**ARI (Adjusted Rand Index)**
+
+*The problem:* Evaluate clustering quality when ground-truth labels exist, correcting for agreement expected by chance.
+
+*Core insight / definition:* Measures similarity between predicted cluster assignments and true labels, adjusted so that random labelings score near 0 (1.0 = perfect agreement).
+
+*Why it matters / pitfall / interview trap:* unlike raw Rand Index, ARI is chance-corrected, making scores comparable across different numbers of clusters.
+
+---
+
+**Autoencoder**
+
+*The problem:* Capture complex non-linear low-dimensional structure that no linear (PCA) or kernel method can represent, or detect anomalies via reconstruction difficulty.
+
+*Core insight / definition:* A neural network with an encoder compressing input x∈ℝᵈ into a bottleneck z∈ℝᵏ (k≪d) and a decoder reconstructing x̂ from z, trained to minimize reconstruction loss ‖x − g(f(x))‖². The bottleneck forces the network to discard non-essential information; z is the learned embedding. PCA is the special case of a linear autoencoder with no activations.
+
+*Why it matters / pitfall / interview trap:* no global optimum guarantee (unlike PCA's SVD), can overfit, and latent dimensions are not directly interpretable; for anomaly detection, high reconstruction error signals deviation from the learned "normal" manifold.
+
+---
+
+**Average Precision (see PR-AUC)**
+
+---
+
+**Bagging (Bootstrap Aggregating)**
+
+*The problem:* A single high-variance model (e.g., deep decision tree) is unstable — small training-set changes produce very different models.
+
+*Core insight / definition:* Train many instances of the same learner on independent bootstrap samples (sampling with replacement) of the training data, then average (regression) or majority-vote (classification) their predictions. Reduces variance without increasing bias, since averaging independent noisy estimators shrinks variance by roughly 1/n (less due to correlation between bootstraps).
+
+*Why it matters / pitfall / interview trap:* bagging does not reduce bias — bagging a high-bias model just gives you an ensemble of equally-biased models; use it specifically to tame high-variance base learners.
+
+---
+
+**Bayesian Optimization**
+
+*The problem:* Hyperparameter search budgets are small (each evaluation trains an expensive model) and random search wastes budget re-exploring regions already known to be poor.
+
+*Core insight / definition:* Maintain a cheap surrogate model (e.g., Gaussian Process or TPE) of the objective function fit on past (config, score) pairs; use an acquisition function (Expected Improvement, UCB, Thompson Sampling) to pick the next configuration balancing exploration and exploitation; update the surrogate after each evaluation.
+
+*Why it matters / pitfall / interview trap:* inherently sequential — parallelizing breaks the "informed by all past results" assumption; GP-based variants scale O(n³) in evaluations, impractical past ~500 trials.
+
+---
+
+**Bayesian interpretation of regularization**
+
+*The problem:* Explain why L1/L2 penalties correspond to specific prior beliefs about model weights, not just ad hoc penalty terms.
+
+*Core insight / definition:* Ridge (L2) regularization is equivalent to MAP estimation under a Gaussian prior on weights; Lasso (L1) is equivalent to MAP estimation under a Laplace (double-exponential) prior, whose sharp peak at zero induces sparsity.
+
+*Why it matters / pitfall / interview trap:* explains geometrically why L1's diamond-shaped constraint region has corners on the axes (producing exact zeros) while L2's spherical region does not.
+
+---
+
+**Bias-Variance Tradeoff**
+
+*The problem:* Diagnose why a model performs poorly — is it too simple or too complex relative to the data?
+
+*Core insight / definition:* Expected squared error decomposes as Bias² + Variance + irreducible noise σ². Bias is systematic error from wrong model assumptions (same mistake across resamples); variance is error from sensitivity to the specific training sample (different mistakes across resamples); σ² cannot be reduced by any model.
+
+*Why it matters / pitfall / interview trap:* applying regularization to a high-bias (underfit) model makes it worse; assuming more data alone fixes variance ignores that an unregularized model will simply re-overfit to the larger set. The tradeoff only holds within a fixed model family — better architecture/features can reduce both simultaneously.
+
+---
+
+**Bagging vs Boosting (bias-variance framing)**
+
+*The problem:* Choose the right ensemble strategy depending on whether the base learner suffers from high bias or high variance.
+
+*Core insight / definition:* Bagging averages independent high-variance, low-bias learners (deep trees) to cancel variance. Boosting sequentially adds weak, high-bias, low-variance learners (shallow trees/stumps), each correcting the residual error of the ensemble so far, reducing bias.
+
+*Why it matters / pitfall / interview trap:* using boosting on an already low-bias, high-variance learner (deep tree) amplifies overfitting; boosting is more sensitive to noisy labels than bagging.
+
+---
+
+**Bernoulli Naive Bayes**
+
+*The problem:* Classify data described by binary (present/absent) features, e.g., word occurrence in short text.
+
+*Core insight / definition:* Assumes each feature is a Bernoulli-distributed binary indicator conditioned on the class; explicitly penalizes the absence of a feature, unlike Multinomial NB which ignores absent features.
+
+*Why it matters / pitfall / interview trap:* better than MultinomialNB for short documents where presence/absence (not count) is what matters.
+
+---
+
+**BIC (see AIC / BIC)**
+
+---
+
+**Binary Cross-Entropy / Log-Loss**
+
+*The problem:* Train a probabilistic binary classifier with a loss that penalizes confident wrong predictions heavily and rewards well-calibrated probabilities.
+
+*Core insight / definition:* L = −[y log(p) + (1−y) log(1−p)]; a proper scoring rule minimized when predicted probability p equals the true conditional probability P(y=1|x). Used to fit logistic regression via maximum likelihood.
+
+*Why it matters / pitfall / interview trap:* minimizing log-loss does not guarantee optimizing accuracy or recall, especially under class imbalance — a well-calibrated model can still have poor recall if it hedges near 0.5.
+
+---
+
+**Blending**
+
+*The problem:* Combine multiple base models' predictions like stacking, but avoid the computational/complexity cost of full cross-validated out-of-fold predictions.
+
+*Core insight / definition:* Train base models on a training subset, generate predictions on a single held-out validation set, then train a meta-learner on those held-out predictions. Simpler than stacking (single split vs. k-fold OOF), but uses less data for the meta-learner and risks overfitting to that one split.
+
+*Why it matters / pitfall / interview trap:* often confused with stacking; the key difference is stacking uses cross_val_predict/OOF, blending uses one static holdout.
+
+---
+
+**BOHB (Bayesian Optimization with Hyperband)**
+
+*The problem:* Bayesian optimization guides search but ignores cheap early-stopping signals; Hyperband stops early but proposes configurations randomly.
+
+*Core insight / definition:* Combine a TPE surrogate to propose promising configurations with Hyperband's multi-fidelity early-stopping schedule to evaluate them cheaply — informed search plus cheap early rejection.
+
+*Why it matters / pitfall / interview trap:* requires a surrogate that can integrate observations from multiple budget levels; standard for expensive deep-learning HPO but overkill for cheap-to-train models.
+
+---
+
+**Boosting**
+
+*The problem:* Improve a high-bias (weak) base learner by having successive models correct the errors of prior ones, rather than averaging independent models.
+
+*Core insight / definition:* Sequential ensemble construction where each new model is trained to reduce the residual error (or reweighted misclassifications) of the current ensemble. Includes AdaBoost (reweighting), Gradient Boosting (fitting pseudo-residuals), and their tree-based implementations (XGBoost, LightGBM, CatBoost).
+
+*Why it matters / pitfall / interview trap:* reduces bias but can increase variance/overfit if too many rounds or too high learning rate are used without regularization.
+
+---
+
+**Box-Cox Transform**
+
+*The problem:* A time series exhibits unstable (often increasing) variance over time, violating stationarity assumptions.
+
+*Core insight / definition:* A parametrized power transform (including log as a special case) chosen to stabilize variance and make the series closer to homoscedastic/Gaussian.
+
+*Why it matters / pitfall / interview trap:* one of several standard stationarity-inducing transforms alongside differencing and log transform; choice depends on whether the instability is exponential growth (log) vs general variance instability (Box-Cox).
+
+---
+
+**Calibration (Model Calibration)**
+
+*The problem:* A model's predicted probability (e.g., 0.85) must reflect the true empirical frequency of the positive outcome, or downstream decisions (reserves, pricing, thresholds) will be systematically wrong.
+
+*Core insight / definition:* A model is calibrated if P(Y=1 | p̂(X)=p) ≈ p for all p. Logistic regression is natively calibrated (optimizes log-loss, a proper scoring rule) when well-specified; SVMs, boosted trees, and neural nets optimized for margin/accuracy are typically not calibrated and need post-hoc correction (Platt scaling, isotonic regression, temperature scaling).
+
+*Why it matters / pitfall / interview trap:* a highly accurate model can still be badly miscalibrated; conflating "high AUC" with "trustworthy probabilities" is a common mistake.
+
+---
+
+**Calibration Before Ensembling**
+
+*The problem:* Averaging probability outputs from differently-calibrated models (e.g., SVM margins vs. tree leaf fractions) in a soft-voting ensemble biases the combined score toward whichever model's outputs happen to span a wider range.
+
+*Core insight / definition:* Apply CalibratedClassifierCV (Platt or isotonic) to each base model before combining probabilities, so all inputs to the ensemble are on a comparable, meaningful probability scale.
+
+*Why it matters / pitfall / interview trap:* skipping this step silently lets one poorly-calibrated model dominate a soft vote regardless of its actual accuracy.
+
+---
+
+**Calinski-Harabasz Index**
+
+*The problem:* Evaluate clustering quality without ground-truth labels, based purely on cluster geometry.
+
+*Core insight / definition:* Ratio of between-cluster dispersion to within-cluster dispersion (scaled by degrees of freedom); higher values indicate dense, well-separated clusters.
+
+*Why it matters / pitfall / interview trap:* like other internal indices, biased toward convex, similarly-sized clusters — can favor wrong k on non-convex clusters (e.g., DBSCAN-appropriate shapes).
+
+---
+
+**CatBoost**
+
+*The problem:* Standard gradient boosting handles high-cardinality categorical features poorly (one-hot explodes dimensionality; naive target encoding leaks target information from the same row).
+
+*Core insight / definition:* Uses Ordered Target Statistics — target-encodes categories using only prior rows in a random permutation, preventing target leakage. Grows symmetric (oblivious) trees, where the same split condition is used across all nodes at a given depth, making prediction very fast and acting as regularization.
+
+*Why it matters / pitfall / interview trap:* symmetric trees reduce overfitting risk and speed inference but are less flexible than leaf-wise growth for capturing highly irregular interactions.
+
+---
+
+**Chi-Squared Test (feature selection)**
+
+*The problem:* Rank categorical (or non-negative) features by association with a categorical target.
+
+*Core insight / definition:* A filter method computing the χ² statistic between each feature and the target's contingency table; larger statistic implies stronger dependence, i.e., the feature is less likely to be independent of the target by chance.
+
+*Why it matters / pitfall / interview trap:* requires non-negative feature values (e.g., counts), so continuous features need appropriate binning or scaling first.
+
+---
+
+**Chronos / Moirai / TimesFM (Time Series Foundation Models)**
+
+*The problem:* Forecast a series with little or no historical data ("cold start"), where classical models have nothing to fit on.
+
+*Core insight / definition:* Large models pretrained on massive cross-domain time-series corpora and used zero-shot at inference. Chronos (Amazon) tokenizes values and uses a T5 architecture; Moirai (Salesforce) is frequency-agnostic and patch-based; TimesFM (Google, 200M params) is a pretrained decoder.
+
+*Why it matters / pitfall / interview trap:* useful for cold-start forecasting with no domain history, but classical/tree methods (ARIMA, LightGBM with lags) still win when ample domain-specific history exists.
+
+---
+
+**Class Imbalance**
+
+*The problem:* When one class vastly outnumbers another (e.g., 0.5% fraud), standard loss functions and accuracy are dominated by the majority class, and the model can achieve high accuracy by ignoring the minority class entirely.
+
+*Core insight / definition:* Addressed via independent, composable levers: resampling (SMOTE, ADASYN, undersampling), cost-sensitive learning (class_weight, scale_pos_weight), and threshold moving — each changes a different part of the pipeline (data, loss, decision rule) and they can be combined.
+
+*Why it matters / pitfall / interview trap:* reporting accuracy on imbalanced data is close to meaningless — predicting the majority class everywhere can yield 99%+ accuracy with zero recall on the class that matters.
+
+---
+
+**Class Weight / Cost-Sensitive Learning**
+
+*The problem:* Force a model to pay more attention to the minority class without altering the data distribution via resampling.
+
+*Core insight / definition:* Scale the loss contribution of each class inversely to its frequency (e.g., XGBoost's scale_pos_weight = n_negatives/n_positives), so misclassifying a minority example incurs a larger gradient/penalty.
+
+*Why it matters / pitfall / interview trap:* composes cleanly with resampling and threshold moving; often safer than synthetic oversampling (SMOTE) when the minority class is very small or multimodal.
+
+---
+
+**Cosine Annealing with Warm Restarts (Snapshot Ensembles)**
+
+*The problem:* Train an ensemble of diverse neural networks without the cost of training multiple models from scratch.
+
+*Core insight / definition:* Cycle the learning rate down to near-zero and back up repeatedly during a single training run (cosine schedule with periodic restarts); save a model "snapshot" at each low-LR point. Each restart escapes the current local minimum and settles into a different one, giving diverse ensemble members cheaply.
+
+*Why it matters / pitfall / interview trap:* the diversity comes from different local minima explored within one training run, not from independent training runs.
+
+---
+
+**Co-adaptation / Dropout**
+
+*The problem:* Neurons in a network can develop brittle interdependencies where one neuron's usefulness depends on another's specific pattern, hurting generalization.
+
+*Core insight / definition:* Dropout randomly deactivates a fraction of neurons (typically 20-50%) each training step, forcing each neuron to be useful with any random subset of co-neurons; at inference, dropout is disabled and weights are scaled to compensate — equivalent to approximating an ensemble of 2ⁿ thinned subnetworks.
+
+*Why it matters / pitfall / interview trap:* forgetting to disable dropout at inference (`model.eval()`) causes stochastic, inconsistent predictions — a common production bug; applying dropout to an already underpowered (high-bias) network makes it worse.
+
+---
+
+**Conformal Prediction**
+
+*The problem:* Produce prediction intervals/sets with a formal, distribution-free coverage guarantee, rather than relying on a model's (possibly miscalibrated) internal uncertainty estimates.
+
+*Core insight / definition:* Uses a held-out calibration set to compute nonconformity scores and constructs prediction sets that are guaranteed to contain the true label with a specified probability (e.g., 90%), regardless of the underlying model or data distribution (under exchangeability).
+
+*Why it matters / pitfall / interview trap:* provides finite-sample coverage guarantees that ad hoc confidence-interval heuristics (e.g., softmax probability) do not.
+
+---
+
+**Correlation Removal (feature selection)**
+
+*The problem:* Highly correlated features add redundancy and can destabilize linear model coefficients (multicollinearity) without adding predictive signal.
+
+*Core insight / definition:* A filter method that computes pairwise feature correlations and drops one feature from any pair exceeding a correlation threshold.
+
+*Why it matters / pitfall / interview trap:* only detects linear pairwise redundancy; misses non-linear or multi-feature (higher-order) redundancy.
+
+---
+
+**Cross-Entropy and Softmax**
+
+*The problem:* Convert unbounded classifier logits into probabilities and define a loss that penalizes confident wrong predictions with a clean, trainable gradient.
+
+*Core insight / definition:* Softmax(zᵢ) = e^zᵢ / Σⱼ e^zⱼ converts logits to a probability distribution; cross-entropy loss L = −log p(correct class) penalizes low probability on the true class. The combination's gradient simplifies to (p − y), the predicted probability vector minus the one-hot label — clean and stable for optimization.
+
+*Why it matters / pitfall / interview trap:* using per-class sigmoid instead of softmax for multiclass problems doesn't constrain probabilities to sum to 1; naive softmax computation overflows on large logits — subtract the max logit first for numerical stability.
+
+---
+
+**Cross-Validation (K-Fold)**
+
+*The problem:* A single train/validation split gives one noisy estimate of generalization performance — you might get a lucky or unlucky split.
+
+*Core insight / definition:* Rotate through k different train/validation partitions of the data and average the scores, reducing the variance of the performance estimate. High variance across folds itself signals that the model's behavior is sensitive to which examples land in training vs. validation.
+
+*Why it matters / pitfall / interview trap:* preprocessing/feature selection fit on the full dataset before CV leaks validation information into training; the CV score used for model selection is itself optimistically biased and cannot substitute for a final held-out test set.
+
+---
+
+**Crowding Problem (t-SNE)**
+
+*The problem:* In high dimensions, a "shell" at distance r has volume proportional to r^(d−1); collapsing this into 2D (where volume scales just as r) leaves no room for all the medium-distance points that should be near each other, causing them to crowd onto near neighbors.
+
+*Core insight / definition:* Fixed by using a heavy-tailed Student t-distribution (one degree of freedom, i.e., Cauchy) for pairwise similarities in the low-dimensional embedding instead of a Gaussian — its heavy tail lets moderately similar points spread out rather than collapse.
+
+*Why it matters / pitfall / interview trap:* even with the fix, t-SNE in 2D still struggles when the true manifold has intrinsic dimension >2.
+
+---
+
+**Curse of Dimensionality**
+
+*The problem:* Geometric and statistical intuitions from low dimensions break down as feature count grows, silently degrading distance-based algorithms.
+
+*Core insight / definition:* Three consequences: (1) distance concentration — max/min pairwise distance ratio → 1, making nearest/farthest neighbor indistinguishable; (2) volume concentration — most of a high-dimensional hypercube's volume sits near its corners/faces, not the center; (3) statistical sparsity — maintaining the same sample density requires exponentially more data (n^d) as dimensions grow.
+
+*Why it matters / pitfall / interview trap:* effects become noticeable around d≈10 and severe past d≈100; regularization alone does not fix this — dimensionality reduction or feature selection is often the correct remedy, not just a stronger penalty.
+
+---
+
+**Data Leakage**
+
+*The problem:* Information from outside the legitimate training scope (often from the future or from the target itself) leaks into features, inflating offline metrics that then collapse in production.
+
+*Core insight / definition:* Occurs when preprocessing statistics, target-encoded features, or temporal features are computed using data unavailable at prediction time — e.g., fitting a scaler on the full dataset before splitting, or using post-outcome information as a feature.
+
+*Why it matters / pitfall / interview trap:* a correct temporal train/test split does not by itself prevent leakage — global statistics (encodings, imputations, normalizations) fit across the whole series still leak future information into past rows.
+
+---
+
+**Davies-Bouldin Index**
+
+*The problem:* Evaluate clustering quality without ground truth, penalizing clusters that are both spread out and close to each other.
+
+*Core insight / definition:* Average similarity ratio of each cluster to its most similar other cluster, where similarity combines within-cluster scatter and between-cluster separation; lower values indicate better clustering (unlike Silhouette/Calinski-Harabasz where higher is better).
+
+*Why it matters / pitfall / interview trap:* easy to misremember the direction (lower-is-better) since most other clustering indices are higher-is-better.
+
+---
+
+**DBSCAN (Density-Based Spatial Clustering of Applications with Noise)**
+
+*The problem:* K-Means assumes spherical, similarly-sized clusters and forces every point into a cluster; real data often has arbitrarily shaped clusters and genuine noise points.
+
+*Core insight / definition:* Defines clusters as dense regions separated by sparse regions using two parameters: eps (neighborhood radius) and min_samples (minimum neighbors to be a core point). Points are classified as core (≥min_samples within eps), border (within eps of a core point but not core itself), or noise (neither). Clusters form by connecting core points and their reachable neighbors; no need to specify k in advance.
+
+*Why it matters / pitfall / interview trap:* struggles with clusters of varying density (a single eps can't fit all); HDBSCAN extends DBSCAN to handle variable density by building a hierarchy over multiple eps values.
+
+---
+
+**Decision Tree**
+
+*The problem:* Build an interpretable, non-linear model that can represent arbitrary axis-aligned decision boundaries without manual feature engineering.
+
+*Core insight / definition:* Recursively partitions the feature space by choosing, at each node, the split (feature + threshold) that most reduces impurity — Gini impurity or Entropy/Information Gain for classification, variance reduction for regression. A leaf's prediction is the majority class or mean value of training points that reach it.
+
+*Why it matters / pitfall / interview trap:* unconstrained trees overfit easily (memorize training noise down to single-point leaves); depth, min_samples_leaf, and pruning are essential regularizers.
+
+---
+
+**Deep Ensembles**
+
+*The problem:* Quantify predictive uncertainty in neural networks without the computational overhead of full Bayesian inference.
+
+*Core insight / definition:* Train several neural networks independently (different random initializations/data orders) and treat the spread of their predictions as an uncertainty estimate; disagreement indicates epistemic uncertainty.
+
+*Why it matters / pitfall / interview trap:* often outperforms MC Dropout for uncertainty quality but costs N× the training and inference compute.
+
+---
+
+**Dendrogram**
+
+*The problem:* Visualize and choose the number of clusters produced by hierarchical clustering without pre-specifying k.
+
+*Core insight / definition:* A tree diagram showing the sequence of merges (agglomerative) or splits (divisive) and the distance/dissimilarity at which each occurred; cutting the tree horizontally at a chosen height yields a specific clustering.
+
+*Why it matters / pitfall / interview trap:* the height of the "longest vertical line uncut" heuristic for choosing k is a rule of thumb, not a guarantee of the "true" number of clusters.
+
+---
+
+**Distance Metrics (Euclidean, Manhattan, Minkowski, Cosine, Hamming)**
+
+*The problem:* Distance-based algorithms (KNN, K-Means, clustering) need a notion of similarity appropriate to the data type and scale.
+
+*Core insight / definition:* Euclidean (L2, straight-line distance), Manhattan (L1, sum of absolute differences, robust to outliers along axes), Minkowski (generalizes both via a parameter p), Cosine (angle between vectors, scale-invariant, good for high-dimensional sparse/text data), Hamming (fraction of differing positions, for categorical/binary data).
+
+*Why it matters / pitfall / interview trap:* choosing Euclidean distance on unscaled features lets high-magnitude features dominate distance calculations — features must be scaled first.
+
+---
+
+**Distance Concentration**
+
+*The problem:* Explains formally why nearest-neighbor search degrades in high dimensions.
+
+*Core insight / definition:* For points drawn from a distribution with bounded moments, (max distance − min distance)/min distance → 0 as dimensionality d → ∞, meaning all points become approximately equidistant from any query point.
+
+*Why it matters / pitfall / interview trap:* this degrades KNN, kernel methods, and any distance-based algorithm silently — no error is thrown, results just become meaningless.
+
+---
+
+**Divisive Clustering (see Hierarchical Clustering)**
+
+---
+
+**Dropout (see Co-adaptation / Dropout)**
+
+---
+
+**Elastic Net**
+
+*The problem:* L1 regularization arbitrarily selects one feature from a group of correlated features and zeroes out the rest, making feature selection unstable; L2 keeps all features but doesn't produce sparsity.
+
+*Core insight / definition:* Combines L1 and L2 penalties (λ₁‖w‖₁ + λ₂‖w‖₂²), inheriting L1's sparsity while L2's smooth penalty stabilizes selection among correlated features (tends to select or zero out groups together rather than arbitrarily picking one).
+
+*Why it matters / pitfall / interview trap:* requires tuning two regularization strengths (or one strength plus a mixing ratio), adding complexity relative to plain Ridge or Lasso.
+
+---
+
+**Elliptic Envelope**
+
+*The problem:* Detect outliers in roughly Gaussian-distributed multivariate data using a robust estimate of the data's covariance structure.
+
+*Core insight / definition:* Fits a robust estimate of the data's mean and covariance (Minimum Covariance Determinant) and flags points with low density under the fitted ellipse (high Mahalanobis distance) as anomalies.
+
+*Why it matters / pitfall / interview trap:* excellent when data truly is elliptical/Gaussian-shaped, badly wrong when the true distribution is multimodal or non-convex.
+
+---
+
+**Embeddings**
+
+*The problem:* Raw categorical features (user IDs, words) have no inherent numeric structure — one-hot encoding makes all categories equally distant, discarding semantic relationships.
+
+*Core insight / definition:* A learned mapping from categories to dense vectors such that categories that behave similarly end up close in embedding space; the geometry emerges from training on the downstream task rather than being hand-designed.
+
+*Why it matters / pitfall / interview trap:* using very high-dimensional embeddings for low-cardinality categories wastes parameters (rule of thumb: dim ≈ min(50, category_count/2)); freezing pretrained embeddings when fine-tuning data is available can leave task-relevant distinctions unlearned.
+
+---
+
+**Embedded Methods (feature selection)**
+
+*The problem:* Filter methods ignore the model; wrapper methods are expensive (retrain repeatedly). You want feature selection integrated into model training itself.
+
+*Core insight / definition:* Feature selection performed as a byproduct of model fitting — Lasso's zeroed coefficients, tree-based impurity/gain importance, SelectFromModel (threshold on any model's importance attribute), or SHAP-based selection (drop features with near-zero mean |SHAP value|).
+
+*Why it matters / pitfall / interview trap:* importance from one model family (e.g., tree Gini importance) doesn't necessarily transfer to feature relevance for a different model family.
+
+---
+
+**Ensemble Methods (overview)**
+
+*The problem:* A single model has an irreducible bias-variance tradeoff; combining multiple models can reduce error beyond what any single model achieves.
+
+*Core insight / definition:* Techniques include Bagging (variance reduction via averaging independent learners), Boosting (bias reduction via sequential error correction), Voting (combine predictions of diverse, independently-trained models), Stacking/Blending (learn how to combine base model outputs via a meta-learner).
+
+*Why it matters / pitfall / interview trap:* ensembling helps most when base learners are accurate AND diverse (make different errors) — averaging identical models gives no benefit.
+
+---
+
+**Entropy / Information Gain**
+
+*The problem:* Choose the best split in a decision tree by measuring how much a split reduces uncertainty about the class label.
+
+*Core insight / definition:* Entropy H = −Σ pᵢ log₂(pᵢ) measures the impurity/uncertainty of a node's class distribution. Information Gain is the reduction in entropy from parent to weighted average of child nodes after a split; trees choose the split maximizing information gain.
+
+*Why it matters / pitfall / interview trap:* entropy is more computationally expensive (log) than Gini impurity but often gives very similar splits in practice — the choice rarely changes tree structure much.
+
+---
+
+**Epoch, Batch, Batch Size, Iteration**
+
+*The problem:* Full-dataset gradient computation is infeasible for large datasets; data must be partitioned for gradient-based optimization, and the terminology for this is often confused.
+
+*Core insight / definition:* Epoch = one full pass through the training set. Batch = the data subset used in one optimizer step. Batch size = number of examples per batch. Iteration = one optimizer step. n=10,000 examples with batch size 100 → 100 iterations per epoch.
+
+*Why it matters / pitfall / interview trap:* larger batch sizes give more accurate but less noisy gradient estimates, which can converge to sharper (worse-generalizing) minima; larger batches typically need a proportionally larger learning rate (linear scaling rule) or they underfit relative to gradient quality.
+
+---
+
+**Exponential Smoothing (SES / Holt's / Holt-Winters)**
+
+*The problem:* Forecast a series using a weighted average of past observations, with more emphasis on recent data, handling increasingly complex patterns (level → trend → seasonality).
+
+*Core insight / definition:* Simple Exponential Smoothing (SES): ŷₜ₊₁ = α yₜ + (1−α) ŷₜ, for series with no trend/seasonality. Holt's Linear (double) adds a trend component (level + trend recursions). Holt-Winters (triple) adds a seasonal component (level + trend + seasonal recursions), with additive or multiplicative seasonality.
+
+*Why it matters / pitfall / interview trap:* choosing additive vs multiplicative seasonality matters — multiplicative is appropriate when seasonal swings scale with the series level, additive when they're constant in absolute terms.
+
+---
+
+**F1 Score / F-beta**
+
+*The problem:* Precision and recall trade off against each other; a single number is often needed to compare models, especially under imbalance.
+
+*Core insight / definition:* F1 is the harmonic mean of precision and recall, punishing extreme imbalance between the two (e.g., 100% precision/0% recall gives F1=0, not the arithmetic-mean-implied 50%). F-beta generalizes this with a weight β controlling the relative importance of recall vs precision (β>1 weights recall more).
+
+*Why it matters / pitfall / interview trap:* choosing F1 by default without considering the actual cost asymmetry of false positives vs false negatives ignores the real decision context (e.g., cancer screening should weight recall much more via F2).
+
+---
+
+**FastICA (see ICA)**
+
+---
+
+**Feature Engineering**
+
+*The problem:* Neural networks can learn representations from raw inputs but need vast data to discover interactions a domain expert already knows; classical models benefit directly from hand-derived features.
+
+*Core insight / definition:* Deriving new input features (ratios, rolling statistics, lag features, domain-specific indicators) that encode known relationships directly, so the model doesn't need to rediscover them from raw data — a ratio feature captures a multiplicative interaction in one split/coefficient rather than requiring many.
+
+*Why it matters / pitfall / interview trap:* requires domain expertise that isn't always available, and encodes assumptions that can become wrong (and silently degrade the model) if the underlying domain relationship shifts.
+
+---
+
+**Filter Methods (feature selection)**
+
+*The problem:* Cheaply reduce feature count before any model training, based only on the features' statistical properties.
+
+*Core insight / definition:* Score features independent of any specific model, using criteria like variance threshold (drop near-constant features), correlation removal, mutual information, chi-squared test, or ANOVA F-test; select the top-scoring subset.
+
+*Why it matters / pitfall / interview trap:* fast and model-agnostic but ignores feature interactions — a feature useless alone but powerful in combination with another gets dropped.
+
+---
+
+**Focal Loss**
+
+*The problem:* Under severe class imbalance, standard cross-entropy is dominated by the easy, plentiful majority-class examples, drowning the gradient signal from hard minority examples.
+
+*Core insight / definition:* Modifies cross-entropy by down-weighting well-classified (easy) examples via a modulating factor (1−p)^γ, focusing training on hard, misclassified examples regardless of class.
+
+*Why it matters / pitfall / interview trap:* is essentially neural networks' single primary lever for class imbalance, versus classical ML's several composable levers (resampling + cost-sensitive weighting + threshold moving); requires careful tuning of γ and interacts with learning rate.
+
+---
+
+**GMM (Gaussian Mixture Model)**
+
+*The problem:* K-Means assumes hard, spherical cluster assignments; real clusters can overlap, have different shapes, and points can plausibly belong to multiple clusters with different probabilities.
+
+*Core insight / definition:* Models data as a weighted mixture of K Gaussian distributions, each with its own mean and covariance. Fit via Expectation-Maximization: E-step computes each point's responsibility (soft probability of belonging to each component) given current parameters; M-step updates each component's mean/covariance/weight using those responsibilities, weighted by them. covariance_type (spherical/diagonal/tied/full) controls cluster shape flexibility.
+
+*Why it matters / pitfall / interview trap:* EM only guarantees convergence to a local optimum — sensitive to initialization; unlike K-Means's hard assignment, GMM gives soft cluster membership probabilities.
+
+---
+
+**Generalization**
+
+*The problem:* Distinguish a model that has genuinely learned an underlying pattern from one that has merely memorized its training examples.
+
+*Core insight / definition:* The capacity to perform well on examples never seen during training. Any model can achieve low training loss by memorization; generalization is measured only via held-out data.
+
+*Why it matters / pitfall / interview trap:* defining ML merely as "learning from data" without addressing generalization misses the entire central technical challenge of the field.
+
+---
+
+**Gini Impurity**
+
+*The problem:* Choose the best split in a decision tree using a computationally cheap measure of node purity.
+
+*Core insight / definition:* Gini = 1 − Σ pᵢ², the probability that two randomly drawn samples from a node have different labels; splits are chosen to minimize the weighted Gini of child nodes. Cheaper to compute than entropy (no logarithms).
+
+*Why it matters / pitfall / interview trap:* Gini-based feature importance (mean decrease in impurity) is biased toward high-cardinality features — permutation importance or SHAP is preferred for unbiased ranking.
+
+---
+
+**Gradient Boosting**
+
+*The problem:* Build a strong predictor by sequentially fitting new models to the errors the current ensemble is still making, framed as gradient descent in function space.
+
+*Core insight / definition:* At each round, fit a new weak learner (typically a shallow tree) to the negative gradient (pseudo-residuals) of the loss function with respect to the current ensemble's predictions; add the new learner's output scaled by a learning rate (shrinkage) to the ensemble. This is literally gradient descent, where the "parameter" being updated is the function itself.
+
+*Why it matters / pitfall / interview trap:* a small learning rate paired with more trees generally improves generalization at the cost of training time — treating learning rate and n_estimators as independent tuning knobs (rather than a coupled tradeoff) is a common mistake.
+
+---
+
+**Grid Search**
+
+*The problem:* Exhaustively evaluate a small, well-defined set of hyperparameter combinations to find the best.
+
+*Core insight / definition:* Define a discrete grid of values per hyperparameter, evaluate the cross-validated score at every combination, return the best. Cost is the product of grid sizes across hyperparameters — scales exponentially with the number of hyperparameters.
+
+*Why it matters / pitfall / interview trap:* wastes evaluations on hyperparameters that don't actually matter (spends equal budget on irrelevant dimensions) and only samples the exact grid points specified, potentially missing the true optimum between them.
+
+---
+
+**Hessian / Newton Boosting (XGBoost)**
+
+*The problem:* Standard gradient boosting uses only first-order gradient information, which can be a slow, imprecise guide to the optimal step at each round.
+
+*Core insight / definition:* XGBoost uses a second-order Taylor expansion of the loss around the current prediction, incorporating both the gradient and the Hessian (second derivative) to compute an optimal leaf score in closed form, akin to a Newton step rather than plain gradient descent.
+
+*Why it matters / pitfall / interview trap:* this is a core reason XGBoost often converges faster/more accurately than plain gradient boosting with the same number of trees.
+
+---
+
+**Hierarchical / Agglomerative Clustering**
+
+*The problem:* K-Means requires specifying k upfront and assumes flat, non-nested cluster structure; some data has a natural multi-level (nested) grouping.
+
+*Core insight / definition:* Agglomerative (bottom-up): start with each point as its own cluster, iteratively merge the two closest clusters according to a linkage criterion, until one cluster remains; visualized as a dendrogram. Linkage criteria: Single (min pairwise distance, can chain), Complete (max pairwise distance, compact), Average/UPGMA (mean pairwise distance), Ward's (minimizes increase in within-cluster variance).
+
+*Why it matters / pitfall / interview trap:* naive implementations are O(N³) time / O(N²) memory, impractical for large N; Ward's linkage tends to produce the most balanced, compact clusters and is the most commonly recommended default.
+
+---
+
+**Holdout Set (see Train/Validation/Test Split)**
+
+---
+
+**Holt-Winters / Holt's Linear Smoothing (see Exponential Smoothing)**
+
+---
+
+**Hyperband / ASHA**
+
+*The problem:* Fully training every hyperparameter configuration to convergence to evaluate it wastes enormous compute, since most bad configurations are already identifiably bad after a few epochs.
+
+*Core insight / definition:* Successive Halving: start with n configs at a small budget, keep the top 1/η fraction, give survivors η× more budget, repeat until one config reaches the max budget. Hyperband runs multiple brackets of Successive Halving with different starting budgets to hedge the aggressiveness tradeoff. ASHA removes synchronization barriers, promoting configurations asynchronously as soon as ready — better for distributed settings.
+
+*Why it matters / pitfall / interview trap:* only works when early performance correlates with final performance; configurations affected by learning-rate schedules or late-training dynamics can look bad early but be best at convergence — the grace_period parameter guards against premature elimination.
+
+---
+
+**Hyperparameter Optimization (HPO)**
+
+*The problem:* Hyperparameters (learning rate, depth, regularization strength) cannot be learned from training data directly, and manually searching all combinations is intractable.
+
+*Core insight / definition:* Framed as black-box optimization of "validation score given a hyperparameter configuration" — expensive to evaluate, noisy, and gradient-free. Strategy choice (grid, random, Bayesian, Hyperband/ASHA, BOHB, PBT) depends on evaluation cost and number of hyperparameters.
+
+*Why it matters / pitfall / interview trap:* the right method is workload-dependent — cheap models favor Bayesian optimization alone; expensive deep models favor multi-fidelity methods (Hyperband/BOHB).
+
+---
+
+**ICA (Independent Component Analysis) / FastICA**
+
+*The problem:* PCA finds uncorrelated components, which is a weaker condition than statistical independence — insufficient for tasks like separating truly independent signal sources (e.g., separating mixed audio tracks).
+
+*Core insight / definition:* By the Central Limit Theorem, a mixture of independent non-Gaussian sources looks more Gaussian than any individual source; ICA finds the unmixing matrix that makes the recovered components least Gaussian (via kurtosis or negentropy). FastICA is the standard algorithm, using fixed-point iteration for cubic convergence. Components are unique up to sign and permutation (not rotation, unlike PCA), and Gaussian sources have no unique ICA solution.
+
+*Why it matters / pitfall / interview trap:* the "cocktail party problem" (blind source separation) is the classic application; PCA whitening is typically used as preprocessing before FastICA.
+
+---
+
+**Imbalanced Data (see Class Imbalance)**
+
+---
+
+**Information Criteria (see AIC / BIC)**
+
+---
+
+**Isolation Forest**
+
+*The problem:* Detect anomalies without computing distances or densities, which degrade in high dimensions and are expensive at scale.
+
+*Core insight / definition:* Builds trees on random subsamples by repeatedly picking a random feature and random split value; anomalies, being "few and different," get isolated in far fewer splits (shorter path length) than normal points in dense regions. Score s(x,n) = 2^(−E[h(x)]/c(n)), normalized by the average unsuccessful BST search depth c(n); score near 1 = anomaly, near 0.5 = normal. Never computes a pairwise distance, so it stays fast and effective in high dimensions.
+
+*Why it matters / pitfall / interview trap:* `contamination` only sets the score threshold/cutoff, not a learned model parameter — misreading it as tunable "sensitivity" and guessing a value causes wildly wrong alert volumes; it also misses local anomalies (normal globally but wrong for their neighborhood) since it uses a single global notion of isolation.
+
+---
+
+**Isotonic Regression**
+
+*The problem:* Calibrate a model's probability outputs when the miscalibration is non-linear/non-monotonic in a simple parametric sense, or when Platt scaling's logistic assumption is too rigid.
+
+*Core insight / definition:* A non-parametric calibration method that fits an arbitrary monotonically increasing step function mapping raw scores to calibrated probabilities, minimizing squared error subject to the monotonicity constraint.
+
+*Why it matters / pitfall / interview trap:* more flexible than Platt scaling but overfits with small calibration sets (rule of thumb: use Platt scaling under ~500 calibration examples, isotonic above that).
+
+---
+
+**Iteration (see Epoch, Batch, Batch Size, Iteration)**
+
+---
+
+**Johnson-Lindenstrauss Lemma**
+
+*The problem:* Justify why low-dimensional random projections can be trusted to approximately preserve the geometry of high-dimensional data.
+
+*Core insight / definition:* Random projections onto a sufficiently large but still low-dimensional subspace approximately preserve pairwise distances between points, with high probability.
+
+*Why it matters / pitfall / interview trap:* offered as evidence supporting the manifold hypothesis — that true data dimensionality is often far below the ambient feature count.
+
+---
+
+**Kernel PCA**
+
+*The problem:* PCA is linear and cannot uncover structure that lies along a non-linear manifold (e.g., concentric circles, Swiss roll).
+
+*Core insight / definition:* Implicitly maps data into a high-dimensional feature space via a kernel function (RBF, polynomial, sigmoid) — as in SVMs — so the data becomes linearly separable there, then performs PCA in that space without ever computing the mapping explicitly (the kernel trick).
+
+*Why it matters / pitfall / interview trap:* O(n²) memory / O(n³) computation makes it impractical past n≈10⁴; has no direct out-of-sample projection without a Nyström approximation.
+
+---
+
+**Kernel Trick / SVM Kernels**
+
+*The problem:* Many real datasets are not linearly separable in their original feature space, but computing an explicit high-dimensional mapping to make them separable is often computationally infeasible.
+
+*Core insight / definition:* Replace the dot product in the SVM optimization with a kernel function K(xᵢ,xⱼ) that computes the equivalent of an inner product in a high (possibly infinite) dimensional feature space, without ever materializing that mapping. Common kernels: linear (no transform), polynomial (interactions up to a degree), RBF/Gaussian (infinite-dimensional, local similarity via distance).
+
+*Why it matters / pitfall / interview trap:* RBF kernel's gamma parameter controls the influence radius of each point — too high overfits (each point its own region), too low underfits (overly smooth boundary).
+
+---
+
+**KNN (K-Nearest Neighbors)**
+
+*The problem:* Classify or predict a value for a new point using the labels/values of its most similar training examples, without fitting an explicit parametric model.
+
+*Core insight / definition:* A non-parametric, instance-based (lazy) learner: at prediction time, find the k closest training points (by a chosen distance metric) and return the majority class (classification) or average value (regression), optionally weighted by inverse distance.
+
+*Why it matters / pitfall / interview trap:* degrades badly in high dimensions due to distance concentration (curse of dimensionality); requires feature scaling since distance metrics are scale-sensitive; k too small overfits to noise, k too large oversmooths toward the global majority.
+
+---
+
+**K-Means**
+
+*The problem:* Partition unlabeled data into k groups such that points within a group are similar and points across groups are dissimilar, without any labels to guide the process.
+
+*Core insight / definition:* Iteratively (coordinate-descent style) alternates assigning each point to its nearest centroid and recomputing each centroid as the mean of its assigned points, minimizing within-cluster sum of squares (WCSS/inertia). Guaranteed to converge (monotonically decreasing objective) but only to a local optimum — sensitive to initialization.
+
+*Why it matters / pitfall / interview trap:* assumes roughly spherical, similarly-sized clusters and requires specifying k upfront; the Elbow Method (plotting WCSS vs. k, looking for the bend) and Silhouette Score help choose k, but neither is definitive.
+
+---
+
+**K-Means++**
+
+*The problem:* Random centroid initialization in K-Means can lead to poor local optima or slow convergence.
+
+*Core insight / definition:* An initialization scheme that spreads initial centroids apart by choosing each new centroid with probability proportional to its squared distance from the nearest already-chosen centroid, rather than uniformly at random.
+
+*Why it matters / pitfall / interview trap:* is the scikit-learn default for K-Means and substantially improves both convergence speed and final cluster quality versus naive random init.
+
+---
+
+**Label Smoothing**
+
+*The problem:* A classifier trained with hard one-hot targets can become overconfident, especially problematic under label noise or class imbalance.
+
+*Core insight / definition:* Replace hard 0/1 targets with softened targets (e.g., 0.9/0.1 split across classes instead of 1/0), preventing the model from driving logits to extreme values and improving calibration/generalization.
+
+*Why it matters / pitfall / interview trap:* acts as a regularizer that also tends to improve calibration, distinct from focal loss's re-weighting of hard examples.
+
+---
+
+**Latency-Critical Inference (Classical ML advantage)**
+
+*The problem:* Some production systems (fraud scoring, ad auctions) require sub-millisecond predictions that GPU-bound deep networks cannot deliver without batching.
+
+*Core insight / definition:* Logistic regression (dot product + sigmoid) and compiled decision trees (branch sequences) run in microseconds on CPU, cache-resident and branch-predicted, versus tens to hundreds of milliseconds for neural networks like BERT on CPU. Trees can be compiled to native code (e.g., via treelite) for further speedup.
+
+*Why it matters / pitfall / interview trap:* the gap narrows when predictions can be batched (e.g., recommendation scoring many users at once); for true single-request low-latency needs (HFT, embedded systems), classical ML remains the only viable option.
+
+---
+
+**LDA (Linear Discriminant Analysis)**
+
+*The problem:* PCA's variance-maximizing directions may be irrelevant or even orthogonal to the directions that best separate known classes — you need supervised dimensionality reduction.
+
+*Core insight / definition:* Finds a projection maximizing Fisher's criterion J(w) = wᵀS_Bw / wᵀS_Ww — the ratio of between-class scatter to within-class scatter — via a generalized eigenproblem. With C classes, produces at most C−1 discriminants. Under Gaussian class-conditionals with equal covariance, LDA's boundary equals the Bayes-optimal linear classifier, so it simultaneously reduces dimensionality and classifies.
+
+*Why it matters / pitfall / interview trap:* when d > n, the within-class scatter matrix S_W is rank-deficient/singular and cannot be inverted directly — requires regularized LDA or a PCA pre-step to reduce d below n first.
+
+---
+
+**LightGBM**
+
+*The problem:* XGBoost's level-wise tree growth can be slow and wasteful — it grows all nodes at a depth even when some splits offer little gain.
+
+*Core insight / definition:* Grows trees leaf-wise (best-first) — always splitting the leaf with the highest loss reduction regardless of depth — producing deeper, more accurate trees per iteration but at higher overfitting risk on small data; uses histogram-based binning of continuous features for speed and Gradient-based One-Side Sampling / Exclusive Feature Bundling for efficiency.
+
+*Why it matters / pitfall / interview trap:* leaf-wise growth without a max_depth cap can overfit noisy or small datasets more readily than XGBoost's level-wise default.
+
+---
+
+**LIME (Local Interpretable Model-agnostic Explanations)**
+
+*The problem:* Explain an individual black-box prediction without needing access to the model's internals or exact gradients.
+
+*Core insight / definition:* Perturbs the input around the instance being explained, gets the black-box model's predictions on those perturbations, and fits a simple interpretable model (e.g., sparse linear regression) locally weighted toward the instance, using that local surrogate's coefficients as the explanation.
+
+*Why it matters / pitfall / interview trap:* explanations are local and approximate — they can be unstable across repeated runs (different random perturbations) and are not guaranteed to reflect the true model behavior outside the immediate local neighborhood.
+
+---
+
+**Linear Regression (OLS)**
+
+*The problem:* Model a continuous target as a linear combination of features, minimizing prediction error, with a closed-form solution when feasible.
+
+*Core insight / definition:* Ordinary Least Squares finds coefficients β minimizing Σ(yᵢ − Xᵢβ)²; solvable in closed form via the normal equation β = (XᵀX)⁻¹Xᵀy, or iteratively via gradient descent for large datasets.
+
+*Why it matters / pitfall / interview trap:* the normal equation requires XᵀX to be invertible — multicollinearity or more features than samples breaks this, requiring regularization (Ridge) or gradient-based methods.
+
+---
+
+**Logistic Regression**
+
+*The problem:* Predict a binary (or multiclass) outcome's probability as a function of features, with an output constrained to [0,1] and interpretable coefficients.
+
+*Core insight / definition:* Applies a sigmoid function to a linear combination of features: p = 1/(1+e^(−wᵀx+b)); trained by minimizing binary cross-entropy (log-loss) via gradient descent (no closed-form solution). Coefficients are interpretable as changes in log-odds (logit) per unit feature change.
+
+*Why it matters / pitfall / interview trap:* natively well-calibrated (optimizes a proper scoring rule) when the log-odds are approximately linear in the features — this breaks down under strong non-linear interactions, degrading calibration.
+
+---
+
+**Loss Function vs. Metric**
+
+*The problem:* The function optimized during training and the metric used to judge success can diverge, and a model can look good on one while failing the other.
+
+*Core insight / definition:* A loss function must be differentiable to provide gradient signal (e.g., cross-entropy); a metric must reflect what the business actually cares about (e.g., recall, precision). Accuracy is discontinuous and unusable as a loss; cross-entropy is its smooth differentiable proxy, but optimizing it does not guarantee optimizing accuracy or recall, especially under imbalance.
+
+*Why it matters / pitfall / interview trap:* discovering a loss/metric mismatch after training (e.g., low cross-entropy but poor recall because the model hedges near 0.5) is expensive — the alignment should be checked before training starts.
+
+---
+
+**MAE (Mean Absolute Error)**
+
+*The problem:* Measure average prediction error in a way that is robust to a few large outlier errors.
+
+*Core insight / definition:* MAE = mean(|y − ŷ|); penalizes all errors linearly regardless of magnitude, making it less sensitive to outliers than RMSE.
+
+*Why it matters / pitfall / interview trap:* not differentiable at zero error, which can complicate direct gradient-based optimization (though this is rarely a practical blocker).
+
+---
+
+**Manifold Hypothesis**
+
+*The problem:* Explain why dimensionality reduction is even possible — why don't real high-dimensional datasets truly need all their dimensions?
+
+*Core insight / definition:* High-dimensional data typically lies near a much lower-dimensional manifold embedded in the ambient space (e.g., face images spanning ~50 true degrees of freedom within 10⁶-pixel space). A k-dimensional manifold looks locally like ℝᵏ even when embedded in higher-dimensional space (e.g., the Swiss roll, a 2D manifold in 3D).
+
+*Why it matters / pitfall / interview trap:* algorithms that ignore this structure waste capacity on the d−k irrelevant directions; dimensionality reduction aims to recover the intrinsic k coordinates.
+
+---
+
+**MAPE (Mean Absolute Percentage Error)**
+
+*The problem:* Communicate forecast error in an easily interpretable, scale-independent percentage.
+
+*Core insight / definition:* MAPE = mean(|y−ŷ|/|y|) × 100.
+
+*Why it matters / pitfall / interview trap:* undefined/explodes when actual values y are near zero, and asymmetric — penalizes over-forecasts and under-forecasts differently — motivating sMAPE or MASE as alternatives.
+
+---
+
+**MASE (Mean Absolute Scaled Error)**
+
+*The problem:* Compare forecast accuracy across series of different scales and against a naive baseline, avoiding MAPE's division-by-near-zero issue.
+
+*Core insight / definition:* MASE = MAE(model) / MAE(naive one-step forecast); MASE < 1 means the model beats a naive persistence forecast, MASE > 1 means it's worse.
+
+*Why it matters / pitfall / interview trap:* scale-free and robust to near-zero actuals, making it generally preferable to MAPE for cross-series comparison.
+
+---
+
+**MCC (Matthews Correlation Coefficient)**
+
+*The problem:* Summarize binary classification quality in a single number that remains meaningful under severe class imbalance, unlike accuracy or even F1 in some cases.
+
+*Core insight / definition:* A correlation coefficient between −1 and +1 computed from all four confusion matrix cells (TP, TN, FP, FN); +1 is perfect prediction, 0 is random, −1 is total disagreement.
+
+*Why it matters / pitfall / interview trap:* considered by many practitioners more robust to imbalance than F1 because it accounts for all four confusion matrix quadrants, including true negatives, which F1 ignores entirely.
+
+---
+
+**MC Dropout (Monte Carlo Dropout)**
+
+*The problem:* Estimate a neural network's predictive uncertainty without training a separate ensemble of models.
+
+*Core insight / definition:* Keep dropout active at inference time and run multiple stochastic forward passes; the variance across these passes approximates epistemic (model) uncertainty.
+
+*Why it matters / pitfall / interview trap:* cheaper than Deep Ensembles (one trained model, multiple forward passes) but generally gives lower-quality uncertainty estimates.
+
+---
+
+**Model Selection Bias / Optimistic CV Estimate**
+
+*The problem:* Repeatedly using the validation set (or CV score) to choose among models or hyperparameters causes that estimate to become biased upward, since the selection process has effectively "trained on" the validation data.
+
+*Core insight / definition:* After many rounds of model selection guided by the same validation/CV score, that score no longer reflects unbiased generalization performance; a final untouched held-out test set is required for an honest final estimate.
+
+*Why it matters / pitfall / interview trap:* nested cross-validation is the principled fix when hyperparameter tuning and performance estimation both need to happen without leakage between them.
+
+---
+
+**Multicollinearity**
+
+*The problem:* Highly correlated input features make linear model coefficients unstable and hard to interpret, even though predictions may still be accurate.
+
+*Core insight / definition:* Occurs when two or more features are linearly correlated, causing the XᵀX matrix in OLS to be near-singular; small data changes cause large swings in estimated coefficients, and individual coefficient significance becomes unreliable even though the model's overall fit is unaffected.
+
+*Why it matters / pitfall / interview trap:* a common failure mode listed alongside overfitting, underfitting, and data leakage; addressed by removing correlated features, PCA, or Ridge regularization.
+
+---
+
+**Multinomial Naive Bayes**
+
+*The problem:* Classify data described by count features (e.g., word frequencies in documents).
+
+*Core insight / definition:* Assumes each feature follows a multinomial distribution conditioned on class (models feature counts, not just presence); commonly used for text classification with bag-of-words counts.
+
+*Why it matters / pitfall / interview trap:* unlike BernoulliNB, ignores the absence of a feature — only accounts for the counts of features that occur.
+
+---
+
+**Multi-Seed Ensemble**
+
+*The problem:* A single model's training is sensitive to random initialization and data shuffling, adding variance to its predictions.
+
+*Core insight / definition:* Train the same model architecture multiple times with different random seeds and average/vote the predictions, reducing variance from stochastic training without changing the model family.
+
+*Why it matters / pitfall / interview trap:* the simplest possible ensembling strategy, and a useful low-effort baseline before trying more complex stacking/blending.
+
+---
+
+**Mutual Information (feature selection)**
+
+*The problem:* Quantify a feature's relevance to the target when the relationship may be non-linear (correlation alone would miss it).
+
+*Core insight / definition:* A filter method measuring how much knowing a feature's value reduces uncertainty about the target, based on information theory; captures non-linear dependencies that correlation coefficients cannot.
+
+*Why it matters / pitfall / interview trap:* more computationally expensive and estimator-sensitive than correlation, and doesn't reflect the strength of relevance in a specific model's decision function.
+
+---
+
+**Naive Bayes**
+
+*The problem:* Build a fast, simple probabilistic classifier that scales well and works reasonably even with limited data, at the cost of a strong independence assumption.
+
+*Core insight / definition:* Applies Bayes' theorem with the "naive" assumption that features are conditionally independent given the class: P(y|x) ∝ P(y) Π P(xᵢ|y). Variants differ in the assumed feature distribution: GaussianNB (continuous features), MultinomialNB (counts), BernoulliNB (binary presence/absence).
+
+*Why it matters / pitfall / interview trap:* the independence assumption is almost always violated in practice, yet the classifier often performs surprisingly well because classification only needs the correct ranking of posterior probabilities, not their exact calibrated values.
+
+---
+
+**Nested Cross-Validation**
+
+*The problem:* Using the same CV loop both to tune hyperparameters and to estimate final generalization performance produces an optimistically biased performance estimate.
+
+*Core insight / definition:* An outer CV loop estimates generalization performance; within each outer fold, an inner CV loop performs hyperparameter tuning on only that fold's training data — separating the tuning process from the performance estimate entirely.
+
+*Why it matters / pitfall / interview trap:* computationally expensive (k_outer × k_inner model fits) but necessary whenever you need an honest performance number after any form of model/hyperparameter selection.
+
+---
+
+**N-BEATS / N-HiTS**
+
+*The problem:* Achieve competitive time-series forecasting accuracy with an architecture simpler than Transformers, while retaining interpretability.
+
+*Core insight / definition:* A pure MLP architecture using basis function expansion (ŷ = Σ θ_k φ_k(t)), with separate stacks that can be interpreted as trend and seasonality components; competitive with Transformer variants on standard forecasting benchmarks (M4).
+
+*Why it matters / pitfall / interview trap:* demonstrates that architectural complexity (attention) isn't necessary for state-of-the-art forecasting — a well-designed MLP with the right inductive bias (basis expansion) can match it.
+
+---
+
+**NMF (Non-negative Matrix Factorization)**
+
+*The problem:* PCA components can have negative values, making them hard to interpret as "parts" for inherently additive/non-negative data (images, documents, spectra).
+
+*Core insight / definition:* Factorizes X ≈ WH with both W and H constrained non-negative, yielding sparse, localized, parts-based representations (e.g., face images decompose into eye/nose/mouth-like parts rather than holistic eigenfaces). Solved via multiplicative update rules (Lee & Seung) guaranteeing non-negativity and monotonic convergence to a local minimum — the joint problem is non-convex.
+
+*Why it matters / pitfall / interview trap:* no equivalent to PCA's explained variance ratio for choosing the number of components k; results depend heavily on initialization (nndsvda initialization improves over random).
+
+---
+
+**NMI (Normalized Mutual Information)**
+
+*The problem:* Evaluate clustering quality against ground-truth labels using an information-theoretic measure rather than a pairwise-agreement measure like ARI.
+
+*Core insight / definition:* Measures the mutual information between predicted cluster assignments and true labels, normalized to [0,1] so it's comparable across different numbers of clusters.
+
+*Why it matters / pitfall / interview trap:* like ARI, requires ground-truth labels — not usable for purely unsupervised evaluation, unlike Silhouette or Calinski-Harabasz.
+
+---
+
+**Ordinal Regression**
+
+*The problem:* Predict a discrete but ordered target (e.g., 1-5 star ratings), where plain classification ignores the ordering and plain regression assumes equal spacing between values.
+
+*Core insight / definition:* A specialized approach that respects both the discreteness and the ordering of the target, unlike naively binning a continuous value (losing ordinal information, adding sensitivity to arbitrary bin boundaries) or treating it as unordered classes.
+
+*Why it matters / pitfall / interview trap:* a frequently overlooked "non-obvious case" between classification and regression that interviewers use to test whether output-type reasoning is superficial.
+
+---
+
+**One-Class SVM**
+
+*The problem:* Detect anomalies by learning a boundary that encloses "normal" data, for cases where a clean boundary-based notion of "outside normal" fits the data well.
+
+*Core insight / definition:* Learns a boundary (using, e.g., an RBF kernel for non-linear shapes) that encloses the region of normal data; the ν parameter upper-bounds the expected fraction of outliers/support vectors.
+
+*Why it matters / pitfall / interview trap:* scales poorly (O(n²)–O(n³)), impractical past ~10⁴ samples, and requires feature scaling.
+
+---
+
+**One-Hot Encoding (categorical, high-cardinality)**
+
+*The problem:* Represent categorical features numerically for models that require numeric input, without imposing a false ordinal structure.
+
+*Core insight / definition:* Represents each category as a binary indicator vector; treats all categories as equally distant from each other, unlike embeddings which learn semantic proximity.
+
+*Why it matters / pitfall / interview trap:* for high-cardinality categoricals (e.g., 5,000 zip codes), one-hot explodes dimensionality and wastes model capacity — trees handle this more gracefully via direct threshold splits, and NNs typically need learned embeddings instead.
+
+---
+
+**Overfitting / Underfitting**
+
+*The problem:* Diagnose whether a model's poor generalization stems from too little or too much capacity relative to the data and true pattern.
+
+*Core insight / definition:* Underfitting: the model lacks capacity/inductive bias to capture the true pattern — wrong even on training data (both train and validation error high). Overfitting: the model has enough capacity to memorize training noise and did — training error is low but validation error is high (large train/val gap).
+
+*Why it matters / pitfall / interview trap:* diagnosing overfitting requires a genuine held-out validation set — training loss alone reveals nothing about generalization; repeatedly re-selecting models on the same validation set eventually "trains on" it too, requiring a separate final test set.
+
+---
+
+**PatchTST**
+
+*The problem:* Apply Transformers to long time series efficiently, without quadratic attention cost over every individual timestep.
+
+*Core insight / definition:* Splits the series into patches (subseries) treated as tokens, using channel independence (each variate processed separately with shared weights), achieving linear complexity in sequence length.
+
+*Why it matters / pitfall / interview trap:* one of several long-horizon transformer variants (alongside Informer/Autoformer, which use sparse attention or auto-correlation instead of standard attention).
+
+---
+
+**PBT (Population-Based Training)**
+
+*The problem:* Fixed hyperparameters set before training may be optimal early but suboptimal later — HPO methods that only search fixed configurations miss beneficial hyperparameter schedules.
+
+*Core insight / definition:* Evolve a population of models in parallel; periodically, poorly-performing models copy the weights and hyperparameters of top performers and then randomly perturb those hyperparameters (multiply by 0.8/1.2 or resample) — an evolutionary search over hyperparameter schedules, not fixed configurations.
+
+*Why it matters / pitfall / interview trap:* requires K× the compute of a single run (K = population size); copied weights may be incompatible with the newly perturbed hyperparameters, often requiring a warmup period.
+
+---
+
+**PCA (Principal Component Analysis)**
+
+*The problem:* Project high-dimensional data onto a lower-dimensional subspace while retaining as much information (operationalized as variance) as possible.
+
+*Core insight / definition:* Finds orthogonal directions (eigenvectors of the covariance matrix Σ, ranked by eigenvalue) that successively capture the maximum remaining variance; in practice computed via SVD of the centered data matrix for numerical stability (X̃=USVᵀ), which scales as O(ndk) via truncated SVD rather than O(d³) via full eigendecomposition. Explained Variance Ratio guides how many components k to keep (e.g., 90-95%), read off a scree plot's "elbow."
+
+*Why it matters / pitfall / interview trap:* PCA is a linear method — it "cuts through" curved manifolds rather than unrolling them; not appropriate when features are categorical, when non-linear structure dominates, or when components need to remain interpretable as original features.
+
+---
+
+**PCA Whitening**
+
+*The problem:* After PCA projection, components can still have very different variances, which hurts algorithms sensitive to feature scale (e.g., k-means, neural nets).
+
+*Core insight / definition:* Rescale each principal component by dividing by the square root of its eigenvalue (z_i = w_iᵀx/√λ_i), giving every component unit variance and zero correlation.
+
+*Why it matters / pitfall / interview trap:* amplifies noise in low-variance directions, since those components get divided by a small √λ.
+
+---
+
+**PDP (Partial Dependence Plot)**
+
+*The problem:* Visualize how a model's prediction changes on average as one (or two) features vary, holding others "fixed" in aggregate.
+
+*Core insight / definition:* Computed by averaging model predictions over the training data while sweeping the feature(s) of interest across their range, marginalizing out all other features.
+
+*Why it matters / pitfall / interview trap:* assumes feature independence — with correlated features it extrapolates into unrealistic/unobserved feature combinations, producing misleading curves; ALE plots address this.
+
+---
+
+**Permutation Importance**
+
+*The problem:* Measure a feature's true contribution to a fitted model's performance in a model-agnostic way, without the bias of tree impurity-based importance toward high-cardinality features.
+
+*Core insight / definition:* Randomly shuffle a single feature's values (breaking its relationship with the target) and measure the resulting drop in model performance on held-out data; a larger performance drop implies greater importance.
+
+*Why it matters / pitfall / interview trap:* can be misleading with strongly correlated features — permuting one feature has little effect if a correlated feature can compensate, understating its true importance.
+
+---
+
+**Perplexity (t-SNE)**
+
+*The problem:* t-SNE needs a way to control the effective neighborhood size used when computing pairwise similarities in high-dimensional space, per point.
+
+*Core insight / definition:* Sets the per-point Gaussian bandwidth σᵢ so that the resulting neighborhood distribution has entropy corresponding to a target perplexity (2^H(Pᵢ)); low perplexity (5-15) emphasizes very local structure and can fragment clusters, high perplexity (30-50) captures broader, more global-like structure.
+
+*Why it matters / pitfall / interview trap:* results are quite sensitive to this parameter — always run multiple values; rule of thumb is perplexity should be less than n/3.
+
+---
+
+**Platt Scaling**
+
+*The problem:* Calibrate a model's raw decision scores (e.g., SVM margins) into meaningful probabilities using a simple parametric method.
+
+*Core insight / definition:* Fits a logistic regression on the model's raw output scores against the true labels, producing calibrated probabilities via a sigmoid transform.
+
+*Why it matters / pitfall / interview trap:* preferred over isotonic regression when the calibration set is small (<500 examples), since isotonic's non-parametric flexibility overfits with too little data.
+
+---
+
+**Policy-Based vs. Value-Based RL**
+
+*The problem:* Reinforcement learning agents need a way to choose actions from delayed, scalar reward signals; different action-space structures favor different approaches.
+
+*Core insight / definition:* Value-based (Q-learning, DQN): learn Q(s,a), expected cumulative reward of an action in a state, then act greedily; suited to discrete action spaces. Policy-based (REINFORCE, PPO): directly parameterize and optimize the policy π_θ(a|s); handles continuous action spaces naturally but suffers high-variance gradient estimates requiring baselines/variance reduction.
+
+*Why it matters / pitfall / interview trap:* treating exploration as a minor implementation detail is a trap — insufficient exploration means the agent never discovers better strategies exist.
+
+---
+
+**PR-AUC (Precision-Recall AUC) / Average Precision**
+
+*The problem:* ROC-AUC can look deceptively good under severe class imbalance because the false positive rate denominator (all negatives) is huge, diluting the impact of false positives.
+
+*Core insight / definition:* The area under the precision-recall curve, which focuses entirely on the positive class's precision and recall trade-off across thresholds — much more sensitive to performance on the minority class than ROC-AUC under imbalance.
+
+*Why it matters / pitfall / interview trap:* the recommended default over ROC-AUC whenever the positive class is rare (e.g., fraud, anomaly detection).
+
+---
+
+**Precision, Recall**
+
+*The problem:* Every classification error is either a false positive or false negative, and these typically carry very different real-world costs.
+
+*Core insight / definition:* Precision = TP/(TP+FP) — of everything predicted positive, how much was correct (use when false positives are costly). Recall = TP/(TP+FN) — of everything actually positive, how much was caught (use when false negatives are costly).
+
+*Why it matters / pitfall / interview trap:* fixing the decision threshold at 0.5 by default implicitly assumes false positives and false negatives have equal cost, which is rarely true in practice — the threshold should be chosen from the cost structure or the precision-recall curve.
+
+---
+
+**Prophet**
+
+*The problem:* Forecast business time series with strong seasonality, holiday effects, and trend changes, in a way that's usable by non-experts with limited statistical background.
+
+*Core insight / definition:* Decomposes the series as y(t) = g(t) + s(t) + h(t) + ε — g(t) piecewise-linear or logistic trend, s(t) Fourier-series seasonality, h(t) holiday effects, ε Gaussian noise. Fits via curve-fitting rather than autocorrelation modeling.
+
+*Why it matters / pitfall / interview trap:* doesn't capture autocorrelation directly and its uncertainty intervals are often miscalibrated (too narrow, ignoring that shocks persist) — its "non-expert friendly" convenience can invite shipping without checking residual autocorrelation or interval coverage.
+
+---
+
+**QDA (Quadratic Discriminant Analysis)**
+
+*The problem:* LDA's assumption of equal covariance across classes is often violated, requiring a more flexible decision boundary.
+
+*Core insight / definition:* Like LDA but allows each class its own covariance matrix, producing quadratic (not linear) decision boundaries; requires O(C·d²) parameters and collapses to LDA when covariances are actually equal.
+
+*Why it matters / pitfall / interview trap:* the added flexibility costs more parameters, increasing overfitting risk especially with limited data per class.
+
+---
+
+**Random Forest**
+
+*The problem:* A single decision tree overfits and is unstable; you want an ensemble that reduces variance while keeping trees as diverse as possible.
+
+*Core insight / definition:* Bagging plus random feature subsets: each tree is trained on a bootstrap sample and, at each split, only considers a random subset of features (max_features), decorrelating trees further than bagging alone. Out-of-bag (OOB) error estimates generalization performance using each tree's unseen (non-bootstrapped) samples, without needing a separate validation set.
+
+*Why it matters / pitfall / interview trap:* max_features controls a bias-variance tradeoff — smaller values decorrelate trees more (lower variance) but each tree is weaker (higher bias); Random Forest generally underperforms gradient boosting on accuracy but trains faster in parallel and is less sensitive to hyperparameter tuning.
+
+---
+
+**Random Oversampling / Undersampling**
+
+*The problem:* Rebalance a skewed class distribution by directly manipulating the dataset composition before training.
+
+*Core insight / definition:* Oversampling duplicates minority-class examples (risk: overfitting to exact duplicates); undersampling drops majority-class examples (risk: losing potentially useful information).
+
+*Why it matters / pitfall / interview trap:* naive oversampling by duplication doesn't add new information, only more weight; SMOTE improves on this by generating synthetic (not duplicated) examples.
+
+---
+
+**Random Search**
+
+*The problem:* Grid search wastes budget evaluating irrelevant hyperparameters at the same resolution as important ones.
+
+*Core insight / definition:* Sample hyperparameter configurations from a distribution (uniform, log-uniform, discrete) rather than an exhaustive grid; with a fixed budget of N evaluations, each hyperparameter dimension gets N distinct sampled values, versus only ᵏ√N per dimension for grid search with k hyperparameters.
+
+*Why it matters / pitfall / interview trap:* still unguided — doesn't learn from past evaluations, so evaluation 50 is as blind as evaluation 1; log-uniform sampling should be used for parameters like learning rate that vary over orders of magnitude.
+
+---
+
+**RBF Kernel (see Kernel Trick)**
+
+---
+
+**Regularization (L1/L2, general)**
+
+*The problem:* An unconstrained model can fit training data arbitrarily well by growing large weights that overfit noise; you need a mechanism to penalize complexity.
+
+*Core insight / definition:* Add a penalty term to the loss proportional to weight magnitude. L2 (Ridge) pushes weights toward zero proportionally, rarely reaching exactly zero; L1 (Lasso) applies constant pressure toward zero, driving small weights to exactly zero (sparsity/implicit feature selection). Elastic Net blends both.
+
+*Why it matters / pitfall / interview trap:* applying regularization to an already high-bias (underfit) model makes it worse, not better — it's a variance-reduction tool, not a universal fix.
+
+---
+
+**Reparameterization Trick**
+
+*The problem:* Training a VAE requires backpropagating gradients through a random sampling step, which is not directly differentiable.
+
+*Core insight / definition:* Rewrite the sampling z ~ N(μ,σ²) as z = μ + σ⊙ε where ε ~ N(0,1) is sampled independently, moving the stochasticity outside the computation graph so gradients can flow through μ and σ.
+
+*Why it matters / pitfall / interview trap:* the specific mechanism that makes VAEs trainable end-to-end via standard backpropagation.
+
+---
+
+**RMSE (Root Mean Squared Error)**
+
+*The problem:* Measure average prediction error while penalizing large errors more heavily than small ones.
+
+*Core insight / definition:* RMSE = √(mean((y−ŷ)²)); squaring amplifies the contribution of large errors/outliers relative to MAE.
+
+*Why it matters / pitfall / interview trap:* more sensitive to outliers than MAE — the right choice depends on whether large errors should be disproportionately penalized in the given application.
+
+---
+
+**ROC-AUC**
+
+*The problem:* Summarize a binary classifier's discrimination ability across all possible decision thresholds in one number.
+
+*Core insight / definition:* Area under the Receiver Operating Characteristic curve (true positive rate vs. false positive rate across thresholds); 0.5 = random, 1.0 = perfect separation.
+
+*Why it matters / pitfall / interview trap:* can look artificially good under severe class imbalance because the false-positive-rate denominator (total negatives) is large — PR-AUC is preferred when the positive class is rare.
+
+---
+
+**R² (Coefficient of Determination)**
+
+*The problem:* Express regression model fit as the proportion of target variance explained, on an interpretable normalized scale.
+
+*Core insight / definition:* R² = 1 − (SS_residual / SS_total); 1.0 means perfect fit, 0 means no better than predicting the mean, and it can go negative for a model worse than the mean baseline.
+
+*Why it matters / pitfall / interview trap:* R² always increases (or stays the same) when adding more features regardless of their usefulness — adjusted R² or held-out validation should be used instead to compare models with different feature counts.
+
+---
+
+**SARIMA(p,d,q)(P,D,Q,s)**
+
+*The problem:* ARIMA cannot represent recurring seasonal patterns (e.g., monthly cycles); a seasonal extension is needed.
+
+*Core insight / definition:* Adds seasonal AR/MA/differencing terms at a seasonal lag s (e.g., s=12 for monthly data), combining seasonal and non-seasonal components in one model.
+
+*Why it matters / pitfall / interview trap:* choosing s incorrectly (e.g., using 12 for weekly data with a 52-week cycle) silently produces a poorly-fit seasonal component.
+
+---
+
+**Scree Plot**
+
+*The problem:* Visually decide how many principal components to retain in PCA.
+
+*Core insight / definition:* Plots eigenvalues (explained variance per component) in decreasing order; the "elbow" — where the curve flattens — marks the point beyond which components mostly capture noise.
+
+*Why it matters / pitfall / interview trap:* the elbow location is subjective; combining it with a hard explained-variance-ratio threshold (e.g., 90-95%) gives a more principled cutoff.
+
+---
+
+**SelectFromModel (see Embedded Methods)**
+
+---
+
+**SES (Simple Exponential Smoothing) (see Exponential Smoothing)**
+
+---
+
+**SHAP (SHapley Additive exPlanations) / TreeSHAP / KernelSHAP**
+
+*The problem:* Attribute an individual model prediction's deviation from a baseline to each input feature in a way grounded in game theory (fair credit allocation), not an ad hoc heuristic.
+
+*Core insight / definition:* Computes each feature's Shapley value — its average marginal contribution across all possible orderings/coalitions of features — guaranteeing consistency and local accuracy (contributions sum exactly to the prediction minus baseline). TreeSHAP computes exact Shapley values efficiently (O(TLD²)) specifically for tree ensembles; KernelSHAP is a slower, sampling-based model-agnostic approximation usable on any model, including neural networks.
+
+*Why it matters / pitfall / interview trap:* TreeSHAP's exactness and speed for gradient-boosted trees is a major reason tree models are preferred in regulated, high-stakes settings (e.g., GDPR adverse-action explanations) over neural networks, whose SHAP explanations are only approximate.
+
+---
+
+**Silhouette Score**
+
+*The problem:* Evaluate clustering quality per-point and overall without ground-truth labels.
+
+*Core insight / definition:* For each point, (b−a)/max(a,b), where a is the mean intra-cluster distance and b is the mean distance to the nearest other cluster; ranges from −1 (likely wrong cluster) to +1 (well-clustered), near 0 meaning the point sits on a cluster boundary.
+
+*Why it matters / pitfall / interview trap:* along with the Elbow Method, commonly used to help choose k for K-Means, but both are heuristics, not definitive answers.
+
+---
+
+**Snapshot Ensembles (see Cosine Annealing with Warm Restarts)**
+
+---
+
+**SMOTE (Synthetic Minority Oversampling Technique)**
+
+*The problem:* Naive oversampling by duplication adds no new information; you need genuinely new minority-class examples to rebalance the data meaningfully.
+
+*Core insight / definition:* Generates synthetic minority examples by interpolating between an existing minority point and one of its k-nearest minority neighbors in feature space.
+
+*Why it matters / pitfall / interview trap:* fails on multimodal minority classes — interpolating between well-separated minority clusters creates unrealistic synthetic points in the gap between them; also risky with very small minority classes (<20 examples), where synthetic points have high variance — cost-sensitive learning is safer in these cases.
+
+---
+
+**SMOTEENN / SMOTETomek**
+
+*The problem:* SMOTE alone can leave noisy or overlapping synthetic/majority points near the new decision boundary, still confusing the classifier.
+
+*Core insight / definition:* Hybrid resampling: apply SMOTE to oversample the minority class, then clean the resulting dataset using Edited Nearest Neighbors (SMOTEENN) or Tomek Links removal (SMOTETomek) to strip out ambiguous or borderline points from both classes.
+
+*Why it matters / pitfall / interview trap:* combines oversampling and undersampling/cleaning in one pipeline — generally more robust than plain SMOTE but adds computational cost and complexity.
+
+---
+
+**Stacking / Stacked Generalization**
+
+*The problem:* A simple average/vote of base models treats each model's output equally; some models may be more reliable in specific regions of feature space, and you'd like to learn how to combine them optimally.
+
+*Core insight / definition:* Train a meta-learner on the out-of-fold (OOF) predictions of base models (generated via cross_val_predict to avoid leakage — base models never predict on data they were trained on), so the meta-learner learns how to weight/combine base model outputs. Can be extended to multi-level stacking.
+
+*Why it matters / pitfall / interview trap:* using in-sample (non-OOF) base model predictions to train the meta-learner leaks information and causes the meta-learner to over-trust models that overfit their own training data.
+
+---
+
+**Stationarity**
+
+*The problem:* Most classical time-series models (ARIMA) assume the underlying statistical properties of the series don't change over time; violating this produces spurious model fits and misleading regressions.
+
+*Core insight / definition:* A series is (weakly/covariance) stationary if its mean, variance, and autocovariance (as a function of lag only, not absolute time) are all constant over time. Strict stationarity requires the entire joint distribution to be time-shift invariant. Tested via the Augmented Dickey-Fuller (ADF) test (H₀: unit root/non-stationary; reject H₀ → stationary).
+
+*Why it matters / pitfall / interview trap:* trend-stationary series (deterministic trend, removable by detrending) must be distinguished from difference-stationary/unit-root series (stochastic trend, shocks have permanent effects, requires differencing not detrending) — detrending a difference-stationary series doesn't fully remove non-stationarity.
+
+---
+
+**STL Decomposition**
+
+*The problem:* Detect anomalies or extract structure in a time series by separating it into interpretable components.
+
+*Core insight / definition:* Seasonal-Trend decomposition using Loess splits a series into trend, seasonal, and residual components; large deviations in the residual (e.g., beyond k standard deviations) flag anomalies.
+
+*Why it matters / pitfall / interview trap:* anomaly thresholds must account for the residual's own scale (k·σ), and seasonality must be correctly modeled first or normal seasonal peaks get flagged as anomalies.
+
+---
+
+**Supervised vs. Unsupervised vs. Reinforcement Learning**
+
+*The problem:* Different problems provide fundamentally different types of feedback during training, which determines the appropriate learning paradigm.
+
+*Core insight / definition:* Supervised: labeled examples provide the richest, most direct feedback signal (bottleneck: expensive/biased label acquisition). Unsupervised: no labels, goal shifts to finding structure in the input distribution (underspecified — "structure" isn't uniquely defined by data alone). Reinforcement: an agent acts and receives delayed scalar reward; the defining challenge is credit assignment (which of many past actions caused a later outcome).
+
+*Why it matters / pitfall / interview trap:* treating these as mutually exclusive misses hybrids (self-supervised, semi-supervised, weakly supervised); treating unsupervised as "unguided" ignores that distance metric, k, and architecture choices all embed prior assumptions about expected structure.
+
+---
+
+**Support Vector Machine (SVM)**
+
+*The problem:* Find a decision boundary that not only separates classes but maximizes the margin to the nearest points of each class, for better generalization.
+
+*Core insight / definition:* Finds the hyperplane maximizing the margin between classes; hard margin requires perfect linear separability, soft margin (via a slack/C parameter) tolerates some misclassification for better generalization on noisy/non-separable data. Only points on or inside the margin (support vectors) determine the boundary — other points don't affect it. The kernel trick extends this to non-linear boundaries.
+
+*Why it matters / pitfall / interview trap:* the C parameter trades off margin width against misclassification tolerance — large C overfits (narrow margin, few errors tolerated), small C underfits (wide margin, more tolerance); requires feature scaling since it's distance-based.
+
+---
+
+**t-SNE (t-Distributed Stochastic Neighbor Embedding)**
+
+*The problem:* Visualize high-dimensional data in 2D/3D such that nearby points in the original space remain nearby, when the underlying structure is non-linear.
+
+*Core insight / definition:* Models pairwise similarities in high dimensions as a Gaussian-based probability distribution, and finds a low-dimensional arrangement (using a heavy-tailed t-distribution to fix the crowding problem) whose similarities match by minimizing KL divergence via gradient descent. Governed by the perplexity parameter (effective neighborhood size).
+
+*Why it matters / pitfall / interview trap:* preserves neither absolute distances nor cluster sizes — cluster separation and size in a t-SNE plot carry no reliable meaning about the original space; has no out-of-sample transform (fit_transform only) and results vary across random seeds/perplexities, so a single run should never be treated as ground truth.
+
+---
+
+**Temperature Scaling**
+
+*The problem:* Calibrate a neural network's softmax outputs, which tend to be systematically overconfident, using a single learned parameter.
+
+*Core insight / definition:* Divides the logits by a learned scalar temperature T > 1 before applying softmax, softening the output distribution to better match empirical accuracy, fit on a held-out calibration set.
+
+*Why it matters / pitfall / interview trap:* is neural networks' standard calibration step, analogous to Platt scaling/isotonic regression for classical models, but requires an additional held-out calibration set and ongoing monitoring that logistic regression's native calibration avoids.
+
+---
+
+**Threshold Moving**
+
+*The problem:* The default 0.5 classification threshold implicitly assumes equal cost for false positives and false negatives, which is rarely true, especially under class imbalance.
+
+*Core insight / definition:* Sweep the precision-recall curve post-training and select the decision threshold that achieves a target precision, target recall, or optimal F-beta for the actual cost structure of the problem — a purely post-hoc lever requiring no retraining.
+
+*Why it matters / pitfall / interview trap:* composes cleanly with resampling and cost-sensitive learning as one of classical ML's independent, stackable levers for handling class imbalance.
+
+---
+
+**TCN (Temporal Convolutional Network)**
+
+*The problem:* Model long-range dependencies in sequential data without the sequential (non-parallelizable) computation of RNNs.
+
+*Core insight / definition:* Uses causal (only past inputs), dilated convolutions where dilation grows exponentially across layers, giving an exponentially growing receptive field (2^L at layer L) while remaining fully parallelizable and respecting causality (no future leakage).
+
+*Why it matters / pitfall / interview trap:* causal padding must be implemented carefully (pad only on the past side) to avoid leaking future information into a "past-only" prediction.
+
+---
+
+**TimeSeriesSplit / Walk-Forward Validation**
+
+*The problem:* A random train/test split on time series leaks future information into the training set, since the split ignores temporal order.
+
+*Core insight / definition:* Iteratively expand the training window and evaluate on the next unseen time block (train on [1..t], test on [t+1]; then train on [1..t+1], test on [t+2]; etc.), simulating how the model would actually be deployed and retrained over time.
+
+*Why it matters / pitfall / interview trap:* a model that performs well under walk-forward validation is not guaranteed to hold up in production if the regime later shifts — good test performance certifies the past, not future regime changes; a shadow-serve period is the more reliable production check.
+
+---
+
+**Tomek Links**
+
+*The problem:* After oversampling or in imbalanced data generally, majority and minority class points that are each other's nearest neighbor sit right on/near the decision boundary, confusing the classifier.
+
+*Core insight / definition:* Identifies pairs of opposite-class points that are mutual nearest neighbors (a "Tomek link") and removes the majority-class point from each pair, cleaning up the boundary region.
+
+*Why it matters / pitfall / interview trap:* an undersampling/cleaning technique, often combined with SMOTE (as SMOTETomek) rather than used alone.
+
+---
+
+**TPE (Tree-structured Parzen Estimator)**
+
+*The problem:* Fitting a full Gaussian Process surrogate for Bayesian optimization scales poorly (O(n³)) and can struggle with the mixed discrete/continuous, conditional structure typical of hyperparameter spaces.
+
+*Core insight / definition:* Optuna's default sampler; instead of modeling the objective directly, it models two densities — l(λ), the distribution of configurations scoring above a threshold, and g(λ), those scoring below — and proposes the next configuration maximizing l(λ)/g(λ), i.e., configurations that look like good ones rather than bad ones.
+
+*Why it matters / pitfall / interview trap:* scales better than GP-based Bayesian optimization to larger, more complex hyperparameter spaces, which is why it's Optuna's default.
+
+---
+
+**Train/Validation/Test Split**
+
+*The problem:* Reliably estimate how a model will perform on genuinely unseen data, distinct from data used to fit or tune it.
+
+*Core insight / definition:* Training set fits model parameters; validation set guides model/hyperparameter selection; test set (touched only once, at the very end) gives the final, unbiased generalization estimate.
+
+*Why it matters / pitfall / interview trap:* repeatedly consulting the "test" set during development turns it into a second validation set, invalidating its role as an unbiased final check.
+
+---
+
+**UMAP (Uniform Manifold Approximation and Projection)**
+
+*The problem:* t-SNE is slow, lacks an out-of-sample transform, and discards global structure — a faster, more general-purpose embedding method is needed.
+
+*Core insight / definition:* Models data as a weighted topological graph (fuzzy simplicial complex approximating the manifold) built from each point's k nearest neighbors with fuzzy edge weights, then optimizes a low-dimensional graph to match it by minimizing cross-entropy via SGD with negative sampling. Key parameters: n_neighbors (local vs. global structure tradeoff) and min_dist (how tightly points can pack in the embedding).
+
+*Why it matters / pitfall / interview trap:* supports true out-of-sample transform() (unlike t-SNE) and is deterministic-ish (spectral init), but still optimizes a local-structure objective and distorts global distances — its embeddings are usable as downstream features in a way t-SNE's aren't, but inter-cluster gaps/densities remain not fully trustworthy.
+
+---
+
+**VAE (Variational Autoencoder)**
+
+*The problem:* Standard autoencoders' latent space is unstructured — nearby latent points can decode to unrelated outputs, making interpolation and generation unreliable.
+
+*Core insight / definition:* Encodes each input to a distribution (mean, variance) rather than a point, adding a KL-divergence regularizer pulling that distribution toward a standard Gaussian prior, which smooths the latent space so nearby points decode similarly. Trained via the reparameterization trick to allow gradients through the sampling step.
+
+*Why it matters / pitfall / interview trap:* the KL term is what gives VAEs a proper generative/probabilistic structure that plain autoencoders lack — without it, you just get a regular (non-generative) autoencoder.
+
+---
+
+**Variance Threshold (feature selection)**
+
+*The problem:* Near-constant features carry essentially no information and add noise/dimensionality for free.
+
+*Core insight / definition:* A filter method that drops any feature whose variance falls below a specified threshold (e.g., a feature that's 99% one value).
+
+*Why it matters / pitfall / interview trap:* the simplest, cheapest filter method, but only catches globally low-variance features — a feature could have high variance yet still be irrelevant to the target.
+
+---
+
+**Voting Ensemble (Hard / Soft)**
+
+*The problem:* Combine predictions from several independently-trained, diverse models into a single, typically more robust prediction.
+
+*Core insight / definition:* Hard voting takes the majority class vote across models; soft voting averages predicted class probabilities and picks the highest-probability class, generally performing better when base models are reasonably calibrated.
+
+*Why it matters / pitfall / interview trap:* soft voting is only meaningful if base models' probability outputs are on comparable, meaningful scales — hence Calibration Before Ensembling as a companion technique.
+
+---
+
+**Walk-Forward Validation (see TimeSeriesSplit)**
+
+---
+
+**Ward's Linkage (see Hierarchical Clustering)**
+
+---
+
+**WCSS / Inertia**
+
+*The problem:* K-Means needs an explicit objective to minimize when assigning points to clusters and updating centroids.
+
+*Core insight / definition:* Within-Cluster Sum of Squares (inertia) = Σ over clusters Σ over points ‖x − centroid‖²; K-Means's coordinate-descent-style updates monotonically decrease this objective until convergence to a local minimum.
+
+*Why it matters / pitfall / interview trap:* WCSS always decreases as k increases (more clusters can only reduce within-cluster spread), so it cannot be used directly to choose k — hence the Elbow Method looks for diminishing returns rather than the minimum.
+
+---
+
+**Wrapper Methods (feature selection)**
+
+*The problem:* Filter methods score features independent of any model and miss interaction effects; you want feature selection guided by actual downstream model performance.
+
+*Core insight / definition:* Repeatedly train and evaluate a model on different feature subsets to search for the best-performing subset — Recursive Feature Elimination (RFE, iteratively remove the least important feature and retrain) or Sequential Feature Selection (greedily add/remove features one at a time based on validation performance).
+
+*Why it matters / pitfall / interview trap:* captures feature interactions that filter methods miss but is computationally expensive since it requires retraining the model many times.
+
+---
+
+**XGBoost**
+
+*The problem:* Scale gradient boosting to be fast, regularized, and robust enough for large-scale production tabular ML.
+
+*Core insight / definition:* Implements gradient boosting using a second-order (Newton) approximation of the loss (gradient + Hessian) to compute optimal leaf scores in closed form, with explicit L1/L2 regularization on leaf weights and tree structure, and level-wise tree growth (all nodes at a depth are considered before going deeper). Split gain criterion directly incorporates the regularization penalty, so splits that don't sufficiently reduce loss net of complexity cost are pruned.
+
+*Why it matters / pitfall / interview trap:* against Random Forest, XGBoost generally achieves better accuracy through sequential error correction but is more sensitive to hyperparameters (learning rate, depth, regularization) and easier to overfit without careful tuning/early stopping.
+
+---
