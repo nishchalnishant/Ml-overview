@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation done. Remaining: 05-deep-learning-core through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core done. Remaining: 06-architectures through 18-resources.
 
 ---
 
@@ -5171,4 +5171,1307 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* The Youden index $J=\text{Sensitivity}+\text{Specificity}-1$ identifies the threshold that maximizes the sum of sensitivity and specificity.
 
 *Why it matters / pitfall / interview trap:* Only sensible when sensitivity and specificity genuinely have equal value to the business — a claim that requires explicit justification, not a default choice.
+
+
+## 05-deep-learning-core
+
+**Activation Function (general)**
+
+*The problem:* A stack of purely linear layers collapses into a single linear transformation ($W_2(W_1x) = (W_2W_1)x$), so a network with no non-linearity cannot represent complex input-output relationships.
+
+*Core insight / definition:* Activation functions introduce non-linearity between layers, letting stacked layers compose non-linear functions and build hierarchical abstractions. The choice of activation determines gradient behavior (saturation, dead units) and therefore whether deep networks train stably.
+
+*Why it matters / pitfall / interview trap:* Picking an activation is a consequence of the gradient behavior you need, not a menu to memorize — saturating activations (sigmoid, tanh) are fine in shallow nets or output layers but kill gradients in deep hidden stacks.
+
+---
+
+**Adam**
+
+*The problem:* SGD (with or without momentum) uses one global learning rate for all parameters, which is simultaneously too large for frequently-updated parameters and too small for parameters with sparse gradients.
+
+*Core insight / definition:* Adam maintains per-parameter first ($m_t$) and second ($v_t$) moment estimates of the gradient, bias-corrects them, and divides the (bias-corrected) momentum by the root of the (bias-corrected) second moment: $\theta_t = \theta_{t-1} - \eta \cdot \hat{m}_t/(\sqrt{\hat{v}_t}+\epsilon)$. Defaults: $\beta_1=0.9$, $\beta_2=0.999$, $\epsilon=10^{-8}$, $\eta\approx3\times10^{-4}$.
+
+*Why it matters / pitfall / interview trap:* Adam's $v_t$ is an estimate of the gradient's uncentered second moment (scale), not curvature/Hessian — conflating the two is a common mistake. Adam can generalize worse than SGD+momentum on some vision benchmarks (sharp vs. flat minima).
+
+---
+
+**AdamW**
+
+*The problem:* In vanilla Adam, adding L2 regularization to the loss makes the weight-decay term pass through the adaptive $1/\sqrt{v_t}$ scaling, so parameters with large gradient history get less effective regularization — decay is applied non-uniformly and unintentionally.
+
+*Core insight / definition:* AdamW decouples weight decay from the gradient-based update, subtracting $\lambda\theta_{t-1}$ directly after the adaptive step: $\theta_t = \theta_{t-1} - \eta(\hat m_t/(\sqrt{\hat v_t}+\epsilon) + \lambda\theta_{t-1})$. Every parameter decays at the same rate regardless of gradient history.
+
+*Why it matters / pitfall / interview trap:* Always preferred over Adam for Transformers/LLMs. A $\lambda$ tuned for Adam does not transfer to AdamW — must be re-tuned. Biases and normalization parameters are typically excluded from decay.
+
+---
+
+**Adaptive Instance Normalization (AdaIN)**
+
+*The problem:* Style transfer needs a mechanism to inject a target style's statistics into content features.
+
+*Core insight / definition:* Extends Instance Normalization by replacing the learned scale/shift with the mean and standard deviation of a separate style input, transferring style statistics onto normalized content features.
+
+*Why it matters / pitfall / interview trap:* Works because Instance Norm already strips per-instance contrast/style, leaving a clean channel to inject new style statistics.
+
+---
+
+**ALiBi (Attention with Linear Biases)**
+
+*The problem:* Learned or sinusoidal positional encodings don't extrapolate well beyond the trained sequence length.
+
+*Core insight / definition:* Adds a fixed linear penalty to attention scores based on the distance between query and key positions, with no learned parameters.
+
+*Why it matters / pitfall / interview trap:* Extrapolates to longer contexts more cheaply than learned embeddings, which cap out at the max trained sequence length.
+
+---
+
+**Attention Mechanism (Scaled Dot-Product Attention)**
+
+*The problem:* RNNs compress an entire sequence into a fixed-size hidden state, losing long-range information; every token needs a way to directly access information from any other token regardless of distance.
+
+*Core insight / definition:* Every token produces a query, key, and value. The attention score between query $q_i$ and key $k_j$ is $q_i\cdot k_j/\sqrt{d_k}$; softmax-normalized scores weight a sum over values: $\text{Attention}(Q,K,V)=\text{softmax}(QK^T/\sqrt{d_k})V$. The $\sqrt{d_k}$ scaling prevents large dot products from saturating softmax into near-zero gradients.
+
+*Why it matters / pitfall / interview trap:* Complexity is $O(T^2\cdot d)$ — quadratic in sequence length — the primary bottleneck motivating sparse/linear/sliding-window attention variants and Flash Attention.
+
+---
+
+**Attribute-Based Zero-Shot Learning**
+
+*The problem:* Classifiers require labeled examples of every class, but new classes constantly appear.
+
+*Core insight / definition:* Each class is described by a vector of semantic attributes (e.g. has_stripes, is_aquatic); classification computes $P(y|x)\propto\text{compatibility}(f(x), a(y))$ between visual features and attribute vectors, allowing classification of classes never seen in training.
+
+*Why it matters / pitfall / interview trap:* Breaks down when two classes have identical or near-identical attribute vectors — zero-shot classification then cannot separate them.
+
+---
+
+**Autoencoder**
+
+*The problem:* You want a compressed representation of high-dimensional data without labels.
+
+*Core insight / definition:* An encoder compresses input into a low-dimensional latent code; a decoder reconstructs the input from that code, trained end-to-end to minimize reconstruction error.
+
+*Why it matters / pitfall / interview trap:* Standard (undercomplete) autoencoders are for compression/denoising, not generation — the latent space has "holes" where no training point mapped, so sampling or interpolating produces garbage; that's what VAEs fix.
+
+---
+
+**Autograd**
+
+*The problem:* Computing gradients for millions of parameters by hand (or via finite differences) is infeasible.
+
+*Core insight / definition:* PyTorch builds a dynamic computation graph during the forward pass, recording each operation's inputs and local derivative rule (`grad_fn`). Calling `.backward()` traverses the graph in reverse, applying the chain rule and accumulating gradients into each leaf tensor's `.grad`.
+
+*Why it matters / pitfall / interview trap:* Gradients accumulate across multiple `.backward()` calls unless `optimizer.zero_grad()` is called — a classic silent bug that makes updates grow unboundedly.
+
+---
+
+**Backpropagation**
+
+*The problem:* You need $\partial L/\partial w$ for every weight in a network with millions of parameters; computing each independently from scratch is prohibitively expensive.
+
+*Core insight / definition:* Systematic, recursive application of the chain rule from output to input, caching forward-pass activations and reusing them to compute each layer's gradient in a single backward pass that costs roughly the same as the forward pass.
+
+*Why it matters / pitfall / interview trap:* Backpropagation computes gradients; the optimizer uses them to update weights — these are separate, often-conflated steps. Without caching activations, you'd need to redo the forward pass for every layer's gradient.
+
+---
+
+**Batch Normalization (BatchNorm)**
+
+*The problem:* As parameters update during training, the distribution of each layer's outputs shifts, forcing downstream layers to continually re-adapt (internal covariate shift), slowing training.
+
+*Core insight / definition:* Normalizes each layer's activations to zero mean and unit variance across the batch dimension, then applies learnable scale $\gamma$ and shift $\beta$. Uses batch statistics during training and running (accumulated) statistics during inference.
+
+*Why it matters / pitfall / interview trap:* Forgetting `model.eval()` at inference is one of the most common production bugs — the model then normalizes using noisy single-batch statistics. Breaks down at small batch sizes (<8) and with variable-length sequences; the "internal covariate shift" explanation itself is contested (Santurkar et al. 2018 argue the real benefit is a smoother loss landscape).
+
+---
+
+**Bias Initialization**
+
+*The problem:* Bias terms need sensible starting values distinct from weight initialization concerns.
+
+*Core insight / definition:* Biases are typically zero-initialized (safe because they don't cause the symmetry-breaking problem weights have), except for special cases: BatchNorm $\gamma$=1/$\beta$=0 (identity at start), LSTM forget gate bias=1, regression output bias=dataset mean.
+
+*Why it matters / pitfall / interview trap:* Zero bias init is fine; zero *weight* init is catastrophic (breaks symmetry) — conflating the two is a common error.
+
+---
+
+**Bidirectional RNN (BiRNN)**
+
+*The problem:* A single-direction RNN only has access to past context at each timestep, but many tasks benefit from future context too.
+
+*Core insight / definition:* Concatenates the hidden states of a forward-direction RNN and a backward-direction RNN, giving each position access to context from both directions.
+
+*Why it matters / pitfall / interview trap:* Cannot be used autoregressively — requires the full sequence upfront, making it unusable for causal language modeling.
+
+---
+
+**Catastrophic Forgetting**
+
+*The problem:* Fine-tuning a pretrained model on a new task can destroy the general-purpose representations learned during pretraining.
+
+*Core insight / definition:* Large, noisy gradients from a randomly-initialized head propagate into the backbone early in fine-tuning and overwrite pretrained features before the head has learned a reasonable mapping.
+
+*Why it matters / pitfall / interview trap:* Prevented via gradual unfreezing, low/discriminative learning rates, or regularization penalizing deviation from pretrained weights (e.g. EWC). Starting with full fine-tuning on very little target data can collapse training entirely.
+
+---
+
+**Causal Masking**
+
+*The problem:* Autoregressive generation requires that a token's representation not depend on future tokens it hasn't generated yet.
+
+*Core insight / definition:* Sets attention scores to positions after the current one to $-\infty$ before softmax, so those positions receive zero attention weight.
+
+*Why it matters / pitfall / interview trap:* Makes the model unidirectional — appropriate for GPT-style generation but wrong for BERT-style bidirectional understanding tasks.
+
+---
+
+**Chain Rule**
+
+*The problem:* You need to compute the derivative of a composed function ($L=f(g(h(x)))$) without expanding the full composition analytically.
+
+*Core insight / definition:* The derivative of a composition is the product of the derivatives of each stage: $\partial L/\partial x = (\partial L/\partial f)(\partial f/\partial g)(\partial g/\partial h)(\partial h/\partial x)$. Backpropagation is simply this rule applied recursively and efficiently across a computation graph.
+
+*Why it matters / pitfall / interview trap:* Repeated multiplication of many small (or large) local derivatives is exactly the mechanism behind vanishing and exploding gradients.
+
+---
+
+**CLIP-Based Zero-Shot Classification**
+
+*The problem:* Manually defining attribute vectors for every class is labor-intensive and brittle.
+
+*Core insight / definition:* Trains image and text encoders jointly with a contrastive loss so that matching image/caption pairs land close together in a shared embedding space. Zero-shot classification becomes nearest-neighbor: embed the image and candidate text descriptions, pick the closest.
+
+*Why it matters / pitfall / interview trap:* Generalized ZSL (both seen and unseen classes as candidates at test time) is harder — models tend to overpredict classes seen during training, and calibrating confidence across seen/unseen remains an open problem.
+
+---
+
+**Computation Graph**
+
+*The problem:* Autodiff frameworks need a structured record of how a scalar loss was produced from inputs in order to differentiate it.
+
+*Core insight / definition:* A directed graph recording every tensor operation performed during the forward pass, with each node storing its inputs and local gradient rule; `.backward()` traverses it in reverse.
+
+*Why it matters / pitfall / interview trap:* Detaching a tensor mid-computation (`.detach()`) cuts the graph — gradients will not flow through the detached node, and upstream weights silently stop updating.
+
+---
+
+**Contrastive Loss / InfoNCE / SimCLR**
+
+*The problem:* Triplet loss requires curated positive/negative pairs; self-supervised learning needs a way to learn representations without any labels at all.
+
+*Core insight / definition:* Create two augmented views of the same input (a positive pair); treat every other example in the batch as a negative. InfoNCE loss: $-\log\frac{\exp(\text{sim}(z_i,z_j)/\tau)}{\sum_{k\neq i}\exp(\text{sim}(z_i,z_k)/\tau)}$, with temperature $\tau$ controlling sharpness.
+
+*Why it matters / pitfall / interview trap:* Needs a large batch (or memory bank) for enough negatives — small batches let the model collapse to a trivial solution mapping all inputs to the same point.
+
+---
+
+**CORAL (Correlation Alignment)**
+
+*The problem:* DANN's adversarial training for domain adaptation is unstable and hyperparameter-sensitive.
+
+*Core insight / definition:* Aligns source and target domains by minimizing the distance between their feature covariance matrices: $L_{CORAL}=(1/4d^2)\|C_S-C_T\|_F^2$, added to the task loss — no adversarial training needed.
+
+*Why it matters / pitfall / interview trap:* Simpler and more stable than DANN but less powerful for large domain shifts.
+
+---
+
+**Cosine Annealing**
+
+*The problem:* A constant learning rate is suboptimal — early training benefits from larger steps, late training needs small steps to settle near a minimum.
+
+*Core insight / definition:* Smoothly decays learning rate from max to min following a cosine curve: $\eta_t=\eta_{min}+\tfrac12(\eta_{max}-\eta_{min})(1+\cos(\pi t/T))$, avoiding the sharp discontinuities of step decay.
+
+*Why it matters / pitfall / interview trap:* Standard for Transformer/LLM training, usually paired with linear warmup at the start.
+
+---
+
+**Cross-Attention**
+
+*The problem:* A decoder needs to incorporate information from a separate source sequence (e.g. an encoder's output) rather than only attending within its own sequence.
+
+*Core insight / definition:* Query vectors come from one sequence (e.g. the decoder), while key and value vectors come from another sequence (e.g. the encoder). Used in encoder-decoder Transformers and RAG.
+
+*Why it matters / pitfall / interview trap:* Distinguishing self- vs cross-attention (same sequence vs two different sequences for Q vs K/V) is a common interview check.
+
+---
+
+**Cross-Entropy Loss (Multiclass)**
+
+*The problem:* For mutually-exclusive multiclass classification, the loss must penalize low predicted probability on the correct class.
+
+*Core insight / definition:* Negative log-likelihood of the correct class under a categorical distribution: $L=-\tfrac1m\sum_i\log\hat y_{i,k_i}$. Equals the entropy of the true label distribution plus $D_{KL}(p\|q)$; since entropy of one-hot labels is a constant, minimizing cross-entropy is equivalent to minimizing KL divergence to the predicted distribution.
+
+*Why it matters / pitfall / interview trap:* PyTorch's `CrossEntropyLoss` applies log-softmax internally and expects raw logits — applying softmax first causes double-squashing and wrong gradients. Cross-entropy "is" KL divergence only for fixed (one-hot) targets; with soft targets (label smoothing, distillation) the two have different gradients.
+
+---
+
+**CutMix**
+
+*The problem:* MixUp's alpha-blended images look unrealistic and can hurt performance on tasks sensitive to natural image statistics.
+
+*Core insight / definition:* Pastes a real rectangular patch from one image onto another (rather than blending pixel values), with the label mixed in proportion to the patch area.
+
+*Why it matters / pitfall / interview trap:* Preserves realistic local textures better than MixUp and often outperforms it for vision, at the risk of patches misaligning with label-relevant content.
+
+---
+
+**DANN (Domain-Adversarial Neural Network)**
+
+*The problem:* A classifier trained on source-domain features encodes source-specific artifacts that don't transfer to a shifted target domain.
+
+*Core insight / definition:* Trains a domain classifier adversarially against the feature extractor via a Gradient Reversal Layer (GRL) — identity in the forward pass, multiplies gradient by $-\lambda$ in the backward pass — forcing the feature extractor to produce features the domain classifier cannot distinguish, while a task classifier ensures those features remain task-relevant.
+
+*Why it matters / pitfall / interview trap:* Requires paired source/target data per batch; if domain shift is too large, no domain-invariant representation may exist at all.
+
+---
+
+**Data Augmentation**
+
+*The problem:* Limited training data causes overfitting; the model memorizes specific examples rather than learning generalizable patterns.
+
+*Core insight / definition:* Apply label-preserving transformations (flip, crop, jitter, rotation) to training inputs, synthetically increasing effective dataset diversity.
+
+*Why it matters / pitfall / interview trap:* Transformations must preserve label semantics — e.g. flipping a handwritten "6" can turn it into a "9".
+
+---
+
+**Data Parallelism**
+
+*The problem:* Training on a single GPU is too slow for large datasets/models even when the model itself fits in memory.
+
+*Core insight / definition:* Replicate the full model across GPUs, shard the data across them, compute gradients independently, then all-reduce (average) gradients before each update.
+
+*Why it matters / pitfall / interview trap:* Only works when the model itself fits on one GPU — use tensor/pipeline parallelism or ZeRO/FSDP when it doesn't.
+
+---
+
+**Dead / Dying Neuron**
+
+*The problem:* A ReLU-family unit that always receives negative pre-activation contributes zero gradient forever and stops learning.
+
+*Core insight / definition:* Because ReLU's derivative is exactly 0 for $z<0$, a neuron pushed into the negative regime (via bad init or a large gradient update) can never recover on its own — its weights stop updating permanently.
+
+*Why it matters / pitfall / interview trap:* Distinguish permanent dead-neuron sparsity (lost capacity) from healthy input-dependent ReLU sparsity (different units fire for different inputs — a feature, not a bug). Often a symptom of too-high a learning rate rather than something requiring an activation swap.
+
+---
+
+**Depthwise Separable Convolution**
+
+*The problem:* Standard convolutions have $K^2\times C_{in}\times C_{out}$ parameters, expensive for mobile/edge deployment.
+
+*Core insight / definition:* Factorizes a standard convolution into a depthwise convolution ($K^2\times C_{in}$, one filter per channel) followed by a pointwise $1\times1$ convolution ($C_{in}\times C_{out}$), drastically reducing parameters and compute (~8–9× fewer operations).
+
+*Why it matters / pitfall / interview trap:* Core building block of MobileNet-style efficient architectures.
+
+---
+
+**Discriminative Fine-Tuning**
+
+*The problem:* Different layers of a pretrained network need different learning rates — early layers already encode good general features and need only small nudges; the task head starts random and needs large updates.
+
+*Core insight / definition:* Assign progressively higher learning rates to later layers via per-layer parameter groups in the optimizer (e.g. `1e-5` for layer1 up to `1e-3` for the head).
+
+*Why it matters / pitfall / interview trap:* A single global fine-tuning learning rate risks either destroying pretrained features (too high for early layers) or under-adapting the head (too low).
+
+---
+
+**Discriminative vs Generative Models**
+
+*The problem:* Different tasks call for modeling either the decision boundary or the full data-generating process.
+
+*Core insight / definition:* Discriminative models learn $P(y|x)$ and focus capacity entirely on the decision boundary. Generative models learn $P(x,y)$ or $P(x)$, enabling sampling, likelihood computation, and anomaly detection.
+
+*Why it matters / pitfall / interview trap:* GPT-style LLMs are generative models ($P(\text{next token}|\text{context})$) frequently used discriminatively — a downstream adaptation of a generative objective, not evidence that generative and discriminative are interchangeable.
+
+---
+
+**Domain Adaptation**
+
+*The problem:* A model trained on a source distribution is deployed on a target distribution with the same task but different input statistics, degrading performance.
+
+*Core insight / definition:* A family of techniques (DANN, CORAL, instance reweighting, test-time adaptation) that align source and target feature distributions so a model trained on source generalizes to target. Formalized via covariate shift ($P_S(x)\neq P_T(x)$), label shift ($P_S(y)\neq P_T(y)$), or concept drift ($P_S(y|x)\neq P_T(y|x)$).
+
+*Why it matters / pitfall / interview trap:* Distinguishing which type of shift is occurring determines which technique applies — treating all distribution shift as the same problem is a common error.
+
+---
+
+**Dropout**
+
+*The problem:* Neurons can develop complex co-adaptations where one neuron's usefulness depends on another's specific output, causing the network to memorize training examples rather than learn independently useful features.
+
+*Core insight / definition:* Randomly zero out a fraction $p$ of activations during each training step (inverted dropout scales survivors by $1/(1-p)$ so no rescaling is needed at inference), forcing each neuron to be independently useful. Equivalent to training an implicit ensemble of $2^n$ thinned sub-networks.
+
+*Why it matters / pitfall / interview trap:* Forgetting `model.eval()` at inference leaves dropout active, producing stochastic, inconsistent predictions — a classic silent production bug. Weaker on CNN feature maps due to spatial correlation (DropBlock is better there); harmful on already-underpowered (high-bias) small networks.
+
+---
+
+**DropBlock**
+
+*The problem:* Standard dropout zeroes individual activations independently, but CNN feature maps are spatially correlated — nearby activations carry redundant information, so dropping single pixels barely removes information.
+
+*Core insight / definition:* Drops contiguous $B\times B$ spatial blocks of a feature map instead of individual units, matching the spatial correlation structure of convolutional features.
+
+*Why it matters / pitfall / interview trap:* Preferred over plain Dropout specifically for CNN regularization (used in EfficientNet, ResNet, AmoebaNet).
+
+---
+
+**DropPath / Stochastic Depth**
+
+*The problem:* In very deep residual networks, regularizing individual activations (dropout) doesn't directly regularize depth itself.
+
+*Core insight / definition:* Randomly drops entire residual branches during training with a probability that increases with depth (linear schedule), effectively training an ensemble of networks with variable depth.
+
+*Why it matters / pitfall / interview trap:* Used in ViT, EfficientNet, Swin; preferred over standard dropout in very deep residual architectures specifically.
+
+---
+
+**Early Stopping**
+
+*The problem:* Continuing to train after validation performance stops improving leads to overfitting on the training set.
+
+*Core insight / definition:* Monitor a validation metric and halt training (optionally with a patience window) once it stops improving, keeping the best checkpoint.
+
+*Why it matters / pitfall / interview trap:* One of the cheapest regularizers available — essentially free and always usable given a validation set.
+
+---
+
+**ELU (Exponential Linear Unit)**
+
+*The problem:* ReLU activations are non-negative on average, creating a persistent positive bias shift in each layer's output that must be compensated downstream, slowing convergence.
+
+*Core insight / definition:* $\text{ELU}(z)=z$ for $z>0$, $\alpha(e^z-1)$ for $z\leq0$ — the smooth negative regime saturates at $-\alpha$, pushing the mean activation closer to zero.
+
+*Why it matters / pitfall / interview trap:* The exponential is more expensive to compute than ReLU's max operation; still saturates (at a constant, not zero) for very negative inputs.
+
+---
+
+**Embedding Layer**
+
+*The problem:* Discrete tokens or categorical IDs need to be converted into dense, learnable vector representations usable by the rest of the network.
+
+*Core insight / definition:* A lookup table mapping integer indices to dense vectors, trained jointly with the rest of the network via backpropagation.
+
+*Why it matters / pitfall / interview trap:* GPT-style models initialize embeddings from $\mathcal{N}(0,0.02)$; input/output embedding matrices are sometimes tied (weight tying) to reduce parameters.
+
+---
+
+**Episodic Training**
+
+*The problem:* Few-shot models need to learn a general strategy for classifying novel classes, not memorize a fixed set of training classes.
+
+*Core insight / definition:* Sample many N-way K-shot "episodes" from the training classes, compute predictions within each episode, and backpropagate — the model trains on the *task structure* of few-shot classification rather than on fixed classes.
+
+*Why it matters / pitfall / interview trap:* This is why prototypical/matching networks generalize to entirely new classes at test time — they never trained to recognize specific class labels, only to compare within episodes.
+
+---
+
+**Exploding Gradients**
+
+*The problem:* If per-layer Jacobians (or per-timestep weight matrices in RNNs) have singular values consistently greater than 1, repeated multiplication through the chain rule causes the gradient magnitude to grow exponentially with depth/sequence length.
+
+*Core insight / definition:* Gradients grow so large that weight updates destabilize training — loss spikes and can diverge to NaN. Common in deep nets with large weights or RNNs unrolled over long sequences.
+
+*Why it matters / pitfall / interview trap:* Fixed with gradient clipping (norm-based, preserves direction), not with an architectural change — this is the opposite fix from vanishing gradients, and confusing the two is a classic trap.
+
+---
+
+**Feature Extraction (Transfer Learning)**
+
+*The problem:* With very limited target-task data, updating all pretrained weights risks overfitting.
+
+*Core insight / definition:* Freeze the entire pretrained backbone and train only a new task-specific head on top of its frozen features.
+
+*Why it matters / pitfall / interview trap:* Appropriate when target data is scarce and source/target domains are similar; performs poorly when the domains differ substantially since frozen features aren't specialized for the new domain.
+
+---
+
+**Few-Shot Learning**
+
+*The problem:* Standard supervised learning needs hundreds to thousands of labeled examples per class, which many real-world settings (rare diseases, low-resource languages) cannot provide.
+
+*Core insight / definition:* A family of methods (Prototypical Networks, Matching Networks, MAML, Relation Networks) that generalize from K examples per class by learning a feature space or adaptation procedure rather than a fixed classifier.
+
+*Why it matters / pitfall / interview trap:* The bottleneck is the feature space, not the classifier — with a good embedding, even a simple nearest-neighbor rule works with very few examples.
+
+---
+
+**FitNets / Attention Transfer**
+
+*The problem:* Matching only final logits in knowledge distillation discards useful structural information the teacher has learned internally.
+
+*Core insight / definition:* Distillation variant that matches intermediate hidden features or attention maps between teacher and student, giving the student a structural blueprint beyond just output probabilities.
+
+*Why it matters / pitfall / interview trap:* Mismatched layer pairing between teacher and student can introduce misleading constraints.
+
+---
+
+**Flash Attention**
+
+*The problem:* Standard attention implementations materialize the full $N\times N$ attention matrix in GPU high-bandwidth memory (HBM), which is slow and memory-hungry for long sequences.
+
+*Core insight / definition:* Uses tiling and an online softmax algorithm to compute exact attention without ever materializing the full attention matrix, achieving $O(n)$ memory and 2–4× speedup with no approximation.
+
+*Why it matters / pitfall / interview trap:* It's an exact (not approximate) reformulation — a common misconception is that it trades off accuracy for speed.
+
+---
+
+**FOMAML (First-Order MAML)**
+
+*The problem:* MAML's outer-loop gradient requires differentiating through the inner-loop gradient step (second-order derivatives), which is computationally expensive.
+
+*Core insight / definition:* Approximates MAML by ignoring second-order terms in the outer-loop gradient computation, using only first-order gradients with respect to the adapted parameters.
+
+*Why it matters / pitfall / interview trap:* Empirically nearly as good as full MAML at much lower computational cost.
+
+---
+
+**GAN (Generative Adversarial Network)**
+
+*The problem:* You want a model that can generate realistic samples from a complex, high-dimensional data distribution.
+
+*Core insight / definition:* Trains a generator (produces fake samples from noise) and a discriminator (distinguishes real from fake) adversarially in a min-max game; at Nash equilibrium the generator produces indistinguishable samples.
+
+*Why it matters / pitfall / interview trap:* Training is a two-player game, not single-objective minimization — gradient descent doesn't reliably converge to Nash equilibria. Mode collapse (generator produces only a narrow subset of outputs) is the classic pathological failure; diffusion models have largely superseded GANs for quality-critical image synthesis.
+
+---
+
+**Gated Recurrent Unit (GRU)**
+
+*The problem:* LSTMs solve vanishing gradients over time but require four gates and substantial parameters/compute.
+
+*Core insight / definition:* Simplifies LSTM to two gates (reset and update), achieving similar gradient-flow benefits with roughly 25% fewer parameters and comparable accuracy.
+
+*Why it matters / pitfall / interview trap:* Preferred over LSTM when compute/memory is constrained or the dataset is small (lower overfitting risk from fewer parameters).
+
+---
+
+**GELU (Gaussian Error Linear Unit)**
+
+*The problem:* ReLU is a hard, discontinuous gate at zero — either fully on or fully off — which can cause sharp loss landscapes and doesn't reflect that inputs near zero might be probabilistically ambiguous.
+
+*Core insight / definition:* Gates the input by the probability that a standard Gaussian random variable is less than it: $\text{GELU}(z)=z\cdot\Phi(z)$, smoothly and probabilistically masking rather than hard-thresholding. Commonly approximated with a tanh-based formula for speed.
+
+*Why it matters / pitfall / interview trap:* Default in GPT, BERT, ViT. Non-monotonic for small negative inputs (slight negative dip near $z\approx-0.17$) — describing it as merely "ReLU but smooth" misses that the defining idea is stochastic gating, which is where its connection to dropout comes from. Its margin over ReLU is empirically small; SwiGLU has since displaced it in newest LLMs.
+
+---
+
+**Generalized Zero-Shot Learning**
+
+*The problem:* Realistic deployment requires classifying among both classes seen during training and entirely novel classes simultaneously.
+
+*Core insight / definition:* The harder ZSL setting where both seen and unseen classes are candidates at test time.
+
+*Why it matters / pitfall / interview trap:* Models systematically overpredict seen classes because they dominated training; calibrating confidence between seen and unseen remains an open research problem.
+
+---
+
+**Gradient Accumulation**
+
+*The problem:* Achieving a large effective batch size (needed for stable large-model optimization) may require more GPU memory than is available for a single forward-backward pass.
+
+*Core insight / definition:* Run $k$ forward-backward passes on smaller micro-batches without resetting gradients or stepping the optimizer (gradients sum by default), divide the accumulated gradient by $k$, then take a single optimizer step — mathematically equivalent to one pass over the full batch.
+
+*Why it matters / pitfall / interview trap:* BatchNorm statistics are still computed per micro-batch, not across the full accumulated batch, so large $k$ can make BatchNorm noisy; LayerNorm doesn't have this problem. Must divide the loss by $k$ before `.backward()` or the effective learning rate is silently multiplied by $k$.
+
+---
+
+**Gradient Checkpointing**
+
+*The problem:* Standard backprop caches every intermediate activation for the backward pass, and this memory scales with depth × batch size × sequence length — often exceeding available GPU memory for large models.
+
+*Core insight / definition:* Trade compute for memory: save activations only at checkpoint boundaries and recompute the rest during the backward pass, roughly 33% more compute for substantially less activation memory ($O(\sqrt n)$ with $\sqrt n$ evenly spaced checkpoints).
+
+*Why it matters / pitfall / interview trap:* Interacts badly with any RNG-dependent forward-pass op (dropout, stochastic depth) unless RNG state is explicitly preserved — otherwise the recomputed forward differs from the original and gradients are computed for the wrong network.
+
+---
+
+**Gradient Clipping**
+
+*The problem:* Exploding gradients can produce weight updates so large that training destabilizes or diverges to NaN.
+
+*Core insight / definition:* Scale the entire gradient vector down (by norm) if its L2 norm exceeds a threshold $\tau$: $g\leftarrow g\cdot\tau/\|g\|_2$ when $\|g\|_2>\tau$. Applied after `.backward()`, before `optimizer.step()`.
+
+*Why it matters / pitfall / interview trap:* Norm-based clipping preserves gradient direction; value-based clipping (per-element) distorts direction and is generally worse. Clipping does not fix vanishing gradients — it can only cap magnitude, not increase it.
+
+---
+
+**Gradient Descent**
+
+*The problem:* You need a systematic way to search a high-dimensional loss landscape for parameters that minimize loss, since exhaustive enumeration is impossible.
+
+*Core insight / definition:* Move parameters in the direction opposite the gradient (steepest ascent direction): $\theta\leftarrow\theta-\eta\nabla_\theta L$. Variants trade off gradient accuracy against speed: full-batch (accurate, slow), SGD/single-example (noisy, fast), mini-batch (practical default).
+
+*Why it matters / pitfall / interview trap:* Learning rate choice is the central difficulty — too large overshoots and diverges, too small converges impractically slowly.
+
+---
+
+**Gradient Reversal Layer (GRL)**
+
+*The problem:* Implementing adversarial domain-invariant feature learning (DANN) naively requires alternating separate update passes for feature extractor and domain classifier.
+
+*Core insight / definition:* A layer that is the identity function during the forward pass but multiplies the gradient by $-\lambda$ during the backward pass, letting a single backward pass simultaneously train the domain classifier to distinguish domains and the feature extractor to fool it.
+
+*Why it matters / pitfall / interview trap:* The single-trick elegance (no separate optimizer loops) is the key implementation insight behind DANN.
+
+---
+
+**Gradual Unfreezing**
+
+*The problem:* Fine-tuning all layers of a pretrained network simultaneously lets the randomly-initialized head's large early gradients corrupt pretrained backbone features (catastrophic forgetting).
+
+*Core insight / definition:* Train only the head first; once it stabilizes, progressively unfreeze backbone layers starting from the top (most task-specific) and working down (most general).
+
+*Why it matters / pitfall / interview trap:* Skipping this and fine-tuning everything from the start with little target data can collapse training entirely, leaving neither good pretrained features nor enough data to relearn them.
+
+---
+
+**GroupNorm (Group Normalization)**
+
+*The problem:* BatchNorm needs large batches for stable statistics and doesn't work for detection/segmentation tasks that force small per-GPU batch sizes.
+
+*Core insight / definition:* Normalizes across groups of channels, computed per individual sample (independent of batch size). $G=1$ reduces to LayerNorm; $G=C$ (one group per channel) reduces to InstanceNorm; $G=32$ is a common default.
+
+*Why it matters / pitfall / interview trap:* The standard fix when BatchNorm is unstable at small batch sizes (e.g. batch size 2 in object detection).
+
+---
+
+**He / Kaiming Initialization**
+
+*The problem:* Xavier initialization assumes activations are approximately linear (true for tanh/sigmoid), but ReLU zeroes all negative pre-activations, effectively halving the variance passed through at every layer — compounding into vanishing signal.
+
+*Core insight / definition:* Doubles the weight variance relative to Xavier to exactly compensate for ReLU's expected zeroing of half its inputs: $W\sim\mathcal{N}(0,2/n_{in})$.
+
+*Why it matters / pitfall / interview trap:* PyTorch's default init for `nn.Linear`/`nn.Conv2d` is Kaiming Uniform. Applying Xavier to a ReLU network instead causes activations to shrink by $\sqrt2$ per layer — a 10-layer network shrinks $32\times$. The factor of 2 comes precisely from $E[\text{ReLU}(x)^2]=\tfrac12 E[x^2]$ for symmetric zero-mean inputs — being unable to derive this factor is a common interview gap.
+
+---
+
+**Hidden Layer / Depth**
+
+*The problem:* A single linear layer can only represent linear decision boundaries; real-world data (images, language, audio) has highly non-linear, hierarchical structure.
+
+*Core insight / definition:* Stacking non-linear layers lets a network compose progressively more abstract representations — edges to textures to parts to objects — with each layer building on the abstractions of the one before it.
+
+*Why it matters / pitfall / interview trap:* The Universal Approximation Theorem shows width alone is theoretically sufficient, but depth is far more parameter-efficient in practice; depth without residual connections beyond roughly 10 layers is often counterproductive due to vanishing gradients.
+
+---
+
+**Huber Loss**
+
+*The problem:* MSE is overly sensitive to outliers; MAE has a constant gradient that oscillates near convergence.
+
+*Core insight / definition:* Behaves like MSE for small errors (smooth gradient, faster convergence) and like MAE for large errors (linear penalty, outlier-robust), with a transition point $\delta$: quadratic below $\delta$, linear above.
+
+*Why it matters / pitfall / interview trap:* $\delta$ should be set from the residual distribution of a first-pass model (e.g. a high quantile), not chosen blindly — the default regression choice when outliers exist but shouldn't dominate.
+
+---
+
+**Instance Normalization**
+
+*The problem:* Style transfer needs to normalize away image-specific contrast/style statistics while preserving content structure.
+
+*Core insight / definition:* Normalizes across spatial dimensions independently per channel per sample (no batch dimension, no cross-channel averaging).
+
+*Why it matters / pitfall / interview trap:* Used in style transfer (paired with AdaIN); loses discriminative batch statistics useful for classification, so it's a poor fit for classification tasks.
+
+---
+
+**Instance Reweighting**
+
+*The problem:* Under covariate shift, the source training distribution over- or under-represents certain inputs relative to the target distribution.
+
+*Core insight / definition:* Weight each source sample by the density ratio $w(x)=P_T(x)/P_S(x)$; algorithms like KLIEP and uLSIF estimate this ratio directly via convex optimization without separately estimating each density.
+
+*Why it matters / pitfall / interview trap:* Fails when the source distribution's support doesn't cover the target's — you cannot reweight source samples to cover target regions with zero source density.
+
+---
+
+**Internal Covariate Shift**
+
+*The problem:* As earlier layers' weights update during training, the distribution of activations feeding into later layers keeps shifting, forcing those layers to continually re-adapt.
+
+*Core insight / definition:* The originally-proposed motivation for BatchNorm: normalizing activations to stable statistics removes this shifting-target problem.
+
+*Why it matters / pitfall / interview trap:* Santurkar et al. (2018) showed the ICS framing is contested — BatchNorm's real benefit may be smoothing the loss landscape rather than directly reducing covariate shift; citing ICS as the settled, uncontested explanation is a known trap.
+
+---
+
+**Iterative Magnitude Pruning (IMP) / Lottery Ticket Hypothesis**
+
+*The problem:* Large networks are wasteful if most of their capacity is unnecessary for the task.
+
+*Core insight / definition:* IMP removes the smallest-magnitude weights iteratively, optionally resetting survivors to their original initialization and retraining. The Lottery Ticket Hypothesis claims large networks contain small "winning ticket" subnetworks that, reset to original init, match full-network accuracy alone.
+
+*Why it matters / pitfall / interview trap:* Largely a theoretical insight — impractical to search for at LLM scale.
+
+---
+
+**KL Divergence (Kullback-Leibler Divergence)**
+
+*The problem:* You need to measure how different one probability distribution is from another, not as a symmetric distance but as "extra information" needed to encode one using the other.
+
+*Core insight / definition:* $D_{KL}(P\|Q)=\sum_x P(x)\log(P(x)/Q(x))$; zero iff $P=Q$; asymmetric ($D_{KL}(P\|Q)\neq D_{KL}(Q\|P)$). Used in VAE regularization (posterior toward prior), knowledge distillation (student matches teacher), and RLHF (policy stays close to reference).
+
+*Why it matters / pitfall / interview trap:* Diverges to infinity if $Q(x)=0$ where $P(x)>0$ — requires a small $\epsilon$ smoothing term in practice.
+
+---
+
+**Knowledge Distillation**
+
+*The problem:* Large models are expensive to serve; you want a smaller model that retains most of the large model's capability.
+
+*Core insight / definition:* Train a smaller student model to mimic a larger teacher's soft (temperature-scaled) output distribution plus hard labels — the "dark knowledge" in relative class probabilities transfers information that hard labels alone cannot.
+
+*Why it matters / pitfall / interview trap:* Fails if the student fundamentally lacks capacity for the task, regardless of training; self-distillation (Born-Again Networks) needs no separate teacher and behaves like adaptive label smoothing.
+
+---
+
+**KV Cache**
+
+*The problem:* Recomputing key/value projections for all previous tokens at every autoregressive decoding step is wasteful.
+
+*Core insight / definition:* Stores past keys and values so each new token only computes its own K/V and reuses cached ones for attention, avoiding recomputation.
+
+*Why it matters / pitfall / interview trap:* Scales linearly with sequence length and is the dominant inference memory bottleneck for long contexts — the primary motivation for MQA/GQA.
+
+---
+
+**Label Shift**
+
+*The problem:* A model may be deployed where the class distribution differs from training even if the input-given-class distribution is unchanged.
+
+*Core insight / definition:* A domain shift type where $P_S(y)\neq P_T(y)$ but $P(x|y)$ is preserved — e.g. training data skews toward common classes while test data doesn't.
+
+*Why it matters / pitfall / interview trap:* Distinct from covariate shift and concept drift; requires different correction techniques (e.g. reweighting by class prior ratio).
+
+---
+
+**Label Smoothing**
+
+*The problem:* Training with hard one-hot targets incentivizes the model to push logits toward $\pm\infty$, producing overconfident, poorly-calibrated predictions.
+
+*Core insight / definition:* Soften targets: assign $1-\epsilon$ probability to the correct class and $\epsilon/K$ to every other class ($\epsilon=0.1$ typical), so the loss-minimizing logit gap becomes finite rather than infinite.
+
+*Why it matters / pitfall / interview trap:* Improves calibration but can slightly hurt accuracy on well-separated tasks, and makes truly ambiguous examples harder to identify; distillation teachers are often trained *without* label smoothing since it deliberately suppresses confident ranking.
+
+---
+
+**LayerNorm (Layer Normalization)**
+
+*The problem:* BatchNorm's dependence on batch statistics makes it unstable at small batch sizes and incompatible with variable-length sequences.
+
+*Core insight / definition:* Normalizes across the feature dimension independently per example, entirely independent of batch size or other examples in the batch.
+
+*Why it matters / pitfall / interview trap:* Standard in Transformers; works for any batch size including 1. Nearly no modern Transformer uses BatchNorm instead.
+
+---
+
+**Leaky ReLU**
+
+*The problem:* A dead ReLU neuron has gradient identically zero for all negative inputs and can never recover.
+
+*Core insight / definition:* $\text{LeakyReLU}(z)=z$ for $z>0$, $\alpha z$ for $z\leq0$ (typically $\alpha=0.01$) — keeps a small non-zero gradient in the negative regime so dead neurons can in principle revive.
+
+*Why it matters / pitfall / interview trap:* $\alpha$ is a fixed hyperparameter that doesn't adapt to data; PReLU learns it per-neuron instead, at the cost of extra parameters and overfitting risk.
+
+---
+
+**Learning Rate Warmup**
+
+*The problem:* At the very start of training, gradients are noisy and large because parameters are random; a full learning rate immediately can send weights into bad regions from which recovery is slow.
+
+*Core insight / definition:* Start with a very small learning rate and linearly ramp up over the first $T_w$ steps before switching to the main schedule (e.g. cosine decay).
+
+*Why it matters / pitfall / interview trap:* Too-short warmup leaves early instability unaddressed; too-long warmup wastes training time. Complements (but doesn't replace) residual scaling as a fix for deep-Transformer early instability.
+
+---
+
+**Lion Optimizer**
+
+*The problem:* Adam's two moment vectors roughly double or triple optimizer memory relative to model parameters, a major cost at very large model scale.
+
+*Core insight / definition:* Discards the second moment entirely and uses only the sign of a momentum-smoothed update direction: $\theta_t=\theta_{t-1}-\eta(\text{sign}(\beta_2 m_{t-1}+(1-\beta_2)g_t)+\lambda\theta_{t-1})$.
+
+*Why it matters / pitfall / interview trap:* Requires a learning rate 3–10× smaller than AdamW, since every parameter moves the same step size regardless of gradient magnitude — a raw gradient of $10^{-6}$ and one of $10$ produce identical update magnitude, which can cause instability with high gradient variance.
+
+---
+
+**LSTM (Long Short-Term Memory)**
+
+*The problem:* Vanilla RNNs suffer vanishing/exploding gradients over long sequences because the same weight matrix is multiplied at every timestep.
+
+*Core insight / definition:* Introduces a cell state $c_t$ that flows through time with primarily additive updates, controlled by input, forget, and output gates. The forget gate can set itself near 1 to pass gradients through nearly unchanged — an additive path analogous to a residual connection, but across time rather than depth.
+
+*Why it matters / pitfall / interview trap:* Mitigates but does not eliminate vanishing gradients — very long sequences (>1000 steps) still struggle; the forget-gate bias is typically initialized to 1 so the LSTM starts in a "remember" state rather than immediately forgetting everything.
+
+---
+
+**MAE (Mean Absolute Error / L1 Loss)**
+
+*The problem:* MSE's quadratic penalty makes it overly sensitive to outliers, which can dominate training.
+
+*Core insight / definition:* $L=\tfrac1m\sum_i|y_i-\hat y_i|$ — a linear penalty, the maximum-likelihood loss under Laplace-distributed noise, targeting the conditional median rather than the mean.
+
+*Why it matters / pitfall / interview trap:* Gradient is constant ($\pm1$) regardless of error magnitude, so it doesn't shrink near the optimum — causes oscillation near convergence unless paired with a decaying learning rate.
+
+---
+
+**MAML (Model-Agnostic Meta-Learning)**
+
+*The problem:* Metric-based few-shot methods (ProtoNets, Matching Networks) fix the embedding space after meta-training, but some tasks require the model to actually adapt its parameters to each new task.
+
+*Core insight / definition:* Learn an initialization $\theta$ such that a few gradient steps on any new task's support set produce good task-specific performance. Bi-level optimization: an inner loop adapts $\theta$ per task, an outer loop updates $\theta$ by backpropagating through the inner adaptation (second-order gradients).
+
+*Why it matters / pitfall / interview trap:* Sensitive to hyperparameters (inner LR, number of inner steps, outer LR); assumes all sampled tasks share structure, which fails when tasks are too heterogeneous. FOMAML and Reptile are cheaper approximations.
+
+---
+
+**Matching Networks**
+
+*The problem:* A single prototype (mean of support embeddings) discards information about the distribution of support examples.
+
+*Core insight / definition:* Classify a query via an attention-weighted sum over all support examples, with learned (not uniform) attention weights: $\sum_i a(q,s_i)y_i$.
+
+*Why it matters / pitfall / interview trap:* More expressive than Prototypical Networks' fixed centroid, at the cost of a learned comparison mechanism.
+
+---
+
+**Meta-Learning (Learning to Learn)**
+
+*The problem:* A standard model's learned knowledge is locked into parameters for one task and doesn't transfer to new tasks without retraining from scratch.
+
+*Core insight / definition:* Train on a distribution of tasks so the model learns a learning algorithm (an inductive bias for task structure) rather than a solution to a single fixed problem. Categorized as optimization-based (MAML), metric-based (ProtoNets), or model-based (learned update rule baked into architecture).
+
+*Why it matters / pitfall / interview trap:* Metric-based approaches adapt at test time via nearest-neighbor lookup with no weight updates (fast, less flexible); optimization-based approaches actually update weights per task (slower, more flexible).
+
+---
+
+**Mixed Precision Training (AMP)**
+
+*The problem:* Full float32 training is memory-inefficient and slow relative to what modern tensor cores can achieve at lower precision.
+
+*Core insight / definition:* Run forward passes and most computation at fp16/bf16 while keeping fp32 master weights for the optimizer update. `autocast` automatically routes ops to the right precision; `GradScaler` (fp16 only) inflates the loss before backward to avoid gradient underflow, then unscales before the optimizer step.
+
+*Why it matters / pitfall / interview trap:* bf16 has the same exponent range as fp32 (no overflow risk, no GradScaler needed) but lower precision; fp16 has higher precision but a narrow dynamic range requiring GradScaler. On Ampere+ hardware, bf16 is generally preferred. Net memory savings are roughly 1.5× overall since optimizer states typically stay fp32.
+
+---
+
+**MixUp**
+
+*The problem:* Standard augmentation applies transformations to a single image; decision boundaries can still be sharp between classes.
+
+*Core insight / definition:* Interpolates both inputs and labels between two randomly paired examples using $\lambda\sim\text{Beta}(\alpha,\alpha)$, smoothing the decision boundary.
+
+*Why it matters / pitfall / interview trap:* Produces unrealistic blended images, which can hurt tasks sensitive to natural image statistics — CutMix is often preferred for that reason.
+
+---
+
+**Model-Based Meta-Learning**
+
+*The problem:* Optimization-based meta-learning (MAML) requires gradient computation at test time, which can be slow.
+
+*Core insight / definition:* Builds the adaptation mechanism directly into the architecture (e.g. an LSTM hidden state acting as working memory, or an external memory bank for key-value lookup), enabling adaptation in a single forward pass with no gradients.
+
+*Why it matters / pitfall / interview trap:* Trades flexibility for speed — no gradient computation needed at adaptation time.
+
+---
+
+**Movement Pruning**
+
+*The problem:* Magnitude-based pruning doesn't account for how weights are actively changing during fine-tuning.
+
+*Core insight / definition:* Prunes based on $w\cdot\partial L/\partial w$ (movement away from zero during training) rather than raw magnitude, better suited to fine-tuning regimes.
+
+*Why it matters / pitfall / interview trap:* More appropriate than magnitude pruning specifically when pruning during fine-tuning rather than from-scratch training.
+
+---
+
+**MSE (Mean Squared Error)**
+
+*The problem:* Regression needs a loss that's zero at exact prediction and grows as prediction error increases.
+
+*Core insight / definition:* $L=\tfrac1m\sum_i(y_i-\hat y_i)^2$ — the negative log-likelihood of a Gaussian noise model, targeting the conditional mean; gradient scales linearly with error.
+
+*Why it matters / pitfall / interview trap:* Quadratic penalty means a single outlier can dominate the batch loss and pull the model toward fitting it rather than typical examples.
+
+---
+
+**Multi-Head Attention**
+
+*The problem:* A single attention computation can only capture one type of relationship between tokens at a time.
+
+*Core insight / definition:* Run $H$ independent attention computations in parallel with different learned projections, letting each head specialize (e.g. syntax, coreference, semantics), then concatenate and project the results.
+
+*Why it matters / pitfall / interview trap:* Each head operates on a smaller sub-dimension ($d_{model}/H$), so total compute stays comparable to single-head attention with a larger dimension.
+
+---
+
+**MQA / GQA (Multi-Query / Grouped-Query Attention)**
+
+*The problem:* Full multi-head attention (MHA) requires storing separate K/V per head in the KV cache, which dominates inference memory for long-context serving.
+
+*Core insight / definition:* MQA shares a single K/V pair across all query heads (smallest cache, some quality loss); GQA groups query heads to share K/V within each group (middle ground). Used in LLaMA 3 and other modern LLMs.
+
+*Why it matters / pitfall / interview trap:* Pick GQA over full MHA specifically when KV-cache memory, not compute, is the serving bottleneck.
+
+---
+
+**Nesterov Momentum**
+
+*The problem:* Standard momentum computes the gradient at the current position, which can lag behind the actual trajectory the optimizer is about to take.
+
+*Core insight / definition:* Compute the gradient after a preliminary step in the current velocity direction — i.e. evaluate the gradient at where you're about to be, not where you currently are: $v_t=\beta v_{t-1}+\eta\nabla_\theta L(\theta-\beta v_{t-1})$.
+
+*Why it matters / pitfall / interview trap:* A slightly more accurate correction than vanilla momentum, at negligible extra cost.
+
+---
+
+**Normalization Layers (general)**
+
+*The problem:* Deep networks need activations kept at a controlled, stable scale at every layer to train efficiently; without this, layers must constantly compensate for shifting upstream statistics.
+
+*Core insight / definition:* A family of techniques (BatchNorm, LayerNorm, GroupNorm, InstanceNorm, RMSNorm) that normalize activations to zero mean/unit variance (or just unit scale for RMSNorm) over different axes, followed by a learnable scale $\gamma$ and shift $\beta$.
+
+*Why it matters / pitfall / interview trap:* Which normalization to use depends critically on batch size and architecture — mismatching (e.g. BatchNorm with batch size 2, or BatchNorm in a Transformer) is a very common interview trap.
+
+---
+
+**Orthogonal Initialization**
+
+*The problem:* In RNNs, the same recurrent weight matrix is applied at every timestep; if its norm isn't exactly 1, gradients vanish or explode as they propagate back through many timesteps.
+
+*Core insight / definition:* Initialize the recurrent weight matrix as orthogonal ($W^TW=I$), which is an isometry — it preserves vector norm exactly under a linear transformation, so gradient norm is preserved at every recurrent step at initialization.
+
+*Why it matters / pitfall / interview trap:* The norm-preservation guarantee only holds for the linear map — once a non-linear activation is applied, the guarantee breaks, though orthogonal init still provides a much better starting point than random normal init for RNN hidden-to-hidden weights.
+
+---
+
+**Overfitting**
+
+*The problem:* A model can fit noise and idiosyncrasies in the training set rather than the true underlying pattern, hurting generalization to new data.
+
+*Core insight / definition:* Symptomatically diagnosed by low training loss but high validation loss; addressed via more data, regularization (dropout, weight decay), early stopping, or data augmentation.
+
+*Why it matters / pitfall / interview trap:* Distinguishing overfitting (train low, val high) from underfitting/vanishing gradients (both losses high and flat) is a core diagnostic skill.
+
+---
+
+**Parameter Sharing**
+
+*The problem:* Learning entirely separate parameters for every position/timestep/spatial location is wasteful when the same computation should be useful everywhere.
+
+*Core insight / definition:* Reuse the same weights across multiple positions — convolutional filters across spatial locations, RNN weights across timesteps, attention weights across sequence positions — reducing parameters and enabling generalization across the shared axis.
+
+*Why it matters / pitfall / interview trap:* Weight sharing (the general mechanism) is distinct from weight tying (a specific choice, e.g. tying input embedding and output projection matrices in language models); applying parameter sharing where positions genuinely have different statistics is a design mistake.
+
+---
+
+**Pipeline Parallelism**
+
+*The problem:* A model's total size may exceed a single GPU's memory even though individual layers fit.
+
+*Core insight / definition:* Shard layers across GPUs and pipeline micro-batches through the resulting stages so multiple GPUs process different layers concurrently.
+
+*Why it matters / pitfall / interview trap:* Appropriate specifically when individual layers fit on one GPU but the whole model doesn't — different regime from tensor parallelism (individual layers too large).
+
+---
+
+**Pooling (Max/Average)**
+
+*The problem:* Convolutional feature maps retain full spatial resolution, which is expensive and provides more precision than needed for downstream tasks.
+
+*Core insight / definition:* Aggregates values over a spatial region (max keeps the sharpest feature, average smooths), reducing spatial dimensions.
+
+*Why it matters / pitfall / interview trap:* Trades exact translation equivariance for approximate translation invariance — small position shifts no longer change the output, at the cost of spatial precision.
+
+---
+
+**Pre-Norm vs Post-Norm**
+
+*The problem:* Where normalization is placed relative to the residual connection significantly affects training stability at depth.
+
+*Core insight / definition:* Post-Norm (original Transformer) applies normalization to the sum of the residual and sublayer output: $\text{Norm}(x+\text{Sublayer}(x))$ — this puts the identity path through the normalizer, degrading the clean gradient route. Pre-Norm applies normalization before the sublayer: $x+\text{Sublayer}(\text{Norm}(x))$, keeping the residual stream unobstructed.
+
+*Why it matters / pitfall / interview trap:* Pre-Norm is far more stable to train at depth and is the near-universal modern default; Post-Norm can perform marginally better at shallow depth but requires careful LR warmup to avoid instability.
+
+---
+
+**Prototypical Networks**
+
+*The problem:* Given only K labeled examples per novel class, how do you classify a query into one of N classes?
+
+*Core insight / definition:* Represent each class by the centroid (mean, "prototype") of its K support embeddings; classify a query by nearest prototype (negative distance as logits). Trained via episodic N-way K-shot sampling.
+
+*Why it matters / pitfall / interview trap:* Assumes the mean of support embeddings is a good class representative — fails for classes with multi-modal embedding distributions (e.g. "dog" spanning many visually distinct breeds).
+
+---
+
+**Pruning**
+
+*The problem:* Trained networks are often over-parameterized relative to what's needed at inference, wasting compute and memory.
+
+*Core insight / definition:* Unstructured pruning zeros individual low-magnitude weights (high compression on paper, but needs sparse tensor cores for real speedup); structured pruning removes entire neurons/heads/filters/layers (hardware-agnostic real speedup, less aggressive compression).
+
+*Why it matters / pitfall / interview trap:* Choosing structured over unstructured is the right default whenever you don't control the inference hardware's sparse-compute support.
+
+---
+
+**PyTorch `nn.Module`**
+
+*The problem:* Building neural networks requires organizing parameters, submodules, and forward computation in a way the framework can track for autograd, saving/loading, and mode switching.
+
+*Core insight / definition:* Base class providing a parameter registry (`parameters()`, `state_dict()`), automatic tracking of submodules, and `train()`/`eval()` mode switching that propagates to all children.
+
+*Why it matters / pitfall / interview trap:* Storing submodules in a plain Python list (instead of `nn.ModuleList`) means PyTorch won't register their parameters — they silently won't be trained or saved.
+
+---
+
+**PyTorch Tensor**
+
+*The problem:* Deep learning needs a data structure supporting multi-dimensional arrays, GPU acceleration, and automatic differentiation.
+
+*Core insight / definition:* PyTorch's core data structure — an n-dimensional array with a dtype (float32/float16/bfloat16/int64/bool), a device (CPU/GPU), and optional gradient tracking (`requires_grad`).
+
+*Why it matters / pitfall / interview trap:* `.view()` requires contiguous memory and shares storage with the original tensor; `.reshape()` works regardless of contiguity, copying if necessary — conflating the two can cause subtle bugs.
+
+---
+
+**Receptive Field**
+
+*The problem:* A single convolutional layer only "sees" a small local region of the input; understanding larger spatial context requires stacking layers.
+
+*Core insight / definition:* The region of the original input that influences a given output unit; grows with network depth as successive convolutional/pooling layers aggregate information.
+
+*Why it matters / pitfall / interview trap:* CNNs only achieve global context gradually with depth, unlike attention-based architectures which have global receptive field from the first layer.
+
+---
+
+**ReduceLROnPlateau**
+
+*The problem:* You don't know in advance the right total training duration or when the loss will plateau, making a fixed decay schedule hard to design.
+
+*Core insight / definition:* Monitors a validation metric and reduces the learning rate by a factor when it fails to improve for `patience` epochs.
+
+*Why it matters / pitfall / interview trap:* Reacts to validation noise — a single bad validation step can trigger premature reduction unless the `threshold` parameter is tuned; requires frequent (and potentially costly) validation.
+
+---
+
+**Relation Networks**
+
+*The problem:* Prototypical Networks use a fixed Euclidean distance metric, which may not capture the true, possibly non-Euclidean, similarity structure between classes.
+
+*Core insight / definition:* Learn the comparison function itself — concatenate query and prototype embeddings, pass through a learned network, output a similarity score.
+
+*Why it matters / pitfall / interview trap:* More flexible than fixed-metric approaches (ProtoNets, Matching Networks) at the cost of an additional learned component.
+
+---
+
+**ReLU (Rectified Linear Unit)**
+
+*The problem:* Sigmoid and tanh saturate for large inputs, shrinking gradients toward zero and preventing deep networks from training.
+
+*Core insight / definition:* $\text{ReLU}(z)=\max(0,z)$ — derivative is exactly 1 for positive inputs (no shrinkage) and exactly 0 for negative inputs.
+
+*Why it matters / pitfall / interview trap:* Enabled training of much deeper networks by eliminating saturation on the positive side, but introduces the dying-neuron problem — neurons stuck with negative pre-activation stop learning permanently.
+
+---
+
+**Reptile**
+
+*The problem:* Even FOMAML retains some of MAML's inner/outer loop formalism and complexity.
+
+*Core insight / definition:* An even simpler meta-learning update: move the initialization directly toward where task-adapted models end up: $\theta\leftarrow\theta+\epsilon(\theta_i'-\theta)$, with no second-order gradients at all.
+
+*Why it matters / pitfall / interview trap:* Strips MAML down to its simplest possible form while retaining much of its practical effectiveness.
+
+---
+
+**Residual Connection (Skip Connection)**
+
+*The problem:* Before residual connections, networks deeper than ~20 layers performed *worse* than shallower ones — not from overfitting but from optimization failure, since learning an identity mapping from scratch through many non-linear layers is hard.
+
+*Core insight / definition:* Add the layer's input directly to its output: $H(x)=F(x)+x$. The layer only needs to learn the residual $F(x)=H(x)-x$, which can be near-zero (easy to learn) if identity is already optimal. The gradient $\partial L/\partial x=(\partial L/\partial y)(1+\partial F/\partial x)$ has a guaranteed path through the "+1" term regardless of how small $\partial F/\partial x$ becomes.
+
+*Why it matters / pitfall / interview trap:* The load-bearing fact is the derivative's "+1" term, not the forward-pass "information isn't lost" intuition — interviewers often probe for the gradient-level explanation specifically. Dimension mismatches across the skip require an explicit projection (1×1 conv or linear layer). Appears in ResNet, U-Net, DenseNet, and every Transformer block, not just ResNets.
+
+---
+
+**RMSNorm (Root Mean Square Normalization)**
+
+*The problem:* LayerNorm's mean-subtraction step adds compute cost that may be unnecessary for the benefits normalization provides.
+
+*Core insight / definition:* Simplifies LayerNorm by removing mean-centering, rescaling only by the root-mean-square of the features: $\text{RMSNorm}(x)=\frac{x}{\text{RMS}(x)}\cdot\gamma$, $\text{RMS}(x)=\sqrt{\tfrac1d\sum_ix_i^2}$.
+
+*Why it matters / pitfall / interview trap:* Empirically matches LayerNorm quality at lower compute cost — standard in modern LLMs (LLaMA, Gemma, Mistral); trades away explicit re-centering behavior.
+
+---
+
+**RoPE (Rotary Position Embedding)**
+
+*The problem:* Positional information needs to be injected into attention in a way that generalizes well and captures relative (not just absolute) position.
+
+*Core insight / definition:* Encodes position by rotating query/key vectors in embedding space by an angle proportional to position, making attention scores naturally depend on relative position between tokens.
+
+*Why it matters / pitfall / interview trap:* The modern default (LLaMA, Mistral); extendable to longer contexts via techniques like NTK-aware scaling or YaRN, unlike learned absolute position embeddings which cap out at trained sequence length.
+
+---
+
+**Self-Supervised Pre-Training**
+
+*The problem:* Labeled data is expensive and scarce, but unlabeled data is abundant; you want to extract useful signal from it.
+
+*Core insight / definition:* Design a pretext task computable without human labels (contrastive learning, masked reconstruction, next-token prediction) such that solving it forces the model to learn representations of the data's statistical structure, which transfer to downstream supervised tasks.
+
+*Why it matters / pitfall / interview trap:* Transfer quality depends on alignment between pretext and downstream task — MAE-style masked reconstruction transfers well to dense prediction (segmentation) because it requires spatial understanding, while contrastive methods transfer well to retrieval because they explicitly learn similarity structure. Misalignment between pretext and downstream tasks reduces transfer quality.
+
+---
+
+**Sigmoid**
+
+*The problem:* A network needs a non-linearity that squashes values into a bounded range so neurons can behave like soft switches.
+
+*Core insight / definition:* $\sigma(z)=1/(1+e^{-z})$, range $(0,1)$; derivative $\sigma(z)(1-\sigma(z))$, maximum value 0.25.
+
+*Why it matters / pitfall / interview trap:* Every layer multiplies the gradient by at most 0.25 — after 10 layers, $0.25^{10}\approx10^{-6}$, the canonical vanishing-gradient example. Outputs aren't zero-centered, slowing convergence. Should be used only as the final activation for binary classification, never in deep hidden layers.
+
+---
+
+**Softmax**
+
+*The problem:* Raw classification logits have no probabilistic interpretation — they can be negative, unbounded, and don't sum to one.
+
+*Core insight / definition:* Exponentiates and normalizes so outputs form a valid probability distribution: $\text{softmax}(z_i)=e^{z_i}/\sum_je^{z_j}$; the numerically stable form subtracts the max logit before exponentiating.
+
+*Why it matters / pitfall / interview trap:* Assumes mutual exclusivity between classes — for multi-label tasks (multiple simultaneously-true classes), use per-class sigmoid instead. At low temperature it collapses toward one-hot; at high temperature it approaches uniform.
+
+---
+
+**Spectral Normalization**
+
+*The problem:* GAN discriminator training is unstable partly because the discriminator function can have unbounded Lipschitz constant, allowing it to change arbitrarily fast and destabilize the adversarial game.
+
+*Core insight / definition:* Constrains the largest singular value of each weight matrix to 1 via power iteration, enforcing a Lipschitz constraint on the network.
+
+*Why it matters / pitfall / interview trap:* Primarily used in GAN discriminators to stabilize adversarial training; the power-iteration step adds computational overhead.
+
+---
+
+**Speculative Decoding**
+
+*The problem:* Autoregressive LLM decoding generates one token per forward pass, which is slow at inference.
+
+*Core insight / definition:* A small "draft" model proposes several tokens ahead; the large target model verifies all of them in a single parallel forward pass, accepting the longest correct prefix.
+
+*Why it matters / pitfall / interview trap:* Gives 2–3× throughput speedup only when the draft and target models' output distributions are well-aligned — a low acceptance rate (diverging distributions) negates the benefit.
+
+---
+
+**Step Decay**
+
+*The problem:* You want a simple, interpretable way to reduce learning rate over training.
+
+*Core insight / definition:* Multiply the learning rate by a fixed factor $\gamma$ every $k$ epochs: $\eta_t=\eta_0\cdot\gamma^{\lfloor t/k\rfloor}$.
+
+*Why it matters / pitfall / interview trap:* Discontinuous drops can cause a temporary loss increase at each step boundary, unlike smoother schedules like cosine annealing.
+
+---
+
+**SwiGLU**
+
+*The problem:* Standard Transformer FFN blocks use ReLU between two linear projections; adding a gating mechanism (which empirically improves quality) naively requires a third projection and more parameters.
+
+*Core insight / definition:* Two separate linear projections — one gated through Swish, the other passed through directly — multiplied element-wise: $\text{SwiGLU}(x,W,V)=\text{Swish}(xW)\odot(xV)$. The hidden dimension is reduced to $8/3\cdot d$ (from the standard $4d$) to keep total parameters matched despite the third weight matrix.
+
+*Why it matters / pitfall / interview trap:* Used in LLaMA, PaLM, Gemini; achieves the same validation loss in ~15–20% fewer training steps than ReLU FFNs (Shazeer 2020), though Shazeer's own paper attributes the gain to "divine benevolence" — i.e. it's empirically validated but not theoretically derived. The three-matrix structure does *not* mean more parameters, since the hidden dimension shrinkage compensates exactly.
+
+---
+
+**Swish / SiLU**
+
+*The problem:* GELU's Gaussian CDF approximation is relatively complex to compute.
+
+*Core insight / definition:* $\text{Swish}(z)=z\cdot\sigma(z)$ — replaces GELU's Gaussian CDF gate with a sigmoid gate, giving similar smooth self-gating behavior more cheaply. Called SiLU in PyTorch.
+
+*Why it matters / pitfall / interview trap:* Used in the EfficientNet family; still has the non-monotonic dip near zero characteristic of self-gated activations.
+
+---
+
+**Tanh**
+
+*The problem:* Sigmoid's outputs are always positive (not zero-centered), causing zig-zag weight updates and slower convergence when gradients flow backward.
+
+*Core insight / definition:* $\tanh(z)=(e^z-e^{-z})/(e^z+e^{-z})$, range $(-1,1)$, zero-centered; derivative $1-\tanh^2(z)$, max value 1.0.
+
+*Why it matters / pitfall / interview trap:* Strictly preferred over sigmoid in hidden layers when a saturating activation must be used, but still saturates for large $|z|$ — essentially the same vanishing-gradient problem as sigmoid, just less severe.
+
+---
+
+**Temperature (Softmax / Contrastive)**
+
+*The problem:* You want to control how sharply a probability distribution concentrates on the most likely option.
+
+*Core insight / definition:* A scalar divisor applied before softmax (or in contrastive similarity scores); low temperature sharpens/peaks the distribution, high temperature flattens it toward uniform.
+
+*Why it matters / pitfall / interview trap:* In contrastive losses like InfoNCE, temperature directly controls how "hard" the implicit negative comparisons are.
+
+---
+
+**Tensor Parallelism**
+
+*The problem:* A single layer's weight matrix may be too large to fit in one GPU's memory.
+
+*Core insight / definition:* Shard individual weight matrices across GPUs, splitting the matrix multiplications themselves across devices.
+
+*Why it matters / pitfall / interview trap:* Appropriate specifically when a single layer doesn't fit on one GPU — a different regime from pipeline parallelism (whole model too large, but individual layers fit).
+
+---
+
+**Test-Time Adaptation (TTA)**
+
+*The problem:* At deployment you have unlabeled test batches and cannot train normally, but the model's predictions could still be improved using structure in the test data itself.
+
+*Core insight / definition:* Adapt the model using only unlabeled test-time signals, e.g. entropy minimization (push toward confident predictions) or averaging predictions over augmented views of the same input.
+
+*Why it matters / pitfall / interview trap:* Works without labels because consistency (similar inputs → similar predictions) is a reasonable prior even without supervision.
+
+---
+
+**Training vs Inference Mode**
+
+*The problem:* Several deep learning layers behave fundamentally differently during training versus at deployment, and getting this wrong causes bugs invisible in typical offline evaluation.
+
+*Core insight / definition:* Dropout is active during training and disabled during inference; BatchNorm uses batch statistics during training and running statistics during inference; gradient computation is required during training and wasteful during inference (disabled via `torch.no_grad()`).
+
+*Why it matters / pitfall / interview trap:* A model scoring well offline (large eval batches) but poorly in production (single-example serving) is the classic signature of forgetting `model.eval()` — dropout stays active and BatchNorm uses noisy single-batch statistics.
+
+---
+
+**Transfer Learning**
+
+*The problem:* Training a large model from scratch for every new task requires enormous data and compute that most target tasks cannot supply.
+
+*Core insight / definition:* Reuse representations learned by a model pretrained on a large source dataset — deep networks learn a general-purpose hierarchy of features (edges → textures → parts → objects) that transfers to related tasks even across very different domains (e.g. ImageNet to medical imaging).
+
+*Why it matters / pitfall / interview trap:* The inference pipeline (normalization statistics, input size, tokenizer) must exactly match what the pretrained model expects — mismatches cause silent performance degradation. Using too-large a learning rate during fine-tuning destroys pretrained weights rapidly.
+
+---
+
+**Transformer**
+
+*The problem:* RNNs process sequences step by step, compressing all past context into a fixed-size state and losing long-range information; they're also inherently sequential and cannot be parallelized across time.
+
+*Core insight / definition:* Replaces recurrence entirely with self-attention — every position computes a representation as a weighted combination of all other positions, with weights determined by content (query-key similarity) rather than position, enabling full parallelism and no distance penalty for long-range dependencies.
+
+*Why it matters / pitfall / interview trap:* The $O(n^2)$ attention cost in sequence length is the central bottleneck for long-context modeling and the motivation for efficient-attention research (sparse, linear, sliding-window attention, Flash Attention).
+
+---
+
+**Triplet Loss**
+
+*The problem:* Metric learning tasks (face recognition, retrieval) need embeddings where semantically similar items are close and dissimilar items are far apart — a goal ordinary classification losses cannot express.
+
+*Core insight / definition:* For an anchor, positive, and negative example: $L=\max(0, d(a,p)-d(a,n)+\text{margin})$, requiring the anchor-positive distance to be smaller than anchor-negative by at least a margin.
+
+*Why it matters / pitfall / interview trap:* Random triplet selection quickly yields mostly "easy" triplets with zero loss and no gradient, stalling training — hard or semi-hard negative mining is required in practice, though hard mining risks surfacing mislabeled outliers.
+
+---
+
+**Universal Approximation Theorem**
+
+*The problem:* Is there a theoretical guarantee that neural networks can represent arbitrary functions?
+
+*Core insight / definition:* A single hidden layer with a non-linear activation and sufficient width can approximate any continuous function on a compact domain to arbitrary precision.
+
+*Why it matters / pitfall / interview trap:* Establishes that width alone is theoretically *sufficient*, not that it's *efficient* — a shallow network satisfying the theorem may need exponentially many neurons to match what a deep network achieves compactly; citing this theorem as a practical performance guarantee is a common misconception.
+
+---
+
+**Vanishing Gradients**
+
+*The problem:* When per-layer local derivatives are consistently less than 1 (saturating activations like sigmoid/tanh, or poorly-scaled weights), repeated multiplication through the chain rule shrinks the gradient exponentially with depth.
+
+*Core insight / definition:* Early layers in a deep network receive a gradient signal near zero and effectively stop learning, while later layers continue to update normally — diagnosable by comparing per-layer gradient norms.
+
+*Why it matters / pitfall / interview trap:* Fixed only by architectural changes (ReLU-family activations, residual connections, normalization, better initialization) — gradient clipping does *not* help, since it can only cap magnitude, not amplify an already-near-zero signal. ReLU alone doesn't guarantee immunity; poorly-scaled weight matrices can still cause vanishing gradients even with ReLU, which is exactly what He initialization exists to prevent.
+
+---
+
+**Weight Decay / L2 Regularization**
+
+*The problem:* Without constraint, weights can grow arbitrarily large, increasing model complexity and overfitting risk.
+
+*Core insight / definition:* Adds a penalty proportional to squared weight magnitude to the loss ($\lambda\|w\|^2$), shrinking all weights smoothly toward zero without inducing exact sparsity. In SGD this is equivalent to multiplying weights by $(1-\eta\lambda)$ each step.
+
+*Why it matters / pitfall / interview trap:* In adaptive optimizers like Adam, naively adding this to the gradient interacts badly with the adaptive scaling (see AdamW) — this coupling issue is a frequent point of confusion.
+
+---
+
+**Weight Initialization (Signal Propagation Problem)**
+
+*The problem:* Poorly-chosen starting weight values produce activations that are either near-zero (saturated/silent) or extremely large (overflowing) on the very first forward pass, making the first backward pass's gradients useless and preventing training from ever recovering.
+
+*Core insight / definition:* Choose initial weight distributions so signal variance stays roughly constant across layers in both forward and backward passes — different activation functions require different variance formulas (Xavier for tanh/sigmoid, He for ReLU).
+
+*Why it matters / pitfall / interview trap:* Zero-initializing weights (not biases) breaks symmetry entirely — every neuron in a layer stays identical forever since they receive identical gradients.
+
+---
+
+**Weight Normalization**
+
+*The problem:* Standard weight parameterization couples a weight vector's direction and magnitude, which can make optimization less stable.
+
+*Core insight / definition:* Reparameterizes weights as $w=g\cdot v/\|v\|$, decoupling the learned magnitude $g$ from the learned direction $v$.
+
+*Why it matters / pitfall / interview trap:* Used in WaveNet and normalizing-flow models; a batch-independent alternative to BatchNorm-style normalization.
+
+---
+
+**Weight Tying**
+
+*The problem:* Language models have a large input embedding matrix and a similarly large output projection matrix, doubling parameters for what may be redundant information.
+
+*Core insight / definition:* Share (tie) the same weight matrix between the input token embedding and the output unembedding/projection layer.
+
+*Why it matters / pitfall / interview trap:* A specific design choice distinct from the general parameter-sharing principle in convolutions/RNNs/attention — reduces parameters and often improves performance in Transformer LMs.
+
+---
+
+**Xavier / Glorot Initialization**
+
+*The problem:* Networks using symmetric, approximately-linear-near-zero activations (tanh, sigmoid) need weight variance calibrated so that neither forward-pass activations nor backward-pass gradients shrink or explode across layers.
+
+*Core insight / definition:* Balances the forward constraint ($\text{Var}[W]=1/n_{in}$) and backward constraint ($\text{Var}[W]=1/n_{out}$) via their harmonic-mean-like compromise: $W\sim\mathcal{N}(0, 2/(n_{in}+n_{out}))$.
+
+*Why it matters / pitfall / interview trap:* Derived assuming a linear (or symmetric-saturating) activation — applying it to ReLU networks causes activations to shrink by $\sqrt2$ per layer since ReLU's zeroing halves effective variance, a mismatch that He initialization specifically corrects.
+
+---
+
+**Zero Initialization**
+
+*The problem:* You need a starting point for weights before training begins.
+
+*Core insight / definition:* Setting all weights to zero causes every neuron in a layer to receive identical inputs and compute identical outputs and gradients — symmetry is never broken, so the layer behaves as a single effective neuron regardless of declared width.
+
+*Why it matters / pitfall / interview trap:* Never use zero for weights (though it's fine, even standard, for most biases) — this is a foundational, easy-to-state but important initialization pitfall.
+
+---
+
+**Zero-Shot Learning**
+
+*The problem:* Training a classifier requires labeled examples of every class, but new classes constantly appear and retraining for each one is impractical.
+
+*Core insight / definition:* Classify inputs into classes never seen during training by reasoning over semantic representations of those classes — either hand-defined attribute vectors or natural-language descriptions aligned to a shared embedding space (e.g. CLIP).
+
+*Why it matters / pitfall / interview trap:* Requires the semantic representation space to be expressive enough to distinguish all classes, including unseen ones — classes with near-identical semantic descriptions cannot be separated.
+
+---
+
+**ZeRO / FSDP (Fully Sharded Data Parallel)**
+
+*The problem:* Standard data parallelism fully replicates optimizer states, gradients, and parameters on every GPU, wasting memory through redundancy.
+
+*Core insight / definition:* Shard optimizer states, gradients, and/or parameters across data-parallel workers instead of replicating them fully, reconstructing what's needed on-the-fly during compute.
+
+*Why it matters / pitfall / interview trap:* Lets larger models fit without the added complexity of full tensor or pipeline parallelism — a middle-ground scaling strategy.
+
+---
 
