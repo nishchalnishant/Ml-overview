@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative done. Remaining: 09-reinforcement-learning through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning done. Remaining: 10-llms through 18-resources.
 
 ---
 
@@ -8919,6 +8919,511 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* replace the classifier discriminator with a critic that estimates the Earth-mover (Wasserstein) distance: $\mathcal{L}_\text{WGAN} = \mathbb{E}_{x\sim p_\text{data}}[D(x)] - \mathbb{E}_z[D(G(z))]$, with the critic constrained to be 1-Lipschitz (enforced via gradient penalty in WGAN-GP). This provides meaningful gradients even when generator and data distributions don't overlap at all.
 
 *Why it matters / pitfall / interview trap:* this is a structural solution to vanishing gradients, not a tuning trick — it changes the underlying divergence being optimized (Wasserstein distance instead of a JS/KL-like divergence).
+
+---
+
+
+## 09-reinforcement-learning
+
+**Actor-Critic**
+
+*The problem:* REINFORCE's Monte Carlo return has enormous variance and requires waiting for episode end, making learning slow and noisy.
+
+*Core insight / definition:* Two networks work together: an actor $\pi_\theta(a\mid s)$ that picks actions, and a critic $V_\phi(s)$ that estimates state value via TD regression and supplies the baseline. The advantage becomes the TD error $\hat A_t = r_t + \gamma V_\phi(s_{t+1}) - V_\phi(s_t)$, letting the actor update every step instead of waiting for the trajectory to end.
+
+*Why it matters / pitfall / interview trap:* Learning the baseline (rather than estimating it from full returns) is what makes policy gradients practical at scale; GAE is the standard refinement that tunes the bias-variance dial of the advantage estimate.
+
+---
+
+**Advantage Function**
+
+*The problem:* Raw returns or Q-values used as a policy-gradient weight carry variance from the state's baseline value, which has nothing to do with the action chosen.
+
+*Core insight / definition:* $A^\pi(s,a) = Q^\pi(s,a) - V^\pi(s)$ — how much better an action is than the policy's average behavior in that state. Subtracting $V(s)$ removes state-level noise, leaving a correctly-signed signal: positive means better than expected (reinforce), negative means worse (suppress).
+
+*Why it matters / pitfall / interview trap:* It is the variance-minimizing baseline choice and the central quantity policy gradient methods actually optimize against; a common trap is claiming baselines "reduce bias" — they reduce variance while leaving the expected gradient unchanged.
+
+---
+
+**AlphaGo / AlphaZero / MuZero**
+
+*The problem:* A reactive policy network alone can't look ahead in games with deep tactics; and building a strong game AI historically required either human data or known rules.
+
+*Core insight / definition:* AlphaGo combines a supervised policy (from human games), RL fine-tuning, and a value network to guide MCTS. AlphaZero drops human data entirely — pure self-play, one network outputs $(P, V)$, and MCTS acts as a policy-improvement operator whose search result becomes the next training target. MuZero removes even the rules: it learns a value-equivalent latent model (predicting only policy, value, and reward — not pixels) and plans inside that learned model.
+
+*Why it matters / pitfall / interview trap:* MCTS doesn't "make the network more accurate" — it produces a better policy at decision time by spending compute, and that output becomes the training signal; that self-improvement loop, not raw network capacity, is why AlphaZero has no human ceiling.
+
+---
+
+**Bandit (Multi-Armed / Contextual)**
+
+*The problem:* You have $k$ options with noisy unknown rewards and no state — every trial spent learning about a bad option is reward forfeited, and interviewers use this to test whether you reach for the simplest sufficient tool instead of full RL.
+
+*Core insight / definition:* The multi-armed bandit strips away states and transitions, leaving only repeated choices under uncertainty. A contextual bandit conditions the reward on context $x_t$ (learning $\mathbb{E}[r\mid x,a]$ instead of one mean per arm), turning "which option is best" into "which option is best for this user" — but remains one-step, since actions don't affect the next context.
+
+*Why it matters / pitfall / interview trap:* If the action doesn't change the next state, it's a bandit, not full RL — bandits are dramatically cheaper, safer, and more sample-efficient, and reaching for full RL when a bandit suffices is a flagged interview mistake.
+
+---
+
+**Baseline (in Policy Gradients)**
+
+*The problem:* REINFORCE's gradient weight $G_t$ has huge variance, and if all returns are positive every sampled action gets reinforced regardless of quality.
+
+*Core insight / definition:* Subtract any function of state $b(s)$ from the return: $\nabla_\theta J = \mathbb{E}[\sum_t \nabla_\theta \log\pi_\theta(a_t\mid s_t)(G_t - b(s_t))]$. This stays unbiased for any action-independent $b(s)$ because $\mathbb{E}_a[\nabla_\theta\log\pi_\theta(a\mid s)]=0$; the variance-minimizing choice is $b(s)=V(s)$, turning the weight into the advantage.
+
+*Why it matters / pitfall / interview trap:* A baseline recenters the sign of the update so it carries real information ("better/worse than expected") rather than just magnitude; claiming it "speeds convergence" misses that it changes variance, not the expected gradient.
+
+---
+
+**Behavior Cloning (BC)**
+
+*The problem:* Sometimes you have expert demonstrations but no reward function to run RL against.
+
+*Core insight / definition:* Supervised learning that maps expert states directly to expert actions — no environment interaction needed. Its fatal flaw is **compounding error / covariate shift**: a small mistake moves the agent to a state the expert never visited, where errors are larger, so error grows quadratically ($O(\epsilon T^2)$) rather than linearly in horizon length.
+
+*Why it matters / pitfall / interview trap:* 99% training accuracy says nothing about deployment robustness, because errors aren't independent across steps — one drift changes the whole downstream distribution; LLM SFT is exactly behavior cloning and inherits the same ceiling.
+
+---
+
+**Bellman Equations (and Bellman Optimality Equation)**
+
+*The problem:* Without a recursive structure, computing the value of a state would require enumerating every possible future trajectory.
+
+*Core insight / definition:* $V^\pi(s) = \sum_a \pi(a\mid s)\sum_{s'} P(s'\mid s,a)[R(s,a)+\gamma V^\pi(s')]$ — the value of a state is immediate reward plus discounted value of the successor. The Bellman optimality equation replaces the policy average with a max: $Q^*(s,a) = \sum_{s'}P(s'\mid s,a)[R(s,a)+\gamma\max_{a'}Q^*(s',a')]$.
+
+*Why it matters / pitfall / interview trap:* The $\max$ is what makes the optimality equation nonlinear (and thus not solvable by direct linear algebra) — it's the entire difference between evaluating a policy and finding the best one, and every value-based algorithm approximates this equation from experience.
+
+---
+
+**Bootstrapping**
+
+*The problem:* Waiting for an episode to end before learning anything (Monte Carlo) is slow, high-variance, and impossible on continuing tasks.
+
+*Core insight / definition:* Update a value estimate using your own current estimate of the next state's value, rather than the true final return — "a guess from a guess." This is the core mechanism of TD learning, Q-learning, and DQN.
+
+*Why it matters / pitfall / interview trap:* Bootstrapping is one leg of the deadly triad; combined with function approximation and off-policy data it can cause divergence, because an update that shifts many states' values can also shift the bootstrap target in the same direction, creating positive feedback.
+
+---
+
+**Contextual Bandit** — *see Bandit*
+
+---
+
+**Credit Assignment Problem**
+
+*The problem:* In RL the reward for a decision may arrive many steps after the decision that caused it, unlike supervised learning where the label is immediate and direct.
+
+*Core insight / definition:* The challenge of determining which of an agent's past actions is responsible for an observed outcome (reward). It is one of the two properties (along with policy-dependent data) that make RL harder than supervised learning.
+
+*Why it matters / pitfall / interview trap:* Discounting, TD methods, and advantage estimation all exist partly to make credit assignment tractable; longer delays between action and reward generally require higher $\gamma$ and more sophisticated advantage estimators.
+
+---
+
+**Cumulative Regret**
+
+*The problem:* You need a way to score a bandit algorithm's overall performance, not just its final estimate accuracy.
+
+*Core insight / definition:* $\text{Regret}(T) = T\mu^* - \sum_{t=1}^T \mathbb{E}[r_t]$ — total reward lost relative to always having played the best arm. Linear regret $O(T)$ means the algorithm never stops making mistakes at a constant rate (failure); logarithmic regret $O(\log T)$ is the theoretical optimum (Lai–Robbins bound), achieved by UCB and Thompson Sampling.
+
+*Why it matters / pitfall / interview trap:* Fixed-$\varepsilon$ greedy explores forever at a constant rate and therefore accrues linear regret no matter how confident it becomes — this is the formal reason it's "theoretically unsatisfying."
+
+---
+
+**CQL (Conservative Q-Learning) / IQL (Implicit Q-Learning)**
+
+*The problem:* Naive offline Q-learning lets the Bellman max select the most overestimated out-of-distribution (OOD) action, and there's no environment feedback to correct the delusion.
+
+*Core insight / definition:* CQL adds a regularizer that pushes Q-values down on OOD actions and up on in-data actions, learning a conservative lower bound. IQL never queries $Q$ at unseen actions at all — it uses expectile regression to approximate the max over in-support actions only, then extracts a policy via advantage-weighted regression.
+
+*Why it matters / pitfall / interview trap:* Both implement the same underlying fix — "stay close to the data / be pessimistic about unseen actions" — IQL is the more common default for stability and simplicity; CQL when an explicit conservative value estimate is wanted.
+
+---
+
+**DAgger (Dataset Aggregation)**
+
+*The problem:* Behavior cloning has no recovery behavior for states the expert never visited, since training data only covers the expert's own trajectory.
+
+*Core insight / definition:* Iteratively run the current (learned) policy, have the expert label the states it actually visited, aggregate this into the training set, and retrain. This directly injects recovery behavior into the data, fixing covariate shift — but requires an interactive/queryable expert.
+
+*Why it matters / pitfall / interview trap:* More i.i.d. expert data doesn't fix BC's failure — DAgger works because it changes *which* states get labeled, not how much data there is.
+
+---
+
+**Deadly Triad**
+
+*The problem:* DQN-style deep RL can mysteriously diverge — Q-values blow up — even though the algorithm looks like ordinary regression.
+
+*Core insight / definition:* Divergence is guaranteed *possible* when all three of function approximation (neural net vs. table), bootstrapping (targets built from your own estimates), and off-policy learning (training data from a different policy than the one evaluated) are present simultaneously. Any two alone are safe. With a table, an update touches one entry; with a network, it shifts all states sharing features, and if that shift moves the bootstrap target in the same direction, you get runaway positive feedback.
+
+*Why it matters / pitfall / interview trap:* This is Sutton & Barto's framing and a frequent senior-level question; DQN's target network and replay buffer are mitigations, not solutions — they slow the feedback loop but don't eliminate it. Gradient-TD methods (GTD, TDC) are provably convergent but rarely used because they're slower and empirically weaker.
+
+---
+
+**Decision Transformer**
+
+*The problem:* Offline RL's value-based approaches (CQL, IQL) still bootstrap and can suffer subtler extrapolation issues; is there a way to sidestep the value-function machinery entirely?
+
+*Core insight / definition:* Treats a trajectory as a sequence `(return-to-go, state, action, ...)` and trains a Transformer to predict the next action conditioned on a desired return. At test time, condition on a high return-to-go. It's sequence modeling, not value iteration — no bootstrapping, hence no extrapolation blowup.
+
+*Why it matters / pitfall / interview trap:* Because there's no max operator or bootstrapped target, the classic offline-RL overestimation failure mode structurally can't occur — a strong answer when asked "where does Decision Transformer sit" relative to CQL/IQL.
+
+---
+
+**DDPG / TD3 / SAC (Continuous-Control Family)**
+
+*The problem:* Q-learning's $\arg\max_a$ requires enumerating actions, which is impossible for continuous action spaces (e.g., robot joint torques).
+
+*Core insight / definition:* DDPG pairs a deterministic actor with a Q-critic, reusing DQN tricks for continuous actions. TD3 adds twin critics (taking the min, fixing overestimation) and delayed actor updates. SAC adds a maximum-entropy objective — maximizing return *and* policy entropy $\alpha\mathcal H(\pi(\cdot\mid s))$ — making exploration intrinsic.
+
+*Why it matters / pitfall / interview trap:* SAC is the usual default for continuous control: markedly less hyperparameter-sensitive than DDPG, and being off-policy it's far more sample-efficient than PPO — which matters when every sample is a real robot movement.
+
+---
+
+**Discount Factor (γ)**
+
+*The problem:* An infinite sum of future rewards can diverge, and some notion of "sooner is better" needs to be built into the objective.
+
+*Core insight / definition:* $\gamma \in [0,1]$ does three jobs: (1) mathematically guarantees the infinite return sum converges for bounded rewards when $\gamma<1$; (2) models genuine preference for sooner reward; (3) practically bounds the effective planning horizon to roughly $1/(1-\gamma)$ steps, controlling variance.
+
+*Why it matters / pitfall / interview trap:* γ is not a minor convergence knob — changing it can flip which policy is optimal entirely (a worked three-state example shows "stay" optimal at γ=0.9 but "go right" optimal at γ=0.5). A lower γ can also outperform in practice via lower variance/easier credit assignment, even if it isn't the "true" objective.
+
+---
+
+**Distributional Shift / Extrapolation Error**
+
+*The problem:* Offline RL has no ability to test its beliefs about actions it hasn't seen, unlike online RL where exploration eventually corrects bad estimates.
+
+*Core insight / definition:* The Bellman target's $\max_{a'}Q(s',a')$ takes a max over actions; for actions absent from the dataset, $Q$ is unconstrained, and the max systematically selects the most overestimated of these garbage values. The resulting policy prefers out-of-distribution actions precisely because the critic is delusional about them, with no environment feedback to correct it.
+
+*Why it matters / pitfall / interview trap:* This single idea is "the most important idea in offline RL" — it's why standard online tricks (vanilla DQN/SAC) don't transfer to fixed datasets, and why CQL/IQL/Decision Transformer all exist.
+
+---
+
+**DQN (Deep Q-Network)**
+
+*The problem:* Tabular Q-learning needs one entry per state-action pair — impossible for high-dimensional inputs like images.
+
+*Core insight / definition:* Replaces the Q-table with a neural network $Q_\theta(s,a)$, stabilized by three fixes: (1) **experience replay** — store transitions in a buffer and sample minibatches to break temporal correlation and reuse data; (2) **target network** — a frozen copy $\theta^-$ updated every $C$ steps (or via Polyak averaging) to prevent the bootstrap target from chasing the same parameters being updated; (3) **reward clipping/normalization** to keep gradients comparable in scale.
+
+*Why it matters / pitfall / interview trap:* Naively training a Q-network without these fixes diverges. The target network fixes non-stationary targets, not overfitting — a commonly misattributed purpose; the replay buffer fixes sample correlation, a distinct problem, and both are needed together.
+
+---
+
+**Double DQN**
+
+*The problem:* $\max_{a'}Q(s',a')$ over noisy estimates is systematically biased upward — overestimation bias — because whichever action happens to be overestimated is the one selected by the max.
+
+*Core insight / definition:* Decouples action selection from evaluation: the online network selects the action ($\arg\max_{a'}Q_\theta(s',a')$), and the target network evaluates it ($Q_{\theta^-}$). An action overestimated by one network is unlikely to be equally overestimated by the independent other.
+
+*Why it matters / pitfall / interview trap:* This is close to a free fix (minimal implementation cost) and is usually the first thing to try if Q-values are exploding; the mechanism (Jensen's inequality: $\mathbb{E}[\max_a\hat Q]\geq\max_a\mathbb{E}[\hat Q]$) is worth stating precisely in interviews.
+
+---
+
+**Dueling DQN**
+
+*The problem:* In many states, the identity of the action barely matters to the outcome, so learning a full per-action Q-value everywhere wastes network capacity.
+
+*Core insight / definition:* Splits the network into separate $V(s)$ and $A(s,a)$ streams that are recombined to produce $Q(s,a)$, letting the network share representation for state value across all actions.
+
+*Why it matters / pitfall / interview trap:* One of the component improvements folded into Rainbow; useful whenever action choice has little effect on many states.
+
+---
+
+**Dyna / World Models (Dreamer) / Model-Based RL**
+
+*The problem:* Real environment interaction can be the dominant cost (physics sims, real robots); learning purely model-free wastes every real step on a single gradient update.
+
+*Core insight / definition:* Model-based RL learns dynamics $\hat P(s'\mid s,a)$ (and reward), then uses it to generate synthetic experience. **Dyna** interleaves updates from real and imagined transitions sampled from the learned model. **World models / Dreamer** learn dynamics in a compact latent space and train the policy purely on latent rollouts ("dreams"), touching the real environment only to collect data — currently the sample-efficiency frontier.
+
+*Why it matters / pitfall / interview trap:* The universal risk is **model exploitation / compounding error** — the policy finds and exploits inaccuracies in the learned model, and one-step errors compound over a rollout; mitigations include short rollouts, model ensembles for uncertainty, and penalizing reward in high-uncertainty regions.
+
+---
+
+**ε-Greedy**
+
+*The problem:* You need the simplest possible rule for balancing exploration and exploitation in a bandit or RL setting.
+
+*Core insight / definition:* With probability $\varepsilon$, pick an action uniformly at random (explore); otherwise pick the current best-estimated action (exploit). Trivial to implement, but exploration is *undirected* — as likely to retry a known-bad arm as an unknown one.
+
+*Why it matters / pitfall / interview trap:* With fixed $\varepsilon$ it explores forever at a constant rate and accrues linear regret; decaying $\varepsilon_t \propto 1/t$ recovers logarithmic regret while staying trivial to implement.
+
+---
+
+**Exploration–Exploitation Trade-off**
+
+*The problem:* An agent must both discover which actions are good (explore) and capitalize on what it currently believes is best (exploit), and every trial spent on one is a trial not spent on the other.
+
+*Core insight / definition:* Pure exploitation risks locking onto an option that only looked good by chance (thin evidence); pure exploration wastes trials on options already known to be poor. Good algorithms explore in proportion to uncertainty, not at a fixed rate.
+
+*Why it matters / pitfall / interview trap:* Framing exploration as "a cost, not a setting" — every exploratory action is a deliberately suboptimal one — is exactly what interviewers probe for; justifying that spend (e.g., can you afford it on live users?) is often the real question.
+
+---
+
+**GAE (Generalized Advantage Estimation)**
+
+*The problem:* The one-step TD advantage is low variance but biased; the full Monte Carlo advantage is unbiased but high variance — you need a way to trade off between them.
+
+*Core insight / definition:* Interpolates across $n$-step advantage estimates with a decay parameter $\lambda$: $\lambda=0$ gives the one-step TD advantage (low variance, biased), $\lambda=1$ recovers Monte Carlo (unbiased, high variance). $\lambda \approx 0.95$ is the standard default.
+
+*Why it matters / pitfall / interview trap:* GAE is the practical mechanism actor-critic and PPO implementations actually use to compute $\hat A_t$ — treating it as a fixed formula rather than a bias-variance dial misses the point.
+
+---
+
+**GAIL (Generative Adversarial Imitation Learning) / Inverse RL**
+
+*The problem:* Cloning actions pointwise doesn't generalize to states the expert never visited; sometimes you want to recover the underlying intent, not just mimic behavior.
+
+*Core insight / definition:* Inverse RL infers the reward function the expert appears to optimize, then runs RL on it — reward transfers across dynamics better than actions do, but IRL is expensive and underdetermined. GAIL is the practical modern form: a GAN-style setup where a discriminator learns to distinguish agent from expert trajectories, and the policy is trained to fool it — imitation without ever explicitly recovering a reward.
+
+*Why it matters / pitfall / interview trap:* GAIL matches the expert's *state-visitation distribution* rather than pointwise actions, which generalizes far better to states not exactly in the demonstration set.
+
+---
+
+**GRPO (Group Relative Policy Optimization)**
+
+*The problem:* PPO for RLHF needs a learned value function (critic) for the advantage estimate, and at LLM scale that critic roughly doubles training memory and compute.
+
+*Core insight / definition:* For each prompt, sample a group of $G$ completions from the current policy, score each with a reward model or rule-based verifier, and compute advantage as the group z-score: $\hat A_i = (r_i - \text{mean}(r_1,\ldots,r_G))/\text{std}(r_1,\ldots,r_G)$. This group-relative baseline replaces the value network entirely; the rest reuses PPO's clipped surrogate objective plus an explicit KL penalty to a reference policy.
+
+*Why it matters / pitfall / interview trap:* GRPO trades more rollout compute per update (needs multiple samples per prompt) for no critic training, and wins specifically when rollouts are cheap and verifiable (math/code) relative to critic cost — which is why it appears in reasoning-model post-training (DeepSeek-Math, DeepSeek-R1).
+
+---
+
+**Imitation Learning**
+
+*The problem:* Sometimes there is no reward function to specify at all, but expert demonstrations exist.
+
+*Core insight / definition:* An umbrella family that recovers a policy (or reward) from demonstrations rather than reward signals: behavior cloning (direct supervised mapping), DAgger (iterative aggregation with expert labels), and inverse RL/GAIL (recover or match on the reward/state-distribution level).
+
+*Why it matters / pitfall / interview trap:* Imitation is capped by the expert — it cannot exceed demonstrated behavior and faithfully copies the expert's mistakes and biases; LLM SFT is behavior cloning, and RLHF is what's layered on top to go beyond imitation.
+
+---
+
+**Markov Decision Process (MDP)**
+
+*The problem:* RL needs a formal container that specifies states, actions, dynamics, rewards, and the value of the future, so algorithms can be defined and compared precisely.
+
+*Core insight / definition:* The tuple $(\mathcal S, \mathcal A, P, R, \gamma)$: state space, action space, transition dynamics $P(s'\mid s,a)$, reward function $R(s,a)$, and discount factor $\gamma$. Built on the **Markov property** — the future depends only on the current state, not the history: $P(s_{t+1}\mid s_t,a_t) = P(s_{t+1}\mid s_1,a_1,\ldots,s_t,a_t)$.
+
+*Why it matters / pitfall / interview trap:* The Markov property is an assumption about your *state representation*, not the world — calling a problem "non-Markovian" as a fixed property of the environment is a common trap; almost any process can be made Markovian by enriching the state (e.g., stacking frames to recover velocity).
+
+---
+
+**MCTS (Monte Carlo Tree Search) / UCT / PUCT**
+
+*The problem:* A feedforward policy picks only the locally-good action; in games with deep tactics you need to look ahead and simulate consequences before committing.
+
+*Core insight / definition:* Builds a search tree via four repeated phases: **selection** (descend via UCT/PUCT, balancing $Q$ against exploration $\propto P(a)\sqrt{N_{\text{parent}}}/(1+N)$), **expansion** (add a leaf), **evaluation** (estimate leaf value via rollout or value network), **backup** (propagate value up the path, updating $Q$ and visit counts $N$). Act by the most-visited child, then reuse the subtree.
+
+*Why it matters / pitfall / interview trap:* Visit count, not raw value, is used to pick the final move because it's a robust low-variance signal — a single high $Q$ can be a noisy leaf estimate. UCT is explicitly the bandit UCB idea (optimism under uncertainty) applied at each tree node.
+
+---
+
+**MuZero** — *see AlphaGo / AlphaZero / MuZero*
+
+---
+
+**Non-Stationarity (in Bandits)**
+
+*The problem:* Standard bandit algorithms assume each arm's reward distribution is fixed forever, but real arms (ads, content) decay in quality over time (e.g., ad fatigue).
+
+*Core insight / definition:* Without discounting, an arm's early success dominates its running mean average forever, so recent poor performance barely shifts the estimate — the algorithm keeps exploiting a once-good arm long past its actual decline. Mitigations: sliding windows, discounting old observations, periodic posterior resets, or adding "age" as a context feature.
+
+*Why it matters / pitfall / interview trap:* This is the single most common production bandit failure; swapping UCB for Thompson Sampling does *not* fix it — every standard bandit shares the stationarity assumption, only *discounted* variants address it.
+
+---
+
+**Off-Policy vs. On-Policy Learning**
+
+*The problem:* You need to distinguish whether an algorithm can learn about a policy different from the one generating its data, since this determines whether replay buffers and logged data can be used.
+
+*Core insight / definition:* **Off-policy** algorithms (Q-learning, DQN, SAC, DDPG) learn about the greedy/target policy regardless of the behavior policy generating the data — enabled by the $\max$ in the Bellman target. **On-policy** algorithms (SARSA, PPO, vanilla policy gradient) must learn the value of, and use data from, the policy currently being executed, and must discard data after each update.
+
+*Why it matters / pitfall / interview trap:* Off-policy learning is one leg of the deadly triad and is what permits replay buffers and learning from logged data; on cliff-walking, Q-learning (off-policy) learns the risky optimal path while SARSA (on-policy) learns a safer path because its target accounts for the exploring policy's chance of stepping off the cliff.
+
+---
+
+**Offline RL**
+
+*The problem:* Many real domains (healthcare, autonomous driving, recommendation) forbid or make dangerous the live exploration that online RL needs — you only have logged data and cannot collect more on-policy.
+
+*Core insight / definition:* Learns a policy entirely from a fixed dataset $\mathcal D=\{(s,a,r,s')\}$ collected by a behavior policy $\pi_\beta$, with no new environment interaction. The defining challenge is distributional shift/extrapolation error; the standard fix shape is to stay close to the data / be pessimistic about unseen actions (CQL, IQL, Decision Transformer).
+
+*Why it matters / pitfall / interview trap:* The further the learned policy strays from $\pi_\beta$, the less trustworthy both the policy and its offline evaluation become; no algorithm can conjure a great policy from data generated by one narrow, mediocre behavior policy — offline RL cannot escape the support of its data.
+
+---
+
+**Off-Policy Evaluation (OPE) / Importance Sampling**
+
+*The problem:* You cannot A/B test a policy you're afraid to deploy live, so you need to estimate its value from logged data collected under a different (old) policy.
+
+*Core insight / definition:* Importance sampling reweights logged outcomes by the ratio $\pi_{\text{new}}(a\mid s)/\pi_{\text{old}}(a\mid s)$ to estimate the new policy's value. Variance explodes when the two policies disagree substantially, so doubly-robust estimators are usually preferred in practice.
+
+*Why it matters / pitfall / interview trap:* OPE variance scales with how far the learned/evaluated policy diverges from the logging policy — reporting a point estimate without its confidence interval is a red flag; budgeting rigor for the evaluator matters as much as for the learner.
+
+---
+
+**Policy**
+
+*The problem:* You need a formal object representing "what the agent does," so it can be learned and improved.
+
+*Core insight / definition:* $\pi(a\mid s)$ maps states to a probability distribution over actions. It is the object directly learned by policy gradient methods, and only implicitly derived (via $\arg\max_a Q$) in value-based methods.
+
+*Why it matters / pitfall / interview trap:* Value-based methods yield deterministic (greedy) policies by construction, which cannot represent genuinely stochastic optimal policies (e.g., rock-paper-scissors) — a reason to prefer policy gradients in such settings.
+
+---
+
+**Policy Gradient Theorem**
+
+*The problem:* The gradient of expected return with respect to policy parameters looks intractable, because the trajectory distribution being sampled from itself depends on those parameters.
+
+*Core insight / definition:* Using the log-derivative trick ($\nabla p = p\nabla\log p$): $\nabla_\theta J(\theta) = \mathbb{E}_{\tau\sim\pi_\theta}[\sum_t \nabla_\theta\log\pi_\theta(a_t\mid s_t)\,G_t]$. Remarkably, no derivative of the environment's transition dynamics appears anywhere in this expression.
+
+*Why it matters / pitfall / interview trap:* This is exactly what makes model-free policy optimization possible — you never need to know or differentiate through $P(s'\mid s,a)$; the update pushes up log-probabilities of actions in proportion to how good the resulting return was.
+
+---
+
+**POMDP (Partially Observable MDP)**
+
+*The problem:* Real environments often don't give the agent direct access to the full underlying state, only a partial observation of it.
+
+*Core insight / definition:* The formal name for an environment where the Markov property fails at the observation level because the observed state omits information needed to predict the future. Standard fixes: stack recent frames/observations, or use a recurrent policy that maintains an internal belief state.
+
+*Why it matters / pitfall / interview trap:* A frequent cross-question follow-up to "what if you can't observe the full state?" — the interviewer is testing whether you know POMDPs are handled via history-stacking or recurrence rather than treated as unsolvable.
+
+---
+
+**PPO (Proximal Policy Optimization)**
+
+*The problem:* Policy gradients can be destroyed by a single oversized update — a collapsed policy generates its own (bad) future training data with no recovery, and TRPO's principled fix (hard KL constraint via conjugate gradients / Hessian-vector products) is painful to implement.
+
+*Core insight / definition:* Uses a clipped surrogate objective with only first-order optimization: $L^{\text{CLIP}}(\theta) = \mathbb{E}[\min(r_t(\theta)\hat A_t,\ \text{clip}(r_t(\theta),1-\epsilon,1+\epsilon)\hat A_t)]$ where $r_t(\theta)=\pi_\theta(a_t\mid s_t)/\pi_{\theta_{\text{old}}}(a_t\mid s_t)$ and $\epsilon\approx0.2$. The `min` makes the objective a pessimistic lower bound, removing the incentive to move far from $\pi_{\text{old}}$ in either direction.
+
+*Why it matters / pitfall / interview trap:* Clipping alone (without the `min`) would give zero gradient outside the clip range even when the policy moved in the *wrong* direction, stranding it — the `min` ensures a corrective gradient always survives. Clipping bounds the ratio per-sample but does *not* guarantee bounded KL — production PPO still monitors KL explicitly and early-stops. This is also the algorithm underlying RLHF applied to LLMs.
+
+---
+
+**Rainbow**
+
+*The problem:* Many individual DQN improvements (Double DQN, Dueling, prioritized replay, etc.) each fix a different failure mode; is there a standard strong combination?
+
+*Core insight / definition:* Combines six DQN improvements into one architecture, serving as the standard strong baseline for value-based deep RL.
+
+*Why it matters / pitfall / interview trap:* Useful as a reference point for "state of the art value-based methods" without needing to reinvent individual fixes.
+
+---
+
+**Reward Function / Reward Shaping / Reward Hacking**
+
+*The problem:* Translating a real-world goal into a scalar reward signal is extremely hard, and whatever you fail to penalize, the optimizer is free to exploit.
+
+*Core insight / definition:* The reward function $R(s,a)$ supplies the scalar feedback the agent maximizes. **Reward hacking** occurs when the agent maximizes the literal reward rather than the designer's intent (e.g., a boat that spins collecting powerups instead of finishing a race). **Reward shaping** adds auxiliary signals to make sparse rewards learnable, at the risk of introducing new exploitable loopholes.
+
+*Why it matters / pitfall / interview trap:* Reward specification is "the hardest unsolved part" of RL in practice — production systems ship with heavy guardrails and constraint penalties rather than one clean objective; in RLHF this appears as **reward over-optimization** (Goodhart's law), where a learned reward-model score climbs while true (human-judged) quality declines or plateaus, showing up as verbosity, sycophancy, and over-formatting.
+
+---
+
+**Return (Discounted Cumulative Reward)**
+
+*The problem:* An agent needs a single scalar objective summarizing an entire future trajectory of rewards, not just the immediate one.
+
+*Core insight / definition:* $G_t = R_{t+1} + \gamma R_{t+2} + \gamma^2 R_{t+3} + \cdots = \sum_{k=0}^\infty \gamma^k R_{t+k+1}$ — the cumulative discounted future reward from time $t$ onward. This is the quantity value functions estimate and policy gradients ultimately maximize in expectation.
+
+*Why it matters / pitfall / interview trap:* Using the raw Monte Carlo return $G_t$ directly (as in vanilla REINFORCE) is unbiased but has enormous variance that scales with episode length — motivating TD targets and baselines.
+
+---
+
+**REINFORCE**
+
+*The problem:* You need the simplest possible way to translate the policy gradient theorem into a working update rule.
+
+*Core insight / definition:* Directly weight the log-probability of each taken action by the trajectory's full discounted return: `loss = -(log_probs * returns).sum()`. Unbiased, but "nearly unusable on its own" because $G_t$'s variance is enormous and, if all returns are positive, every action's probability gets pushed up regardless of quality.
+
+*Why it matters / pitfall / interview trap:* This is exactly the motivation for the baseline/advantage refinement — without it, learning depends entirely on relative magnitudes of return surviving the noise, a much weaker signal than a correctly-signed one.
+
+---
+
+**SARSA** — *see Off-Policy vs. On-Policy Learning*
+
+---
+
+**Sparse Reward**
+
+*The problem:* Some environments only deliver reward at the very end of a long episode (e.g., win/loss at a game's conclusion), and random exploration may never stumble into it.
+
+*Core insight / definition:* A failure mode where the reward signal is essentially absent for most of the state space, so no learning gradient exists until the agent accidentally reaches the rewarding region.
+
+*Why it matters / pitfall / interview trap:* Symptom is a flat learning curve from step zero — "no learning at all"; standard mitigations are reward shaping, curiosity bonuses, or demonstrations/imitation to bootstrap initial behavior.
+
+---
+
+**Target Network**
+
+*The problem:* In DQN, the bootstrap target $r+\gamma\max_{a'}Q_\theta(s',a')$ depends on the same parameters $\theta$ being updated, so the regression target moves every gradient step — "chasing a moving goal."
+
+*Core insight / definition:* A frozen copy of the Q-network's parameters $\theta^-$, used to compute targets and updated only periodically (every $C$ steps, or smoothly via Polyak/soft updates $\theta^-\leftarrow\tau\theta+(1-\tau)\theta^-$, $\tau\approx0.005$). This turns each interval into an ordinary stationary-target supervised regression problem.
+
+*Why it matters / pitfall / interview trap:* It fixes non-stationary targets, not overfitting — a commonly misstated purpose; the update cadence is a genuine hyperparameter (too frequent reintroduces instability, too infrequent slows learning), and it addresses a different problem than the replay buffer, which fixes sample correlation — both are needed together.
+
+---
+
+**TD Learning (Temporal-Difference Learning) / TD Error**
+
+*The problem:* Waiting for episode completion to learn (Monte Carlo) is high-variance and impossible for continuing (non-episodic) tasks.
+
+*Core insight / definition:* $V(s_t) \leftarrow V(s_t) + \alpha[r_{t+1}+\gamma V(s_{t+1}) - V(s_t)]$, where the bracketed term is the **TD error** $\delta_t$ — the "surprise," how much better or worse things turned out than expected. TD is a biased-but-lower-variance alternative to Monte Carlo's unbiased-but-high-variance return target; $n$-step returns and TD($\lambda$) interpolate between the two extremes.
+
+*Why it matters / pitfall / interview trap:* The TD error reappears throughout RL — as the advantage estimate in actor-critic, and is even cited as a documented signal in dopamine neuron activity; TD's lower variance is usually the deciding practical advantage over Monte Carlo.
+
+---
+
+**Thompson Sampling**
+
+*The problem:* ε-greedy's exploration is undirected, and UCB's confidence bonus, while directed, is deterministic and handles delayed/batched feedback poorly.
+
+*Core insight / definition:* Maintain a posterior distribution over each arm's reward, sample once from each posterior, and play the arm with the highest sample. Exploration is "automatic": a wide posterior produces variable samples that occasionally win (so uncertain arms get tried), and as evidence accumulates the posterior narrows.
+
+*Why it matters / pitfall / interview trap:* In practice it usually outperforms UCB and handles delayed feedback and batched updates gracefully; however it shares UCB's stationarity assumption — it does *not* by itself protect against non-stationary reward drift (a discounted/windowed variant is needed for that).
+
+---
+
+**TRPO (Trust Region Policy Optimization)**
+
+*The problem:* Policy gradient updates need to be constrained so a single step doesn't destroy the policy, but a hard mathematical guarantee is desirable.
+
+*Core insight / definition:* Maximizes improvement subject to a hard KL constraint $\text{KL}(\pi_{\text{old}}\|\pi_\theta) < \delta$, using conjugate gradients and a Hessian-vector product (second-order optimization). Provides a monotonic improvement guarantee.
+
+*Why it matters / pitfall / interview trap:* Principled but painful to implement; PPO approximates the same trust-region goal with a first-order clipped surrogate objective, which is why PPO displaced TRPO as the practical default despite being "only" a heuristic.
+
+---
+
+**UCB (Upper Confidence Bound)**
+
+*The problem:* ε-greedy explores randomly and indiscriminately, wasting trials re-testing arms already known to be bad.
+
+*Core insight / definition:* "Optimism in the face of uncertainty" — score each arm as mean plus an uncertainty bonus, $\text{UCB}_i(t) = \hat\mu_i + c\sqrt{2\ln t / n_i}$, and act greedily on that combined score. The bonus shrinks as an arm's sample count $n_i$ grows and grows slowly (logarithmically) with total time $t$, so under-sampled arms are automatically revisited.
+
+*Why it matters / pitfall / interview trap:* UCB is fully deterministic given the counts (not "adding randomness" — a common misdescription); this determinism is exactly why it degrades under batched decisions (an entire batch selects the identical arm), a case where Thompson Sampling is preferred.
+
+---
+
+**Value Function (V and Q)**
+
+*The problem:* An agent needs a way to compare states or actions by how much reward they lead to in the long run, not just the immediate reward.
+
+*Core insight / definition:* $V^\pi(s) = \mathbb{E}_\pi[G_t\mid s_t=s]$ answers "how good is this state?"; $Q^\pi(s,a) = \mathbb{E}_\pi[G_t\mid s_t=s,a_t=a]$ answers "how good is this action in this state?" Their difference is the advantage function.
+
+*Why it matters / pitfall / interview trap:* If you have $Q$, you can act greedily without a model of the environment's dynamics ($\arg\max_a Q(s,a)$); with only $V$, choosing an action requires knowing where each action leads (i.e., the transition model $P$) — this is precisely why Q-learning is model-free while value iteration on $V$ alone is not. $V$ is still useful because it has far fewer values ($|\mathcal S|$ vs. $|\mathcal S|\times|\mathcal A|$) and is a cheaper, easier regression target, which is why actor-critic learns $V$ as a baseline.
+
+---
+
+**Value-Based vs. Policy-Gradient Methods (the core split)**
+
+*The problem:* There are two fundamentally different ways to derive a controller from experience, and each has structurally different strengths, weaknesses, and failure modes.
+
+*Core insight / definition:* Value-based methods (DQN, Rainbow) learn $Q(s,a)$ and derive the policy implicitly via argmax — discrete actions only, deterministic policies, higher sample efficiency via off-policy replay, but risk value divergence (deadly triad). Policy-gradient methods (PPO, SAC) learn $\pi_\theta(a\mid s)$ directly — handle discrete or continuous actions, are stochastic by construction, but are lower sample efficiency (on-policy data must be discarded) and risk policy collapse from an oversized update.
+
+*Why it matters / pitfall / interview trap:* Framed as "the two competing answers to the same question — how do you actually optimize a policy"; a senior answer should be able to state when each is preferred rather than defaulting to one algorithm by habit.
 
 ---
 
