@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning done. Remaining: 10-llms through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms done. Remaining: 11-llm-applications through 18-resources.
 
 ---
 
@@ -9427,3 +9427,1701 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 
 ---
 
+
+## 10-llms
+
+**AdaLoRA**
+
+*The problem:* A single fixed LoRA rank applied uniformly across all layers wastes capacity on layers that need little adaptation and starves layers that need more.
+
+*Core insight / definition:* Adaptively allocates the rank budget per layer based on importance, typically estimated via SVD-based sensitivity scoring, rather than using a fixed rank everywhere.
+
+*Why it matters / pitfall / interview trap:* Squeezes more quality out of a fixed parameter budget at the cost of added tuning complexity — a "simplicity vs marginal gains" tradeoff vs plain LoRA.
+
+---
+
+**Adam / AdamW Optimizer**
+
+*The problem:* Vanilla SGD applies a single learning rate to every parameter, but transformer parameters have wildly different gradient scales — a single rate is too large for some and too small for others.
+
+*Core insight / definition:* Adam maintains a running estimate of the gradient's first moment (mean, momentum) and second moment (variance) per parameter, then scales each parameter's update by the inverse square root of its variance estimate, with bias correction for early steps. AdamW decouples weight decay from the adaptive update — applying decay after the adaptive step rather than folding it into the gradient — so every parameter gets equal regularization strength regardless of its gradient scale.
+
+*Why it matters / pitfall / interview trap:* Standard Adam's L2 regularization gets scaled by $\hat{v}_t$, weakening decay for high-variance parameters — this is exactly the bug AdamW fixes. Adam also triples optimizer-state memory vs SGD (two momentum tensors per parameter), which is why a 70B model needs ~800GB of FP32 optimizer state.
+
+---
+
+**Adapters (Bottleneck Adapters)**
+
+*The problem:* Fine-tuning all parameters for every task is expensive to store and serve; you want a lightweight, composable way to specialize a frozen model.
+
+*Core insight / definition:* Insert small trainable bottleneck MLP layers (down-projection → nonlinearity → up-projection, with a residual connection) between existing frozen transformer sublayers, typically after attention and after the FFN in each block. Near-zero initialization makes the adapter start as an identity function.
+
+*Why it matters / pitfall / interview trap:* Unlike LoRA, adapters add sequential inference latency because they cannot be merged into the base weight matrix — this is why LoRA has largely displaced adapters in production, even though adapters offer more expressiveness per parameter (nonlinear vs LoRA's linear rank-limited transform).
+
+---
+
+**AI Safety Level (ASL) Framework**
+
+*The problem:* Capability thresholds and required safety mitigations for increasingly powerful models need to be tied together in a concrete policy rather than left to ad hoc judgment.
+
+*Core insight / definition:* Anthropic's Responsible Scaling Policy defines tiers — ASL-1 (conventional uplift only), ASL-2 (significant uplift beyond public information, current Claude models), ASL-3 (meaningful uplift to WMD or autonomous replication, requires pre-deployment mitigations), ASL-4 (as-yet-undefined catastrophic threshold) — that gate deployment on safety requirements.
+
+*Why it matters / pitfall / interview trap:* This is a policy/deployment framework, not a training technique — don't conflate it with alignment training methods like RLHF or Constitutional AI.
+
+---
+
+**ALiBi (Attention with Linear Biases)**
+
+*The problem:* Standard positional encodings (sinusoidal, learned absolute, even RoPE without rescaling) don't generalize to sequence lengths beyond what was seen in training.
+
+*Core insight / definition:* Instead of encoding position in Q/K, ALiBi adds a static linear bias to attention logits before softmax: score = QK^T/√d_k − m·|i−j|, where m is a head-specific slope (m = 2^(−8/n_heads)). No positional embeddings are learned; the penalty grows linearly with token distance.
+
+*Why it matters / pitfall / interview trap:* ALiBi extrapolates natively to arbitrarily long sequences without fine-tuning (used in BLOOM, MPT), but slightly underperforms RoPE at short context. It's rarely chosen for new foundation models since 2023 since RoPE + NTK/YaRN scaling has largely superseded it — a common trap is assuming it needs no retraining when adapting an existing RoPE model to ALiBi (it does).
+
+---
+
+**Alignment (Alignment Taxonomy: Corrigibility, Robustness, Calibration)**
+
+*The problem:* A model trained purely to predict the next token models the distribution of internet text — including harmful, deceptive, or manipulative content — with no built-in notion of being helpful, honest, or harmless.
+
+*Core insight / definition:* Alignment is the set of techniques bridging capability and values. Corrigibility means the model accepts correction/shutdown without resistance. Robustness means aligned behavior holds under adversarial inputs, distribution shift, and novel situations. Calibration means the model accurately represents its own uncertainty rather than confabulating confidently.
+
+*Why it matters / pitfall / interview trap:* A highly capable but misaligned model is more dangerous than a weakly capable misaligned one — capabilities amplify misalignment, which is why capability scaling and alignment must advance together.
+
+---
+
+**Alignment Tax**
+
+*The problem:* Aligning a model toward helpfulness/harmlessness can shift it away from the raw capability distribution learned during pretraining.
+
+*Core insight / definition:* The alignment tax is the measurable (typically 1–5%) degradation on standard capability benchmarks caused by RLHF/DPO-style alignment training relative to the base model.
+
+*Why it matters / pitfall / interview trap:* It's usually small but real — teams should expect and budget for it rather than assume alignment training is free.
+
+---
+
+**ARC-Challenge**
+
+*The problem:* Simple benchmarks can be solved by word-frequency shortcuts rather than genuine reasoning.
+
+*Core insight / definition:* A benchmark of grade-school science questions specifically filtered to the subset that a word-frequency baseline gets wrong, forcing models to do more than surface pattern matching.
+
+*Why it matters / pitfall / interview trap:* Its value lies precisely in the adversarial filtering — it's a weaker signal on models that have simply scaled past the baseline it was designed to beat.
+
+---
+
+**Attention (Self-Attention) / Scaled Dot-Product Attention**
+
+*The problem:* RNNs compress an entire sequence history into a fixed-size hidden state, losing information over long distances, and force sequential (non-parallelizable) computation.
+
+*Core insight / definition:* Every token computes a Query, Key, and Value projection ($Q=XW_Q$, $K=XW_K$, $V=XW_V$); attention output is $\text{softmax}(QK^T/\sqrt{d_k})V$, letting each token directly attend to every other token with no sequential bottleneck. The $\sqrt{d_k}$ scaling prevents dot products from saturating the softmax.
+
+*Why it matters / pitfall / interview trap:* Full attention is $O(T^2)$ in memory and compute, which is the root wall behind FlashAttention, sliding-window attention, sparse attention, and all KV-cache-reduction techniques.
+
+---
+
+**Attention Sinks / Sink Tokens**
+
+*The problem:* Even with long-context support, KV cache grows linearly with sequence length, causing OOM for infinite/streaming generation.
+
+*Core insight / definition:* Empirically, LLMs place heavy, disproportionate attention on the first few tokens (especially BOS), regardless of their semantic content — these "sink tokens" stabilize the attention distribution because softmax needs somewhere to route unneeded attention mass.
+
+*Why it matters / pitfall / interview trap:* This observation underlies StreamingLLM: keeping just a handful of sink tokens plus a sliding window preserves model stability at constant memory. Removing sink tokens (e.g. naive sliding-window-only truncation) causes perplexity to blow up even though those tokens carry little semantic content.
+
+---
+
+**AWQ (Activation-aware Weight Quantization)**
+
+*The problem:* Post-training quantization that treats all weight channels equally (like GPTQ) loses accuracy on channels that multiply large activation values, since output error scales with weight-error × activation magnitude.
+
+*Core insight / definition:* Identifies salient weight channels via activation-magnitude statistics from calibration data, scales those channels up before quantization to protect their precision, then quantizes; the scaling is compensated at inference by fusing into preceding LayerNorm.
+
+*Why it matters / pitfall / interview trap:* Often beats GPTQ's accuracy at the same bit-width with faster calibration (no Hessian computation) and zero added inference overhead — the current default for GPU production serving (natively supported by vLLM).
+
+---
+
+**Batch Size and Gradient Accumulation**
+
+*The problem:* Small batches give noisy gradient estimates, but GPU memory limits how large a batch can be computed in one forward/backward pass.
+
+*Core insight / definition:* Gradient accumulation sums gradients over multiple forward/backward passes before applying an optimizer step, simulating an effective batch size of (per-GPU batch) × (accumulation steps) × (number of GPUs). When scaling batch size, learning rate should scale proportionally (linear scaling rule) or by square root for very large batches.
+
+*Why it matters / pitfall / interview trap:* Gradient noise reduction from larger batches plateaus with diminishing returns, and very large batches can harm generalization by settling into sharper minima.
+
+---
+
+**Batching Strategies (Static / Dynamic / Continuous / Iteration-Level Batching)**
+
+*The problem:* Serving variable-length, asynchronously-arriving generation requests efficiently requires deciding how to group them into batches without wasting compute.
+
+*Core insight / definition:* Static batching waits for all sequences in a fixed batch to finish, wasting compute on early finishers. Dynamic batching admits new requests at fixed intervals. Continuous/iteration-level batching (vLLM/TGI style) evicts finished sequences and admits new ones at every decode step.
+
+*Why it matters / pitfall / interview trap:* Continuous batching is now the standard for production LLM serving; picking static batching in a design interview for a real serving system is a red flag.
+
+---
+
+**Benchmark Contamination**
+
+*The problem:* If test examples from a benchmark leaked into a model's training corpus, the benchmark score measures memorization rather than reasoning capability.
+
+*Core insight / definition:* Contamination is undetectable directly without access to training data, so proxies are used: testing on paraphrased (not verbatim) versions of questions, chronological splits (train before a cutoff, test on newer data), membership inference (unusually high assigned probability to benchmark text), and continuously-updated "living" benchmarks (e.g. LiveCodeBench).
+
+*Why it matters / pitfall / interview trap:* Treat published benchmark numbers as upper bounds on true capability; a 1–2% gap between two models on a widely-publicized benchmark is likely noise, not a real capability difference.
+
+---
+
+**BERTScore**
+
+*The problem:* N-gram overlap metrics like BLEU/ROUGE penalize valid paraphrases that use different words.
+
+*Core insight / definition:* Uses contextual embeddings to compute token-level semantic similarity between hypothesis and reference via max-cosine-similarity matching, correlating meaningfully better with human judgment than lexical-overlap metrics.
+
+*Why it matters / pitfall / interview trap:* Requires a BERT forward pass per example, adding nontrivial cost at large evaluation scale — a lightweight-vs-accuracy tradeoff vs BLEU/ROUGE.
+
+---
+
+**Best-of-N Sampling**
+
+*The problem:* A single sampled generation may not be the model's best possible output for a hard reasoning task, but retraining a bigger model is expensive.
+
+*Core insight / definition:* Generate N candidate responses and select the best one using a reward model or verifier, trading inference compute for quality. Best-of-8 from a small model can match best-of-1 from a much larger model at comparable total compute.
+
+*Why it matters / pitfall / interview trap:* Only as good as the verifier — a weak reward model will select the response that games it, not the genuinely best one.
+
+---
+
+**BIG-Bench Hard**
+
+*The problem:* Standard benchmarks tend to be solvable simply by scaling model size, without testing genuine reasoning.
+
+*Core insight / definition:* A curated subset of BIG-Bench tasks (symbolic reasoning, logical deduction, unusual word problems) specifically chosen because performance plateaued as models scaled, resisting the typical scaling trend.
+
+*Why it matters / pitfall / interview trap:* Useful precisely because it's harder to game via scale alone than knowledge-recall benchmarks like MMLU.
+
+---
+
+**BigBird**
+
+*The problem:* Full O(n²) attention is intractable at long sequence lengths, but purely local/global sparse patterns (Longformer) may still miss unpredictable long-range dependencies.
+
+*Core insight / definition:* Extends Longformer's local-window + global-token attention by adding random attention edges — each token also attends to a random subset of all tokens, forming a small-world graph. BigBird proves this combination is theoretically Turing-complete, i.e., equivalent in expressive power to full attention.
+
+*Why it matters / pitfall / interview trap:* Random edges help catch unpredictable long-range dependencies, but the randomness is non-deterministic across runs/samples — for tasks needing precise long-range recall, the random edges may simply miss the critical token.
+
+---
+
+**bitsandbytes / NF4 (NormalFloat4)**
+
+*The problem:* Standard uniform 4-bit quantization wastes precision on rare weight values and under-represents the dense region near the mean, since pretrained LLM weights follow roughly a normal distribution.
+
+*Core insight / definition:* NF4 is a 4-bit data type whose quantization bins are chosen via the inverse normal CDF, information-theoretically optimal for normally distributed data, combined with double quantization (quantizing the quantization constants themselves) for further compression. It is the base-model quantization scheme underlying QLoRA.
+
+*Why it matters / pitfall / interview trap:* Optimized for fine-tuning workflows, not maximum inference throughput — don't confuse it with GPTQ/AWQ, which target pure inference serving speed.
+
+---
+
+**BLEU**
+
+*The problem:* You need a fast, reproducible, automated way to score machine translation output against reference translations.
+
+*Core insight / definition:* Measures modified n-gram precision between generated and reference text, combined with a brevity penalty: $\text{BLEU} = \text{BP} \cdot \exp(\sum w_n \log p_n)$.
+
+*Why it matters / pitfall / interview trap:* Rewards lexical overlap, not semantic correctness — "the dog bit the man" and "the man bit the dog" can score identically against either as reference. Recommending BLEU for open-ended generation or summarization is an instant credibility hit in an interview.
+
+---
+
+**BM25 (Sparse Retrieval)**
+
+*The problem:* Dense embedding retrieval can miss exact matches on proper nouns, IDs, and technical terms that don't embed distinctively.
+
+*Core insight / definition:* A keyword-based sparse retrieval method scoring documents by term frequency statistics, strong for exact-match queries but blind to paraphrase/semantic similarity.
+
+*Why it matters / pitfall / interview trap:* Production RAG systems almost always combine BM25 with dense retrieval (hybrid, via Reciprocal Rank Fusion) rather than picking one exclusively — pure dense retrieval alone is a common design-interview trap.
+
+---
+
+**BPE (Byte-Pair Encoding)**
+
+*The problem:* Word-level tokenization causes catastrophic OOV issues and huge vocabularies; character-level tokenization produces excessively long sequences.
+
+*Core insight / definition:* Starting from individual characters/bytes, BPE iteratively counts adjacent symbol pairs in a corpus, merges the most frequent pair into a new symbol, and repeats until a target vocabulary size is reached. At inference, merge rules are applied in the order they were learned during training. BPE is greedy and deterministic — the same string always tokenizes identically.
+
+*Why it matters / pitfall / interview trap:* BPE has no explicit whitespace handling — GPT-2's BPE folds a leading space into the token itself (`Ġword`), so `"dog"` and `" dog"` are different tokens with different embeddings. Interview trap: forgetting tokenization happens before the model even sees text, so whitespace/capitalization handling is entirely a tokenizer artifact, not a model behavior.
+
+---
+
+**BPE (Byte-Pair Encoding) and Byte-level BPE**
+
+*The problem:* A model needs a fixed, finite vocabulary that can represent arbitrary text without falling back to unknown-token placeholders.
+
+*Core insight / definition:* BPE iteratively merges the most frequent adjacent symbol pair into a new token, starting from characters (or, in byte-level BPE, raw UTF-8 bytes — 256 base vocab) and building up subword units. Byte-level BPE guarantees any byte sequence is representable with no OOV fallback.
+
+*Why it matters / pitfall / interview trap:* Frequency-based merges can be suboptimal vs likelihood-based methods (WordPiece), and rare scripts/languages fragment into more tokens (higher "fertility"), inflating sequence length and cost for those languages.
+
+---
+
+**Byte-Level BPE**
+
+*The problem:* Raw character-level BPE over Unicode can generate merge rules for rare Unicode code points, exploding the base vocabulary and still leaving OOV gaps.
+
+*Core insight / definition:* Maps every possible byte (0–255) to a printable Unicode character, giving a fixed base vocabulary of exactly 256 symbols; all merges then operate on byte sequences. Any UTF-8 byte sequence is tokenizable, eliminating `<UNK>` entirely. Used by GPT-2 (50,257 tokens) and GPT-4/cl100k_base (100,277 tokens).
+
+*Why it matters / pitfall / interview trap:* Guarantees zero OOV tokens because any input can be decomposed to raw bytes as a fallback — a key advantage over character-level BPE, which can still hit unseen Unicode characters.
+
+---
+
+**Calibration (Model Calibration)**
+
+*The problem:* A model's stated confidence needs to correspond to its actual accuracy for confidence scores to be actionable in high-stakes decisions.
+
+*Core insight / definition:* A well-calibrated model that says "90% confident" is right about 90% of the time. Calibration is distinct from raw accuracy — a lower-accuracy but well-calibrated model can be more useful than a higher-accuracy but poorly-calibrated (confidently wrong) one in decision-critical settings.
+
+*Why it matters / pitfall / interview trap:* In safety/decision-critical deployments, prioritize calibration over marginal accuracy gains — a common interview trap is optimizing purely for accuracy without considering confidence reliability.
+
+---
+
+**CANINE**
+
+*The problem:* Character/byte-level models avoid subword tokenization artifacts but face long sequences and large per-character embedding costs.
+
+*Core insight / definition:* Encodes Unicode codepoints directly using hashing-based embeddings (avoiding large vocab lookup tables), then downsamples sequence length via a strided local-attention step before processing the compressed representation with a standard transformer.
+
+*Why it matters / pitfall / interview trap:* Represents a research-depth alternative to subword tokenization — trades tokenizer complexity for architectural complexity (downsampling), rather than eliminating the tradeoff.
+
+---
+
+**Capacity Factor / Token Dropping (MoE)**
+
+*The problem:* In token-choice MoE routing, experts have fixed-size buffers; if more tokens route to an expert than it can hold, something must give.
+
+*Core insight / definition:* Expert capacity = ⌊(tokens_per_batch × capacity_factor) / N⌋. With capacity_factor=1.25, each expert can handle 25% more than average load; tokens exceeding capacity are dropped (ignored, no gradient) during training. Inference typically uses a higher capacity_factor (e.g. 2.0) or "no-drop" mode to avoid losing information.
+
+*Why it matters / pitfall / interview trap:* Trade-off is direct: higher capacity_factor → fewer dropped tokens but more memory; lower → more dropped tokens (information loss) but less memory. A common failure mode is high dropped-token percentage caused by capacity_factor set too low; fix is to raise it or switch to expert-choice routing which guarantees no drops by construction (at the cost of tokens possibly being processed by 0 experts).
+
+---
+
+**Catastrophic Forgetting**
+
+*The problem:* Fine-tuning on a narrow dataset can overwrite general capabilities learned during pretraining.
+
+*Core insight / definition:* The phenomenon where a model loses previously-learned general capabilities as its weights are updated toward a new, narrower task distribution — caused by unconstrained gradient updates overwriting weights that encoded prior knowledge.
+
+*Why it matters / pitfall / interview trap:* This is why SFT uses a much lower learning rate than pretraining, why continual pretraining mixes in general data (e.g. 80/20 domain/general), and why LoRA (freezing base weights) sidesteps forgetting by construction.
+
+---
+
+**Character-Aware Tokenization**
+
+*The problem:* Pure subword tokenization is brittle to typos, code-switching, and morphological variation not seen during BPE/WordPiece training.
+
+*Core insight / definition:* Augments subword embeddings with character-level features, typically via a CNN or similar (e.g., CharBERT, ELMo), so the model has access to sub-token character information without abandoning subword efficiency.
+
+*Why it matters / pitfall / interview trap:* Provides robustness to noisy or novel text (typos, code-switching, morphology) without sacrificing the sequence-length efficiency subword tokenization provides.
+
+---
+
+**Character-Level Tokenization (vs. word-level vs. subword)**
+
+*The problem:* Need a baseline point of comparison for tokenization granularity trade-offs (vocab size, sequence length, OOV, morphology).
+
+*Core insight / definition:* Tokenizes text into a small vocabulary (~100–500 symbols) of individual characters. Zero OOV (all characters are known), full morphological compositionality, but produces sequences 5–10× longer than subword tokenization, incurring higher pretraining compute and quadratic attention cost. Models like ByT5 use this approach.
+
+*Why it matters / pitfall / interview trap:* Competitive for morphologically rich languages and character-level tasks, but the long sequence length is a direct tax under O(n²) attention — this is precisely the tradeoff subword tokenization (BPE/WordPiece/SentencePiece) was designed to balance.
+
+---
+
+**Checkpoint Averaging**
+
+*The problem:* The final training checkpoint may sit at a locally unstable or suboptimal point in the loss landscape even in an otherwise healthy run.
+
+*Core insight / definition:* Averaging model weights across the last N checkpoints (spaced e.g. 500–1000 steps apart) produces a model geometrically closer to the center of a flat loss basin, which tends to generalize better than any single checkpoint.
+
+*Why it matters / pitfall / interview trap:* A free quality boost with no retraining cost — conceptually the single-training-run analog of Model Soup.
+
+---
+
+**Chinchilla Scaling Laws**
+
+*The problem:* Kaplan et al.'s 2020 scaling laws concluded model parameters should scale much faster than training data, leading to systematically undertrained large models like GPT-3.
+
+*Core insight / definition:* Hoffmann et al. (2022) showed that for a fixed compute budget $C \approx 6ND$, loss is minimized when model size $N$ and data $D$ scale roughly equally — the practical rule of thumb is ~20 training tokens per parameter. Chinchilla (70B params, 1.4T tokens) beat GPT-3 (175B params, 300B tokens) at equal training compute.
+
+*Why it matters / pitfall / interview trap:* Chinchilla optimizes training-compute efficiency, not inference-serving efficiency — production labs (Meta's LLaMA 3, ~214 tokens/param) deliberately overtrain smaller models well past Chinchilla-optimal because inference cost, paid continuously, dominates one-time training cost.
+
+---
+
+**Chunked Prefill**
+
+*The problem:* Processing an entire long prompt (e.g. 128K tokens) in a single prefill pass can spike memory usage and cause OOM.
+
+*Core insight / definition:* Splits the prompt into smaller chunks (e.g. 4K tokens) and processes them sequentially during the prefill phase, rather than materializing attention over the full prompt at once.
+
+*Why it matters / pitfall / interview trap:* One of three standard techniques (with PagedAttention and tensor parallelism) required to serve models at 128K+ context when KV cache exceeds a single GPU's memory — commonly cited together as the answer to "how do you serve extreme context lengths."
+
+---
+
+**Chunking Strategies (RAG)**
+
+*The problem:* Documents must be split into retrievable units, and chunk size directly trades off retrieval precision against context completeness.
+
+*Core insight / definition:* Fixed-size chunking is simple but splits mid-sentence; sentence splitting is coherent but short; recursive character chunking (the general default) respects paragraph hierarchy; semantic chunking is highest quality but expensive; structure-aware chunking uses document headers (markdown/PDF). Typical sizes: 512–1024 tokens with 50–100 token overlap.
+
+*Why it matters / pitfall / interview trap:* Smaller chunks give precise retrieval but less context per chunk; larger chunks dilute the retrieval score — this tradeoff is a standard RAG design-interview question.
+
+---
+
+**Constitutional AI / RLAIF (Reinforcement Learning from AI Feedback)**
+
+*The problem:* RLHF requires thousands of human annotators, which is expensive, slow to scale, and subject to annotator disagreement and manipulation.
+
+*Core insight / definition:* Constitutional AI (Anthropic, 2022) replaces human preference labels with an AI critique-and-revision loop against a written set of principles (a "constitution"): the model critiques its own response against a principle, revises it, and the (original, revised) pair becomes preference data for standard RLHF/DPO. RLAIF generalizes this — using any capable "critic" LLM to generate preference labels at scale instead of humans.
+
+*Why it matters / pitfall / interview trap:* Scales alignment without proportional human-labeling cost, but the resulting model's quality is bounded by the critiquing model's own blind spots and biases, which can propagate into the trained model.
+
+---
+
+**Context Compression (LLMLingua, LongLLMLingua, Gist Tokens)**
+
+*The problem:* Long contexts contain redundant or irrelevant tokens that waste context-window budget and compute without helping the query.
+
+*Core insight / definition:* LLMLingua uses a small proxy LM to compute per-token perplexity; low-perplexity (predictable/redundant) tokens are pruned before passing the prompt to the expensive target LM, with budget-aware allocation favoring instructions and the question. LongLLMLingua additionally weights tokens by relevance to the specific query. Gist Tokens instead fine-tune a model to compress a frequently-reused system prompt into a small set of learned embeddings, cached and reused across queries.
+
+*Why it matters / pitfall / interview trap:* LLMLingua's proxy model may disagree with the target model about which tokens matter, risking removal of causally necessary tokens. Gist tokens are not human-readable and must be recomputed whenever the source prompt changes — compression is lossy in both cases.
+
+---
+
+**Context Extension / Long-Context Techniques**
+
+*See:* **RoPE Extension Methods**, **StreamingLLM**, **Sliding Window Attention**, **Lost-in-the-Middle**, **NoPE**.
+
+---
+
+**Context Window**
+
+*The problem:* Need to bound how much text (system prompt, history, retrieved docs, user input, generated output) a model can jointly attend to, and understand what that bound costs.
+
+*Core insight / definition:* The maximum number of tokens a model can attend to simultaneously. Larger windows enable more history/retrieval/document comprehension but increase attention compute (O(n²)), latency, and API cost, and are subject to representational limits like "lost in the middle."
+
+*Why it matters / pitfall / interview trap:* Trap: treating context window size as the primary model-selection criterion. A model with 128K context but poor mid-context retrieval can be less useful in practice than a 32K-context model that reliably uses all of it — raw capacity ≠ usable capacity.
+
+---
+
+**Context Window Extension (overview)**
+
+*The problem:* Pretraining directly at very long context lengths is prohibitively expensive because attention cost is O(L²) — 32K context costs 4× more compute per forward pass than 8K.
+
+*Core insight / definition:* A family of techniques (linear/position interpolation, NTK-aware scaling, YaRN, LongRoPE, ALiBi, StreamingLLM, sparse attention, iRoPE) that let a model trained at a short context length (e.g. 4K–8K) operate effectively at much longer lengths (128K–10M+), usually via little or no additional fine-tuning.
+
+*Why it matters / pitfall / interview trap:* Every major 2024/2025 model (Llama 3, Qwen3, Gemini, GPT-4) relies on one or more of these techniques — interviewers expect you to know why naive extension fails (out-of-distribution rotation angles/positions) before discussing the fixes.
+
+---
+
+**Continual Pretraining**
+
+*The problem:* Base models have broad but shallow knowledge in specialized domains, and naive fine-tuning on domain data causes catastrophic forgetting of general capabilities.
+
+*Core insight / definition:* Continue pretraining on a mix of domain-specific and general data (a typical ratio is 80/20) at a much lower learning rate than initial pretraining, controlling the tradeoff between specialization and retained general capability.
+
+*Why it matters / pitfall / interview trap:* Even with careful mixing, some forgetting is inevitable — LoRA is an alternative that eliminates forgetting by construction (base weights frozen) but limits how much the model can adapt.
+
+---
+
+**Continuous Batching**
+
+*See:* **Batching Strategies**.
+
+---
+
+**Cosine Decay with Linear Warmup (Learning Rate Schedule)**
+
+*The problem:* A constant learning rate is a poor fit for how the loss landscape's geometry changes over training — large steps help early but risk overshoot late.
+
+*Core insight / definition:* Linearly ramp the learning rate from near-zero up to a maximum over a warmup period, then decay it following a cosine curve down to a small minimum value by the end of training.
+
+*Why it matters / pitfall / interview trap:* Warmup exists specifically because Adam's second-moment estimate starts at zero, making the effective early-training learning rate wildly amplified even with bias correction — omitting warmup at scale can cause immediate divergence.
+
+---
+
+**CoT (Chain-of-Thought)**
+
+*The problem:* A single forward pass with no intermediate reasoning silently propagates errors on multi-step problems.
+
+*Core insight / definition:* The model writes intermediate reasoning steps before producing the final answer, and those steps become part of its own context, changing the distribution of the final answer token. Performance scales roughly logarithmically with the number of reasoning ("thinking") tokens.
+
+*Why it matters / pitfall / interview trap:* Cheap (no external calls) but can produce confidently wrong, structurally coherent reasoning — it reduces but does not eliminate multi-step error; use ReAct instead when external facts/tools are needed.
+
+---
+
+**DARE (Drop And REscale)**
+
+*The problem:* When merging many task vectors, interference between them grows with the number of models being combined.
+
+*Core insight / definition:* Randomly drops a large fraction (60–90%) of delta parameters per task vector and rescales survivors to preserve expected magnitude, used as a preprocessing step before averaging, TIES, or task arithmetic.
+
+*Why it matters / pitfall / interview trap:* Reduces inter-model interference as the number of merged models grows, but is stochastic (non-reproducible without a fixed seed) and very high drop rates can lose genuine task signal.
+
+---
+
+**Data Deduplication (Exact and Fuzzy / MinHash LSH)**
+
+*The problem:* Near-duplicate documents in training data waste compute (redundant gradients) and cause verbatim memorization of repeated text.
+
+*Core insight / definition:* Exact deduplication uses document-level hashing (e.g. SHA-256); fuzzy deduplication uses MinHash Locality-Sensitive Hashing at the paragraph level to catch near-duplicates that aren't byte-identical.
+
+*Why it matters / pitfall / interview trap:* Aggressive deduplication can hurt recall of facts that legitimately appeared only once in the corpus — a real tradeoff, not a free win, though it's usually worth it given how much SEO-spam/duplicate content dedup removes.
+
+---
+
+**Data Quality Filtering (Heuristic and Classifier-based)**
+
+*The problem:* Raw internet text contains enormous low-value content (spam, boilerplate, machine-translated garbage) that forces the model to spend capacity modeling noise instead of signal.
+
+*Core insight / definition:* A pipeline of heuristic filters (length bounds, repetition ratio, punctuation-heavy lines) followed by classifier filters (e.g. a fastText quality classifier trained to distinguish Wikipedia/books-quality text from random web text) progressively removes low-quality documents before deduplication and tokenization.
+
+*Why it matters / pitfall / interview trap:* Phi-1 (1.3B params, "textbook quality" data) matched 10x-larger models on coding benchmarks — quality dominates quantity past a baseline, and this is a classic trap answer ("more data is always better") to avoid in interviews.
+
+---
+
+**DeepSeek MoE: Shared vs. Routed Experts**
+
+*The problem:* Standard top-K MoE routing forces every piece of "common knowledge" to be redundantly re-learned across multiple routed experts.
+
+*Core insight / definition:* DeepSeek-V2 splits experts into always-active shared experts (handle common/general knowledge) and top-K selected routed experts (handle specialized knowledge): MoE(x) = Σ shared experts + Σ_{TopK} gated routed experts.
+
+*Why it matters / pitfall / interview trap:* Shared experts prevent knowledge redundancy across routed experts, freeing routed experts to specialize further — this is part of why DeepSeek can scale to 160+ (V2) or 256 (V3) experts efficiently.
+
+---
+
+**DINOv2**
+
+*The problem:* CLIP's global contrastive embedding loses spatial/positional detail, hurting tasks like counting, localization, and reading text at a specific position.
+
+*Core insight / definition:* A self-supervised vision encoder producing more spatially-aligned features than CLIP, better suited for OCR/localization/document tasks when used as a VLM's vision backbone.
+
+*Why it matters / pitfall / interview trap:* Choosing CLIP by default for a VLM that needs fine spatial grounding (document QA, counting) is a common design mistake — DINOv2 is the better fit there.
+
+---
+
+**DoRA (Weight-Decomposed Low-Rank Adaptation)**
+
+*The problem:* Standard LoRA's rank-bounded update can underfit relative to full fine-tuning on tasks far from the base distribution.
+
+*Core insight / definition:* Decomposes the weight update into magnitude and direction components, applying LoRA-style low-rank adaptation to the direction only.
+
+*Why it matters / pitfall / interview trap:* Gets closer to full fine-tuning quality than plain LoRA at similar parameter efficiency, at the cost of added implementation complexity.
+
+---
+
+**DPO (Direct Preference Optimization)**
+
+*The problem:* RLHF's reward-model-plus-PPO pipeline requires four models in memory simultaneously and introduces many failure modes (reward-model overfitting, KL explosion, PPO instability) — often the reward model, trained on far less data than the policy, is the weakest link.
+
+*Core insight / definition:* The optimal RLHF policy has a closed-form expression in terms of the reference model and reward function; DPO inverts this to express the reward implicitly in terms of the policy, substitutes into the pairwise preference loss (the partition function $Z(x)$ cancels), and trains the policy directly on (chosen, rejected) pairs without ever building a reward model: $\mathcal{L}_{DPO} = -\mathbb{E}[\log\sigma(\beta\log\frac{\pi_\theta(y_w|x)}{\pi_{ref}(y_w|x)} - \beta\log\frac{\pi_\theta(y_l|x)}{\pi_{ref}(y_l|x)})]$.
+
+*Why it matters / pitfall / interview trap:* Cheaper and more stable than PPO, but fully offline (no exploration beyond the fixed dataset), more sensitive to preference-data quality, and prone to length bias (learning "longer = better" from annotator preferences) and gradient saturation if the policy drifts far from the reference. Treating DPO as strictly superior to PPO because it's newer/easier is a trap — PPO still achieves higher ceilings at some frontier labs (e.g. LLaMA 3 used PPO heavily).
+
+---
+
+**Emergent Abilities**
+
+*The problem:* Certain capabilities (e.g. 3-digit arithmetic) appear to jump discontinuously at a threshold model scale rather than improving gradually, suggesting a qualitative phase transition.
+
+*Core insight / definition:* Schaeffer et al. (2023) showed emergent abilities are often an artifact of discontinuous evaluation metrics (like exact-match accuracy on multi-step problems), not discontinuous model capability — the underlying per-step probability of correctness improves smoothly with scale, but all-or-nothing scoring hides that until a threshold is crossed.
+
+*Why it matters / pitfall / interview trap:* Using calibrated, continuous metrics instead of binary exact-match reveals gradual improvement — a classic interview trap is treating emergence as a genuine capability discontinuity rather than a measurement artifact.
+
+---
+
+**Expert Choice Routing**
+
+*The problem:* In standard token-choice routing, load imbalance and token dropping arise because tokens independently choose experts without any global coordination.
+
+*Core insight / definition:* Inverts the routing direction — each expert selects its own top-C tokens from the batch (by gating score) rather than each token selecting its expert. Guarantees perfect load balance by construction (every expert processes exactly C tokens).
+
+*Why it matters / pitfall / interview trap:* Trades load-balance guarantees for a new failure mode: a token may be selected by zero experts (dropped) or by multiple experts, complicating inference logic relative to standard top-K token-choice routing.
+
+---
+
+**Expert Collapse**
+
+*The problem:* Without any regularization, MoE routers tend to degenerate to using only a small number of experts.
+
+*Core insight / definition:* A feedback loop: the router learns expert i is slightly better → routes more tokens to it → expert i receives more gradient signal → improves further → receives even more tokens, until nearly all traffic funnels to 1–2 experts while the rest atrophy from lack of gradient.
+
+*Why it matters / pitfall / interview trap:* The fix is an auxiliary load-balancing loss, but overcorrecting (too-high α) can force uniform routing regardless of whether it serves the tokens, causing homogenization — a subtler failure where balanced token counts mask the router routing on a degenerate/shortcut signal (e.g., surface token identity). Diagnosis requires checking per-layer routing entropy, not just the load histogram.
+
+---
+
+**Expert Parallelism**
+
+*The problem:* Total MoE parameter count can far exceed what fits on a single device's memory.
+
+*Core insight / definition:* Shards experts across devices, requiring all-to-all communication to route each token to the device holding its assigned expert(s).
+
+*Why it matters / pitfall / interview trap:* All-to-all communication is a major bottleneck, especially at scale or over low-bandwidth interconnects, and can negate MoE's compute savings at small batch sizes.
+
+---
+
+**Expert Parallelism (EP)**
+
+*The problem:* At scale, MoE models have far more total parameters than fit on one GPU, and dense tensor-parallel sharding doesn't match MoE's sparse activation pattern.
+
+*Core insight / definition:* Shards individual experts across GPUs (each GPU holds one or a few experts); tokens are routed to their assigned expert's GPU via all-to-all communication, processed, then results are gathered back. Differs from tensor parallelism (which splits a single weight matrix across GPUs and requires all-reduce) — every token uses every GPU under TP, but only its assigned GPU under EP.
+
+*Why it matters / pitfall / interview trap:* All-to-all communication is the main distributed-training overhead unique to MoE vs. dense models; in practice combined with tensor and data parallelism (EP+TP+DP) to scale to hundreds of experts. Trap: assuming EP is strictly better — it's preferred when experts fit on individual GPUs and all-to-all bandwidth is sufficient, whereas TP is preferred for oversized individual matrices with high-bandwidth NVLink available.
+
+---
+
+**Expert Specialization**
+
+*The problem:* It's unclear a priori whether MoE experts actually learn distinct, meaningful functions or just arbitrarily partition tokens.
+
+*Core insight / definition:* Empirically, experts develop semantic specialization along multiple axes: some activate on syntactic patterns (punctuation, numbers), some on semantic domains (medical text, code, math), some on specific languages. Measurable via routing entropy (entropy near max_entropy = healthy/diverse; entropy near 0 = collapsed).
+
+*Why it matters / pitfall / interview trap:* Healthy routing entropy alone doesn't prove useful specialization — a router can be balanced (uniform token fractions) yet have degenerated to a low-entropy, per-token-confident but semantically wrong routing signal, so entropy/balance metrics must be paired with inspection of what the router actually conditions on.
+
+---
+
+**Fertility**
+
+*The problem:* Need a metric for how efficiently a tokenizer represents a given language or domain.
+
+*Core insight / definition:* Tokens produced per word (or per character for non-Latin scripts). English under BPE-50K: ~1.3 tokens/word. Finnish (highly inflected): ~2–3 tokens/word. Chinese/Japanese under a Latin-trained tokenizer: ~2–4 tokens/character. Turkish/Arabic under GPT-2's English-centric vocab: 4–10 tokens/word.
+
+*Why it matters / pitfall / interview trap:* High fertility means longer sequences for the same semantic content, directly costing more under quadratic attention and effectively truncating usable context — this is why LLaMA 3 expanded to a 128K vocab (vs. LLaMA 2's 32K), dramatically improving non-English fertility.
+
+---
+
+**FlashAttention**
+
+*The problem:* Standard attention materializes the full $T \times T$ score matrix in slow GPU HBM, making it a memory-bandwidth-bound operation despite being "just" $O(T^2)$ compute — for $T=8192$ at FP16, the matrix alone is ~128MB per layer per batch element.
+
+*Core insight / definition:* Tiles $Q$, $K$, $V$ into blocks that fit in fast on-chip SRAM, computes attention incrementally using an online/running softmax (log-sum-exp trick), and accumulates the output without ever writing the full $T \times T$ matrix to HBM — exact (not approximate) attention with $O(T)$ memory.
+
+*Why it matters / pitfall / interview trap:* It does NOT reduce the $O(T^2)$ computational complexity — it eliminates the memory-bandwidth bottleneck (HBM reads/writes), yielding 2–4x wall-clock speedup by trading slightly more backward-pass FLOPs (recomputation) for far fewer memory operations. Claiming it reduces FLOP complexity is a classic interview trap.
+
+---
+
+**FLOPs vs. Parameters Decoupling (MoE)**
+
+*The problem:* Dense models couple model capacity (parameter count) directly to per-token compute cost — you can't have a large-capacity model without paying large compute per token.
+
+*Core insight / definition:* MoE decouples the two: total parameters scale with the number of experts N (determining capacity/memory footprint), while only the top-K active experts run per token (determining FLOPs/compute cost). Mixtral 8×7B has 46.7B total params but only 12.9B active per token — inference FLOPs resemble a ~13B dense model despite ~47B capacity.
+
+*Why it matters / pitfall / interview trap:* Trap: pricing MoE serving cost using only the FLOP axis. All ~47B parameters must reside in memory regardless of activation sparsity, so GPU count is set by total params (memory-bound) while throughput is set by active FLOPs — the two axes decouple, and a FLOP-only cost model badly underprices the actual memory/interconnect footprint and all-to-all communication overhead.
+
+---
+
+**Frankenmerging**
+
+*The problem:* Weight-space merging methods (averaging, SLERP, task arithmetic) all require compatible weight spaces and can suffer interference; sometimes you want structurally novel combinations.
+
+*Core insight / definition:* Splices layers from different models together (e.g. early layers from model A, late layers from model B) rather than blending weights — used to build larger models (e.g. 120B from two 70Bs via layer duplication).
+
+*Why it matters / pitfall / interview trap:* No guarantee spliced layer interfaces are compatible even between identical architectures — perplexity often spikes at splice boundaries, and the process is mostly trial-and-error.
+
+---
+
+**GGUF (llama.cpp format)**
+
+*The problem:* Datacenter-GPU-oriented quantization formats (GPTQ, AWQ) aren't optimized for CPU, edge, or consumer-GPU deployment.
+
+*Core insight / definition:* A binary serialization format (successor to GGML) designed for portable, memory-mapped CPU/edge/consumer-GPU inference via llama.cpp, supporting multiple k-quant schemes (Q2_K through Q8_0) that quantize blocks of weights together with per-block scales.
+
+*Why it matters / pitfall / interview trap:* Best size/quality balance is typically Q4_K_M; not the fastest option on datacenter GPUs compared to GPTQ/AWQ + vLLM — pick based on deployment target, not blanket "best" quantization format.
+
+---
+
+**Gist Tokens** — see *Context Compression*
+
+---
+
+**Goodhart's Law**
+
+*The problem:* Any proxy measure used as an optimization target can be gamed in ways that diverge from the true underlying goal it was meant to represent.
+
+*Core insight / definition:* "When a measure becomes a target, it ceases to be a good measure." In RLHF, the reward model is a proxy for human preference; aggressively optimizing the proxy diverges from actual preference satisfaction — this is the theoretical basis for reward hacking.
+
+*Why it matters / pitfall / interview trap:* Directly explains why RLHF needs a KL penalty — it regularizes against diverging too far from the reference model, limiting how hard the policy can exploit the proxy.
+
+---
+
+**GPTQ**
+
+*The problem:* Post-training quantization needs to minimize accuracy loss at low bit-widths (e.g. 4-bit) without retraining the full model.
+
+*Core insight / definition:* Quantizes weights one column at a time using second-order (Hessian-based) error correction — after quantizing a column, it propagates the resulting error into the remaining unquantized columns to compensate, using an activation Hessian computed from a small calibration set (~128 sequences).
+
+*Why it matters / pitfall / interview trap:* Strong accuracy at 4-bit with no retraining and the most mature ecosystem, but weight-only (activations stay higher precision, W4A16) and gives no inference speedup on CUDA cores by itself — the win is VRAM savings enabling larger batches, not raw per-token speed.
+
+---
+
+**GQA (Grouped-Query Attention)**
+
+*The problem:* MHA's per-head K/V storage is expensive; MQA's single shared K/V head recovers most memory savings but at a real quality cost on tasks needing diverse attention patterns.
+
+*Core insight / definition:* Intermediate between MHA and MQA — groups query heads into G groups, with each group sharing one K/V head (n_kv_heads = G). Memory savings ratio = n_kv_heads / n_heads. Llama-3 8B uses H=32 query heads, G=8 KV heads (4× reduction); Llama-3 70B uses H=64, G=8 (8× reduction).
+
+*Why it matters / pitfall / interview trap:* Empirically within 1–2% of MHA quality on standard benchmarks while giving 8–32× KV memory savings, making it the dominant choice in modern models (Llama-3, Mistral). Trap: the aggregate "1-2% gap" benchmark number hides that shared KV heads disproportionately hurt tasks needing diverse attention (multi-hop reasoning, many-entity retrieval) — and the head-count choice is baked in at pretraining, not a serving-time knob you can adjust on an existing checkpoint.
+
+---
+
+**Gradient Checkpointing (Activation Checkpointing)**
+
+*The problem:* At long sequence lengths, storing all intermediate activations for the backward pass dominates GPU memory.
+
+*Core insight / definition:* Trades compute for memory by not storing all activations during the forward pass — instead recomputing them during the backward pass as needed, roughly 33% more FLOPs for ~10x less activation memory.
+
+*Why it matters / pitfall / interview trap:* Essential at 4K+ sequence lengths for fine-tuning; the `use_reentrant=False` setting is generally recommended for compatibility with PEFT methods like LoRA.
+
+---
+
+**Gradient Clipping (Norm-based)**
+
+*The problem:* A single bad batch or a high-curvature region of the loss landscape can produce an enormous gradient (100x–1000x normal magnitude) whose update destroys weeks of training progress.
+
+*Core insight / definition:* Scale the entire gradient vector down uniformly (preserving direction) if its L2 norm exceeds a threshold $c$: $g \leftarrow g \cdot \min(c, \|g\|_2)/\|g\|_2$. Norm-based clipping is used instead of value-based (per-component) clipping, which biases the gradient's direction toward small-magnitude parameters.
+
+*Why it matters / pitfall / interview trap:* The near-universal threshold is `max_norm=1.0` because healthy gradient norms hover around 0.3–0.7, so clipping only activates during genuine anomalies. Sustained clipping on >50% of steps signals the learning rate is too high, not that clipping is "protecting" training — a common misconception.
+
+---
+
+**GraphRAG**
+
+*The problem:* Flat retrieval (chunk-based RAG) struggles with questions requiring reasoning across multiple linked entities (multi-hop questions).
+
+*Core insight / definition:* Builds a knowledge graph over the corpus to support multi-hop reasoning across entities, rather than retrieving isolated flat text chunks.
+
+*Why it matters / pitfall / interview trap:* Outperforms flat RAG on complex multi-hop questions but is overkill (added pipeline cost) for simple single-document lookups.
+
+---
+
+**GSM8K**
+
+*The problem:* You need a benchmark that isolates multi-step arithmetic reasoning ability from broader knowledge.
+
+*Core insight / definition:* 8,500 grade-school math word problems requiring multi-step reasoning to a single integer answer, testing the ability to decompose a problem and execute a chain of steps without losing track of state.
+
+*Why it matters / pitfall / interview trap:* Considered "solved" by frontier models but still meaningfully discriminates at smaller scales (<7B) — its core failure mode (state loss across steps) remains a real diagnostic signal.
+
+---
+
+**HellaSwag**
+
+*The problem:* You need a benchmark for commonsense world understanding that can't be gamed by simple pattern matching.
+
+*Core insight / definition:* Requires completing the next sentence given a situation description, where wrong answers are generated adversarially to be plausible, testing implicit commonsense understanding (e.g. that fire is hot).
+
+*Why it matters / pitfall / interview trap:* Tests commonsense reasoning specifically, distinct from factual knowledge (MMLU) or formal reasoning (BIG-Bench Hard).
+
+---
+
+**HNSW (Hierarchical Navigable Small World) / IVF-PQ**
+
+*The problem:* Exact nearest-neighbor search over embeddings doesn't scale to large corpora; approximate methods are needed.
+
+*Core insight / definition:* HNSW is a multi-layer navigable graph index giving $O(\log n)$ query time, tunable via `ef`/`ef_construction` parameters. IVF/IVFPQ instead uses Voronoi-cell clustering with product-quantization compression, trading recall for lower memory.
+
+*Why it matters / pitfall / interview trap:* Pick HNSW when recall/speed tradeoff needs fine control and memory is available; pick IVFPQ when memory-constrained at billion-scale — a standard RAG infrastructure design question.
+
+---
+
+**HumanEval and MBPP**
+
+*The problem:* You need a way to test whether generated code is actually functionally correct, not just plausible-looking.
+
+*Core insight / definition:* HumanEval (164 Python problems from OpenAI) and MBPP (374 crowd-sourced problems) give a function signature/docstring and test the generated function body against unit tests, typically scored with pass@k.
+
+*Why it matters / pitfall / interview trap:* HumanEval problems are simple and some have appeared verbatim in public discussion — a model that memorized answers can score high without real coding ability, which is why SWE-Bench (real GitHub issues) is a stronger signal for actual software engineering capability.
+
+---
+
+**HyDE (Hypothetical Document Embeddings)**
+
+*The problem:* Short or vague queries may not embed close to the relevant documents in vector space.
+
+*Core insight / definition:* Instead of embedding the raw query, generate a hypothetical LLM-authored answer and embed that for retrieval — the hypothetical answer's phrasing tends to be closer to real document text.
+
+*Why it matters / pitfall / interview trap:* A wrong hypothetical answer can misdirect retrieval entirely — better when the query is short/vague, riskier in domains where the LLM is likely to hallucinate.
+
+---
+
+**ICL (In-Context Learning) / Induction Heads**
+
+*The problem:* Adapting a model to a new task via gradient updates (fine-tuning) is slow and requires labeled training data and GPU hours.
+
+*Core insight / definition:* ICL is the ability of LLMs to learn a new task from examples provided directly in the prompt with no gradient updates. Mechanistic interpretability identifies "induction heads" — pairs of attention heads implementing a "copy with offset" circuit (one head finds the previous occurrence of the current token, the other copies what followed it) — as the likely mechanism underlying ICL's ability to generalize to novel patterns.
+
+*Why it matters / pitfall / interview trap:* Example ordering matters (recency bias — put the most informative examples last), and flipping labels in few-shot examples degrades performance only modestly (~10–20%), showing input/format distribution matters more than label correctness — a counterintuitive result worth knowing.
+
+---
+
+**Instruction Tuning**
+
+*See:* **SFT (Supervised Fine-Tuning)**.
+
+---
+
+**IPO (Identity Preference Optimization)**
+
+*The problem:* DPO's loss can saturate when the policy drives rejected-response log-probability very negative, producing near-zero gradient and halting improvement (a form of mode collapse).
+
+*Core insight / definition:* A DPO variant that replaces the log-sigmoid loss with a squared-loss objective that regularizes the implicit reward gap directly, avoiding the saturation that causes DPO mode collapse.
+
+*Why it matters / pitfall / interview trap:* The standard fix cited when DPO's log-probability margin between chosen/rejected grows too fast and training gradient signal degrades.
+
+---
+
+**Jailbreaking / Prompt Injection**
+
+*The problem:* Adversaries try to bypass a model's safety training to elicit harmful outputs, and agentic systems that consume external content are vulnerable to embedded malicious instructions.
+
+*Core insight / definition:* Jailbreaking patterns include role-playing ("pretend you have no restrictions"), hypothetical framing (fictional-world requests), and indirect elicitation. Prompt injection is a distinct agentic-system threat: a retrieved document/webpage contains text like "ignore previous instructions..." that the agent may follow because it processes retrieved content as part of its context.
+
+*Why it matters / pitfall / interview trap:* Prompt injection is specifically an agentic/RAG-system risk (not just a chat-safety risk) — distinguishing it from generic jailbreaking is a common interview probe.
+
+---
+
+**Kaplan Scaling Laws**
+
+*The problem:* Before Chinchilla, there was no rigorous large-scale empirical study of how loss scales with model size, data, and compute.
+
+*Core insight / definition:* Kaplan et al. (2020) found power-law relationships between loss and each of model size/data/compute independently, and concluded (incorrectly, per later Chinchilla analysis) that model size should scale much faster than data for a fixed compute budget.
+
+*Why it matters / pitfall / interview trap:* Led directly to GPT-3's undertraining (175B params, only 300B tokens, ~1.7 tokens/param) — Kaplan's compute-cost-per-forward-pass estimate was flawed and the conclusion has been superseded by Chinchilla; still useful as historical context in interviews.
+
+---
+
+**KL Divergence Penalty (RLHF/DPO)**
+
+*The problem:* Optimizing purely against a reward model (or preference likelihood) without any anchor lets the policy drift into degenerate, reward-hacking behaviors.
+
+*Core insight / definition:* A penalty term $\beta \cdot D_{KL}(\pi_\theta \| \pi_{ref})$ subtracted from the objective keeps the policy close to the frozen reference (SFT) model, bounding how far optimization can push the policy away from a coherent language model.
+
+*Why it matters / pitfall / interview trap:* Removing it causes reward hacking — repetitive high-scoring garbage, excessive length, sycophancy. Healthy RLHF maintains KL of 2–8 nats; KL exceeding ~20 nats signals "KL explosion" and incoherent output. An adaptive KL controller (tighten/loosen $\beta$ based on measured vs target KL) is the standard fix.
+
+---
+
+**KV Cache**
+
+*The problem:* Recomputing attention over the entire growing sequence at every autoregressive decoding step is O(T²) total cost and wildly redundant, since K and V for previously generated tokens never change.
+
+*Core insight / definition:* Caches the Key and Value projections for all previously processed positions (1..t) during generation, so each new decoding step reuses them instead of recomputing. Reduces per-step cost from attending over the full growing context to O(n) incremental computation. Memory: KV bytes = 2 × n_layers × n_heads × d_k × context_length × dtype_bytes.
+
+*Why it matters / pitfall / interview trap:* At 128K context, a 7B fp16 model's KV cache alone (~68GB) can exceed a single A100's 80GB — a constraint requiring chunked prefill, PagedAttention, and/or multi-GPU tensor parallelism. Trap: ignoring KV-cache memory as a hard constraint that scales linearly with context length, batch size, layers, and heads simultaneously.
+
+---
+
+**KV Cache Quantization**
+
+*The problem:* KV cache stored in fp16 (2 bytes/element) dominates memory at long context and large batch sizes, limiting concurrent request throughput.
+
+*Core insight / definition:* Quantize cached K/V values to lower precision — int8 (1 byte, <0.1% quality loss), int4 (0.5 bytes, ~0.5–1% loss), or int4-with-fp16-outlier-channels (~0.6 bytes, minimal loss). Halving bytes roughly doubles the concurrent batch size servable on the same hardware.
+
+*Why it matters / pitfall / interview trap:* Interview trap: long context is exactly where KV quantization hurts most, since quantization error is per-token and attention aggregates over all cached tokens — the noise accumulates precisely as context grows, so the regime needing the memory savings most is also the regime where accuracy cost is largest. MLA-style low-rank compression is often a better trade because it compresses structurally rather than adding per-token noise.
+
+---
+
+**LayerNorm / RMSNorm / Pre-LN vs Post-LN**
+
+*The problem:* Activation distributions shift continuously during training as upstream weights update ("internal covariate shift"), and BatchNorm's batch-dependent statistics are unreliable for variable-length sequences or small batches.
+
+*Core insight / definition:* LayerNorm normalizes across the feature dimension per token independently (no batch dependency): $\text{LN}(x) = \gamma \cdot (x-\mu)/(\sigma+\epsilon) + \beta$. RMSNorm (used in LLaMA) drops the centering (mean-subtraction) step, scaling only by root-mean-square — cheaper and empirically equivalent or better for LLMs. Placement matters: post-LN (original Transformer, norm after residual) causes gradient vanishing in deep networks; pre-LN (norm before the sublayer) is the modern default, keeping gradients flowing at 24+ layers.
+
+*Why it matters / pitfall / interview trap:* Pre-LN requires re-tuning effective learning rate relative to post-LN — it's not a free architectural swap, just a more stable one for depth.
+
+---
+
+**Learning Rate Warmup**
+
+*See:* **Cosine Decay with Linear Warmup**.
+
+---
+
+**LIMA**
+
+*The problem:* Conventional wisdom suggested SFT/alignment quality scales with dataset size.
+
+*Core insight / definition:* The LIMA paper showed that 1,000 carefully curated (instruction, response) examples produced a model comparable to RLHF-aligned models trained on much more data, demonstrating that data quality and diversity dominate quantity past a baseline.
+
+*Why it matters / pitfall / interview trap:* A go-to counterexample against the "more data is always better" trap in interviews — mediocre synthetic responses actively hurt performance.
+
+---
+
+**Linear (Position) Interpolation**
+
+*The problem:* RoPE positions beyond the training length L_train are out-of-distribution, causing attention to break down and perplexity to spike.
+
+*Core insight / definition:* Rescales all positions by factor L_train/L_target: m' = m · (L_train / L_target), compressing target-range positions back into the trained range. A position at 50,000 in a 4K-trained model targeting 128K maps to m' ≈ 1562.
+
+*Why it matters / pitfall / interview trap:* Requires fine-tuning (~1000 steps on long documents) to recover quality, since the model wasn't trained to handle the resulting fractional position frequencies — it "works but degrades" without that follow-up training.
+
+---
+
+**Llama Guard**
+
+*The problem:* Detecting harmful user requests or harmful model outputs at scale requires an automated classifier, not manual review.
+
+*Core insight / definition:* A fine-tuned LLaMA-based classifier (Meta, 2023) that takes a (conversation, response) pair and classifies it against a taxonomy of harm categories, usable both as an input filter (pre-generation) and output filter (post-generation).
+
+*Why it matters / pitfall / interview trap:* Standard component in a production safety pipeline alongside (or instead of) OpenAI's Moderation API.
+
+---
+
+**LMSYS Chatbot Arena**
+
+*The problem:* Curated benchmarks (MMLU, etc.) measure performance on researcher-chosen questions, which may not predict real user satisfaction or preference.
+
+*Core insight / definition:* Anonymous blind side-by-side comparisons where users vote on which of two unknown models responded better; results are aggregated into Elo ratings via the standard Elo expected-score formula.
+
+*Why it matters / pitfall / interview trap:* Captures tone, formatting, and personality in addition to accuracy, so models with high MMLU but awkward response style can rank lower in Arena than benchmark scores predict. Subject to selection bias (Arena's user population isn't representative of all deployment domains) and strategic voting.
+
+---
+
+**Load-Balancing Loss (Auxiliary, Switch Transformer)**
+
+*The problem:* Without regularization, MoE routers experience expert collapse — a rich-get-richer feedback loop concentrating traffic on 1–2 experts.
+
+*Core insight / definition:* L_balance = α · N · Σᵢ fᵢ · Pᵢ, where fᵢ = fraction of tokens dispatched to expert i (non-differentiable, from argmax), Pᵢ = mean routing probability assigned to expert i (differentiable, supplies gradient), N = number of experts, α = coefficient (typically 0.01–0.1). The fᵢ·Pᵢ product penalizes uneven routing while remaining differentiable through Pᵢ.
+
+*Why it matters / pitfall / interview trap:* α too high breaks task performance (forces uniform routing regardless of merit, causing homogenization); α too low doesn't prevent collapse. Interview trap: reading a balanced token-fraction histogram as proof the router is "healthy" — balance and usefulness are different properties.
+
+---
+
+**Longformer**
+
+*The problem:* Full O(n²) attention is too expensive to materialize at long sequence lengths (e.g., 16B entries at n=128K).
+
+*Core insight / definition:* Replaces full attention with two complementary sparse patterns: local window attention (each token attends to its ±w/2 nearest neighbors, capturing local syntax) and global tokens (a small designated set, e.g. CLS or task markers, that attend to and from all tokens, propagating long-range information). Cost drops to O(n·w).
+
+*Why it matters / pitfall / interview trap:* It's a pretrained architecture, not a plug-in modification — you can't simply retrofit it onto an existing dense-attention model. Distant information can only propagate through the global tokens, so their placement is critical.
+
+---
+
+**LongRoPE**
+
+*The problem:* A single global rescaling factor (as in linear interpolation or NTK) may be suboptimal across different dimensions/heads/layers when pushing to extreme context lengths.
+
+*Core insight / definition:* Uses evolutionary search to find per-dimension (rather than one global) rescaling factors, achieving extreme context extension (millions of tokens) with less fine-tuning than YaRN.
+
+*Why it matters / pitfall / interview trap:* Research/staff-depth topic — the key point to retain is *why* it exists (a single global scale factor is suboptimal per-head/per-layer), not implementation detail.
+
+---
+
+**LoRA (Low-Rank Adaptation)**
+
+*The problem:* Full fine-tuning requires updating and storing all model parameters, needing ~16–20x parameter count in bytes (weights + gradients + optimizer state) and one full weight copy per task variant — expensive to train and to serve many variants.
+
+*Core insight / definition:* Freeze the base weights $W_0$ and inject a trainable low-rank decomposition $\Delta W = BA$ (with $B \in \mathbb{R}^{d\times r}$, $A \in \mathbb{R}^{r\times k}$, $r \ll \min(d,k)$) into target projections, typically scaled by $\alpha/r$. $A$ is initialized Gaussian, $B$ initialized to zero so $\Delta W = 0$ at the start of training. Because $BA$ can be merged into $W_0$ before serving, there is zero added inference latency.
+
+*Why it matters / pitfall / interview trap:* The empirical justification is that fine-tuning updates have low intrinsic dimensionality — SVD of a full-fine-tuning $\Delta W$ shows most signal in the top few singular vectors, which LoRA enforces structurally from the start. Rank is a real capacity bound — very-far-from-distribution tasks may still need full fine-tuning.
+
+---
+
+**LoRA+**
+
+*The problem:* Standard LoRA uses a single learning rate for both the $A$ and $B$ matrices, even though they play asymmetric roles in the decomposition.
+
+*Core insight / definition:* Uses different learning rates for the $A$ and $B$ matrices, which empirically speeds convergence.
+
+*Why it matters / pitfall / interview trap:* A minor but free tuning improvement over vanilla LoRA — one of several LoRA variants (with DoRA, AdaLoRA, VeRA, LoRAMoE) worth knowing exist without needing deep mechanics.
+
+---
+
+**LoRAMoE**
+
+*The problem:* A single LoRA adapter can interfere across multiple simultaneous tasks.
+
+*Core insight / definition:* Combines multiple LoRA adapters as a mixture-of-experts, routed per input, to support multi-task adaptation without cross-task interference.
+
+*Why it matters / pitfall / interview trap:* Useful when one deployment must serve several distinct fine-tuned behaviors without full separate models per task.
+
+---
+
+**Lost in the Middle**
+
+*The problem:* Long-context models don't use their full context uniformly — performance can degrade even though the information is technically within the window.
+
+*Core insight / definition:* Empirical finding (Liu et al. 2023): LLM recall follows a U-shaped curve — performance is strong when relevant information is at the start or end of context, and degrades significantly when it's in the middle. Attributed to attention primacy bias (early tokens act as attention sinks) plus recency bias (recent tokens are easier to attend to); middle tokens compete poorly for attention.
+
+*Why it matters / pitfall / interview trap:* Mitigations (reordering chunks to the front, reranking top-1, recursive summarization) each trade something away — reordering breaks prefix-cache hits by changing the prompt prefix per query; an aggressive reranker concentrates risk on a single top-1 slot, so if it's wrong the correct chunk is now buried in the worst position. There is no free repositioning — you're moving the failure, not removing it.
+
+---
+
+**Lost-in-the-Middle**
+
+*The problem:* A model that "supports" a long context window doesn't necessarily use all of it equally well.
+
+*Core insight / definition:* Empirically, attention/recall follows a U-shape across a long document — information near the beginning and end is retrieved much more reliably than information in the middle.
+
+*Why it matters / pitfall / interview trap:* Practical mitigation is to place critical information first or last in a long prompt; this is also why "supports 128K context" claims need to be verified with needle-in-a-haystack-style tests, not taken at face value.
+
+---
+
+**LR Warmup**
+
+*See:* **Cosine Decay with Linear Warmup**.
+
+---
+
+**Mamba (State-Space Model)**
+
+*The problem:* Attention's O(n²) training cost and growing KV-cache memory during inference are fundamental scaling bottlenecks for very long sequences.
+
+*Core insight / definition:* A selective state-space model offering O(n) training and O(1)-memory inference by compressing history into a fixed-size recurrent state rather than attending to every past token, instead of using attention at all.
+
+*Why it matters / pitfall / interview trap:* Exact long-range retrieval degrades since the state is bounded, unlike transformers' exact lookup over the full KV cache. Hybrid Mamba+attention models (Jamba, Zamba) are the current practical compromise — good to know as an alternative to RoPE scaling, not expected at SDE2 implementation depth.
+
+---
+
+**Medusa**
+
+*The problem:* Standard speculative decoding requires maintaining a separate, compatible draft model, adding deployment complexity.
+
+*Core insight / definition:* Attaches K extra lightweight linear prediction heads to the target model's final hidden state, each predicting a different future token position; tree attention verifies multiple candidate continuations at once — no separate draft model needed.
+
+*Why it matters / pitfall / interview trap:* Simpler to deploy than standard speculative decoding but has lower acceptance rate (0.65–0.75) than a trained draft model, since the heads only see the current hidden state with no recurrence.
+
+---
+
+**MegaByte**
+
+*The problem:* Subword tokenization introduces artifacts (inconsistent number/word fragmentation, whitespace quirks) that a fully tokenizer-free model would avoid.
+
+*Core insight / definition:* Operates directly on raw bytes using a hierarchical architecture — a local model over bytes within a patch (e.g., 4 bytes) and a global model over patch representations — competitive with subword models while eliminating tokenization entirely.
+
+*Why it matters / pitfall / interview trap:* Represents the tokenizer-free end of the spectrum; interesting as a way to sidestep every tokenization artifact (number fragmentation, whitespace sensitivity, capitalization sensitivity) simultaneously, at increased sequence length and architectural complexity.
+
+---
+
+**MHA (Multi-Head Attention)**
+
+*The problem:* Establishes the baseline attention architecture against which MQA/GQA/MLA memory savings are measured.
+
+*Core insight / definition:* Computes Q, K, V = XW_Q, XW_K, XW_V, each of shape [seq, n_heads, d_k]. Every head has its own independent K and V. Full KV cache memory = 2 × n_layers × n_heads × d_k × context_length × dtype_bytes.
+
+*Why it matters / pitfall / interview trap:* Gives the best attention expressivity — each head specializes to different token relationships — but is the most memory-expensive option; GQA/MQA/MLA all exist specifically to reduce MHA's KV memory footprint at some quality cost.
+
+---
+
+**Mixed Precision Training (FP16 vs BF16)**
+
+*The problem:* Full FP32 training is memory-expensive, but naively reducing precision risks silent numerical failures.
+
+*Core insight / definition:* FP16 has higher mantissa precision but a narrow exponent range (max ~65,504), so gradients can silently underflow to zero — a parameter simply stops learning with no error signal, requiring loss scaling (multiply loss by a large constant before backprop, unscale before the optimizer step) to compensate. BF16 uses FP32's 8 exponent bits (same range, ~$3.4\times10^{38}$) with fewer mantissa bits, eliminating overflow/underflow risk without needing loss scaling.
+
+*Why it matters / pitfall / interview trap:* FP16 underflow is a *silent* failure — no NaN, no spike, no error, just quietly degraded quality — which is why BF16 is now the standard for LLM pretraining on A100/H100-class hardware; older GPUs (V100 and earlier) lack native BF16 support and must fall back to FP16+loss-scaling.
+
+---
+
+**MLA (Multi-Head Latent Attention)**
+
+*The problem:* Even GQA's KV cache reduction may be insufficient for very long context or high-concurrency serving where KV cache dominates memory.
+
+*Core insight / definition:* Compresses K and V into a shared low-rank latent vector per token (decompressed on the fly per head at attention time), with a small RoPE-carrying component decoupled from the compressed content component. Introduced in DeepSeek-V2.
+
+*Why it matters / pitfall / interview trap:* Achieves far larger KV cache compression than GQA (DeepSeek reports ~13.5x vs standard MHA) while matching or exceeding MHA quality, but is significantly more complex to implement than GQA — a genuine engineering-investment tradeoff, not a strict free upgrade.
+
+---
+
+**MLA (Multi-Head Latent Attention, DeepSeek)**
+
+*The problem:* Even GQA's reduced KV cache (n_kv_heads × n_layers × d_k × context) dominates GPU memory at long context lengths.
+
+*Core insight / definition:* Compresses K and V into a shared low-rank latent vector c_KV = W_DKV·x ∈ ℝ^{d_c}, where d_c ≪ n_kv_heads × d_k. Only c_KV is stored in the KV cache; K and V are reconstructed on the fly via up-projection matrices W_UK, W_UV at attention time. DeepSeek-V2 achieves a 512-float latent vs. MHA's 32,768 floats per token (64× ratio; ~13.5× claimed in practice accounting for the additional decoupled RoPE key).
+
+*Why it matters / pitfall / interview trap:* Trades a small compute overhead (reconstructing K/V each step) for dramatic memory savings, and compresses *structurally* rather than adding per-token quantization noise — making it a better fit than int8 KV quantization specifically at very long contexts.
+
+---
+
+**MMLU (Massive Multitask Language Understanding)**
+
+*The problem:* You need a broad, fast, reproducible way to compare general knowledge across models.
+
+*Core insight / definition:* 57 academic subjects, 57,000 multiple-choice questions spanning undergraduate/professional exam material, testing breadth of knowledge rather than depth.
+
+*Why it matters / pitfall / interview trap:* A model can score high by pattern-matching to the most plausible-sounding answer without true understanding — good for coarse ranking of general knowledge, not for measuring reasoning ability or domain expertise; also a common source of benchmark contamination discussion.
+
+---
+
+**Model Soup**
+
+*The problem:* A single fine-tuning run's final checkpoint may not be the best model obtainable from a hyperparameter sweep.
+
+*Core insight / definition:* Averages multiple fine-tuning runs from the same base model/hyperparameter-search sweep — "uniform soup" averages all runs, "greedy soup" adds candidates one at a time only if validation performance improves.
+
+*Why it matters / pitfall / interview trap:* Requires all runs to share the same pretrained initialization; often beats any single checkpoint on both in-distribution and OOD robustness at zero retraining cost — but adds nothing if all runs converged to nearly identical weights.
+
+---
+
+**Model-as-Judge / LLM-as-Judge**
+
+*The problem:* Human evaluation is accurate but slow and expensive; automated lexical metrics (BLEU/ROUGE) correlate poorly with human quality judgments for open-ended generation.
+
+*Core insight / definition:* Use a capable LLM to score or compare responses — absolute scoring (rate 1–5 on stated criteria) or pairwise comparison (which of two responses is better). Pairwise is generally more reliable since it avoids calibrating an absolute scale.
+
+*Why it matters / pitfall / interview trap:* Known biases: self-preference (favors outputs stylistically similar to its own), position bias (favors whichever answer appears first — mitigate by randomizing order and averaging both orderings), verbosity bias (favors longer answers), sycophancy (agrees with leading/opinionated prompts). Position bias is considered the most dangerous because it silently and systematically skews results if orderings aren't randomized.
+
+---
+
+**MoE (Mixture of Experts)**
+
+*The problem:* Dense FFN layers couple total model capacity directly to per-token compute cost, making very large-capacity models prohibitively expensive to run.
+
+*Core insight / definition:* Replaces a single dense FFN with N expert FFNs, activating only the top-K per token: MoE(x) = Σ_{i∈TopK(G(x))} Gᵢ(x)·Eᵢ(x), where G(x) are gating/router scores. If N=64 and K=2, each token activates only 3.1% of expert parameters, while total parameters scale with N and FLOPs/token stay roughly fixed.
+
+*Why it matters / pitfall / interview trap:* Powers Mixtral, DeepSeek, Qwen3, and (rumored) GPT-4. Key interview trap is treating MoE cost as purely a FLOPs story — see *FLOPs vs. Parameters Decoupling*.
+
+---
+
+**MoE (Mixture of Experts) / Router / Load-Balancing Auxiliary Loss**
+
+*The problem:* Doubling a dense model's parameter count doubles both training and inference compute, even though most parameters may be irrelevant to any given token.
+
+*Core insight / definition:* Replace a dense FFN with N expert FFNs; a learned router selects the top-k experts per token via $G(x)=\text{TopK}(\text{softmax}(W_gx),k)$, so total parameters scale with N but active compute per token scales only with k. A load-balancing auxiliary loss ($\mathcal{L}_{balance} = \alpha N \sum_i f_i P_i$, penalizing skewed routing) prevents "expert collapse," where the router converges to always picking the same one or two experts and the rest never receive gradient.
+
+*Why it matters / pitfall / interview trap:* MoE saves compute, not memory — all experts must be resident in memory simultaneously, and distributed inference requires all-to-all communication across devices holding different experts, which can bottleneck at scale/low bandwidth.
+
+---
+
+**MQA (Multi-Query Attention)**
+
+*The problem:* Standard MHA's per-head K/V cache is the dominant memory cost at inference, especially at long context and large batch size.
+
+*Core insight / definition:* All query heads share a single K and V head (Shazeer 2019), reducing KV memory by a factor of n_heads (e.g. 32× for H=32). First used in PaLM (2022).
+
+*Why it matters / pitfall / interview trap:* Gives maximal memory savings but at a real quality cost, especially on tasks requiring diverse attention patterns — this is precisely why GQA (a middle ground) has largely replaced MQA in modern production models.
+
+---
+
+**MT-Bench**
+
+*The problem:* Single-turn benchmarks don't test whether a model can maintain coherence across a multi-turn conversation.
+
+*Core insight / definition:* 80 designed multi-turn questions across 8 categories (writing, roleplay, extraction, reasoning, math, coding, STEM, humanities), scored 1–10 by a GPT-4 judge.
+
+*Why it matters / pitfall / interview trap:* The multi-turn structure is deliberately harder to fake with a strong single response than single-turn evaluation formats.
+
+---
+
+**MTP (Multi-Token Prediction) / DeepSeek MTP**
+
+*The problem:* Speculative decoding normally requires a separate draft model or extra heads bolted onto an existing model, adding deployment/training overhead.
+
+*Core insight / definition:* Train auxiliary heads to predict multiple future token positions as part of the base pretraining objective itself, so speculative draft tokens come essentially for free at inference time with zero extra forward passes.
+
+*Why it matters / pitfall / interview trap:* Must be baked in from pretraining — cannot be retrofitted cheaply onto an already-trained, deployed model, unlike Medusa or Eagle.
+
+---
+
+**Needle in a Haystack (Benchmark)**
+
+*The problem:* Nominal context-window size doesn't guarantee a model can actually retrieve arbitrary information placed anywhere within that window.
+
+*Core insight / definition:* Standard long-context evaluation: fill context with distractor text, insert a "secret fact" (needle) at a controlled random position, then ask the model to retrieve it. Recall is measured across a sweep of needle positions (e.g., 16 positions) × context lengths (e.g., 8 lengths) = 128 test cases.
+
+*Why it matters / pitfall / interview trap:* Directly measures the "lost in the middle" effect empirically — a model can pass at short context but show a recall dip specifically for needles placed mid-context at longer lengths.
+
+---
+
+**Next-Token Prediction / Pretraining Objective**
+
+*The problem:* You need a single, scalable loss function that forces a model to acquire broad linguistic and world knowledge without hand-specifying what "broad knowledge" means.
+
+*Core insight / definition:* Minimizing $\mathcal{L}_{LM} = -\frac{1}{T}\sum_t \log P_\theta(x_t|x_{<t})$ over enough diverse text implicitly requires learning syntax, facts, and reasoning chains — the objective is simple, but the knowledge needed to minimize it is enormous.
+
+*Why it matters / pitfall / interview trap:* Nothing in this loss explicitly rewards factual accuracy or helpfulness — a model that confidently predicts plausible-sounding false statements is rewarded if that's what training data contains. Pretraining instills capability, not values; that requires a separate alignment stage.
+
+---
+
+**NTK-aware Scaling**
+
+*The problem:* RoPE's rotation angles become out-of-distribution beyond the trained context length, and plain linear interpolation degrades resolution uniformly, hurting local relationships too.
+
+*Core insight / definition:* Scales RoPE's base frequency non-uniformly — high frequencies (local relationships) are compressed less, low frequencies (long-range relationships) are stretched more — keeping short-range attention sharp while extending long-range reach.
+
+*Why it matters / pitfall / interview trap:* Better quality retention than plain linear interpolation without any fine-tuning, but not as strong as YaRN at extreme extension ratios — a middle-tier option in the extension-method hierarchy.
+
+---
+
+**NTK-Aware Scaling**
+
+*The problem:* Linear position interpolation compresses all frequencies uniformly, degrading fine-grained position distinctions the model wasn't trained to represent at low values.
+
+*Core insight / definition:* Grounded in Neural Tangent Kernel theory — rather than uniformly rescaling positions, increases the RoPE base itself: θᵢ_new = (α·b)^(−2i/d), where α = (L_target/L_train)^(d/(d−2)). A higher base proportionally increases wavelengths of all frequency components, letting the model represent longer-range dependencies without fractional positions. Llama-3 8B uses base=500,000 (vs. Llama-2's 10,000) for a ~32× context extension via a 50× base increase.
+
+*Why it matters / pitfall / interview trap:* Preserves high-frequency (short-range) position sensitivity while expanding low-frequency (long-range) range; some variants need no fine-tuning at all, unlike linear interpolation.
+
+---
+
+**Number Tokenization**
+
+*The problem:* Standard BPE segments numbers unpredictably based on training-corpus frequency, not on digit structure.
+
+*Core insight / definition:* Numbers fragment inconsistently — e.g. "9999" → [1484, 19] but "9998" → [1484, 23] under GPT-4-style tokenizers, or "10000" fragments into 3 tokens while "1000" is a single token. The model must implicitly learn to map sub-token fragments to digit place-values and perform carries across token boundaries.
+
+*Why it matters / pitfall / interview trap:* A major reason LLMs struggle with multi-digit arithmetic. Tiktoken's cl100k_base mitigates this via a regex pre-tokenization step that splits all numbers into individual digits, giving a consistent representation ("1234" → ["1","2","3","4"]).
+
+---
+
+**ORPO (Odds Ratio Preference Optimization)**
+
+*The problem:* DPO still requires a frozen reference model loaded in memory (doubling GPU memory vs a single policy) and a separate SFT stage before alignment.
+
+*Core insight / definition:* Combines SFT and preference alignment into a single loss $\mathcal{L}_{ORPO} = \mathcal{L}_{SFT} + \lambda \mathcal{L}_{OR}$, where the odds-ratio term penalizes rejected responses relative to chosen ones using only the model's own current output distribution — no external reference model needed.
+
+*Why it matters / pitfall / interview trap:* Saves ~33% memory vs DPO (one fewer loaded model, ~14GB for a 7B model), but has no KL anchor — the $\lambda$ hyperparameter is the only regularization, so it's more sensitive to noisy preference data than DPO, which has the KL term to absorb inconsistent gradients.
+
+---
+
+**PagedAttention**
+
+*The problem:* KV cache is normally allocated as one large contiguous block per sequence, causing memory fragmentation and waste, especially at long or variable context lengths.
+
+*Core insight / definition:* A virtual-memory-style paging scheme for the KV cache, allowing non-contiguous physical memory allocation for logically contiguous KV cache, referenced in this material as one of the required techniques (with chunked prefill and tensor parallelism) for serving 128K+ context models whose KV cache exceeds single-GPU memory.
+
+*Why it matters / pitfall / interview trap:* Standard in production serving frameworks (e.g. vLLM); commonly paired with prefix caching, which vLLM also supports automatically via hashed prefix lookup.
+
+---
+
+**Pass@k**
+
+*The problem:* A binary "did the first generated solution pass" metric doesn't reflect real developer workflows where multiple attempts are normal.
+
+*Core insight / definition:* $\text{pass@}k = 1 - \binom{n-c}{k}/\binom{n}{k}$, the probability that at least one of k generated samples (out of n total) passes all unit tests.
+
+*Why it matters / pitfall / interview trap:* pass@10 is more informative than pass@1 for capability assessment because it measures whether the model can find a correct solution given multiple tries, reflecting real iterative usage better than strict first-try accuracy.
+
+---
+
+**Per-Language Tokenizer Merging**
+
+*The problem:* A single shared BPE vocabulary trained on an English-dominant corpus severely over-fragments other languages.
+
+*Core insight / definition:* LLaMA 3's approach: train separate BPE tokenizers on monolingual corpora per language, then merge the resulting vocabularies, allocating token budget proportionally per language while keeping total vocab at 128K.
+
+*Why it matters / pitfall / interview trap:* Dramatically reduces fertility for non-English languages without needing an unboundedly large shared vocabulary — directly explains LLaMA 3's large fertility improvement over LLaMA 2 across non-English languages.
+
+---
+
+**Perceiver Resampler**
+
+*The problem:* Bridging a frozen vision encoder into an LLM at just the input layer (like linear projection or Q-Former) gives coarse, single-point control over how much visual information influences generation.
+
+*Core insight / definition:* Similar cross-attention compression to Q-Former, but interleaved with gating cross-attention layers throughout the LLM (not just at the input), giving finer per-layer control over image influence. Used in Flamingo.
+
+*Why it matters / pitfall / interview trap:* Requires architectural modification to the LLM itself (new cross-attention modules), so it cannot be bolted onto an arbitrary frozen LLM the way linear projection or Q-Former can.
+
+---
+
+**Perplexity**
+
+*The problem:* You need a fast, model-intrinsic way to measure how well a model fits a given text distribution during pretraining/domain-adaptation, without task-specific labels.
+
+*Core insight / definition:* $\text{PPL}(X) = \exp(-\frac{1}{T}\sum_t \log P_\theta(x_t|x_{<t}))$ — lower perplexity means the model assigns higher probability to the observed sequence.
+
+*Why it matters / pitfall / interview trap:* Useful for comparing checkpoints of the same model during pretraining or measuring domain adaptation, but not meaningfully comparable across different model families since they use different tokenizers/vocabularies — and it says nothing about task-output quality.
+
+---
+
+**Position Bias**
+
+*See:* **Model-as-Judge / LLM-as-Judge**.
+
+---
+
+**Positional Encoding (Sinusoidal, Learned Absolute, RoPE, ALiBi)**
+
+*The problem:* Self-attention treats input as an unordered set — the attention score between two tokens is identical regardless of their distance, so the model cannot distinguish "the dog bit the man" from "the man bit the dog" without explicit position information.
+
+*Core insight / definition:* Sinusoidal encodings add a fixed sin/cos function of position to embeddings (original Transformer) but extrapolate poorly. Learned absolute embeddings train a per-position vector but cannot represent unseen positions at all. RoPE (rotary) rotates Q/K vectors by an angle proportional to position so their dot product depends only on relative offset $(m-n)$. ALiBi instead adds a static linear distance penalty directly to attention scores with no embeddings at all.
+
+*Why it matters / pitfall / interview trap:* RoPE is the modern default (LLaMA, Mistral, Qwen) but still fails to extrapolate beyond trained context length without explicit extension techniques (NTK/YaRN/LongRoPE) — this exact failure mode is why the whole family of RoPE extension methods exists.
+
+---
+
+**Prefix Caching**
+
+*The problem:* Multiple requests often share an identical prefix (system prompt, few-shot examples, RAG boilerplate), and recomputing its KV cache for every request wastes prefill compute and memory.
+
+*Core insight / definition:* Compute and cache the KV representation for the shared prefix once, then reuse it across all requests sharing that exact prefix (matched via a hash of the prefix tokens). Reduces both TTFT (prefix tokens skip prefill) and effective KV memory overhead (shared across N requests).
+
+*Why it matters / pitfall / interview trap:* Requires an *exact* token match — a single dynamic token injected early (timestamp, username, A/B-tested prompt variant) invalidates the entire downstream cache for that prefix, silently collapsing hit rate. Also, pinning high-value prefixes in memory to guarantee hits competes with live-sequence KV cache for HBM, potentially reducing servable batch size and raising aggregate latency even as the pinned path speeds up.
+
+---
+
+**Prefix Tuning**
+
+*The problem:* You want an extremely parameter-efficient adaptation method that doesn't touch model weights at all.
+
+*Core insight / definition:* Prepends trainable continuous "virtual token" vectors to the Key/Value sequences at every transformer layer ($K'=[P_i^K;K]$, $V'=[P_i^V;V]$), with the base model fully frozen; a reparameterization MLP is often used during training for stability, then discarded, keeping only the resulting prefix.
+
+*Why it matters / pitfall / interview trap:* Consumes context-window budget permanently (a 100-token prefix costs 100 tokens of context at every layer) and is harder to optimize than LoRA, but performs well with very few training examples and enables cheap inference-time task switching via precomputed prefix KVs.
+
+---
+
+**Prompt Tuning**
+
+*The problem:* Even prefix tuning's per-layer trainable tokens may be more parameters than needed for extremely simple adaptations.
+
+*Core insight / definition:* Like prefix tuning but only prepends trainable tokens at the input embedding layer, not at every layer — the fewest trainable parameters of any PEFT method covered.
+
+*Why it matters / pitfall / interview trap:* Lowest capacity/quality ceiling of the PEFT family; needs a fairly large base model to work well since it relies on the base model's existing capacity to compensate.
+
+---
+
+**Q-Former**
+
+*The problem:* Feeding all raw ViT patch embeddings directly into an LLM (linear projection) costs one token per patch — hundreds to over a thousand tokens per image, expensive for context-constrained tasks.
+
+*Core insight / definition:* K learnable query tokens cross-attend to image features, compressing N patch embeddings down to a small fixed number (K ≈ 32) of tokens fed to the LLM. Introduced in BLIP-2.
+
+*Why it matters / pitfall / interview trap:* ~8x context-cost reduction vs raw patches, but the Q-Former module itself needs separate pretraining (matching, contrastive, generation objectives) before use, and the compression is lossy (loses fine spatial detail) — a real cost/quality tradeoff, not a free compression.
+
+---
+
+**QLoRA**
+
+*The problem:* Fine-tuning very large models (65B+) with LoRA still requires the full-precision frozen base model resident in memory, which alone can exceed available GPU memory.
+
+*Core insight / definition:* Runs LoRA on top of a base model frozen in 4-bit NF4 quantization, with double quantization (compressing the quantization constants themselves) and paged optimizers to handle memory spikes — compute happens in bf16 while storage stays 4-bit.
+
+*Why it matters / pitfall / interview trap:* Enables fine-tuning a 70B model on a single 80GB GPU (~40–49GB total) vs ~1.12TB for full fine-tuning, at near full-precision-LoRA quality — the standard example of getting ~95% of full-fine-tuning quality at ~4% of the memory.
+
+---
+
+**Quality Filtering**
+
+*See:* **Data Quality Filtering**.
+
+---
+
+**ReAct (Reasoning + Acting)**
+
+*The problem:* Chain-of-thought reasoning is grounded only in the model's parametric memory and cannot access live, external, or computed facts.
+
+*Core insight / definition:* Interleaves Thought → Action (tool call) → Observation cycles, grounding each reasoning step in real tool outputs rather than relying purely on internal knowledge.
+
+*Why it matters / pitfall / interview trap:* Can hallucinate tool calls/arguments or loop indefinitely without a stop condition — every call adds latency/cost, so guardrails (max-step limits, per-tool timeouts) are essential in production agent design.
+
+---
+
+**Reciprocal Rank Fusion (RRF) / Hybrid Retrieval**
+
+*The problem:* Dense retrieval misses exact-match terms (IDs, proper nouns); sparse (BM25) retrieval misses semantic paraphrase — neither alone is sufficient in production.
+
+*Core insight / definition:* Combines dense and sparse rank lists without needing calibrated scores: $\text{RRF}(d) = \sum 1/(k + r(d))$, summing reciprocal-rank contributions across both retrieval methods' rankings for each document.
+
+*Why it matters / pitfall / interview trap:* The safer production default whenever queries mix technical IDs/proper nouns with semantic questions — picking dense-only retrieval as a "complete" RAG design is a common interview gap.
+
+---
+
+**Reflection / Self-Critique**
+
+*The problem:* A single generation pass may contain errors the model itself could catch if asked to review its own output.
+
+*Core insight / definition:* Generate an answer, prompt the model to critique it, then revise using the critique as additional context — exploiting that critiquing is often an easier task than generating correctly the first time.
+
+*Why it matters / pitfall / interview trap:* Costs 2–3x tokens, and the model can rubber-stamp its own subtle errors — most reliable for traceable domains like code, least reliable for subtle factual mistakes.
+
+---
+
+**Reranking (Cross-Encoder Reranking)**
+
+*The problem:* Fast bi-encoder retrieval (embedding similarity) sacrifices precision for speed; you often want higher precision on the final small candidate set.
+
+*Core insight / definition:* Two-stage retrieval — a fast bi-encoder ANN search retrieves a larger candidate set (e.g. top-20), then a slower cross-encoder (joint query+document processing) reranks down to a small final set (e.g. top-5).
+
+*Why it matters / pitfall / interview trap:* Much more accurate per-candidate but far slower — pick reranking specifically when retrieval precision matters more than the added latency budget.
+
+---
+
+**Reward Hacking**
+
+*The problem:* A reward model is only a proxy for true human preference; a policy optimizer will find any exploitable gap between the proxy and the real goal.
+
+*Core insight / definition:* The policy learns to score highly on the reward model without actually satisfying underlying human preferences — common patterns include length gaming (padding responses since annotators favored elaborate answers), sycophancy (agreeing regardless of accuracy), and format exploitation (excessive bullet points/bold text that "look" thorough).
+
+*Why it matters / pitfall / interview trap:* This is Goodhart's Law in action, and it's specifically what the KL penalty in RLHF/DPO is designed to prevent — detect it by watching for reward increasing while KL grows rapidly (vs genuine improvement, where reward rises while KL grows slowly).
+
+---
+
+**Reward Model (Bradley-Terry Loss)**
+
+*The problem:* Cross-entropy SFT loss treats a single "correct" response as ground truth and cannot express "response A is better than response B" for subjective qualities like helpfulness.
+
+*Core insight / definition:* A separate model is trained via the Bradley-Terry pairwise preference loss $\mathcal{L}_{RM} = -\mathbb{E}[\log\sigma(r_\phi(x,y_w) - r_\phi(x,y_l))]$ to output a scalar score for (prompt, response) pairs, pushing preferred responses' scores above rejected ones' without needing absolute reward values.
+
+*Why it matters / pitfall / interview trap:* Trained on far less data than the policy itself and often the weakest link in the RLHF pipeline — this generalization gap is a core reason DPO (which eliminates the reward model) became popular.
+
+---
+
+**RLAIF**
+
+*See:* **Constitutional AI / RLAIF**.
+
+---
+
+**RLHF (Reinforcement Learning from Human Feedback)**
+
+*The problem:* SFT's cross-entropy loss has no mechanism to distinguish between two plausible responses on subjective axes like helpfulness, honesty, or harmlessness, since it only knows one "correct" target per prompt.
+
+*Core insight / definition:* A three-stage pipeline — (1) collect human pairwise preference comparisons, (2) train a reward model via Bradley-Terry loss on those comparisons, (3) optimize the policy with PPO to maximize reward under a KL penalty to the frozen SFT reference: $\mathcal{L}_{PPO} = r_\phi(x,y) - \beta \cdot D_{KL}(\pi_\theta \| \pi_{SFT})$. Requires 4 models in memory simultaneously: policy, frozen reference, frozen reward model, and a value/critic model.
+
+*Why it matters / pitfall / interview trap:* At 70B+ scale, running four models simultaneously is essentially infeasible on a single machine and needs careful distributed coordination — this operational complexity is the core motivation behind DPO and ORPO. Without the KL term, the policy quickly discovers degenerate high-reward behaviors.
+
+---
+
+**RoPE (Rotary Position Embedding)**
+
+*The problem:* Self-attention is permutation-equivariant — without injected position information, "John hit Mary" and "Mary hit John" would produce identical attention-weighted representations.
+
+*Core insight / definition:* Encodes position by rotating Q and K vectors via a rotation matrix before the dot product: q_m = R_m·q, k_n = R_n·k, with frequencies θᵢ = base^(−2i/d) (base=10000 originally). The resulting attention score depends naturally only on the relative position (m−n), not absolute position — a relative encoding achieved via an absolute-looking mechanism. Used in LLaMA, GPT-NeoX.
+
+*Why it matters / pitfall / interview trap:* At positions m > L_train, the rotation angles are out-of-distribution (never seen during training) — attention patterns break down and perplexity spikes sharply at the training-length boundary. This is precisely the problem the entire context-extension literature (linear interpolation, NTK, YaRN, LongRoPE) exists to fix.
+
+---
+
+**RoPE (Rotary Positional Embeddings)**
+
+*See:* **Positional Encoding**.
+
+---
+
+**RoPE Extension Methods (Linear Interpolation, NTK-aware, YaRN, LongRoPE)**
+
+*The problem:* RoPE's rotation angles are only well-calibrated for positions seen during training; beyond that range attention scores distort and quality collapses.
+
+*Core insight / definition:* Linear (position) interpolation compresses position indices by the target/original length ratio so they fall in the trained range (cheap but degrades resolution, needs brief fine-tuning). NTK-aware scaling non-uniformly rescales RoPE's base frequency. YaRN combines NTK-aware interpolation with attention-temperature scaling, effective at large extension factors (4K→128K) with minimal fine-tuning. LongRoPE uses per-dimension scaling found via search, reaching 2M+ tokens via multi-stage fine-tuning.
+
+*Why it matters / pitfall / interview trap:* Each method trades off extension ratio against tuning simplicity and fine-tuning cost — picking YaRN for a modest 2x extension or plain linear interpolation for a 32x extension are both mismatches worth flagging in a design discussion.
+
+---
+
+**ROUGE**
+
+*The problem:* You need an automated metric for summarization quality that rewards content coverage, not just exact phrasing.
+
+*Core insight / definition:* ROUGE-L measures the longest common subsequence between hypothesis and reference, combined into an F-measure-style score with a recall/precision balance parameter $\beta$.
+
+*Why it matters / pitfall / interview trap:* Better than BLEU for summarization because it's recall-oriented (rewards coverage), but like BLEU it still misses semantic equivalence — not a substitute for human or LLM-judge evaluation on open-ended tasks.
+
+---
+
+**Router / Gating Mechanism (MoE)**
+
+*The problem:* MoE needs a mechanism to decide, per token, which K of N experts should process it, and with what weight.
+
+*Core insight / definition:* Standard softmax router: G(x) = Softmax(x·W_g), then select TopK indices by gate value; final gating weights are renormalized over just the selected experts: G̃ᵢ(x) = Gᵢ(x) / Σ_{j∈TopK} Gⱼ(x).
+
+*Why it matters / pitfall / interview trap:* The router is the locus of both major MoE failure modes — expert collapse (unregularized) and token dropping (capacity-limited) — and its design (softmax top-K vs. expert-choice) determines the load-balance vs. token-coverage tradeoff.
+
+---
+
+**RULER**
+
+*The problem:* Needle-in-a-haystack tests only measure single-fact retrieval, conflating "can the model use long context" with "can it solve underlying reasoning."
+
+*Core insight / definition:* A suite of synthetic long-context tasks — multi-hop retrieval (fact A points to fact B points to the answer), aggregation (find all instances of a pattern), and ordering (sequence events from the document) — designed to separate context utilization from reasoning ability.
+
+*Why it matters / pitfall / interview trap:* A more rigorous long-context probe than plain needle-in-a-haystack, useful when you need to isolate exactly which long-context capability is failing.
+
+---
+
+**Self-RAG**
+
+*The problem:* Always retrieving for every query wastes latency/cost on queries the model could answer confidently from parametric memory alone.
+
+*Core insight / definition:* The model is fine-tuned with special tokens to decide when to retrieve and to self-assess the relevance/support of retrieved content, rather than retrieving unconditionally.
+
+*Why it matters / pitfall / interview trap:* Adaptive and avoids unnecessary retrieval, but requires a dedicated fine-tuning investment — not a prompt-only technique.
+
+---
+
+**SentencePiece**
+
+*The problem:* Whitespace-based pre-tokenization (splitting on spaces before applying BPE/WordPiece) is language-specific and fails for languages without whitespace word boundaries (Japanese, Chinese, Thai).
+
+*Core insight / definition:* Operates directly on raw Unicode text with no pre-tokenization step; treats whitespace as a normal character and encodes word boundaries by prepending `▁` (U+2581) to tokens following a space (e.g., "Hello world" → ["▁Hello", "▁world"]). Supports two training objectives: BPE (same greedy merge as standard BPE) and Unigram LM (prunes a large initial vocabulary iteratively to maximize corpus likelihood, allowing stochastic segmentation during training). Used by T5, LLaMA, Mistral, mT5.
+
+*Why it matters / pitfall / interview trap:* Fully language-agnostic — no language-specific word-boundary logic is needed, which is why it's the default choice for multilingual models like mT5.
+
+---
+
+**SFT (Supervised Fine-Tuning) / Instruction Tuning**
+
+*The problem:* A raw pretrained model is just a next-token predictor with no instilled notion of "this is a question I should answer" — given a question, it might continue with a plausible continuation of the *question* rather than an answer.
+
+*Core insight / definition:* Fine-tune on a relatively small number of high-quality (instruction, response) pairs, with the loss masked to compute cross-entropy only on assistant response tokens (never on the prompt/system message) — teaching the *format* of being an assistant, not new capability, since the underlying capability already exists from pretraining.
+
+*Why it matters / pitfall / interview trap:* Training on the prompt would teach the model to predict instructions, not answers — a subtle but critical implementation detail. SFT alone doesn't teach the model *not* to say harmful things; it only teaches format, which is why alignment (RLHF/DPO) is a distinct subsequent stage. SFT on a small, narrow dataset causes catastrophic forgetting, which is why its learning rate is much lower than pretraining's.
+
+---
+
+**SLERP (Spherical Linear Interpolation)**
+
+*The problem:* Simple linear averaging of two model weight vectors can shrink magnitude significantly at the midpoint for near-orthogonal vectors (up to ~29% loss), degrading the merged model.
+
+*Core insight / definition:* Interpolates along the great-circle arc between two weight vectors, preserving magnitude: $\text{SLERP}(\theta_0,\theta_1,t) = \frac{\sin((1-t)\Omega)}{\sin\Omega}\theta_0 + \frac{\sin(t\Omega)}{\sin\Omega}\theta_1$, where $\Omega$ is the angle between the vectors.
+
+*Why it matters / pitfall / interview trap:* Only defined for exactly two models and order-dependent when chained for 3+ — use TIES or task arithmetic instead for merging more than two models.
+
+---
+
+**Sliding Window Attention (SWA)**
+
+*The problem:* Even with FlashAttention, full attention's memory/compute still scale with sequence length $T$, becoming intractable at 100K–1M tokens.
+
+*Core insight / definition:* Limits each token's attention to a window of $W$ recent tokens; the KV cache becomes constant at $W$ per layer instead of growing with sequence length. Stacking $L$ layers gives an effective receptive field of $L \times W$ as information propagates through successive local windows (e.g. Mistral 7B: $W=4096$, $L=32$ → ~131K effective receptive field).
+
+*Why it matters / pitfall / interview trap:* The multi-layer receptive-field argument assumes reliable information propagation, but a fact mentioned once early in a very long document can fall out of every layer's window before reaching the final output — full/global attention on selected tokens or retrieval augmentation addresses this gap.
+
+---
+
+**Softmax Bottleneck**
+
+*The problem:* The final output projection of a language model must compute logits over the entire vocabulary at every generation step, and this cost grows with vocabulary size.
+
+*Core insight / definition:* logits = h·W_E^T ∈ ℝ^V. At V=200K, d=4096 (bf16), each token generation requires a 4096×200K matrix-vector product (~1.6B FLOPs) and 1.6GB of weight just for the output head.
+
+*Why it matters / pitfall / interview trap:* Directly motivates the vocab-size tradeoff — a massive vocabulary (e.g. 1M tokens) creates a severe memory-bandwidth bottleneck at every single decoding step, not just a one-time embedding-table cost.
+
+---
+
+**Sparse Attention Patterns** — see *Longformer*, *BigBird*
+
+---
+
+**Speculative Decoding**
+
+*The problem:* Autoregressive decoding is inherently sequential — you cannot parallelize across generation steps because each token depends on all previous outputs — making decoding latency-bound token by token.
+
+*Core insight / definition:* A small draft model generates k tokens speculatively; the large target model verifies all k tokens in a single parallel forward pass. Accepted tokens are kept; the first rejected token triggers resampling from the large model.
+
+*Why it matters / pitfall / interview trap:* Speedup depends entirely on acceptance rate — works well (2–3× speedup) when the draft model's distribution closely matches the large model's; a poorly matched draft model yields little to no benefit despite the added complexity.
+
+---
+
+**Speculative Decoding (Standard)**
+
+*The problem:* Autoregressive decoding generates one token per forward pass through the large target model, which is memory-bandwidth-bound and slow at low batch sizes.
+
+*Core insight / definition:* A small draft model proposes K tokens autoregressively; the large target model verifies all K in a single forward pass via rejection sampling, guaranteeing the output distribution is exactly identical to sampling from the target model alone (lossless). Expected tokens per target call: $(1-\alpha^{K+1})/(1-\alpha)$, where $\alpha$ is per-token acceptance rate.
+
+*Why it matters / pitfall / interview trap:* Helps most at small batch size (1–4, memory-bound), long generations, and high-predictability tasks (code); the speedup collapses at large batch sizes (compute-bound regime) — a common design-interview trap is assuming it always helps regardless of batch size.
+
+---
+
+**StreamingLLM**
+
+*The problem:* Even with long-context-capable architectures, KV cache still grows linearly with sequence length, causing OOM for effectively infinite streaming generation.
+
+*Core insight / definition:* Keeps only two things in the KV cache: a fixed number of attention sink tokens (e.g., first K=4 tokens) and a sliding window of the most recent W tokens; old tokens outside this window are evicted. Achieves constant KV cache memory O(K+W) and has been tested up to 4M tokens of generation.
+
+*Why it matters / pitfall / interview trap:* Cannot attend to any token outside the current window — the memory is truly gone, not just deprioritized — so it's unsuitable for RAG or any task requiring recall of arbitrary past tokens; it solves streaming stability, not long-range recall.
+
+---
+
+**StreamingLLM (Attention Sinks)**
+
+*The problem:* Sliding window attention alone still loses arbitrarily distant context, and naively evicting old KV cache entries during long streaming generation can destabilize the model.
+
+*Core insight / definition:* Keeps a small number of initial "attention sink" tokens plus a sliding window of recent tokens, discarding everything else — enabling effectively infinite streaming generation without retraining.
+
+*Why it matters / pitfall / interview trap:* Does not provide true long-range recall — only recency plus the fixed sink tokens survive, so it's not a substitute for genuine long-context understanding.
+
+---
+
+**SWE-Bench**
+
+*The problem:* HumanEval-style function-completion benchmarks don't test whether a model can reason about and modify a real, larger codebase.
+
+*Core insight / definition:* Presents real GitHub issues with corresponding test suites; the model is given a full repository and issue description, and success is measured by whether its patch passes the test suite.
+
+*Why it matters / pitfall / interview trap:* Scoring significantly lower on SWE-Bench than on HumanEval is a strong signal that a model can write isolated functions but can't reason about a broader codebase — a meaningful capability gap to probe for in evaluation design.
+
+---
+
+**SwiGLU**
+
+*The problem:* The standard FFN with GELU activation ($\text{GELU}(xW_1)W_2$) consistently underperforms a gated variant on language modeling despite similar parameter budgets.
+
+*Core insight / definition:* $\text{SwiGLU}(x) = \text{Swish}(xW_1) \odot (xW_2) \cdot W_3$, where $\text{Swish}(x)=x\cdot\sigma(x)$ — a gating branch multiplicatively filters an activated branch, giving the network an interaction an additive-only function can't express. To keep parameter count equal to a standard FFN, the intermediate dimension shrinks from $4d$ to $8d/3$.
+
+*Why it matters / pitfall / interview trap:* Uses three weight matrices instead of two, which slightly complicates kernel fusion but is well-supported in modern frameworks; used by LLaMA, PaLM, Gemma as the current default FFN activation.
+
+---
+
+**Task Arithmetic**
+
+*The problem:* You want to compose or remove specific model capabilities (e.g. add math skill, remove a harmful behavior) without full retraining.
+
+*Core insight / definition:* Compute a task vector $\tau = \theta_{finetuned} - \theta_{pretrained}$ representing the direction of a fine-tuning update, then add/subtract/scale task vectors independently ($\theta_{new} = \theta_{base} + \lambda\tau$) to compose or remove capabilities, analogous to word-vector arithmetic.
+
+*Why it matters / pitfall / interview trap:* Task vectors from very different domains can be near-orthogonal (adding noise rather than capability) or have sign conflicts causing cancellation — this is exactly the problem TIES merging was designed to fix when combining 3+ task vectors.
+
+---
+
+**Test-Time Compute Scaling**
+
+*The problem:* After training a model optimally (Chinchilla) and serving it cheaply, is there any way to extract more capability without training a bigger model?
+
+*Core insight / definition:* Allocating more computation at inference time — via chain-of-thought, best-of-N sampling, or Monte Carlo Tree Search over reasoning paths — reliably improves performance on hard reasoning tasks, following directly from the fact that more computation tends to produce better outputs. Performance scales roughly logarithmically with reasoning tokens.
+
+*Why it matters / pitfall / interview trap:* A third scaling axis alongside parameters and data — the mechanism behind reasoning models like o1/o3 and DeepSeek-R1; best-of-N specifically is bounded by verifier quality, not generation quality alone.
+
+---
+
+**TIES Merging**
+
+*The problem:* Naively averaging or adding 3+ task vectors causes sign conflicts — parameters where different task vectors disagree on direction — degrading the merged model.
+
+*Core insight / definition:* Trim (zero out small-magnitude deltas), Elect sign (majority vote per parameter across task vectors), Discard (zero out deltas disagreeing with the elected sign), then average the survivors.
+
+*Why it matters / pitfall / interview trap:* Requires choosing a trim threshold (too aggressive discards real signal, too lenient keeps noise), and majority voting can override a genuinely useful minority contribution — pick over plain task arithmetic specifically when merging 3+ vectors with expected sign conflicts.
+
+---
+
+**Tiktoken**
+
+*The problem:* Pure-Python tokenizers (e.g. original HuggingFace implementations) are too slow for high-throughput production tokenization.
+
+*Core insight / definition:* OpenAI's tokenizer library (Rust core with Python bindings), used for GPT-3.5, GPT-4, and o-series models. Uses byte-level BPE with regex-based pre-tokenization that splits on whitespace, punctuation, and digits to prevent cross-boundary merges. Encodings: r50k_base (GPT-3/Codex, 50,257), p50k_base (text-davinci-003, 50,281), cl100k_base (GPT-3.5-turbo/GPT-4, 100,277), o200k_base (GPT-4o/o1/o3, 200,019).
+
+*Why it matters / pitfall / interview trap:* 10–100× faster than pure-Python HuggingFace tokenizers for throughput workloads; cl100k_base's regex step specifically splits numbers into individual digits, directly mitigating the multi-digit arithmetic fragmentation problem.
+
+---
+
+**Token Collapse (Mode Collapse in Generation)**
+
+*The problem:* Cross-entropy training loss can keep decreasing even as a model's actual generative quality collapses toward degenerate, repetitive outputs.
+
+*Core insight / definition:* The model becomes increasingly confident about a narrow distribution of tokens (repeating phrases, generic openers) — confidence over a narrow distribution produces low loss, so the loss curve looks healthy while the model becomes practically useless. Detected via attention entropy (crashes toward peakiness), vocabulary coverage (healthy models use >30% of vocab across generations; collapsing models can drop below 5%), and n-gram repetition rate (values above ~15% for 4-grams are a warning sign).
+
+*Why it matters / pitfall / interview trap:* Invisible in the training loss curve — it can only be caught by monitoring generation-quality proxies directly, not by watching loss alone; recovery requires rolling back to a pre-collapse checkpoint since the current gradients point toward further collapse, not away from it.
+
+---
+
+**Token Dropping** — see *Capacity Factor*
+
+---
+
+**Tokenization / Vocabulary Sizing**
+
+*The problem:* Larger vocabularies reduce "fertility" (fewer tokens per word, shorter sequences) but increase the softmax output layer and embedding table size (memory/compute cost scaling with vocab).
+
+*Core insight / definition:* Typical vocab sizes: 32K (LLaMA-1/2), 100K–128K (LLaMA-3, GPT-4), 200K (GPT-4o) — a direct tradeoff between sequence-length efficiency and per-token compute/memory cost.
+
+*Why it matters / pitfall / interview trap:* Tokenizer artifacts to know: leading-whitespace-sensitive tokens, inconsistent capitalization fragmentation, inconsistent digit-grouping for numbers, and poor code tokenization efficiency without dedicated training data on code.
+
+---
+
+**Tokenizer-Free Approaches (Diffusion, Continuous Multimodal Tokens)**
+
+*The problem:* Any discrete subword tokenizer imposes artifacts (fragmentation, whitespace/case sensitivity, inconsistent number splitting) that ripple through model behavior.
+
+*Core insight / definition:* Byte-level diffusion models (e.g. MDLM on bytes) sidestep discrete tokenization by operating in continuous or discrete byte space directly — still early-stage research. Related: vision-language models (LLaVA, Flamingo) learn continuous visual "tokens" via patch embeddings, an image analogue of subword tokenization, with alignment between visual and text token spaces an active research area.
+
+*Why it matters / pitfall / interview trap:* Represents the frontier/experimental end of tokenization research — useful to know exists, not yet a production-standard replacement for BPE/SentencePiece-style discrete subword tokenization.
+
+---
+
+**TruthfulQA**
+
+*The problem:* A model trained to predict statistically likely text can confidently reproduce common human misconceptions.
+
+*Core insight / definition:* 817 questions targeting areas where the statistically likely answer is factually wrong (health myths, historical distortions, scientific misunderstandings), measuring whether alignment training corrected this tendency.
+
+*Why it matters / pitfall / interview trap:* Gameable via excessive hedging/refusal — a model that refuses to answer or over-qualifies everything can score well in a degenerate sense, since the benchmark doesn't penalize unhelpful non-answers well.
+
+---
+
+**VeRA (Vector-based Random Matrix Adaptation)**
+
+*The problem:* Even LoRA's parameter count can be more than needed for extreme efficiency scenarios.
+
+*Core insight / definition:* Shares frozen random $A$/$B$ matrices across all layers and trains only small per-layer scaling vectors, achieving even fewer trainable parameters than standard LoRA.
+
+*Why it matters / pitfall / interview trap:* One of several LoRA variants trading additional efficiency for a smaller capacity ceiling — worth knowing exists, not usually needed at mechanics depth.
+
+---
+
+**ViT (Vision Transformer)**
+
+*The problem:* You want to process images with the same transformer architecture and sequence format used for text, rather than a separate convolutional pipeline.
+
+*Core insight / definition:* Splits an image into patches, flattens and linearly projects each to the embedding dimension, then processes the sequence of patch embeddings as a standard transformer sequence (optionally with a CLS token).
+
+*Why it matters / pitfall / interview trap:* The CLS embedding loses spatial information, and positional encoding degrades at resolutions different from the training resolution — relevant to why DINOv2 (more spatially aligned) can be preferred over CLIP/ViT for localization-heavy VLM tasks.
+
+---
+
+**Vocab Sizing Tradeoff**
+
+*The problem:* Vocabulary size is a fundamental hyperparameter trading off sequence length, memory, and gradient density, with no universally correct value.
+
+*Core insight / definition:* Larger vocab (100K+): lower fertility/shorter sequences, more embedding memory, sparser gradient updates (rare tokens undertrained), better multilingual coverage per token, larger/slower softmax. Smaller vocab (8–32K): higher fertility/longer sequences, less memory, denser gradient updates, but more fragmentation for non-Latin languages. embedding bytes = V × d_model × dtype_bytes (e.g., V=100K, d=4096, bf16 ≈ 819MB just for the embedding layer).
+
+*Why it matters / pitfall / interview trap:* Interview trap: "why not just use a 1M-token vocab to capture every word?" — the answer must cover both the softmax-bottleneck memory cost *and* the sparse-gradient undertraining of rare tokens, not just one side of the tradeoff. Rare-word tokens in a huge vocab appear too infrequently in training data to be well-trained, whereas a smaller vocab forces composition from well-trained subword units, which generalizes better.
+
+---
+
+**W4A16 vs W8A8 (Inference-Time Quantization)**
+
+*The problem:* Different serving workloads are bottlenecked by different resources (memory bandwidth vs compute), so a single quantization scheme isn't universally optimal.
+
+*Core insight / definition:* W4A16 keeps weights at 4-bit but activations at 16-bit (the GPTQ/AWQ default) — benefits memory-bandwidth-bound workloads (small batch, long context) since weight loading dominates cost. W8A8 (e.g. SmoothQuant) quantizes both weights and activations to 8-bit, enabling INT8 tensor-core throughput — benefits compute-bound (large batch) workloads.
+
+*Why it matters / pitfall / interview trap:* Choosing the wrong scheme for the workload's actual bottleneck (e.g. W8A8 for a small-batch memory-bound service) wastes the quantization's intended benefit — the choice must match whether the serving regime is memory- or compute-bound.
+
+---
+
+**WinoGrande**
+
+*The problem:* Simple heuristic pattern-matching can solve naive coreference-resolution benchmarks without real commonsense reasoning.
+
+*Core insight / definition:* A coreference resolution benchmark ("The trophy doesn't fit in the suitcase because ___ is too large") that is adversarially filtered to remove questions simple heuristics can answer, isolating genuine commonsense reasoning.
+
+*Why it matters / pitfall / interview trap:* The adversarial filtering is the point — distinguishes it from easier, heuristically-gameable coreference tasks.
+
+---
+
+**WordPiece**
+
+*The problem:* Greedy frequency-based BPE merges don't necessarily produce the statistically most informative subword units.
+
+*Core insight / definition:* Used by BERT, DistilBERT, ELECTRA. Unlike BPE (which merges the most *frequent* adjacent pair), WordPiece merges the pair that maximizes corpus likelihood under the current unigram LM: score(A,B) = count(AB) / (count(A)×count(B)) — equivalent to highest pointwise mutual information, favoring mutually informative (surprising) pairs over simply common ones. Non-word-initial continuation pieces are prefixed with `##` (e.g., "tokenization" → ["token", "##ization"]).
+
+*Why it matters / pitfall / interview trap:* The `##` prefix convention lets the model reconstruct word boundaries from the token sequence; BERT additionally lowercases input (uncased variant) before tokenization, a lossy step that discards capitalization signal entirely.
+
+---
+
+**YaRN**
+
+*The problem:* NTK-aware scaling alone isn't strong enough to preserve quality at large context extension ratios (e.g. 4K → 128K).
+
+*Core insight / definition:* Combines NTK-aware frequency interpolation with an additional attention-temperature scaling adjustment, achieving strong quality retention at large extension factors with minimal fine-tuning.
+
+*Why it matters / pitfall / interview trap:* More hyperparameters to tune than plain NTK-aware scaling, but the standard choice for large extension ratios (4K→128K and beyond) where NTK alone would underperform.
+
+---
+
+**YaRN (Yet another RoPE extensioN)**
+
+*The problem:* NTK-aware scaling applies one global base adjustment to all frequencies, even though high- and low-frequency RoPE components have different extrapolation sensitivities; extended context also makes attention overly diffuse (increased entropy).
+
+*Core insight / definition:* Combines interpolation and NTK scaling via a per-frequency ramp function γ(r) (0 for high frequencies/short-range — kept unscaled; 1 for low frequencies/long-range — linearly interpolated; smooth ramp between r_low and r_high). Also applies an attention temperature correction — a scale factor √s = 0.1·ln(s) + 1.0 multiplied into attention scores before softmax — to counteract the entropy increase (diffuse attention) caused by context extension, sharpening attention back toward the training distribution.
+
+*Why it matters / pitfall / interview trap:* Generally outperforms plain NTK scaling at the same extension factor but requires ~400 fine-tuning steps (vs. some NTK variants requiring none). Interview trap: conflating "no fine-tuning needed" (some NTK variants) with YaRN, which does need some fine-tuning despite being higher quality.
+
+---
+
+**ZeRO (Zero Redundancy Optimizer) Stages 1–3**
+
+*The problem:* Large models don't fit on a single GPU once parameters, gradients, and optimizer states (Adam's FP32 moments alone triple memory) are all accounted for.
+
+*Core insight / definition:* ZeRO-1 shards optimizer states across devices; ZeRO-2 additionally shards gradients; ZeRO-3 additionally shards the parameters themselves — each stage progressively cuts per-GPU memory roughly by the number of GPUs, at the cost of more inter-GPU communication to reconstruct parameters before each forward pass.
+
+*Why it matters / pitfall / interview trap:* ZeRO-3 is what makes full fine-tuning or pretraining of 70B+ models feasible at all on standard GPU clusters, but the added communication overhead can bottleneck training on slow interconnects — pick the lowest ZeRO stage that fits in memory, not the highest by default.
+
+---
