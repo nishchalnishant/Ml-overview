@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale done. Remaining: 13-production-ml through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale, 13-production-ml done. Remaining: 14-responsible-ai through 18-resources.
 
 ---
 
@@ -12950,5 +12950,1755 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* Progressively shard training state across workers: ZeRO-1 shards optimizer states only (~4× memory reduction, same communication as DDP); ZeRO-2 additionally shards gradients (~8×, slightly more communication); ZeRO-3 (equivalent to PyTorch FSDP) additionally shards parameters themselves (~N× reduction, linear in GPU count), requiring an all-gather of full parameters before each layer's forward pass and a reduce-scatter of gradients after backward.
 
 *Why it matters / pitfall / interview trap:* ZeRO-3 trades communication for memory — worthwhile when a model barely doesn't fit in aggregate GPU memory at ZeRO-2, but wasteful (extra communication overhead with no benefit) when the model fits easily without full parameter sharding.
+
+---
+
+## 13-production-ml
+
+**A/A Test**
+
+*The problem:* Before trusting an A/B test's results, you need proof that the randomization/bucketing mechanism itself is unbiased — otherwise a false "win" could just be a broken assignment pipeline.
+
+*Core insight / definition:* Run the experiment infrastructure with both arms getting the identical treatment (A vs A) and confirm no statistically significant difference emerges. It validates that hashing/bucketing produces genuinely random, balanced splits.
+
+*Why it matters / pitfall / interview trap:* Skipping the A/A test means you can't distinguish a real product effect from an assignment-pipeline bug; it's the standard pre-launch sanity check before any A/B rollout.
+
+---
+
+**A/B Testing**
+
+*The problem:* Technical soundness (verified by shadow/canary) doesn't prove a new model actually improves business outcomes — you need a controlled comparison of real user behavior.
+
+*Core insight / definition:* Two model versions are each served to a defined, randomly-assigned user segment; the difference in business metrics (CTR, revenue, watch time) between segments is measured with a pre-specified sample size and minimum runtime to reach statistical significance (e.g., α=0.05, power=0.80).
+
+*Why it matters / pitfall / interview trap:* Stopping early because results "look good" inflates the false-positive rate (the peeking problem) — the test must run for its full pre-specified duration regardless of early trends.
+
+---
+
+**Ad-hoc Feature Computation**
+
+*The problem:* Building a full feature store is overhead a single small model may not need.
+
+*Core insight / definition:* Each model/service computes its own features independently — the training pipeline and serving pipeline separately implement the same logic rather than sharing a canonical definition.
+
+*Why it matters / pitfall / interview trap:* High training-serving skew risk since two independent implementations of "the same" feature drift apart over time (e.g. "user_30day_spend computed differently in batch vs real-time") — the classic root cause of silent accuracy drops.
+
+---
+
+**Adversarial Debiasing**
+
+*The problem:* Post-hoc threshold adjustments don't remove protected-attribute signal that's implicitly encoded in a model's learned representation.
+
+*Core insight / definition:* Train the main model jointly against an adversary network that tries to predict the protected attribute from the model's internal representation; the main model is optimized to make this adversarial prediction fail, actively scrubbing protected-attribute signal.
+
+*Why it matters / pitfall / interview trap:* Trades off against raw accuracy; different fairness definitions (demographic parity vs equal opportunity) can be mutually incompatible, so satisfying one may violate another.
+
+---
+
+**Adverse Action Notice**
+
+*The problem:* Regulations (ECOA, GDPR Article 22) require that a rejected applicant be told specific, meaningful reasons for an automated denial, not just "computer said no."
+
+*Core insight / definition:* A generated, human-readable explanation listing the top factors (typically via SHAP) that drove a denial decision, mapped from feature names to plain-language reasons, delivered alongside appeal instructions.
+
+*Why it matters / pitfall / interview trap:* The explanation must be reproducible from the exact feature snapshot logged at inference time, not recomputed later — using a surrogate or re-derived features breaks legal defensibility.
+
+---
+
+**ADWIN (Adaptive Windowing)**
+
+*The problem:* Batch drift checks (PSI/KS) don't fit online/incremental learning settings where the model updates continuously rather than on a fixed retraining schedule.
+
+*Core insight / definition:* A sequential streaming drift detector that maintains an adaptive-size window of recent error observations and triggers when the mean of a sub-window differs significantly from the rest of the window, automatically adjusting window size as the data evolves.
+
+*Why it matters / pitfall / interview trap:* Has detection lag (needs several hundred examples to confirm drift); overkill for batch-retrained systems but essential where `partial_fit` incremental learning is used.
+
+---
+
+**Anomaly Detection in Pipelines**
+
+*The problem:* Static schema/range checks miss statistical anomalies relative to historical baselines, like a sudden unexplained drop in row count.
+
+*Core insight / definition:* Compute a z-score of the current metric (e.g., row count) against the mean and standard deviation of historical values; flag when it exceeds a threshold (e.g., z > 3).
+
+*Why it matters / pitfall / interview trap:* Catches "silent" pipeline failures — e.g., an upstream feed stopping — that pass schema validation but produce implausible volumes.
+
+---
+
+**Apache Flink**
+
+*The problem:* Spark Structured Streaming is micro-batch (minimum ~100ms latency), which is too slow for features requiring sub-second freshness.
+
+*Core insight / definition:* Flink is a true per-event streaming engine with stateful processing and event-time windows, using watermarks to handle out-of-order data correctly.
+
+*Why it matters / pitfall / interview trap:* Choose Flink over Spark Streaming specifically when freshness SLA is <1 second; otherwise Spark Structured Streaming's simpler operational model wins.
+
+---
+
+**Apache Iceberg**
+
+*The problem:* Delta Lake's transaction log grows unbounded and requires periodic VACUUM; partition scheme changes require full rewrites.
+
+*Core insight / definition:* Iceberg is a fully open table format (originated at Netflix) using a snapshot + manifest file hierarchy for O(1) scan planning, supporting hidden partitioning (partition evolution without rewrites) and broad multi-engine support (Trino, Spark, Flink, Hive, Impala).
+
+*Why it matters / pitfall / interview trap:* Choose Iceberg for multi-engine shops or tables with frequent partition scheme changes; Delta Lake still wins for Databricks-centric stacks needing Z-ordering/Auto Optimize.
+
+---
+
+**Apache Spark (DataFrames vs RDDs vs Datasets)**
+
+*The problem:* Different Spark abstractions offer different tradeoffs between type safety, optimization, and API ergonomics for distributed ML pipelines.
+
+*Core insight / definition:* RDDs are low-level, unoptimized, compile-time-typed (JVM only); DataFrames are runtime-typed but benefit from the Catalyst optimizer and Tungsten execution engine; Datasets combine compile-time typing with Catalyst/Tungsten but are JVM-only.
+
+*Why it matters / pitfall / interview trap:* Use DataFrames for production Python ML pipelines — RDD-based code bypasses the Catalyst optimizer and is typically 2-5x slower.
+
+---
+
+**Approval Gates (4-Gate Process)**
+
+*The problem:* A model with demographic bias visible in the metrics can still reach production if no one is required to look — a process failure, not a technical one.
+
+*Core insight / definition:* A staged sign-off sequence — (1) automated validation (CI/CD checks on performance, calibration, PSI, fairness), (2) model owner sign-off (non-delegatable attestation), (3) risk/compliance review (protected attributes, GDPR/ECOA/FCRA), (4) business sign-off (rollback criteria, runbook) — each testing a different failure mode, with a full audit trail of approvers and timestamps.
+
+*Why it matters / pitfall / interview trap:* Automated gates alone catch metric failures but miss judgment failures (wrong proxy features, wrong framing); a compliance gate that can't actually block launches is a rubber stamp providing legal exposure without protection.
+
+---
+
+**Approximate Nearest Neighbor (ANN) Search**
+
+*The problem:* Brute-force exact search over millions/billions of embedding vectors is too slow (e.g., ~30ms for 100M items at 768-d on one GPU) for <10ms production retrieval latency.
+
+*Core insight / definition:* ANN trades a small recall loss (missing 1-5% of true top-K) for 100-1000x speedup by using index structures (IVF, HNSW, PQ) instead of scanning every vector.
+
+*Why it matters / pitfall / interview trap:* Use exact KNN only when the candidate pool is small (<10,000) or computation is offline/batch; interviewers probe whether you know ANN sacrifices accuracy for speed, not the reverse.
+
+---
+
+**Arithmetic Intensity (Compute-Bound vs Memory-Bound)**
+
+*The problem:* Diagnosing whether an inference bottleneck (e.g., LLM prefill vs decode) is limited by compute (FLOPs) or by memory bandwidth requires a quantitative framework.
+
+*Core insight / definition:* Arithmetic intensity = FLOPs / bytes accessed. Decode (batch=1) has ~1 op/byte (loads all weights per token) → memory-bound; prefill has ~S ops/byte (S = sequence length) → compute-bound once S is large enough.
+
+*Why it matters / pitfall / interview trap:* Explains why TTFT (prefill) is compute-bound and TPOT (decode) is memory-bandwidth-bound — the fixes differ (bigger batches don't help compute-bound prefill the same way).
+
+---
+
+**Arrow (Apache Arrow)**
+
+*The problem:* Transferring data between systems (e.g., Spark and Python workers, or pandas) with different in-memory representations incurs serialization overhead.
+
+*Core insight / definition:* Arrow is a columnar in-memory format optimized for zero-copy IPC (inter-process communication) between systems like Spark and pandas.
+
+*Why it matters / pitfall / interview trap:* Best for in-process/in-memory transfer, not for persistent storage (no splittability); don't confuse with Parquet, which is the on-disk columnar analog.
+
+---
+
+**Audit Trail**
+
+*The problem:* A regulator or lawsuit may ask, 18 months later, exactly what model, data, and approver produced a specific decision — without a trail, the answer requires archaeology through Slack and memory.
+
+*Core insight / definition:* An immutable (append-only, no DELETE/UPDATE), encrypted-at-rest log of every inference event and governance action, capturing model version, data version, approver identity, and timestamp, accessible only to an audit/compliance role.
+
+*Why it matters / pitfall / interview trap:* Storing raw PII in audit logs creates a parallel PII store that multiplies breach/erasure obligations; keeping audit logs in the same database as operational data risks accidental destruction during a routine migration/cleanup.
+
+---
+
+**Automatic Rollback**
+
+*The problem:* A degraded canary model left running continues to harm users until a human notices and manually reverts it.
+
+*Core insight / definition:* When guardrail checks (error rate, latency, PR-AUC regression, false positive rate) fail, the system automatically re-promotes the previous "Archived" production model version and alerts on-call, rather than waiting for manual intervention.
+
+*Why it matters / pitfall / interview trap:* Requires archiving (not deleting) the prior production version so it can be immediately re-promoted; rollback speed (e.g., <5 minutes) should be tested in staging before the first real deployment.
+
+---
+
+**Autoscaling (Kubernetes model serving)**
+
+*The problem:* Fixed-capacity model servers either waste money at low traffic or fall over under bursts.
+
+*Core insight / definition:* Treat model servers as stateless microservices that scale replica count based on CPU/GPU utilization, with readiness probes (is the model loaded?) and liveness probes (is the server responding?) gating traffic and restarts.
+
+*Why it matters / pitfall / interview trap:* GPU memory limits must be set explicitly — without them, a large model can OOM a node and evict all other co-located models.
+
+---
+
+**Avro**
+
+*The problem:* Kafka message serialization needs a compact, row-oriented format with strong schema evolution support for streaming pipelines.
+
+*Core insight / definition:* Avro is a row-oriented binary format with excellent schema evolution support, commonly paired with a schema registry for Kafka topics.
+
+*Why it matters / pitfall / interview trap:* Use Avro for Kafka serialization, not for analytical storage — Parquet is preferred there because Avro is row-oriented and poor for column-scan analytics.
+
+---
+
+**Backfill Pipeline (Feature Store)**
+
+*The problem:* A newly defined feature doesn't exist for historical dates, but training needs it retroactively (sometimes years back).
+
+*Core insight / definition:* The backfill pipeline recomputes historical feature values using only data available as of each target date, populating the offline store; for streaming features, this means replaying raw events (e.g., from Kafka retention or S3 archive) through the same processing job in batch mode with original event timestamps.
+
+*Why it matters / pitfall / interview trap:* The classic gotcha is temporal leakage — using today's snapshot (which may contain late-arriving/corrected data) instead of a true as-of/bitemporal view still leaks, even with a `transaction_date <= target_date` filter.
+
+---
+
+**Bagging**
+
+*The problem:* A single model trained on one sample of data can have high variance and overfit to idiosyncrasies of that sample.
+
+*Core insight / definition:* Train multiple models on bootstrap-resampled subsets of the data and average/vote their predictions (e.g. random forest), which reduces variance without much change in bias.
+
+*Why it matters / pitfall / interview trap:* Pick bagging specifically when variance/overfitting is the dominant problem, not bias/underfitting — using it to fix a high-bias model won't help.
+
+---
+
+**Bandits (Multi-Armed Bandits, Thompson Sampling)**
+
+*The problem:* A fixed 50/50 A/B split "wastes" traffic on a losing variant for the full experiment duration when reward feedback is immediate and the cost of a bad variant is high.
+
+*Core insight / definition:* Adaptive traffic allocation that shifts more traffic toward better-performing variants during the experiment itself rather than after a fixed horizon; Thompson Sampling maintains a posterior distribution over each arm's reward probability and samples from it to decide allocation, naturally balancing exploration and exploitation.
+
+*Why it matters / pitfall / interview trap:* Harder to get a clean, interpretable effect-size estimate than a fixed-horizon A/B test; unsuitable when feedback is delayed (e.g. D7 retention) since bandits need fast reward signal to adapt.
+
+---
+
+**Baseline Comparison**
+
+*The problem:* Teams can ship complex models that don't actually beat a trivial approach, wasting the added complexity and latency for no gain.
+
+*Core insight / definition:* Always evaluate the trained model against simple baselines (majority class, rule-based, plain logistic regression) on the identical test set/metric before considering deployment.
+
+*Why it matters / pitfall / interview trap:* "If the ML model can't beat these, it has no business being deployed" — a mandatory sanity check regardless of how sophisticated the model is.
+
+---
+
+**Batch (Async) Inference**
+
+*The problem:* Not every use case needs a live prediction; scoring millions of entities on demand is wasteful when predictions can be precomputed.
+
+*Core insight / definition:* Score large volumes of data on a schedule (nightly, hourly) and write results to storage for later retrieval, rather than serving a request/response API.
+
+*Why it matters / pitfall / interview trap:* Predictions go stale between runs — unusable when freshness matters (fraud, bidding); pick batch over real-time specifically when staleness is acceptable, since it's the cheapest, simplest serving pattern.
+
+---
+
+**Batch Inference**
+
+*The problem:* Computing predictions per-request is expensive and complex when there's no freshness requirement (e.g., nightly email recommendations).
+
+*Core insight / definition:* Predictions are precomputed for a large set of inputs in advance, stored, and served via lookup at request time — near-zero query latency, but predictions can be stale (minutes to hours).
+
+*Why it matters / pitfall / interview trap:* Batch is almost always simpler and cheaper when freshness doesn't matter; forcing online inference for a use case like nightly recommendations adds needless complexity and cost.
+
+---
+
+**Batch vs Streaming Pipelines**
+
+*The problem:* Choosing the wrong pipeline architecture either wastes compute (over-engineering with streaming) or introduces unacceptable staleness (under-engineering with batch).
+
+*Core insight / definition:* Pipeline choice should be driven by the acceptable latency of the feature, not implementation complexity — batch (minutes-hours), micro-batch (10s-minutes), or streaming (<1 second), each with increasing operational complexity.
+
+*Why it matters / pitfall / interview trap:* Streaming is operationally harder and should only be adopted when batch genuinely cannot meet the freshness SLA.
+
+---
+
+**Batching (Dynamic and Continuous)**
+
+*The problem:* Processing requests one at a time underutilizes hardware (especially GPUs), and fixed-size batching wastes compute on padding for variable-length sequences.
+
+*Core insight / definition:* Dynamic batching accumulates requests until a batch is full or a timeout fires; continuous batching (for LLMs) interleaves different-length sequences to keep GPU utilization high without padding waste.
+
+*Why it matters / pitfall / interview trap:* Continuous batching specifically targets the autoregressive-decoding bottleneck in LLM serving where naive fixed batches waste compute on shorter sequences.
+
+---
+
+**Big-Bang / Rolling Deployment**
+
+*The problem:* Sometimes the simplest possible deployment mechanism is enough and extra infrastructure for gradual rollout isn't justified.
+
+*Core insight / definition:* Replace the old model/version entirely in one shot (or roll pods over gradually with no parallel comparison) — no canary, no shadow, no blue-green duplication.
+
+*Why it matters / pitfall / interview trap:* Rollback requires a redeploy, not a switch, so recovery time is minutes not seconds; only acceptable for internal, low-stakes tools where a bad deploy is cheap to fix.
+
+---
+
+**Blue-Green Deployment**
+
+*The problem:* A rolling update can leave a service serving a hard-to-reason-about mix of old and new model logic simultaneously, and in-place rollback is slow and risky.
+
+*Core insight / definition:* Maintain two complete parallel environments (blue = current, green = new); deploy and fully test the new version in the idle environment, then atomically flip the load balancer to it in one operation.
+
+*Why it matters / pitfall / interview trap:* Costs 2x infrastructure during the cutover window and doesn't catch issues that only appear under gradual real load; pick it over canary specifically when instant rollback matters more than infra cost — but avoid it for consumer-facing models where a bug would hit 100% of users instantly.
+
+---
+
+**Breach Notification (GDPR Article 33)**
+
+*The problem:* A personal data breach (e.g. model inversion, audit log exposure) triggers a strict legal notification deadline that most engineering teams aren't built to track.
+
+*Core insight / definition:* A 72-hour clock (starting at discovery, not occurrence) to notify the supervisory authority, with a pre-committed response protocol covering immediate containment, 24-hour scoping, and 72-hour notification steps.
+
+*Why it matters / pitfall / interview trap:* ML-specific breach scenarios include model inversion attacks recovering training data from weights, membership inference attacks, and feature-store breaches — teams often forget these count as breaches, not just database leaks.
+
+---
+
+**Broadcast Join**
+
+*The problem:* Joining a large table with a small lookup table via a full shuffle join is wasteful — the small table could just be replicated.
+
+*Core insight / definition:* Spark replicates ("broadcasts") a small table to all executors so the join happens locally without a shuffle; triggered automatically when the small table is below `spark.sql.autoBroadcastJoinThreshold` (default 10MB).
+
+*Why it matters / pitfall / interview trap:* A common tactical fix for reducing shuffle cost and job runtime in cost-optimization interview answers.
+
+---
+
+**Canary Deployment**
+
+*The problem:* You want confidence from real production traffic before full rollout but can't afford to expose every user to a potentially broken model, and smoke tests only cover happy-path inputs.
+
+*Core insight / definition:* Route a small, deterministically-hashed fraction of traffic (e.g. 5%) to the new model, monitor business and error metrics over a defined window (often 24h minimum), then progressively ramp (5%→25%→50%→100%), rolling back at any step if metrics degrade.
+
+*Why it matters / pitfall / interview trap:* Too-small canary fractions have low statistical power (won't detect regressions under ~2%); a skewed canary segment (e.g. mobile-only) won't generalize; never graduate a canary based on system metrics alone — use business metrics.
+
+---
+
+**Cascade (Cascade Predictor)**
+
+*The problem:* You want the accuracy of an expensive model on every request but can't afford to run it on all traffic.
+
+*Core insight / definition:* Chain models of increasing cost/accuracy where a cheap fast model handles most requests and only escalates ambiguous/low-confidence cases to the next, more expensive stage.
+
+*Why it matters / pitfall / interview trap:* The confidence threshold for escalation must be calibrated on held-out data — an overconfident fast model never escalates when it should; example from the repo shows 81.5% cost reduction (rules + fast model + full model) vs always using the full model.
+
+---
+
+**CDC (Change Data Capture)**
+
+*The problem:* A single event that must atomically update both a database/feature store and a message queue creates a dual-write consistency risk — if one write fails, systems diverge.
+
+*Core insight / definition:* Read the database's write-ahead log (e.g. via Debezium) and publish derived events from it, making the database the single, atomic source of truth and Kafka a downstream fan-out mechanism.
+
+*Why it matters / pitfall / interview trap:* Adds WAL-replication lag (~100-500ms) and Debezium operational burden; the recommended choice for financial ledgers, but event sourcing is the pragmatic default for ML feature stores where seconds of staleness is acceptable.
+
+---
+
+**Champion-Challenger Pattern**
+
+*The problem:* Comparing a new model against the current production model needs a structured, routable mechanism rather than ad-hoc manual swaps.
+
+*Core insight / definition:* The production ("champion") model continues serving live traffic while a "challenger" model is evaluated (via shadow, canary, or A/B) before potentially being promoted to replace the champion.
+
+*Why it matters / pitfall / interview trap:* Underpins automated rollback playbooks and registry stage-transition workflows (Staging → Production → Archived); rollback assumes the previous champion is still valid for current conditions, which is false if the world (not just the challenger) has drifted.
+
+---
+
+**Champion/Challenger Pattern**
+
+*The problem:* Testing a new model safely against the current production model without risking degraded user experience requires more than a blind swap.
+
+*Core insight / definition:* The champion (current production model) and challenger (candidate) both score the same traffic; only the champion's prediction is typically served (or the challenger gets a small traffic slice), and results are logged for offline comparison before promotion.
+
+*Why it matters / pitfall / interview trap:* Deterministic traffic assignment (e.g., by hashing request/user ID) ensures consistent user experience; shadow-scoring both on identical inputs is stronger evidence than a naive A/B split alone.
+
+---
+
+**Chi-Squared Test**
+
+*The problem:* Comparing categorical feature distributions between training and serving needs a statistical test suited to discrete categories (unlike KS test, which is for continuous CDFs).
+
+*Core insight / definition:* The chi-squared test compares observed vs. expected category frequency counts to detect distributional shift in categorical features.
+
+*Why it matters / pitfall / interview trap:* Paired with PSI/KS as part of a complete data-drift detection toolkit — pick the test that matches the feature's data type.
+
+---
+
+**Circuit Breaker Pattern**
+
+*The problem:* A failing dependency (feature store, model server) that keeps being called under load causes cascading failures and timeout pile-ups.
+
+*Core insight / definition:* A stateful guard with three states — CLOSED (normal operation), OPEN (failing, serve fallback immediately without calling the dependency), HALF_OPEN (probationary test of recovery) — that stops calling a failing dependency after a failure threshold and periodically retries.
+
+*Why it matters / pitfall / interview trap:* Must be paired with a fast fallback and a sensible feature-store timeout (~10% of total latency budget) so a hanging call doesn't consume the entire SLA before falling back.
+
+---
+
+**Cluster Randomization / Geographic Split / Switchback Testing**
+
+*The problem:* Standard user-level A/B testing assumes no interference between units (SUTVA), which breaks in marketplaces or social products where treated and control users interact.
+
+*Core insight / definition:* Alternative randomization units — clusters of interacting users, geographic/market regions, or time-based on/off switching (switchback) — that avoid contamination between treatment and control when network effects exist.
+
+*Why it matters / pitfall / interview trap:* These designs increase required sample size and complexity (fewer independent units = less statistical power); switchback introduces time-based confounds like day-of-week effects.
+
+---
+
+**Columnar vs Row-Oriented Storage**
+
+*The problem:* Analytical queries reading a few columns from many rows perform poorly on row-oriented formats; write-heavy single-record workloads perform poorly on columnar formats.
+
+*Core insight / definition:* Row-oriented formats (CSV, JSON, Avro) store each row contiguously — fast writes, full-row reads; columnar formats (Parquet, ORC, Arrow) store each column contiguously — fast selective reads and better compression from grouping similar values.
+
+*Why it matters / pitfall / interview trap:* Use Parquet/columnar for ML feature stores and training data; row formats for Kafka/interchange — mixing them up tanks either write throughput or scan performance.
+
+---
+
+**Compression Algorithms (Snappy, Zstd, LZ4, Gzip, Brotli)**
+
+*The problem:* Storage and I/O costs for large-scale ML data depend heavily on the compression algorithm's ratio/speed tradeoff.
+
+*Core insight / definition:* Snappy (fast, medium ratio, Parquet default), Zstd (best ratio/speed balance), LZ4 (fastest, low ratio, hot paths), Gzip (slow, high ratio, interoperability), Brotli (slowest, highest ratio, cold archival).
+
+*Why it matters / pitfall / interview trap:* Rule of thumb: Parquet + Zstd for training data/feature stores; switching from Snappy to Zstd is a common "reduce cost" interview answer.
+
+---
+
+**Concept Drift**
+
+*The problem:* Even when input feature distributions look stable, the underlying relationship between inputs and the label can change, silently degrading a model that data-drift monitoring alone would miss.
+
+*Core insight / definition:* Concept drift is a shift in P(Y|X) — the mapping from features to labels — e.g., fraud patterns changing while transaction feature distributions stay similar. Unlike data drift, concept drift always degrades the model.
+
+*Why it matters / pitfall / interview trap:* Detected via residual/prediction distribution shift or delayed ground-truth comparison, not PSI on inputs alone; fixing it requires retraining (shorter windows, instance weighting, continuous retraining) — adding features doesn't help since it's a temporal/world-change problem, not a representation problem.
+
+---
+
+**Consumer Group (Kafka)**
+
+*The problem:* Multiple independent downstream services need to process the same event stream at their own pace without interfering with each other.
+
+*Core insight / definition:* A named group of consumers that jointly read a topic's partitions, with each partition consumed by exactly one member of the group; different consumer groups (e.g. a Flink feature job vs an audit log writer) can independently consume the same topic in parallel.
+
+*Why it matters / pitfall / interview trap:* Consumer lag per group is a critical health signal — a Kafka cluster can look healthy while a specific consumer group falls minutes behind, silently staling features.
+
+---
+
+**Containerization (model + preprocessing)**
+
+*The problem:* If the model artifact and its preprocessing pipeline are packaged and versioned separately, they will eventually drift apart, reintroducing training-serving skew.
+
+*Core insight / definition:* Package the model artifact and its full preprocessing pipeline in the same container image so they are deployed, versioned, and rolled back as one atomic unit.
+
+*Why it matters / pitfall / interview trap:* A very common interview cross-question: "How do you handle preprocessing?" — the answer is always "same container/serialized pipeline," never "reimplement in the serving service."
+
+---
+
+**Continuous vs Periodic Retraining**
+
+*The problem:* Deciding how often to retrain trades off engineering cost against responsiveness to fast-moving patterns.
+
+*Core insight / definition:* Continuous (real-time streaming) retraining has high engineering cost but adapts quickly — used for fraud/high-velocity signals; periodic (daily/weekly) retraining is simpler and sufficient for slower-moving domains like recommendation/ranking.
+
+*Why it matters / pitfall / interview trap:* Choosing continuous retraining where periodic suffices adds needless operational complexity; the reverse leaves a model stale in fast-moving domains.
+
+---
+
+**CUPED (Controlled-experiment Using Pre-Experiment Data)**
+
+*The problem:* Detecting a smaller effect size in an A/B test normally requires either more traffic or a longer runtime, both of which are constrained resources.
+
+*Core insight / definition:* Use pre-experiment covariate data (a metric correlated with the outcome, measured before the experiment) as a control variate to reduce variance in the treatment-effect estimate, increasing statistical power without collecting more traffic.
+
+*Why it matters / pitfall / interview trap:* Needs good pre-period covariate data and adds analysis complexity; use it specifically when traffic-constrained and needing more sensitivity from an existing experiment.
+
+---
+
+**DAG Execution and Shuffles (Spark)**
+
+*The problem:* Not all Spark transformations are equally expensive; understanding which trigger data movement across the cluster is key to performance tuning.
+
+*Core insight / definition:* Spark compiles transformations into a DAG of stages; stage boundaries occur at shuffle operations (wide transformations like `groupBy` or `join` that require redistributing data across executors), whereas narrow transformations (`filter`, `select`) stay within a partition.
+
+*Why it matters / pitfall / interview trap:* Prefer `reduceByKey`/`aggregateByKey` (partial aggregation before shuffle) over `groupByKey` (shuffles all raw values) — a classic Spark optimization interview question.
+
+---
+
+**Data Contracts**
+
+*The problem:* Schema validation only checks structure, not semantics, SLAs, or ownership — producers and consumers need an explicit agreement about what data guarantees.
+
+*Core insight / definition:* A data contract (often YAML, enforced in CI/CD) formally specifies schema, freshness SLA, availability, latency, null-rate tolerance, and row-count expectations between producer and consumer teams.
+
+*Why it matters / pitfall / interview trap:* Breaking the contract should fail the pipeline before bad data reaches downstream consumers — it's the mechanism that turns "schema drift" from silent to loud.
+
+---
+
+**Data Drift**
+
+*The problem:* Input feature distributions can shift over time (e.g. users moving to mobile) in ways that invalidate a model trained on the old distribution.
+
+*Core insight / definition:* The marginal input distribution P(X) changes, detectable immediately without ground-truth labels by comparing training vs serving distributions (PSI, KS test, KL divergence).
+
+*Why it matters / pitfall / interview trap:* Distinct fix from concept drift — data drift often just needs retraining or reweighting on the new distribution; conflating it with concept drift (which needs labels, not just input monitoring) is a common interview trap.
+
+---
+
+**Data Drift (Covariate Shift)**
+
+*The problem:* Input distributions naturally shift over time (seasonality, population changes), and not all such shifts actually hurt the model.
+
+*Core insight / definition:* Data drift is a change in P(X), the input distribution, while P(Y|X) (the model's learned mapping) may remain stable — e.g., user demographics shifting. Detected via PSI, KS test, or chi-squared test.
+
+*Why it matters / pitfall / interview trap:* Data drift does not automatically require retraining — if P(Y|X) is stable, retraining on a shifted (possibly seasonal/temporary) P(X) can actually hurt; diagnose drift type before prescribing a fix.
+
+---
+
+**Data Lineage**
+
+*The problem:* When a feature value looks wrong, tracing it back to its raw data source and transformation history is otherwise guesswork.
+
+*Core insight / definition:* Lineage tracking records the chain of transformations and sources that produced a given feature or dataset, enabling root-cause tracing during incidents.
+
+*Why it matters / pitfall / interview trap:* Listed as a top defense against silent ML pipeline failures — without it, debugging a divergent feature value takes days instead of minutes.
+
+---
+
+**Data Quality Checks (Great Expectations)**
+
+*The problem:* A bad config crashes immediately and gets caught; bad or shifted data causes a silent accuracy drop that can take weeks to surface.
+
+*Core insight / definition:* Declarative expectations run against a data batch before training (not-null checks, value ranges, categorical set membership, mean bounds) that fail the pipeline before a bad dataset is used.
+
+*Why it matters / pitfall / interview trap:* Expectations set once may not track legitimate distribution changes (new product lines, new geographies) — they need periodic review or they become a source of false alarms.
+
+---
+
+**Data Skew (Spark Partition Skew)**
+
+*The problem:* One partition/key can have orders of magnitude more data than others (e.g., one user has 10M events vs. 100 for others), causing one executor to run for hours while others finish in minutes.
+
+*Core insight / definition:* Skew is diagnosed via the Spark UI showing "straggler" tasks; fixed by salting the skewed key (appending a random suffix to spread it across partitions) or using Spark's built-in `SKEW_JOIN` hint.
+
+*Why it matters / pitfall / interview trap:* The most common Spark performance issue in practice — interviewers expect you to name salting and skew-join hints specifically, not just "add more executors."
+
+---
+
+**Data Versioning (DVC)**
+
+*The problem:* Without versioned training data, "the model from last Tuesday" can't be reproduced because the underlying dataset has since changed.
+
+*Core insight / definition:* Data Version Control (DVC) tracks large files by content hash, storing a lightweight `.dvc` pointer in git while the actual data lives in remote storage (S3/GCS/Azure Blob); checking out a commit and running `dvc pull` reproduces the exact historical dataset.
+
+*Why it matters / pitfall / interview trap:* DVC tracks files by hash — if a same-named file is regenerated with different content but not re-added/committed, the pointer silently goes stale.
+
+---
+
+**dbt (data build tool)**
+
+*The problem:* SQL transformation logic scattered across ad-hoc scripts lacks dependency management, testing, and documentation.
+
+*Core insight / definition:* dbt treats SQL transformations as a version-controlled DAG of models with built-in dependency resolution (`ref()`), incremental materialization, and declarative tests (not_null, unique, accepted_range) that function as data contracts.
+
+*Why it matters / pitfall / interview trap:* dbt tests running in the DAG catch bad data before it reaches downstream consumers — often the concrete implementation of a "data contract" in an ELT stack.
+
+---
+
+**DCN (Deep & Cross Network)**
+
+*The problem:* Manually engineering feature interaction terms for ranking models doesn't scale and misses higher-order combinations.
+
+*Core insight / definition:* DCN explicitly models feature interactions (crosses) within a neural architecture, combining a "cross network" for interactions with a standard deep network.
+
+*Why it matters / pitfall / interview trap:* Named as one option among gradient-boosted trees, DNNs, and cross-encoders for the ranking stage of two-stage retrieval-ranking systems.
+
+---
+
+**DDM (Drift Detection Method)**
+
+*The problem:* Streaming/online models need a lightweight, incremental way to detect when error rate is climbing, without recomputing a full batch statistic.
+
+*Core insight / definition:* Tracks the running error rate and its standard deviation, alerting when the error exceeds a baseline-plus-threshold level.
+
+*Why it matters / pitfall / interview trap:* Suited specifically to online/incremental learning pipelines; a scheduled batch PSI check is simpler and sufficient when the model isn't continuously updated.
+
+---
+
+**Deequ**
+
+*The problem:* Data quality frameworks like Great Expectations don't scale efficiently to billions of rows on Spark.
+
+*Core insight / definition:* Deequ is a Spark-native data quality library expressing checks (completeness, uniqueness, non-negativity, custom `satisfies` constraints) that execute as distributed Spark jobs.
+
+*Why it matters / pitfall / interview trap:* Chosen over Great Expectations specifically when scale (billions of rows) makes single-node validation impractical.
+
+---
+
+**Delta Lake**
+
+*The problem:* Parquet on S3 has no ACID guarantees — failed writes leave partial tables, concurrent writers corrupt data, and there's no rollback.
+
+*Core insight / definition:* Delta Lake adds a `_delta_log/` directory of JSON transaction log entries alongside Parquet files; table state at any point is reconstructed by replaying the log, enabling ACID transactions, MERGE (upsert), time travel (`versionAsOf`/`timestampAsOf`), and schema evolution.
+
+*Why it matters / pitfall / interview trap:* The transaction log grows unbounded and needs periodic VACUUM — a common gotcha vs. Iceberg's more metadata-scalable manifest approach at very large table sizes.
+
+---
+
+**Deployment Strategies (Shadow, Canary, A/B, Bandit)**
+
+*The problem:* Deploying a new model version directly to 100% of traffic risks widespread degradation if the model has a bug.
+
+*Core insight / definition:* Shadow deployment runs the new model alongside the old on all traffic without serving its predictions (validates operational soundness only); canary rolls out to a small traffic percentage with consistent per-user routing; A/B testing splits traffic to measure business impact; multi-armed bandit dynamically reallocates traffic toward better-performing variants.
+
+*Why it matters / pitfall / interview trap:* Shadow deployment proves nothing about business value — only that the model runs correctly; conflating "shadow passed" with "model is better" is a common trap.
+
+---
+
+**Deterministic Hashing (traffic routing)**
+
+*The problem:* If a user's routing decision (canary vs production, A vs B) isn't stable across requests, they get an inconsistent experience that confounds results and confuses users.
+
+*Core insight / definition:* Hash a stable identifier (request ID, user ID) to a bucket number and route based on that bucket, so the same identifier always maps to the same variant.
+
+*Why it matters / pitfall / interview trap:* Essential for both canary and A/B testing validity; without it, a single user could bounce between model versions across requests, breaking the causal comparison.
+
+---
+
+**Distillation**
+
+*The problem:* Large models are accurate but too slow/expensive for latency-constrained serving.
+
+*Core insight / definition:* A smaller "student" model is trained to reproduce a larger "teacher" model's outputs (soft probabilities via temperature scaling, and/or intermediate representations), transferring most of the teacher's performance into a cheaper model.
+
+*Why it matters / pitfall / interview trap:* Requires training investment upfront — apply quantization and graph compilation first since they're faster wins before spending compute on distillation. DistilBERT (97% of BERT's performance, 40% fewer params, 60% speedup) is the canonical example.
+
+---
+
+**Distillation (Knowledge Distillation)**
+
+*The problem:* A large, accurate "teacher" model may be too expensive to serve at scale, but training a smaller model from scratch loses accuracy.
+
+*Core insight / definition:* Train a smaller "student" model to mimic a larger teacher model's outputs (soft labels/probabilities, not just hard labels), compressing most of the teacher's capability into a cheaper model.
+
+*Why it matters / pitfall / interview trap:* Typically yields 3-10x inference speedup for 2-5% accuracy loss; needs a genuinely smaller architecture (unlike quantization, which just lowers numeric precision) — often combined with quantization for compounding savings.
+
+---
+
+**Dual-Write Consistency Problem**
+
+*The problem:* A single event (e.g. a payment) must update both a feature store (Redis) and a message queue (Kafka); if only one write succeeds, the two systems diverge silently.
+
+*Core insight / definition:* The general problem of atomically updating two independent systems from one logical event, solved via CDC, event sourcing, the Saga pattern, or an outbox pattern (write to DB + outbox table, CDC publishes from the outbox).
+
+*Why it matters / pitfall / interview trap:* No single universal answer — the practical choice depends on the use case: CDC for financial ledgers, event sourcing (Kafka-first) as the pragmatic default for ML feature stores.
+
+---
+
+**DVC (Data Version Control)**
+
+*The problem:* Git tracks code but cannot efficiently version 100GB+ training datasets or model artifacts, making past training runs unreproducible if data gets overwritten.
+
+*Core insight / definition:* DVC stores a small `.dvc` pointer file (MD5 hash + path) in Git while the actual data lives in a remote store (S3/GCS/Azure); `dvc pull` restores the exact data matching the pointer at a given Git commit, and `dvc repro` re-runs only pipeline stages whose inputs changed.
+
+*Why it matters / pitfall / interview trap:* Central to answering "how do you reproduce a training run from 6 months ago" — pairs Git commit (code) with DVC hash (data) plus environment and seed logging.
+
+---
+
+**Dynamic Batching**
+
+*The problem:* A GPU forward pass on batch size 1 is nearly as expensive as batch size 8 — single-item requests waste GPU parallelism.
+
+*Core insight / definition:* Accumulate incoming requests for up to `max_wait_ms` or until `max_batch_size` is reached, then flush and process them as one batch/kernel call.
+
+*Why it matters / pitfall / interview trap:* Adds latency for the first request in a batch (it must wait up to the timeout); at low traffic this wait becomes the latency floor regardless of model speed — under bursty load it can blow a tight P99 SLA even as it raises average throughput.
+
+---
+
+**Edge Inference**
+
+*The problem:* Server round-trips add unavoidable network latency and can't work when the device is offline or when data must never leave it for privacy reasons.
+
+*Core insight / definition:* Run the model directly on-device (phone, IoT) with no network call, typically requiring aggressive compression (quantization, distillation) to fit device compute/memory constraints.
+
+*Why it matters / pitfall / interview trap:* Harder to update (no central rollback) and no centralized monitoring of live inputs; pick it specifically when privacy or offline-availability is a hard requirement.
+
+---
+
+**Embeddings**
+
+*The problem:* One-hot encoding high-cardinality categorical or discrete entities is memory-inefficient and captures no notion of similarity between categories.
+
+*Core insight / definition:* A learned dense vector representation of discrete entities that captures similarity structure and is drastically smaller than one-hot for high cardinality, and is transferable/reusable across models.
+
+*Why it matters / pitfall / interview trap:* Requires enough interaction data per entity to learn a meaningful vector; cold-start entities need a fallback (default/average embedding) until enough data accumulates.
+
+---
+
+**Ensembles (Bagging / Boosting / Stacking)**
+
+*The problem:* A single model's accuracy and robustness ceiling can be raised by combining multiple models, but naive combination adds serving complexity.
+
+*Core insight / definition:* Combine multiple models' predictions to improve accuracy/robustness — bagging averages models trained on bootstrap samples to reduce variance, boosting sequentially fits models to residual errors to reduce bias, stacking trains a meta-learner on top of heterogeneous base models' outputs.
+
+*Why it matters / pitfall / interview trap:* Ensemble serving latency is the sum (or max, if parallelized) of constituent model latencies — must be factored into the latency budget; pick the ensemble type based on whether variance or bias is the dominant error source.
+
+---
+
+**Ensembling (drift response)**
+
+*The problem:* When concept drift is detected, replacing the model outright can be risky if the drift is partial or noisy.
+
+*Core insight / definition:* Combine the current production model with a freshly-trained model (on recent data) rather than a hard cutover, smoothing the transition across the drift.
+
+*Why it matters / pitfall / interview trap:* One of three standard responses to concept drift alongside scheduled/drift-triggered retraining and online learning with a sliding window.
+
+---
+
+**Event Sourcing**
+
+*The problem:* The dual-write problem needs a design where one system is unambiguously the source of truth rather than trying to keep two systems perfectly synchronized.
+
+*Core insight / definition:* Treat the message queue (Kafka) itself as the sole source of truth — the application publishes only to Kafka, and downstream consumers (e.g. a feature compute service) derive all other state (Redis) from it.
+
+*Why it matters / pitfall / interview trap:* Only eventually consistent (Redis may lag by seconds); explicitly recommended as the pragmatic default for ML feature stores, where seconds of staleness is an acceptable tradeoff for architectural simplicity.
+
+---
+
+**Exactly-Once Semantics**
+
+*The problem:* At-least-once delivery can duplicate processing (e.g. double-counting a click); at-most-once can silently drop data — neither is safe for financial correctness.
+
+*Core insight / definition:* End-to-end transactional guarantees (idempotent producers + Kafka transactions + a transactional sink) ensuring each event is reflected exactly once downstream even across node failures; Flink achieves this via distributed snapshots (Chandy-Lamport algorithm) combined with a transactional sink.
+
+*Why it matters / pitfall / interview trap:* Costs 2-3x latency overhead and lower throughput — reserve for financial ledgers/billing, not general ML feature aggregation, where at-least-once with idempotent (upsert-by-event-ID) writes is the pragmatic default; claiming "Kafka guarantees exactly-once natively" is a common trap — it only provides the primitives, the whole pipeline must cooperate.
+
+---
+
+**Explainability (SHAP / TreeSHAP)**
+
+*The problem:* Regulations require meaningful explanations for automated decisions, and black-box model scores alone aren't legally defensible.
+
+*Core insight / definition:* SHAP (Shapley Additive Explanations) attributes a prediction to individual feature contributions; TreeSHAP computes exact (not approximate) Shapley values for tree ensembles, letting the top contributing factors be surfaced and mapped to human-readable reasons.
+
+*Why it matters / pitfall / interview trap:* TreeSHAP only works for tree ensembles — applying it to a neural network is a factual error; use SHAP DeepExplainer or KernelSHAP (slower, approximate) instead.
+
+---
+
+**Exposure Bias**
+
+*The problem:* A model that only recommends items to users it predicts will engage creates a feedback loop where unshown users/items never generate data to correct the model.
+
+*Core insight / definition:* A self-reinforcing loop where predictions determine what data gets collected — items/users the model favors get shown more, generating more confirming data, while disfavored ones are starved of data and the model can't generalize to them.
+
+*Why it matters / pitfall / interview trap:* The fix is deliberate exploration (epsilon-greedy, UCB) — but exploration has a real cost, since every exploratory impression is, in expectation, a worse experience shown to a real user right now.
+
+---
+
+**Fallback Hierarchy**
+
+*The problem:* A serving path with hard latency SLAs can't simply retry-or-fail when dependencies (feature store, model server) degrade — it needs graceful, tiered degradation.
+
+*Core insight / definition:* A five-level chain — (1) primary online features + latest model, (2) cached prediction, (3) simpler in-process fallback model (e.g. logistic regression, no network), (4) hard-coded business rules, (5) default action (allow-all or block-all based on risk tolerance) — where each level engages only if the one above fails.
+
+*Why it matters / pitfall / interview trap:* Choosing the last-resort default (allow vs block) is an explicit risk-tolerance decision, not a technical afterthought; feature-store timeout should be ~10% of the total latency budget so a hang doesn't consume the whole SLA.
+
+---
+
+**Feast (feature store framework)**
+
+*The problem:* Teams need offline/online feature store infrastructure but may not want to operate or pay for a fully managed platform.
+
+*Core insight / definition:* An open-source feature store providing FeatureView/Entity definitions, point-in-time materialization from an offline source to an online store (Redis/DynamoDB), and single-key low-latency lookup at inference time.
+
+*Why it matters / pitfall / interview trap:* Requires you to operate the online/offline stores yourself; the rough build-vs-buy threshold vs managed platforms (Tecton, Hopsworks) is ~100TB feature data or ~100M lookups/day.
+
+---
+
+**Feature Backfilling**
+
+*See "Backfill Pipeline (Feature Store)" above — used interchangeably in the data engineering context for computing historical values of a newly defined feature.*
+
+---
+
+**Feature Cross**
+
+*The problem:* A simple/linear model can't represent interaction effects between two features on its own (e.g. city × day-of-week).
+
+*Core insight / definition:* Combine two or more features into a new composite feature to let a simpler model capture non-linear interaction effects cheaply.
+
+*Why it matters / pitfall / interview trap:* Crossing two high-cardinality features causes combinatorial explosion in cardinality, so feature crosses are usually paired with the Hashed Feature pattern to bound the resulting size.
+
+---
+
+**Feature Drift**
+
+*The problem:* Detecting that input feature distributions have shifted before that shift translates into model performance degradation.
+
+*Core insight / definition:* Feature drift is measured via PSI or KS test comparing feature distributions between a reference (training) window and a current (serving) window.
+
+*Why it matters / pitfall / interview trap:* Feature drift is a leading indicator, not proof of harm — check whether the model's prediction distribution also shifted before concluding retraining is needed.
+
+---
+
+**Feature Flags (for model rollout)**
+
+*The problem:* Controlling which users get which model version by redeploying is slow and can't be toggled instantly per-user.
+
+*Core insight / definition:* Use a feature flag service to decide, per request/user, which model variant to route to, without a code deployment.
+
+*Why it matters / pitfall / interview trap:* Adds round-trip latency overhead (1-5ms for local evaluation); if the flag service is down with no fallback, all users silently get the default model — always define a safe default independent of the flag service.
+
+---
+
+**Feature Freshness (SLA)**
+
+*The problem:* Features that update too infrequently relative to how fast they change become stale by the time they're used for prediction.
+
+*Core insight / definition:* Feature freshness SLA is the maximum acceptable age of a feature value at serving time; the decision between streaming and batch computation should be driven by whether staleness beyond this threshold measurably hurts the target metric (e.g., PR-AUC).
+
+*Why it matters / pitfall / interview trap:* Test via delaying feature refresh in offline eval and measuring the metric drop — if negligible (<0.5%), batch computation suffices and streaming is over-engineering.
+
+---
+
+**Feature Freshness / Staleness**
+
+*The problem:* Features computed asynchronously can lag behind reality, and a model scoring on stale data degrades silently — often more dangerously than a missing feature would.
+
+*Core insight / definition:* A tiered classification of how current a feature must be (real-time <1s, near-real-time <1min, hourly, daily), each implemented with a different write path (direct stream write vs micro-batch vs cron ETL); freshness SLA monitoring tracks `feature_write_timestamp` and alerts when staleness exceeds threshold.
+
+*Why it matters / pitfall / interview trap:* Stale features cause degradation that's harder to catch than missing features because the pipeline looks "successful" — always monitor feature age, not just feature presence.
+
+---
+
+**Feature Monitoring (Drift, Freshness, Parity)**
+
+*The problem:* Feature pipelines can silently break — distributions shift, updates stop, or online/offline values diverge — without any explicit error.
+
+*Core insight / definition:* Three complementary checks: (1) feature drift via PSI, (2) feature freshness via checking the latest materialized timestamp against an SLA, (3) online/offline parity via KS statistic and mean-difference comparison, run continuously (e.g., daily).
+
+*Why it matters / pitfall / interview trap:* All three should run continuously in production — relying on model accuracy alone (which needs delayed labels) misses issues far too late.
+
+---
+
+**Feature Registry**
+
+*The problem:* As feature libraries grow to thousands of entries across teams, duplication ("user_age" computed 5 different ways), deprecated-feature bugs, and poor discoverability proliferate.
+
+*Core insight / definition:* The Feature Registry catalogs feature metadata — computation logic, owners, SLAs, lineage, versioning — without storing the data itself, serving as the single source of truth for feature definitions.
+
+*Why it matters / pitfall / interview trap:* Only works if teams actually register features before use; enforce via CI/CD that blocks deployment of an unregistered feature, or the registry becomes incomplete and untrustworthy.
+
+---
+
+**Feature Store**
+
+*The problem:* Teams independently recompute the same features per model; training and serving pipelines compute them differently, causing training-serving skew, and features lack metadata, versioning, or discoverability.
+
+*Core insight / definition:* A Feature Store centralizes feature computation, storage, and serving via two synchronized stores (offline for training, online for low-latency serving) fed by one shared feature definition, so skew becomes structurally hard to introduce.
+
+*Why it matters / pitfall / interview trap:* Over-engineering when features are simple, batch-only, and single-model — a shared dbt model feeding both training and serving gets most of the benefit without the operational cost; earns complexity when features are shared across teams/models or need sub-100ms online serving reproduced identically offline.
+
+---
+
+**Feature Store (Offline / Online)**
+
+*The problem:* The same feature computed slightly differently in training (batch Python) vs serving (real-time Java/SQL) causes the model to train on one distribution and be served another.
+
+*Core insight / definition:* Two coupled systems sharing a canonical feature definition — an offline store (Parquet/Delta Lake/BigQuery) for point-in-time-correct historical training data, and an online store (Redis/DynamoDB/Cassandra/Bigtable) for sub-10ms materialized lookups at inference time.
+
+*Why it matters / pitfall / interview trap:* Prevents training-serving skew by construction (single definition used both places) — but batch and streaming pipelines that feed the two stores can still diverge subtly (different aggregation windows, different late-event handling), reintroducing skew through the feature store itself.
+
+---
+
+**Fine-Tuning (Transfer Learning)**
+
+*The problem:* Training a model from scratch requires large amounts of labeled data that may not exist for a narrow target task.
+
+*Core insight / definition:* Reuse a model (or its learned representations) trained on one task/dataset as the starting point for a related task — typically freeze early layers and fine-tune later layers, or fully fine-tune at a lower learning rate.
+
+*Why it matters / pitfall / interview trap:* Risk of negative transfer if source and target domains are too dissimilar, and unwanted biases from the source dataset can carry over into the target task.
+
+---
+
+**Flink (Apache Flink)**
+
+*The problem:* Complex, low-latency stateful stream aggregations (e.g. multi-window velocity features) are hard to build reliably on top of micro-batch systems.
+
+*Core insight / definition:* A true (event-at-a-time) streaming engine with built-in scalable state management, native exactly-once support, and sub-millisecond latency floor, well suited to computing windowed ML features.
+
+*Why it matters / pitfall / interview trap:* Highest operational burden of the streaming engines; the practical choice is Flink for complex stateful ML feature computation, Kafka Streams for lightweight per-event transforms, Spark Streaming only if already invested in the Spark ecosystem.
+
+---
+
+**FP16 / Half-Precision Inference**
+
+*The problem:* Full FP32 precision for embedding/model inference wastes memory bandwidth and compute when not needed for accuracy.
+
+*Core insight / definition:* Casting model weights/activations to FP16 roughly doubles throughput with minimal quality loss compared to FP32.
+
+*Why it matters / pitfall / interview trap:* One of the cheapest throughput wins in an embedding pipeline before reaching for more invasive optimizations like TensorRT or distillation.
+
+---
+
+**GDPR Article 17 (Right to Erasure)**
+
+*The problem:* A user requests deletion, but simply deleting raw training rows doesn't remove information the model has already encoded in its weights.
+
+*Core insight / definition:* A required process — delete raw data, identify affected model versions via the registry, estimate the subject's material influence on each affected model, and schedule retraining only for high-influence cases (not automatically for all).
+
+*Why it matters / pitfall / interview trap:* Audit logs often cannot be erased due to conflicting financial retention regulations even after pseudonymization; a pseudonymized hash of a stable ID is itself re-identifiable and may still count as personal data — "we hashed the ID" is a weaker defense than it sounds, and whether trained weights count as personal data of a training subject is a genuinely unsettled legal question.
+
+---
+
+**GDPR Article 22 (Right to Explanation)**
+
+*The problem:* EU law prohibits purely automated decisions with legal or similarly significant effects on an individual unless a meaningful explanation and human-review path exist.
+
+*Core insight / definition:* Applies whenever an automated decision (e.g. a loan denial) significantly affects an individual; requires the system to produce a meaningful explanation of the decision logic and offer human review, not just a documented policy.
+
+*Why it matters / pitfall / interview trap:* "Compliance is not documentation — it is a capability" — the system itself, not a policy document, must be able to generate the explanation on demand.
+
+---
+
+**Great Expectations**
+
+*The problem:* Upstream data sources change schemas without notice, silently corrupting downstream ML pipelines.
+
+*Core insight / definition:* Great Expectations defines declarative "expectations" (schema existence, null checks, type checks, value ranges, distribution/quantile checks) validated against a dataset, raising an error when expectations fail.
+
+*Why it matters / pitfall / interview trap:* Distribution/quantile expectations double as a lightweight drift-detection mechanism, not just schema validation — useful beyond the obvious "check the schema" answer.
+
+---
+
+**Hashed Feature**
+
+*The problem:* Maintaining a fixed vocabulary for a high-cardinality or unbounded categorical (user IDs, URLs) doesn't scale and can't gracefully handle unseen values at serving time.
+
+*Core insight / definition:* Hash categorical values into a fixed-size bucket space instead of a growing vocabulary, bounding memory regardless of cardinality growth and handling unseen categories without an "unknown token" crash.
+
+*Why it matters / pitfall / interview trap:* Hash collisions merge distinct categories, adding noise and losing per-category interpretability; the bucket count controls the collision-vs-memory tradeoff.
+
+---
+
+**HNSW (Hierarchical Navigable Small World)**
+
+*The problem:* IVF-based ANN indexes have a build-vs-query tradeoff that doesn't reach the lowest possible query latency.
+
+*Core insight / definition:* HNSW is a graph-based ANN index offering the fastest queries (O(log N)) and strong recall, at the cost of slow index construction and requiring the entire graph in RAM.
+
+*Why it matters / pitfall / interview trap:* Memory-vs-speed tradeoff: at billion-scale vectors, RAM cost becomes prohibitive, forcing a switch to Product Quantization; also, HNSW deletes leave "tombstones" that degrade graph quality — high-churn inventories often need periodic full rebuilds rather than incremental deletes.
+
+---
+
+**Hyperparameter Sweeps (W&B Sweeps)**
+
+*The problem:* Manually trying hyperparameter combinations is slow and unsystematic, and comparing results across ad-hoc runs is error-prone.
+
+*Core insight / definition:* Automated hyperparameter search (grid, random, or Bayesian) that launches many training runs from a declared search space and tracks each configuration's resulting metric.
+
+*Why it matters / pitfall / interview trap:* W&B has built-in Bayesian sweeps; MLflow requires pairing with an external tool like Optuna — a key differentiator in tool selection.
+
+---
+
+**Idempotency (Pipeline Writes)**
+
+*The problem:* A retried pipeline task (e.g., after a mid-write Airflow failure) must not produce duplicate data.
+
+*Core insight / definition:* Idempotency means a task produces the same result whether run once or five times; the standard pattern is partition-scoped overwrite (delete-then-insert or `MERGE`) rather than a blind `APPEND`, so a retry replaces the partial write instead of duplicating it.
+
+*Why it matters / pitfall / interview trap:* "Add a retry limit" or "alert on failure" treats the symptom, not the cause — idempotency is what makes retries safe in the first place; pairs with atomic publish (ACID commits) so consumers never see a half-written partition.
+
+---
+
+**Incident Response (Severity P1-P4)**
+
+*The problem:* Without a pre-agreed protocol, every production model incident is improvised under pressure, and no one knows who has authority to roll back.
+
+*Core insight / definition:* Predefined severity tiers (P1 critical, full outage/harm, 15-min response; down to P4 low, 24h response) mapped to expected response times, paired with a scripted rollback playbook so the rollback decision is executed, not negotiated, during the incident.
+
+*Why it matters / pitfall / interview trap:* Requiring VP approval for a P1 rollback fails because approval chains can't complete within a 15-minute window — decision authority must be pre-delegated to on-call engineers before the incident happens.
+
+---
+
+**Interleaving (Team-Draft Interleaving)**
+
+*The problem:* Standard A/B testing of two rankers requires large traffic volumes to detect a preference difference because each user only sees one ranker's output.
+
+*Core insight / definition:* Interleave results from two rankers into a single list shown to the user, then attribute clicks back to the source ranker — every impression becomes a paired comparison, making it far more sample-efficient than A/B testing.
+
+*Why it matters / pitfall / interview trap:* Only applicable to ranking/list-based outputs, not general model comparison; more complex to implement (interleaving logic plus winner attribution).
+
+---
+
+**Inverse Propensity Scoring (IPS)**
+
+*The problem:* Training a ranker on raw click data learns position bias (items shown higher get more clicks regardless of quality), not true item quality.
+
+*Core insight / definition:* IPS reweights training examples by the inverse probability that they were shown/observed, correcting for the systematic bias introduced by position in the original ranking.
+
+*Why it matters / pitfall / interview trap:* A common trap is ignoring position bias entirely when training a ranker on logged click data — IPS is the standard correction named in interview answers.
+
+---
+
+**IVF (Inverted File) Index**
+
+*The problem:* Flat (brute-force) ANN search doesn't scale to tens of millions of vectors within latency budgets.
+
+*Core insight / definition:* IVF partitions the embedding space into Voronoi cells via clustering (`nlist` clusters); at query time, only `nprobe` cells are searched, trading recall for speed.
+
+*Why it matters / pitfall / interview trap:* `nprobe` is the key recall/latency knob — interviewers probe whether you understand it's tuned per query-time budget, not fixed at index build time.
+
+---
+
+**IVF-PQ (Product Quantization)**
+
+*The problem:* Storing full-precision embeddings for very large item catalogs (100M+) consumes prohibitive memory.
+
+*Core insight / definition:* Product Quantization splits each d-dimensional vector into M sub-vectors, quantizing each to one of 256 centroids (1 byte each) — e.g., 768-dim FP32 (3072 bytes) compresses to 96 bytes (32x) with M=96, at some recall cost.
+
+*Why it matters / pitfall / interview trap:* Best for very large N under memory constraints; the recall tradeoff (90-97% vs. HNSW's 97-99%) should be explicitly justified against the memory savings.
+
+---
+
+**Kappa Architecture**
+
+*The problem:* Lambda's two parallel codebases (batch + speed layer) are operationally expensive and prone to producing divergent results for the same feature.
+
+*Core insight / definition:* Kappa eliminates the batch layer entirely — all computation happens through the streaming layer, with historical reprocessing done by replaying the event log from the beginning.
+
+*Why it matters / pitfall / interview trap:* Requires the stream processor to sustain batch-level throughput during replay and sufficient event-log retention; replaying years of events to rebuild a feature can take hours-to-days and compete with live processing — the "one codebase" saving has a hidden reprocessing tax.
+
+---
+
+**KL Divergence**
+
+*The problem:* PSI's binning-based approach can miss subtler distributional shape differences and doesn't have a rigorous information-theoretic grounding.
+
+*Core insight / definition:* An information-theoretic measure of how one probability distribution diverges from a reference distribution; asymmetric (KL(P‖Q) ≠ KL(Q‖P)) and sensitive to tail behavior.
+
+*Why it matters / pitfall / interview trap:* Less standardized as an "actionable alerting threshold" than PSI, so PSI remains the more common operational trigger even though KL is more theoretically rigorous.
+
+---
+
+**Kolmogorov-Smirnov (KS) Test**
+
+*The problem:* Comparing two continuous distributions (e.g., training vs. serving feature values) needs a nonparametric statistical test.
+
+*Core insight / definition:* The KS test measures the maximum distance between two empirical cumulative distribution functions (CDFs); a low p-value indicates the distributions differ significantly.
+
+*Why it matters / pitfall / interview trap:* At production scale (millions of rows), KS p-values become near-zero for practically meaningless shifts — threshold on the KS statistic itself (e.g., D > 0.1) rather than the p-value, or downsample before testing.
+
+---
+
+**Kubernetes (K8s) Model Serving**
+
+*The problem:* Model servers need the same orchestration, scaling, and health-checking discipline as any other production microservice, but with GPU-specific constraints.
+
+*Core insight / definition:* Deploy model servers as stateless, autoscaling pods with readiness (model loaded) and liveness (server responding) probes, and explicit GPU memory limits to prevent runtime eviction.
+
+*Why it matters / pitfall / interview trap:* GPU memory fragmentation across differently-sized models on shared hardware is a common failure mode when memory isn't explicitly bounded per model.
+
+---
+
+**Label Drift**
+
+*The problem:* Even when both inputs and the input-output relationship are stable, the base rate of the outcome itself can shift (e.g. fraud rate spikes seasonally), throwing off calibration.
+
+*Core insight / definition:* The marginal label distribution P(Y) shifts over time, independent of any change in P(X) or P(Y|X).
+
+*Why it matters / pitfall / interview trap:* Requires its own monitoring (tracking the label distribution directly) distinct from both data drift and concept drift monitoring.
+
+---
+
+**Lambda Architecture**
+
+*The problem:* Pure streaming systems can't cheaply guarantee exact historical correctness, especially for late-arriving data beyond the watermark.
+
+*Core insight / definition:* Lambda maintains two separate processing paths — a batch layer for high-accuracy historical data and a speed layer for real-time approximations — merging results at query time.
+
+*Why it matters / pitfall / interview trap:* Operationally expensive because both codebases must produce identical results for the same feature; most production systems are "Lambda-in-practice" even when they call themselves Kappa, because a batch backfill/correction job almost always exists.
+
+---
+
+**Latency Budget (Serving)**
+
+*The problem:* A fixed end-to-end SLA (e.g., 100ms) must be allocated across multiple serving stages (feature retrieval, inference, re-ranking, network) or the total will overrun.
+
+*Core insight / definition:* Each pipeline stage is assigned a portion of the total latency budget with alert thresholds (e.g., feature store read 5ms/alert>10ms, model inference 30ms/alert>50ms), and a buffer is reserved for variance.
+
+*Why it matters / pitfall / interview trap:* A design-before-the-model discipline — a complex model that blows the budget can't meet the SLA no matter how accurate; latency budgets must be set before model architecture is chosen.
+
+---
+
+**Latency Budget Analysis**
+
+*The problem:* Optimizing the wrong layer of a serving stack wastes engineering time when one component dominates the latency.
+
+*Core insight / definition:* Decompose end-to-end latency into components (feature fetch, model inference, pre/post-processing, network) with a target budget for each, leaving a safety margin to absorb tail spikes; profile before optimizing.
+
+*Why it matters / pitfall / interview trap:* A key trap is budgeting P99 as a sum of component P50s — tail latencies compound, so end-to-end P99 exceeds the naive sum of per-stage medians, since a request can hit multiple components' tails simultaneously.
+
+---
+
+**Latency Tiers**
+
+*The problem:* Not every ML use case needs sub-10ms responses, and building for the tightest latency tier everywhere wastes enormous engineering effort and cost.
+
+*Core insight / definition:* A spectrum from synchronous real-time (<10ms: ad bidding, fraud) through near-real-time (<100ms), soft real-time (<1s), near-real-time triggers (1s-1min), to batch (minutes-hours) — each tier trading cost multiplier (10-50x batch cost down to 1x) against freshness.
+
+*Why it matters / pitfall / interview trap:* Engineering cost scales super-linearly with tighter latency requirements — the jump from <100ms to <10ms additionally requires co-location, in-process execution, and precomputing everything; default to the loosest tier the product actually requires.
+
+---
+
+**Little's Law (Capacity Planning)**
+
+*The problem:* Estimating how many concurrent workers/threads are needed to hit a target throughput and latency isn't intuitive without a formal model.
+
+*Core insight / definition:* N = λ × W — the number of concurrent requests in the system equals arrival rate (target TPS) times average time in system (P99 latency); used with a headroom multiplier to size worker pools.
+
+*Why it matters / pitfall / interview trap:* A quick, defensible way to justify infrastructure sizing decisions in a system design interview rather than guessing a worker count.
+
+---
+
+**Materialization (Feature Store)**
+
+*The problem:* The offline store isn't queryable at online-inference latency, so features computed there must be pushed to a fast key-value store.
+
+*Core insight / definition:* Materialization is the scheduled (e.g., every 15 min or hourly) sync job that copies the latest offline-computed feature values into the online store for low-latency lookup.
+
+*Why it matters / pitfall / interview trap:* The online store holds only the latest value per entity — rolling-window features must be updated incrementally as events arrive (not recomputed), and that update logic must itself be idempotent to avoid double-counting replayed events.
+
+---
+
+**Materialized Views**
+
+*The problem:* Expensive aggregations recomputed repeatedly by many downstream pipelines waste compute.
+
+*Core insight / definition:* A materialized view stores pre-computed query results as a table, refreshed on a schedule (or automatically when the base table changes, e.g., Snowflake).
+
+*Why it matters / pitfall / interview trap:* Use for aggregations consumed by more than one pipeline/model — materializing single-use aggregations is wasted storage.
+
+---
+
+**Medallion Architecture (Bronze/Silver/Gold)**
+
+*The problem:* Mixing raw ingestion, cleaning, and business-level aggregation logic in one layer makes pipelines hard to reason about and reprocess safely.
+
+*Core insight / definition:* Bronze holds an immutable, append-only copy of raw source data; Silver is deduplicated, validated, type-cast, and PII-redacted; Gold contains business-level aggregates and feature tables ready for consumption.
+
+*Why it matters / pitfall / interview trap:* Never write back from a higher layer to a lower layer — Bronze is the immutable source of truth; if Silver logic is wrong, fix Silver and reprocess, never patch Bronze directly.
+
+---
+
+**Mixture of Experts**
+
+*The problem:* Different segments of requests may be best served by different specialized models, but naively running all models on all requests wastes compute.
+
+*Core insight / definition:* A gating model predicts per-expert weights for a given input, and the final prediction is a weighted combination of multiple "expert" models' outputs.
+
+*Why it matters / pitfall / interview trap:* The gating model can collapse — assigning all weight to a single expert if experts don't naturally specialize — requiring regularization to encourage load balancing across experts; also requires the expert models to already exist before the gate can be trained.
+
+---
+
+**MLflow**
+
+*The problem:* Without a central experiment tracker, "the model we deployed last month" is whatever's on someone's laptop, and results can't be reproduced or fairly compared.
+
+*Core insight / definition:* Open-source experiment tracking and model registry that logs parameters, metrics, and artifacts per run, and manages model lifecycle stage transitions (Staging → Production → Archived).
+
+*Why it matters / pitfall / interview trap:* The registry is only meaningful if stage promotion is gated by validation criteria — without automated gates, "Production" becomes a label humans set by hand with no evidence behind it.
+
+---
+
+**MLflow Model Registry**
+
+*The problem:* Without a central system of record, teams lose track of which model version is live, cannot reproduce past behavior, and cannot safely roll back a degraded model.
+
+*Core insight / definition:* MLflow tracks runs (params, metrics, artifacts), registers models under a name, and manages stage transitions (None → Staging → Production → Archived), enabling loading a specific version or the current production model by name.
+
+*Why it matters / pitfall / interview trap:* Setting `archive_existing_versions=True` on promotion (rather than deleting) is what makes instant automatic rollback possible.
+
+---
+
+**MLOps Maturity Levels**
+
+*The problem:* Organizations need a shared vocabulary for how automated their model development/deployment/monitoring process is.
+
+*Core insight / definition:* Level 0 = fully manual (notebook-triggered); Level 1 = automated training pipeline with manual deployment gate; Level 2 = fully automated end-to-end, including automatic retraining triggered by monitoring.
+
+*Why it matters / pitfall / interview trap:* A useful framework for scoping "how mature is this org's ML pipeline" in system design interviews without over-promising Level 2 automation where it isn't warranted.
+
+---
+
+**Model Card**
+
+*The problem:* Six months after deployment, a new engineer applying a model to a different use case has no documentation of its training population, failure modes, or bias analysis, and may misapply it.
+
+*Core insight / definition:* A standardized documentation artifact (model details, intended/out-of-scope use, training data provenance, performance by slice, fairness analysis, known limitations, ethical considerations, how-to-use) that travels with a model version.
+
+*Why it matters / pitfall / interview trap:* A model card written once and never updated is worse than none — different versions can have materially different fairness numbers, so the card must be versioned with the model; documented-but-unenforced out-of-scope uses need technical controls (schema/name checks), not just prose.
+
+---
+
+**Model Governance / Compliance**
+
+*The problem:* Regulated domains (credit, healthcare, insurance) require demonstrable process, not just a good model, to satisfy auditors and regulators.
+
+*Core insight / definition:* The overarching discipline of registry metadata, versioning, approval gates, audit trails, and regulatory compliance mechanics (GDPR/ECOA/FCRA/HIPAA/Solvency II) applied to ML model lifecycle.
+
+*Why it matters / pitfall / interview trap:* Training-serving skew becomes a governance problem specifically when it causes deployed behavior to diverge from what was evaluated/approved and nobody detects it until an audit or complaint — continuous PSI monitoring is what keeps the approval "valid."
+
+---
+
+**Model Governance vs Model Registry**
+
+*The problem:* Registry tooling (versioning, rollout mechanics) and governance (audit trails, approval gates, model cards, regulatory requirements) are related but distinct concerns.
+
+*Core insight / definition:* The registry is the hands-on system-of-record (MLflow API, canary YAML, champion/challenger code); governance is the compliance/process layer built on top of it.
+
+*Why it matters / pitfall / interview trap:* Interviewers may probe whether you can distinguish "can I roll back a model" (registry) from "was this model approved to deploy" (governance) — they require different controls.
+
+---
+
+**Model Lineage and Reproducibility**
+
+*The problem:* A model that regresses must be traceable to its exact data, code, environment, and hyperparameters to diagnose root cause without re-deriving everything from scratch.
+
+*Core insight / definition:* Full reproducibility requires pinning four things: code (Git commit hash), data (DVC hash or Delta/Iceberg snapshot ID), environment (Docker SHA or lockfile), and random seeds (numpy/torch/sklearn) — all logged in the registry (e.g., MLflow run metadata).
+
+*Why it matters / pitfall / interview trap:* A registry that tracks metrics/hyperparameters but not data versions cannot explain whether a regression came from a data pipeline change vs. a code/hyperparameter change.
+
+---
+
+**Model Registry**
+
+*The problem:* Without a single authoritative record of model artifacts, "what model is running and why" requires archaeology, and reproducibility/rollback become impossible.
+
+*Core insight / definition:* A system of record that tracks every model artifact's identity, training lineage, performance metrics, approval chain, and lifecycle stage (Draft → In Review → Approved → Deployed → Deprecated → Retired → Archived).
+
+*Why it matters / pitfall / interview trap:* Not archiving retired models fails financial audits that require reconstructing the decision environment at a point in time — "we deleted it" is not an acceptable answer; a registry without enforced gating gives false confidence.
+
+---
+
+**Multi-Armed Bandit**
+
+*The problem:* Fixed A/B traffic splits waste exposure on an inferior variant for the full test duration when rapid iteration matters.
+
+*Core insight / definition:* Instead of a static split, a bandit algorithm dynamically reallocates more traffic to better-performing variants as evidence accumulates.
+
+*Why it matters / pitfall / interview trap:* Common in ads/recommendations where the cost of exposing users to the inferior variant is measurable and iteration speed matters more than clean statistical inference.
+
+---
+
+**Multi-Objective Optimization / Pareto Tradeoffs**
+
+*The problem:* Production ML systems must simultaneously balance competing objectives (precision vs recall, latency vs accuracy, cost vs throughput, fairness vs accuracy) that can't all be maximized together.
+
+*Core insight / definition:* Formalize the tradeoff either via scalarization (weighted sum of objectives — simple but arbitrary weights, doesn't find all Pareto-optimal points) or constrained optimization (maximize one objective subject to hard constraints on the others — generally more practical).
+
+*Why it matters / pitfall / interview trap:* Serving policies can vary by segment (contextual model switch: fast model for low-stakes, slow model for high-stakes) — e.g. fraud detection routes high-value transactions to a recall-maximizing threshold and micro-transactions to a precision-maximizing one.
+
+---
+
+**Multi-Stage Retrieval-Ranking**
+
+*The problem:* Scoring millions of candidate items with a heavy, accurate model within a tight latency budget (e.g., 100ms) is computationally infeasible.
+
+*Core insight / definition:* Stage 1 (retrieval) uses a fast, approximate, recall-oriented method (ANN, BM25, collaborative filtering) to shrink millions of items to hundreds; Stage 2 (ranking) applies a heavier, precision-oriented model (GBT, DNN, cross-encoder) only to the retrieved candidates.
+
+*Why it matters / pitfall / interview trap:* Optimizing the ranker without measuring retrieval recall is wasted effort — if retrieval misses the best item, no amount of ranking improvement recovers it; also a common feedback-loop trap where the ranker only ever trains on items retrieval already surfaced.
+
+---
+
+**Multilabel Classification**
+
+*The problem:* Real-world examples can genuinely belong to multiple non-exclusive categories at once (e.g. a document with multiple topics), which standard multiclass classification can't represent.
+
+*Core insight / definition:* Predict multiple non-mutually-exclusive labels per example rather than a single label from a mutually exclusive set.
+
+*Why it matters / pitfall / interview trap:* Standard accuracy metrics don't apply cleanly; requires per-label thresholding and evaluation via per-label precision/recall or micro/macro F1.
+
+---
+
+**Multimodal Input**
+
+*The problem:* A single modality (just text, or just tabular data) is sometimes insufficient signal for a prediction that depends on multiple data types (e.g. product image + description + price).
+
+*Core insight / definition:* Combine heterogeneous input types into a single model, typically encoding each modality separately (CNN for image, embedding for text) before concatenating/fusing into a shared head.
+
+*Why it matters / pitfall / interview trap:* Harder to debug which modality is driving a given prediction, and adds preprocessing/compute overhead for each modality-specific encoder.
+
+---
+
+**Multistage Training**
+
+*The problem:* Training end-to-end from scratch on a scarce labeled target dataset wastes the availability of larger, related datasets.
+
+*Core insight / definition:* Break training into sequential stages (e.g. pretrain broadly, then fine-tune on the target task, or coarse-to-fine curriculum on the same dataset) rather than a single training pass.
+
+*Why it matters / pitfall / interview trap:* Adds pipeline complexity (multiple training jobs, checkpoint management between stages); overlaps conceptually with transfer learning but can also apply within a single dataset.
+
+---
+
+**Neutral Class**
+
+*The problem:* Forcing a binary decision on genuinely ambiguous examples produces confidently wrong answers rather than flagging uncertainty.
+
+*Core insight / definition:* Add an explicit "neutral/uncertain" output class so ambiguous inputs can be routed to human review rather than forced into a two-way decision.
+
+*Why it matters / pitfall / interview trap:* Downstream systems must handle a three-way decision instead of two-way; pairs naturally with human-in-the-loop review queues.
+
+---
+
+**Online Inference (Real-Time Inference)**
+
+*The problem:* Some use cases (fraud, ad ranking) cannot tolerate precomputed, stale predictions — they need fresh computation per request.
+
+*Core insight / definition:* Predictions are computed on each incoming request within a strict latency SLA (typically <100ms), limiting the feature space to what's computable in that time budget, but guaranteeing freshness.
+
+*Why it matters / pitfall / interview trap:* More expensive and more brittle (a hard runtime dependency) than batch — only justified when freshness genuinely drives the metric; the hybrid pattern (precompute embeddings in batch, combine with real-time context features online) is the common middle ground.
+
+---
+
+**Online Learning (Incremental Learning)**
+
+*The problem:* Fraud patterns and other distributions can shift within months, and retraining from scratch on a fixed schedule is expensive and lags behind the shift.
+
+*Core insight / definition:* Update the model incrementally as each new example arrives (e.g. `partial_fit`) rather than treating the training set as fixed and periodically retraining from scratch.
+
+*Why it matters / pitfall / interview trap:* A high learning rate causes catastrophic forgetting — the model chases the latest distribution and loses older patterns; mitigate with a smaller learning rate and a replay buffer of historical examples.
+
+---
+
+**Online vs Offline Learning**
+
+*The problem:* The right training cadence depends on how fast the data distribution shifts and how costly stale predictions are — one size doesn't fit all.
+
+*Core insight / definition:* Offline (batch) learning trains on a fixed historical snapshot and deploys periodically — simple, auditable, reproducible; online learning updates continuously and adapts faster but sacrifices some of that simplicity and auditability.
+
+*Why it matters / pitfall / interview trap:* Use offline when distribution shift is slow and audit requirements are strict; use online when adaptation speed matters more (e.g. adversarial fraud patterns) — the choice is a deliberate tradeoff, not a default.
+
+---
+
+**Online/Offline Store Split**
+
+*The problem:* No single storage technology is simultaneously optimized for large historical scans (training) and sub-10ms key lookups (serving).
+
+*Core insight / definition:* The offline store (warehouse/lake, e.g., Parquet/Delta) serves large historical scans for training-set construction; the online store (Redis/DynamoDB) serves low-latency key-value lookups for real-time inference — both populated from the same shared feature definition.
+
+*Why it matters / pitfall / interview trap:* The split is what makes train-serve skew structurally hard to introduce, as long as both are genuinely fed by one definition rather than two independently-maintained code paths.
+
+---
+
+**ONNX / TensorRT**
+
+*The problem:* Native PyTorch/TensorFlow inference isn't optimized for the target serving hardware, leaving latency on the table.
+
+*Core insight / definition:* ONNX is a portable model interchange format enabling graph-level optimizations across frameworks; TensorRT (NVIDIA) further compiles/optimizes for specific GPU hardware, typically yielding 3-5x speedup over plain ONNX via kernel fusion and graph optimization.
+
+*Why it matters / pitfall / interview trap:* A concrete, cheap-to-apply lever in the "reduce model latency" optimization ladder, usually applied after quantization and before distillation.
+
+---
+
+**Page-Hinkley Test**
+
+*The problem:* Detecting a persistent shift (not just noise) in a streaming error signal requires accumulating evidence over time rather than reacting to a single bad observation.
+
+*Core insight / definition:* A sequential change-point detection test that triggers when the cumulative deviation from a reference mean exceeds a threshold.
+
+*Why it matters / pitfall / interview trap:* One of the three standard online/streaming drift detectors alongside ADWIN and DDM, suited to continuous/incremental learning pipelines rather than batch-retrained systems.
+
+---
+
+**PagedAttention / KV Cache**
+
+*The problem:* LLM decode-stage latency (TPOT) is bottlenecked by loading the KV cache and weights repeatedly; a full KV cache also blocks new requests from batching efficiently.
+
+*Core insight / definition:* PagedAttention manages KV cache memory in non-contiguous "pages" (like OS virtual memory) to reduce fragmentation and allow larger effective batch sizes during decode; KV caching itself avoids recomputing key/value projections for already-generated tokens.
+
+*Why it matters / pitfall / interview trap:* Named as a fix specifically for TPOT (decode) bottlenecks, not TTFT (prefill) bottlenecks — conflating the two stages' fixes is a common trap.
+
+---
+
+**Partition Pruning**
+
+*The problem:* Scanning an entire multi-year partitioned dataset for a single day's query wastes enormous compute and cost.
+
+*Core insight / definition:* When data is stored in directory partitions (e.g., `event_date=2024-01-15/`), a query filtering on the partition column causes the engine to skip listing/reading entire prefixes entirely — a higher-level optimization than predicate pushdown, which operates within a single file.
+
+*Why it matters / pitfall / interview trap:* The single highest-impact cost optimization named in the docs — a 3-year daily-partitioned table scanned without a date filter reads ~1095x more data than needed.
+
+---
+
+**Point-in-Time Correctness**
+
+*The problem:* Joining a training label to a feature's current value instead of its value at the label's timestamp leaks future information into training, inflating offline metrics that then collapse in production.
+
+*Core insight / definition:* Each label must be joined to feature values exactly as they existed at that label's timestamp — an "as-of" join (`feature_timestamp <= label_timestamp`, taking the most recent qualifying row) — rather than a naive `JOIN ON entity_id`.
+
+*Why it matters / pitfall / interview trap:* Naive point-in-time joins are O(n×m) at scale; production systems use sorted merge joins, snapshot materialization with binary search, or native `AS OF TIMESTAMP` support in Iceberg/Delta. Subtler hazards survive the naive fix too: late-arriving/corrected data stamped with an early timestamp, aggregation windows straddling the cutoff, and slowly-changing dimensions where the "current" row overwrote history.
+
+---
+
+**Predicate Pushdown**
+
+*The problem:* Reading a huge Parquet table to find rows matching a filter is wasteful if the engine reads every row group regardless of the filter.
+
+*Core insight / definition:* Parquet stores min/max statistics per row group/column chunk; when a filter is applied, the engine checks these stats and skips row groups that cannot contain matching rows, avoiding unnecessary reads.
+
+*Why it matters / pitfall / interview trap:* Fails silently on computed/derived filter expressions (e.g., `YEAR(event_time) = 2024`) — always filter on the raw partition column, not a derived expression, or pushdown quietly stops working.
+
+---
+
+**PSI (Population Stability Index)**
+
+*The problem:* Teams need a simple, standardized, single-number trigger to decide when a feature's distribution has shifted enough to warrant investigation or retraining.
+
+*Core insight / definition:* A statistical measure comparing a feature's distribution between a baseline (training) window and a current (serving) window, computed by binning and summing `(actual% - expected%) × ln(actual%/expected%)` across bins.
+
+*Why it matters / pitfall / interview trap:* Industry-standard thresholds: <0.1 no significant shift, 0.1-0.2/0.25 moderate (investigate), >0.2/0.25 significant (retrain); sensitive to binning choice and doesn't diagnose *why* a distribution shifted, only that it did.
+
+---
+
+**Quantization**
+
+*The problem:* Full-precision (FP32) inference uses 4 bytes per weight, which saturates memory bandwidth and limits throughput on both CPU and GPU at scale.
+
+*Core insight / definition:* Map FP32 weights/activations to lower-precision integer or half-precision representations (INT8: `x_int8 = round(x_fp32/scale) + zero_point`, or FP16) calibrated on a representative dataset, cutting compute and memory cost.
+
+*Why it matters / pitfall / interview trap:* INT8 typically gives 2-4x speedup for <1% accuracy loss on well-calibrated models but degrades more sharply on models with wide-dynamic-range activations (large embedding tables, high-variance attention); FP16 is often the better GPU tradeoff; always re-evaluate on a calibration set post-quantization, and never optimize past the point where lost accuracy costs more than the compute saved.
+
+---
+
+**Quantization (Embeddings, Scalar/Product)**
+
+*The problem:* Storing FP32 embeddings for hundreds of millions of items consumes excessive memory in the ANN index.
+
+*Core insight / definition:* Scalar quantization (FP32→INT8) reduces memory 4x with minimal quality loss by linearly mapping the float range to 256 integer buckets; product quantization (used in IVF-PQ) achieves far greater compression by quantizing sub-vectors independently.
+
+*Why it matters / pitfall / interview trap:* Dequantization requires storing the scale/min_val used during quantization — losing that breaks reconstruction.
+
+---
+
+**Quantization (Model)**
+
+*The problem:* Memory bandwidth, not FLOPs, is usually the true inference bottleneck, and full-precision weights waste both memory and bandwidth.
+
+*Core insight / definition:* Quantization replaces FP32 weights with lower-precision int8/int4 representations; post-training quantization (PTQ) applies this to a pretrained model without retraining (fast, needs calibration data), while quantization-aware training (QAT) simulates quantization during training for better accuracy at aggressive bit-widths.
+
+*Why it matters / pitfall / interview trap:* Quantizing without a calibration dataset can cause significant accuracy drops; typically the cheapest first optimization step (<1% accuracy cost for int8) before pruning or distillation.
+
+---
+
+**Rebalancing (Class Weighting / SMOTE / Threshold Adjustment)**
+
+*The problem:* Severe class imbalance can prevent a model from learning the minority class pattern at all, or can leave a well-separating model using a wrong default decision threshold.
+
+*Core insight / definition:* A family of techniques to address imbalance — reweighting the loss function by class, synthetically oversampling the minority class (SMOTE), or adjusting the decision threshold post-training without touching the data or loss.
+
+*Why it matters / pitfall / interview trap:* Threshold adjustment is the cheapest first lever (no retraining) and should be tried before resampling; SMOTE can generate unrealistic synthetic examples in high-dimensional space; always evaluate on the natural, non-rebalanced class distribution.
+
+---
+
+**Redis / DynamoDB (Online Feature Store Backends)**
+
+*The problem:* Inference needs sub-10ms feature lookups that a warehouse or data lake cannot provide.
+
+*Core insight / definition:* Redis and DynamoDB serve as low-latency key-value backends for the online feature store, with sub-5ms p99 latency achievable in-region; DynamoDB is commonly chosen for multi-region, high-availability serving (trading consistency for latency via `ConsistentRead=False`).
+
+*Why it matters / pitfall / interview trap:* Interviewers probe the specific latency numbers (Redis ~0.5-2ms, DynamoDB DAX ~1-5ms, Bigtable ~3-10ms) to test whether you can justify a technology choice against an SLA, not just name-drop it.
+
+---
+
+**Reframing**
+
+*The problem:* Forcing an unnecessarily hard problem formulation (e.g. exact regression) when the downstream business decision only needs a coarser answer wastes model capacity and complicates evaluation.
+
+*Core insight / definition:* Change the problem type (e.g. regression → bucketed classification) when the reframed version is easier to model and better matches the actual business decision.
+
+*Why it matters / pitfall / interview trap:* Loses granularity within a bucket, and bucket boundaries become an added design decision; directly follows the Problem Framing principle of translating the business decision into the ML task, not the reverse.
+
+---
+
+**Regularization (L1/L2/Dropout/Early Stopping)**
+
+*The problem:* Models with enough capacity can overfit to training data noise, hurting generalization to new data.
+
+*Core insight / definition:* Techniques constraining model complexity — L1 penalizes weight magnitude and induces sparsity (implicit feature selection), L2 smoothly penalizes weight magnitude, dropout randomly zeroes activations during training, early stopping halts training when validation loss stops improving.
+
+*Why it matters / pitfall / interview trap:* Always tune regularization strength against a held-out validation set, never the test set; over-aggressive regularization underfits — each technique has a different natural fit (L1 for sparsity, dropout for neural nets, early stopping as the lowest-effort universal default).
+
+---
+
+**Repartitioning (Spark)**
+
+*The problem:* Joining two large tables without co-locating matching keys forces an expensive shuffle at join time.
+
+*Core insight / definition:* Explicitly repartitioning both tables on the join key beforehand (`df.repartition(n, "key")`) co-locates matching rows on the same executor, reducing shuffle cost during the subsequent join.
+
+*Why it matters / pitfall / interview trap:* A standard tactical fix cited for reducing training pipeline runtime/cost in interview answers about Spark job optimization.
+
+---
+
+**Result Caching**
+
+*The problem:* Recomputing an inference from scratch for repeated or near-identical requests wastes compute when the underlying answer hasn't meaningfully changed.
+
+*Core insight / definition:* Cache inference results keyed by a hash of input features with a TTL, serving cache hits at near-zero cost instead of recomputing.
+
+*Why it matters / pitfall / interview trap:* Not viable for scores that must reflect the absolute latest state (e.g. fraud — explicitly "do NOT cache"); TTL choice trades staleness against hit rate (5min TTL ≈ 40% hit rate for personalized feed, 1h TTL ≈ 70% for popular search).
+
+---
+
+**Retraining Triggers**
+
+*The problem:* Deciding when to retrain a model needs explicit, defensible criteria rather than ad hoc judgment calls.
+
+*Core insight / definition:* Common triggers: scheduled (every N days regardless of drift, baseline hygiene), performance-based (AUC drop > threshold), drift-based (PSI > 0.25 on top features), volume-based (N new labeled samples accumulated), event-based (major product/market change).
+
+*Why it matters / pitfall / interview trap:* "Retrain immediately" on any drift signal is a trap — data drift with stable P(Y|X) may not need retraining at all; diagnose drift type first.
+
+---
+
+**Rollback (Automated Rollback Trigger)**
+
+*The problem:* When a deployed model's metrics regress, deciding whether/when to roll back under pressure becomes a political negotiation if criteria weren't agreed in advance.
+
+*Core insight / definition:* A programmatic check comparing current metrics (accuracy, error rate, P99 latency) against pre-agreed thresholds, automatically firing a rollback and alert if any is violated — decision criteria are set at approval time (Gate 4), not during the incident.
+
+*Why it matters / pitfall / interview trap:* Automated rollback without root-cause analysis can create rollback loops (deploy → detected bad → rollback → redeploy → repeat) — add a circuit breaker requiring human approval after repeated automated rollbacks; also, a single-reading trigger without debounce can fire on a legitimate one-off event, and rollback assumes the old champion is still valid, which is false under genuine drift rather than a bad deploy.
+
+---
+
+**Saga Pattern**
+
+*The problem:* A multi-step distributed transaction (e.g. write to Redis, then publish to Kafka) has no single ACID boundary, so a mid-sequence failure leaves things inconsistent.
+
+*Core insight / definition:* Execute the steps sequentially with a defined compensating action for each step; if a later step fails, execute the compensations for the completed steps to unwind the transaction.
+
+*Why it matters / pitfall / interview trap:* Avoids needing a distributed transaction coordinator but adds compensation-logic complexity and leaves a window of inconsistency during rollback.
+
+---
+
+**Salting (Spark)**
+
+*The problem:* A single hot key (e.g., one user with 10M events vs. 100 for others) creates a skewed partition that dominates job runtime.
+
+*Core insight / definition:* Salting appends a random suffix to the skewed key (e.g., `user_id_salted = user_id + "_" + (hash % N)`), splitting the hot key's rows across multiple partitions to balance load.
+
+*Why it matters / pitfall / interview trap:* The standard fix for Spark data skew alongside the built-in `SKEW_JOIN` hint — expect this as a direct interview answer to "how do you fix a straggler task."
+
+---
+
+**Schema Evolution**
+
+*The problem:* Adding, renaming, or changing feature/table columns over time must not silently break existing readers or corrupt historical data.
+
+*Core insight / definition:* Table formats differ in evolution support: Delta Lake supports additive + rename changes (with `mergeSchema=true`); Iceberg supports full evolution (add, rename, drop, type-widen) without rewriting data, thanks to its manifest-based metadata.
+
+*Why it matters / pitfall / interview trap:* Distinguish additive/safe changes (new nullable columns) from breaking changes (renames, type changes, dropped required columns) — only the latter should block a pipeline and require a contract version bump.
+
+---
+
+**Semantic Versioning for Models (MAJOR.MINOR.PATCH)**
+
+*The problem:* A "small" model update can silently break a downstream consumer's integration if there's no signal distinguishing compatible from breaking changes.
+
+*Core insight / definition:* Version model artifacts with the same MAJOR (breaking change: output schema, prediction semantics, or required-input change)/MINOR (retrain, same interface)/PATCH (threshold/config tweak) semantics as software versioning.
+
+*Why it matters / pitfall / interview trap:* A MAJOR bump should trigger the full approval-gate process; skipping a MAJOR bump for what's actually a breaking change causes silent downstream failures because callers built against the old semantics.
+
+---
+
+**Shadow Deployment**
+
+*The problem:* A high-stakes model (credit, fraud, medical) needs production-traffic validation before it can influence a single real decision, since even brief bad exposure is unacceptable.
+
+*Core insight / definition:* Run the new model in parallel on real production traffic, firing it asynchronously (fire-and-forget) alongside the production model, logging both outputs for offline comparison, but never serving or acting on the new model's outputs.
+
+*Why it matters / pitfall / interview trap:* Doubles serving cost and can't measure actual user behavioral response; shadow and canary test different things — shadow tests model quality with zero consequence, canary tests that serving infrastructure handles real traffic and consequences correctly, so skipping canary after shadow is a mistake; must run on isolated compute so a slow challenger doesn't degrade the champion's latency.
+
+---
+
+**Shuffle Partitions Tuning**
+
+*The problem:* Spark's default 200 shuffle partitions is rarely correctly sized for the actual data volume, causing either too much per-partition data or excessive small-task overhead.
+
+*Core insight / definition:* Tune `spark.sql.shuffle.partitions` toward roughly 128MB per partition given the dataset size, rather than leaving the default.
+
+*Why it matters / pitfall / interview trap:* A frequently-missed tuning knob — interviewers may ask "why is my Spark job slow" expecting this as one candidate answer alongside skew and broadcast joins.
+
+---
+
+**Skew Detection (Training-Serving Skew)**
+
+*The problem:* A model can score 94% offline and 82% in production with no code change, because the features it sees at inference time differ from what it saw in training.
+
+*Core insight / definition:* Applying PSI/KL/KS statistics specifically to compare training-time vs serving-time feature distributions (or comparing logged served features to offline-recomputed values), catching skew before it manifests as a delayed accuracy/business-metric drop.
+
+*Why it matters / pitfall / interview trap:* Root causes include different preprocessing code (Python/pandas vs Java/SQL), feature computation timing differences (batch snapshot vs live incomplete windows), missing features at serving time, and training-time data leakage; the fix (shared feature pipeline) addresses code divergence but not genuine distribution shift — those must still be monitored separately; even a shared pipeline can diverge at runtime due to different freshness/null-handling/timeout behavior in each environment.
+
+---
+
+**Slicing (Sliced Evaluation)**
+
+*The problem:* A good aggregate metric can hide serious subgroup failures — a model can look great overall while failing badly on a specific demographic, device type, or geography.
+
+*Core insight / definition:* Evaluate model performance on meaningful subpopulations/segments, not just the aggregate score, requiring meaningful slices to be defined up front.
+
+*Why it matters / pitfall / interview trap:* Explicitly flagged as a common MLOps failure mode ("aggregate metric hides subgroup failure"); pairs with fairness evaluation when slices are defined by protected attributes.
+
+---
+
+**Spot/Preemptible Instances**
+
+*The problem:* On-demand cloud compute for training is expensive, but training jobs are often fault-tolerant enough to survive interruption if designed for it.
+
+*Core insight / definition:* Use interruptible cloud compute (60-90% discount) for fault-tolerant training jobs, combined with frequent checkpointing to resume progress after preemption.
+
+*Why it matters / pitfall / interview trap:* Requires fault-tolerant/checkpointed training code or interrupted progress is lost; combine with reserved instances for a hybrid strategy (~25-40% cost vs on-demand baseline); use on-demand only for short, critical, interruption-intolerant jobs.
+
+---
+
+**Stream Processing (Kafka, Flink, Spark Streaming, Kafka Streams)**
+
+*The problem:* Batch pipelines are blind to events from the last few hours or minutes, but fraud/recommendation decisions need to react to a continuous flow of events within milliseconds.
+
+*Core insight / definition:* A layered architecture — event ingestion (Kafka), stream processing (Flink/Spark Streaming computing windowed aggregations), feature storage (Redis/Bigtable), model inference — replacing scheduled batch jobs with continuously running computation.
+
+*Why it matters / pitfall / interview trap:* Delivery semantics (at-most-once/at-least-once/exactly-once) and partitioning strategy (which key determines ordering/co-location) are the two design decisions that determine correctness and hot-partition risk; salted partitioning (`key + random_suffix % N`) fixes hot partitions caused by a single high-volume entity.
+
+---
+
+**Streaming (Kafka + Model) Serving**
+
+*The problem:* Some workloads are naturally event-driven (continuous fraud velocity signals) rather than discrete request/response interactions.
+
+*Core insight / definition:* The model consumes events off a Kafka stream continuously and emits predictions as new events, rather than responding synchronously to individual requests.
+
+*Why it matters / pitfall / interview trap:* Adds architectural complexity (partitioning, consumer groups, delivery semantics, watermarks); the delivery-semantics tradeoff (at-least-once idempotent writes as default, exactly-once for financial ledgers at 2-3x latency cost) is the key design decision.
+
+---
+
+**Streaming Backfill**
+
+*The problem:* Deploying a new streaming feature means training has no historical values for it, since it never ran in the past.
+
+*Core insight / definition:* Historical values are generated by replaying raw events (from Kafka topic retention or an S3 archive) through the same streaming job in batch mode, writing outputs with original event timestamps (not backfill execution time) and matching production's watermark logic.
+
+*Why it matters / pitfall / interview trap:* Must pass online/offline parity checks before use — a mismatch in watermark/window handling between backfill and live streaming reintroduces exactly the train-serve skew the backfill was meant to avoid.
+
+---
+
+**Streaming Feature Pipeline**
+
+*The problem:* Features that must reflect current session behavior (e.g. velocity, in-session clicks) can't wait for a nightly batch job.
+
+*Core insight / definition:* A continuous computation path — events flow through Kafka into a stream processor (Flink/Spark) computing rolling counts/aggregates, writing results to a low-latency store (Redis) that the model server reads at inference time.
+
+*Why it matters / pitfall / interview trap:* Streaming and offline batch feature computation often diverge in aggregation windows and late-event handling, reintroducing training-serving skew through the pipeline itself rather than through code differences.
+
+---
+
+**Thompson Sampling**
+
+*See Bandits (Multi-Armed Bandits, Thompson Sampling) above — Thompson Sampling is the specific Bayesian posterior-sampling algorithm most commonly cited for bandit-based traffic allocation.*
+
+---
+
+**TorchScript / ONNX Export**
+
+*The problem:* Python's interpreter overhead on every operation, and its inability to be efficiently parallelized across threads, adds non-trivial latency to model forward passes.
+
+*Core insight / definition:* Compile the model computation graph to a static form that bypasses the Python interpreter — TorchScript for PyTorch-native static compilation, ONNX as a cross-framework interchange format enabling optimized runtimes (ONNX Runtime, TensorRT).
+
+*Why it matters / pitfall / interview trap:* TorchScript requires all code paths to be statically typed — dynamic control flow depending on tensor values needs explicit annotation; a TensorRT engine compiled for one GPU architecture (e.g. A100) won't run on a different one (e.g. T4).
+
+---
+
+**Train-Serve Skew (Training-Serving Skew)**
+
+*The problem:* Training computes a feature one way (batch SQL over historical data); serving computes it another way (a live function on a request) — any discrepancy silently degrades production performance while offline metrics look fine.
+
+*Core insight / definition:* Skew arises from different code paths, different data freshness, leakage during training, or different normalization statistics between train and serve; a feature store prevents it structurally by using one shared definition for both paths.
+
+*Why it matters / pitfall / interview trap:* Called the "#1 silent killer" in production ML — nothing errors, so it's invisible until someone notices a business-metric drop; "we tested offline, it worked" is not evidence against skew, since offline AUC never measures whether serving features match training features.
+
+---
+
+**Training-Serving Skew**
+
+*See Skew Detection above — the general phenomenon where the features/values a model saw during training differ from what it receives at inference time, causing silent, gradual accuracy degradation with no code change.*
+
+---
+
+**Transform Pattern**
+
+*The problem:* If preprocessing logic is reimplemented separately for training and serving, the two implementations will eventually diverge, reintroducing training-serving skew.
+
+*Core insight / definition:* Encapsulate feature transformation logic (scaling, encoding) so it travels with the model as a single serialized artifact, guaranteeing identical behavior between training and serving.
+
+*Why it matters / pitfall / interview trap:* Fit scalers/encoders only on training data, never on validation/test/serving data — this is the same principle as data leakage prevention applied to preprocessing.
+
+---
+
+**Trino / Presto**
+
+*The problem:* Ad-hoc analysis or feature backfilling often needs to join across heterogeneous storage systems (data lake, warehouse, live database) without moving data.
+
+*Core insight / definition:* Trino (open-source fork of Presto) is a federated query engine that queries Hive, Iceberg, Delta Lake, S3, PostgreSQL, Kafka, and other connectors in a single query, without an ETL step to consolidate data first.
+
+*Why it matters / pitfall / interview trap:* Not suited for sub-second latency queries (per-query overhead ~200ms) or streaming reads — a common "wrong tool" trap if proposed for online serving.
+
+---
+
+**Triton Inference Server**
+
+*The problem:* Serving multiple models efficiently on shared GPU hardware at high throughput requires dynamic batching, concurrent model execution, and per-model resource isolation that a hand-rolled server doesn't provide.
+
+*Core insight / definition:* A multi-framework, GPU-oriented serving platform supporting dynamic batching (configurable `preferred_batch_size` and `max_queue_delay_microseconds`) and concurrent execution of multiple models/instances.
+
+*Why it matters / pitfall / interview trap:* Without explicit per-model GPU memory fraction configuration, a large model can OOM the node and evict other co-located models.
+
+---
+
+**Two-Stage Retrieval-Ranking (see Multi-Stage Retrieval-Ranking)**
+
+*The problem:* See Multi-Stage Retrieval-Ranking.
+
+*Core insight / definition:* See Multi-Stage Retrieval-Ranking — retrieval trades precision for speed via approximate methods (ANN, BM25), ranking trades speed for precision by scoring only the retrieved candidates with a heavier model.
+
+*Why it matters / pitfall / interview trap:* The system as a whole achieves near-ranker precision at near-retrieval latency because expensive computation runs over hundreds of candidates, not millions — a key phrase for articulating the tradeoff cleanly in interviews.
+
+---
+
+**Voronoi Cell Partitioning (see IVF Index)**
+
+*The problem:* See IVF (Inverted File) Index.
+
+*Core insight / definition:* IVF's clustering step partitions the embedding space into Voronoi cells, where each cell is represented by a centroid and holds the vectors nearest to it.
+
+*Why it matters / pitfall / interview trap:* `nlist` (number of cells) is typically chosen near √N; too few cells makes each cell large (slow scan), too many increases centroid-search overhead.
+
+---
+
+**W&B (Weights & Biases)**
+
+*The problem:* Deep learning teams need richer experiment visualization (gradients, media, 3D) and built-in hyperparameter search that generic tracking tools don't provide well.
+
+*Core insight / definition:* An experiment tracking and model registry platform oriented at deep learning teams, with native PyTorch/HuggingFace integration and built-in Bayesian hyperparameter sweeps.
+
+*Why it matters / pitfall / interview trap:* No built-in serving support — must be paired with a separate serving layer, unlike MLflow or cloud-native registries.
+
+---
+
+**Watermarks (Late Data Handling)**
+
+*The problem:* Network jitter causes events to arrive out of order; a window that closes exactly at its nominal end time will silently drop legitimately late events.
+
+*Core insight / definition:* A declared tolerance (`event_time - INTERVAL`) defining how long a window stays open past its nominal end to accept late-arriving events before finally emitting/closing.
+
+*Why it matters / pitfall / interview trap:* Aggressive watermarks (e.g. 10s) give low latency but drop more late events; conservative watermarks (e.g. 5min) catch more late events at the cost of latency — fraud favors aggressive, billing favors conservative; a common trap is using processing-time windows instead of event-time windows, which misattributes when an event "occurred."
+
+---
+
+**Z-Ordering**
+
+*The problem:* Even with partition pruning, queries filtering on multiple non-partition columns still scan many files because rows with similar values in those columns are scattered across files.
+
+*Core insight / definition:* Z-ordering (Delta Lake) is a multi-dimensional locality optimization that rewrites files so rows with similar values in specified columns are co-located, improving predicate pushdown effectiveness for those columns.
+
+*Why it matters / pitfall / interview trap:* After Z-ordering by commonly-filtered columns, queries can skip ~90% of files — a Databricks-specific feature (Auto Optimize) not available in the open Delta spec, which factors into the Delta-vs-Iceberg choice.
 
 ---
