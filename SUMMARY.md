@@ -41,6 +41,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Data](02-data/README.md)
 * [Python and Data Tooling](02-data/01-python-and-data-tooling.md)
 * [Data Processing and EDA](02-data/02-data-processing-and-eda.md)
+* [SQL for Interviews](02-data/03-sql-for-interviews.md)
 * [Feature Engineering](02-data/04-feature-engineering.md)
 * [Feature Selection](02-data/05-feature-selection.md)
 * [Imbalanced Data](02-data/06-imbalanced-data.md)
