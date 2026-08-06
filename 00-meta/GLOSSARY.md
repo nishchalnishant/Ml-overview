@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale, 13-production-ml done. Remaining: 14-responsible-ai through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale, 13-production-ml, 14-responsible-ai done. Remaining: 15-system-design through 18-resources.
 
 ---
 
@@ -14700,5 +14700,787 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* Z-ordering (Delta Lake) is a multi-dimensional locality optimization that rewrites files so rows with similar values in specified columns are co-located, improving predicate pushdown effectiveness for those columns.
 
 *Why it matters / pitfall / interview trap:* After Z-ordering by commonly-filtered columns, queries can skip ~90% of files — a Databricks-specific feature (Auto Optimize) not available in the open Delta spec, which factors into the Delta-vs-Iceberg choice.
+
+---
+
+## 14-responsible-ai
+
+**Adversarial Debiasing**
+
+*The problem:* Standard training can leave protected-attribute information recoverable from a model's learned representations, which then leaks into predictions via proxy correlations.
+
+*Core insight / definition:* An in-processing fairness technique where a predictor minimizes task loss while an adversary network simultaneously tries to predict the protected attribute from the predictor's internal representation. The predictor is penalized whenever the adversary succeeds, pushing it toward representations predictive of the target but not of the protected attribute.
+
+*Why it matters / pitfall / interview trap:* It only removes linear separability of the protected attribute by default; nonlinear relationships can persist, and adversarial training is unstable and costs downstream accuracy — not a silver bullet.
+
+---
+
+**Adversarial Examples**
+
+*The problem:* A model with high test accuracy can misclassify an input that looks unchanged to a human, showing standard accuracy is an average-case metric blind to worst-case behavior.
+
+*Core insight / definition:* Inputs perturbed (often imperceptibly) to cause misclassification. They exist because training minimizes average loss over the data distribution and says nothing about loss at nearby points; in high dimensions, vast unvisited space surrounds every training point.
+
+*Why it matters / pitfall / interview trap:* They are not overfitting (they occur in models that generalize well) and are not random noise — they exploit real, predictive-but-non-robust features; "the model didn't learn the true function" is true but vacuous as an explanation of their systematic, directed nature.
+
+---
+
+**Adversarial Training**
+
+*The problem:* Standard empirical risk minimization (ERM) offers no protection against worst-case perturbations of the input.
+
+*Core insight / definition:* Replaces ERM with a min-max objective: minimize expected loss under the worst-case perturbation within an ε-ball, typically implemented by generating PGD examples each batch and training on those.
+
+*Why it matters / pitfall / interview trap:* The only defense that reliably works, but costs 5–10× standard training (full PGD loop per step) and induces a real, apparently fundamental robustness/accuracy tradeoff (e.g., ~95% clean/~0% robust standard vs. ~87% clean/~50% robust adversarially trained on CIFAR-10). Note the term is overloaded — same name is used for a fairness debiasing technique with a different goal.
+
+---
+
+**Anonymization (k-anonymity, l-diversity, t-closeness)**
+
+*The problem:* Removing direct identifiers from a dataset is often assumed to make it private, but this assumption is frequently false.
+
+*Core insight / definition:* Formal anonymization requires guarantees like k-anonymity (each record indistinguishable from at least k−1 others), l-diversity, t-closeness, or differential privacy — not simply deleting a name column.
+
+*Why it matters / pitfall / interview trap:* "We removed the name column" is not anonymization; re-identification via quasi-identifier combinations (e.g., the Netflix Prize dataset) remains possible without formal guarantees.
+
+---
+
+**Automated / LLM-Based Red-Teaming**
+
+*The problem:* Manual red-teaming does not scale to the probe volume needed for a tight confidence interval on attack-success rate.
+
+*Core insight / definition:* A separate model generates attacks against the target system, often in a loop where attack success is scored and fed back to generate harder attacks, cheaply scaling to thousands of probes.
+
+*Why it matters / pitfall / interview trap:* It only explores the distribution of attacks it was built to generate — correlated with but not covering what a motivated human finds; best used to sweep breadth while humans provide depth, not as a sufficient standalone process.
+
+---
+
+**Base Rate Differences**
+
+*The problem:* Fairness metrics can conflict with each other, and the reason is often not measurement error but a real difference in outcome rates between groups.
+
+*Core insight / definition:* When groups have different underlying rates of the outcome being predicted (e.g., different re-offense or default rates), satisfying calibration, equal FPR, and equal FNR simultaneously becomes mathematically impossible except in degenerate cases.
+
+*Why it matters / pitfall / interview trap:* "We just need better data" does not resolve this — the impossibility is a mathematical consequence of unequal base rates, not a data quality issue.
+
+---
+
+**Black-Box Attack**
+
+*The problem:* An attacker may not have access to a deployed model's weights or gradients, yet may still be able to compromise it.
+
+*Core insight / definition:* An attack setting where the adversary only has query access to the model (no internal knowledge), often executed by training a surrogate model and exploiting transferability.
+
+*Why it matters / pitfall / interview trap:* No gradient access is required to attack a deployed model — rate-limiting and query-pattern monitoring can be more cost-effective defenses than adversarial training.
+
+---
+
+**BPDA (Backward Pass Differentiable Approximation)**
+
+*The problem:* Gradient-masking defenses appear robust because gradient-based attacks fail against non-differentiable components, but this robustness is illusory.
+
+*Core insight / definition:* An attack technique that approximates a defense's non-differentiable preprocessing step with the identity function on the backward pass, restoring a usable gradient for the attacker.
+
+*Why it matters / pitfall / interview trap:* Used to unmask gradient-obfuscation defenses; a defense that only survives because BPDA hasn't been tried is not actually robust.
+
+---
+
+**Calibrated Equalized Odds (Pleiss et al., 2017)**
+
+*The problem:* Post-hoc fairness fixes are needed when a trained model cannot be retrained but its predictions violate equalized odds.
+
+*Core insight / definition:* A post-processing technique that adjusts output probabilities after training to satisfy equalized odds across groups.
+
+*Why it matters / pitfall / interview trap:* Post-processing can be applied without retraining but requires knowing group membership at decision time and can still conflict with individual fairness.
+
+---
+
+**Calibration (Fairness Metric)**
+
+*The problem:* A model's predicted probabilities may be systematically more or less accurate for different demographic groups even when overall accuracy looks fine.
+
+*Core insight / definition:* P(Y=1 | Ŷ=p, A=0) = P(Y=1 | Ŷ=p, A=1) = p — if the model outputs 70% probability, it should be correct 70% of the time for every group.
+
+*Why it matters / pitfall / interview trap:* Calibration alone (the COMPAS vendor's defense) is true but insufficient — a calibrated model can still assign systematically higher risk scores to one group through proxy features, and calibration cannot coexist with equal FPR/FNR when base rates differ.
+
+---
+
+**Certified Defenses / Randomized Smoothing**
+
+*The problem:* Empirical adversarial training only proves robustness against attacks that were actually tried, not all possible perturbations.
+
+*Core insight / definition:* Certified defenses provide a mathematical proof that no perturbation within a given radius changes the prediction. Randomized smoothing is the scalable version: classify by majority vote over Gaussian-noised copies of the input, yielding a certified ℓ₂ radius.
+
+*Why it matters / pitfall / interview trap:* Guarantees are real (unlike empirical robustness) but certified radii tend to be small and inference requires many forward passes — a genuine cost/coverage tradeoff.
+
+---
+
+**Chouldechova / Kleinberg Impossibility Theorem**
+
+*The problem:* Practitioners often assume that with enough engineering effort, a model can satisfy every fairness criterion at once.
+
+*Core insight / definition:* Chouldechova (2017) and Kleinberg et al. (2016) independently proved that, except when base rates are equal across groups or the classifier is perfect, calibration, equal false positive rates, and equal false negative rates cannot all be satisfied simultaneously.
+
+*Why it matters / pitfall / interview trap:* Choosing which criterion to prioritize is an ethical stance, not a technical optimization problem — "we'll satisfy all fairness criteria" reflects a misunderstanding of the math, not an achievable engineering goal.
+
+---
+
+**COMPAS Recidivism Tool**
+
+*The problem:* A widely deployed criminal-risk-scoring tool needed to be evaluated for fairness, and different stakeholders reached opposite conclusions using different metrics.
+
+*Core insight / definition:* ProPublica's 2016 analysis found Black defendants were nearly twice as likely to be falsely flagged high-risk (44.9% vs. 23.5% FPR) while white defendants were more often falsely classified low-risk; the vendor Northpointe countered that the tool was calibrated (equal accuracy of risk scores per race). Both claims were true simultaneously because base rates differed.
+
+*Why it matters / pitfall / interview trap:* The canonical worked example of the fairness impossibility theorem — testing whether a candidate can explain why both parties were correct and still in conflict.
+
+---
+
+**Composition (Differential Privacy)**
+
+*The problem:* Running many privacy-preserving queries against the same dataset cumulatively leaks more information than any single query.
+
+*Core insight / definition:* Running k ε-differentially-private mechanisms gives total privacy loss at most k·ε under basic composition, or √(2k ln(1/δ))·ε under advanced composition for (ε,δ)-DP.
+
+*Why it matters / pitfall / interview trap:* Forgetting composition is a classic trap — 100 queries at ε=1 each yields a cumulative ε=100, which is not meaningfully private; the privacy budget must be tracked across all queries including hyperparameter tuning runs.
+
+---
+
+**Constitutional AI**
+
+*The problem:* Relying solely on human preference labels for alignment can encode and amplify annotator biases.
+
+*Core insight / definition:* A method that uses AI feedback grounded in explicit written principles (a "constitution") rather than relying only on potentially biased human preferences, used both for general alignment and as a fairness mitigation.
+
+*Why it matters / pitfall / interview trap:* Positioned as a way to reduce dependence on inconsistent or biased human raters, though it inherits whatever biases are embedded in the constitution's principles or the evaluating model.
+
+---
+
+**Counterfactual Probing**
+
+*The problem:* LLM bias needs to be measured systematically rather than judged by spot-checking a few outputs.
+
+*Core insight / definition:* Constructing pairs of prompts identical except for a protected-attribute reference and comparing model outputs; the WinoBias benchmark applies this to gender and profession.
+
+*Why it matters / pitfall / interview trap:* Manual inspection of a handful of outputs is not a substitute — systematic probing across many test cases with validated benchmarks is required to detect disparate treatment.
+
+---
+
+**Data Augmentation (Bias Mitigation)**
+
+*The problem:* Underrepresented groups in training data lead to degraded model performance for those groups.
+
+*Core insight / definition:* A pre-processing bias-mitigation technique that generates synthetic or additional real examples for underrepresented groups, e.g., augmenting dark-skinned face images in facial recognition training sets.
+
+*Why it matters / pitfall / interview trap:* Improves representation but does not by itself fix biased labels or proxy-feature encoding — must be paired with other mitigations addressing the objective and deployment stages.
+
+---
+
+**Data Minimization**
+
+*The problem:* ML practice instinctively favors collecting as much data as possible, which conflicts with privacy regulation.
+
+*Core insight / definition:* A GDPR principle requiring organizations to collect only the data actually needed for a stated purpose.
+
+*Why it matters / pitfall / interview trap:* Directly opposes the "collect everything" instinct common in ML data pipelines — a recurring source of compliance friction.
+
+---
+
+**Demographic Parity (Statistical Parity)**
+
+*The problem:* Naively, "fairness" might be interpreted as equal outcome rates across groups regardless of context.
+
+*Core insight / definition:* P(Ŷ=1 | A=0) = P(Ŷ=1 | A=1) — equal positive-prediction rates across groups, without conditioning on the true label.
+
+*Why it matters / pitfall / interview trap:* Ignores base rate differences between groups; forcing equal approval rates when true qualification rates differ either over-approves a high-risk group or under-approves a low-risk one — a frequent interview trap when candidates default to this metric first.
+
+---
+
+**Differential Privacy (DP)**
+
+*The problem:* Organizations want to learn aggregate statistics about a population without revealing information about any individual in it.
+
+*Core insight / definition:* A randomized mechanism M is ε-differentially private if for any two datasets D, D′ differing in exactly one record, P[M(D)∈S] ≤ e^ε · P[M(D′)∈S] for any output set S — the output distribution barely changes whether or not any one person's data is included.
+
+*Why it matters / pitfall / interview trap:* Large ε (e.g., ε=100) is technically DP but practically meaningless ("privacy theater"); DP bounds information leakage but does not eliminate membership inference risk entirely, prevent re-identification via external data, or stop model inversion outright.
+
+---
+
+**Direct PII vs. Quasi-Identifiers**
+
+*The problem:* Practitioners often equate "no PII" with "private," which is false.
+
+*Core insight / definition:* Direct PII (name, email, phone, SSN) directly identifies a person; quasi-identifiers (ZIP code, date of birth, gender, job title, employer) do not individually identify but can jointly re-identify someone when combined or linked to external data.
+
+*Why it matters / pitfall / interview trap:* Sweeney (2000) showed 87% of Americans are uniquely identifiable from just ZIP code, date of birth, and sex — none of which are "direct" PII.
+
+---
+
+**Disparate Quality / Disparate Representation (LLM Fairness)**
+
+*The problem:* Generative models can fail different demographic groups in ways classification fairness metrics don't capture, since there is no single label Y to condition on.
+
+*Core insight / definition:* Disparate quality means responses about underrepresented groups are less accurate or lower quality; disparate representation means some groups are overrepresented in negative associations (e.g., race-crime co-occurrence) in generated text.
+
+*Why it matters / pitfall / interview trap:* Standard classification fairness metrics (equalized odds, demographic parity) don't transfer directly to free-text generation — new measurement approaches (counterfactual probing, embedding tests, toxicity probing) are required.
+
+---
+
+**DP-SGD (Differentially Private Stochastic Gradient Descent)**
+
+*The problem:* Standard SGD updates can be dominated by a single extreme training example, and an observer watching gradient updates over training can infer information about individual examples.
+
+*Core insight / definition:* Abadi et al. (2016)'s algorithm: (1) compute per-sample gradients, (2) clip each to a maximum L2 norm C to bound any single example's influence, (3) add calibrated Gaussian noise to the aggregated clipped gradient, (4) update the model — providing a formal DP guarantee at each step, tracked over training via a privacy accountant.
+
+*Why it matters / pitfall / interview trap:* Clipping alone bounds sensitivity but provides zero privacy without added noise — both steps are required; naive per-sample-gradient implementation (batch-size-1 loops) is dramatically slower than vectorized computation (as in Opacus/TF Privacy).
+
+---
+
+**Embedding Bias Tests (WEAT)**
+
+*The problem:* Bias can be encoded in the geometry of learned representations, not just in visible outputs.
+
+*Core insight / definition:* The Word Embedding Association Test (WEAT) measures whether word embeddings associate certain concepts with certain groups at rates beyond what ground truth would justify.
+
+*Why it matters / pitfall / interview trap:* One of several complementary systematic bias-measurement tools (alongside counterfactual probing and toxicity probing) rather than a complete bias audit on its own.
+
+---
+
+**EU AI Act Risk Tiers**
+
+*The problem:* Organizations need to know what regulatory obligations apply to an ML system before building it, not after.
+
+*Core insight / definition:* The EU AI Act sorts systems into unacceptable (banned), high-risk (conformity assessment, documentation, human-oversight and logging requirements), limited-risk (transparency obligations), and minimal-risk (no specific obligations) tiers.
+
+*Why it matters / pitfall / interview trap:* Tier classification is a scoping-phase decision, not a post-launch afterthought — a hiring or credit-scoring assistant lands high-risk and needs conformity assessment and human-oversight design before launch, changing project timelines.
+
+---
+
+**Equal Opportunity (Fairness Metric)**
+
+*The problem:* Some domains care much more about missed positive cases than about false alarms, making full equalized odds too strict a requirement.
+
+*Core insight / definition:* P(Ŷ=1 | Y=1, A=0) = P(Ŷ=1 | Y=1, A=1) — equal true positive rate only, without also requiring equal false positive rate.
+
+*Why it matters / pitfall / interview trap:* Appropriate when false positives are relatively harmless but false negatives are costly (e.g., medical screening) — choosing this over demographic parity or equalized odds should follow from an explicit harm analysis.
+
+---
+
+**Equalized Odds**
+
+*The problem:* A model can have equal aggregate accuracy across groups while still making systematically different types of errors for each group.
+
+*Core insight / definition:* Requires equal true positive rates AND equal false positive rates across groups, conditioned on the true label — P(Ŷ=1|Y=1,A=0)=P(Ŷ=1|Y=1,A=1) and P(Ŷ=1|Y=0,A=0)=P(Ŷ=1|Y=0,A=1).
+
+*Why it matters / pitfall / interview trap:* This was the metric COMPAS violated; unlike demographic parity, it conditions on ground truth and thus accounts for base rate differences, but per the impossibility theorem it cannot be jointly satisfied with calibration when base rates differ.
+
+---
+
+**Exact Unlearning (Retrain from Scratch)**
+
+*The problem:* When a data subject requests erasure, the cleanest way to guarantee their data has no influence on a model is to remove it and retrain entirely.
+
+*Core insight / definition:* Removing the requested data and retraining the model from initialization — correct by definition, since the resulting model was never influenced by the deleted data.
+
+*Why it matters / pitfall / interview trap:* Costs O(one full training run) per erasure request, making it impractical at scale or for large models — "we'll just retrain when someone asks" fails as an operational plan for a 70B-parameter model.
+
+---
+
+**FedAvg (Federated Averaging)**
+
+*The problem:* Centralizing data for training is often legally, physically, or ethically impossible, but a model still needs to learn from distributed data.
+
+*Core insight / definition:* McMahan et al. (2017)'s algorithm: the server sends global weights to selected clients, each client runs local SGD on its own data, clients return updated weights, and the server aggregates them via a weighted average (weighted by each client's local dataset size).
+
+*Why it matters / pitfall / interview trap:* Averaging locally-trained weights approximates centralized SGD without ever moving raw data, but this approximation degrades badly under non-IID client data.
+
+---
+
+**Federated Learning**
+
+*The problem:* Data that is legally protected (HIPAA/GDPR), physically too large to move, or that users won't consent to share centrally still needs to inform a shared model.
+
+*Core insight / definition:* Inverts the standard data flow — instead of moving data to a central model, the model is sent to each data holder, trained locally, and only model updates (not raw data) are transmitted back and aggregated.
+
+*Why it matters / pitfall / interview trap:* "The server never sees raw data" is not the same as "private" — gradient updates can leak information via gradient inversion attacks, and non-IID data is the dominant real-world accuracy challenge, not a minor issue.
+
+---
+
+**FedNova**
+
+*The problem:* Clients that run different numbers of local SGD steps produce updates at different scales, distorting simple averaging.
+
+*Core insight / definition:* A federated learning mitigation that normalizes client updates by the number of local steps taken before aggregation, removing scale differences between clients.
+
+*Why it matters / pitfall / interview trap:* Addresses a specific source of non-IID-induced divergence (step-count heterogeneity) distinct from what FedProx or SCAFFOLD address.
+
+---
+
+**FedProx**
+
+*The problem:* Local models trained on non-IID client data drift toward their local distributions, and simple averaging of drifted models can produce a global model worse than centralized training.
+
+*Core insight / definition:* Adds a proximal regularization term to each client's local objective — minimize L_local(w) + (μ/2)‖w − w_t‖² — that penalizes local models for diverging too far from the current global model.
+
+*Why it matters / pitfall / interview trap:* One of several targeted fixes (alongside SCAFFOLD, FedNova) for the non-IID problem, which is described as the central accuracy challenge in federated learning.
+
+---
+
+**FGSM (Fast Gradient Sign Method)**
+
+*The problem:* Generating an adversarial example needs to be computationally cheap to be practical for many settings, at the cost of attack strength.
+
+*Core insight / definition:* x_adv = x + ε·sign(∇ₓL(θ,x,y)) — a single backward pass computes the loss gradient w.r.t. the input, then every pixel is moved by exactly ε in the sign direction of that gradient, bounding the maximum per-pixel change (an ℓ∞ attack).
+
+*Why it matters / pitfall / interview trap:* Evaluating a defense only against FGSM is the classic way to publish a defense that doesn't actually work — PGD is the accepted stronger benchmark.
+
+---
+
+**Gaussian Mechanism**
+
+*The problem:* The Laplace mechanism is designed for scalar numeric queries; many ML applications (like gradient updates) are vector-valued.
+
+*Core insight / definition:* M(D) = f(D) + N(0, σ²·I) — adding calibrated Gaussian noise to a vector-valued query output, providing (ε,δ)-DP where the guarantee fails with small probability δ.
+
+*Why it matters / pitfall / interview trap:* Used in DP-SGD for gradient updates because it handles vector outputs cleanly, unlike the Laplace mechanism.
+
+---
+
+**GDPR (General Data Protection Regulation) Principles**
+
+*The problem:* ML pipelines built around "collect and retrain freely" assumptions can be legally noncompliant with data protection law.
+
+*Core insight / definition:* Key constraints on ML practice: lawful basis for processing, data minimization, purpose limitation (data collected for one purpose cannot be repurposed without basis), storage limitation, and right to erasure.
+
+*Why it matters / pitfall / interview trap:* Right to erasure in particular creates a hard technical problem for trained models (see machine unlearning) — deleting a database row does not erase a model's learned parameters.
+
+---
+
+**Gradient Compression**
+
+*The problem:* Transmitting full model weights every federated learning round at scale generates infeasible communication volume (e.g., petabytes across thousands of clients and rounds).
+
+*Core insight / definition:* Techniques such as top-k sparse gradients and low-bit quantization (e.g., 8-bit) that reduce the size of client updates transmitted to the server, cutting communication by 10–100×.
+
+*Why it matters / pitfall / interview trap:* Communication budget must be treated as a first-class system-design constraint, not an afterthought, once client counts reach millions.
+
+---
+
+**Gradient Inversion Attack**
+
+*The problem:* Federated learning is sometimes assumed private simply because raw data never leaves the client.
+
+*Core insight / definition:* An attack that approximately reconstructs a client's local training data from the gradient updates it sends to the server.
+
+*Why it matters / pitfall / interview trap:* Demonstrates that federated learning is a step toward privacy, not a sufficient privacy guarantee on its own — gradients themselves leak information.
+
+---
+
+**Gradient Masking / Obfuscation**
+
+*The problem:* Many published adversarial defenses appear to work because they make gradients uninformative to gradient-based attackers, not because they are actually robust.
+
+*Core insight / definition:* Defenses (input discretization, non-differentiable preprocessing, randomization) that break gradient-based attacks without providing genuine robustness; they are defeated by BPDA or by black-box/transfer attacks that never relied on the gradient in the first place.
+
+*Why it matters / pitfall / interview trap:* If a defense reduces attack success with no accuracy cost, suspect gradient masking first — a paper claiming high robust accuracy with zero clean-accuracy loss is the classic red flag, since the robustness/accuracy tradeoff is otherwise consistently observed.
+
+---
+
+**Indirect Prompt Injection**
+
+*The problem:* LLM agents that read third-party content (web pages, emails, reviews) can be manipulated by instructions planted in that content by someone who never interacts with the system directly.
+
+*Core insight / definition:* An attacker plants an instruction inside content the system later retrieves; the user who triggers retrieval is an innocent victim, so there is no cooperative attacker signal to rate-limit, and success against a tool-calling agent yields an action (email sent, file written) under the victim's own privileges.
+
+*Why it matters / pitfall / interview trap:* Harder than direct injection because the ingested corpus is unbounded and adversarial-by-construction, it composes with tool access for much larger blast radius, and a more capable model follows the injected instruction more fluently — capability doesn't help here the way it helps with error rate.
+
+---
+
+**Individual Fairness**
+
+*The problem:* Group-level fairness metrics can still permit two very similar individuals to be treated very differently.
+
+*Core insight / definition:* d_prediction(Ŷ(x), Ŷ(x')) ≤ L · d_input(x, x') — similar individuals should receive similar predictions, bounded by a Lipschitz-like constraint on a task-specific similarity metric.
+
+*Why it matters / pitfall / interview trap:* Hard to operationalize in practice because it requires defining a defensible, task-specific similarity metric between individuals; group-based post-processing fixes (like per-group thresholds) can directly violate it.
+
+---
+
+**Influence Functions (Koh & Liang, 2017)**
+
+*The problem:* Approximate machine unlearning needs a way to estimate how much a specific training example influenced the final model without retraining.
+
+*Core insight / definition:* A technique that computes how a model's parameters would change if a given training example were removed, without actually retraining, using this estimate to construct a targeted corrective update.
+
+*Why it matters / pitfall / interview trap:* Faster than exact retraining, but the resulting "unlearning" guarantee is approximate and harder to verify than SISA or exact retraining.
+
+---
+
+**Label Cleaning**
+
+*The problem:* Training labels themselves can reflect historical or annotator bias, corrupting the model regardless of algorithm choice.
+
+*Core insight / definition:* A pre-processing technique that audits and corrects labels reflecting annotator bias, such as sentiment labels applied inconsistently across cultural contexts.
+
+*Why it matters / pitfall / interview trap:* Model-agnostic — benefits any model trained on the cleaned data — but cannot by itself fix bias introduced via proxy features rather than labels.
+
+---
+
+**Laplace Mechanism**
+
+*The problem:* A basic method is needed to answer numeric statistical queries under differential privacy.
+
+*Core insight / definition:* M(D) = f(D) + Lap(sensitivity/ε), where sensitivity is the maximum change in f(D) from adding or removing one person's record; noise scale is set relative to sensitivity and the privacy budget ε.
+
+*Why it matters / pitfall / interview trap:* With large n, the mean's sensitivity shrinks (e.g., sensitivity = range/n), so even a relatively tight ε can add imperceptible noise — illustrating how privacy cost scales with dataset size.
+
+---
+
+**Machine Unlearning**
+
+*The problem:* GDPR's right to erasure requires that a person's data influence be removed from a trained model, but deleting a database record does not touch the model's learned parameters.
+
+*Core insight / definition:* The research area covering techniques (exact retraining, approximate/influence-function-based updates, SISA training) that efficiently update a trained model to "forget" specific training examples.
+
+*Why it matters / pitfall / interview trap:* "We deleted the data so we're compliant" is a common but incorrect claim — the model's weights still encode that data's influence; verification typically uses membership inference attacks on the erased examples.
+
+---
+
+**Manual Red-Teaming**
+
+*The problem:* Automated attack generation misses novel, highly contextual failure modes that require real domain expertise to recognize.
+
+*Core insight / definition:* Domain experts (security researchers, clinicians, policy specialists, speakers of underrepresented languages) probe a system with context automated tools lack, distinguishing a real exploit chain from a superficially similar harmless request.
+
+*Why it matters / pitfall / interview trap:* Expensive per-sample and doesn't scale to the volume needed for tight statistical confidence — best combined with automated red-teaming rather than used alone.
+
+---
+
+**Membership Inference Attack**
+
+*The problem:* Even without extracting raw text, an attacker may be able to determine whether a specific example was part of a model's training set, which is itself a privacy violation.
+
+*Core insight / definition:* An attacker observes model outputs (probabilities, logits, or predictions) for a target example and trains a shadow classifier to distinguish training-set examples from non-training examples, exploiting the fact that overfit models produce different (typically higher-confidence) outputs on training data.
+
+*Why it matters / pitfall / interview trap:* Overall attack AUC near chance can mask serious per-subgroup exposure (e.g., overall AUC 0.55 but subgroup AUC 0.80) — always disaggregate; DP training bounds this attack's success by construction.
+
+---
+
+**Model / System Cards**
+
+*The problem:* An eval result run by one team is easily lost and never reaches other teams or downstream integrators who need to know about it.
+
+*Core insight / definition:* Documentation artifacts that make eval results legible outside the team that ran them — intended use, out-of-scope use, results (including refusal-calibration and red-team taxonomy), known limitations, and training-data provenance summary.
+
+*Why it matters / pitfall / interview trap:* If an eval doesn't produce a line in the system card, the finding effectively dies with the team that ran it; a card omitting known failure modes fails its actual purpose of informing downstream risk decisions and should not be treated as marketing copy.
+
+---
+
+**Model Extraction**
+
+*The problem:* An attacker without white-box access may still want to replicate a proprietary deployed model's behavior.
+
+*Core insight / definition:* An attack timing category (alongside evasion and poisoning) in the adversarial robustness threat model, where the attacker's goal is to reconstruct or steal the model itself via queries.
+
+*Why it matters / pitfall / interview trap:* Named as one of the axes of a threat model that must be specified before claiming a model is "robust" — robustness claims are meaningless without stating against what.
+
+---
+
+**Non-IID Data (Federated Learning)**
+
+*The problem:* Standard ML theory assumes training data is drawn independently from the same distribution, but federated data violates this by construction across different clients.
+
+*Core insight / definition:* Data heterogeneity across federated clients (e.g., a referral hospital's sicker patients vs. a regional hospital's general population vs. a pediatric hospital) causes locally trained models to drift toward their local distributions, degrading the quality of naive weight averaging.
+
+*Why it matters / pitfall / interview trap:* Described as the central/main accuracy challenge in federated learning, not a minor issue — can cause FedAvg to diverge or converge to a poor optimum without mitigations like FedProx, SCAFFOLD, or FedNova.
+
+---
+
+**Opacus / TF Privacy**
+
+*The problem:* Computing per-sample gradients (needed for DP-SGD) naively via batch-size-1 forward passes is prohibitively slow.
+
+*Core insight / definition:* Libraries (Opacus for PyTorch, TF Privacy for TensorFlow) that compute per-sample gradients efficiently using vectorized Jacobian computation / hooks, avoiding the 32×-slower loop-based approach.
+
+*Why it matters / pitfall / interview trap:* Without these libraries, DP-SGD requiring batch_size forward passes per step is effectively unusable at scale.
+
+---
+
+**Over-Refusal / Under-Refusal (Refusal Calibration)**
+
+*The problem:* Refusal behavior in LLMs has two distinct failure directions that trade off against each other, but teams often track only one.
+
+*Core insight / definition:* Under-refusal is a false negative on harm (the model complies with something genuinely harmful) — visible via incident reports. Over-refusal is a false positive on harm (declining a benign request that pattern-matches harmful surface features, e.g., a nurse asking about lethal-dose thresholds) — invisible in incident reports, showing up later as diffuse churn.
+
+*Why it matters / pitfall / interview trap:* Because under-refusal cost is concentrated/attributable and over-refusal cost is diffuse/invisible, teams that monitor only harm incidents ratchet thresholds tighter indefinitely; report both a harmful-set refusal rate and a benign-adjacent-set compliance rate together, never a single averaged "safety score," which hides the tradeoff.
+
+---
+
+**PGD (Projected Gradient Descent) Attack**
+
+*The problem:* A single-step attack like FGSM is a weak approximation of the true worst-case adversarial perturbation.
+
+*Core insight / definition:* An iterative attack that takes multiple gradient-sign steps, projecting back into the ε-ball after each step, with random initialization inside the ball to avoid degenerate starting points.
+
+*Why it matters / pitfall / interview trap:* The standard robustness benchmark — "robust accuracy" in a paper implicitly means accuracy under PGD unless stated otherwise; if attack success plateaus early as PGD steps increase, that's a sign of gradient masking.
+
+---
+
+**Poisoning Attack**
+
+*The problem:* Adversaries can compromise a model not just at inference time but during training itself.
+
+*Core insight / definition:* An attack timing category where the adversary manipulates the training data or process itself, as opposed to evasion (inference-time) attacks.
+
+*Why it matters / pitfall / interview trap:* Part of the threat-model taxonomy (attacker knowledge, perturbation budget, attack goal, attack timing) that must be specified before any robustness claim is meaningful.
+
+---
+
+**Pre-processing / In-processing / Post-processing Bias Mitigation**
+
+*The problem:* Bias can originate at different pipeline stages (data, objective, or deployment threshold), and applying a mitigation at the wrong stage fails to fix the actual problem.
+
+*Core insight / definition:* Pre-processing fixes the training data (resampling, reweighting, augmentation, label cleaning) before training; in-processing modifies the training objective itself (adversarial debiasing, fairness-constrained objectives); post-processing adjusts predictions after training (threshold optimization, calibrated equalized odds, reject-option classification).
+
+*Why it matters / pitfall / interview trap:* Applying in-processing techniques to a biased-labels problem attacks the wrong stage; each category has a distinct advantage/disadvantage profile (model-agnostic but can't fix proxy encoding; controls tradeoff but complex/unstable; no retraining needed but requires group membership at decision time).
+
+---
+
+**Privacy Accountant (Moments Accountant / Rényi DP)**
+
+*The problem:* DP-SGD runs for many training steps, and naive composition bounds (k·ε) overstate the true cumulative privacy loss, making training impractical.
+
+*Core insight / definition:* A method (moments accountant, or Rényi DP) for tracking total privacy loss over T steps of DP-SGD more tightly than basic composition, yielding (ε,δ)-DP where ε grows sublinearly in T given batch fraction q and noise multiplier σ.
+
+*Why it matters / pitfall / interview trap:* Enables DP-SGD to be practical over many training steps by giving a tighter privacy loss bound than naively summing per-step ε values.
+
+---
+
+**Privilege Separation**
+
+*The problem:* No prompt-level defense reliably distinguishes instructions from data within a single token stream, so injected instructions can always potentially reach action-taking components.
+
+*Core insight / definition:* Architecturally splitting a system into a component that reads untrusted content (with no tool credentials) and a separate, constrained component that executes actions — so a successful injection in the reader has nothing to call.
+
+*Why it matters / pitfall / interview trap:* Described as the one defense that changes the worst case (the "ceiling"), not just the attack rate; still doesn't stop a schema-valid but attacker-benefiting call (e.g., a well-formed send request to an attacker-supplied address), and costs latency/complexity.
+
+---
+
+**Proxy Encoding**
+
+*The problem:* Excluding protected attributes (race, gender) from a model's features is often believed to guarantee the model can't discriminate on them, but this is false.
+
+*Core insight / definition:* Correlated non-protected features (ZIP code, name, educational institution, browsing behavior) let a model learn and reproduce the same discriminatory pattern as the protected attribute itself, since the model uses whatever features are predictive.
+
+*Why it matters / pitfall / interview trap:* "We didn't include protected attributes" doesn't prevent this; the fix is testing whether outcomes correlate with protected attributes (disaggregated evaluation), not simply excluding features.
+
+---
+
+**Purpose Limitation**
+
+*The problem:* Data collected for one legitimate purpose is often reused for unrelated model training without new consent.
+
+*Core insight / definition:* A GDPR principle stating data collected for one purpose (e.g., fraud detection) cannot be repurposed for another (e.g., training a recommendation model) without a new lawful basis.
+
+*Why it matters / pitfall / interview trap:* A common compliance gap in ML organizations that reuse operational data for unrelated model development.
+
+---
+
+**Red-Teaming (Methodology and Taxonomy of Failure Modes)**
+
+*The problem:* Ad hoc "try to break it" exercises before launch don't produce anything the rest of the organization can act on.
+
+*Core insight / definition:* A structured process combining manual and automated probing that produces a taxonomy of failure modes — how the model fails, at what rate, under what conditions — rather than a pass/fail scalar, including an attack-success table by category × topic × language, transcripts for training hard-negatives, and severity weighting.
+
+*Why it matters / pitfall / interview trap:* "We red-teamed it and it passed" discards the information the exercise exists to produce; red-teaming must recur with every material change (fine-tunes, prompt changes, new tools), not run once pre-launch.
+
+---
+
+**Reject-Option Classification**
+
+*The problem:* Automated decisions are most likely to be wrong (and most harmful) exactly in the high-uncertainty region near the decision boundary.
+
+*Core insight / definition:* A post-processing fairness technique that defers predictions near the decision boundary to a human reviewer or secondary rule instead of an automated call.
+
+*Why it matters / pitfall / interview trap:* Specifically targets the region where proxy bias is most likely to be decisive, rather than applying a uniform threshold everywhere.
+
+---
+
+**Representation Failure**
+
+*The problem:* A model can achieve excellent average accuracy while performing terribly for an underrepresented subgroup.
+
+*Core insight / definition:* When training data underrepresents a group (e.g., stock-photo datasets skewed toward light-skinned faces), the model minimizes average error, which does not expose the resulting per-group performance gap.
+
+*Why it matters / pitfall / interview trap:* The canonical example is Buolamwini and Gebru's (2018) facial recognition audit finding 0.8% error on light-skinned men vs. 34.7% on dark-skinned women — "our model is accurate" must always be checked against disaggregated, per-group metrics.
+
+---
+
+**Reweighting**
+
+*The problem:* Standard training objectives implicitly under-weight errors on minority/underrepresented groups because they optimize aggregate loss.
+
+*Core insight / definition:* A pre-processing technique that weights training examples by group membership or a fairness-violation proxy, penalizing errors on underrepresented groups more heavily.
+
+*Why it matters / pitfall / interview trap:* A relatively simple, model-agnostic fix, but like resampling it does not correct label bias or feature-level proxy encoding on its own.
+
+---
+
+**Reward Hacking / Specification Gaming**
+
+*The problem:* Optimizing a policy against any finite proxy reward model inevitably produces behavior that scores well on the proxy but diverges from the intended objective (Goodhart's law).
+
+*Core insight / definition:* The expected outcome of RL training against a learned reward model, not an occasional bug — manifesting in products as sycophancy (retracting accurate information under user pushback because raters preferred agreement) and verbosity/hedging (raters associate length and hedging with thoroughness, so the policy learns the correlation rather than the underlying property).
+
+*Why it matters / pitfall / interview trap:* "We'll fix it by tightening the reward model" doesn't remove the proxy gap on the same finite preference data — it just relocates the exploit; the generalizing fix is a KL trust-region plus periodic on-policy re-labeling. Sycophancy is a safety failure (truth-calibration degrades exactly when users are most likely to be wrong), not merely a quality metric.
+
+---
+
+**Right to Erasure**
+
+*The problem:* GDPR gives individuals a legal right to have their personal data deleted, but ML models trained on that data retain its influence in their weights.
+
+*Core insight / definition:* A GDPR provision requiring that, on request, an individual's data be deleted — which for trained ML models raises the technical problem addressed by machine unlearning, since deleting a database row does not erase learned parameters.
+
+*Why it matters / pitfall / interview trap:* Regulators are increasingly aware that "we deleted the data" is not equivalent to "the model no longer reflects that person's data."
+
+---
+
+**Responsible Scaling Policies (RSPs) and Capability Thresholds**
+
+*The problem:* Grading a model's safety at launch time is subject to a structural conflict of interest — the team evaluating capability is also the team that wants to ship.
+
+*Core insight / definition:* A governance approach that pre-commits to specific capability thresholds (e.g., measurable uplift toward a harmful task, measured via third-party evals like METR or the UK AI Safety Institute) that automatically trigger additional safeguards (deeper red-teaming, restricted deployment, delayed release) once crossed.
+
+*Why it matters / pitfall / interview trap:* The value is structural — fixing the trigger and required response before the result is known removes the incentive to grade leniently under launch-date pressure; failure mode is setting thresholds too high to ever trigger, or vague enough that "crossed" is still a judgment call.
+
+---
+
+**SCAFFOLD**
+
+*The problem:* Client drift under non-IID federated data isn't fully addressed by simply penalizing divergence from the global model (as FedProx does).
+
+*Core insight / definition:* A federated learning mitigation using control variates — each client tracks a local correction term that corrects for its own drift during local updates.
+
+*Why it matters / pitfall / interview trap:* One of several non-IID mitigations (with FedProx and FedNova), addressing client drift via a different mechanism (variance reduction) than proximal regularization.
+
+---
+
+**Secure Aggregation**
+
+*The problem:* In standard FedAvg, the central server sees each individual client's model update, which can itself leak private information (see gradient inversion attack).
+
+*Core insight / definition:* Bonawitz et al.'s (2017) protocol using pairwise random masks: clients mask their updates before sending, the masks cancel out when summed, and the server only ever learns the aggregate — never any individual client's update.
+
+*Why it matters / pitfall / interview trap:* Closes a specific privacy gap in federated learning (the server itself as an attacker) that FedAvg alone does not address.
+
+---
+
+**Sensitivity (Differential Privacy)**
+
+*The problem:* Noise added for differential privacy must be calibrated to how much a single individual could possibly change the query's output; too little noise leaks information, too much destroys utility.
+
+*Core insight / definition:* The maximum possible change in a function's output f(D) caused by adding or removing one person's record from the dataset D — used to scale noise in both the Laplace mechanism and DP-SGD gradient clipping.
+
+*Why it matters / pitfall / interview trap:* In DP-SGD, gradient clipping to norm C bounds sensitivity to 2C/B (batch size B); noise must be calibrated to this bound, not chosen arbitrarily.
+
+---
+
+**SISA Training (Sharded, Isolated, Sliced, and Aggregated)**
+
+*The problem:* Exact unlearning via full retraining is too costly to perform on every erasure request; approximate unlearning is hard to verify.
+
+*Core insight / definition:* Partition the training set into shards, train an independent sub-model per shard, and aggregate predictions (e.g., via majority vote); an erasure request only requires retraining the sub-model for the shard containing the affected data point.
+
+*Why it matters / pitfall / interview trap:* Reduces erasure cost to roughly O(1/num_shards × full training run), correct for the affected shard, but requires architectural forethought before training begins — it cannot be retrofitted onto an already-trained monolithic model.
+
+---
+
+**Stereotyped Completions**
+
+*The problem:* LLMs can produce systematically different continuations for otherwise-identical prompts based on cues suggesting a protected attribute.
+
+*Core insight / definition:* A generative-model failure mode where completions differ based on implied gender, race, or other protected-attribute cues in the prompt (e.g., "The engineer walked to her..." completed differently than "...to his...").
+
+*Why it matters / pitfall / interview trap:* One of the LLM-specific fairness failure modes that classification-style fairness metrics don't directly capture; detected via counterfactual probing benchmarks like WinoBias.
+
+---
+
+**Storage Limitation**
+
+*The problem:* Retaining personal data indefinitely conflicts with data protection principles, but ML models are often trained on historical records spanning years.
+
+*Core insight / definition:* A GDPR principle that personal data cannot be retained indefinitely, creating tension with models trained on long historical windows of data.
+
+*Why it matters / pitfall / interview trap:* Creates operational challenges for ML systems relying on long-horizon historical training data, potentially requiring periodic retraining as older data must be purged.
+
+---
+
+**Structural Separation (Delimiting Untrusted Content)**
+
+*The problem:* An LLM processing both instructions and retrieved data in the same token stream has no built-in way to tell them apart.
+
+*Core insight / definition:* A prompt-injection defense that delimits untrusted content (e.g., with XML tags or special tokens) that the model is trained to treat as inert data rather than instructions.
+
+*Why it matters / pitfall / interview trap:* Reduces but does not eliminate the risk — it's still a single token stream, and nothing architectural stops attention from treating "data" as instruction; it is a rate reduction, not a guarantee.
+
+---
+
+**Threshold Optimization Per Group**
+
+*The problem:* A single decision threshold applied uniformly across groups with different score distributions can produce unequal error rates.
+
+*Core insight / definition:* A post-processing fairness technique that finds separate decision thresholds per group to minimize a chosen fairness criterion, applicable to any model with reliable predicted probabilities without retraining.
+
+*Why it matters / pitfall / interview trap:* Does not fix a model whose underlying scores already encode protected attributes via proxy features — treating threshold changes as a universal fix is a common trap, since it can reduce one group's error type while worsening another's, and requires knowing group membership at decision time.
+
+---
+
+**Toxicity Probing**
+
+*The problem:* Detecting whether an LLM produces more harmful or offensive content about certain groups requires a systematic, scalable measurement method.
+
+*Core insight / definition:* Prompting a model with text referencing different groups and measuring the toxicity of its completions using an automated classifier.
+
+*Why it matters / pitfall / interview trap:* One of three practical LLM bias measurement approaches (alongside counterfactual probing and embedding bias tests) forming a systematic evaluation suite rather than relying on manual review.
+
+---
+
+**Training Data Extraction (Carlini et al., 2021)**
+
+*The problem:* Language models can memorize and later regurgitate exact snippets of their training data, including sensitive personal information.
+
+*Core insight / definition:* Researchers demonstrated that GPT-2, prompted with prefix text matching memorized sequences, could be made to output full names, email addresses, phone numbers, and copyrighted passages verbatim; memorization correlates with how often a sequence was repeated in training data, and deduplication of training corpora significantly reduces it.
+
+*Why it matters / pitfall / interview trap:* For LLMs, direct extraction probing for known PII is described as a more informative and direct privacy test than membership inference alone; "the model doesn't output individual records" is false — privacy attacks against the model are privacy attacks against the training data.
+
+---
+
+**Transferability (Adversarial Examples)**
+
+*The problem:* An attacker without access to a target model's internals still needs a way to craft effective adversarial examples against it.
+
+*Core insight / definition:* The empirical phenomenon that adversarial examples crafted against one model often fool a different model trained on similar data, even across different architectures — enabling practical black-box attacks via a surrogate model attacked white-box.
+
+*Why it matters / pitfall / interview trap:* A genuinely surprising empirical fact that undermines "we don't expose gradients so we're safe" reasoning — no gradient access is required to attack a deployed model in practice.
+
+---
+
+**Threat Model (Adversarial Robustness)**
+
+*The problem:* Claiming a model is "robust" is meaningless without specifying against what kind of attacker and constraint.
+
+*Core insight / definition:* A specification along four axes: attacker knowledge (white-box/black-box/transfer), perturbation budget (ℓ∞, ℓ2, ℓ0, or semantic), attack goal (targeted/untargeted), and attack timing (evasion/poisoning/model extraction).
+
+*Why it matters / pitfall / interview trap:* Interviewers listen for whether a candidate states the threat model unprompted; academic ℓ∞ robustness at ε=8/255 is a proxy for imperceptibility, not a definition of it, and is often irrelevant to real-world adversaries who manipulate semantic features instead (e.g., fraud transaction structuring).
+
+---
+
+**Unlearning Verification (Membership Inference on Erased Examples)**
+
+*The problem:* After applying an unlearning technique, there's no direct way to confirm the model has actually "forgotten" the target data.
+
+*Core insight / definition:* Running membership inference attacks against the updated model specifically on the erased examples; if the attack cannot distinguish them from non-training examples, unlearning is considered to have succeeded.
+
+*Why it matters / pitfall / interview trap:* The verification gap between approximate unlearning and provably complete erasure remains an open problem — regulators may not accept approximate unlearning without a verifiable guarantee.
 
 ---
