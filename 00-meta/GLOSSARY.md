@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications done. Remaining: 12-systems-and-scale through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale done. Remaining: 13-production-ml through 18-resources.
 
 ---
 
@@ -12230,3 +12230,725 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 
 ---
 
+
+## 12-systems-and-scale
+
+**Activation Offloading**
+
+*The problem:* Even with parameter/gradient/optimizer sharding, activations stored for the backward pass can still exceed GPU memory during training of very large models.
+
+*Core insight / definition:* Move activations to CPU memory during the forward pass and prefetch them back to GPU during the backward pass, trading PCIe bandwidth for GPU memory headroom.
+
+*Why it matters / pitfall / interview trap:* Only useful when GPU memory is the binding constraint and CPU-GPU bandwidth is decent (PCIe 4.0+) — on slower interconnects the prefetch stalls the backward pass.
+
+---
+
+**All-Gather (Communication Collective)**
+
+*The problem:* In sharded training (e.g., ZeRO-3/FSDP), each device holds only a fraction of the parameters, but a full parameter set is needed to compute a layer's forward pass.
+
+*Core insight / definition:* Each worker sends its local shard, and every worker ends up with the full concatenated tensor. Used by FSDP to reconstruct full parameters before each layer's forward pass.
+
+*Why it matters / pitfall / interview trap:* All-gather is what makes ZeRO-3 trade communication for memory savings — expect an all-gather every forward pass, not just once.
+
+---
+
+**All-Reduce (Communication Collective)**
+
+*The problem:* In data-parallel training, each worker computes its own gradients on its data shard; these must be combined so every worker applies the same update.
+
+*Core insight / definition:* Sums a tensor (e.g., gradients) across all workers and leaves the summed result on every worker. Ring all-reduce moves 2(N-1)/N × data volume (bandwidth-optimal, latency grows with N); tree all-reduce has log(N) latency but is less bandwidth-optimal.
+
+*Why it matters / pitfall / interview trap:* All-reduce is the dominant bottleneck in data parallelism — compute-to-communication ratio must exceed roughly 10:1 for good scaling, or adding GPUs makes training slower, not faster.
+
+---
+
+**Arithmetic Intensity / Roofline Analysis**
+
+*The problem:* To know whether a workload is limited by GPU compute (FLOPs) or by memory bandwidth (bytes moved), you need a single number that characterizes the workload.
+
+*Core insight / definition:* Arithmetic intensity = FLOPs / bytes accessed. If intensity exceeds the hardware's compute/bandwidth threshold (~500 on A100), the workload is compute-bound; below it, memory-bandwidth-bound. Decode at batch=1 has intensity ~1 op/byte (bandwidth-bound); prefill or large-batch decode has high intensity (compute-bound).
+
+*Why it matters / pitfall / interview trap:* Arithmetic intensity is a property of the workload (batch size, context length), not a fixed property of the model — the same model can be bandwidth-bound in one serving regime and compute-bound in another.
+
+---
+
+**Attention Transfer (Distillation)**
+
+*The problem:* Matching only final teacher outputs during distillation can let the student reach similar predictions via a completely different internal computation.
+
+*Core insight / definition:* Train the student to match the teacher's layer-wise attention weight distributions, not just outputs — particularly effective for Transformers since it teaches the student *which tokens to attend to*.
+
+*Why it matters / pitfall / interview trap:* Selecting which teacher layers align with which student layers requires architectural judgment; mismatched layers introduce misleading constraints.
+
+---
+
+**AWQ (Activation-aware Weight Quantization)**
+
+*The problem:* Standard PTQ treats all weights as equally important, but a small fraction of weights that multiply large-magnitude activations have disproportionate impact on output quality when quantized.
+
+*Core insight / definition:* Identify "salient" weight channels (those multiplied by large activations) and apply a per-channel scale before quantization — scaling salient weights up (finer resolution) and activations down to compensate — chosen to minimize quantization error using calibration data. No Hessian inversion needed, unlike GPTQ.
+
+*Why it matters / pitfall / interview trap:* Faster to apply than GPTQ (~20 min vs ~1h for 70B) and often more robust, with ~0.5–1 perplexity point advantage — but it protects salient channels regardless of *position*, which is exactly why it can beat GPTQ, whose error-compensation degrades toward the end of column-by-column processing.
+
+---
+
+**Blue-Green Deployment**
+
+*The problem:* Deploying a new model version risks downtime or inconsistent state during the cutover.
+
+*Core insight / definition:* Maintain two identical environments (old and new); switch all traffic atomically from one to the other.
+
+*Why it matters / pitfall / interview trap:* Zero-downtime, but costs 2× infrastructure during the transition — a cost/safety tradeoff, not free.
+
+---
+
+**Born-Again Networks (Self-Distillation)**
+
+*The problem:* You want distillation's regularization benefits without having a separately-trained larger teacher model.
+
+*Core insight / definition:* Train a model, then train an identical-architecture model using the first model's own soft predictions as targets. Surprisingly, the "student" often outperforms the original.
+
+*Why it matters / pitfall / interview trap:* Gains are largest when the original model is confident-but-sometimes-wrong; on already-well-calibrated tasks, soft labels add little over hard labels.
+
+---
+
+**Cascade Serving**
+
+*The problem:* Running an expensive model on every request wastes compute when most requests have "easy," obvious answers.
+
+*Core insight / definition:* Chain multiple stages of increasing cost/capability (rules → cheap quantized model → full model); each stage only returns early on high-confidence predictions, escalating ambiguous cases to the next stage.
+
+*Why it matters / pitfall / interview trap:* Gating early return on confidence thresholds is essential — a cheap stage that returns low-confidence predictions early silently degrades quality on ambiguous cases. Can cut average cost by >80% while preserving accuracy on hard cases.
+
+---
+
+**Canary Rollout**
+
+*The problem:* Deploying a new model version to 100% of traffic immediately risks a widespread quality regression before anyone notices.
+
+*Core insight / definition:* Route a small fraction (1–5%) of production traffic to the new version and monitor quality metrics (not just latency); if quality degrades, route back to 0% and investigate.
+
+*Why it matters / pitfall / interview trap:* Canary metrics can look fine on average while a specific traffic segment is badly affected — aggregate monitoring alone can miss segment-level regressions.
+
+---
+
+**Capacity Planning (LLM Serving)**
+
+*The problem:* Given a target QPS and latency SLA, an engineer must determine how many GPUs/nodes are needed to serve the load.
+
+*Core insight / definition:* Decode throughput (tokens/sec/GPU), not total input+output token volume, is the binding constraint, since decode is memory-bandwidth-bound and happens once per output token. GPUs needed = (QPS × avg_output_tokens) / decode_tokens_per_sec_per_GPU; KV cache memory at target concurrency must also be checked against available GPU memory.
+
+*Why it matters / pitfall / interview trap:* Engineers who size only off total throughput (including prefill) under-provision for decode, the actual bottleneck at scale.
+
+---
+
+**Chunked Prefill**
+
+*The problem:* Long prompts (8K–128K tokens) cause large TTFT spikes and block decode operations for other in-flight requests.
+
+*Core insight / definition:* Split the prefill phase into smaller chunks (e.g., 512 tokens) and interleave them with ongoing decode steps, so the first output token can be produced after one chunk instead of the full prompt.
+
+*Why it matters / pitfall / interview trap:* Reduces TTFT but slightly increases TPOT for other decoding requests due to interleaving overhead — this is a latency *reallocation* (stealing decode compute for prefill), not a free win, and must be tuned against the SLA, not assumed favorable.
+
+---
+
+**Circuit Breaker**
+
+*The problem:* When a downstream dependency (feature store, embedding service) fails, a naive system propagates the failure and can take down the whole product.
+
+*Core insight / definition:* Detect dependency failure and fall back gracefully — serve from cache, fall back to a simpler model, or return a safe default — rather than erroring out.
+
+*Why it matters / pitfall / interview trap:* The design principle: never let a model dependency take down the whole product.
+
+---
+
+**Concept Drift**
+
+*The problem:* A model's predictions can degrade even when input feature distributions look stable, if the underlying relationship between features and labels has changed.
+
+*Core insight / definition:* The true mapping from features to labels shifts over time (distinct from input drift or prediction drift). Only detectable with delayed ground truth.
+
+*Why it matters / pitfall / interview trap:* Because it requires delayed labels to detect, concept drift is inherently a lagging signal — proxy metrics are needed for fast feedback while true accuracy reconciliation happens days/weeks later.
+
+---
+
+**Continuous Batching (Iteration-Level / Dynamic Batching)**
+
+*The problem:* Static batching pads all sequences to the same length and waits for the whole batch to finish, so a request that finishes early holds its GPU slot idle until the slowest request in the batch completes.
+
+*Core insight / definition:* After every token-generation step, remove finished sequences from the batch and immediately insert new pending requests, so the batch composition changes every step (introduced as Orca, Yu et al. 2022). Raises GPU utilization from ~30% (static) to >80%.
+
+*Why it matters / pitfall / interview trap:* Now the default in all serious LLM serving systems (vLLM, TGI, TensorRT-LLM). Essential for request streams with high variance in output length; larger max batch size trades throughput for worse tail latency, so it should be set against a p99 latency SLO, not average throughput.
+
+---
+
+**Cost Attribution / Cost-per-Quality-Unit**
+
+*The problem:* Optimizing for absolute cost alone can silently sacrifice quality — e.g., quantizing to INT4 cuts cost 8× but a 5% accuracy drop might mean millions in missed fraud detection.
+
+*Core insight / definition:* Track and compare cost normalized by a quality metric (cost per AUC point, cost per BLEU point) rather than raw dollar cost, and pick the cheapest model that still clears a defined quality threshold.
+
+*Why it matters / pitfall / interview trap:* The cheapest model is worthless if it falls below the product's quality bar — cost optimization without quality guardrails can be net-negative.
+
+---
+
+**Double Quantization (QLoRA)**
+
+*The problem:* Even after quantizing model weights to 4-bit, the quantization constants (scale factors) themselves consume non-trivial memory when stored in fp32.
+
+*Core insight / definition:* Quantize the quantization constants a second time (e.g., fp32 scale factors → fp8), saving an additional ~0.5 bytes/parameter on top of the base 4-bit weight compression.
+
+*Why it matters / pitfall / interview trap:* A second-order optimization that matters at the scale of 70B-parameter models but is easy to overlook when reasoning about QLoRA's memory budget.
+
+---
+
+**Elastic Training**
+
+*The problem:* On preemptible/spot instance clusters, workers can be killed and new ones added mid-run; rigid fixed-worker-count training cannot handle this.
+
+*Core insight / definition:* Training frameworks (TorchElastic, Ray Train) that allow workers to join or leave during a run, requiring checkpointing plus dynamic resharding of data/state across the new worker count.
+
+*Why it matters / pitfall / interview trap:* Essential when training jobs run >24h on spot instances — without elastic support, a single preemption can waste the entire run.
+
+---
+
+**FitNets (Hint-Based Distillation)**
+
+*The problem:* Matching only final teacher outputs during distillation ignores the rich internal representations the teacher learned.
+
+*Core insight / definition:* Force the student to match the teacher's intermediate feature maps directly, using a learned linear projection $W$ to bridge dimension mismatches: $L_\text{hint} = \|f_\text{student}(x) - W \cdot f_\text{teacher}(x)\|^2$.
+
+*Why it matters / pitfall / interview trap:* Gives the student a structural blueprint, not just a final answer — but can conflict with the task loss since the model now optimizes a sum of competing objectives.
+
+---
+
+**FP8 Quantization**
+
+*The problem:* BF16 is the standard training/inference format on Ampere GPUs, but even lower precision is desired for maximum throughput on newer hardware.
+
+*Core insight / definition:* An 8-bit floating point format (e.g., e4m3) natively supported by Hopper GPUs (H100/H200) for matrix multiplication, giving roughly 2× throughput over BF16 with hardware-accelerated scaling and near-lossless quality. Used in DeepSeek-V3 training.
+
+*Why it matters / pitfall / interview trap:* Unlike INT8/INT4, FP8 requires specific hardware support (Hopper) — it's not a drop-in option on Ampere-generation GPUs.
+
+---
+
+**FP16 / BF16 (Reduced Precision Formats)**
+
+*The problem:* FP32 (4 bytes/param) is more precision than inference typically needs and doubles memory/compute cost versus half precision.
+
+*Core insight / definition:* FP16 and BF16 use 2 bytes per parameter. FP16 has a narrower exponent range (needs loss scaling to prevent gradient underflow); BF16 matches FP32's exponent range with less mantissa precision, so it needs no loss scaling and is preferred on Ampere+ GPUs.
+
+*Why it matters / pitfall / interview trap:* FP16/BF16 gives roughly 2× memory reduction with nearly zero accuracy loss — the default first step before more aggressive quantization (INT8/INT4).
+
+---
+
+**Gradient Checkpointing (Activation Checkpointing)**
+
+*The problem:* Storing all intermediate activations for the backward pass consumes large amounts of GPU memory, especially for deep models with long sequences.
+
+*Core insight / definition:* Don't store activations during the forward pass; instead recompute them during the backward pass. Trades ~30% extra compute for ~60% memory reduction.
+
+*Why it matters / pitfall / interview trap:* Stacks well with mixed precision for maximum memory savings; the right lever when memory (not compute or GPU count) is the binding constraint.
+
+---
+
+**Gradient Compression**
+
+*The problem:* All-reduce communication cost for gradient synchronization in data parallelism grows with model size and worker count, becoming the bottleneck.
+
+*Core insight / definition:* Techniques like top-k sparsification or 1-bit Adam reduce the volume of gradient data communicated per step, trading some gradient fidelity for reduced communication overhead.
+
+*Why it matters / pitfall / interview trap:* One of several standard fixes (along with overlapping communication with backward pass, larger batches, mixed precision) for keeping the compute-to-communication ratio favorable as GPU count grows.
+
+---
+
+**GGUF (llama.cpp Format)**
+
+*The problem:* Running LLMs on CPUs or consumer GPUs (Apple Silicon, no CUDA) requires a quantization format and runtime optimized for that hardware.
+
+*Core insight / definition:* A quantized model file format (2–8 bit) used by llama.cpp, CPU-friendly and portable across consumer hardware; e.g., Q4_K_M offers a good quality/size tradeoff.
+
+*Why it matters / pitfall / interview trap:* The go-to choice for CPU/consumer-GPU deployment scenarios where GPTQ/AWQ's CUDA-kernel requirements don't apply.
+
+---
+
+**GPTQ**
+
+*The problem:* Naive round-to-nearest quantization at INT4 causes significant accuracy loss because it ignores interactions between weights and doesn't account for LLM weight outliers.
+
+*Core insight / definition:* Uses second-order (Hessian) information to quantize a weight matrix column by column: after quantizing one column (introducing error), the remaining columns are updated via the inverse Hessian to partially compensate for that error. Objective: minimize $||WX - W_qX||_F^2$ over calibration activations X.
+
+*Why it matters / pitfall / interview trap:* The standard method for getting 70B models onto single consumer GPUs (~35GB at 4-bit), but it's expensive to compute (Hessian inversion), the compensation is fit to the specific calibration distribution (degrades badly off-distribution), and error can pile up in later columns since the compensation budget shrinks as fewer columns remain.
+
+---
+
+**GQA (Grouped-Query Attention)**
+
+*The problem:* Standard multi-head attention stores a separate KV cache per attention head, which becomes the dominant memory cost at long context and large batch size.
+
+*Core insight / definition:* Share a smaller number of KV heads across multiple query heads (e.g., 8 KV heads instead of 64), reducing KV cache size proportionally — an 8× reduction in the LLaMA 2 70B example given.
+
+*Why it matters / pitfall / interview trap:* GQA is a model-architecture decision baked in at pretraining — it cannot be retrofitted onto an already-trained full-multi-head-attention checkpoint as a serving-time knob.
+
+---
+
+**In-Flight Batching**
+
+*The problem:* NVIDIA TensorRT-LLM needs an equivalent mechanism to continuous batching to avoid GPU idle time from static batches.
+
+*Core insight / definition:* TensorRT-LLM's built-in implementation of continuous/iteration-level batching.
+
+*Why it matters / pitfall / interview trap:* Functionally equivalent to vLLM's continuous batching — the terminology differs by vendor but the underlying technique is the same.
+
+---
+
+**Input Drift**
+
+*The problem:* Model quality can silently degrade in production even without a code change, if the real-world data distribution shifts from what the model was trained on.
+
+*Core insight / definition:* The distribution of input features changes over time; detected by monitoring feature distributions directly, not just predictions.
+
+*Why it matters / pitfall / interview trap:* Distinguished from prediction drift (output shifts without input changes, e.g. from a dependency bug) and concept drift (the feature-label relationship itself changes).
+
+---
+
+**Iterative Magnitude Pruning (IMP)**
+
+*The problem:* Pruning all target sparsity at once in a single step causes large accuracy collapse.
+
+*Core insight / definition:* Train to convergence, prune p% of smallest-magnitude weights, reset remaining weights to their *original* (pre-training) initialization values, retrain, and repeat — this reset-to-init step is what connects IMP to the Lottery Ticket Hypothesis.
+
+*Why it matters / pitfall / interview trap:* Increasing sparsity gradually rather than all at once meaningfully reduces accuracy collapse versus one-shot pruning.
+
+---
+
+**Knowledge Distillation**
+
+*The problem:* A large model may be too slow/large for deployment, but a smaller model trained from scratch on hard labels alone performs noticeably worse.
+
+*Core insight / definition:* Train a smaller "student" model to mimic a larger "teacher" model's full output distribution (soft labels), not just the hard label, since soft labels encode inter-class similarity information ("dark knowledge"). Loss combines cross-entropy on hard labels and KL-divergence on temperature-softened teacher/student logits: $L = \alpha L_\text{CE} + (1-\alpha)L_\text{KL}$.
+
+*Why it matters / pitfall / interview trap:* If the student architecture lacks sufficient capacity, distillation cannot compress knowledge into it regardless of training regime — distillation improves sample efficiency, it doesn't create capacity.
+
+---
+
+**KV Cache**
+
+*The problem:* Recomputing keys and values for every past token at each decoding step costs O(t²) total work.
+
+*Core insight / definition:* Cache the key and value tensors for all previously generated tokens so each new decode step only needs O(t) incremental work. Size = 2 × layers × KV_heads × head_dim × context_length × batch_size × dtype_bytes.
+
+*Why it matters / pitfall / interview trap:* At high batch size and long context, KV cache memory can exceed model weight memory itself (e.g., 100 concurrent 8K-context requests on an 8B model needs ~54GB of KV cache alone) — the dominant serving memory bottleneck, mitigated by GQA, quantized KV cache, and PagedAttention.
+
+---
+
+**KV Cache Quantization**
+
+*The problem:* Even with GQA, KV cache can dominate GPU memory at long context and high concurrency; weight quantization alone doesn't shrink it.
+
+*Core insight / definition:* Store cached keys/values in reduced precision (FP8 or INT8) instead of FP16/BF16, directly shrinking the per-token KV cache footprint.
+
+*Why it matters / pitfall / interview trap:* Adds noise to every attended token, and that error accumulates over long contexts — degradation is worst exactly in the long-context regime where the memory savings are most needed.
+
+---
+
+**Lottery Ticket Hypothesis**
+
+*The problem:* If large trained networks are highly redundant, why not just train small networks from random initialization directly? Empirically, small networks trained from scratch underperform pruned-down large networks.
+
+*Core insight / definition:* (Frankle & Carlin, 2019) Large networks contain small subnetworks ("winning tickets") that, when reset to their *original* pre-training initialization and trained alone, converge to the same accuracy as the full network. Training the full network is effectively the process of finding the winning ticket.
+
+*Why it matters / pitfall / interview trap:* Demonstrated on small models (LeNet, VGG/CIFAR); scaling the *practical algorithm* to modern LLMs is prohibitively expensive even though the theoretical insight remains influential.
+
+---
+
+**Low-Rank Factorization**
+
+*The problem:* Large weight matrices in Transformers (e.g., 4096×4096 = 16M parameters per linear layer) may encode much less information than their raw parameter count suggests.
+
+*Core insight / definition:* If a matrix $W \in \mathbb{R}^{m\times n}$ has effective rank $r \ll \min(m,n)$, approximate it as $W \approx AB$ with $A \in \mathbb{R}^{m\times r}$, $B \in \mathbb{R}^{r\times n}$, dropping parameter count from $mn$ to $r(m+n)$. SVD-based compression keeps the top-$r$ singular values/vectors, minimizing Frobenius-norm error.
+
+*Why it matters / pitfall / interview trap:* Choosing $r$ trades compression ratio against accuracy; singular values usually decay gradually with no sharp cutoff, so $r$ must be chosen empirically on a validation set.
+
+---
+
+**LoRA (Low-Rank Adaptation)**
+
+*The problem:* Full fine-tuning of a large pretrained model requires updating and storing gradients/optimizer state for every parameter, which is expensive at LLM scale.
+
+*Core insight / definition:* Freeze the pretrained weight $W$; learn a low-rank update $\Delta W = AB$ (small $A, B$ matrices). At inference, merge $W' = W + AB$ for zero extra serving cost.
+
+*Why it matters / pitfall / interview trap:* Used pervasively for efficient LLM fine-tuning; the low-rank assumption is why it's so parameter-efficient (often <1% of full model parameters trainable).
+
+---
+
+**Magnitude-Based Pruning**
+
+*The problem:* Among all weights in a trained model, which should be removed first to shrink the model with minimal harm?
+
+*Core insight / definition:* Weights near zero contribute little to output by definition; compute a threshold (global or per-layer), zero out weights below it, then fine-tune to recover accuracy, repeating as needed.
+
+*Why it matters / pitfall / interview trap:* A globally small-magnitude weight isn't always functionally unimportant (it may have been critical earlier in training) — naive global thresholding can be too aggressive on some layers and too conservative on others.
+
+---
+
+**Megatron-Style Tensor Parallelism (Column/Row Parallel)**
+
+*The problem:* When a model's individual weight matrices are too large for one GPU, or you want to minimize per-request latency, splitting layers across devices is needed.
+
+*Core insight / definition:* Column-parallel linear layers (e.g., attention Q/K/V projections) split the weight matrix columnwise across GPUs, each computing a partial output, then all-gather. Row-parallel linear layers (e.g., output projection) split rowwise, each GPU gets a partition of the input, then sum via all-reduce.
+
+*Why it matters / pitfall / interview trap:* Requires an all-reduce/all-gather after every sublayer — frequent, latency-sensitive communication tolerable only over fast interconnect (NVLink); stretching tensor parallelism across nodes on InfiniBand causes throughput to collapse because per-layer collective latency dominates.
+
+---
+
+**Memory Bandwidth Bottleneck (Decode)**
+
+*The problem:* LLM autoregressive decoding cannot parallelize across output tokens — token t+1 requires token t — and each step requires the full model weights to be read from GPU memory.
+
+*Core insight / definition:* Decode throughput is capped by GPU memory bandwidth, not compute: each decode step moves roughly 2P bytes for a P-parameter BF16 model, and throughput ≈ bandwidth / (2 × params). For an A100 (2 TB/s) and 70B model, this caps single-sample decode at ~14 tokens/second regardless of GPU compute power.
+
+*Why it matters / pitfall / interview trap:* Batching multiple decode requests amortizes the weight-loading cost across many users — this is why batching is the central lever for decode throughput, and why decode transitions from bandwidth-bound to compute-bound only at large batch sizes (~500 on A100).
+
+---
+
+**Mixed Precision Training**
+
+*The problem:* Training entirely in FP32 wastes compute and memory versus lower-precision formats, but naive low precision can cause gradient underflow.
+
+*Core insight / definition:* Run forward/backward passes in FP16 or BF16 (half the memory, faster on Tensor Cores) while keeping FP32 master weights for numerical stability; FP16 requires loss scaling to prevent gradient underflow, BF16 does not (wider exponent range).
+
+*Why it matters / pitfall / interview trap:* Gives roughly 1.5–2× training speedup (33–50% cost reduction) and ~50% memory reduction, enabling larger batch sizes — but choosing FP16 without loss scaling silently produces zero/NaN gradients.
+
+---
+
+**Model Routing (Inference Tiers)**
+
+*The problem:* Not every request needs the largest, most expensive model — routing all traffic to a 405B model wastes cost and latency on simple queries.
+
+*Core insight / definition:* A router (rule-based or LLM classifier) directs requests to differently-sized models based on signals like input complexity, user tier, task type, or small-model confidence.
+
+*Why it matters / pitfall / interview trap:* Cuts average cost and latency without sacrificing quality on requests that genuinely need the larger model — but requires a reliable complexity/confidence signal to avoid misrouting hard queries to weak models.
+
+---
+
+**Movement Pruning**
+
+*The problem:* Magnitude-based pruning is a poor signal during fine-tuning, since weights that matter for a new task may not yet have large magnitude.
+
+*Core insight / definition:* Prune based on the product of weight and its gradient (movement away from zero) rather than raw magnitude: $\text{score}_{ij} = w_{ij} \cdot \partial\mathcal{L}/\partial w_{ij}$. Weights moving away from zero during fine-tuning are considered important; weights staying near zero are prunable.
+
+*Why it matters / pitfall / interview trap:* Specifically designed for the fine-tuning regime, where magnitude pruning (tuned for pretraining-scale weight statistics) is less appropriate.
+
+---
+
+**NF4 (NormalFloat4)**
+
+*The problem:* Uniform INT4 quantization doesn't match the actual (roughly normal) distribution of neural network weights, wasting quantization levels on rarely-occurring extreme values.
+
+*Core insight / definition:* A 4-bit quantization scheme (used in QLoRA) that maps values to quantiles of a normal distribution rather than uniformly-spaced integers, better preserving the weight distribution's information content.
+
+*Why it matters / pitfall / interview trap:* Key ingredient that lets QLoRA achieve near-full-precision fine-tuning quality at 4-bit base model precision (~0.5% quality loss).
+
+---
+
+**Observability Signals (Latency, Throughput, Error Rate, Quality)**
+
+*The problem:* Traditional infrastructure monitoring (latency, error rate) is necessary but insufficient for ML systems, which can fail "silently" by returning plausible-looking wrong answers.
+
+*Core insight / definition:* Four core signals for ML system dashboards: latency (p50/p95/p99), throughput (requests/tokens per second), error rate (5xx/timeouts/model errors), and quality (accuracy proxy, drift score) — the last of which has no traditional infra analog.
+
+*Why it matters / pitfall / interview trap:* Silent failures (model returns wrong-but-plausible output with no error code) are why quality metrics must be tracked as a first-class signal, not an afterthought — latency/error-rate dashboards alone will miss them.
+
+---
+
+**PagedAttention**
+
+*The problem:* Traditional KV cache management pre-allocates a fixed contiguous memory block per request sized to the maximum possible sequence length; since most requests finish earlier, this wastes 20–80% of GPU memory to internal and external fragmentation.
+
+*Core insight / definition:* (vLLM, Kwon et al. 2023) Borrows OS virtual-memory paging: divide KV cache into small fixed-size physical blocks (e.g., 16 tokens); maintain a per-request block table mapping logical sequence positions to non-contiguous physical blocks, allocated on demand and freed on completion. Blocks can also be shared across sequences (e.g., common system prompts) via copy-on-write.
+
+*Why it matters / pitfall / interview trap:* Reduces KV cache waste to near-zero (<4% vs 20-40%+), enabling 2–4× more concurrent requests and throughput — but the per-sequence KV-size formula alone doesn't capture the *serving* bottleneck, which is the interaction with variable-length concurrency and fragmentation; two deployments with identical formula values can have very different effective capacity.
+
+---
+
+**Pipeline Bubbles**
+
+*The problem:* In pipeline parallelism, GPUs assigned later stages sit idle waiting for activations to arrive from earlier stages, wasting compute.
+
+*Core insight / definition:* Idle time inherent to naive pipeline parallelism when only one micro-batch flows through the pipeline at a time. Mitigations: GPipe (accumulate micro-batches then flush), PipeDream's 1F1B schedule (alternate forward/backward micro-batches to keep all stages busy), and interleaved (non-contiguous) layer assignment.
+
+*Why it matters / pitfall / interview trap:* Hiding pipeline bubbles via micro-batching raises per-request latency and requires enough concurrent load to keep the pipeline full — so pipeline parallelism's efficiency is load-dependent in a way tensor parallelism's is not; at low traffic, bubbles are pure waste.
+
+---
+
+**Pipeline Parallelism (PP)**
+
+*The problem:* Very deep models may not fit on a single GPU even after tensor parallelism, or tensor parallelism's frequent communication is too costly across slow interconnects.
+
+*Core insight / definition:* Different layers are placed on different GPUs/nodes; data flows through the pipeline stage by stage, communicating only activation tensors at stage boundaries (infrequent, larger messages) rather than every sublayer.
+
+*Why it matters / pitfall / interview trap:* Because it communicates only at stage boundaries, PP tolerates slower interconnects (InfiniBand across nodes) better than tensor parallelism — but it introduces pipeline bubbles as a cost that TP does not have.
+
+---
+
+**Post-Training Quantization (PTQ)**
+
+*The problem:* Neural network weights are typically stored as FP32; large models are too big to deploy, and you often cannot afford to retrain them just to shrink their footprint.
+
+*Core insight / definition:* Quantize an already-trained model's weights (and optionally activations) to lower precision (FP16, INT8, INT4) without any retraining, using a calibration dataset of representative inputs (128–1024 samples) to compute per-tensor/channel/group scale and zero-point values from observed activation ranges.
+
+*Why it matters / pitfall / interview trap:* INT8 typically gives <1% accuracy drop with good calibration; bad calibration data (e.g., random noise instead of representative inputs) produces wrong scale/zero-point values, causing quantized activations to clip or overflow.
+
+---
+
+**Prefill Phase**
+
+*The problem:* An LLM must process the entire input prompt before it can start generating output tokens.
+
+*Core insight / definition:* The full prompt is processed in a single forward pass, computing attention across all prompt tokens in parallel — this is compute-bound with high arithmetic intensity, and determines time-to-first-token (TTFT).
+
+*Why it matters / pitfall / interview trap:* Contrasted with the memory-bandwidth-bound decode phase; prefill becomes compute-bound once sequence length exceeds roughly 100 tokens, so GPU utilization is naturally high during prefill but can starve concurrent decode requests if not chunked.
+
+---
+
+**Prefix Caching**
+
+*The problem:* Many requests to the same LLM deployment share an identical prefix (e.g., a system prompt or persona instructions), and recomputing its KV cache for every request wastes compute and increases TTFT.
+
+*Core insight / definition:* Cache the KV values for a shared prefix once, so subsequent requests with the same prefix skip recomputing it, driving TTFT toward near-zero for the cached portion.
+
+*Why it matters / pitfall / interview trap:* A single differing token near the start of the prompt invalidates the shared prefix (killing the cache hit if personalization is injected early), and cached KV blocks consume the same scarce GPU memory needed for live sequences — an aggressive prefix cache can actually *reduce* achievable concurrency.
+
+---
+
+**Prediction Drift**
+
+*The problem:* Model output distributions can shift even when input features haven't meaningfully changed, often due to a silent pipeline or dependency bug.
+
+*Core insight / definition:* Model outputs shift without corresponding input changes — e.g., caused by a dependency update or feature pipeline bug — distinct from input drift (feature distribution change) and concept drift (label relationship change).
+
+*Why it matters / pitfall / interview trap:* Because the *inputs* look normal, prediction drift can be missed unless output distributions are monitored directly and independently from input distributions.
+
+---
+
+**Pruning (Structured vs Unstructured)**
+
+*The problem:* Trained models have many low-magnitude, functionally redundant weights that contribute little to output.
+
+*Core insight / definition:* Unstructured pruning zeros individual low-magnitude weights, producing a sparse matrix — but standard hardware processes matrices in regular blocks, so skipping scattered zeros gives no real speedup without special sparse tensor cores (e.g., NVIDIA Ampere 2:4 sparsity). Structured pruning removes entire neurons, attention heads, filters, or layers, physically shrinking weight matrices for a direct compute/memory reduction on any hardware.
+
+*Why it matters / pitfall / interview trap:* Rule of thumb: if you don't control the inference hardware, use structured pruning; unstructured pruning is appropriate only when the deployment hardware explicitly supports sparse computation.
+
+---
+
+**QAT (Quantization-Aware Training)**
+
+*The problem:* PTQ loses too much accuracy at aggressive quantization levels (INT4, binary) because the model was trained fully at high precision and never learned to compensate for quantization error.
+
+*Core insight / definition:* Simulate quantization during training by inserting fake quantize/dequantize nodes in the forward pass, while letting gradients flow at full precision in the backward pass via a straight-through estimator (STE): $\partial\mathcal{L}/\partial W \approx \partial\mathcal{L}/\partial W_q$. The model learns to tolerate quantization noise.
+
+*Why it matters / pitfall / interview trap:* Requires retraining/fine-tuning (hours to days) versus PTQ's minutes, so it's reserved for cases where PTQ accuracy is unacceptable and training budget exists; at INT8, PTQ is usually already near-lossless, making QAT's cost hard to justify there.
+
+---
+
+**QLoRA**
+
+*The problem:* Fine-tuning a 70B model requires holding it in memory at full precision plus optimizer states — hundreds of GB, infeasible on a single GPU.
+
+*Core insight / definition:* Quantize the frozen base model to 4-bit NF4, and add small LoRA adapter matrices (A, B) in BF16 on top; only the adapters are trained. Forward pass: $h = W_\text{frozen}\cdot x + (B\cdot A)\cdot x$; gradients flow only through the differentiable $B\cdot A$ path, never through the discrete quantized weights.
+
+*Why it matters / pitfall / interview trap:* Enables fine-tuning a 70B model on a single 48–80GB GPU (~35GB base + ~1-6GB adapters/activations) at a small quality cost versus full-precision fine-tuning — the quantized base introduces noise into every forward pass that the adapters must learn to work around.
+
+---
+
+**Quantization Error / Granularity (Per-Tensor, Per-Channel, Per-Group)**
+
+*The problem:* A single scale factor for an entire weight matrix (per-tensor quantization) forces small-magnitude values to round to zero or a few discrete levels when large outlier values set the scale.
+
+*Core insight / definition:* Quantization granularity trades accuracy against overhead: per-tensor (one scale for the whole matrix, minimal overhead, lowest accuracy), per-channel/row (one scale per output neuron row), per-group (one scale per 128 consecutive elements — the sweet spot used by GPTQ/AWQ/QLoRA), and per-element (highest accuracy, no real compression).
+
+*Why it matters / pitfall / interview trap:* Per-group quantization (g=128) reduces quantization error 2–5× versus per-tensor at 4-bit, at only ~0.5% storage overhead for extra scale factors (d_model=4096) — a favorable tradeoff that's a common interview computation.
+
+---
+
+**Reduce-Scatter (Communication Collective)**
+
+*The problem:* FSDP/ZeRO-3 needs to both reduce (sum) gradients across workers and immediately shard the result, without materializing the full reduced tensor on every worker.
+
+*Core insight / definition:* Combines a reduce (sum) operation with a scatter operation in a single collective call, used for gradient sharding in FSDP.
+
+*Why it matters / pitfall / interview trap:* More communication-efficient than doing all-reduce followed by a separate scatter — a key primitive for making ZeRO-3's memory savings communication-efficient.
+
+---
+
+**Result Caching**
+
+*The problem:* Recomputing an inference result for identical or near-identical inputs wastes compute and money.
+
+*Core insight / definition:* Cache prediction results keyed by a hash of input features (e.g., in Redis) with a TTL; serve cache hits without invoking the model.
+
+*Why it matters / pitfall / interview trap:* Caching strategy is use-case dependent (e.g., search queries ~70% hit rate at 1h TTL vs. user feed ~40% at 5min); real-time-critical signals like fraud scores should never be cached, since a stale score could let a now-risky transaction through.
+
+---
+
+**Rollback**
+
+*The problem:* When a newly deployed model version degrades quality or breaks, waiting for a full redeploy to revert is too slow.
+
+*Core insight / definition:* Keep the previous model version loaded and ready so reverting is a config/routing change, not a redeployment — target rollback in under 60 seconds.
+
+*Why it matters / pitfall / interview trap:* Not every loss/quality spike warrants an immediate rollback; some are transient. A reasonable heuristic is to roll back only if the issue doesn't recover within 2–5× the anomaly's duration.
+
+---
+
+**Self-Distillation**
+
+*The problem:* You want distillation's regularization benefits but have no larger teacher model available.
+
+*Core insight / definition:* Use a model's own predictions (soft label distribution) as training targets for itself or an identical-architecture copy — the confidence distribution encodes learned uncertainty that acts like strong label smoothing.
+
+*Why it matters / pitfall / interview trap:* Benefits are task-dependent — most visible when the original model is confident-but-sometimes-wrong, since self-distillation corrects overconfident errors; adds little when the model is already well-calibrated.
+
+---
+
+**Shadow Traffic**
+
+*The problem:* Canary rollouts still expose some real users to a potentially broken new model version.
+
+*Core insight / definition:* Send a duplicate copy of production traffic to the new model version and compare outputs offline, without any user-facing impact.
+
+*Why it matters / pitfall / interview trap:* Safest validation method for high-stakes systems, but expensive (doubles compute, since both old and new models process every request).
+
+---
+
+**SmoothQuant**
+
+*The problem:* INT8 quantization of both weights *and* activations (W8A8) is harder than weight-only quantization because activation outliers are difficult to represent in low precision.
+
+*Core insight / definition:* Migrates the quantization difficulty from activations to weights via a per-channel smoothing factor, making both weights and activations easier to quantize at INT8 with good quality.
+
+*Why it matters / pitfall / interview trap:* Enables full W8A8 quantization (both weights and activations), unlike GPTQ/AWQ which are weight-only — giving further speedup potential when activation quantization is also desired.
+
+---
+
+**Speculative Decoding**
+
+*The problem:* Autoregressive decoding is inherently sequential and memory-bandwidth-bound — you cannot generate token t+1 before token t, and a single decode step cannot be sped up beyond the bandwidth ceiling.
+
+*Core insight / definition:* A small, fast "draft" model proposes k tokens autoregressively; the large "target" model then verifies all k tokens in a single parallel forward pass (since during verification the full sequence is already known). Each draft token is accepted with probability min(1, p_target/p_draft) (rejection sampling); on rejection, resample from the corrected distribution and discard the rest. Expected accepted tokens per step: $E[\text{accepted}] = (1-\alpha^{K+1})/(1-\alpha)$ for acceptance rate α.
+
+*Why it matters / pitfall / interview trap:* Typical speedup 2–4× (higher for reasoning/coding with high acceptance rate, near-neutral for creative generation with low acceptance); requires the draft and target model to share the same tokenizer/vocabulary and have similar output distributions — mismatched draft/target distributions collapse the speedup.
+
+---
+
+**Spot / Preemptible Instances**
+
+*The problem:* On-demand GPU instances are expensive ($2–32/hour per GPU), but training jobs are often tolerant of interruption if made fault-tolerant.
+
+*Core insight / definition:* Cloud providers offer spot (AWS) / preemptible (GCP) instances at 60–90% discount versus on-demand, in exchange for the possibility of interruption (~5–15% per hour); requires frequent checkpointing and automatic retry/resume logic to exploit safely.
+
+*Why it matters / pitfall / interview trap:* Viable for training (checkpoint-and-resume tolerates interruption) but not for serving production traffic, which must stay continuously available — spot is reserved for fault-tolerant batch/training workloads, never latency-sensitive serving.
+
+---
+
+**Static Batching**
+
+*The problem:* Naively batching requests one at a time wastes GPU throughput, since a batch of 64 takes almost the same time as a batch of 1 but produces 64 results.
+
+*Core insight / definition:* Wait for N requests to accumulate (or a fixed batch to fill) before processing them together as one padded batch.
+
+*Why it matters / pitfall / interview trap:* A request that finishes early still holds its GPU slot idle until the entire batch completes, wasting GPU cycles — this is exactly the problem continuous/dynamic batching solves.
+
+---
+
+**Straight-Through Estimator (STE)**
+
+*The problem:* The round() operation used in fake quantization during QAT is non-differentiable, so gradients cannot flow through it via standard backpropagation.
+
+*Core insight / definition:* In the backward pass, pass gradients through the quantization operation unchanged, as if it were the identity function, ignoring the fact that rounding has zero gradient almost everywhere.
+
+*Why it matters / pitfall / interview trap:* The key trick that makes QAT trainable at all — without STE, gradients would be zero everywhere and the model could never learn to compensate for quantization noise.
+
+---
+
+**Tensor Parallelism (TP)**
+
+*The problem:* A single very large layer (e.g., a 70B model's attention/FFN matrices) may not fit or run efficiently on one GPU.
+
+*Core insight / definition:* Split individual layers' weight matrices across GPUs — e.g., column-wise splitting of a matrix multiply, each GPU computing part of the output, then reassembling via all-gather/all-reduce. Used inside transformer layers by Megatron-LM to split attention heads and MLP columns.
+
+*Why it matters / pitfall / interview trap:* Requires frequent, latency-sensitive all-reduce communication after every sublayer, so it is best kept within a node over fast NVLink; minimizes per-request latency but doesn't scale well across slower inter-node links (unlike pipeline parallelism).
+
+---
+
+**TensorRT-LLM**
+
+*The problem:* Generic inference frameworks leave performance on the table versus kernels hand-tuned for specific NVIDIA GPU architectures.
+
+*Core insight / definition:* NVIDIA's production LLM inference library that compiles models into optimized TensorRT engines with kernels tuned per-GPU. Key optimizations: kernel fusion (fusing attention/layernorm/residual into single CUDA kernels), in-flight (continuous) batching, paged KV cache, native FP8 quantization on H100/H200, built-in speculative decoding, and optimized multi-GPU all-reduce for tensor parallelism.
+
+*Why it matters / pitfall / interview trap:* Offers the highest peak throughput (10–20% over vLLM at large scale) but is NVIDIA-only and requires a complex compilation step, versus vLLM's broader hardware support (NVIDIA + AMD ROCm) and easier setup.
+
+---
+
+**Throughput vs. Latency Tradeoff**
+
+*The problem:* Serving system knobs (batch size, quantization, tensor parallelism, context length, speculative decoding) simultaneously affect throughput and latency, often in opposing directions.
+
+*Core insight / definition:* Larger batch size increases throughput but increases queuing latency; quantization (INT4) increases throughput and decreases latency; tensor parallelism reduces latency at roughly neutral throughput cost from communication overhead; longer context reduces both throughput (larger KV cache limits batch size) and increases latency (more prefill); speculative decoding is throughput-neutral but sharply reduces latency for easy/predictable generations.
+
+*Why it matters / pitfall / interview trap:* Production SLAs must specify targets for both — e.g., interactive chatbots need TTFT < 200ms *and* < 50ms/token, not just one dimension; optimizing throughput alone (e.g., via bigger batches) can silently blow past latency SLOs.
+
+---
+
+**Triton Inference Server**
+
+*The problem:* Model-execution frameworks (vLLM, TensorRT-LLM, PyTorch) don't provide serving infrastructure like HTTP/gRPC APIs, health checks, metrics, or multi-model orchestration.
+
+*Core insight / definition:* An open-source serving framework that handles serving infrastructure (API endpoints, dynamic batching, model management, ensemble pipelines) while delegating model execution to pluggable backends (TensorRT-LLM, vLLM, PyTorch, ONNX, Python).
+
+*Why it matters / pitfall / interview trap:* The right choice specifically when you need multi-model serving from one server, complex pre/post-processing pipelines, mixed CPU/GPU hardware, or Kubernetes-native model versioning — not simply "fastest single-model inference."
+
+---
+
+**TTFT (Time to First Token)**
+
+*The problem:* User-facing latency for LLM chat applications is dominated by how long a user waits before seeing *any* response, not the total generation time.
+
+*Core insight / definition:* $\text{TTFT} = t_\text{queue} + t_\text{prefill}$ — time waiting for a server slot plus time to process the full input prompt (compute-bound).
+
+*Why it matters / pitfall / interview trap:* Reducing TTFT (e.g., via chunked prefill) often steals compute from in-flight decode requests, raising their TPOT — TTFT and TPOT trade against each other through the shared compute budget, so optimizing one in isolation can make overall experience worse.
+
+---
+
+**TPOT (Time Per Output Token)**
+
+*The problem:* After the first token, users perceive smoothness based on the pace of subsequent token generation, distinct from the initial wait.
+
+*Core insight / definition:* $\text{TPOT} = t_\text{queue\_decode} + t_\text{decode\_per\_token}$, dominated by the memory-bandwidth-bound cost of one decoder forward pass per token.
+
+*Why it matters / pitfall / interview trap:* E2E latency = TTFT + (output_length − 1) × TPOT — for long outputs, TPOT dominates total latency far more than TTFT, so optimizing only TTFT can miss the bigger lever.
+
+---
+
+**vLLM**
+
+*The problem:* Pre-vLLM serving systems suffered from severe KV cache memory fragmentation, wasting 20–40%+ of GPU memory and limiting achievable batch size.
+
+*Core insight / definition:* (Kwon et al., 2023, UC Berkeley) An open-source LLM serving engine built around PagedAttention and continuous batching, achieving 2–4× higher throughput than HuggingFace text-generation-inference with near-zero KV cache waste (<4%).
+
+*Why it matters / pitfall / interview trap:* Broad hardware support (NVIDIA + AMD ROCm) and easy setup make it the default choice for most production deployments, though TensorRT-LLM edges it out on peak throughput at large scale on NVIDIA-only hardware.
+
+---
+
+**ZeRO (Zero Redundancy Optimizer)**
+
+*The problem:* Standard data parallelism replicates the full set of parameters, gradients, and optimizer states on every worker, wasting enormous memory at scale (optimizer states for Adam alone can be 2–4× model size).
+
+*Core insight / definition:* Progressively shard training state across workers: ZeRO-1 shards optimizer states only (~4× memory reduction, same communication as DDP); ZeRO-2 additionally shards gradients (~8×, slightly more communication); ZeRO-3 (equivalent to PyTorch FSDP) additionally shards parameters themselves (~N× reduction, linear in GPU count), requiring an all-gather of full parameters before each layer's forward pass and a reduce-scatter of gradients after backward.
+
+*Why it matters / pitfall / interview trap:* ZeRO-3 trades communication for memory — worthwhile when a model barely doesn't fit in aggregate GPU memory at ZeRO-2, but wasteful (extra communication overhead with no benefit) when the model fits easily without full parameter sharding.
+
+---
