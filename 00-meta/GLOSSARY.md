@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale, 13-production-ml, 14-responsible-ai done. Remaining: 15-system-design through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications, 12-systems-and-scale, 13-production-ml, 14-responsible-ai, 15-system-design done. Remaining: 16-interview-prep through 18-resources.
 
 ---
 
@@ -15482,5 +15482,1855 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Core insight / definition:* Running membership inference attacks against the updated model specifically on the erased examples; if the attack cannot distinguish them from non-training examples, unlearning is considered to have succeeded.
 
 *Why it matters / pitfall / interview trap:* The verification gap between approximate unlearning and provably complete erasure remains an open problem — regulators may not accept approximate unlearning without a verifiable guarantee.
+
+---
+
+## 15-system-design
+
+**A/B Testing**
+
+*The problem:* Offline metrics don't reliably predict real user behavior or business impact; a change must be validated against live traffic before full rollout.
+
+*Core insight / definition:* Randomly split traffic between a control (existing system) and treatment (new model); compare business metrics (CTR, revenue) with statistical significance testing to decide whether to ship.
+
+*Why it matters / pitfall / interview trap:* Requires a minimum detectable effect and adequate sample size — underpowered tests report "no significant difference" and teams ship anyway, accumulating small, unverified regressions.
+
+---
+
+**A/B Testing (Interference / SUTVA Violations)**
+
+*The problem:* Standard A/B tests assume one user's outcome is unaffected by another user's treatment assignment, but marketplaces, ad auctions, and social feeds violate this constantly.
+
+*Core insight / definition:* The Stable Unit Treatment Value Assumption (SUTVA) requires independence between units. In ads, giving one advertiser's model better scores lets them win more auctions, directly reducing impressions available to control-group advertisers. In feeds, User A's experience depends on User B's engagement through the shared social graph.
+
+*Why it matters / pitfall / interview trap:* Naive lift measurement overstates true effect when interference exists. Mitigations include geo-based experiments, advertiser/creator-level holdouts, switchback experiments, and ego-cluster randomization — all trading statistical power for reduced bias.
+
+---
+
+**Account Takeover (ATO) Detection**
+
+*The problem:* Fraudsters compromise legitimate accounts, leaving a behavioral trail distinct from stolen-card fraud.
+
+*Core insight / definition:* ATO follows a sequence pattern — new device login → password change → new payee added → large transfer — that a single-transaction model can't see but a sequence model (LSTM over transaction/account history) captures.
+
+*Why it matters / pitfall / interview trap:* Tabular GBM models miss temporal patterns entirely; any single event looks unremarkable in isolation, so the fraud signal only exists in the ordering.
+
+---
+
+**Active Learning**
+
+*The problem:* Human review capacity is limited; randomly sampling content/data for labeling wastes effort on easy, already-well-classified cases.
+
+*Core insight / definition:* Prioritize items for human review that are most useful for model improvement — typically uncertainty near the decision boundary, boosted for low-resource languages or recently-changed policies where existing labels may be stale.
+
+*Why it matters / pitfall / interview trap:* Active learning alone can entrench blind spots if it only samples near the model's current boundary; a small random/uniform sampling layer is still needed to catch confidently-wrong regions the model doesn't know it's uncertain about.
+
+---
+
+**Ad Auction / eCPM**
+
+*The problem:* Ad platforms must select and price winning ads among many bidders in milliseconds.
+
+*Core insight / definition:* eCPM = bid × pCTR × quality_score determines ranking; the auction (commonly second-price/Vickrey) charges the winner based on the runner-up's eCPM divided by the winner's pCTR, not their own bid.
+
+*Why it matters / pitfall / interview trap:* Because eCPM depends on the *absolute* value of pCTR, miscalibration (not just poor ranking) directly and proportionally distorts prices — a classic interview trap is assuming AUC alone determines auction health.
+
+---
+
+**Ads Budget Pacing**
+
+*The problem:* An advertiser's daily budget can be exhausted in the first hour of high traffic, missing their target audience for the rest of the day.
+
+*Core insight / definition:* Smooth spending by throttling the fraction of auctions the advertiser participates in, adjusting the throttle rate based on actual spend vs. time-elapsed target spend.
+
+*Why it matters / pitfall / interview trap:* Random exclusion during throttling can lose valuable auctions to competitors entirely; bid shading (lowering the bid when ahead of pace) is the smarter alternative because it preserves participation while controlling spend.
+
+---
+
+**Adversarial Debiasing**
+
+*The problem:* Removing protected attributes from features doesn't remove their signal, since correlated proxies remain.
+
+*Core insight / definition:* Add an adversary network that tries to predict the sensitive attribute from the model's internal representation; train the main model to maximize the adversary's loss (make representations uninformative about the sensitive attribute) while still minimizing task loss.
+
+*Why it matters / pitfall / interview trap:* This is an explicit fairness constraint applied during training, not a post-hoc filter — interviewers probe whether you understand it's a tradeoff (accuracy vs. fairness), not a free fix.
+
+---
+
+**Adversarial Evasion (Content Moderation)**
+
+*The problem:* Sophisticated bad actors reverse-engineer classifier decision boundaries and craft content to slip past them.
+
+*Core insight / definition:* Techniques include leetspeak, homoglyph substitution, coded slang, text-rendered-as-image, and splitting violations across multiple posts. Detection requires normalization layers, OCR, embedding similarity monitoring, and account-level (not just post-level) analysis.
+
+*Why it matters / pitfall / interview trap:* Publishing precision/recall by evasion technique gives adversaries a roadmap; keeping some detection logic in fast, non-retrained rules preserves response speed against a faster-adapting adversary.
+
+---
+
+**Alert Fatigue**
+
+*The problem:* Clinicians and content moderators exposed to high false-positive rates become desensitized and start ignoring or dismissing alerts without reading them, including true positives.
+
+*Core insight / definition:* At low prevalence and moderate sensitivity, even a strong-looking model (e.g., AUROC 0.76) can generate mostly-false alerts; the Epic Sepsis Model saw only 18% alert acceptance and missed 67% of true sepsis cases in practice.
+
+*Why it matters / pitfall / interview trap:* Deployment readiness cannot be judged from AUROC alone — the binding constraint is often alert burden at the chosen operating threshold, not discrimination quality. Tiered alerting and alert budgets are the standard mitigation.
+
+---
+
+**All-Reduce (Distributed Training)**
+
+*The problem:* Training dense neural network parameters across many GPUs requires keeping all replicas' weights synchronized without a communication bottleneck.
+
+*Core insight / definition:* Each worker holds a full model copy, computes gradients locally, and a ring all-reduce collective exchanges gradients so every worker applies the identical update — bandwidth scales as O(2(N-1)/N × model_size), giving near-linear scaling.
+
+*Why it matters / pitfall / interview trap:* All-reduce is ideal for dense parameters but wasteful for sparse embedding gradients (a batch touches only a tiny fraction of rows), which is why production systems like DLRM use model-parallel sharding for embeddings and all-reduce only for dense MLP layers.
+
+---
+
+**ANN (Approximate Nearest Neighbor) Search**
+
+*The problem:* Exact nearest-neighbor search over millions/billions of embedding vectors is too slow for real-time retrieval.
+
+*Core insight / definition:* Trade a small amount of recall for large speed gains using index structures (FAISS, ScaNN) that avoid exhaustive comparison — e.g., IVF partitions the space into cells, HNSW builds a navigable graph.
+
+*Why it matters / pitfall / interview trap:* The core lever is a three-way tradeoff between recall, latency, and memory; candidates should be able to justify the specific index choice against these constraints rather than naming a library.
+
+---
+
+**Attribution Models (Marketing/Ads)**
+
+*The problem:* When a conversion follows multiple ad touchpoints, credit must be assigned to determine what's actually driving value.
+
+*Core insight / definition:* Common models: last-click (100% to final touch), first-click (100% to first touch), linear (equal credit), time-decay (recency-weighted), and data-driven attribution (ML assigns credit via incrementality, e.g. Shapley values).
+
+*Why it matters / pitfall / interview trap:* All heuristic models answer "who got credit," not "did the ad cause the conversion" — only counterfactual/incrementality studies (geo holdouts, ghost bidding) measure true causal lift.
+
+---
+
+**Auction Theory — Bid Shading**
+
+*The problem:* In a first-price auction the winner pays exactly their bid, so bidding true value yields zero surplus.
+
+*Core insight / definition:* Optimal bid shades below true value toward the expected market clearing price: b* = v − (1−F(v))/f(v), where F is the (unknown, estimated) distribution of competing bids. In second-price/Vickrey auctions, truthful bidding is dominant and shading is actively harmful.
+
+*Why it matters / pitfall / interview trap:* Most exchanges moved to first-price after 2019, making shading mandatory; applying it in a second-price context is a fundamental auction-theory error interviewers watch for.
+
+---
+
+**Audit Trail (Clinical/Regulated ML)**
+
+*The problem:* Regulated ML systems (FDA SaMD) must support post-hoc investigation of every decision for liability, safety review, and compliance.
+
+*Core insight / definition:* Every inference logs timestamp, encrypted patient/user ID, model version, input snapshot/hash, output score, human action taken, and eventual outcome — retained 7+ years in clinical settings.
+
+*Why it matters / pitfall / interview trap:* A validated model artifact is "locked" — any weight change requires re-submission unless covered by a pre-approved change plan (PCCP), which shapes how retraining pipelines must be designed from day one.
+
+---
+
+**Bagging**
+
+*The problem:* A single model's errors depend heavily on its particular training sample and initialization.
+
+*Core insight / definition:* Train multiple models on bootstrap-sampled subsets of the data (and often subsets of features) and average their predictions; e.g., Random Forest is bagging over decision trees.
+
+*Why it matters / pitfall / interview trap:* Bagging reduces variance, not bias — if all base models share the same architecture and see highly correlated data, the variance-reduction benefit shrinks because errors are correlated.
+
+---
+
+**Baseline Comparison**
+
+*The problem:* A reported accuracy or AUC number is meaningless without a reference point — the same score could represent a breakthrough or near-random performance.
+
+*Core insight / definition:* Always evaluate simple baselines (majority-class predictor, random predictor, simple linear model, existing rule-based system) alongside the ML model, and require the ML model to beat them by a justified margin.
+
+*Why it matters / pitfall / interview trap:* Teams sometimes pick an easy-to-beat baseline (majority class on 99% imbalanced data) to make the model look impressive — always compare against the strongest practical baseline, i.e., the system currently in production.
+
+---
+
+**Bayesian Personalized Ranking (BPR) Loss**
+
+*The problem:* Implicit feedback (clicks/purchases) only tells you a user preferred one item over another they didn't interact with — not an absolute relevance score.
+
+*Core insight / definition:* BPR directly optimizes pairwise ordering: $\mathcal{L}_{BPR} = -\sum \ln\sigma(\hat x_{ui} - \hat x_{uj})$ for positive item i and negative item j, matching the true signal contained in implicit data.
+
+*Why it matters / pitfall / interview trap:* Pointwise binary cross-entropy forces an artificial absolute click/no-click target that's noisier for ranking quality than the relative preference BPR captures.
+
+---
+
+**BERT Fine-Tuning**
+
+*The problem:* Training deep models from scratch requires huge labeled datasets that domain-specific tasks (medical, legal) rarely have.
+
+*Core insight / definition:* Start from a model pretrained on a large general corpus (e.g., BERT on BookCorpus + Wikipedia) and fine-tune its weights on a small task-specific labeled dataset, letting the general language representations transfer.
+
+*Why it matters / pitfall / interview trap:* Fine-tuning works because most of the needed representation is already learned — only ~10K labeled examples may suffice versus millions from scratch; it fails when the target domain (e.g., satellite imagery, microscopy) is too dissimilar from the pretraining domain.
+
+---
+
+**BG/NBD Model (Buy-Till-You-Die)**
+
+*The problem:* In non-contractual settings (e-commerce, ride-share) churn is never directly observed — you never see "the last purchase" happen.
+
+*Core insight / definition:* Models two latent processes: a Poisson purchase process with individual rate λ ~ Gamma(r,α), and a post-purchase dropout process with probability p ~ Beta(a,b). Combines to estimate P(alive) and expected future transactions from just recency, frequency, and tenure.
+
+*Why it matters / pitfall / interview trap:* Works from a single purchase event with no feature engineering, making it ideal for sparse-history customers; its independence assumption (purchase rate ⊥ churn rate) is frequently violated but the model is empirically robust for coarse decisions like budget planning.
+
+---
+
+**Bid Landscape Model**
+
+*The problem:* An RTB bidder needs to know the probability of winning at a given bid price, but only observes the clearing price when it wins (right-censored) or knows it was higher when it loses.
+
+*Core insight / definition:* Fit a censored distribution (e.g., log-normal) to won/lost bid observations via survival-analysis-style MLE; P(win | bid=b) is then the CDF of that distribution evaluated at b.
+
+*Why it matters / pitfall / interview trap:* This censored-data structure is exactly analogous to survival analysis — losing bids are right-censored observations, not missing data.
+
+---
+
+**BM25**
+
+*The problem:* Users need documents matching their query's exact keywords; dense/semantic methods can be slower and harder to tune for exact-match cases.
+
+*Core insight / definition:* A term-frequency/inverse-document-frequency scoring function over an inverted index; score(q,d) = sum of IDF(t) weighted by term frequency saturation and document-length normalization (parameters k1, b).
+
+*Why it matters / pitfall / interview trap:* BM25 fails on vocabulary mismatch (synonyms, paraphrases) — "machine learning researcher" won't match "deep learning scientist" — motivating hybrid retrieval with semantic search.
+
+---
+
+**BPR (Bayesian Personalized Ranking) Loss**
+
+*The problem:* Pointwise classification losses ignore relative ordering between items, which is what ranking actually needs.
+
+*Core insight / definition:* For each (positive, negative) item pair, train the model to score the positive higher via -log(sigmoid(pos_score - neg_score)), directly optimizing pairwise preference.
+
+*Why it matters / pitfall / interview trap:* It's a pairwise ranking loss, distinguished from pointwise (binary cross-entropy) and listwise (LambdaRank) — interviewers probe whether you can pick the right loss family for the label structure available.
+
+---
+
+**Budget Pacing (PID Controller)**
+
+*The problem:* A fixed daily ad/campaign budget must spend smoothly across time instead of exhausting early and missing high-value later traffic.
+
+*Core insight / definition:* Modeled as a control problem: a PID controller adjusts a bid-dampening multiplier (lambda) based on the error between actual and target spend rate, using proportional, integral, and derivative terms.
+
+*Why it matters / pitfall / interview trap:* Integral windup — the accumulated error term overshoots when budget is exhausted then resets — causes oscillation between zero spend and spend bursts; the fix is an anti-windup clamp that freezes/leaks the integral term while output is saturated.
+
+---
+
+**Calibration**
+
+*The problem:* A model's raw score is not a true probability — e.g., an output of 0.8 may not correspond to an actual 80% likelihood — yet downstream systems (budget allocation, expected-value ranking) need real probabilities.
+
+*Core insight / definition:* A post-hoc correction that keeps the ranking order intact but fixes the scale, via Platt scaling (logistic regression on score→label), temperature scaling (dividing logits by a learned temperature), or isotonic regression (non-parametric monotone mapping).
+
+*Why it matters / pitfall / interview trap:* Calibration assumes the validation distribution matches the serving distribution; under data drift it can make predictions worse by mapping scores to the wrong scale.
+
+---
+
+**Calibration (Probability Calibration)**
+
+*The problem:* A model's ranking quality (AUC) can be excellent while its absolute predicted probabilities are systematically wrong, which is fatal when downstream systems (auctions, bidding, clinical thresholds) consume the probability value directly.
+
+*Core insight / definition:* A well-calibrated model's predicted probability matches the empirical outcome rate: predicting 0.1 should mean the event happens ~10% of the time. Measured via Expected Calibration Error (ECE) or reliability diagrams; fixed post-hoc with Platt scaling, isotonic regression, or temperature scaling.
+
+*Why it matters / pitfall / interview trap:* Log loss is a strictly proper scoring rule — its expected value is uniquely minimized by the true conditional probability — so calibration isn't a side effect of good log loss, it's what properness means. A model can have improving AUC while calibration silently regresses, causing real financial/clinical damage even as the offline ranking metric looks better.
+
+---
+
+**Calibration for Downsampling**
+
+*The problem:* Downsampling the negative class to speed up training (common for rare-positive problems like CTR) produces a model whose output probabilities are systematically too high.
+
+*Core insight / definition:* Analytically correct the model's output using the known downsampling factor w via a Bayes'-theorem-derived formula: p_true = p'/(p' + (1-p')/w).
+
+*Why it matters / pitfall / interview trap:* The correction only holds if positives were untouched — if positive examples were also filtered, this formula silently gives the wrong answer.
+
+---
+
+**Candidate Generation (Retrieval)**
+
+*The problem:* Scoring every item in a large catalog with a full-precision ranking model is computationally infeasible (millions of items at ~1ms each).
+
+*Core insight / definition:* A cheap, recall-focused first stage that narrows millions of items down to a few hundred/thousand plausible candidates using approximate methods (ANN, BM25, collaborative filtering), leaving precision-focused ranking to operate on a small set.
+
+*Why it matters / pitfall / interview trap:* Confusing candidate generation's job (recall) with ranking's job (precision) is a common interview trap — proposing a single complex model to score the entire catalog directly is a red flag answer.
+
+---
+
+**Cascade (Design Pattern)**
+
+*The problem:* Running one expensive model on every input wastes compute and adds latency, even though most inputs are "easy" and don't need the model's full power.
+
+*Core insight / definition:* Chain models from cheap to expensive; the cheap model handles high-confidence/easy cases and escalates only uncertain cases to progressively more expensive models.
+
+*Why it matters / pitfall / interview trap:* Requires each stage's confidence to be well-calibrated — an overconfident cheap model never escalates hard cases, so they get silently misclassified instead of being caught downstream.
+
+---
+
+**Catastrophic Forgetting**
+
+*The problem:* Fine-tuning a pretrained model aggressively on a new task can destroy its previously learned general capabilities.
+
+*Core insight / definition:* When a model pretrained on task A is fine-tuned hard on task B, its weights shift enough that performance on task A collapses — the two tasks compete for the same parameters.
+
+*Why it matters / pitfall / interview trap:* Matters for multi-task systems that must retain general capability; mitigations include lower fine-tuning learning rates and elastic weight consolidation (EWC).
+
+---
+
+**Censoring (Right-Censored Data)**
+
+*The problem:* Customers/patients/transactions observed only up to "now" have incomplete outcome data — a recently acquired customer's true LTV, or a recent transaction's true fraud status, isn't fully known yet.
+
+*Core insight / definition:* Right-censoring means the event (churn, chargeback, conversion) may occur after the observation window closes. Naively treating unobserved-yet as "negative" biases models systematically (e.g., new customers predicted as permanently low-value).
+
+*Why it matters / pitfall / interview trap:* The data isn't missing — it hasn't happened yet. Dropping or negative-labeling censored rows discards exactly the longest-lived, most valuable population; survival analysis (Kaplan-Meier, BG/NBD) handles this correctly by design.
+
+---
+
+**Class Imbalance Handling**
+
+*The problem:* Fraud (~0.1%), sepsis (~2-4%), and other rare-event classification tasks have such skewed label distributions that naive training and naive metrics (accuracy) become meaningless.
+
+*Core insight / definition:* Techniques include `scale_pos_weight`/class weighting, SMOTE oversampling, focal loss (down-weights easy negatives via $(1-p_t)^\gamma$), and threshold tuning post-training rather than using the default 0.5 cutoff.
+
+*Why it matters / pitfall / interview trap:* A model predicting "negative" for everyone can hit 99.9% accuracy while catching zero positives; PR-AUC and recall-at-fixed-FPR are the metrics that actually reflect performance under imbalance.
+
+---
+
+**Class Weighting**
+
+*The problem:* With imbalanced classes, the loss function is dominated by the majority class, so the model learns to ignore the minority class.
+
+*Core insight / definition:* Multiply each class's loss contribution by a weight inversely proportional to its frequency, so minority-class errors cost more during training.
+
+*Why it matters / pitfall / interview trap:* Preferred over SMOTE for complex feature spaces (images, text) where synthetic interpolation doesn't make semantic sense.
+
+---
+
+**Clearing Price Distribution**
+
+*See Bid Landscape Model.*
+
+---
+
+**Clinical Utility Curve (Net Benefit)**
+
+*The problem:* ROC/AUC is threshold-free and prevalence-free, making it a poor guide for whether a clinical model should actually be deployed at a specific operating point.
+
+*Core insight / definition:* $NB(t) = TP/n - FP/n \cdot p_t/(1-p_t)$ compares the model against "treat everyone" and "treat no one" baselines at a given threshold and prevalence, incorporating the real cost ratio of false positives vs false negatives.
+
+*Why it matters / pitfall / interview trap:* FDA guidance favors net benefit over ROC alone for clinical validation; a lower-AUROC but better-calibrated-at-threshold model can produce more real-world benefit than a higher-AUROC model that floods clinicians with false alerts.
+
+---
+
+**Cohen's Kappa**
+
+*The problem:* Raw percent agreement between annotators overstates reliability because it doesn't account for chance agreement.
+
+*Core insight / definition:* A chance-corrected agreement statistic computed on a shared labeled subset; kappa > 0.8 is considered reliable, 0.6–0.8 needs investigation, < 0.6 means the labeling protocol itself needs fixing.
+
+*Why it matters / pitfall / interview trap:* Kappa sets the label-noise floor — no model can outperform the rate at which human experts disagree with each other on the same data.
+
+---
+
+**Cohort-Maturity Bias**
+
+*The problem:* Training an LTV model only on cohorts old enough to have fully-observed labels (e.g., 1-year LTV) means training exclusively on customers acquired under conditions that may no longer hold.
+
+*Core insight / definition:* The freshest, most representative cohorts are structurally excluded from training precisely because their labels haven't matured yet, creating a systematic mismatch between train and deployment populations.
+
+*Why it matters / pitfall / interview trap:* Fixed with propensity-weighted correction or by pooling multiple historical cutoff dates rather than relying on one matured cohort window.
+
+---
+
+**Cold Start Problem**
+
+*The problem:* New users, new items, new ads, or new markets have no interaction history, so models with no signal to personalize on default to poor or random behavior.
+
+*Core insight / definition:* Tiered strategies scale personalization confidence with available evidence: population/trending priors (zero data) → demographic fallback (minimal data) → collaborative similarity / content-based embeddings (some data) → full personalization (sufficient data). Item cold start typically uses content-based embeddings (text/image) as an initial position in the same embedding space used by collaborative filtering.
+
+*Why it matters / pitfall / interview trap:* Without an explicit exploration budget, cold-start items/users never accumulate enough exposure to graduate out of cold start — a self-reinforcing "rich get richer" loop that content embeddings alone cannot fix, since they capture what an item *is*, not how users *respond* to it.
+
+---
+
+**Composite (Multi-Task) Ranking Score**
+
+*The problem:* Optimizing a single engagement signal (likes, or watch time, or clicks) predictably produces harmful emergent behavior — clickbait, outrage content, or addictive scroll-traps.
+
+*Core insight / definition:* A weighted linear combination of multiple predicted actions (like, comment, share, time-spent, hide, unfollow, regret) forms the final ranking score, with negative signals weighted heavily since they carry disproportionate information about genuine dissatisfaction.
+
+*Why it matters / pitfall / interview trap:* A weighted sum lets a large gain on one term "buy out" a loss on another (e.g., enough predicted watch time can outbid a safety penalty) — for categorical harms, a hard score ceiling or eligibility gate is needed instead of a soft weighted term.
+
+---
+
+**Concept Drift**
+
+*The problem:* The statistical relationship between features and labels changes over time — new fraud patterns emerge, road networks change, user tastes shift — silently degrading a static model.
+
+*Core insight / definition:* Detected via temporal validation splits (never random splits on time-ordered data), KS-tests or PSI on feature/score distributions between time windows, and monitoring precision/recall drift at a fixed threshold.
+
+*Why it matters / pitfall / interview trap:* A random train/test split leaks future information and drastically overstates how well a model will generalize to genuinely new patterns it hasn't seen — this is one of the most common "gotcha" evaluation mistakes across every domain in this collection.
+
+---
+
+**Conformal Prediction**
+
+*The problem:* Point estimates don't communicate uncertainty, but many downstream decisions (rider trust, matching engines) need a calibrated interval, not just distributional assumptions baked into the model.
+
+*Core insight / definition:* A post-hoc wrapper that calibrates prediction intervals on held-out data without assuming a particular output distribution, usable on top of any base regressor.
+
+*Why it matters / pitfall / interview trap:* Unlike quantile regression (which requires training separate models per quantile) or NGBoost (which assumes a distribution family), conformal prediction adds calibrated coverage guarantees to an existing point-estimate model cheaply.
+
+---
+
+**Content-Based Cold Start**
+
+*See Cold Start Problem; Item embeddings derived from title/image/audio content features rather than interaction history.*
+
+---
+
+**Contextual Bandits (LinUCB)**
+
+*The problem:* Simple exploration strategies (epsilon-greedy) treat all uncertain items the same, ignoring the current context (user, situation).
+
+*Core insight / definition:* Use context (user/session features) to decide which items to explore, boosting items with uncertain expected reward specifically within the current context rather than uniformly at random.
+
+*Why it matters / pitfall / interview trap:* This is the standard cold-start-with-new-user-and-new-item solution — balances exploration and exploitation using context, unlike undirected epsilon-greedy.
+
+---
+
+**Coordinated Inauthentic Behavior (CIB)**
+
+*The problem:* Individually-borderline posts, amplified by a coordinated network of accounts, constitute a policy violation even though no single post crosses the line alone.
+
+*Core insight / definition:* Detected by clustering posts on text similarity (MinHash LSH), then checking whether the posting accounts exhibit coordination signals (newly created, low activity history, synchronized posting patterns).
+
+*Why it matters / pitfall / interview trap:* Content-level classifiers structurally can't catch this — it requires network-level, not post-level, analysis, which is a common blind spot in single-item moderation pipelines.
+
+---
+
+**Counterfactual Evaluation / Off-Policy Evaluation**
+
+*The problem:* Logged data only reflects what the *previous* policy chose to show/serve; a new policy's hypothetical choices have no ground truth in that data, making naive offline evaluation biased.
+
+*Core insight / definition:* Inverse Propensity Scoring (IPS) reweights logged outcomes by $\pi_{new}/\pi_{old}$ to estimate what a new policy's value would have been; doubly-robust estimators combine IPS with a direct model to reduce variance.
+
+*Why it matters / pitfall / interview trap:* A temporal train/test split fixes leakage but not this survivorship/policy bias — the holdout set still only contains items the old policy actually chose to expose, so IPS or online A/B testing is required to evaluate genuinely different candidate sets.
+
+---
+
+**Cox Proportional Hazards / Weibull AFT**
+
+*The problem:* Modeling "time until churn/death/event" directly, rather than a static classification, when covariates should scale the hazard or timeline.
+
+*Core insight / definition:* Cox PH models the hazard rate as $h(t|x) = h_0(t)\exp(\beta^Tx)$, giving a hazard ratio but requiring integration to get an absolute LTV number; Weibull AFT instead models $\log(T) = \beta^Tx + \sigma\epsilon$, letting features directly scale the predicted time-to-event, which is more directly usable.
+
+*Why it matters / pitfall / interview trap:* Choosing Cox PH when you actually need an absolute expected-revenue number (not just a relative hazard ratio) forces an extra, often-skipped integration step — Weibull AFT is more directly interpretable for LTV-style use cases.
+
+---
+
+**Creator Reach Fairness / Gini Coefficient**
+
+*The problem:* Without correction, recommendation systems concentrate almost all impressions on a tiny fraction of already-popular creators, creating a rich-get-richer dynamic that suppresses new/small creators regardless of quality.
+
+*Core insight / definition:* Gini coefficient of creator impression/reach distribution quantifies concentration; mitigations include per-creator exposure caps, exploration budgets (10-15% of slots reserved for unexplored creators), and small-creator engagement-relative-to-peers boosts.
+
+*Why it matters / pitfall / interview trap:* Every fairness lever here costs measurable near-term engagement — pretending the trade-off doesn't exist is how these mechanisms get quietly rolled back after one bad quarter; propensity-corrected equal weighting can also over-promote genuinely mediocre small creators if pushed too far.
+
+---
+
+**Cross-Encoder Reranking**
+
+*The problem:* Bi-encoder (dual-tower) semantic search is fast but scores query and document independently, missing fine-grained query-document interaction signals.
+
+*Core insight / definition:* A cross-encoder jointly encodes the (query, document) pair in a single forward pass, capturing token-level interactions, and produces a more accurate relevance score — but cannot be precomputed.
+
+*Why it matters / pitfall / interview trap:* 50–100x slower than bi-encoders, so it's only usable on a small reranking set (e.g., top-20 to top-200), never on the full candidate pool, under tight latency budgets.
+
+---
+
+**Cross-Modal Consistency Checking**
+
+*The problem:* Adversaries evade single-modality classifiers by pairing benign content in one modality (e.g., an innocuous image) with violating content in another (e.g., hateful text overlay).
+
+*Core insight / definition:* A large gap between modality scores (one high, one low) is itself a suspicious signal indicating a likely evasion attempt, and can boost the effective combined score rather than simply averaging modalities.
+
+*Why it matters / pitfall / interview trap:* Naively fusing modality scores (e.g., averaging) misses exactly the evasion pattern that a divergence-based signal is designed to catch.
+
+---
+
+**CUPED (Controlled-experiment Using Pre-Experiment Data)**
+
+*The problem:* Detecting small effect sizes (e.g., 0.1pp CTR lift) via standard A/B testing can require impractically large sample sizes.
+
+*Core insight / definition:* $Y_{cuped} = Y - \theta(X - \bar X)$ subtracts out the portion of the outcome predictable from a pre-experiment covariate (e.g., last week's CTR), reducing residual variance 20-40% without collecting more users.
+
+*Why it matters / pitfall / interview trap:* Lets the same minimum detectable effect be reached with a smaller sample than pure sample-size scaling would require — a cheap, purely statistical lever many teams underuse.
+
+---
+
+**Curriculum Learning**
+
+*The problem:* Training on a mix of easy and hard examples from the start can slow convergence or destabilize training on very hard/ambiguous cases.
+
+*Core insight / definition:* Order or introduce training examples from easy to hard over the course of training, gradually expanding the difficulty of examples the model sees.
+
+*Why it matters / pitfall / interview trap:* A multistage training technique often confused with transfer learning — curriculum learning is about the order of examples, not about reusing weights from another task.
+
+---
+
+**Data Drift vs. Concept Drift**
+
+*The problem:* Model performance can silently degrade in production due to two very different underlying causes that require different fixes.
+
+*Core insight / definition:* Data drift is a shift in the input distribution P(X) while the relationship P(y|X) stays fixed; concept drift is a shift in P(y|X) itself, so even familiar inputs now map to different correct outputs.
+
+*Why it matters / pitfall / interview trap:* Standard drift-detection tools (PSI, KS test) catch data drift via marginal feature distributions but miss concept drift — that requires monitoring prediction distributions and actual outcomes.
+
+---
+
+**Data Leakage**
+
+*The problem:* Features computed with information that would not actually be available at prediction time make the model look great offline and fail in production.
+
+*Core insight / definition:* Every training feature must reflect only information available strictly at the prediction moment; violations include using post-outcome data (e.g., "confirmed fraud merchant" flags) or aggregations computed over full history including future events relative to the label.
+
+*Why it matters / pitfall / interview trap:* Target encoding (replacing a category with its mean label) is a classic subtle leak if fit on the full dataset instead of only training folds — always split chronologically for time series and fit transforms on train only.
+
+---
+
+**Data Quality Dimensions**
+
+*The problem:* "Garbage data" is not one failure mode — different quality problems require different diagnoses and fixes, and are often invisible until the model fails in production.
+
+*Core insight / definition:* Six independent dimensions: completeness (missing fields), consistency (same entity labeled differently over time), validity (out-of-range values), uniqueness (duplicates), timeliness (staleness), and representativeness (training/serving mismatch).
+
+*Why it matters / pitfall / interview trap:* Each dimension can fail independently of the others — validating one (e.g., no nulls) says nothing about representativeness, so a full audit needs all six checked separately.
+
+---
+
+**DCN (Deep & Cross Network)**
+
+*The problem:* Deep networks learn feature interactions implicitly and inefficiently; manually engineering every useful cross-feature doesn't scale.
+
+*Core insight / definition:* A cross layer explicitly models polynomial feature interactions (x_{l+1} = x_0 * (w_l · x_l) + b_l + x_l) stacked alongside a standard deep network, combining explicit and implicit interaction learning.
+
+*Why it matters / pitfall / interview trap:* Often the "Stage 2 ranking" answer in recommendation-system interviews — strong at capturing cross-features without the combinatorial explosion of manual feature crossing.
+
+---
+
+**DCN v2 (Deep & Cross Network)**
+
+*The problem:* Wide & Deep's manual cross-features require hand engineering, and Factorization Machines only capture pairwise (2nd-order) interactions.
+
+*Core insight / definition:* DCN v2 applies an explicit cross layer at every depth: $x_{l+1} = x_0 \odot (W_l x_l + b_l) + x_l$, learning increasingly higher-order feature interactions automatically while the residual term keeps early-layer information alive.
+
+*Why it matters / pitfall / interview trap:* More expressive than FM's pairwise-only crossing, but still requires a separate deep branch (MLP) to capture patterns the explicit cross structure doesn't represent well.
+
+---
+
+**Delayed Feedback Model (Chapelle et al., 2014)**
+
+*The problem:* Conversions can occur 7–90 days after a click; training on recent data alone makes true converters look like negatives simply because their conversion hasn't arrived yet.
+
+*Core insight / definition:* Models the conversion delay as a distribution and applies importance weights inversely proportional to P(no conversion observed yet | elapsed time since click), correcting the truncated-observation bias rather than treating recent clicks as hard negatives.
+
+*Why it matters / pitfall / interview trap:* Labeling unconverted-but-recent clicks as hard negatives is a classic mistake — they're censored, not negative, and doing so teaches the model that fresh high-intent traffic doesn't convert, suppressing exactly the newest signal.
+
+---
+
+**Determinantal Point Process (DPP) / Maximal Marginal Relevance (MMR)**
+
+*The problem:* A ranked list of individually-relevant items can still be a poor list if items are all near-duplicates of each other (e.g., 10 Marvel movies for a Marvel fan).
+
+*Core insight / definition:* DPPs model $P(S) \propto \det(L_S)$ where L jointly encodes item quality and pairwise similarity, favoring diverse, high-quality sets. MMR is the practical greedy approximation: iteratively pick the item maximizing $\lambda \cdot \text{relevance} - (1-\lambda) \cdot \max \text{similarity to already-selected}$.
+
+*Why it matters / pitfall / interview trap:* This is inherently a *listwise* property — it cannot be baked into a pointwise ranking model's loss function and must live in a post-ranking re-ranking layer, applied after the ML model scores items independently.
+
+---
+
+**Differential Privacy**
+
+*The problem:* Trained models can memorize individual training examples, making them vulnerable to membership-inference or data-extraction attacks.
+
+*Core insight / definition:* Add calibrated noise to gradients during training (e.g., via Opacus), controlled by a privacy budget epsilon; smaller epsilon means stronger privacy guarantees at the cost of accuracy.
+
+*Why it matters / pitfall / interview trap:* Too small an epsilon injects so much noise the model fails to converge; too large makes the privacy guarantee nearly meaningless — epsilon must be calibrated to actual data sensitivity, not defaulted.
+
+---
+
+**Disparate Impact Ratio (80% Rule)**
+
+*The problem:* Aggregate accuracy can be high while one demographic group is systematically disadvantaged by model decisions.
+
+*Core insight / definition:* The ratio of positive-outcome rates between two groups (group B rate / group A rate); a commonly cited fairness threshold requires this ratio to be at least 0.8.
+
+*Why it matters / pitfall / interview trap:* It's one specific fairness metric among several mutually incompatible ones (demographic parity, equal opportunity, equalized odds) — passing the 80% rule doesn't guarantee other fairness definitions hold.
+
+---
+
+**Distillation**
+
+*The problem:* Large accurate models (BERT-large, GPT-3-scale) are too slow for latency-sensitive production serving, but small models trained directly from labels underperform badly.
+
+*Core insight / definition:* Train a small "student" model to mimic a large "teacher" model's soft output distribution (via KL divergence on temperature-softened logits) in addition to the hard labels, transferring the teacher's implicit similarity knowledge.
+
+*Why it matters / pitfall / interview trap:* Requires access to the teacher's logits, not just its predictions — you cannot distill from a black-box API that only returns hard labels; also fails if the student has far too little capacity to represent the teacher's distribution.
+
+---
+
+**DLRM (Deep Learning Recommendation Model)**
+
+*The problem:* CTR/ranking models need to combine billions of sparse categorical IDs with dense numerical features efficiently at massive scale.
+
+*Core insight / definition:* Sparse IDs go through embedding tables and get pooled per field; dense features pass through a bottom MLP; an interaction layer then computes all pairwise dot products between the pooled embeddings and dense output before a top MLP produces the final prediction.
+
+*Why it matters / pitfall / interview trap:* Meta's production hybrid parallelism splits sparse embedding tables (model-parallel, sharded across hosts via all-to-all communication) from dense MLP layers (data-parallel via all-reduce) — treating this as "just model parallelism" without the split misses the actual design insight.
+
+---
+
+**Doubly-Robust Estimator**
+
+*The problem:* Pure IPS-based counterfactual evaluation has high variance, especially for rare actions with small propensities.
+
+*Core insight / definition:* Combines a direct-method model estimate with IPS correction, remaining consistent if *either* component is correctly specified, substantially reducing variance versus IPS alone.
+
+*Why it matters / pitfall / interview trap:* A common default answer to "how do you evaluate a new policy offline without deploying it" across ads, RTB, and recommendation systems.
+
+---
+
+**Dropout**
+
+*The problem:* High-capacity networks can co-adapt neurons to memorize training-specific patterns rather than learning generalizable features.
+
+*Core insight / definition:* Randomly zero out a fraction of neurons at each forward pass during training (disabled at eval time), forcing the network to not rely on any single neuron/pathway.
+
+*Why it matters / pitfall / interview trap:* Too high a dropout rate (>0.7) prevents the model from learning at all — the rate is a hyperparameter that must be tuned on a validation set, not a fixed default.
+
+---
+
+**Early Stopping**
+
+*The problem:* Training for too many epochs lets a high-capacity model memorize training noise even after it has learned the generalizable signal.
+
+*Core insight / definition:* Track validation performance during training; stop once it hasn't improved for a set number of epochs ("patience"), restoring the checkpoint with the best validation score.
+
+*Why it matters / pitfall / interview trap:* Only gives an unbiased final estimate if the validation set wasn't also used for hyperparameter tuning — if it was, you need a separate held-out test set for the final reported number.
+
+---
+
+**ECE (Expected Calibration Error)**
+
+*See Calibration.*
+
+---
+
+**EdgeRank**
+
+*The problem:* Meta's original (pre-deep-learning) feed ranking needed an interpretable, hand-tunable scoring formula.
+
+*Core insight / definition:* $\text{EdgeRank} = \sum(\text{affinity\_score} \times \text{edge\_weight} \times \text{time\_decay})$ — a linear combination of user-source affinity, interaction-type weight, and recency decay.
+
+*Why it matters / pitfall / interview trap:* Now replaced by learned multi-task models, but the same three feature families (affinity, interaction type, recency) persist as core inputs to modern rankers.
+
+---
+
+**Embedding Table / Sparse Feature Encoding**
+
+*The problem:* Categorical IDs (user IDs, item IDs) number in the billions and can't be one-hot encoded or looked up via traditional joins at inference latency.
+
+*Core insight / definition:* Each sparse field gets its own learned embedding table (often an `EmbeddingBag` with mean pooling for multi-value fields); memory is `vocab_size × dim × 4 bytes` per table, motivating small dims (8-32) for tail features and sharding across hosts for the largest tables.
+
+*Why it matters / pitfall / interview trap:* Most user IDs appear only a handful of times and never leave their initialization neighborhood — hashing the tail into shared buckets or applying a frequency floor saves most of the table's memory at minimal accuracy cost, a fact many candidates miss when reflexively proposing "just shard everything."
+
+---
+
+**Embeddings (Design Pattern)**
+
+*The problem:* One-hot encoding is sparse and treats every category as equally dissimilar, so a model cannot learn that related categories (e.g., "New York" and "Manhattan") should behave similarly.
+
+*Core insight / definition:* Learn dense, low-dimensional vectors that place semantically or behaviorally similar items near each other in vector space, either pretrained (Word2Vec, GloVe, BERT) or trained from scratch on task-specific interaction data.
+
+*Why it matters / pitfall / interview trap:* Embeddings need substantial data to converge — rare items remain near-random in embedding space (the cold-start problem), typically mitigated by initializing them from content/attribute-based representations.
+
+---
+
+**Ensembles (Design Pattern)**
+
+*The problem:* Any single model's predictions carry systematic errors from its particular inductive bias, initialization, and training sample.
+
+*Core insight / definition:* Combine multiple models — bagging (parallel, reduces variance), boosting (sequential, reduces bias), or stacking (meta-model learns to combine base-model outputs) — so uncorrelated errors cancel out on average.
+
+*Why it matters / pitfall / interview trap:* Ensembling gains are marginal if all base models share the same architecture, features, and data — true diversity (different algorithms, feature subsets, or data) is required for the error-cancellation benefit to materialize.
+
+---
+
+**Epsilon-Greedy**
+
+*The problem:* A system that always serves its current best-known item never gathers information about whether other items might actually be better.
+
+*Core insight / definition:* With probability epsilon, serve a random item (explore); otherwise serve the highest-scoring known item (exploit).
+
+*Why it matters / pitfall / interview trap:* Simple but wasteful — it explores uniformly at random even among clearly-bad items, unlike Thompson Sampling, which explores proportional to genuine uncertainty; also directly costs short-term metrics (CTR drops roughly in proportion to epsilon).
+
+---
+
+**Error Analysis (Model Comparison)**
+
+*The problem:* A single aggregate metric can hide the fact that a "better" model regresses on specific important slices of data.
+
+*Core insight / definition:* Separate false positives from false negatives and look for feature patterns that distinguish erroneous predictions from correct ones, comparing per-slice as well as overall metrics before shipping a new model.
+
+*Why it matters / pitfall / interview trap:* Surfaced patterns are correlational, not causal — "more errors on mobile" could be a UI bug, a genuine behavioral difference, or sampling bias, and distinguishing these requires further human investigation.
+
+---
+
+**ESMM (Entire Space Multi-Task Model)**
+
+*The problem:* Training a conversion-rate (CVR) model directly on clicked examples introduces sample selection bias, because CVR labels only exist for clicked items, but at serving time the model must score all impressions, clicked or not.
+
+*Core insight / definition:* Decompose P(click AND convert) = P(click) × P(convert | click) via the probability chain rule, training a CTR tower on all impressions and a CVR tower jointly, so the CVR tower's gradient is defined over the entire impression space rather than only the click-conditioned subset.
+
+*Why it matters / pitfall / interview trap:* If click fraud distorts the click population, CVR estimates degrade; also, extremely rare conversion events still suffer high estimator variance even with ESMM's fix, since few positive examples exist regardless of decomposition.
+
+---
+
+**Evaluation Metrics (Design Pattern)**
+
+*The problem:* The wrong evaluation metric can make a useless model look excellent — e.g., 99% accuracy on 1% fraud data by always predicting "not fraud."
+
+*Core insight / definition:* Choose the metric to match the actual cost structure of different error types in the specific problem (PR-AUC for imbalanced classes, F-beta to weight recall vs. precision, NDCG for ranking), rather than defaulting to accuracy or ROC-AUC.
+
+*Why it matters / pitfall / interview trap:* Picking the metric before understanding the business cost of false positives vs. false negatives optimizes the wrong objective — define the cost structure first, then choose the metric.
+
+---
+
+**Examination Hypothesis / Position Bias**
+
+*The problem:* Users click higher-ranked items more often *regardless of their actual quality*, simply because they're more likely to look at them — training naively on raw clicks confuses "shown first" with "actually better."
+
+*Core insight / definition:* $P(\text{click}) = P(\text{examine position } k) \times P(\text{click} \mid \text{examined})$. Left uncorrected, this creates a feedback loop where whatever was ranked first keeps getting ranked first because it accumulates more clicks purely from exposure.
+
+*Why it matters / pitfall / interview trap:* Correction approaches (inverse propensity weighting, position-as-a-feature set to a fixed value at inference, randomized position swaps) each have real costs — IPS has high variance for rare low-position events, and position-as-a-feature only works if position is conditionally independent of true relevance given other features, which is false when the prior ranker already placed better items higher.
+
+---
+
+**Exploration Budget (Epsilon-Greedy / Thompson Sampling / UCB)**
+
+*The problem:* A pure-exploitation system only ever shows what it already believes is good, so new items/ads/creators/users never accumulate enough data to be evaluated fairly — the "Matthew effect."
+
+*Core insight / definition:* A dedicated fraction of traffic (commonly 1-15% depending on domain) is allocated to under-explored candidates, either via uniform random exploration (epsilon-greedy), sampling from a posterior belief distribution (Thompson sampling, using Beta(α,β) per item), or an upper-confidence-bound bonus (UCB) that favors high-uncertainty items.
+
+*Why it matters / pitfall / interview trap:* Thompson sampling is generally preferred over epsilon-greedy in production because uniform random exploration can serve genuinely terrible items and directly hurt user experience, whereas posterior sampling naturally favors "promising but uncertain" over "definitively bad."
+
+---
+
+**Exploration vs. Exploitation**
+
+*The problem:* A purely exploit-first system only recommends what it already believes works, so new items get no exposure and the system can never learn that preferences changed.
+
+*Core insight / definition:* Deliberately allocate some fraction of traffic to gathering new information (exploration) instead of only maximizing immediate expected reward (exploitation) — via epsilon-greedy, Thompson Sampling, or contextual bandits.
+
+*Why it matters / pitfall / interview trap:* Exploration measurably hurts short-term metrics (a 10% epsilon-greedy policy can cut average CTR ~10% on exploration traffic), so production systems compromise with small epsilon and restrict exploration to lower-stakes positions.
+
+---
+
+**F-beta Score**
+
+*The problem:* Precision and recall trade off against each other, and a single balanced metric (F1) may not reflect the actual asymmetric cost of the two error types.
+
+*Core insight / definition:* A weighted harmonic mean of precision and recall parameterized by beta; beta > 1 weights recall more heavily (e.g., disease detection), beta < 1 weights precision more heavily (e.g., content moderation).
+
+*Why it matters / pitfall / interview trap:* Choosing beta requires knowing the relative business cost of false positives vs. false negatives — it's not a free hyperparameter, it's a cost-structure decision.
+
+---
+
+**FAISS / ScaNN (ANN Index)**
+
+*The problem:* Exact nearest-neighbor search over hundreds of millions to billions of embeddings is computationally infeasible at query time with millisecond latency budgets.
+
+*Core insight / definition:* Approximate nearest neighbor (ANN) indexes trade small recall loss for massive speedups — HNSW (graph-based, ~95-99% recall, very high QPS) or IVF-PQ (cluster + quantize, ~85-95% recall, lower memory footprint) are the two dominant index families.
+
+*Why it matters / pitfall / interview trap:* The trade-off table (Flat 100% recall/low QPS vs IVF-PQ ~95% recall/50K QPS vs HNSW ~98% recall/200K QPS) is standard interview material; ranking downstream can absorb small retrieval-stage recall loss, making approximate indexes the correct default at scale.
+
+---
+
+**FDA SaMD Classification (Software as a Medical Device)**
+
+*The problem:* Clinical ML tools that inform or drive patient care require regulatory clearance proportional to their risk and autonomy level.
+
+*Core insight / definition:* Classified by significance of information and clinical situation severity, crossed with whether the tool informs vs. drives management: Class I (exempt) → Class II (510(k) predicate exists, ~90 days; or De Novo, no predicate, ~12 months) → Class III (PMA, full clinical trial).
+
+*Why it matters / pitfall / interview trap:* The Predetermined Change Control Plan (PCCP, FDA 2023) lets vendors pre-specify allowed update types (e.g., recalibration) to skip re-submission — without one, any weight change to a locked/validated model requires a fresh regulatory filing, which shapes retraining pipeline design from the outset.
+
+---
+
+**Feature Cross**
+
+*The problem:* Linear models cannot learn interaction effects between features (e.g., "New York + winter" predicts coats) from the individual features alone.
+
+*Core insight / definition:* Concatenate two categorical feature values into a single new categorical feature so a linear model can memorize the combined interaction directly; dense analogs (DCN's cross layer) generalize this to continuous features.
+
+*Why it matters / pitfall / interview trap:* Crosses explode combinatorially (1000 × 100 values = 100,000 cross values), and most combinations are rare, causing overfitting on frequent crosses; hashing bounds the dimensionality but sparse crosses still need enough examples to learn stable weights.
+
+---
+
+**Feature Hashing**
+
+*The problem:* Cross features from high-cardinality categorical IDs (e.g., user_id × ad_id) have combinatorially too many unique combinations (trillions) to store exactly.
+
+*Core insight / definition:* Projects raw or combined feature values into a fixed-size hash space (e.g., $2^{24}$–$2^{30}$ buckets) via a hash function like MurmurHash3, accepting a small, predictable collision rate in exchange for bounded memory.
+
+*Why it matters / pitfall / interview trap:* At realistic hash sizes (e.g., $2^{26}$ with 10M unique pairs), collision rate is tiny (~0.015%) — a common misconception is that hashing introduces unacceptable noise, when in practice the trade-off is favorable relative to the alternative of not storing the feature at all.
+
+---
+
+**Feature Selection**
+
+*The problem:* More features increase overfitting risk and compute cost; many features are redundant, irrelevant, or pure noise.
+
+*Core insight / definition:* Filter methods (mutual information, correlation pruning) are fast and model-agnostic; wrapper methods (recursive feature elimination) are accurate but expensive; embedded methods (L1/Lasso, tree importances) select features as part of training; SHAP gives consistent post-hoc importance.
+
+*Why it matters / pitfall / interview trap:* Feature importance from one model architecture doesn't transfer to another — a feature critical to a random forest may be irrelevant to a neural net that learns the same signal differently from raw inputs.
+
+---
+
+**Feature Store (Online/Offline)**
+
+*The problem:* Serving-time inference needs pre-computed features available in single-digit milliseconds, but training needs the exact same feature definitions computed consistently over historical windows.
+
+*Core insight / definition:* Online store (Redis/Memcached, <1-5ms) serves real-time and cached batch features to the serving path; offline store (Parquet/Hive/S3) holds historical features for training, joined via point-in-time-correct timestamps.
+
+*Why it matters / pitfall / interview trap:* Point-in-time correctness — joining on `feature_ts <= event_ts`, never on "current" feature value — is essential; joining to today's feature value for a historical training example leaks future information (label leakage) and makes offline metrics look great while the model fails online.
+
+---
+
+**Feed Ranking / Multi-Objective Optimization**
+
+*The problem:* Optimizing a single engagement metric (clicks) produces clickbait; optimizing only likes produces low-quality reshares — no single metric captures everything the business cares about.
+
+*Core insight / definition:* Train separate calibrated models per objective (like, comment, share, hide) on their appropriate populations, then combine outputs with business-priority weights (heavily penalizing negative signals like "hide").
+
+*Why it matters / pitfall / interview trap:* The weights encode implicit value judgments about human outcomes (e.g., increasing time-on-site might also increase anxiety) — this is an explicit ethical choice, not a pure optimization problem.
+
+---
+
+**Focal Loss**
+
+*The problem:* Standard cross-entropy loss on heavily imbalanced data lets the abundant, easy negatives dominate the gradient, drowning out the sparse positive signal.
+
+*Core insight / definition:* $\mathcal{L}_{focal} = -\alpha_t(1-p_t)^\gamma \log(p_t)$ — the $(1-p_t)^\gamma$ term down-weights confidently-correct (easy) examples, forcing the model to focus gradient updates on hard/rare cases.
+
+*Why it matters / pitfall / interview trap:* Originally designed for object detection but widely reused for fraud, sepsis, and other rare-event classification — an alternative to class-weighting (`scale_pos_weight`) that works at the per-example rather than per-class level.
+
+---
+
+**Fraud Detection (System Design)**
+
+*The problem:* Fraud is rare (0.1–1% of transactions), adversarial (fraudsters adapt), and costly in both directions — false positives block legitimate customers, false negatives let fraud through.
+
+*Core insight / definition:* A layered real-time pipeline: velocity feature computation (Redis, sub-millisecond rolling counters), a rule engine for hard blocks, then a fast ML model (gradient-boosted tree, <10ms) feeding a cost-aware decision engine with tiered thresholds (auto-approve, challenge, auto-block).
+
+*Why it matters / pitfall / interview trap:* Gradient-boosted trees are preferred over deep learning here for latency, native handling of tabular/mixed-type features, and SHAP-based interpretability required by regulators — not because they're inherently "better."
+
+---
+
+**FTRL-Proximal (Follow-The-Regularized-Leader)**
+
+*The problem:* Sparse online logistic regression at billion-feature scale needs an optimizer that updates incrementally, handles sparse gradients efficiently, and produces genuinely sparse (memory-efficient) models.
+
+*Core insight / definition:* Google's production online-learning optimizer for CTR models; maintains per-feature accumulated gradient statistics, applies L1 regularization via a proximal step that zeros out small-magnitude weights, and supports per-coordinate adaptive learning rates similar to AdaGrad.
+
+*Why it matters / pitfall / interview trap:* Still the production workhorse for the hardest latency budgets (RTB's 10ms path) precisely because inference is a single sparse dot product with no GPU/network dependency, and online updates can be pushed to serving every few minutes without a full redeploy.
+
+---
+
+**GNN (Graph Neural Network) for Road Networks**
+
+*The problem:* Road networks are naturally graph-structured (intersections as nodes, segments as edges), and neighborhood context can improve travel-time estimates for individual segments.
+
+*Core insight / definition:* Models like GATConv aggregate features across neighboring road segments to produce per-segment speed/time predictions, useful for upstream batch traffic-state forecasting.
+
+*Why it matters / pitfall / interview trap:* Inappropriate for the synchronous point-to-point ETA request path — the routing engine (A*/Dijkstra) already encodes graph structure via the baseline route, so the ML task reduces to predicting a residual (actual minus baseline time) using dense features, which a much cheaper MLP/GBT handles at a fraction of the latency cost.
+
+---
+
+**GraphSAGE**
+
+*The problem:* Ring fraud (multiple accounts sharing devices, emails, or addresses) is invisible to models that look at single transactions in isolation.
+
+*Core insight / definition:* A graph neural network layer that aggregates neighborhood node features (e.g., via mean pooling) combined with the node's own features, learning representations that encode relational/structural fraud signals.
+
+*Why it matters / pitfall / interview trap:* Requires near-real-time graph updates — new fraud rings can appear within minutes, so pre-computed static embeddings quickly become stale, demanding specialized streaming-graph infrastructure most teams lack.
+
+---
+
+**Groundedness Verification (RAG)**
+
+*The problem:* LLMs generate plausible-sounding but unsupported claims even when instructed to answer only from retrieved context — prompt-level instructions alone are necessary but not sufficient.
+
+*Core insight / definition:* A smaller NLI-style model checks whether each individual generated claim is entailed by the retrieved context (not merely topically related), flagging unsupported claims before the response ships.
+
+*Why it matters / pitfall / interview trap:* Must check per-claim, not whole-response — a response can be mostly grounded with one fabricated detail mixed in, and whole-response topical relevance checks miss exactly this kind of partial hallucination.
+
+---
+
+**GSP (Generalized Second Price) Auction**
+
+*The problem:* A naive highest-bidder-wins auction incentivizes strategic underbidding and ignores ad quality, harming both revenue and user experience.
+
+*Core insight / definition:* Rank advertisers by expected value (bid × predicted CTR × quality score) but charge each winner only the minimum price needed to beat the next-highest bidder, making (approximately) truthful bidding the dominant strategy.
+
+*Why it matters / pitfall / interview trap:* GSP is not perfectly incentive-compatible in theory (VCG is), but is preferred in practice for computational simplicity and empirical stability — and since predicted CTR directly sets price, a miscalibrated CTR model directly costs or loses revenue.
+
+---
+
+**H3 Hexagonal Grid**
+
+*The problem:* Geospatial aggregation for ride-hailing (surge pricing, supply/demand) needs a stable, hierarchical spatial index with uniform neighbor relationships.
+
+*Core insight / definition:* Uber's hierarchical hexagonal cell system; hexagons are equidistant to all six neighbors (unlike square grids, where diagonal neighbors are √2× farther), giving isotropic smoothing and clean hierarchical aggregation across resolutions.
+
+*Why it matters / pitfall / interview trap:* The parent-child hierarchy is only approximate, not exact — a child hex cell isn't perfectly contained within its parent, which is fine for aggregation but wrong if exact partitioning is needed for accounting; over-arguing the geometric elegance while missing the practical wins (stable cell IDs, cheap neighbor lookups) is a common shallow answer.
+
+---
+
+**Hallucination Mitigation (LLM/RAG)**
+
+*The problem:* LLMs generate fluent text unsupported by retrieved context, especially when retrieval genuinely fails to surface the answer.
+
+*Core insight / definition:* Layered defense: prompt-level instructions to say "I don't know," citation-forcing (tag claims with source chunk IDs), retrieval confidence gating (route low-confidence retrieval to a fallback rather than letting the LLM generate anyway), and post-hoc NLI-based claim verification.
+
+*Why it matters / pitfall / interview trap:* Most "hallucination" bugs in production RAG systems are actually retrieval or context-assembly bugs (wrong chunk, lost-in-the-middle position, budget truncation), not model capability failures — diagnosing before swapping the expensive component (the LLM) is the disciplined move.
+
+---
+
+**Hamming Loss**
+
+*The problem:* Standard accuracy requires an exact match across all labels in a multilabel setting, which is too strict a metric when partial correctness matters.
+
+*Core insight / definition:* The fraction of individual label predictions that are wrong, averaged across all labels and examples — a per-label rather than per-example error rate.
+
+*Why it matters / pitfall / interview trap:* It's the standard companion metric for multilabel classification (sigmoid-per-label) rather than accuracy, which is overly punishing when labels are independent.
+
+---
+
+**Hashed Feature**
+
+*The problem:* One-hot encoding high-cardinality categorical features (user IDs, SKUs) blows up input dimensionality, and new categories require retraining/re-encoding.
+
+*Core insight / definition:* Map every category value to one of N fixed buckets via a deterministic hash function, so vocabulary size stays fixed regardless of how many distinct categories exist or appear later.
+
+*Why it matters / pitfall / interview trap:* Hash collisions are unavoidable and mix unrelated categories' signals together — increasing bucket count reduces collisions but increases memory; the right N depends on the category frequency distribution.
+
+---
+
+**Human-in-the-Loop Design (Tiered Alerting)**
+
+*The problem:* Every model prediction cannot interrupt a human at the same intensity — over-alerting causes fatigue, under-alerting misses critical cases.
+
+*Core insight / definition:* Score ranges map to escalating response tiers — e.g., no alert (logged only) → passive dashboard indicator → non-interruptive sidebar → interruptive pop-up with explanation → critical page requiring senior override to dismiss.
+
+*Why it matters / pitfall / interview trap:* Alert budgets (e.g., <2 actionable alerts per nurse per 12h shift) with auto-suppression once exceeded prevent the system from silently training its human operators to ignore it.
+
+---
+
+**Hybrid Retrieval**
+
+*The problem:* Keyword search (BM25) misses semantically equivalent queries; semantic search alone is slower and worse at exact matches.
+
+*Core insight / definition:* Retrieve candidates from both BM25 and a semantic (bi-encoder) index in parallel, merge the results, and rerank the combined set with a cross-encoder.
+
+*Why it matters / pitfall / interview trap:* This is the standard answer to "why not just use one retrieval method" — the two methods capture complementary, non-overlapping relevance signals.
+
+---
+
+**Hybrid Retrieval (BM25 + Dense / Reciprocal Rank Fusion)**
+
+*The problem:* Lexical retrieval (BM25) misses semantic paraphrase and vocabulary mismatch; dense/embedding retrieval misses exact-match cases like part numbers, error codes, and rare proper nouns.
+
+*Core insight / definition:* Combine both retrieval systems' rankings via Reciprocal Rank Fusion: $\text{RRF}(d) = \sum_r 1/(k+\text{rank}_r(d))$, which only uses rank position (not raw incomparable scores), making fusion scale-invariant across queries with very different score distributions.
+
+*Why it matters / pitfall / interview trap:* A fixed weighted average of BM25 and cosine-similarity scores is unstable because the two live on different, query-dependent scales — RRF's rank-only fusion sidesteps this entirely, which is why it's the standard production choice over naive score blending.
+
+---
+
+**Immortal Time Bias**
+
+*The problem:* If a clinical prediction window ("sepsis after hour 6") includes features from hours 0-6, early deterioration signal leaks into the features used to predict the very outcome those hours are meant to precede.
+
+*Core insight / definition:* A specific form of label leakage in time-windowed clinical prediction where the feature-observation period overlaps the outcome-definition period, artificially inflating apparent model performance.
+
+*Why it matters / pitfall / interview trap:* Easy to introduce accidentally when feature engineering and label definition are built by different people without coordinating exact window boundaries.
+
+---
+
+**Inter-Annotator Agreement**
+
+*The problem:* Labels are assumed to be ground truth, but human labelers often disagree, and that disagreement caps how good any model can be.
+
+*Core insight / definition:* Measure agreement between annotators (e.g., via Cohen's kappa) on a shared subset before trusting the label set for training.
+
+*Why it matters / pitfall / interview trap:* Disagreement defines a noise floor — if annotators disagree 30% of the time, no model can be expected to exceed that consistency, and low agreement signals the labeling protocol (not the model) needs fixing.
+
+---
+
+**Interleaving (Team-Draft)**
+
+*The problem:* Standard A/B tests comparing two rankers dilute signal across between-user variance, requiring large sample sizes to detect ranking-quality differences.
+
+*Core insight / definition:* Both rankers' results are merged into one interleaved list shown to the same user; which ranker's items get more clicks reveals the winner, using each user as their own control — roughly 10x more sensitive per user than standard A/B testing.
+
+*Why it matters / pitfall / interview trap:* Ideal for fast ranker iteration but not a substitute for a final A/B call, since interleaving measures relative click preference within a merged list, not the same business metrics a full rollout affects.
+
+---
+
+**Inverse Propensity Scoring (IPS)**
+
+*The problem:* Training a ranker on raw click data teaches it to prefer items that were historically shown in high positions, regardless of true relevance, creating a feedback loop.
+
+*Core insight / definition:* Reweight each training example by the inverse of its estimated examination probability (propensity), so under-examined low-position clicks get upweighted and over-examined high-position clicks get downweighted, isolating true relevance from position effects.
+
+*Why it matters / pitfall / interview trap:* Has high variance at low propensities — an item at position 10 with propensity 0.1 gets a 10x loss weight from a single misclick; clipped IPS caps the weight to trade some bias for lower variance.
+
+---
+
+**Inverse Propensity Scoring (IPS) / Inverse Propensity Weighting (IPW)**
+
+*The problem:* Training data collected under a specific serving/exposure policy (position on a page, ad auction outcome, recommendation rank) is a biased sample of the true population — items shown more get more (spurious) signal.
+
+*Core insight / definition:* Reweight each training example by $1/P(\text{shown/selected/examined})$, so infrequently-exposed items don't get systematically undervalued and frequently-exposed items don't dominate the gradient purely from exposure volume.
+
+*Why it matters / pitfall / interview trap:* Weights blow up for rare-propensity events, creating high variance — a few extremely-reweighted examples can dominate the estimate; clipping weights trades some bias for large variance reduction and is standard practice, but must be disclosed as a limitation, not treated as a free unbiasing fix.
+
+---
+
+**Isotonic Regression**
+
+*The problem:* Platt scaling assumes a specific (sigmoidal) shape for the score-to-probability mapping, which may not fit the true relationship.
+
+*Core insight / definition:* A non-parametric, monotone calibration method that fits an arbitrary monotone function from model score to true probability, more flexible than Platt scaling but requiring more calibration data.
+
+*Why it matters / pitfall / interview trap:* The flexibility/data tradeoff versus Platt scaling is the interview-relevant distinction — isotonic overfits on small calibration sets.
+
+---
+
+**Item Cold Start**
+
+*See Cold Start Problem.*
+
+---
+
+**KKT / Lagrangian Bid Optimization**
+
+*The problem:* Bidding at true value for every auction ignores that a campaign has a finite total budget — some bids must be shaded to avoid exhausting budget too fast.
+
+*Core insight / definition:* The Lagrangian optimum under a budget constraint is $b_i^* = v_i / (1+\lambda^*)$, where $\lambda^*$ (the shadow price of the budget constraint) is tuned by the pacing controller — λ* > 0 means the constraint is binding and all bids get uniformly shaded.
+
+*Why it matters / pitfall / interview trap:* Connects bid shading and pacing into a single mathematically grounded framework rather than two separate heuristics.
+
+---
+
+**KL Divergence (Distillation / Drift)**
+
+*The problem:* Need a way to measure how different one probability distribution is from another — for both distilling a teacher's knowledge and detecting prediction-distribution drift.
+
+*Core insight / definition:* An asymmetric measure of divergence between two distributions p and q; used as the distillation loss between teacher and student softened output distributions, and as a monitoring signal comparing production prediction distributions to a training baseline.
+
+*Why it matters / pitfall / interview trap:* As a monitoring signal, it (like PSI) only measures marginal distribution shift — it doesn't directly detect concept drift where the feature-label relationship itself has changed.
+
+---
+
+**KS Test (Kolmogorov–Smirnov)**
+
+*The problem:* Need a statistical test to detect whether a feature's distribution has shifted between training and production.
+
+*Core insight / definition:* A per-feature statistical test comparing the production distribution against the training distribution; flag drift when p-value < 0.05.
+
+*Why it matters / pitfall / interview trap:* One of two standard drift-detection tools (alongside PSI) — both are marginal-distribution tests and both miss concept drift.
+
+---
+
+**KV Caching**
+
+*The problem:* Without caching, generating each new token in an LLM requires recomputing attention keys/values for the entire prompt prefix from scratch — for a 1000-token prompt that's 1000 recomputations per generated token.
+
+*Core insight / definition:* Compute and store the key/value tensors for the prompt prefix once, then reuse them for every subsequent generated token, turning per-token generation cost from quadratic-ish to roughly linear.
+
+*Why it matters / pitfall / interview trap:* This is what makes LLM serving practical at all; the real production concern is that KV cache memory bandwidth (not compute) becomes the bottleneck for decode-phase latency (TPOT).
+
+---
+
+**LambdaMART / LambdaRank**
+
+*The problem:* Ranking metrics like NDCG are not differentiable, so they can't be directly optimized with standard gradient descent.
+
+*Core insight / definition:* LambdaRank backpropagates gradients scaled by the change in NDCG (delta-NDCG) that would result from swapping a pair of items, effectively optimizing the list-level metric indirectly; LambdaMART is the gradient-boosted-tree implementation (e.g., LightGBM) and is the industry-standard search-ranking algorithm.
+
+*Why it matters / pitfall / interview trap:* It's the standard answer to "how do you optimize a ranking metric directly" — distinguishes listwise approaches from pointwise (BCE) and pairwise (BPR/RankNet) losses.
+
+---
+
+**LambdaMART / Learning to Rank**
+
+*The problem:* Ranking metrics like nDCG are non-differentiable (they depend on discrete sort order), so standard gradient descent can't directly optimize them.
+
+*Core insight / definition:* LambdaMART computes virtual "lambda" gradients per document pair representing how much swapping their ranks would change nDCG — well-defined even though nDCG itself has no analytic gradient. This is the listwise paradigm within the broader pointwise/pairwise/listwise LTR taxonomy.
+
+*Why it matters / pitfall / interview trap:* A common trap is conflating LambdaMART's approach with backpropagating directly through nDCG — the entire innovation is sidestepping that impossibility via pairwise swap-gradients.
+
+---
+
+**Latency Budget / Tail Latency (p99/p999)**
+
+*The problem:* A system that looks fast on average (p50) can still deliver a terrible experience to a meaningful fraction of users, often at the highest-stakes moments.
+
+*Core insight / definition:* Track and alert on percentile latencies beyond the median — p99, p999 — since a 50ms p50 with 500ms p99 means 1% of requests are 10x slower, and those slow requests often correlate with expensive operations (fraud checks, first purchases).
+
+*Why it matters / pitfall / interview trap:* Optimizing only for average/p50 latency is a common interview trap — always ask which percentile the SLA is defined against.
+
+---
+
+**LLM-as-Judge Evaluation**
+
+*The problem:* LLM outputs are non-deterministic in phrasing, so exact-match comparison against a reference answer produces constant false negatives even for semantically correct responses.
+
+*Core insight / definition:* A separate (often cheaper) LLM scores generated responses on properties like groundedness, relevance, and correctness against defined rubrics, rather than requiring string-identical output.
+
+*Why it matters / pitfall / interview trap:* Judge models carry their own biases (favoring longer responses, or responses stylistically similar to their own outputs) — scores must be validated against a human-rated sample before being trusted as a primary signal, and re-validated as the underlying judge model changes.
+
+---
+
+**Loss Function Selection**
+
+*The problem:* The loss function defines exactly what the model is optimized to do — using the wrong one (e.g., MSE for classification) gives mathematically valid but practically wrong behavior.
+
+*Core insight / definition:* Match the loss to the task structure and the relative cost of different error types: MSE/Huber for regression, binary/weighted cross-entropy for classification, pairwise losses (BPR) for ranking.
+
+*Why it matters / pitfall / interview trap:* Loss and evaluation metric can diverge — training on differentiable cross-entropy but being judged on non-differentiable F1 can yield good loss with mediocre F1; use a surrogate loss correlated with the true target metric.
+
+---
+
+**Lost-in-the-Middle**
+
+*The problem:* LLMs attend more reliably to content at the start and end of a long context window than to content buried in the middle, regardless of that content's actual importance.
+
+*Core insight / definition:* Fix lives at the context-assembly layer — order retrieved chunks by importance, placing the most load-bearing chunk first or last, rather than by raw retrieval rank.
+
+*Why it matters / pitfall / interview trap:* When a wrong answer traces back to a chunk correctly retrieved but ignored, the fix is reordering, not retuning the retriever — conflating the two wastes debugging effort on the wrong component.
+
+---
+
+**Map Matching (HMM/Viterbi)**
+
+*The problem:* Raw GPS pings are noisy and don't reliably snap to the correct road segment via simple nearest-edge lookup, especially on parallel roads or during signal loss.
+
+*Core insight / definition:* Frames the problem as finding the most likely sequence of road segments given noisy observations: $P(\text{path}|\text{GPS}) \propto P(\text{GPS}|\text{path}) \cdot P(\text{path})$, combining Gaussian emission probability (GPS distance to segment) with a transition probability enforcing route plausibility (consistent direction, no teleporting), solved via Viterbi.
+
+*Why it matters / pitfall / interview trap:* Production systems use established libraries (Valhalla, OSRM) rather than custom implementations — a strong interview answer flags this rather than proposing to build map matching from scratch.
+
+---
+
+**Matrix Factorization (ALS)**
+
+*The problem:* Need a fast, simple way to model user-item interactions for recommendation without deep architectures.
+
+*Core insight / definition:* Learn low-dimensional latent vectors for users and items such that their dot product approximates the observed interaction/rating; Alternating Least Squares (ALS) is the standard fitting algorithm.
+
+*Why it matters / pitfall / interview trap:* Requires at least one interaction per user/item to produce a latent vector — it has no cold-start handling and goes stale without refresh, unlike content-based or two-tower approaches.
+
+---
+
+**Matthew Effect / Popularity Bias Feedback Loop**
+
+*The problem:* Items/ads/creators that are shown more accumulate more engagement data purely from exposure volume, making the model favor them even more in the next retraining round regardless of true underlying quality.
+
+*Core insight / definition:* A self-reinforcing rich-get-richer dynamic: high predicted score → more exposure → more (partially spurious) engagement signal → even higher predicted score. Corrected via inverse propensity weighting in training and explicit exploration budgets in serving.
+
+*Why it matters / pitfall / interview trap:* Left unmonitored, the loop is self-masking — the model's own interventions (showing popular items) keep its apparent accuracy metrics looking fine while the underlying content diversity silently collapses; requires active monitoring (Gini coefficient, content diversity index) since the training loop has no internal mechanism to notice or reverse the drift.
+
+---
+
+**Maximal Marginal Relevance (MMR)**
+
+*The problem:* A pure relevance ranker repeatedly surfaces near-duplicate top-performing content, making feeds feel static and repetitive.
+
+*Core insight / definition:* Iteratively select items that maximize (relevance − similarity to already-selected items), trading off pure relevance against diversity via a lambda parameter.
+
+*Why it matters / pitfall / interview trap:* O(k²) in the number of selected items — at scale (k=100, 768-dim embeddings), production systems often approximate diversity with simpler heuristic rules (no two items from the same author in top 5) instead of running true MMR.
+
+---
+
+**MinHash LSH (Locality-Sensitive Hashing)**
+
+*The problem:* Detecting near-duplicate or highly similar content (for coordinated campaign detection) across hundreds of millions of posts requires sub-quadratic similarity search.
+
+*Core insight / definition:* Clusters posts by approximate text similarity using locality-sensitive hashing, feeding candidate clusters into downstream coordination-signal classifiers.
+
+*Why it matters / pitfall / interview trap:* Enables the first stage of CIB (Coordinated Inauthentic Behavior) detection at scale where brute-force pairwise similarity comparison would be computationally infeasible.
+
+---
+
+**Missing Value Treatment**
+
+*The problem:* Most algorithms can't handle missing values directly; dropping rows biases the sample, and naive imputation can mislead the model.
+
+*Core insight / definition:* Missingness itself carries signal (e.g., "never purchased" vs. "pipeline error"), so strategy should match mechanism: MCAR → mean/median imputation, MAR → regression/KNN imputation, MNAR → add an explicit missingness-indicator column.
+
+*Why it matters / pitfall / interview trap:* KNN imputation is O(n²) and infeasible above roughly 100K rows — use median imputation with missingness indicators at scale instead.
+
+---
+
+**MLE Lifecycle (Nine Stages)**
+
+*The problem:* Teams conflate "building an ML system" with "training a model," missing the majority of the actual engineering work.
+
+*Core insight / definition:* Nine sequential stages — goal definition, data collection, data preparation, feature engineering, model training, model evaluation, model deployment, model serving, monitoring & maintenance — where each stage's output feeds the next and failures propagate forward.
+
+*Why it matters / pitfall / interview trap:* Most production failures originate in stages 1–4 (problem framing, data), not model architecture — a senior answer names the failure's originating stage, not just "the model is wrong."
+
+---
+
+**MMOE (Multi-gate Mixture of Experts)**
+
+*The problem:* Multiple ranking objectives (likes, comments, shares) share underlying signal but also have task-specific nuances; a single shared network under- or over-fits different tasks unevenly.
+
+*Core insight / definition:* Shared "expert" subnetworks learn common representations; each task has its own gating network that learns a weighted combination of experts relevant to that specific task, then a task-specific head produces the final prediction.
+
+*Why it matters / pitfall / interview trap:* The standard multi-task architecture answer for feed/ranking systems with several correlated but distinct objectives — the gates, not the experts, are what make it task-adaptive.
+
+---
+
+**MMoE (Multi-gate Mixture of Experts)**
+
+*The problem:* A ranking model needs to predict multiple correlated-but-distinct labels (watch%, like, share, subscribe, skip, regret) without one dominant task starving the others of useful shared representation.
+
+*Core insight / definition:* Shared expert layers feed into task-specific gating networks that learn a softmax-weighted combination of experts per task, letting each task pull differently from the shared representation pool rather than forcing one hard-shared bottleneck.
+
+*Why it matters / pitfall / interview trap:* Separate single-task models overfit sparse actions (e.g., shares, ~10x rarer than likes); MMoE's shared-expert structure specifically addresses this sample-efficiency problem while task-specific gates still preserve per-action nuance.
+
+---
+
+**Model Versioning and Rollback**
+
+*The problem:* A new model version can degrade in production, and without versioned artifacts, recovery means retraining from scratch under pressure.
+
+*Core insight / definition:* Maintain a versioned model registry with logged metrics per version; promote a candidate only if it beats production by a set threshold; archive (don't delete) outgoing versions so rollback is a stage transition, not a rebuild.
+
+*Why it matters / pitfall / interview trap:* Rollback without root-cause analysis just defers the problem — if the new model failed due to a bad upstream data pipeline, the "old" model is exposed to the same bad data and will fail too.
+
+---
+
+**Multi-Task Learning (Shared Bottom)**
+
+*The problem:* Training separate models per predicted action (like/comment/share/hide/unfollow) wastes data on rare actions and can't share useful cross-task representation.
+
+*Core insight / definition:* A shared bottom network (dense layers) feeds multiple task-specific output heads, each predicting a different label with its own loss term summed into a combined training objective.
+
+*Why it matters / pitfall / interview trap:* The composite score built from these heads is a design decision, not a learned output — weights are typically tuned via online A/B experimentation against long-horizon business metrics rather than baked into the loss function, decoupling policy changes from retraining.
+
+---
+
+**Multilabel Classification**
+
+*The problem:* An item can belong to multiple non-exclusive categories simultaneously (sports AND politics), but standard softmax classification forces a single choice.
+
+*Core insight / definition:* Use an independent sigmoid output per label instead of a softmax across labels, and train with per-label binary cross-entropy so labels don't compete for probability mass.
+
+*Why it matters / pitfall / interview trap:* A fixed 0.5 threshold is arbitrary and fails for rare labels (which rarely exceed 0.5) — per-label threshold tuning on a validation set (maximizing F1 per label) is necessary under class imbalance.
+
+---
+
+**Multimodal Input (Late Fusion)**
+
+*The problem:* Real-world items often have multiple data types (image, text, price, category), and a model restricted to one modality ignores potentially decisive signal from the others.
+
+*Core insight / definition:* Encode each modality with an architecture suited to it (text encoder, image encoder, etc.), then concatenate the per-modality representations at a late fusion layer that learns which modalities matter for the prediction.
+
+*Why it matters / pitfall / interview trap:* A modality missing at inference time (e.g., no product image) breaks the model unless handled explicitly with a zero vector or learned "missing" embedding — graceful degradation must be designed per modality.
+
+---
+
+**Multistage Training**
+
+*The problem:* Training a complex model from scratch on a small task-specific dataset overfits or converges too slowly because there are too many parameters relative to the available signal.
+
+*Core insight / definition:* Break training into stages — earlier stages learn general representations on larger data (pretraining), later stages fine-tune on task-specific data — so each stage starts from a better initialization than random.
+
+*Why it matters / pitfall / interview trap:* Aggressive fine-tuning risks catastrophic forgetting of earlier-stage knowledge; mitigated with a lower fine-tuning learning rate and techniques like elastic weight consolidation.
+
+---
+
+**NDCG (Normalized Discounted Cumulative Gain)**
+
+*The problem:* Simple relevance metrics don't account for position — a relevant result buried at position 10 is worth much less to the user than one at position 1.
+
+*Core insight / definition:* Sum relevance scores discounted logarithmically by rank position, normalized by the ideal (best-possible) ordering's DCG, producing a score in [0,1] that rewards both relevance and correct ordering.
+
+*Why it matters / pitfall / interview trap:* The standard offline ranking-quality metric; it's what LambdaRank/LambdaMART directly optimizes for via gradient approximation since NDCG itself isn't differentiable.
+
+---
+
+**nDCG (Normalized Discounted Cumulative Gain)**
+
+*The problem:* Precision@k treats a hit at position 1 identically to a hit at position 10, which doesn't match real user attention patterns where almost no one scrolls that far.
+
+*Core insight / definition:* $\text{DCG}_k = \sum (2^{rel_i}-1)/\log_2(i+1)$, normalized by the ideal ordering's DCG (IDCG). Logarithmic position discount plus graded (not binary) relevance makes nDCG far more sensitive to top-rank quality.
+
+*Why it matters / pitfall / interview trap:* The per-query normalization by each query's own ideal ranking means an easy navigational query (one perfect answer) and a hard exploratory query (many partial answers) both max out at 1.0 — averaging nDCG across queries can flatten a hard-won gain on difficult queries to look the same as a trivial gain on easy ones; also, graded relevance labels themselves are usually derived from editorial judgment or click data, both of which carry their own biases nDCG doesn't correct for.
+
+---
+
+**Negative Sampling (with Calibration Correction)**
+
+*The problem:* Raw click/impression data is often ~99% negatives; training on all of it wastes compute and produces poorly-calibrated models dominated by the majority class.
+
+*Core insight / definition:* Downsample negatives at a fixed rate q, then correct the model's output probability at inference: $p_{true} = p_{model}/(p_{model} + (1-p_{model})/q)$ to undo the sampling-induced bias.
+
+*Why it matters / pitfall / interview trap:* Forgetting the correction after negative sampling is one of the most common production bugs — the raw model output can be ~100x too high at aggressive sampling rates, directly breaking any downstream system (like an auction) that consumes the probability as an absolute value.
+
+---
+
+**Neutral Class**
+
+*The problem:* Binary/multiclass models must commit to a class even when input is genuinely ambiguous (51% cat), collapsing uncertainty into a false-confident label.
+
+*Core insight / definition:* Add an explicit "uncertain"/"abstain" output class, trained on genuinely ambiguous examples (e.g., identified via annotator disagreement), and route predictions landing in that class to human review instead of forcing a decision.
+
+*Why it matters / pitfall / interview trap:* Only works if the neutral label comes from principled ambiguity signals — labeling arbitrary mixed examples as "neutral" gives the model no consistent pattern to learn, and it fails to learn the class at all.
+
+---
+
+**Offline vs. Online Metrics Alignment**
+
+*The problem:* Models that improve offline metrics (AUC, NDCG, PR-AUC) frequently fail to move online business metrics (CTR, revenue), wasting months of optimization effort.
+
+*Core insight / definition:* Offline metrics measure fit to historical (possibly biased) data; online metrics measure actual live user behavior — the gap between them must be closed empirically (by investigating position bias, unrepresentative A/B traffic, or train/serve feature mismatch), not assumed away.
+
+*Why it matters / pitfall / interview trap:* A classic interview scenario is "offline AUC up 3%, online CTR down 1%, what happened?" — the expected answer walks through position bias, train-serve skew, and cannibalization as candidate causes.
+
+---
+
+**OMOP CDM (Common Data Model)**
+
+*The problem:* Multi-site clinical ML training requires harmonizing institution-specific medical codes without moving raw PHI across sites.
+
+*Core insight / definition:* The OHDSI OMOP model maps local codes to standard vocabularies — SNOMED CT (diagnoses), RxNorm (medications), LOINC (labs), CPT4/HCPCS (procedures) — enabling federated multi-site model training on a common schema.
+
+*Why it matters / pitfall / interview trap:* Without this harmonization layer, cross-hospital training is blocked by incompatible local coding schemes even when raw data access is otherwise available.
+
+---
+
+**Onboarding / Explicit Preference Collection**
+
+*The problem:* Brand-new users provide zero implicit behavioral signal, and content-agnostic priors (population trending) are a weak substitute for real preference.
+
+*Core insight / definition:* Collecting a small number of explicit preference selections at signup (3-5 categories/interests) short-circuits the cold-start ramp, providing a stronger initial personalization signal than demographic proxies alone.
+
+*Why it matters / pitfall / interview trap:* Still needs to be blended with an exploration budget — a purely explicit-preference-driven start can lock a user into a narrow initial choice before the system has any chance to discover broader interests.
+
+---
+
+**One-Hot / Ordinal / Cyclical Encoding**
+
+*The problem:* Categorical and periodic features aren't naturally numeric, and naive numeric encoding introduces false ordinal relationships or discontinuities.
+
+*Core insight / definition:* One-hot encoding for low-cardinality unordered categories; ordinal encoding for genuinely ordered categories; cyclical (sin/cos) encoding for periodic features like hour-of-day so that, e.g., hour 23 and hour 0 remain numerically close.
+
+*Why it matters / pitfall / interview trap:* Using plain ordinal/integer encoding for a periodic feature like hour-of-day silently breaks distance-based models at the wrap-around boundary — this is the standard cyclical-encoding interview trap.
+
+---
+
+**Pairwise Ranking (RankNet)**
+
+*The problem:* Pointwise classifiers score documents independently and have no mechanism to directly optimize relative ordering between two documents.
+
+*Core insight / definition:* Train on (preferred, less-preferred) pairs with a loss like -sigmoid(s_i - s_j) that pushes the preferred item's score above the less-preferred one's, without needing an absolute relevance scale.
+
+*Why it matters / pitfall / interview trap:* Captures relative ordering but not full-list quality — listwise methods (LambdaRank) go further by optimizing a list-level ranking metric directly.
+
+---
+
+**Perceptual Hashing (PhotoDNA)**
+
+*The problem:* Cryptographic hashes (MD5/SHA) break completely on any single-pixel change, making them useless for catching re-encoded, resized, or cropped copies of known-bad content (e.g., CSAM).
+
+*Core insight / definition:* PhotoDNA converts an image into a hash that stays numerically close for visually similar images (greyscale → resize → DCT per cell → quantize), so mild transformations (resize, re-compression, minor crop) still register as a match via distance thresholding against a known-bad database.
+
+*Why it matters / pitfall / interview trap:* Not adversarially robust — a determined attacker who optimizes specifically against the hash function can evade it — which is why novel/evasive content must still fall through to the ML classifier as a backstop, and why hash matching's false-positive tolerance is set near zero (the asymmetry is inverted here: false positives on CSAM auto-report have catastrophic legal/reputational cost, so the system never auto-acts on an uncertain signal in this specific case).
+
+---
+
+**Platt Scaling**
+
+*The problem:* Raw model scores (especially from tree-based or margin-based models) often don't reflect true probabilities and need a simple post-hoc correction.
+
+*Core insight / definition:* Fits a logistic sigmoid on validation-set (score, label) pairs to map raw scores into calibrated probabilities — the simplest, lowest-variance post-hoc calibration method.
+
+*Why it matters / pitfall / interview trap:* Preferred over isotonic regression specifically when calibration data is limited (rule of thumb: below ~10K samples), since isotonic's added flexibility becomes a liability (overfitting) at small sample sizes.
+
+---
+
+**Point-in-Time Correctness**
+
+*See Feature Store.*
+
+---
+
+**Point-in-Time Feature Consistency**
+
+*The problem:* User-profile features that change continuously (e.g., "last 30 clicks") differ between the value used at serving time and the value recomputed later at training time, creating subtle training-serving mismatch.
+
+*Core insight / definition:* Log the exact feature vector used at serving time and train on those logged values directly, rather than recomputing "the same" feature from raw events after the fact.
+
+*Why it matters / pitfall / interview trap:* This is more subtle than typical training-serving skew — even "correct" feature logic gives different numeric values depending on exactly when it's computed, so logging (not recomputing) is the only reliable fix.
+
+---
+
+**Position Bias**
+
+*The problem:* Clicks are the product of two probabilities — whether the user saw the item (position-dependent) and whether they found it relevant — but raw click labels conflate the two, biasing models toward historically high-positioned items.
+
+*Core insight / definition:* Separate the examination probability (depends on position) from true relevance using position-randomization experiments to estimate propensities, then debias training via Inverse Propensity Scoring.
+
+*Why it matters / pitfall / interview trap:* Training naively on raw clicks creates a self-reinforcing feedback loop where the model perpetuates whatever was historically ranked first, regardless of true quality.
+
+---
+
+**PR-AUC (Precision-Recall AUC)**
+
+*The problem:* ROC-AUC's false-positive-rate axis is diluted by the overwhelming majority of true negatives in a highly imbalanced problem (e.g., 99.9% non-fraud), making it insensitive to operationally meaningful changes.
+
+*Core insight / definition:* PR-AUC directly reflects the precision-recall trade-off at the low-FPR operating points these systems actually run at, making it a far more informative primary metric under severe class imbalance.
+
+*Why it matters / pitfall / interview trap:* Reaching for F1 as "the imbalanced-data fix" is a common but weak move — F1 weights precision and recall equally, which almost never matches the true asymmetric cost ratio of the underlying business problem; the honest answer is recall at a fixed, business-chosen operating FPR, ideally dollar-weighted.
+
+---
+
+**Prediction Bias / Fairness Metrics**
+
+*The problem:* A model can pass overall accuracy while systematically disadvantaging a protected group, even without using protected attributes directly.
+
+*Core insight / definition:* Explicitly measure per-group positive rate (demographic parity), true positive rate (equal opportunity), and false positive rate (equalized odds), because correlated proxy features (zip code, name, device type) can encode protected attributes even when they're excluded.
+
+*Why it matters / pitfall / interview trap:* Chouldechova's impossibility result proves demographic parity, equal opportunity, and calibration cannot all hold simultaneously when base rates differ across groups — the choice of which fairness criterion to prioritize must be explicit and documented, not accidental.
+
+---
+
+**Prevalence Estimation (Stratified Sampling)**
+
+*The problem:* You cannot measure a content moderation or fraud system's true positive rate using its own classifier's output — that's circular, since the output is exactly the biased signal being evaluated.
+
+*Core insight / definition:* Sample content stratified by ML score decile (deliberately oversampling the low-score tail, where rare violations may still dominate total harm), apply expert human review, then compute a weighted (Horvitz-Thompson-style) unbiased prevalence estimate with confidence intervals.
+
+*Why it matters / pitfall / interview trap:* Sampling only from high-score buckets misses the tail problem — a tiny violation rate spread over a massive low-score volume can exceed all caught high-score violations combined; using appeal/reversal rates as a quality proxy is also flawed since appeals are filed by a self-selected, non-representative population.
+
+---
+
+**Prompt/Prefix Caching (LLM Serving)**
+
+*The problem:* The system prompt and tool schemas are nearly identical across almost every request in a RAG/agentic system, so recomputing attention over those fixed tokens on every single query wastes latency and compute.
+
+*Core insight / definition:* Caching the KV state for the fixed prefix (system prompt, tool schemas) avoids recomputing attention over those tokens per request; on providers that support it, repeated prefix tokens are also billed once per cache window rather than per request.
+
+*Why it matters / pitfall / interview trap:* One of the highest-leverage latency and cost optimizations specifically for RAG systems, which typically carry a large, fixed system prompt relative to the variable retrieved content.
+
+---
+
+**Propensity Scoring**
+
+*See Inverse Propensity Scoring.*
+
+---
+
+**PSI (Population Stability Index)**
+
+*The problem:* Detecting when a feature or score distribution has shifted enough between two time windows to warrant investigation or retraining, without waiting for lagging outcome labels.
+
+*Core insight / definition:* $\text{PSI} = \sum(\text{cur\_dist} - \text{ref\_dist})\log(\text{cur\_dist}/\text{ref\_dist})$ computed over binned score/feature distributions; PSI < 0.1 = stable, 0.1–0.2 = moderate shift/monitor, > 0.2 = significant shift/retrain — a standard threshold set across ad tech, credit, and clinical ML.
+
+*Why it matters / pitfall / interview trap:* PSI can be flat globally while masking segment-specific miscalibration (e.g., overbidding on premium inventory offset by underbidding on cheap inventory) — slicing by segment is necessary since aggregate stability can hide where the real damage happens.
+
+---
+
+**Quantile Regression**
+
+*The problem:* A single point ETA/LTV/price estimate hides genuine uncertainty that both end-users and downstream systems need to reason about.
+
+*Core insight / definition:* Train separate models targeting different quantiles (e.g., p10, p50, p90) of the outcome distribution, producing a range ("8-12 min") rather than a single number.
+
+*Why it matters / pitfall / interview trap:* Requires training multiple models (one per quantile) versus conformal prediction's single-model post-hoc wrapper approach — a trade-off between training cost and flexibility worth naming explicitly in an interview.
+
+---
+
+**Quantization (Model)**
+
+*The problem:* Full-precision (FP32) model inference is often too slow or memory-heavy for tight latency/serving budgets, especially for large models like LLMs.
+
+*Core insight / definition:* Reduce numeric precision of weights/activations (FP32 → INT8 → INT4/FP8), trading a small, controlled accuracy loss for large speedups and memory reduction (e.g., INT8 gives roughly 2–4x speedup with <1–2% accuracy loss; INT4 gives ~4x memory reduction with ~5% quality drop).
+
+*Why it matters / pitfall / interview trap:* The accuracy/speed tradeoff is not free — always state the expected accuracy delta alongside the speedup, and note that lower precision requires compatible hardware (e.g., FP8 needs Hopper+ GPUs).
+
+---
+
+**RAG (Retrieval-Augmented Generation) Chunking**
+
+*The problem:* Document length vastly exceeds what can be embedded and retrieved as a single unit, and naive fixed-size splitting can fracture coherent ideas mid-thought.
+
+*Core insight / definition:* Fixed-size chunking (with overlap) is a fast baseline; semantic/structure-aware chunking (by heading/paragraph) preserves coherence at the cost of uneven chunk sizes; recursive chunking with parent-document lookup retrieves a small precise chunk but expands to broader parent context for generation.
+
+*Why it matters / pitfall / interview trap:* Chunking strategy interacts directly with the "lost-in-the-middle" problem and context budget — a strategy chosen purely for retrieval precision without considering downstream context assembly can undermine generation quality.
+
+---
+
+**Re-Ranking for Freshness and Diversity**
+
+*The problem:* A pure relevance ranker keeps surfacing the same top-performing content repeatedly, so feeds look identical across sessions and never surface emerging content.
+
+*Core insight / definition:* Optimize for the whole session's utility, not item-level relevance alone — apply a freshness decay function (exponential decay by content age) and diversity re-ranking (MMR or simpler heuristic rules) as a final stage after ranking.
+
+*Why it matters / pitfall / interview trap:* Diversity and freshness are inherently list-level properties that cannot be captured by scoring items independently — they must be applied as a separate re-ranking stage.
+
+---
+
+**Rebalancing (Design Pattern)**
+
+*The problem:* Class imbalance (e.g., 1% fraud) lets a model achieve high accuracy simply by always predicting the majority class, providing zero real value.
+
+*Core insight / definition:* Force the model to learn the minority class via class weighting (inverse-frequency loss weights), SMOTE (synthetic minority oversampling by interpolation), or threshold adjustment on an otherwise-unchanged model.
+
+*Why it matters / pitfall / interview trap:* SMOTE can generate synthetic examples that land inside the majority class's decision boundary, adding noise and hurting precision — prefer class weighting for complex feature spaces (images, text) and reserve SMOTE for simple structured features.
+
+---
+
+**Reciprocal Rank Fusion (RRF)**
+
+*See Hybrid Retrieval.*
+
+---
+
+**Reframing (Design Pattern)**
+
+*The problem:* The most "obvious" problem framing (e.g., binary classification) isn't always the best one — it can discard information (like probability gradations) that the business actually needs.
+
+*Core insight / definition:* Change what the model predicts and what loss it optimizes — e.g., classification → regression to preserve probability gradations, categorical → ordinal regression when class order matters, classification → ranking when relative order matters more than absolute labels.
+
+*Why it matters / pitfall / interview trap:* Regression reframing fails when the target isn't actually continuous (e.g., predicting 1–5 star ratings as plain regression assumes equal spacing between stars, which is often false) — use ordinal regression instead in that case.
+
+---
+
+**Regret Prediction (Satisfaction Proxy)**
+
+*The problem:* Engagement metrics (watch time, clicks) are instant but frequently diverge from genuine user satisfaction — clickbait and outrage content generate high engagement and low satisfaction simultaneously.
+
+*Core insight / definition:* A dedicated model head predicts "regret" using proxy labels like short watch after click on a long video, or explicit dislike/not-interested within a short window after consumption — distinct from and often negatively weighted against the primary engagement objective.
+
+*Why it matters / pitfall / interview trap:* Explicit satisfaction surveys are sparse (~1% of sessions) but weighted more heavily than implicit signals in training since they're a more reliable, less confounded label — the regret proxy exists precisely because waiting for enough survey data would be too slow.
+
+---
+
+**Regularization (L1/L2)**
+
+*The problem:* A model with enough capacity to fit the training data exactly will memorize noise and outliers instead of learning generalizable patterns.
+
+*Core insight / definition:* Penalize model complexity during training — L1 (Lasso) pushes weights to exactly zero for automatic feature selection; L2 (Ridge/weight decay) shrinks all weights proportionally without zeroing them.
+
+*Why it matters / pitfall / interview trap:* Over-regularizing underfits — too high an L1 lambda zeroes out genuinely informative features; regularization strength must be tuned on a validation set, not set arbitrarily.
+
+---
+
+**Reranking (Cross-Encoder)**
+
+*The problem:* Bi-encoder/embedding retrieval scores query and document independently for speed and indexability, but this structurally can't model fine-grained query-document interaction, capping precision.
+
+*Core insight / definition:* A cross-encoder jointly attends over the (query, document) pair — much higher precision, but cannot be precomputed, so it only runs on the small top-k candidate set surfaced by the cheap first-stage retriever.
+
+*Why it matters / pitfall / interview trap:* This two-stage cascade pattern (cheap broad retrieval → expensive precise reranking) recurs across nearly every domain in this collection (search, RAG, ads, recommendations) — recognizing it as one general pattern, not a domain-specific trick, is a strong interview signal.
+
+---
+
+**RTB / Programmatic Auction Latency Budget**
+
+*The problem:* OpenRTB mandates a bid response within a strict window (spec: 100ms; typical exchange enforcement: 10-50ms), ruling out sequential database lookups, GIL-bound languages, or any network I/O in the hot inference path.
+
+*Core insight / definition:* The entire architecture — co-located servers, in-memory-only feature lookup, quantized/optimized model inference, circuit breakers with default-feature fallback — is derived directly from this single latency constraint.
+
+*Why it matters / pitfall / interview trap:* A model with meaningfully lower AUC that reliably responds within budget generates more revenue than a "better" model that occasionally times out, since a timeout means zero revenue for that auction, not degraded revenue.
+
+---
+
+**Rule-Based Baseline**
+
+*The problem:* Without a non-ML reference point, it's impossible to tell whether an ML system is actually adding value over a much simpler alternative.
+
+*Core insight / definition:* Define majority-class, rule-based, and simple linear baselines before training the real model; the real model must beat these by a margin that justifies its operational complexity.
+
+*Why it matters / pitfall / interview trap:* This is both a design-pattern and an ML-engineering interview default — "did you compare to a baseline" is one of the most common interviewer follow-ups, and skipping it is treated as a red flag.
+
+---
+
+**Sample Ratio Mismatch (SRM)**
+
+*The problem:* If the actual traffic split between experiment arms deviates from the intended split, any measured metric difference is potentially confounded by a broken randomization or logging pipeline rather than the treatment itself.
+
+*Core insight / definition:* $\chi^2 = \sum(O_i - E_i)^2/E_i$ tests whether observed arm sizes match expected; SRM p < 0.01 invalidates the experiment and requires diagnosing the assignment mechanism before any other metric is trusted.
+
+*Why it matters / pitfall / interview trap:* Must be checked *before* reading any other experiment result — a common interview expectation is naming this as literally the first step of experiment analysis, not an optional sanity check.
+
+---
+
+**Sample Selection Bias**
+
+*The problem:* Training a model only on a filtered subpopulation (e.g., clicked items, approved transactions) means it never learns the distribution it must predict on at serving time.
+
+*Core insight / definition:* The training data's selection process (what got clicked, what got approved) differs systematically from the full population the model scores in production, biasing learned patterns; ESMM (for CVR) and counterfactual-label injection (for fraud) are two concrete fixes.
+
+*Why it matters / pitfall / interview trap:* This underlies both the CVR "click space" problem and the fraud-detection survivorship-bias problem — recognizing it as the same underlying issue across domains is a strong interview signal.
+
+---
+
+**Scaling (StandardScaler / MinMaxScaler)**
+
+*The problem:* Gradient-based models are sensitive to feature scale — a feature ranging 0–1,000,000 dominates gradient updates over one ranging 0–1.
+
+*Core insight / definition:* Fit a scaler (StandardScaler for roughly Gaussian features, MinMaxScaler to bound values to [0,1] for sigmoid/tanh outputs) on training data only, then apply the identical fitted transform at serving time.
+
+*Why it matters / pitfall / interview trap:* The fitted scaler parameters (mean_/scale_) must be saved with the model artifact — recomputing them on serving data (which has a different distribution) silently breaks the model.
+
+---
+
+**Second-Price (Vickrey) Auction**
+
+*See Auction Theory — Bid Shading; the auction format where the winner pays the second-highest bid, making truthful bidding the dominant strategy.*
+
+---
+
+**Selection Bias (Training Data)**
+
+*The problem:* Models trained on a biased subpopulation (e.g., only purchasers for LTV, only hospitalized patients for clinical models, only won impressions for RTB) fail to generalize to the full population they're scored on.
+
+*Core insight / definition:* A two-stage model — P(reaches the eligible population) × E[outcome | eligible] — explicitly separates the selection process from the outcome model, rather than letting one model implicitly learn a biased blend of both.
+
+*Why it matters / pitfall / interview trap:* Appears under different names across domains (hospitalized-patient bias in clinical ML, conversion selection bias in LTV, exposure/exploration bias in RTB) but is structurally the same problem every time — recognizing the pattern across domains is a mark of seniority.
+
+---
+
+**Sequence Models (LSTM/Transformer on Behavioral History)**
+
+*The problem:* Aggregated tabular features (RFM-style summary statistics) lose the temporal ordering that often carries the strongest signal — a sequence of small transactions before a large one, or accelerating engagement, means something different from the same events in a different order.
+
+*Core insight / definition:* LSTMs or Transformers process ordered event sequences (purchases, clicks, vitals) directly, using attention or recurrence to weight recent/relevant events more heavily than a flat average would.
+
+*Why it matters / pitfall / interview trap:* Naive average-pooling of a history destroys exactly the structure that matters — a user who watched 5 gaming videos then 5 coding videos has an averaged embedding halfway between the two topics, when their *current* intent is clearly coding; attention-based aggregation correctly weights recency instead.
+
+---
+
+**Shadow Mode / Shadow Deployment**
+
+*The problem:* Deploying a new model directly to users risks real harm if it underperforms, but standard randomized A/B testing is sometimes ethically or operationally infeasible (e.g., clinical settings without IRB approval).
+
+*Core insight / definition:* The new model runs silently alongside production, scoring live traffic without its outputs being shown to users or affecting decisions; its scores are compared post-hoc against outcomes and/or the production model's decisions.
+
+*Why it matters / pitfall / interview trap:* Doesn't require IRB approval in clinical settings specifically because care isn't changed, but still requires data access approval and a business associate agreement — a common conflation is assuming shadow mode has zero governance requirements at all.
+
+---
+
+**SHAP (SHapley Additive exPlanations)**
+
+*The problem:* Black-box models (GBM, deep nets) achieve better performance than interpretable linear models, but stakeholders (clinicians, analysts, regulators) need to understand why a specific prediction was made.
+
+*Core insight / definition:* A post-hoc explainability method attributing each prediction's score to individual input features via Shapley values from cooperative game theory; TreeSHAP provides fast exact computation for tree ensembles, enabling real-time explanation generation.
+
+*Why it matters / pitfall / interview trap:* SHAP values are not causal — they show what the model *attended to*, not what actually caused the outcome. If a model learns that "blood culture ordered" predicts sepsis (because ordering correlates with clinical suspicion), a clinician who avoids ordering the test to "lower the risk score" doesn't change the patient's actual physiology. Interpretability builds trust but doesn't substitute for prospective validation.
+
+---
+
+**Slicing (Evaluation Pattern)**
+
+*The problem:* Aggregate metrics hide subgroup failures — a model can score 92% overall accuracy while failing badly on a specific demographic or language subgroup.
+
+*Core insight / definition:* Evaluate performance on meaningful, predefined subgroups (age bands, device type, language) in addition to the overall metric, and define these slices before training to avoid selection bias in what gets reported.
+
+*Why it matters / pitfall / interview trap:* You can only catch failures in slices you thought to define in advance — unexpected intersectional failures (e.g., elderly Spanish-speaking mobile users) stay invisible unless automated slice-discovery tools are used.
+
+---
+
+**SMOTE (Synthetic Minority Oversampling Technique)**
+
+*The problem:* Simply duplicating minority-class examples doesn't add new information and can cause the model to overfit to those exact duplicated points.
+
+*Core insight / definition:* Generate new synthetic minority-class examples by interpolating between existing minority examples in feature space, rather than duplicating them exactly.
+
+*Why it matters / pitfall / interview trap:* Can generate synthetic points that land inside the majority class's decision region, adding noisy training examples and hurting precision — best suited to simple structured features, not high-dimensional spaces like images or text.
+
+---
+
+**SMOTE (Synthetic Minority Oversampling)**
+
+*The problem:* Simple duplication of minority-class examples in imbalanced training data doesn't add new information and can encourage overfitting to exact minority points.
+
+*Core insight / definition:* Generates synthetic minority-class examples by interpolating between existing minority points and their nearest neighbors in feature space, rather than duplicating them exactly.
+
+*Why it matters / pitfall / interview trap:* Best suited to smaller tabular datasets; at very large scale, class weighting (`scale_pos_weight`) or focal loss are typically preferred since they avoid the cost of generating and storing synthetic examples.
+
+---
+
+**Survival Analysis**
+
+*The problem:* Churn, chargeback confirmation, and clinical deterioration are all "time until an event" problems, and standard classification discards the timing information and mishandles not-yet-occurred (censored) cases.
+
+*Core insight / definition:* Frames the outcome as time-to-event rather than binary label; Kaplan-Meier estimates the survival function non-parametrically, while Cox PH and Weibull AFT add covariates to model how features shift the hazard or timeline.
+
+*Why it matters / pitfall / interview trap:* Recurs across LTV (BG/NBD), fraud (censored chargeback labels), and clinical ML (time-to-deterioration) as the mathematically correct framework for handling right-censored labels — treating censored recent examples as flat negatives is the recurring, cross-domain mistake this framework exists to fix.
+
+---
+
+**Survivorship Bias (Fraud Feedback Loop)**
+
+*The problem:* When a fraud system blocks a transaction, the true outcome (would it actually have been fraud?) is never observed.
+
+*Core insight / definition:* Training data only contains transactions that passed the filter, systematically underrepresenting the fraud patterns the model should learn to catch — a self-perpetuating blind spot.
+
+*Why it matters / pitfall / interview trap:* The standard fix is injecting a small, monitored percentage of random approvals at the decision threshold to collect counterfactual labels, then reweighting them by inverse approval probability during retraining.
+
+---
+
+**Temperature Scaling**
+
+*The problem:* A simple, single-parameter method is often preferred over more complex calibration approaches when the miscalibration is primarily a matter of over/under-confidence rather than a complex non-monotonic distortion.
+
+*Core insight / definition:* $p_{calibrated} = \sigma(\text{logit}(p_{raw})/T)$ — a single scalar temperature T is fit to minimize NLL on a validation set; T > 1 indicates the model is overconfident (the common case), T < 1 indicates underconfidence.
+
+*Why it matters / pitfall / interview trap:* The simplest good default for calibration when you don't yet know the shape of the miscalibration — often tried first before escalating to Platt scaling or isotonic regression if a single scalar proves insufficient.
+
+---
+
+**Temporal Split (Train/Validation)**
+
+*The problem:* Randomly splitting time-ordered data lets the model train on examples chronologically later than some validation examples, leaking future information the model would never have access to at real serving time.
+
+*Core insight / definition:* Train strictly on earlier time windows, validate/test on strictly later ones — the minimum bar for any model trained on time-series or event-log data (CTR, fraud, clinical, recommendations).
+
+*Why it matters / pitfall / interview trap:* Fixes leakage but not survivorship/policy bias — a temporally-correct holdout still only contains items/decisions the *previous* policy actually exposed, so counterfactual evaluation (IPS) is still needed to assess a genuinely different new policy.
+
+---
+
+**TF-IDF (Term Frequency–Inverse Document Frequency)**
+
+*The problem:* Need a simple way to represent item/document content for similarity comparison without training a model.
+
+*Core insight / definition:* Weight each term in a document by how often it appears there (term frequency) relative to how rare it is across the whole corpus (inverse document frequency), producing a sparse vector usable with cosine similarity for content-based retrieval.
+
+*Why it matters / pitfall / interview trap:* Purely lexical — it has no notion of semantic similarity, so it's typically the simplest baseline for content-based filtering, not a production-grade solution on its own.
+
+---
+
+**Thompson Sampling**
+
+*The problem:* Uniform random exploration (epsilon-greedy) wastes exploration budget on items that are clearly bad, rather than focusing on items with genuine uncertainty.
+
+*Core insight / definition:* Maintain a Beta distribution over each item's estimated click/reward probability, sample from each item's distribution, and serve the item with the highest sampled value — naturally exploring more where uncertainty is higher.
+
+*Why it matters / pitfall / interview trap:* More sample-efficient than epsilon-greedy because exploration is concentrated on genuinely uncertain items, but requires maintaining and updating per-item posterior distributions, adding bookkeeping overhead.
+
+---
+
+**Thumbnail-Content Divergence (Clickbait Detection)**
+
+*The problem:* Creators learn that CTR drives distribution and optimize thumbnails for clicks independent of actual content quality — a form of adversarial gaming against the ranking system's own signals.
+
+*Core insight / definition:* Compares the embedding similarity between a video's thumbnail and its actual content; high divergence (low similarity) is a quantifiable clickbait signal fed into the regret-prediction head.
+
+*Why it matters / pitfall / interview trap:* This is a specific instance of a general pattern — any system that rewards a proxy metric (CTR) rather than true quality creates an incentive to game the proxy, and cross-modal/cross-signal divergence checks are a recurring detection technique against this gaming (also seen in cross-modal consistency for content moderation).
+
+---
+
+**Training-Serving Skew**
+
+*The problem:* Features computed one way during training (often recomputed in batch from raw events) and another way at serving time (assembled from live systems) silently shift the input distribution the model actually sees in production.
+
+*Core insight / definition:* Feature computation logic must be identical — same code, same library versions, same null handling — on both paths; the standard fix is a single versioned, tested feature-computation function (or feature store) shared by training and serving.
+
+*Why it matters / pitfall / interview trap:* Don't inline feature logic in notebooks or rely on pickled closures — put it in a shared versioned library both paths import; this is one of the most common root causes cited for offline/online metric divergence.
+
+---
+
+**Transfer Learning**
+
+*The problem:* Training deep models from scratch requires enormous labeled datasets and compute that domain-specific tasks (medical imaging, legal NLP) rarely have.
+
+*Core insight / definition:* Reuse representations learned on a related, data-rich task (e.g., a language model trained on hundreds of gigabytes of text) as the starting point for a target task with much less labeled data, either by fine-tuning or by freezing the backbone and extracting fixed features.
+
+*Why it matters / pitfall / interview trap:* Fails when the source and target domains are too dissimilar (natural images vs. satellite/microscopy imagery) — shows up as slower convergence and lower final performance; domain-adaptive pretraining on unlabeled target-domain data helps when available.
+
+---
+
+**Transform (Design Pattern)**
+
+*The problem:* Preprocessing implemented separately for training and serving pipelines drifts apart over time — different normalization constants, encoding logic, or feature order silently create training-serving skew.
+
+*Core insight / definition:* Bundle preprocessing logic directly into the model graph/artifact (e.g., TF preprocessing layers, a scikit-learn Pipeline) so there's no separate preprocessing code path to keep in sync.
+
+*Why it matters / pitfall / interview trap:* Fails silently when upstream data schema changes (new column name, new category value, changed unit) — validate the input schema at serving time against the schema seen during training.
+
+---
+
+**Two-Stage Retrieval + Ranking**
+
+*The problem:* Running a heavy, precise ranking model against millions of items per query is computationally infeasible (e.g., 27 hours per request at 10ms/item over 10M items).
+
+*Core insight / definition:* Stage 1 (retrieval) is recall-focused and fast (ANN, BM25, collaborative filtering) narrowing to a few hundred/thousand candidates; Stage 2 (ranking) is precision-focused and heavier (DCN, DNN, cross-features), operating only on the small candidate set; a third re-ranking stage applies business rules.
+
+*Why it matters / pitfall / interview trap:* Conflating the two stages' objectives — proposing a single heavy model over the entire corpus — is one of the most common interview red flags for large-catalog systems.
+
+---
+
+**Two-Tower Model**
+
+*The problem:* Scoring every (user, item) pair with a full interaction model is computationally infeasible against catalogs of hundreds of millions to billions of items within millisecond latency budgets.
+
+*Core insight / definition:* User and item features are encoded independently into a shared embedding space by separate "towers"; item embeddings are precomputed offline and indexed, so retrieval reduces to a fast ANN/maximum-inner-product search against a live-computed user embedding.
+
+*Why it matters / pitfall / interview trap:* The two towers are not truly independent despite the architecture's name — they share a training loss and embedding space, so a change to negative sampling or temperature shifts both towers simultaneously, which is where hard-to-debug recall regressions typically originate. Also, precomputed item embeddings go stale the instant an item's fast-moving features (price, stock, trending score) change — the "clean O(1) lookup" story quietly assumes slow-moving item features.
+
+---
+
+**Uncertainty Estimation (Prediction Intervals)**
+
+*The problem:* Point estimates communicate false precision; both end users (riders, clinicians) and downstream automated systems benefit from knowing how confident a prediction is.
+
+*Core insight / definition:* Multiple approaches exist on a spectrum: quantile regression (separate models per quantile), NGBoost (single model outputting a full parametric distribution), and conformal prediction (post-hoc, distribution-free interval calibration wrapping any base model).
+
+*Why it matters / pitfall / interview trap:* Multi-task learning can indirectly widen uncertainty estimates too — e.g., predicting route-deviation probability alongside ETA lets the confidence interval dynamically widen exactly when the point estimate is least trustworthy.
+
+---
+
+**Virality Detection**
+
+*The problem:* A soon-to-be-viral post/video needs to be surfaced and amplified quickly, but standard batch-updated indexes and engagement-history-dependent ranking features are too slow to react.
+
+*Core insight / definition:* Signals include engagement velocity significantly above a creator's baseline, high early watch-percentage/share-rate, and — critically — diversity of early engagers across otherwise-unconnected social clusters (distinguishing organic spread from coordinated/bot amplification).
+
+*Why it matters / pitfall / interview trap:* A raw velocity signal without an authenticity/diversity gate becomes an attack surface for manufactured virality (bot rings, brigading) — rewarding velocity alone rewards exactly what coordinated inauthentic campaigns are optimized to produce.
+
+---
+
+**Wide & Deep**
+
+*The problem:* Linear models memorize specific feature interactions well but can't generalize to unseen combinations; pure deep models generalize well but struggle to memorize sharp, specific interactions.
+
+*Core insight / definition:* Combine a wide linear component (memorizes specific feature crosses, e.g., user × item history) with a deep neural component (generalizes via dense embeddings), summing their outputs for the final prediction.
+
+*Why it matters / pitfall / interview trap:* The canonical architecture answer for "how do you get both memorization and generalization in a ranking model" — DCN is often cited as a more automated successor that replaces manual feature crossing with a learned cross layer.
+
+---
+
+**Wide & Deep Learning**
+
+*The problem:* Linear models with manual cross-features memorize frequent co-occurrences well but don't generalize to unseen combinations; pure deep models generalize well but can underperform on memorizing sharp, high-value exact patterns.
+
+*Core insight / definition:* Combines a wide component (cross-product features + logistic regression, for memorization of frequent co-occurrences) with a deep component (embeddings + MLP, for generalization to novel combinations), joined at a final sigmoid layer.
+
+*Why it matters / pitfall / interview trap:* The canonical 2016 Google architecture that established the memorization-vs-generalization framing still used to motivate every subsequent architecture (DeepFM, DCN v2, DLRM) in this space — understanding *why* wide-and-deep exists explains why later architectures evolved the way they did.
 
 ---
