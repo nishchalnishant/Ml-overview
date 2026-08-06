@@ -9,7 +9,7 @@ tags: [glossary, ml, reference, all-folders]
 
 Comprehensive glossary of key terms drawn from every folder in this repo, built folder by folder (in numeric folder order). Each entry: the problem the term solves, the core definition/insight, and why it matters (pitfall/interview trap). This file is distinct from `18-resources/02-ml-glossary.md` (a separate, standalone A-Z glossary) — no merging between the two.
 
-**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms done. Remaining: 11-llm-applications through 18-resources.
+**Progress:** 01-math-foundations, 02-data, 03-classical-ml, 04-evaluation, 05-deep-learning-core, 06-architectures, 07-domains, 08-generative, 09-reinforcement-learning, 10-llms, 11-llm-applications done. Remaining: 12-systems-and-scale through 18-resources.
 
 ---
 
@@ -11125,3 +11125,1108 @@ See **Learning Rate Warmup** and **Cosine Learning Rate Decay**.
 *Why it matters / pitfall / interview trap:* ZeRO-3 is what makes full fine-tuning or pretraining of 70B+ models feasible at all on standard GPU clusters, but the added communication overhead can bottleneck training on slow interconnects — pick the lowest ZeRO stage that fits in memory, not the highest by default.
 
 ---
+
+## 11-llm-applications
+
+**APE (Automatic Prompt Engineer)**
+
+*The problem:* Manually writing prompts by hand is unsystematic — you can't be sure you've found a good instruction phrasing, and there's no reproducible process for improving it.
+
+*Core insight / definition:* Generate N candidate instruction prompts with an LLM from a task description, evaluate each against a held-out example set using an eval function, and keep the best-scoring candidate.
+
+*Why it matters / pitfall / interview trap:* Simple and fast, but only as good as the eval function and the diversity of generated candidates — a weak eval function will select a candidate that overfits to noise.
+
+---
+
+**Agentic RAG**
+
+*The problem:* Fixed single-shot retrieval cannot handle multi-hop questions where the answer requires combining information found only after an intermediate retrieval.
+
+*Core insight / definition:* Let the model decide when to retrieve, issue iterative retrieval calls, and synthesize a partial answer before deciding whether more retrieval is needed, rather than retrieving once and generating.
+
+*Why it matters / pitfall / interview trap:* Adds latency and cost per iteration; the value only pays off for genuinely multi-hop or ambiguous queries.
+
+---
+
+**Attention (Bi-encoder vs Cross-encoder)**
+
+*The problem:* Retrieval must be fast enough to search millions of documents, but ranking must be accurate enough to find the truly best match — these are conflicting requirements.
+
+*Core insight / definition:* A bi-encoder embeds query and document independently and compares via dot product/cosine similarity — fast but cannot model query-document interaction. A cross-encoder concatenates query and document and runs them jointly through a transformer to output a relevance score — accurate but too slow to run against a full corpus.
+
+*Why it matters / pitfall / interview trap:* The standard production pattern is bi-encoder for broad ANN recall, cross-encoder for reranking a small candidate set — conflating the two or using only one is a common design mistake.
+
+---
+
+**Audit Logging (MCP)**
+
+*The problem:* When an agent calls tools autonomously, there is no way to reconstruct what happened or why after an incident without a record of each call.
+
+*Core insight / definition:* Every tool call should be logged with tool name, arguments (redacting sensitive fields), the acting user, and a timestamp.
+
+*Why it matters / pitfall / interview trap:* Without this, debugging a bad agent action or investigating a security incident is guesswork; sensitive arguments must be filtered before logging to avoid leaking secrets into logs.
+
+---
+
+**AutoGen**
+
+*The problem:* Building multi-agent conversational systems from scratch requires custom orchestration code for agent turn-taking and message routing.
+
+*Core insight / definition:* A Microsoft framework specialized for multi-agent conversations, commonly used for research and multi-agent experimentation.
+
+*Why it matters / pitfall / interview trap:* Positioned as a research/experimentation tool rather than the default choice for production-critical single-agent tool use.
+
+---
+
+**AWQ (Activation-aware Weight Quantization)**
+
+*The problem:* Naive rounding-based quantization degrades accuracy because it treats all weights equally, even ones that matter disproportionately to the output.
+
+*Core insight / definition:* Identifies "salient" weights — those whose effective magnitude is amplified by large activations — and protects them from aggressive quantization while quantizing the rest normally.
+
+*Why it matters / pitfall / interview trap:* Often outperforms GPTQ at INT4 precision; a common trivia question is which weights AWQ protects and why (activation-driven salience, not raw weight magnitude).
+
+---
+
+**Bradley-Terry Loss**
+
+*The problem:* A reward model needs a way to convert pairwise human preference judgments ("A is better than B") into a scalar reward function usable for RL optimization.
+
+*Core insight / definition:* A probabilistic model of pairwise comparisons: it trains the reward model so that the probability of preferring response A over B is a function of the difference in their predicted rewards.
+
+*Why it matters / pitfall / interview trap:* This is the loss function underlying the reward model stage of RLHF — commonly asked to explain how preference pairs become a trainable scalar signal.
+
+---
+
+**Calibration (Expected Calibration Error)**
+
+*The problem:* A model that states "I am 90% confident" is useless as a signal if it is actually correct only 50% of the time at that stated confidence — verbalized confidence with no correspondence to accuracy cannot be trusted.
+
+*Core insight / definition:* Calibration measures the gap between a model's expressed confidence and its empirical accuracy. Expected Calibration Error (ECE) bins predictions by stated confidence and measures the average gap between confidence and accuracy within each bin; verbalized uncertainty and token-level log-probabilities are two mechanisms to elicit a confidence signal to calibrate.
+
+*Why it matters / pitfall / interview trap:* RLHF often worsens calibration because human raters reward confident, fluent responses — the model learns to seem accurate rather than be accurate; large models are frequently overconfident.
+
+---
+
+**Chain-of-Thought (CoT)**
+
+*The problem:* LLMs produce a final answer from a single forward pass; for multi-step problems any error in implicit reasoning is invisible and unrecoverable, so the model produces a confident wrong output with no way to identify where it broke.
+
+*Core insight / definition:* Writing out intermediate reasoning steps puts them into the model's own context window, so later tokens condition on those (hopefully correct) intermediate results rather than being reconstructed from distributed weights alone. Can be elicited zero-shot ("Let's think step by step") or few-shot with worked examples.
+
+*Why it matters / pitfall / interview trap:* The trace can look structurally correct while being factually wrong — CoT lowers the multi-step error rate, it does not eliminate it; useful only when a task requires more than ~2 reasoning steps, otherwise it just adds latency.
+
+---
+
+**Chain-of-Verification**
+
+*The problem:* A model's first-pass answer may contain unverified factual claims that were never checked against anything.
+
+*Core insight / definition:* After generating a response, the model (or pipeline) generates verification questions for the claims in that response, answers them independently, and revises the original response based on any discrepancies found.
+
+*Why it matters / pitfall / interview trap:* One of several post-generation grounding techniques for RAG faithfulness failures; adds a full extra generation pass in cost.
+
+---
+
+**Chunking Strategies**
+
+*The problem:* Documents come in at arbitrary length and cannot be retrieved as a single unit — too long to fit a prompt, and retrieval score gets diluted by irrelevant parts.
+
+*Core insight / definition:* The size of the retrievable unit trades precision against context: smaller chunks retrieve more precisely but lose cross-boundary context; larger chunks preserve context but score lower on retrieval. Strategies range from fixed-size token splitting to sentence splitting, recursive character splitting, semantic chunking (embed each candidate boundary), and structure-aware splitting (respecting markdown/PDF headers).
+
+*Why it matters / pitfall / interview trap:* Poor chunking is the single most common cause of RAG failures; general default is 512–1024 tokens with 50–100 token overlap so answers spanning a boundary aren't lost.
+
+---
+
+**CLIP (Contrastive Image-Language Pretraining)**
+
+*The problem:* Multimodal models need an image encoder aligned with natural-language concepts, not just classification labels — a classification-trained encoder is too narrow for open-vocabulary text-image reasoning.
+
+*Core insight / definition:* Jointly trains an image encoder and text encoder using contrastive (InfoNCE) loss on internet (image, text) pairs — pulling matched pairs together and pushing mismatched pairs apart in a shared embedding space, enabling zero-shot classification via cosine similarity to class-name text.
+
+*Why it matters / pitfall / interview trap:* CLIP's global CLS embedding averages out spatial detail, so it struggles with counting, reading text (OCR), and localizing objects — dense tasks need DINOv2 or raw patch embeddings instead.
+
+---
+
+**Constrained Decoding**
+
+*The problem:* Format-level hallucinations (invented JSON keys, wrong data types, invalid enum values) occur because the model isn't mechanically required to conform to a schema.
+
+*Core insight / definition:* At each decoding step, mask out any token that would make the output invalid per a schema-derived finite-state machine (FSM), assigning −∞ logit to invalid tokens so the model can only sample valid ones.
+
+*Why it matters / pitfall / interview trap:* Eliminates format hallucinations completely but not factual ones — a model can still generate perfectly valid JSON containing wrong values.
+
+---
+
+**Content Classifiers / Guardrails**
+
+*The problem:* Autonomous agentic systems can produce harmful outputs, run away in infinite loops, or trigger irreversible real-world actions without human oversight.
+
+*Core insight / definition:* Enumerate catastrophic failure modes and enforce hard limits the model's own reasoning cannot override — max step counters, per-tool timeouts, output schema validation, content classifiers (e.g., Llama Guard), human-in-the-loop approval for irreversible actions, and sandboxed execution.
+
+*Why it matters / pitfall / interview trap:* Prompting the model to "not do X" is a soft constraint the model can talk itself past; guardrails must be enforced outside the model's reasoning. Too strict makes the system useless; too loose lets dangerous actions through — calibration requires red-teaming.
+
+---
+
+**Context Assembly / Lost-in-the-Middle**
+
+*The problem:* Retrieved chunks must be ordered into a prompt, but their position affects how well the LLM uses them.
+
+*Core insight / definition:* LLMs exhibit a U-shaped recall pattern over long contexts — information at the beginning and end is recalled better than information in the middle ("lost-in-the-middle"). Place the most relevant chunk first (or last), not buried in the middle of a long document list.
+
+*Why it matters / pitfall / interview trap:* Aggressive reranking to fix context-length problems can inadvertently bury the answer in the middle — fixes for one RAG failure mode can worsen another.
+
+---
+
+**Continuous Batching (Iteration-Level Scheduling)**
+
+*The problem:* In static/dynamic batching, GPU slots idle when some sequences in a batch finish early while others keep generating (head-of-line blocking).
+
+*Core insight / definition:* Batch at the token-generation-step level rather than the request level — after each decode step, completed sequences are evicted and new requests are immediately inserted into their freed slots, keeping the GPU's batch always full.
+
+*Why it matters / pitfall / interview trap:* Gives 2–10× throughput over static batching and is what PagedAttention makes practical via flexible per-request KV cache allocation; but mid-batch admission of new requests raises inter-token latency (TPOT) for already-streaming requests — a throughput/tail-latency tradeoff requiring admission/priority policy.
+
+---
+
+**COPRO**
+
+*The problem:* Multi-hop reasoning pipelines need both the chain structure and each step's prompt to be jointly optimized, not tuned independently.
+
+*Core insight / definition:* A DSPy optimizer that coordinates prompt and chain optimization together across a multi-hop pipeline.
+
+*Why it matters / pitfall / interview trap:* Distinguished from BootstrapFewShot (example selection only) and MIPRO (instructions + few-shots) by its focus on multi-hop coordination.
+
+---
+
+**CRAG (Corrective RAG)**
+
+*The problem:* Naive RAG blindly trusts whatever the retriever returns, even when none of the top-k chunks are actually relevant — leading to confident hallucination grounded in irrelevant context.
+
+*Core insight / definition:* Evaluate the quality of retrieved passages; if quality is low, fall back to web search; if ambiguous, combine retrieved docs and web results.
+
+*Why it matters / pitfall / interview trap:* The retrieval-quality evaluator is itself imperfect, and the web-search fallback adds latency and unverified external content.
+
+---
+
+**CrewAI**
+
+*The problem:* Coordinating a team of specialized agents around distinct roles requires a structured way to define who does what.
+
+*Core insight / definition:* A framework for role-based agent definition, suited to team-style task decomposition.
+
+*Why it matters / pitfall / interview trap:* One of several multi-agent frameworks (vs. LangGraph's explicit state graphs or AutoGen's conversational focus) — know the tradeoffs, not just the names.
+
+---
+
+**DARE (Drop And REscale)**
+
+*The problem:* Even after resolving sign conflicts (TIES), merged models can still carry redundant or conflicting delta parameters, and interference grows with the number of models merged.
+
+*Core insight / definition:* Randomly zero out a large fraction (60–90%) of a task vector's delta parameters and rescale the survivors by 1/(1−drop_rate) to preserve expected magnitude — dropout applied to delta weights rather than activations.
+
+*Why it matters / pitfall / interview trap:* Stochastic — merges aren't reproducible without a fixed seed; at very high drop rates useful task signal can be lost alongside noise. Used as a preprocessing step before averaging or TIES, not a standalone merge method.
+
+---
+
+**Data Flywheel**
+
+*The problem:* Bootstrapping model quality typically requires either huge amounts of human-labeled data or an already-strong model — a chicken-and-egg problem for improving capability.
+
+*Core insight / definition:* A better model generates higher-quality synthetic data, which trains an even better model, which generates even higher-quality data — an iterative feedback loop combining human seed data, synthetic generation, quality filtering, and verified rejection sampling across successive fine-tuning iterations.
+
+*Why it matters / pitfall / interview trap:* This is how Phi-3, Llama 3, Qwen, and DeepSeek achieve quality above what raw parameter count would predict — but it must be anchored with real data at each stage or it risks model collapse.
+
+---
+
+**Debate / Critic Pattern**
+
+*The problem:* A single agent's judgment can be subject to confirmation bias or one-sided reasoning on decisions with real tradeoffs.
+
+*Core insight / definition:* Two agents argue opposing positions on a question; a third agent judges between them.
+
+*Why it matters / pitfall / interview trap:* Useful specifically where confirmation bias is a risk; adds significant latency/cost versus a single-agent judgment.
+
+---
+
+**Decoding Parameters (Temperature / Top-p) and Hallucination**
+
+*The problem:* Sampling parameters control how much of the probability distribution's tail the model draws from, trading coherence for diversity.
+
+*Core insight / definition:* High temperature and high top-p sampling draw tokens from a broader distribution, which increases diversity but also degrades factual precision. Greedy decoding does not eliminate hallucination — it can still confidently produce the mode of a wrong distribution.
+
+*Why it matters / pitfall / interview trap:* A common misconception is that "temperature 0 = no hallucination" — greedy decoding removes sampling variance, not factual error.
+
+---
+
+**Distillation (Knowledge Distillation)**
+
+*The problem:* A smaller model trained from scratch on hard labels alone is sample-inefficient and generally worse than a model trained to leverage a stronger model's knowledge.
+
+*Core insight / definition:* Train a smaller "student" model to mimic a larger "teacher" model's output distribution (soft labels) rather than just hard correct/incorrect labels — the teacher's non-zero probabilities on plausible alternatives encode semantic relationships and uncertainty that transfer more information per example. Loss combines cross-entropy on ground truth with KL divergence between student and teacher distributions at temperature T>1 (softened distributions).
+
+*Why it matters / pitfall / interview trap:* The student is bounded by the teacher's quality and inherits the teacher's hallucinations/failure modes; sequence-level distillation (training on teacher-generated completions) is used in practice (DistilGPT, DistilBERT) alongside logit-level distillation.
+
+---
+
+**DINOv2**
+
+*The problem:* CLIP-style contrastive embeddings encode "what" is in an image but lose spatial "where" information needed for dense tasks.
+
+*Core insight / definition:* A self-supervised ViT trained via self-distillation whose features are more spatially aligned than CLIP's — encoding location, not just semantic category.
+
+*Why it matters / pitfall / interview trap:* Preferred over CLIP inside VLMs for dense tasks like OCR, object localization, and document understanding.
+
+---
+
+**DPO (Direct Preference Optimization)**
+
+*The problem:* Full RLHF requires training a separate reward model plus running unstable PPO reinforcement learning — an expensive, complex pipeline.
+
+*Core insight / definition:* A closed-form reformulation that optimizes the policy directly on preference pairs without training an explicit reward model or running RL.
+
+*Why it matters / pitfall / interview trap:* Referenced repeatedly as the lower-cost alternative to full RLHF for alignment-type problems; still requires quality preference data.
+
+---
+
+**DSPy (Declarative Self-improving Python)**
+
+*The problem:* Manual prompt engineering hits a ceiling on multi-step pipelines — tweaking one module's prompt can silently break a downstream module that depended on its exact output format.
+
+*Core insight / definition:* Separates program logic (a pipeline of modules) from parameters (prompt instructions and few-shot examples), then uses an optimizer ("teleprompter") to automatically compile the best instructions and select the best few-shot examples from training data to maximize a metric, jointly across chained modules.
+
+*Why it matters / pitfall / interview trap:* Worth the setup cost mainly for complex multi-stage agentic workflows, frequent model swaps, and when high-quality labeled training data is available — not for a single simple prompt.
+
+---
+
+**Eagle (Feature-Level Speculative Drafting)**
+
+*The problem:* Medusa's draft heads predict future tokens from the current hidden state alone, with no access to the intermediate computation the target model would actually perform — limiting draft accuracy.
+
+*Core insight / definition:* Trains a lightweight single-layer transformer that takes both the current token embedding and the target model's actual hidden state as input, predicting the target's next hidden state (sharing the target's LM head) — conditioning on real internal representations yields far better-calibrated drafts than Medusa.
+
+*Why it matters / pitfall / interview trap:* Requires access to the target model's hidden states during drafting (tighter coupling than a standalone draft model) and must be retrained per target model. Eagle-2 adds a dynamic draft tree that prunes low-confidence branches, reaching 3–4× speedup vs. 2–3× for base Eagle.
+
+---
+
+**Early Fusion (Native Multimodal Architecture)**
+
+*The problem:* Late-fusion approaches compute image and text representations separately and combine them only at the LLM's input — the LLM never sees raw cross-modal signal, limiting integration depth.
+
+*Core insight / definition:* Treat image patches and text tokens as entries in a single unified token stream processed by the same transformer from layer 1, letting the transformer itself learn to integrate modalities.
+
+*Why it matters / pitfall / interview trap:* Requires training from scratch on multimodal data — a pretrained text-only backbone cannot be reused — making it the research frontier (GPT-4o, Gemini 2.x, Llama 4) but impractical for compute-limited teams.
+
+---
+
+**ECE — see Calibration**
+
+---
+
+**Embedding Model Selection (RAG)**
+
+*The problem:* Query and document text must be mapped into a shared comparable space, and embedding quality is the ceiling on retrieval quality.
+
+*Core insight / definition:* Use the same model for indexing and querying; the semantic space must align with domain vocabulary (a medical embedding model will outperform general-purpose models on medical retrieval). Any model update requires full re-indexing.
+
+*Why it matters / pitfall / interview trap:* Teams often upgrade an embedding model without re-embedding the whole corpus, silently causing query/document embedding-space divergence and degraded retrieval with no error signal.
+
+---
+
+**EnCodec / SoundStream (Neural Audio Codecs)**
+
+*The problem:* To let an LLM generate audio (not just transcribe it), continuous audio must be discretized into tokens the model can predict autoregressively.
+
+*Core insight / definition:* A neural encoder-decoder audio codec that compresses audio into sequences of discrete codebook indices via Residual Vector Quantization (RVQ) — each stage quantizes the residual left by the previous stage, so one audio frame becomes N codebook indices (EnCodec at 24kHz: 8 codebooks of size 1024).
+
+*Why it matters / pitfall / interview trap:* Low-bitrate codecs (few codebooks) lose high-frequency detail; RVQ codes are not interpretable like text tokens, so the LLM must learn their semantics from scratch. Basis for MusicGen, AudioPaLM, and GPT-4o audio generation.
+
+---
+
+**Faithfulness vs. Factuality**
+
+*The problem:* A single correctness label conflates two distinct properties of a generated claim — is it consistent with the given source, and is it true about the world.
+
+*Core insight / definition:* Faithful = consistent with the provided context, even if that context itself is wrong ("faithful but factually wrong"). Factual = correct about the world, even if it contradicts a wrong source ("factual but unfaithful"). Faithful ≠ factual.
+
+*Why it matters / pitfall / interview trap:* Classic interview trap — checking output against retrieved documents with an NLI model verifies faithfulness, not truth; if the source is wrong, a faithful model is still wrong about the world.
+
+---
+
+**FactScore**
+
+*The problem:* A single sentence-level correct/incorrect label misses that a sentence may contain multiple atomic claims, some true and some not.
+
+*Core insight / definition:* Decompose generated text into atomic (smallest verifiable) claims, retrieve evidence for each independently (e.g., via Wikipedia BM25/dense retrieval), and classify each as supported or not with an NLI model or LLM. FactScore = fraction of claims supported.
+
+*Why it matters / pitfall / interview trap:* More granular than sentence-level scoring but expensive at scale (many retrieval calls per response) and limited to Wikipedia-verifiable claims; GPT-4 scored ~73%, Llama-2-13B ~55% at release on the FActScore benchmark.
+
+---
+
+**Few-Shot Selection (Dynamic)**
+
+*The problem:* A fixed set of few-shot examples in a prompt may not be the most relevant examples for any given query.
+
+*Core insight / definition:* Embed a pool of candidate examples, embed the incoming query, and retrieve the top-k most similar examples by cosine similarity to insert as few-shot demonstrations for that specific query.
+
+*Why it matters / pitfall / interview trap:* Improves relevance of demonstrations over a static few-shot set, at the cost of an embedding lookup per request.
+
+---
+
+**FlashAttention**
+
+*The problem:* Standard attention writes the full n×n score matrix to GPU HBM to compute softmax then reads it back — at n=8192 in fp16 this is ~256MB of HBM traffic per layer, and HBM bandwidth (not compute) is the bottleneck.
+
+*Core insight / definition:* The n×n matrix is a transient intermediate that never needs to exist fully in HBM — compute it tile-by-tile in fast on-chip SRAM, tracking softmax numerics via a running max and running sum (online softmax), accumulating the output incrementally.
+
+*Why it matters / pitfall / interview trap:* Memory drops O(n²)→O(n) with unchanged FLOPs, giving 2–4× wall-clock speedup; requires custom CUDA kernels and SRAM-specific tiling per GPU generation. Less impactful for short-context decode-heavy workloads where KV cache reads dominate, not the attention matrix itself.
+
+---
+
+**Frankenmerging**
+
+*The problem:* Weight-level interpolation requires layer-compatible representations across models; sometimes you want capabilities from models that represent them at different depths.
+
+*Core insight / definition:* Assemble a new model by concatenating intact layers from different source models rather than blending weight tensors — the resulting model inherits one model's early-layer processing and another's later-layer processing.
+
+*Why it matters / pitfall / interview trap:* No theoretical guarantee that layer interfaces are compatible even across identical architectures; perplexity often spikes at mixed-source layer boundaries and most combinations simply fail — requires empirical validation.
+
+---
+
+**FSM (Finite-State Machine) Decoding — see Constrained Decoding**
+
+---
+
+**Function Calling (Tool Use)**
+
+*The problem:* An LLM generates text; it cannot read a database, execute code, call an API, or fetch a live fact on its own.
+
+*Core insight / definition:* Give the model a set of callable functions with typed JSON schemas (name, description, parameters, required fields); the model emits a structured call request instead of prose when it decides a tool is needed, a host process executes it, and the result is appended back as context.
+
+*Why it matters / pitfall / interview trap:* Failure modes: hallucinated tool names/arguments (mitigate with schema validation), wrong argument values, cascade errors (bad tool output reasoned over correctly, producing a confidently wrong answer), and infinite loops (mitigate with a hard max iteration limit).
+
+---
+
+**Gemini (Multimodal Architecture)**
+
+*The problem:* Different modalities (text, image, audio, video) have fundamentally different native representations that a single tokenizer cannot handle uniformly.
+
+*Core insight / definition:* Uses dedicated tokenizers per modality — SentencePiece for text, ViT-based patches for images, log-mel spectrogram patches for audio, sparse frame sampling + temporal encoding for video — feeding into a 1M-token context window that enables ~8–11 hours of audio, ~3000 pages, or ~45 minutes of video in a single context.
+
+*Why it matters / pitfall / interview trap:* Illustrates the modality-specific tokenizer approach as an alternative to a single shared patch/token scheme.
+
+---
+
+**GPT-4o (Native Multimodal)**
+
+*The problem:* Pipeline approaches (ASR→text LLM→TTS) discard non-lexical audio information (tone, emotion, timing) at each modality boundary and add 2–3 seconds of latency.
+
+*Core insight / definition:* A unified token stream for text, image, and audio, where audio is encoded from the raw waveform (not a transcript), enabling native understanding and generation of tone, emotion, and timing with ~320ms round-trip latency.
+
+*Why it matters / pitfall / interview trap:* The "why native audio beats a Whisper+LLM+TTS pipeline" question tests understanding that ASR transcription is inherently lossy for prosody/emotion, not just slow.
+
+---
+
+**GPTQ**
+
+*The problem:* Naive rounding-based quantization to low bit-widths introduces uncontrolled weight error, degrading model quality.
+
+*Core insight / definition:* Post-training quantization that minimizes weight error layer-by-layer using the Hessian of the loss with respect to each layer's weights.
+
+*Why it matters / pitfall / interview trap:* A common baseline for INT4 quantization; AWQ often outperforms it by protecting activation-driven salient weights instead of relying purely on Hessian-based error minimization.
+
+---
+
+**GraphRAG**
+
+*The problem:* Flat chunk retrieval cannot answer multi-hop questions or corpus-wide summarization queries that require synthesizing relationships across many documents.
+
+*Core insight / definition:* Build a knowledge graph from documents (entity-relationship triples) so multi-hop and global-summarization queries can be answered via graph traversal instead of chunk-by-chunk retrieval.
+
+*Why it matters / pitfall / interview trap:* Expensive to construct and only worthwhile when relationships or global/corpus-wide themes actually matter — overkill for simple fact lookup.
+
+---
+
+**Greedy Soup / Uniform Soup — see Model Soup**
+
+---
+
+**Guardrails — see Content Classifiers / Guardrails**
+
+---
+
+**Hard Grounding Instructions**
+
+*The problem:* A model that ignores retrieved context in favor of parametric memory produces ungrounded (hallucinated) answers despite RAG.
+
+*Core insight / definition:* Explicit prompt instructions like "Answer using ONLY the provided context; if the answer is not in the context, say so" force the model toward citation-grounded, refusal-capable behavior.
+
+*Why it matters / pitfall / interview trap:* Turns every retrieval miss into an outright refusal — trading hallucination for coverage loss; users often experience an over-refusing assistant as more broken than an occasionally-wrong one, so grounding strictness must be tuned against retrieval recall, not maximized blindly.
+
+---
+
+**HNSW (Hierarchical Navigable Small World)**
+
+*The problem:* Exact nearest-neighbor search over millions of high-dimensional vectors is O(n) per query — too slow for real-time retrieval.
+
+*Core insight / definition:* Builds a multi-layer graph where higher layers have fewer, longer-range connections; search starts at the top layer and greedily navigates toward the query, descending to finer layers, achieving O(log n) query time. `ef_construction` controls build quality; `ef` controls query-time recall/speed tradeoff.
+
+*Why it matters / pitfall / interview trap:* An approximate algorithm — some true nearest neighbors will be missed; the recall/speed tradeoff via ef must be tuned per workload.
+
+---
+
+**Hybrid Search (Reciprocal Rank Fusion)**
+
+*The problem:* Dense embedding retrieval captures semantic similarity/paraphrase but misses exact-match terms (proper nouns, part numbers, technical identifiers); sparse (BM25) retrieval handles exact matches but misses paraphrase.
+
+*Core insight / definition:* RRF(d) = Σ 1/(k + rank(d)) across rankers (k=60 typical default) combines rank lists from dense and sparse retrieval without requiring calibrated scores from either ranker.
+
+*Why it matters / pitfall / interview trap:* The standard production answer to "dense vs. sparse retrieval" — the correct response is "both, fused via RRF," not picking one.
+
+---
+
+**HyDE (Hypothetical Document Embeddings)**
+
+*The problem:* A short, vague user query embeds far from the detailed, specific documents that actually contain the answer, causing weak lexical/semantic overlap and retrieval misses.
+
+*Core insight / definition:* Generate a plausible hypothetical answer to the query with an LLM first, embed that hypothetical answer, and retrieve using the richer embedding — a full answer's embedding is closer in vector space to real answer-containing documents than a short query's embedding.
+
+*Why it matters / pitfall / interview trap:* If the LLM hallucinates a wrong hypothetical answer, retrieval pulls in confidently irrelevant documents — this moves the hallucination problem upstream into retrieval, where it's harder to detect; hurts most on exactly the tail/out-of-domain queries retrieval exists to cover.
+
+---
+
+**IVF (Inverted File Index) / IVFPQ**
+
+*The problem:* Exact nearest-neighbor search doesn't scale; an alternative to graph-based ANN is needed for very large vector stores.
+
+*Core insight / definition:* Clusters vectors into k Voronoi cells and searches only the nearest cells at query time. IVFPQ combines IVF with Product Quantization for compressed storage, trading recall for reduced memory footprint.
+
+*Why it matters / pitfall / interview trap:* Necessary at billions of documents where all-vector memory storage becomes the bottleneck — quantized indexes reduce memory at the direct cost of recall.
+
+---
+
+**KV Cache**
+
+*The problem:* Naively, every decode step recomputes Key/Value matrices for every previously generated token, giving O((n+t)²) attention compute per step as the sequence grows.
+
+*Core insight / definition:* A token's K/V projections depend only on that token's embedding and position, which are fixed once generated — cache them once, dropping per-step cost from O(n²) to O(n), at the cost of memory growing linearly with sequence length × batch size.
+
+*Why it matters / pitfall / interview trap:* GPUs typically run out of KV cache memory before they run out of compute — this is the primary reason batching LLM inference is hard, and the central bottleneck constraining context length and batch size in production (motivating GQA and quantized KV caches).
+
+---
+
+**LangChain / LangGraph**
+
+*The problem:* Building multi-step, stateful agentic workflows from scratch requires reimplementing state management, tool routing, and control flow.
+
+*Core insight / definition:* LangChain provides comprehensive tool/library abstractions; LangGraph adds explicit state graphs for complex multi-step workflows, including the supervisor/worker pattern where a central node decides which worker to invoke next based on current state.
+
+*Why it matters / pitfall / interview trap:* LangChain "Tools" are library code embedded in the application (contrast with MCP's separately-deployable servers) — conflating the two misunderstands what each layer actually standardizes.
+
+---
+
+**LIMA (Less Is More for Alignment)**
+
+*The problem:* The conventional assumption is that more instruction-tuning data always produces a better-aligned model.
+
+*Core insight / definition:* Fine-tuned LLaMA-65B on only 1,000 carefully curated, diverse, high-quality instruction-response pairs and competed with models trained on much larger synthetic datasets — demonstrating that format consistency and response quality matter more than dataset size.
+
+*Why it matters / pitfall / interview trap:* Classic interview trap: assuming more synthetic data is always better. LIMA proves 1,000 excellent examples can beat 50,000 mediocre ones — but synthetic data volume is a multiplier, so low diversity/quality accelerates model collapse rather than helping.
+
+---
+
+**Linear Mode Connectivity**
+
+*The problem:* It's unclear a priori whether the arithmetic midpoint of two models' weights corresponds to a meaningful, well-performing model.
+
+*Core insight / definition:* Fine-tuned models sharing the same pretrained initialization tend to lie in the same convex basin of the loss landscape; their linear interpolation stays roughly inside that basin, so the midpoint is also low-loss. Models from different base checkpoints do not share a basin.
+
+*Why it matters / pitfall / interview trap:* This is the theoretical justification for why weight averaging works at all — and why it catastrophically fails across different base models (e.g., Llama-3 vs. Mistral).
+
+---
+
+**Linear Projection (LLaVA-style Fusion)**
+
+*The problem:* Bridging a vision encoder's output into an LLM's input space requires some mechanism to align the dimensionalities and semantics.
+
+*Core insight / definition:* Project ViT patch embeddings linearly (or via a small MLP in LLaVA-1.5) into the LLM's token embedding dimension, then concatenate with text tokens — the LLM sees image patches and text tokens in the same sequence with no architectural change.
+
+*Why it matters / pitfall / interview trap:* Preserves all visual detail but costs one LLM token per image patch (256+ tokens for a 224×224 image) — expensive for high-traffic serving compared to Q-Former's compression.
+
+---
+
+**LLaMA Guard — see Content Classifiers**
+
+---
+
+**LLM-as-Judge**
+
+*The problem:* Ground truth is hard to define for open-ended generation, so a scalable evaluation method is needed beyond exact-match metrics.
+
+*Core insight / definition:* Use a stronger LLM to score outputs against a rubric (e.g., faithfulness, completeness, conciseness) at scale, producing structured numeric ratings.
+
+*Why it matters / pitfall / interview trap:* Pitfalls: position bias (favors the first response in pairwise comparisons — mitigate by evaluating both orderings and averaging), verbosity bias (favors longer outputs regardless of quality), self-preference (a model rates its own outputs higher), and uncalibrated absolute scores (reliable for relative ranking, not absolute quality without validation against human labels).
+
+---
+
+**Long-Context Recall — see Context Assembly / Lost-in-the-Middle**
+
+---
+
+**M-RoPE (Multi-dimensional RoPE)**
+
+*The problem:* Standard 1D positional encoding cannot represent an image's inherent 2D spatial structure or a video's spatial + temporal structure.
+
+*Core insight / definition:* Applies separate positional encoding axes for x-position, y-position, and temporal position, giving the model explicit spatial (and temporal) awareness.
+
+*Why it matters / pitfall / interview trap:* Used by Qwen2.5-VL alongside dynamic resolution processing to fix spatial confusion, a common VLM failure mode.
+
+---
+
+**Medusa**
+
+*The problem:* Standard speculative decoding requires maintaining a separate draft model — extra memory, deployment complexity, and risk of the draft model going stale relative to the target.
+
+*Core insight / definition:* Attach K additional prediction heads to the target model's final transformer layer, each predicting a different future token position from the same hidden state — eliminating the need for a separate draft model; drafting becomes K cheap linear-layer forward passes.
+
+*Why it matters / pitfall / interview trap:* Only the new heads are trained (base model frozen); acceptance rates (0.65–0.75) and speedup (1.5–2.5×) are lower than a well-trained separate draft model (0.80–0.90 acceptance, 2–3× speedup) because the heads lack recurrent context about how the sequence developed.
+
+---
+
+**Memory Systems (Agentic)**
+
+*The problem:* Each LLM API call is stateless — the model starts fresh every time, and the context window is finite and expensive, so old messages eventually fall off.
+
+*Core insight / definition:* Different kinds of memory need different retrieval patterns and storage backends: in-context (sliding message window), short-term external (Redis/key-value store for session state), long-term semantic (vector database retrieved by similarity), and structured state (relational DB for workflow variables). The model doesn't "remember" — relevant past context is retrieved and surfaced into the current context window at query time.
+
+*Why it matters / pitfall / interview trap:* Without TTL policies and freshness scoring, semantic memory accumulates stale facts the model treats as current — retrieved memories can be stale, irrelevant, or contradictory.
+
+---
+
+**MergeKit**
+
+*The problem:* Implementing merge algorithms from scratch for large sharded models (70B+) requires careful handling of memory, sharding, precision, and tensor alignment.
+
+*Core insight / definition:* A declarative YAML-driven framework (Arcee AI) where you specify models, merge method, and hyperparameters, and it handles lazy loading and execution — supporting linear, slerp, task_arithmetic, ties, dare_ties, dare_linear, and passthrough (Frankenmerging) methods.
+
+*Why it matters / pitfall / interview trap:* Cross-architecture merges require `--allow-crimes` and usually produce garbage; vocabulary mismatches break embedding layers silently — the merge completes without error but the model outputs nonsense.
+
+---
+
+**MIPRO**
+
+*The problem:* Selecting good few-shot examples alone (BootstrapFewShot) doesn't optimize the instruction text itself.
+
+*Core insight / definition:* A DSPy optimizer that generates and selects both instructions and few-shot examples jointly, at higher quality but slower than BootstrapFewShot.
+
+*Why it matters / pitfall / interview trap:* Positioned as the higher-quality/slower option in the DSPy optimizer comparison table alongside BootstrapFewShot, BootstrapFinetune, and COPRO.
+
+---
+
+**Model Collapse**
+
+*The problem:* If you repeatedly train (distill) a model on its own outputs across generations without grounding in real data, quality can degrade catastrophically over iterations.
+
+*Core insight / definition:* The distribution of a model's outputs progressively narrows toward lower-entropy, lower-diversity outputs — each generation misses the tails of the true data distribution more than the last, and subsequent generations amplify this bias.
+
+*Why it matters / pitfall / interview trap:* Mitigation: always maintain a fraction of real (human-generated or verified) data in the training mix; never train exclusively on multi-generation model outputs. A frequent "design a synthetic data pipeline" interview question centers on this failure mode.
+
+---
+
+**Model Soup**
+
+*The problem:* Hyperparameter search over fine-tuning produces many checkpoints; standard practice discards all but the best, wasting the near-basin diversity of the rest.
+
+*Core insight / definition:* Multiple fine-tuning runs from the same pretrained base (differing only in hyperparameters) lie in the same convex loss basin — averaging them (uniform soup) or greedily adding models only if they improve validation performance (greedy soup) is often better than any individual checkpoint, improving both in-distribution accuracy and out-of-distribution robustness.
+
+*Why it matters / pitfall / interview trap:* Requires all models to share the same pretrained initialization; if all runs converged to nearly identical weights, averaging adds nothing — the ceiling is bounded by hyperparameter-configuration diversity.
+
+---
+
+**Multi-Agent Patterns**
+
+*The problem:* Some tasks exceed a single context window's scope and capability breadth — stuffing everything into one context causes quality degradation and cost explosion.
+
+*Core insight / definition:* Decompose a task into roles and route subtasks to specialized agents that communicate via structured messages rather than shared state — patterns include orchestrator+subagents, supervisor/worker (state-graph), and debate/critic.
+
+*Why it matters / pitfall / interview trap:* Multi-agent systems multiply every single-agent failure mode — one bad tool call in a subagent poisons the orchestrator's context; add 2–4× more LLM calls; require precise inter-agent message formats (a prose/JSON mismatch breaks silently); and make error attribution hard without full-trace observability.
+
+---
+
+**Multi-Query Expansion**
+
+*The problem:* A single user query phrasing may not lexically or semantically overlap with how the answer is expressed in the documents.
+
+*Core insight / definition:* Generate multiple reformulations of the original query covering different phrasings of the same information need, retrieve for each, then deduplicate results.
+
+*Why it matters / pitfall / interview trap:* Higher recall at the cost of multiplying retrieval calls by the number of variants — adds latency and dilutes precision if overused.
+
+---
+
+**Multi-Token Prediction (MTP)**
+
+*The problem:* All speculative decoding variants (standard, Medusa, Eagle) bolt drafting onto a model that was itself only ever trained to predict one token at a time.
+
+*Core insight / definition:* Train the base model itself (not a bolted-on head) with an auxiliary objective to predict multiple future tokens at once from each position — DeepSeek's MTP uses sequential depth modules that predict token t+2, t+3, etc., conditioned on the prediction for t+1, maintaining causal dependency between predicted tokens.
+
+*Why it matters / pitfall / interview trap:* Because the multi-token objective is baked into pretraining rather than added post-hoc, acceptance rates are typically higher than Medusa's independent heads; but it requires committing to the objective during pretraining, not something you can retrofit onto an already-trained model cheaply.
+
+---
+
+**Multi-Query Retrieval — see Multi-Query Expansion**
+
+---
+
+**Native Multimodal LLM — see Early Fusion**
+
+---
+
+**NLI-Based Factual Checking**
+
+*The problem:* Comparing a generated claim to a source document for consistency needs an automatic, scalable method, not manual review.
+
+*Core insight / definition:* Use a Natural Language Inference model to classify the relationship between a source passage (premise) and a generated claim (hypothesis) as entailment, contradiction, or neutral — contradiction or neutral indicates unfaithfulness.
+
+*Why it matters / pitfall / interview trap:* Checks faithfulness to the source, not real-world factuality — a source-consistent claim can still be objectively false if the source itself is wrong.
+
+---
+
+**Observability (Agentic Tracing)**
+
+*The problem:* A multi-step, multi-tool agent's failure could originate at any step — the planning LLM call, a tool call, or the synthesis step — and with only a final output, you cannot tell which.
+
+*Core insight / definition:* Full-trace logging of every LLM call, tool call, and intermediate state (prompts, completions, tool arguments, tool outputs, latencies, token counts) enables replaying and diagnosing exactly where a run diverged from correct behavior.
+
+*Why it matters / pitfall / interview trap:* Without full-trace observability, multi-agent error attribution is effectively guesswork — teams often only log final outputs and then cannot debug production failures.
+
+---
+
+**Orchestrator + Subagents Pattern**
+
+*The problem:* A single agent juggling many unrelated subtasks accumulates an unwieldy, unfocused context that degrades output quality.
+
+*Core insight / definition:* A top-level orchestrator agent decomposes a task and delegates well-scoped subtasks to specialized subagents, each working in its own clean context, then integrates their results.
+
+*Why it matters / pitfall / interview trap:* A single bad tool call or hallucination inside a subagent silently poisons the orchestrator's context when its result is merged back in — the orchestrator has no way to detect a subtly wrong subagent result unless it's independently verified.
+
+---
+
+**PagedAttention**
+
+*The problem:* Naive KV cache allocation reserves a single contiguous memory block sized for the maximum possible sequence length per request, wasting large amounts of GPU memory on unused reserved space (internal fragmentation) and preventing memory sharing.
+
+*Core insight / definition:* Borrowing the OS virtual-memory paging concept, split the KV cache into fixed-size non-contiguous blocks ("pages") referenced via a per-sequence block table, allocating pages on demand as generation proceeds rather than reserving a worst-case contiguous span up front.
+
+*Why it matters / pitfall / interview trap:* Near-eliminates internal fragmentation and enables efficient memory sharing (e.g., for shared prefixes across requests, like a system prompt) — this is the core mechanism that makes vLLM's high-throughput continuous batching feasible; often confused with continuous batching itself, but it is the memory-management layer that continuous batching depends on.
+
+---
+
+**Perceiver Resampler (Flamingo-style Fusion)**
+
+*The problem:* Q-Former-style fixed learned queries process each image independently; for interleaved multi-image or video inputs, per-frame token cost still adds up and cross-attention needs to be efficient across many images.
+
+*Core insight / definition:* A cross-attention module that compresses a variable number of visual tokens (across possibly many frames/images) into a small fixed number of latent tokens via iterative cross-attention, keeping the token budget bounded regardless of input image/frame count.
+
+*Why it matters / pitfall / interview trap:* Enables efficient handling of interleaved image-text sequences and multi-frame video without token cost scaling linearly with the number of images — the key architecture behind Flamingo's few-shot multimodal in-context learning.
+
+---
+
+**Phi Models (Phi-1/Phi-2/Phi-3)**
+
+*The problem:* Conventional wisdom in 2023 held that model capability scales primarily with pretraining data volume and parameter count.
+
+*Core insight / definition:* Microsoft's Phi series was pretrained substantially on synthetic, textbook-quality data generated by larger LLMs (rather than raw web scrapes), achieving capability disproportionate to their small size (1.3B–3.8B parameters) by prioritizing data quality/instructiveness over volume.
+
+*Why it matters / pitfall / interview trap:* Frequently cited as the canonical proof-point that curated synthetic data can substitute for raw data scale — a go-to example in "why does synthetic data work" interview answers.
+
+---
+
+**Position Bias (LLM-as-Judge) — see LLM-as-Judge**
+
+---
+
+**Prompt Injection (via Tool Results)**
+
+*The problem:* When an agent's tool results (web pages, file contents, API responses) are fed back into the model's context as trusted input, malicious content embedded in that data can contain instructions the model may follow as if they came from the user or system.
+
+*Core insight / definition:* An attacker plants instructions inside content a tool will fetch (a webpage, a document, an email) so that when the agent retrieves and inserts it into context, the model executes the embedded instructions rather than treating them as inert data.
+
+*Why it matters / pitfall / interview trap:* This is a top-cited MCP/agentic security risk — mitigations include clearly delimiting/tagging tool output as untrusted data (not instructions), permission boundaries limiting what a compromised reasoning step can actually do, and human approval for high-risk actions; no purely prompt-based defense is fully reliable.
+
+---
+
+**Prompt Registry / Prompt Versioning**
+
+*The problem:* Prompts evolve constantly in production; without versioning, there is no way to know what prompt produced a given output, roll back a regression, or A/B test changes safely.
+
+*Core insight / definition:* Treat prompts as versioned artifacts (analogous to code) — a registry stores each prompt version with metadata (author, timestamp, eval scores, changelog), and a router serves the active version while supporting gradual rollout and automatic rollback if evaluation metrics regress past a threshold.
+
+*Why it matters / pitfall / interview trap:* Without this, a "small prompt tweak" pushed directly to production with no eval gate is indistinguishable from an unversioned code deploy — the same rigor applied to code changes should apply to prompt changes.
+
+---
+
+**Q-Former (BLIP-2-style Fusion)**
+
+*The problem:* Feeding every raw ViT patch embedding into the LLM (linear projection approach) costs one LLM token per patch, which is expensive at scale, especially for high-resolution images or many images.
+
+*Core insight / definition:* A lightweight transformer with a small fixed number of learned query tokens that cross-attend into the frozen vision encoder's output, compressing the image into a small fixed number of tokens (e.g., 32) regardless of original resolution, before feeding them to the LLM.
+
+*Why it matters / pitfall / interview trap:* Dramatically reduces token cost per image versus linear projection, but the compression is lossy — fine-grained visual detail (small text, precise counts) can be discarded in the bottleneck, unlike LLaVA's higher-fidelity patch-token approach.
+
+---
+
+**Quantization (W4A16, W8A8, SmoothQuant)**
+
+*The problem:* Model weights and activations in fp16/bf16 consume large amounts of GPU memory and bandwidth, limiting achievable batch size and throughput.
+
+*Core insight / definition:* Represent weights and/or activations with fewer bits. W4A16 quantizes weights to 4-bit while keeping activations at 16-bit (compute-bound-friendly, memory savings dominate); W8A8 quantizes both to 8-bit (enables faster INT8 matmul, throughput-focused). SmoothQuant migrates quantization difficulty from activations to weights via a per-channel smoothing factor, since activations have significant outliers that hurt naive INT8 quantization while weights are relatively easy to quantize.
+
+*Why it matters / pitfall / interview trap:* Choosing W4A16 vs W8A8 depends on whether the deployment is memory-bound (favor W4A16) or compute-bound (favor W8A8); naively quantizing activations without addressing outliers (what SmoothQuant fixes) causes large accuracy drops.
+
+---
+
+**Qwen2.5-VL — see M-RoPE**
+
+---
+
+**RAGAS (RAG Assessment)**
+
+*The problem:* RAG systems have multiple failure points (bad retrieval, bad generation, ungrounded generation) that a single end-to-end accuracy score cannot distinguish.
+
+*Core insight / definition:* A framework decomposing RAG evaluation into component metrics: context precision (are retrieved chunks relevant), context recall (was all needed information retrieved), faithfulness (is the answer grounded in retrieved context), and answer relevancy (does the answer address the question) — typically computed via LLM-as-judge over each dimension.
+
+*Why it matters / pitfall / interview trap:* Lets you localize a RAG failure to retrieval vs. generation vs. grounding instead of only knowing the final answer was wrong — critical for debugging which pipeline stage to fix.
+
+---
+
+**ReAct (Reason + Act)**
+
+*The problem:* An LLM reasoning purely internally can't incorporate live external information (search results, tool outputs) into its reasoning process mid-task.
+
+*Core insight / definition:* Interleave explicit reasoning ("Thought"), tool invocation ("Action"), and tool result ingestion ("Observation") in a loop — each thought is conditioned on the latest observation, letting the model adapt its plan based on real information rather than reasoning blindly to a final answer.
+
+*Why it matters / pitfall / interview trap:* The dominant pattern underlying most production tool-using agents; failure modes include the model looping on a failing tool call without adapting its approach, or hallucinating an observation instead of waiting for the real tool result.
+
+---
+
+**Rejection Sampling (Synthetic Data / Speculative Decoding)**
+
+*In synthetic data:* Generate multiple candidate solutions to a problem (especially math/code) and keep only those verified correct (via execution or a checker) — used by NuminaMath, DART-Math, MetaMath to build large verified synthetic training sets without human labeling.
+
+*In speculative decoding:* The target model accepts or rejects each drafted token by comparing the draft model's and target model's probabilities for that token; accepted with probability min(1, p_target/p_draft), and on rejection, resamples from an adjusted residual distribution — this guarantees the output distribution is mathematically identical to running the target model alone, not merely close to it.
+
+*Why it matters / pitfall / interview trap:* The speculative-decoding rejection sampling formula is a common exact-derivation interview question — the key point being it preserves the target's exact output distribution (lossless), not just approximate quality.
+
+---
+
+**Reflection / Self-Critique**
+
+*The problem:* An LLM's first-pass output is generated once with no opportunity to catch its own errors before returning it.
+
+*Core insight / definition:* After generating an initial response, prompt the model (or a separate call) to critique that response against criteria (correctness, completeness, style) and then revise it based on the critique — can be run for multiple rounds until a stopping criterion is met.
+
+*Why it matters / pitfall / interview trap:* Self-critique doesn't reliably catch errors the model didn't know it was making — a model confidently wrong in its first pass is often confidently wrong (in the same way) in its self-critique too; works best for catching surface issues (format, completeness) rather than deep factual/reasoning errors.
+
+---
+
+**Reranking — see Attention (Bi-encoder vs Cross-encoder)**
+
+---
+
+**Resources (MCP Primitive)**
+
+*The problem:* Not all context an agent needs is best modeled as an action the model chooses to invoke — some context should simply be available, like a file's contents or a database schema.
+
+*Core insight / definition:* One of MCP's three primitives — a Resource exposes read-only, application-controlled data (files, schemas, API responses) identified by a URI, distinct from Tools (model-invoked actions) and Prompts (reusable templates).
+
+*Why it matters / pitfall / interview trap:* Confusing Resources with Tools is a common MCP design mistake — Resources are meant to be attached by the host/user, not autonomously called by the model like a function.
+
+---
+
+**RLHF / RLAIF**
+
+*The problem:* Supervised fine-tuning alone can't directly optimize for subjective qualities like helpfulness or harmlessness that are hard to specify as example labels but easy for humans to rank comparatively.
+
+*Core insight / definition:* RLHF trains a reward model on human preference comparisons (via Bradley-Terry loss) and then optimizes the policy against that learned reward using reinforcement learning (typically PPO). RLAIF substitutes an AI judge for the human labeler in generating preference comparisons, trading labeling cost for potential AI-judgment bias.
+
+*Why it matters / pitfall / interview trap:* RLHF frequently worsens calibration (rewards confident-sounding answers) and can induce sycophancy (rewards agreeable answers over correct ones) — a canonical hallucination root cause, not just an alignment tool; RLAIF inherits and can amplify whatever biases the AI judge itself has.
+
+---
+
+**Routing (Agentic)**
+
+*The problem:* Not all queries need the same model, tools, or pipeline — sending every request through the most expensive/most capable path wastes cost and latency.
+
+*Core insight / definition:* A classifier step (rule-based, embedding-similarity, or a small LLM call) inspects the incoming request and dispatches it to the appropriate specialized handler, model tier, or tool subset.
+
+*Why it matters / pitfall / interview trap:* A misrouted query silently gets a worse-suited handler with no obvious error — router accuracy itself needs monitoring/evaluation, not just the downstream handlers.
+
+---
+
+**RVQ (Residual Vector Quantization) — see EnCodec / SoundStream**
+
+---
+
+**Sandboxing (Tool Execution)**
+
+*The problem:* Executing agent-requested actions (especially code execution or file operations) directly in a production environment risks arbitrary damage if the model is manipulated or simply wrong.
+
+*Core insight / definition:* Run agent-triggered code/commands in an isolated environment (container, VM, restricted filesystem/network namespace) with no access to production systems or secrets, so a compromised or erroneous action can't escalate beyond the sandbox.
+
+*Why it matters / pitfall / interview trap:* A required layer regardless of how well the model is prompted — treat any agent with code/shell execution capability as a security boundary problem, not a prompting problem.
+
+---
+
+**Self-Consistency**
+
+*The problem:* A single sampled reasoning chain may follow a locally plausible but globally wrong path with no signal that anything went wrong.
+
+*Core insight / definition:* Sample multiple independent reasoning chains (e.g., via CoT at nonzero temperature) for the same question and take a majority vote over their final answers — agreement across diverse reasoning paths is a stronger correctness signal than any single path.
+
+*Why it matters / pitfall / interview trap:* A practical hallucination-detection technique: low agreement across samples flags likely hallucination even without external verification, but it multiplies inference cost by the number of samples.
+
+---
+
+**Self-Instruct**
+
+*The problem:* Building an instruction-tuning dataset via human annotation is slow and expensive, capping how much diverse instruction data can be produced.
+
+*Core insight / definition:* Bootstrap a large instruction-tuning dataset from a small human-written seed set by having an LLM generate new instructions, corresponding inputs, and outputs in the same style, then filtering for quality/diversity — introduced by Wang et al. 2022 and used to build Alpaca from a small seed set plus GPT-3-generated instructions.
+
+*Why it matters / pitfall / interview trap:* Quality is bounded by the seed set's diversity and the generating model's own biases/errors — low-quality or narrow seed sets propagate their narrowness into the entire generated dataset.
+
+---
+
+**Self-Speculative Decoding**
+
+*The problem:* Maintaining a separate draft model (standard speculative decoding) or extra trained heads (Medusa/Eagle) adds deployment complexity — ideally the target model itself could draft its own tokens.
+
+*Core insight / definition:* Use a subset of the target model's own layers (e.g., early-exit or layer-skipping) as a cheap "draft" pass, then verify against the full model — no separate model or additional trained parameters needed.
+
+*Why it matters / pitfall / interview trap:* Avoids the deployment/memory overhead of a second model entirely, but the draft-quality/speedup tradeoff is harder to tune since you can't independently scale draft-model capacity — it's fundamentally the same model at reduced depth.
+
+---
+
+**Self-RAG**
+
+*The problem:* Standard RAG always retrieves and always incorporates whatever is retrieved, even when retrieval is unnecessary or the retrieved content isn't actually useful.
+
+*Core insight / definition:* Train the model to emit special reflection tokens deciding whether to retrieve at all, whether a retrieved passage is relevant, and whether its own generated output is fully supported by that passage — making retrieval and grounding decisions explicit and learned rather than hardcoded pipeline steps.
+
+*Why it matters / pitfall / interview trap:* Requires special fine-tuning to produce reflection tokens (not a prompting-only technique), unlike CRAG which can be implemented as a pipeline wrapper around any base model.
+
+---
+
+**SelfCheckGPT**
+
+*The problem:* Detecting hallucination ideally shouldn't require access to external ground-truth documents or the model's internal probabilities, since these aren't always available (e.g., black-box API access).
+
+*Core insight / definition:* Sample multiple responses to the same prompt at nonzero temperature and measure their mutual consistency (via NLI, BERTScore, or n-gram overlap) — sentences that are factual tend to be reproduced fairly consistently across samples, while hallucinated details vary more, since a hallucination is essentially "made up" independently each time.
+
+*Why it matters / pitfall / interview trap:* Fully black-box (no access to internal logits or external documents needed), but expensive due to requiring multiple full generations, and cannot detect a consistently repeated hallucination (one the model always produces the same way).
+
+---
+
+**Semantic Chunking — see Chunking Strategies**
+
+---
+
+**Serving Frameworks (vLLM / TensorRT-LLM / llama.cpp)**
+
+*The problem:* Naive from-scratch LLM inference serving leaves throughput and latency far below what the hardware is capable of.
+
+*Core insight / definition:* vLLM specializes in continuous batching + PagedAttention for high-throughput multi-request serving; TensorRT-LLM specializes in NVIDIA-specific kernel-level optimization for lowest possible latency; llama.cpp specializes in CPU/consumer-hardware/edge deployment with aggressive quantization support.
+
+*Why it matters / pitfall / interview trap:* Choosing the wrong framework for the deployment target is a common mistake — e.g., reaching for TensorRT-LLM's compilation complexity for a low-traffic CPU deployment where llama.cpp would be simpler and sufficient.
+
+---
+
+**SLERP (Spherical Linear Interpolation)**
+
+*The problem:* Simple linear (Euclidean) averaging of two model weight vectors can produce a point whose norm is smaller than either input, drifting off the manifold where trained models' weights actually live (the "diminishing norm" problem).
+
+*Core insight / definition:* Interpolates two weight vectors along the shortest path on the hypersphere connecting them, preserving vector norms throughout the interpolation, given by the formula SLERP(θ) = [sin((1−t)Ω)/sin(Ω)]·w1 + [sin(tΩ)/sin(Ω)]·w2, where Ω is the angle between the two vectors.
+
+*Why it matters / pitfall / interview trap:* Only defined for merging exactly two models — for merging 3+ models you need task arithmetic or TIES instead; a common interview trap is not knowing this limitation and trying to naively extend SLERP pairwise across many models without accounting for interpolation order effects.
+
+---
+
+**Sparse Frame Sampling (Video Models)**
+
+*The problem:* Encoding every frame of a video at full resolution is computationally prohibitive — video is enormously redundant frame-to-frame.
+
+*Core insight / definition:* Sample a subset of frames (uniformly or via a learned/keyframe-detection scheme) rather than processing every frame, trading temporal resolution for tractable compute cost.
+
+*Why it matters / pitfall / interview trap:* Under-sampling can miss fast-changing events between sampled frames (e.g., a quick action or a scene cut) — the sampling rate is a real accuracy/compute tradeoff, not a free simplification.
+
+---
+
+**Spacetime Patches (Sora / DiT)**
+
+*The problem:* Treating video as a sequence of independently-encoded 2D frames discards the natural spatiotemporal locality of video content and scales poorly to variable-length/resolution video.
+
+*Core insight / definition:* Extend the ViT patch concept into the temporal dimension — patchify video into spacetime patches (small blocks spanning both space and a few frames of time) processed by a Diffusion Transformer (DiT), enabling training on variable resolution/duration/aspect-ratio video in one unified representation.
+
+*Why it matters / pitfall / interview trap:* This is the core architectural idea behind Sora — treating video generation as a diffusion-transformer problem over spacetime tokens rather than a frame-by-frame image generation problem.
+
+---
+
+**Speculative Decoding (Standard)**
+
+*The problem:* Autoregressive decoding generates exactly one token per forward pass, and each pass is memory-bandwidth-bound (reading all model weights from HBM) — while the GPU has abundant idle compute capacity per step.
+
+*Core insight / definition:* A small, fast draft model proposes several tokens ahead speculatively; the large target model then verifies all drafted tokens in a single forward pass (since verification is a parallelizable operation, unlike generation), accepting the longest correct prefix and resampling from the point of first rejection — this can produce multiple accepted tokens per expensive target-model forward pass, exploiting otherwise-idle compute.
+
+*Why it matters / pitfall / interview trap:* The mathematically guaranteed output distribution equals the target model alone (lossless) — expected tokens per step ≈ (1 − α^(γ+1))/(1 − α) where α is acceptance rate and γ is draft length; speedup depends heavily on task/domain (higher acceptance on templated/predictable text, lower on creative/diverse generation) and can net negative if draft-target latency ratio or acceptance rate is too low (break-even analysis required before deploying).
+
+---
+
+**Static / Dynamic Batching**
+
+*The problem:* Serving one request at a time badly underutilizes GPU compute since decode steps are memory-bandwidth-bound, not compute-bound — batching amortizes the weight-read cost across multiple sequences per step.
+
+*Core insight / definition:* Static batching groups a fixed batch of requests and runs all decode steps together, only returning results when the entire batch finishes (blocked by the longest sequence). Dynamic batching accumulates incoming requests into a batch over a short time window before dispatch, improving GPU utilization over serving one-at-a-time but still suffering from head-of-line blocking within a batch.
+
+*Why it matters / pitfall / interview trap:* Both are superseded by continuous batching in modern high-throughput serving (vLLM, etc.) precisely because they can't evict finished sequences and admit new ones mid-batch.
+
+---
+
+**Step-Back Prompting**
+
+*The problem:* A narrowly specific query can retrieve narrowly specific (and possibly incomplete) context, missing the broader background context needed to answer it fully.
+
+*Core insight / definition:* Prompt the model to first generate a more abstract/general version of the question, retrieve using that generalized query (getting broader background context), then answer the original specific question using both the general and specific context.
+
+*Why it matters / pitfall / interview trap:* Complements rather than replaces standard retrieval — used alongside, not instead of, direct retrieval on the original query.
+
+---
+
+**Sycophancy (RLHF) — see RLHF / RLAIF**
+
+---
+
+**Task Arithmetic (Task Vectors)**
+
+*The problem:* We want to combine or selectively remove specific learned capabilities (e.g., "math skill," "toxicity") across models without retraining, but naive weight averaging can't isolate individual capabilities.
+
+*Core insight / definition:* A task vector is the difference between a fine-tuned model's weights and its shared pretrained base (τ = θ_finetuned − θ_base); task vectors from different fine-tunes can be added, scaled, or subtracted from the base model to combine, amplify, or remove capabilities — e.g., θ_base + τ_math + τ_code combines math and code skills; θ_base − τ_toxicity attempts to suppress toxic behavior.
+
+*Why it matters / pitfall / interview trap:* Only works cleanly when all task vectors originate from the same shared base checkpoint (same linear-mode-connectivity requirement as weight averaging); the scaling coefficient applied to each task vector is an empirical hyperparameter, not theoretically derived.
+
+---
+
+**Teacher Forcing vs. Autoregressive Inference (Exposure Bias)**
+
+*The problem:* During training, the model always sees the ground-truth previous tokens as input (teacher forcing) — but at inference time, it must condition on its own previously generated (possibly wrong) tokens, a mismatch never seen during training.
+
+*Core insight / definition:* This train/inference mismatch (exposure bias) means small early errors at inference time can compound, since the model was never trained to recover from its own mistakes — each subsequent token is generated conditioned on an increasingly out-of-distribution context relative to training.
+
+*Why it matters / pitfall / interview trap:* A root cause of hallucination that's structural to autoregressive training itself, not fixable by better data alone — often cited as the deep reason "hallucinations compound" once a model goes off-track mid-generation.
+
+---
+
+**TIES Merging (TRIM, Elect Sign, Merge)**
+
+*The problem:* When averaging multiple task vectors, parameters where different fine-tunes disagree in sign (one wants to increase a weight, another wants to decrease it) get washed out or become destructive interference in a naive average.
+
+*Core insight / definition:* Three-step procedure — TRIM: zero out the smallest-magnitude (least significant) fraction of each task vector's parameters; Elect Sign: for each parameter, determine the majority sign across all task vectors and keep only the components agreeing with that sign; Merge (disCard): average only the parameter values that agree with the elected sign, discarding conflicting ones.
+
+*Why it matters / pitfall / interview trap:* Directly addresses sign conflict/interference, the specific failure mode plain task-vector averaging suffers from with 3+ merged models — a common interview follow-up is "why not just average task vectors directly," and the answer is exactly this sign-interference problem.
+
+---
+
+**TimeSformer / ViViT (Factorized Spatiotemporal Attention)**
+
+*The problem:* Full joint spatiotemporal attention over every patch across every frame scales quadratically with both spatial resolution and number of frames — computationally prohibitive for video.
+
+*Core insight / definition:* Factorize attention into separate spatial (within-frame) and temporal (across-frame, same spatial location) attention passes applied sequentially, dramatically reducing compute versus full joint attention while still capturing both spatial and temporal structure.
+
+*Why it matters / pitfall / interview trap:* A classic compute/expressiveness tradeoff — factorized attention can miss some joint spatiotemporal interactions that full attention would capture, in exchange for tractable compute.
+
+---
+
+**Tool Use — see Function Calling (Tool Use)**
+
+---
+
+**Tools / Resources / Prompts (MCP's Three Primitives)**
+
+*The problem:* Before MCP, every LLM application integrated tools, data sources, and reusable prompt templates in its own bespoke way, meaning a tool built for one framework couldn't be reused in another.
+
+*Core insight / definition:* MCP standardizes three primitive types a server can expose: Tools (model-invoked actions with side effects, like calling an API), Resources (application-controlled read-only context, like a file), and Prompts (reusable, user-selected prompt templates) — giving a uniform contract across any MCP-compatible host/client.
+
+*Why it matters / pitfall / interview trap:* The distinguishing design point vs. raw function calling or LangChain Tools is that MCP servers are separately deployable and reusable across different host applications — not embedded application code; conflating "Tool" with "any callable thing" misses that Resources and Prompts are deliberately separate primitives with different invocation models.
+
+---
+
+**Transport Layer (MCP: stdio, HTTP+SSE, Streamable HTTP)**
+
+*The problem:* An MCP client and server need a communication channel, and the right choice differs for a local subprocess integration versus a remote networked server.
+
+*Core insight / definition:* stdio transport runs the server as a local subprocess communicating over standard input/output (simple, low-latency, local-only); HTTP+SSE (the original remote transport) used a persistent SSE connection for server-to-client messages; Streamable HTTP (the newer remote transport) replaces SSE with a more flexible single HTTP endpoint supporting both streaming and non-streaming exchanges.
+
+*Why it matters / pitfall / interview trap:* Picking stdio for a scenario needing multi-client remote access (or vice versa) is a common design mistake — stdio inherently ties the server to a single local client process.
+
+---
+
+**Tree of Thought (ToT)**
+
+*The problem:* Chain-of-Thought commits to a single linear reasoning path — if an early step is wrong, the whole chain is wrong with no mechanism to backtrack or explore alternatives.
+
+*Core insight / definition:* Explore multiple reasoning branches at each step (like a search tree), evaluate the promise of each partial path, and prune weak branches while extending strong ones — turning reasoning into an explicit search process rather than a single greedy pass.
+
+*Why it matters / pitfall / interview trap:* Substantially more expensive than CoT (multiple branches × multiple steps means many more LLM calls) — reserve for problems where backtracking/exploration genuinely matters (e.g., puzzles, planning), not routine tasks.
+
+---
+
+**TruthfulQA / HaluEval / FELM (Hallucination Benchmarks)**
+
+*The problem:* Measuring "how much does this model hallucinate" needs standardized benchmarks, since ad hoc spot-checks don't generalize or allow model comparison.
+
+*Core insight / definition:* TruthfulQA tests whether models avoid common human misconceptions/false beliefs rather than just being factually accurate in general; HaluEval provides both human-annotated and model-generated hallucinated samples across QA/summarization/dialogue for hallucination-detection benchmarking; FELM evaluates factuality across a broader multi-domain claim-verification setting.
+
+*Why it matters / pitfall / interview trap:* TruthfulQA specifically probes misconception-susceptibility, not general knowledge accuracy — a model can score well on general QA benchmarks while still scoring poorly on TruthfulQA if it echoes popular myths.
+
+---
+
+**ViT (Vision Transformer)**
+
+*The problem:* CNNs process images with strong built-in spatial locality bias (convolutional kernels); transformers have no such inductive bias, raising the question of whether pure attention-based architectures can work well on images at all.
+
+*Core insight / definition:* Split an image into fixed-size non-overlapping patches, linearly project each patch into an embedding (analogous to a token embedding), add positional encoding, and process the resulting sequence of patch embeddings with a standard transformer encoder.
+
+*Why it matters / pitfall / interview trap:* The foundational architecture underlying essentially all modern vision encoders used in multimodal LLMs (feeding into CLIP, DINOv2, LLaVA-style fusion, etc.) — patch size is a direct token-count/resolution tradeoff knob.
+
+---
+
+**vLLM — see Serving Frameworks**
+
+---
+
+**Weight Averaging (Simple) — see Linear Mode Connectivity**
+
+---
+
+**Whisper (Audio Integration)**
+
+*The problem:* Feeding raw audio waveforms directly into a text LLM has no established architecture, and speech needs to become model-consumable representations.
+
+*Core insight / definition:* An encoder-decoder transformer trained on large-scale weakly-supervised audio-transcript pairs for automatic speech recognition (ASR) and translation, commonly used as the audio front-end in pipeline (non-native) multimodal systems by transcribing speech to text before passing it to an LLM.
+
+*Why it matters / pitfall / interview trap:* Because it transcribes to text, a Whisper-based pipeline inherently discards prosody, tone, and emotional information — the exact limitation native audio-token approaches (like GPT-4o) are designed to overcome.
+
+---
+
+**Wilcoxon Signed-Rank Test (Prompt Evaluation)**
+
+*The problem:* Observing that one prompt variant scores slightly higher than another on a sample doesn't tell you whether the difference is statistically meaningful or just noise.
+
+*Core insight / definition:* A non-parametric statistical test comparing paired evaluation scores (e.g., per-example scores of prompt A vs. prompt B on the same test set) to determine whether the observed difference is unlikely to be due to chance, without assuming a normal distribution of scores.
+
+*Why it matters / pitfall / interview trap:* Non-parametric tests are preferred over a paired t-test for LLM eval scores because such scores are often not normally distributed (e.g., bounded 1-5 scales, bimodal pass/fail) — using a t-test on non-normal score distributions can overstate significance.
+
+---
+
+**Zero-Shot / Few-Shot CoT — see Chain-of-Thought (CoT)**
+
+---
+
