@@ -12,6 +12,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Welcome](README.md)
 * [Mind Map](MIND-MAP.md)
 * [Flowcharts](FLOWCHARTS.md)
+* [Changelog](CHANGELOG.md)
+* [Coverage Audit](COVERAGE_AUDIT.md)
 
 ## 00 — Meta
 
@@ -199,6 +201,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Multimodal AI](11-llm-applications/09-multimodal.md)
 * [Tuning and Optimization](11-llm-applications/10-tuning-optimization.md)
 * [MCP — Model Context Protocol](11-llm-applications/12-mcp.md)
+* [A2A — Agent2Agent Protocol](11-llm-applications/13-a2a.md)
+* [Eval and Observability](11-llm-applications/11-eval-and-observability.md)
 
 ## 12 — Systems & Scale
 
@@ -383,3 +387,22 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Books](18-resources/llm-books/README.md)
   * [Agentic Design Patterns — First-Principles Notes](18-resources/llm-books/01-agentic-design-pattern.md)
   * [Hands-On Large Language Models — Jay Alammar](18-resources/llm-books/02-handson-large-language-models-jay_alammar.md)
+
+## 19 — Revision Guide
+
+* [01 Math Foundations — Revision Guide](19-revision-guide/01-math-foundations.md)
+* [02 Data — Revision Guide](19-revision-guide/02-data.md)
+* [03 Classical ML — Revision Guide](19-revision-guide/03-classical-ml.md)
+* [04 Evaluation — Revision Guide](19-revision-guide/04-evaluation.md)
+* [05 Deep Learning Core — Revision Guide](19-revision-guide/05-deep-learning-core.md)
+* [06 Architectures — Revision Guide](19-revision-guide/06-architectures.md)
+* [07 Domains — Revision Guide](19-revision-guide/07-domains.md)
+* [08 Generative Models — Revision Guide](19-revision-guide/08-generative.md)
+* [09 Reinforcement Learning — Revision Guide](19-revision-guide/09-reinforcement-learning.md)
+* [10 LLMs — Revision Guide](19-revision-guide/10-llms.md)
+* [11 LLM Applications — Revision Guide](19-revision-guide/11-llm-applications.md)
+* [12 Systems and Scale — Revision Guide](19-revision-guide/12-systems-and-scale.md)
+* [13 Production ML — Revision Guide](19-revision-guide/13-production-ml.md)
+* [14 Responsible AI — Revision Guide](19-revision-guide/14-responsible-ai.md)
+* [15 System Design — Revision Guide](19-revision-guide/15-system-design.md)
+* [16 Interview Prep — Revision Guide](19-revision-guide/16-interview-prep.md)

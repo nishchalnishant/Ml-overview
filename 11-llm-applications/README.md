@@ -69,6 +69,12 @@ That journey gives you the clean progression:
 - `12-mcp.md`
   Understand the Model Context Protocol — the standard interface that makes tools reusable across agent frameworks.
 
+- `13-a2a.md`
+  Understand the Agent2Agent protocol — the standard interface for delegating work between autonomous agents, and how it composes with MCP.
+
+- `11-eval-and-observability.md`
+  Distinguish eval frameworks (RAGAS, DeepEval) from observability/tracing platforms (LangSmith, Langfuse, Arize Phoenix), and instrument pipelines so failures are debuggable, not just measurable.
+
 ## Interview Shape
 
 If you need to answer quickly in an interview, frame LLM applications as a pipeline:
