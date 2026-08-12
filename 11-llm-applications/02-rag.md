@@ -104,6 +104,7 @@ IVF (Inverted File Index): clusters vectors into k Voronoi cells, searches only 
 | Qdrant | Self-hosted / cloud | Fast, Rust-based, good filter performance |
 | pgvector | PostgreSQL extension | Keeps data in existing database |
 | FAISS | In-memory library | Fastest for batch search, not a full DB |
+| Milvus | Self-hosted / cloud (Zilliz) | Distributed architecture built for billion-scale vector collections; strong at horizontal scale-out |
 
 **What breaks:** ANN is approximate — some true nearest neighbors will be missed. The recall/speed tradeoff is controlled by index parameters (ef, nprobe) that must be tuned per workload. All-vector memory storage becomes a bottleneck at billions of documents — quantized indexes (IVFPQ) reduce memory at the cost of recall.
 
@@ -198,6 +199,30 @@ Fine-tunes the model to emit reflection tokens (`[Retrieve]`, `[IsRel]`, `[IsSup
 ### GraphRAG
 
 Build a knowledge graph from documents (entity-relationship triples) so multi-hop and corpus-wide summarization queries can be answered via graph traversal instead of flat chunk retrieval — expensive to construct, wins only when relationships or global themes matter. Local/global search split and tool comparison: see [interview-notes/03-retrieval-augmented-generation-rag.md](../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md#graph-rag).
+
+### Agentic RAG
+
+**The problem:** the retrieval pipeline described above (embed query → retrieve → rerank → generate) is a fixed, single-pass sequence. It cannot decide to retrieve again after seeing a first-pass result, choose between multiple retrieval sources (a vector DB vs. a SQL database vs. a web search), or break a multi-part question into sub-questions that each need separate retrieval.
+
+**The core insight:** wrap retrieval as one or more callable tools (see [01-agentic-workflows.md — Tool Use](01-agentic-workflows.md#tool-use)) and let an agent loop decide, per step, whether to retrieve, which source to retrieve from, and whether the retrieved context is sufficient to answer or another retrieval round is needed. Retrieval becomes a decision the model makes repeatedly, not a fixed pipeline stage.
+
+**The mechanics:**
+```
+Query → Agent (ReAct loop)
+   ├─► decides: "need to search internal docs" → calls vector_search tool
+   ├─► decides: "need latest pricing" → calls web_search tool
+   ├─► evaluates: retrieved context insufficient → issues a follow-up retrieval
+   └─► decides: sufficient context gathered → generates final answer
+```
+- **Query decomposition:** a multi-part question ("Compare Q3 revenue to Q2 and explain the change") is split into sub-queries, each retrieved separately, then synthesized.
+- **Source routing:** the agent selects among multiple retrieval tools (vector DB for unstructured docs, SQL/text-to-SQL for structured data, web search for freshness) rather than assuming one corpus answers everything.
+- **Iterative retrieval:** unlike CRAG's single corrective fallback, an agentic loop can retrieve multiple times, each round informed by what was learned in the previous round — this is the generalization of CRAG's "retry with web search" idea into an open-ended loop.
+
+**What breaks:** every agent decision point (retrieve or not, which source, is context sufficient) is an added LLM call — latency and cost compound with each retrieval round. An agent that never terminates its retrieval loop needs the same hard iteration caps as any other agentic system (see [Tool Use — What breaks](01-agentic-workflows.md#tool-use)). Source-routing mistakes (querying the wrong tool) fail silently as an empty or irrelevant retrieval rather than an obvious error, unless the agent explicitly checks retrieval quality (the CRAG-style evaluator pattern) before trusting the result.
+
+**When to use:** multi-hop questions, queries requiring multiple heterogeneous sources, or workflows where retrieval-then-generate in one pass has a measurably high failure rate. **When not to use:** simple single-source lookups — the added latency/cost of an agentic loop isn't justified when a fixed retrieve-then-generate pipeline already answers the question reliably.
+
+Deeper walkthrough and interview framing: see [interview-notes/03-retrieval-augmented-generation-rag.md](../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md#agentic-rag).
 
 ---
 

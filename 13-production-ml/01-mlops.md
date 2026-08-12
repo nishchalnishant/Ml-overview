@@ -332,13 +332,15 @@ ML monitoring has two layers classic DevOps doesn't: *data drift* (inputs change
 
 **Data drift detection**
 
-```python
-from evidently.dashboard import Dashboard
-from evidently.tabs import DataDriftTab, CatTargetDriftTab
+> **Deprecated API note:** Evidently's `Dashboard`/`Tab` API (`evidently.dashboard.Dashboard`, `evidently.tabs.DataDriftTab`) was removed in Evidently's v0.4+ redesign. The current API (verified against evidently 0.7.x) is `Report`-based:
 
-dashboard = Dashboard(tabs=[DataDriftTab(), CatTargetDriftTab()])
-dashboard.calculate(reference_data=training_df, current_data=production_window_df)
-dashboard.save("drift_report.html")
+```python
+from evidently import Report
+from evidently.presets import DataDriftPreset
+
+report = Report(metrics=[DataDriftPreset()])
+result = report.run(reference_data=training_df, current_data=production_window_df)
+result.save_html("drift_report.html")
 ```
 
 Detection methods:

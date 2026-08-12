@@ -94,6 +94,8 @@ This costs 2–3× more tokens. Revision is not guaranteed to improve the answer
 - **Cascade errors:** a wrong tool call returns a bad observation; the model reasons correctly from bad data and produces a confidently wrong answer.
 - **Infinite loops:** the model calls tools indefinitely without concluding. Always enforce a hard maximum iteration limit.
 
+**Standardizing tool interfaces across frameworks:** the mechanics above describe tool calling within a single host/framework. When tools need to be reusable across different agent frameworks and hosts — or when an agent needs to delegate a subtask to a *different* autonomous agent rather than call a stateless function — see [12-mcp.md](12-mcp.md) (Model Context Protocol: a standard client/server interface for tools, resources, and prompts) and [13-a2a.md](13-a2a.md) (Agent2Agent: a standard protocol for delegating tasks between autonomous agents, including streaming and long-running task lifecycles). MCP and A2A compose: MCP standardizes how one agent uses tools, A2A standardizes how one agent talks to another agent.
+
 ---
 
 ## Memory Systems
@@ -192,7 +194,7 @@ The router classifies the query and dispatches to the matching handler. The rout
 - Full agent trace: record the sequence of steps, state at each step, and final answer.
 - Cost: sum token costs across all LLM calls in a run.
 
-Tooling: LangSmith, Weights & Biases Weave, Arize Phoenix, or custom OpenTelemetry traces.
+Tooling: LangSmith, Langfuse, Weights & Biases Weave, Arize Phoenix, or custom OpenTelemetry traces — see [11-eval-and-observability.md](11-eval-and-observability.md) for a dedicated comparison of these platforms plus eval-framework tooling (RAGAS, DeepEval) that pairs with tracing to close the debug-and-regression-test loop.
 
 **What breaks:** high-cardinality tracing increases storage cost non-linearly at scale. Sampling strategies (log 100% of failures, 1% of successes) help. PII in traces is a compliance risk — sanitize before logging.
 
@@ -259,7 +261,23 @@ The failure could be in the researcher's tool calls, the writer's synthesis, or 
 | CrewAI | Role-based agent definition | Team-style task decomposition |
 | Direct API | Full control, no abstractions | Simple tool use; production-critical paths |
 
-*Related: [RAG](02-rag.md) | [Hallucination Mitigation](05-hallucination-mitigation.md) | [Tuning and Optimization](10-tuning-optimization.md)*
+### LangGraph: Stateful Graph Orchestration
+
+**The problem:** the agent patterns above (ReAct, Reflection, multi-agent) are all, at the implementation level, a loop with conditional branches and state that must survive across steps — retries, human-in-the-loop pauses, and long-running workflows all need that state to be persisted, not held only in a Python call stack that dies if the process restarts.
+
+**The core insight:** LangGraph models an agent as an explicit graph — nodes are units of work (an LLM call, a tool call, a human-approval step), edges are transitions (including conditional edges chosen by the model's output), and a shared state object flows through the graph, accumulated and mutated by each node. Because the graph and its state are explicit objects rather than implicit control flow, the state can be checkpointed after every step.
+
+**The mechanics:**
+- **Nodes** — functions that take the current state and return a state update (an LLM call node, a tool-execution node, a routing node).
+- **Edges** — fixed transitions, or conditional edges where a router function inspects the state and picks the next node (this is how ReAct-style "decide whether to call a tool or answer" branching is expressed as graph structure).
+- **State** — a typed object (e.g., a dict/TypedDict) threaded through every node; each node returns a partial update that's merged into the running state.
+- **Checkpointing** — the graph's state can be persisted (e.g., to a database) after each node executes, so a long-running or paused workflow (waiting on a human-in-the-loop approval, see [Guardrails and Safety](#guardrails-and-safety)) can resume exactly where it left off, including after a process crash — this is the practical advantage over a plain in-memory agent loop.
+
+**What breaks:** state objects that grow unbounded (accumulating full message history across many nodes) blow the context window budget the same way an unmanaged conversation does — see [Memory Systems](#memory-systems) for the same problem in a different guise. Conditional-edge routing logic that's too coarse (a single router deciding among many nodes) becomes a maintenance bottleneck as the graph grows — prefer decomposing into smaller subgraphs. Checkpointing has a persistence cost; not every workflow needs it — a short-lived single-turn agent doesn't benefit from durable state and pays the overhead for nothing.
+
+**When to use:** multi-step workflows that need to survive process restarts, pause for human approval, or resume after a failure. **When not to use:** simple, single-pass tool-use agents where a plain function-call loop is sufficient — the graph abstraction and checkpointing overhead aren't worth it below a certain complexity.
+
+*Related: [RAG](02-rag.md) | [Hallucination Mitigation](05-hallucination-mitigation.md) | [Tuning and Optimization](10-tuning-optimization.md) | [Model Context Protocol (MCP)](12-mcp.md) | [Agent2Agent (A2A)](13-a2a.md)*
 
 
 ## Flashcards

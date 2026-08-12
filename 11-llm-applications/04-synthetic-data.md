@@ -21,7 +21,9 @@ tags: [llms, synthetic-data, data-generation, self-instruct, distillation, phi, 
 7. [Synthetic Data for Math](#7-synthetic-data-for-math)
 8. [Hallucination and Failure Modes](#8-hallucination-and-failure-modes)
 9. [Data Flywheel and Iterative Refinement](#9-data-flywheel)
-10. [Interview Questions](#10-interview-questions)
+10. [Privacy-Preserving Synthetic Data](#10-privacy-preserving-synthetic-data)
+11. [Modern Tooling](#11-modern-tooling)
+12. [Interview Questions](#10-interview-questions)
 
 ---
 
@@ -512,6 +514,38 @@ Iteration 4:
 ```
 
 This iterative flywheel is how Phi-3, Qwen, DeepSeek, and Llama 3 achieve their quality levels.
+
+---
+
+## 10. Privacy-Preserving Synthetic Data
+
+### The problem
+
+Real user data (support tickets, health records, financial transactions) often can't be used directly for training or eval — PII exposure risk, regulatory restrictions (GDPR, HIPAA), or contractual limits. Synthetic data generated *from* real data can leak the exact PII it was meant to protect if the generating model memorizes and reproduces training examples.
+
+### The core insight
+
+There are two distinct goals that get conflated: (1) generating data that has *no* real individual's information in it at all (pure synthetic generation, e.g., LLM-generated support tickets from a schema), and (2) generating data that preserves the *statistical properties* of a real sensitive dataset without leaking any individual record (privacy-preserving synthesis, typically via differential privacy).
+
+**Differentially private synthetic data:** train a generative model (or fine-tune an LLM) with **DP-SGD** (gradient noise + clipping during training) so the model provably cannot memorize any single training record beyond a bounded privacy budget (ε). Samples drawn from this model carry a formal privacy guarantee — no downstream re-identification attack can extract a specific individual's data above the ε bound, regardless of technique.
+
+*What breaks:* DP noise trades off directly against data utility — tight privacy budgets (small ε) degrade synthetic data quality and downstream model performance; teams often pick ε empirically by testing where quality collapses. DP guarantees are also per-training-run — reusing a DP budget across multiple experiments erodes the effective guarantee.
+
+**When to use:** synthetic data will be shared externally or used across trust boundaries, and the source data contains real PII. **When not to use:** synthetic data generated from a schema/prompt with no real individual's data as input (most self-instruct/distillation use cases in this file) — there's nothing to leak, so DP machinery is unnecessary overhead.
+
+---
+
+## 11. Modern Tooling
+
+Purpose-built libraries have emerged for synthetic data pipelines, separate from calling a raw LLM API in a loop:
+
+| Tool | Focus | Notes |
+|---|---|---|
+| **Distilabel** | Declarative synthetic data + AI feedback pipelines | Pipeline abstraction over generation, filtering, and judge-based scoring steps; integrates with Hugging Face Hub for dataset publishing (VERIFY current feature set) |
+| **DataDreamer** | End-to-end synthetic data generation + training workflows | Research-oriented library for generation, augmentation, and fine-tuning in one pipeline (VERIFY current maintenance status) |
+| **NVIDIA Nemotron** (data/reward models) | Teacher models and reward models purpose-tuned for synthetic data generation | Used as a generation/filtering teacher rather than a general chat model; check current model family naming before citing specifics (VERIFY) |
+
+These sit on top of, not instead of, the patterns above (self-instruct, distillation, rejection sampling) — they provide orchestration and quality-filtering scaffolding around the same core techniques.
 
 ---
 

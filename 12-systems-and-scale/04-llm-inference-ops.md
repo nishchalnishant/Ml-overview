@@ -398,6 +398,36 @@ def capacity_plan(qps, avg_input_tokens, avg_output_tokens,
 
 ---
 
+## 10. Prefill/Decode Disaggregation
+
+**Problem:** Prefill (compute-bound, §2) and decode (memory-bandwidth-bound, §2) have opposite resource profiles, but a co-located server (vLLM's default single-process model) runs both phases on the same GPUs. A long prefill batch stalls decode steps for already-in-flight requests, inflating TPOT — chunked prefill (§6) mitigates this by interleaving, but both phases still compete for the same compute and memory bandwidth on the same devices.
+
+**Core insight:** if prefill and decode ran on *separate* GPU pools sized for their own bottleneck (prefill pool: compute-optimized, fewer bigger batches; decode pool: memory-bandwidth-optimized, many concurrent small steps), each pool could be scaled and scheduled independently, and TTFT (prefill) would stop competing with TPOT (decode) for the same hardware. This is **disaggregated serving**: a request's prefill runs on one set of GPUs, its KV cache is then transferred over the network to a different set of GPUs, and decode continues there.
+
+**Architecture:**
+```
+Request → Prefill pool (compute-optimized GPUs)
+              │  runs full prefill, produces KV cache
+              ▼
+         KV cache transfer (RDMA / high-bandwidth interconnect)
+              ▼
+        Decode pool (memory-bandwidth-optimized GPUs)
+              │  continuous batching across many requests' decode steps
+              ▼
+           Streamed tokens back to client
+```
+
+**Named systems implementing this pattern** (VERIFY current status/adoption before citing specifics — this is an active, fast-moving area as of 2026):
+- **DistServe** — research system explicitly proposing prefill/decode disaggregation to eliminate interference between the two phases.
+- **Mooncake** (Moonshot AI) — disaggregated serving architecture centered on a KV-cache-centric design, using a dedicated KV cache pool separate from both prefill and decode compute.
+- **NVIDIA Dynamo** — inference-serving framework with disaggregated prefill/decode support, KV-cache-aware routing, and integration with existing engines (e.g., vLLM, TensorRT-LLM) as backends.
+
+**Trade-off:** disaggregation removes prefill/decode interference and lets each pool scale independently (e.g., scale prefill GPUs up during a burst of new long-context requests without touching decode capacity), at the cost of network transfer latency for the KV cache handoff and the added operational complexity of running and coordinating two separately-scaled pools instead of one homogeneous fleet.
+
+**When to use:** high-QPS production serving with a mix of long-prompt and long-generation workloads, where prefill/decode interference is measurably hurting TPOT SLAs. **When not to use:** low-QPS or latency-insensitive workloads, or single-node/small-scale deployments — the network KV-cache-transfer overhead and operational complexity of two pools isn't worth it below a certain scale.
+
+---
+
 ## Trade-offs Summary
 
 | Decision | Trade-off |

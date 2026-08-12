@@ -359,7 +359,7 @@ from catboost import CatBoostClassifier
 model_xgb = xgb.XGBClassifier(
     n_estimators=500, max_depth=6, learning_rate=0.05,
     subsample=0.8, colsample_bytree=0.8,
-    use_label_encoder=False, eval_metric='logloss'
+    eval_metric='logloss'  # use_label_encoder removed in XGBoost 1.6+ (was already a no-op default)
 )
 
 # LightGBM — native categoricals

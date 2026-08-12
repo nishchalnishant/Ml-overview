@@ -281,11 +281,14 @@ Not delegatable. Requires personal attestation.
 
 Required for: credit, insurance, medical, hiring, any GDPR Article 22 use case.
 
+**EU AI Act:** a credit-scoring model like the one in this file's worked example is a textbook **high-risk AI system** under the EU AI Act (Annex III covers creditworthiness assessment). High-risk classification triggers obligations beyond GDPR/ECOA: a documented risk management system, training-data governance records, technical documentation and logging sufficient for post-market audit, human oversight measures, and a conformity assessment before deployment in the EU. This is a separate regulatory track from GDPR Article 22 — a model can satisfy GDPR's automated-decision rules and still be non-compliant with the AI Act's high-risk obligations. See [14-responsible-ai/03-llm-safety-and-governance.md](../14-responsible-ai/03-llm-safety-and-governance.md) for the EU AI Act risk-tier breakdown (unacceptable / high / limited / minimal risk).
+
 Checklist:
 - [ ] Protected attributes reviewed (direct and proxy)
 - [ ] Adverse action notice mechanism tested
 - [ ] GDPR Article 22 documentation prepared if automated individual decision
 - [ ] ECOA/FHA/FCRA compliance review (for credit/housing models)
+- [ ] EU AI Act high-risk classification assessed; if high-risk, conformity assessment and technical documentation prepared (for EU-market deployments)
 - [ ] Data retention policy attached to model version
 - [ ] Right to erasure impact assessed
 

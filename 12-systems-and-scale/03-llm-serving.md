@@ -503,6 +503,28 @@ class VLLMDeployment:
         return {"text": outputs[0].outputs[0].text}
 ```
 
+### Multi-Tenant Inference and LoRA Hot-Swapping
+
+**Problem:** many products need to serve dozens-to-thousands of customized model variants (one fine-tune per customer, per task, or per A/B arm). Deploying a full replica per variant doesn't scale — GPU memory and cost grow linearly with the number of variants, most of which see low individual traffic.
+
+**Core insight:** if the customization is a LoRA adapter (small, low-rank weight delta — see [10-llms/06-fine-tuning-at-scale.md](../10-llms/06-fine-tuning-at-scale.md)) rather than a fully fine-tuned model, many adapters can share one base model's weights in GPU memory simultaneously. Only the small adapter matrices differ per tenant; the base model forward pass is shared and batched across requests for *different* adapters.
+
+**Mechanics:**
+```
+Base model (shared, loaded once)  ──┬── + LoRA_A (tenant A's adapter, ~10-100MB)
+                                     ├── + LoRA_B (tenant B's adapter)
+                                     └── + LoRA_C (tenant C's adapter)
+
+Batched forward pass: base weights shared, adapter deltas applied per-request
+within the same batch (segmented/batched matrix multiply per adapter).
+```
+- **Hot-swapping:** adapters are loaded/evicted from a GPU-resident LRU cache on demand, rather than requiring a full model reload — swap latency is milliseconds (loading a small adapter) instead of the seconds-to-minutes a full model load would take.
+- **Serving frameworks with native multi-LoRA support** (VERIFY current API specifics before citing): vLLM supports serving multiple LoRA adapters concurrently against one base model, selecting the adapter per request. This is the production pattern for "one base model, many customer fine-tunes" without paying the memory cost of N full model replicas.
+
+**Trade-off:** massive memory/cost savings when tenants share a base model and only need LoRA-scale customization (not full fine-tuning). Breaks down if a tenant needs a genuinely different base model, a full fine-tune, or an adapter rank/size large enough that the "small delta" assumption stops holding — at that point it's a separate deployment, not a hot-swap.
+
+**When to use:** SaaS products with per-customer or per-task LoRA fine-tunes and uneven, spiky traffic across tenants. **When not to use:** a small number of high-traffic tenants each justifying a dedicated replica, or customizations that require full fine-tuning rather than LoRA.
+
 ---
 
 ## 11. Interview Angles
