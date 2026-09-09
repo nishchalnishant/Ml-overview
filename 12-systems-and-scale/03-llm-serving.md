@@ -564,3 +564,4 @@ within the same batch (segmented/batched matrix multiply per adapter).
 - **KV cache and GQA math** → [10-llms/08-kv-cache-and-mqa-gqa.md](../10-llms/08-kv-cache-and-mqa-gqa.md)
 - **Model quantization (GPTQ, AWQ, GGUF)** → [02-quantization-pruning.md](02-quantization-pruning.md)
 - **System design for LLM inference ops** → [04-llm-inference-ops.md](04-llm-inference-ops.md)
+- [AI Infrastructure](../20-ai-infrastructure/README.md) — running this as a multi-tenant fleet: routing, tenancy, SLOs

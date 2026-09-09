@@ -362,6 +362,7 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Day 33-34: Alignment, Safety & Agentic Systems / RAG](16-interview-prep/study-plans/week-5-llm-deep-dive/02-day-33-34.md)
   * [Day 35: Applied & Production LLMs + Mock Interview](16-interview-prep/study-plans/week-5-llm-deep-dive/03-day-35.md)
   * [Week 5 (Days 31-35): LLM Deep Dive](16-interview-prep/study-plans/week-5-llm-deep-dive/README.md)
+* [Inference Data Plane — Role Prep](16-interview-prep/inference-data-plane/README.md)
 
 ## 17 — Projects
 
@@ -406,3 +407,13 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [14 Responsible AI — Revision Guide](19-revision-guide/14-responsible-ai.md)
 * [15 System Design — Revision Guide](19-revision-guide/15-system-design.md)
 * [16 Interview Prep — Revision Guide](19-revision-guide/16-interview-prep.md)
+* [AI Infrastructure](20-ai-infrastructure/README.md)
+* [Inference Engines Landscape](20-ai-infrastructure/01-inference-engines-landscape.md)
+* [Distributed Inference Frameworks](20-ai-infrastructure/02-distributed-inference-frameworks.md)
+* [GPU Hardware and Interconnects](20-ai-infrastructure/03-gpu-hardware-and-interconnects.md)
+* [Parallelism and Topology](20-ai-infrastructure/04-parallelism-topology.md)
+* [Smart Routing and Scheduling](20-ai-infrastructure/05-smart-routing-and-scheduling.md)
+* [Multi-Tenancy and Isolation](20-ai-infrastructure/06-multi-tenancy-and-isolation.md)
+* [SLOs and Observability](20-ai-infrastructure/07-slos-and-observability.md)
+* [Service Architecture: gRPC and Go](20-ai-infrastructure/08-service-architecture-grpc-go.md)
+* [Interview Drills — Inference Data Plane](20-ai-infrastructure/09-interview-drills.md)

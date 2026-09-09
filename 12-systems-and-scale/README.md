@@ -41,3 +41,7 @@ If you only have one pass:
 2. Then read `03-llm-serving.md`
 3. Then read `05-cost-optimization.md`
 4. Finish with compression and quantization if you need extra detail
+
+## See Also
+
+- [AI Infrastructure](../20-ai-infrastructure/README.md) — the platform-engineering layer above this section: inference engines, routing, multi-tenancy, and SLOs for a serving fleet

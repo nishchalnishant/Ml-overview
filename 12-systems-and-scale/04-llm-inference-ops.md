@@ -498,3 +498,8 @@ Most requests don't need the largest model's capability; routing by input comple
 
 **In LLM capacity planning, why is decode throughput (not total throughput) the binding constraint?** #flashcard
 Prefill is compute-bound and processed once per request, but decode happens once per output token and is memory-bandwidth-bound — so GPU count is sized off `QPS × avg_output_tokens / decode_tokens_per_sec_per_GPU`, not off total (input+output) token volume.
+
+## Where to Next
+
+- [AI Infrastructure](../20-ai-infrastructure/README.md) — the platform layer above these metrics
+- [Smart Routing and Scheduling](../20-ai-infrastructure/05-smart-routing-and-scheduling.md) — what these metrics drive
