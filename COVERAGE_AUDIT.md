@@ -91,33 +91,51 @@ Legend: ✅ well-covered · 🟡 partial/outdated (specifics noted) · ❌ missi
 
 ---
 
-## Summary counts
+## Summary counts (original Phase 1 assessment, 2026-08-11)
 
 - ✅ Well-covered: 20
 - 🟡 Partial/outdated: 12
 - ❌ Missing: 3
 
-## Priority queue for Phase 2 (❌ first, then 🟡)
+---
 
-**❌ Missing (highest priority):**
-1. DeepEval (and eval-framework landscape alongside RAGAS)
-2. Prefill/decode disaggregation (Dynamo/DistServe/Mooncake-style serving)
-3. Multi-tenant inference / LoRA-swap serving patterns
+## Resolution status — all items closed as of 2026-09-09
 
-**🟡 Partial/outdated (in priority order — cross-cutting and highest-traffic files first):**
-4. Observability tooling depth: Langfuse (absent), LangSmith/Arize Phoenix (name-only) — dedicated instrumentation treatment
-5. `01-agentic-workflows.md`: cross-link MCP and A2A
-6. LangGraph: dedicated stateful-orchestration treatment (not just a table row)
-7. Agentic RAG depth mismatch: bring `11-llm-applications/02-rag.md` up toward interview-notes depth
-8. Vector DB table in `02-rag.md`: add Milvus for consistency with the interview-notes file
-9. `13-production-ml/03-model-governance.md`: add EU AI Act cross-reference to the credit-scoring use case
-10. `13-production-ml/01-mlops.md`: update Evidently code sample from deprecated `Dashboard`/`DataDriftTab` to current `Report` API
-11. `03-classical-ml/01-supervised-learning.md`: remove deprecated `use_label_encoder` XGBoost param
-12. `11-llm-applications/04-synthetic-data.md`: refresh anchors past 2024, add PII/differential-privacy synthetic data + newer tooling (Nemotron, Distilabel, DataDreamer)
-13. Model-family tables repo-wide: freshness pass on named model generations (currently frozen ~early/mid-2025)
-14. Embedding model examples in RAG files: refresh past 2024-era names
-15. Model registry comparison: add Databricks Unity Catalog (minor)
+**❌ Missing — closed in Phase 2 (2026-08-11):**
+
+| # | Item | Resolution |
+|---|---|---|
+| 1 | DeepEval / eval-framework landscape | `11-llm-applications/11-eval-and-observability.md` created |
+| 2 | Prefill/decode disaggregation | `12-systems-and-scale/04-llm-inference-ops.md` §10 (DistServe, Mooncake, Dynamo) |
+| 3 | Multi-tenant / LoRA-swap serving | `12-systems-and-scale/03-llm-serving.md` multi-LoRA subsection |
+
+**🟡 Partial/outdated — closed across Phase 2 and Phase 3 (2026-09-09):**
+
+| # | Item | Resolution |
+|---|---|---|
+| 4 | Observability tooling depth (Langfuse absent) | Phase 2 — dedicated file, Langfuse/LangSmith/Phoenix instrumentation |
+| 5 | Cross-link MCP/A2A from agentic-workflows | Phase 2 |
+| 6 | LangGraph dedicated treatment | Phase 2 — stateful graph orchestration section |
+| 7 | Agentic RAG depth mismatch | Phase 2 — full subsection in `02-rag.md` |
+| 8 | Milvus missing from vector-DB table | Phase 2 |
+| 9 | EU AI Act cross-ref in model-governance | Closed — `13-production-ml/03-model-governance.md` now carries the Annex III high-risk framing and a checklist item |
+| 10 | Deprecated Evidently `Dashboard`/`DataDriftTab` | Closed — `Report`-based API, verified against evidently 0.7.x |
+| 11 | Deprecated XGBoost `use_label_encoder` | Closed — removed, with an inline note on why |
+| 12 | Synthetic-data anchors pre-2024 | Closed — DP/privacy-preserving synthesis section + Distilabel/DataDreamer/Nemotron tooling table |
+| 13 | Model-family tables frozen ~mid-2025 | **Phase 3** — added a freshness disclaimer and §12.1 "What Actually Generalizes": six durable architectural axes (sparse-over-dense, KV cache as binding constraint, deliberate overtraining, test-time compute, hybrid positional encoding, early-fusion multimodality) plus interview framing for models past the knowledge cutoff. Structural fix rather than a name refresh, since any name list re-stales within months. |
+| 14 | Embedding-model examples ~2024-era | **Phase 3** — replaced the name-drop with a four-axis selection framework (dimensionality/Matryoshka, sequence length, domain match, licence+hosting) and an MTEB-overfitting caveat directing readers to evaluate on their own labelled pairs |
+| 15 | Model registry: Unity Catalog absent | **Phase 3** — added to the comparison table |
+
+### Phase 3 also addressed (structural audit, outside the original queue)
+
+- **20 broken relative links** repaired — stale paths from a pre-renumbering layout (`02-classical-ml`, `03-deep-learning`, `05-llms`, `06-production-ml`, `07-interview-prep`, `12-projects`), concentrated in `17-projects/*/README.md` and `16-interview-prep/ea/`.
+- **63 files missing `status:` frontmatter** — restored the 100% invariant.
+- **`08-generative/03-diffusion.md` depth gap** — the one folder whose thin coverage had no deeper home elsewhere in the repo. Added score matching / flow matching unification, the hierarchical-VAE/ELBO connection, conditioning mechanics (CFG's 2× inference cost, ControlNet zero-init), and the U-Net → DiT shift.
+
+### Topic-coverage sweep (Phase 3)
+
+~44 canonical ML-interview topics checked across statistics/classical ML, deep learning, LLMs, and systems/production. **No missing topics.** Thinnest but present: curriculum learning, CLT, survival analysis. Two apparent gaps confirmed as intentional design: `02-data/07-data-engineering.md` is a redirect stub, and the thin `06-architectures` attention file is layered above deep treatment in `10-llms/`.
 
 ---
 
-*This audit is read-only. No content was created or modified in Phase 1. Phase 2 will address items in the priority queue above, ❌ before 🟡, per the stated content conventions, and will maintain a CHANGELOG.md (not yet present in the repo — will be created).*
+*Phase 1 was read-only. Phases 2 and 3 made the changes recorded above and in `CHANGELOG.md`.*
