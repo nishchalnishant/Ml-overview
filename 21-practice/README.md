@@ -21,6 +21,14 @@ Everything here separates the **prompt** from the **solution** into different fi
 meant to attempt first, badly, before you look. A failed attempt followed by reading the
 answer builds far more durable recall than reading the answer twice.
 
+## Start here
+
+| File | Use it when |
+|---|---|
+| [DAY-ONE.md](DAY-ONE.md) | It is your first session — a 90-minute diagnostic that tells you which track you need |
+| [INDEX.md](INDEX.md) | You want to pick a problem in ten seconds instead of opening four files |
+| [PROGRESS.md](PROGRESS.md) | Every session — record what you got wrong and when to retry it |
+
 ## The three tracks
 
 | Track | What it drills | Where the answers live |
@@ -56,6 +64,7 @@ should be too:
 
 ## Related
 
+- [INDEX.md](INDEX.md) — every problem in this section, with difficulty and the trap in each
 - [16-interview-prep/](../16-interview-prep/README.md) — the reference material these drills test
 - [20-ai-infrastructure/](../20-ai-infrastructure/README.md) — background for the Go track
 - [17-projects/](../17-projects/README.md) — runnable end-to-end projects
