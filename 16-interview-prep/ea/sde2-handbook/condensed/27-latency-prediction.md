@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Latency Prediction"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 27 — Multiplayer Latency Compensation (Time-Series Prediction)
 

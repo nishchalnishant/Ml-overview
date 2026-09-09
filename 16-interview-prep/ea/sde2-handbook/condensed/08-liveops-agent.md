@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Liveops Agent"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 08 — LiveOps Campaign Agent (Cheat Sheet)
 

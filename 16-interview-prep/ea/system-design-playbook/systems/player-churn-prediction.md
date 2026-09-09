@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Player Churn Prediction"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Player Churn Prediction
 

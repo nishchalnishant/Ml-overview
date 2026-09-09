@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Dynamic Pricing"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Dynamic In-Game Store Pricing & Promotions — Cheat Sheet
 

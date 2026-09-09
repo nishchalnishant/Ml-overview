@@ -3,6 +3,7 @@ module: Meta
 topic: "REPO-STRUCTURE"
 tags: [meta, repo-maintenance]
 prerequisites: []
+status: unread
 ---
 # Repo Structure — Target State and Migration Plan
 

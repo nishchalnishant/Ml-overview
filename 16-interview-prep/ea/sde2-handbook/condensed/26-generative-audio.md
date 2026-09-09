@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Generative Audio"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 26 — Generative Audio: Dynamic NPC Voice Cloning (Condensed)
 

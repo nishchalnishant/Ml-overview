@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Economy Prediction"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 11 — In-Game Economy Inflation Prediction (Cheat Sheet)
 

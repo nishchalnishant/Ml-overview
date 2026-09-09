@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Model Registry"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Model Registry
 

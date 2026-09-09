@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Batch Inference"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Batch Inference Platform
 

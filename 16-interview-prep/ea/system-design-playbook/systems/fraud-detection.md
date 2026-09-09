@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Fraud Detection"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Fraud Detection
 

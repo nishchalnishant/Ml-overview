@@ -3,6 +3,7 @@ module: Meta
 topic: "REMOVED-CONTENT"
 tags: [meta, repo-maintenance]
 prerequisites: []
+status: unread
 ---
 # Removed SUMMARY.md Entries — Phase 0 Record
 

@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Edge Model Serving"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 18 — Model Serving on Edge Devices (Cheat Sheet)
 

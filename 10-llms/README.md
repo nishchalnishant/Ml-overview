@@ -85,7 +85,7 @@ This directory serves as the theoretical bedrock for Large Language Models (LLMs
 This folder is the *theory/training* layer. Applied and systems treatments of the same topics live next door:
 - **[11-llm-applications/](../11-llm-applications/)** — building with LLMs: RAG, agentic workflows, prompt optimization, multimodal, inference optimization, MCP.
 - **[12-systems-and-scale/](../12-systems-and-scale/)** — the serving/systems layer: model compression, LLM serving, inference ops.
-- **[interview-notes/](interview-notes/)** — interview-ready answers and drills, trimmed from the theory files.
+- **[16-interview-prep/llm-interview-notes/](../16-interview-prep/llm-interview-notes/)** — interview-ready answers and drills, trimmed from the theory files.
 
 **Boundary rule:** if the question is "how do LLMs work?", "why does training behave this way?", or "what is the architecture tradeoff?", it belongs here. If the question is "how do we build a useful LLM product or serve it well?", it belongs in [11-llm-applications](../11-llm-applications/) or [12-systems-and-scale](../12-systems-and-scale/).
 

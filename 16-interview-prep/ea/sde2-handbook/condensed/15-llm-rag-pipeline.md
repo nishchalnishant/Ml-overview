@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Llm Rag Pipeline"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 15 — Production RAG Pipeline (Condensed)
 

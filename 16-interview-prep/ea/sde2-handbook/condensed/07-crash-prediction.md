@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Crash Prediction"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Crash Prediction Cheat Sheet
 

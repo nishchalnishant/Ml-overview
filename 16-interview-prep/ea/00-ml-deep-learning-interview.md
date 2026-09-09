@@ -61,7 +61,7 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 - [03-deep-learning/01-pytorch-fundamentals.md](../../05-deep-learning-core/09-pytorch-fundamentals.md)
 - [03-deep-learning/deep-learning-cheatsheet.md](../../05-deep-learning-core/_cheatsheet.md) — backprop, init, batch norm, optimizers
 - [03-deep-learning/02-transfer-learning.md](../../05-deep-learning-core/10-transfer-learning.md)
-- [03-deep-learning/components/](../03-deep-learning/components) and [03-deep-learning/methods/](../03-deep-learning/methods) — architecture-specific notes
+- [03-deep-learning/components/](../../05-deep-learning-core/) and [03-deep-learning/methods/](../../05-deep-learning-core/) — architecture-specific notes
 
 **For tabular/sequence data specifically:**
 - Start with a simple MLP baseline (embeddings for categoricals + concatenated numeric features) before reaching for anything fancier — say this explicitly, it signals judgment.
@@ -69,7 +69,7 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 - Loss: binary cross-entropy (churn), or a regression/ranking loss (LTV, matchmaking).
 - Always compare the DL model against a gradient-boosted tree baseline (XGBoost/LightGBM) — on tabular data GBTs frequently win or tie; being able to say this without being told shows maturity. Reference: [02-classical-ml/05-when-classical-ml-wins.md](../../03-classical-ml/07-when-classical-ml-wins.md).
 
-**Runnable reference implementation in this repo:** [12-projects/01-tabular-ml-pipeline/](../12-projects/01-tabular-ml-pipeline/) — leakage-safe `Pipeline`, baseline vs. gradient-boosted comparison, cross-validation, calibration-aware eval. Walk through `train.py` before the interview; it's the shape of what you'll likely be asked to write live.
+**Runnable reference implementation in this repo:** [12-projects/01-tabular-ml-pipeline/](../../17-projects/01-tabular-ml-pipeline/) — leakage-safe `Pipeline`, baseline vs. gradient-boosted comparison, cross-validation, calibration-aware eval. Walk through `train.py` before the interview; it's the shape of what you'll likely be asked to write live.
 
 ---
 
@@ -134,7 +134,7 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 
 1. Clarify the target, label window, and evaluation metric before writing any code.
 2. Load data, check class balance, check for obvious leakage columns (timestamps past the label window, IDs).
-3. Build a leakage-safe `sklearn` `Pipeline`/`ColumnTransformer` for preprocessing — mirror [12-projects/01-tabular-ml-pipeline/train.py](../12-projects/01-tabular-ml-pipeline/train.py).
+3. Build a leakage-safe `sklearn` `Pipeline`/`ColumnTransformer` for preprocessing — mirror [12-projects/01-tabular-ml-pipeline/train.py](../../17-projects/01-tabular-ml-pipeline/).
 4. Train a fast baseline (logistic regression or GBT) first — gives you a sanity-check number before the DL model.
 5. Build the DL model (PyTorch), start with the simplest architecture that could work.
 6. Cross-validate with the correct split strategy (grouped/time-based if applicable) — state why before coding it.
@@ -147,7 +147,7 @@ Churn or LTV is the safest choice since it maps directly to existing content:
 ## Final Pass
 
 - [ ] [PRE-INTERVIEW-CHECKLIST.md](../03-pre-interview-checklist.md) — 48h/24h/morning-of checklist
-- [ ] Run [12-projects/01-tabular-ml-pipeline/](../12-projects/01-tabular-ml-pipeline/) end-to-end once, out loud, narrating each step
+- [ ] Run [12-projects/01-tabular-ml-pipeline/](../../17-projects/01-tabular-ml-pipeline/) end-to-end once, out loud, narrating each step
 - [ ] Have 2 questions ready for the interviewer about EA's ML stack (e.g., "what's the feature store / serving latency budget for player-facing models?")
 
 ---

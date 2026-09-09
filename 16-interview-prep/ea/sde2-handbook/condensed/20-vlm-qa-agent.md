@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Vlm Qa Agent"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 20 — Multimodal VLM Game Testing Agent (Condensed)
 

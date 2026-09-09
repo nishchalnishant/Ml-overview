@@ -7,7 +7,7 @@ tags: [projects, tabular, sklearn, xgboost, pipelines, hands-on]
 ---
 # Project: End-to-End Tabular ML Pipeline
 
-**What this is:** a complete, runnable ML pipeline covering the full interview-relevant loop — synthetic churn dataset → leakage-safe feature engineering → classical baseline vs. gradient-boosted model **and** a PyTorch deep learning model → hyperparameter search → cross-validation → performance profiling → serving/scaling stub. It's the applied counterpart to [01-foundations/04-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md), [02-classical-ml/](../../02-classical-ml/), and [03-deep-learning/](../../03-deep-learning/).
+**What this is:** a complete, runnable ML pipeline covering the full interview-relevant loop — synthetic churn dataset → leakage-safe feature engineering → classical baseline vs. gradient-boosted model **and** a PyTorch deep learning model → hyperparameter search → cross-validation → performance profiling → serving/scaling stub. It's the applied counterpart to [01-foundations/04-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md), [02-classical-ml/](../../03-classical-ml/), and [03-deep-learning/](../../05-deep-learning-core/).
 
 ## Why this project
 
@@ -64,5 +64,5 @@ python serve.py in.csv out.csv      # batch scoring path (chunked, same model ar
 ## Where to Next
 
 - **The concepts behind each step** → [01-foundations/04-data-processing-and-eda.md](../../02-data/02-data-processing-and-eda.md)
-- **Gradient boosting theory** → [02-classical-ml/](../../02-classical-ml/)
+- **Gradient boosting theory** → [02-classical-ml/](../../03-classical-ml/)
 - **Next project: RAG pipeline** → [../02-rag-pipeline/](../02-rag-pipeline/)

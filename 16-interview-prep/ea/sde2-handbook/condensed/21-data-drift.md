@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Data Drift"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 21 — Automated Data Drift Detection Pipeline (Condensed)
 

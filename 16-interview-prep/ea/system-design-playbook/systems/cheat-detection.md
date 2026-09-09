@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Cheat Detection"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Cheat Detection
 

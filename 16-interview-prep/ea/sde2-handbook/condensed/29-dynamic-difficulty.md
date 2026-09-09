@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Dynamic Difficulty"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 29 — AI-Driven Dynamic Game Difficulty (Condensed)
 

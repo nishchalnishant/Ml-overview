@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Mcp Ecosystem"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # MCP Ecosystem
 

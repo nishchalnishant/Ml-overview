@@ -3,6 +3,7 @@ module: Interview Prep
 topic: EA SDE-2 Handbook
 tags: [interview-prep, ea, sde2]
 prerequisites: []
+status: unread
 ---
 # 🎮 Electronic Arts – SDE-2 AI Engineer Mock Interview Handbook
 

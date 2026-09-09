@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Feature Store"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 14 — Real-Time Feature Store (Condensed)
 

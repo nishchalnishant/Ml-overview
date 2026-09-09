@@ -3,6 +3,7 @@ module: Projects
 topic: Interview Template
 tags: [projects, interview-template, ml-coding]
 prerequisites: []
+status: unread
 ---
 # 00 — Problem Framing (do this before writing any code)
 

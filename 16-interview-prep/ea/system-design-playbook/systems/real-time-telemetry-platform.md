@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Real Time Telemetry Platform"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Real-Time Telemetry Platform
 

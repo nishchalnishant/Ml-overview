@@ -3,6 +3,7 @@ module: Projects
 topic: Interview Template
 tags: [projects, interview-template, ml-coding]
 prerequisites: []
+status: unread
 ---
 # Solution Walkthrough — read only after attempting the drill
 

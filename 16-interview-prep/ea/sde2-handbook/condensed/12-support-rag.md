@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Support Rag"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 12 — Customer Support RAG Assistant (Condensed)
 

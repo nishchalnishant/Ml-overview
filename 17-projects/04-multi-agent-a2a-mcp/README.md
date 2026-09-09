@@ -217,4 +217,4 @@ The final report lands at `output/quarterly_report.md`.
 ## Where to Next
 
 - [05-llms/applications/01-agentic-workflows.md](../../11-llm-applications/01-agentic-workflows.md) for the broader theory of agentic systems, tool use, and orchestration patterns this project is a hands-on instance of.
-- [12-projects/09-mcp-agent-system/](../09-mcp-agent-system/) for a variant that explores additional MCP patterns (HITL approval servers, remote SSE servers, MCP Resources) without a true A2A layer — useful for seeing more MCP surface area once this project's A2A/MCP split is clear.
+- [12-projects/09-mcp-agent-system/](../../11-llm-applications/12-mcp.md) for a variant that explores additional MCP patterns (HITL approval servers, remote SSE servers, MCP Resources) without a true A2A layer — useful for seeing more MCP surface area once this project's A2A/MCP split is clear.

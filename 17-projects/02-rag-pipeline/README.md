@@ -9,7 +9,7 @@ tags: [projects, rag, embeddings, vector-search, llm, hands-on]
 
 **What this is:** a complete, runnable RAG system — chunk documents → embed → index → retrieve → rerank → generate a grounded answer with citations. Runs fully offline with local embeddings and a swappable LLM backend (defaults to a local/no-API-key extractive fallback so it works with zero setup; swap in an OpenAI/Anthropic call for generation quality).
 
-This is the applied counterpart to the RAG coverage in [05-llms/](../../05-llms/) (retrieval, chunking, embeddings, agentic RAG) — here it's actually wired together and runnable.
+This is the applied counterpart to the RAG coverage in [05-llms/](../../10-llms/) (retrieval, chunking, embeddings, agentic RAG) — here it's actually wired together and runnable.
 
 ## Why this project
 
@@ -45,11 +45,11 @@ python query.py "How does attention scaling work?"
 ## Design notes
 
 - **Chunking** uses overlap (see `chunking.py`) so an answer spanning a chunk boundary in the source doc isn't silently dropped.
-- **Retrieval is two-stage**: dense cosine-similarity retrieval (top-20) followed by a lightweight lexical-overlap rerank (top-5) — cheap approximation of a cross-encoder rerank stage, discussed in [05-llms/](../../05-llms/) under retrieval/reranking.
+- **Retrieval is two-stage**: dense cosine-similarity retrieval (top-20) followed by a lightweight lexical-overlap rerank (top-5) — cheap approximation of a cross-encoder rerank stage, discussed in [05-llms/](../../10-llms/) under retrieval/reranking.
 - **Citations are mandatory**: `generate.py` forces the prompt template to require `[source: filename]` tags, and the extractive fallback only ever returns text that exists verbatim in a retrieved chunk — this makes hallucination structurally harder to miss during inspection.
 - **No vector DB dependency required**: falls back to a brute-force numpy cosine-similarity index if `faiss` isn't installed, so the project runs with the minimal requirements set.
 
 ## Where to Next
 
-- **RAG theory, chunking strategies, reranking** → [05-llms/](../../05-llms/)
+- **RAG theory, chunking strategies, reranking** → [05-llms/](../../10-llms/)
 - **Next project: LLM fine-tuning** → [../03-llm-finetuning/](../03-llm-finetuning/)

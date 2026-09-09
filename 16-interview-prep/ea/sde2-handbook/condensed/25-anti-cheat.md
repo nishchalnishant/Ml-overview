@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Anti Cheat"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Anti-Cheat: Client-side Memory Anomaly Detection — Cheat Sheet
 

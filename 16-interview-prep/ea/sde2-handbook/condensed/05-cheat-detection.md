@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Cheat Detection"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Cheat Sheet — Real-Time Cheat Detection (Aimbot)
 

@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Mlops Pipeline"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 30 — End-to-End MLOps Pipeline (Condensed)
 

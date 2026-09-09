@@ -46,7 +46,7 @@ narrating the skipped parts instead of typing them:
 
 If the interviewer gives you image, text, or sequence data instead of tabular, say so immediately —
 this template's `03` is tabular-specific (embeddings + MLP). Fall back to the architecture patterns
-in [03-deep-learning/methods/](../../03-deep-learning/methods/) and adapt the same 6-phase shape
+in [03-deep-learning/methods/](../../05-deep-learning-core/) and adapt the same 6-phase shape
 (framing → features → baseline → model → HPO/CV narration → perf/scaling) rather than trying to
 force this code to fit.
 
@@ -82,9 +82,9 @@ for the tradeoff-justification patterns this drill exercises.
 Built for two interview archetypes: **tabular, single dataset, binary classification OR
 regression, live-coding end-to-end pipeline.** It intentionally does not cover:
 
-- Image/CNN, text/transformer, or sequence models — see [03-deep-learning/methods/](../../03-deep-learning/methods/) for those architectures; reuse this template's phase structure and narration style, not its code.
+- Image/CNN, text/transformer, or sequence models — see [03-deep-learning/methods/](../../05-deep-learning-core/) for those architectures; reuse this template's phase structure and narration style, not its code.
 - Multiclass targets — swap the loss (`nn.CrossEntropyLoss`), the metric (macro-F1 or multiclass ROC-AUC), and the final layer width to `n_classes`; everything else (split ordering, preprocessing contract) carries over unchanged.
-- Pure system-design or theory-only interview formats — see [07-interview-prep/](../../07-interview-prep/) instead.
+- Pure system-design or theory-only interview formats — see [07-interview-prep/](../../16-interview-prep/) instead.
 - Messy/raw input handling (schema drift, mixed types needing on-the-spot EDA) — the bundled toy datasets are already clean; budget extra time for this if the real data isn't.
 
 ## Structure

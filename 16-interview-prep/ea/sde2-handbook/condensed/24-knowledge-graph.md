@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Knowledge Graph"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 24 — Knowledge Graph Construction for Lore & Story (Condensed)
 

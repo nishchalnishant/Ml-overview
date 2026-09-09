@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Ai Coding Assistant"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # AI Coding Assistant
 

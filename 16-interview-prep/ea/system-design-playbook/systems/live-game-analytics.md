@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Live Game Analytics"
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # Live Game Analytics
 

@@ -3,6 +3,7 @@ module: Interview Prep
 topic: EA SDE-2 Handbook
 tags: [interview-prep, ea, sde2]
 prerequisites: []
+status: unread
 ---
 # Quick Review Index — EA AI/SDE2 Interview Handbook
 

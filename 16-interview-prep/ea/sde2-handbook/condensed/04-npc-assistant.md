@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Npc Assistant"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 04 — LLM-Powered NPC Dialogue Assistant (Condensed)
 

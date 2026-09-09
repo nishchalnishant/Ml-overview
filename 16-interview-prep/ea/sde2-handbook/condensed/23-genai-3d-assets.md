@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Genai 3d Assets"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 23 — GenAI for 3D Asset Creation (Condensed)
 

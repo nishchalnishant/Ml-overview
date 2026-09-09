@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Rl Npc"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 22 — Deep RL for NPC AI (Condensed)
 

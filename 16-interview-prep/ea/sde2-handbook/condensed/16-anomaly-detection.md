@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Anomaly Detection"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 16 — Real-Time Anomaly Detection on Streaming Data (Condensed)
 

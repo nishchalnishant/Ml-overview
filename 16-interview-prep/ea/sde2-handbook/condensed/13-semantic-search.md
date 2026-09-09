@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Semantic Search"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 13 — Semantic Search for Game Asset Discovery (Condensed)
 

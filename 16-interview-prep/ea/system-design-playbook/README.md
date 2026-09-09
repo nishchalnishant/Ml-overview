@@ -3,6 +3,7 @@ module: Interview Prep
 topic: EA System Design Playbook
 tags: [interview-prep, ea, system-design]
 prerequisites: []
+status: unread
 ---
 # EA AI System Design Playbook
 

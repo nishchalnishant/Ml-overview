@@ -3,6 +3,7 @@ module: Interview Prep
 topic: "Store Recommendations"
 tags: [interview-prep, ea, sde2, system-design]
 prerequisites: []
+status: unread
 ---
 # Interview 09 — In-Game Store Recommendation Engine (Cheat Sheet)
 
