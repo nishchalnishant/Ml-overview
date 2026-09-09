@@ -347,6 +347,7 @@ MLflow       | ✓  | ✓       | ✓       | ✓         | Open source, any sta
 W&B Registry | ✓  | ✓       | ✗       | ✓         | Deep learning teams
 SageMaker MR | ✓  | ✓       | ✓       | Partial   | AWS-native
 Vertex AI MR | ✓  | ✓       | ✓       | Partial   | GCP-native
+Unity Catalog| ✓  | ✓       | ✓       | ✓         | Databricks; models+data in one lineage graph
 Hugging Face | ✓  | ✗       | ✓       | ✗         | NLP/LLM models
 ```
 

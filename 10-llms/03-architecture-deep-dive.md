@@ -357,6 +357,21 @@ A: FlashAttention is entirely about bypassing the memory wall. Standard attentio
 
 *(niche — useful for context/trivia, but exact version-by-version specs and benchmark numbers are rarely quizzed directly; know the general architectural trends per family, not every number)*
 
+> **Freshness note.** Named releases below are detailed through roughly mid-2025; later generations from every lab in this section have shipped since. Treat specific version numbers and benchmark scores as *illustrative of an architectural trend*, not as a current leaderboard — they go stale within months and no interviewer expects you to recite them. What does not go stale is the set of directions the field converged on, summarized in §12.1. **Verify any specific model's current specs against vendor documentation before citing them.**
+
+### 12.1 What Actually Generalizes (the part worth memorizing)
+
+Across every family above, the same architectural moves recur. If you can explain these six, you can reason about a model you have never heard of:
+
+1. **Sparse over dense.** MoE moved from novelty (Mixtral 8×7B) to the default at frontier scale (DeepSeek V3, LLaMA 4). The economics: total parameters buy knowledge capacity, active parameters set inference cost. Decoupling them is the single biggest lever on cost-per-quality.
+2. **KV cache is the binding constraint at inference.** The progression MHA → GQA → MLA is one continuous attempt to shrink it. Long context is a memory problem before it is a modeling problem.
+3. **Overtrain relative to Chinchilla.** Chinchilla optimizes total training FLOPs; production optimizes *inference* cost over a model's lifetime. That asymmetry is why LLaMA 3 70B saw ~190 tokens/param against Chinchilla's 20.
+4. **Test-time compute is a scaling axis.** Thinking/reasoning modes (o1, R1, hybrid-mode models) trade latency for accuracy at fixed weights. RL on verifiable rewards — math, code, unit tests — is the training recipe that unlocks it.
+5. **Positional encoding is increasingly hybrid.** RoPE everywhere, then interleaved NoPE layers for global comparison, plus RoPE scaling (YaRN-style) to extend context after pretraining.
+6. **Early-fusion multimodality.** The Flamingo-style cross-attention bridge gave way to shared transformer backbones over per-modality tokenizers.
+
+**Interview framing:** if asked about a model released after your knowledge cutoff, say so plainly, then reason from these six axes — sparse or dense, what the KV strategy is, how context is extended, whether it has a thinking mode. That is the answer a senior engineer gives; reciting a stale benchmark table is not.
+
 ### GPT Family (OpenAI)
 
 **GPT-3 (2020)**: 175B parameters, 96 layers, 96 heads, 12,288 embedding dim. Trained on ~300B tokens (WebText2 + Books + Wikipedia). Standard MHA with learned absolute positional embeddings. Context: 2,048 tokens. Severely undertrained by Chinchilla standards (1.7 tokens/param vs. Chinchilla's 20). Demonstrated emergent few-shot learning at scale — no task-specific fine-tuning, just examples in the prompt.
@@ -454,6 +469,8 @@ All Claude 3 models are natively multimodal (text + image). Context: 200K tokens
 ---
 
 ### Model Scale Reference
+
+*Table current to ~mid-2025; see the freshness note in §12. Undisclosed entries are undisclosed by the vendor, not unknown to this file.*
 
 | Model | Release | Params (active) | Params (total) | Training tokens | Context |
 |---|---|---|---|---|---|

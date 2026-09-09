@@ -76,7 +76,20 @@ RRF(d) = Σ_{r∈rankers} 1 / (k + r(d))
 ```
 where k=60 is a common default and r(d) is the rank of document d in each ranker. RRF combines rank lists from dense and sparse retrieval without requiring calibrated scores from each.
 
-**Embedding model selection:** use the same model for indexing and querying. Model updates require full re-indexing. Strong open-source options: BAAI/bge-m3 (multilingual, 8K context), sentence-transformers/all-mpnet-base-v2 (strong English, small). OpenAI text-embedding-3-large for highest quality at cost.
+**Embedding model selection:** use the same model for indexing and querying — mixing them silently destroys retrieval quality. Model updates require a full re-index, so treat the choice as a migration cost, not a config flag.
+
+Rather than memorizing a leaderboard (embedding models turn over every few months), select on four axes:
+
+| Axis | Why it decides the choice |
+|---|---|
+| **Dimensionality** | Drives index memory and ANN latency. Matryoshka-style models (text-embedding-3-*, nomic-embed, many bge variants) let you truncate dimensions and trade recall for cost *without re-embedding* — usually the highest-leverage property. |
+| **Max sequence length** | Must exceed your chunk size, or you silently truncate. 512-token models are the classic trap. |
+| **Domain match** | A general model underperforms a domain one on clinical/legal/code text. Domain-specific encoders beat bigger general encoders on in-domain retrieval. |
+| **Licence + hosting** | API models mean your corpus leaves the building — often disqualifying under a BAA or DPA. |
+
+Reference points (verify current versions and MTEB standings before citing): open-weights — BAAI/bge-m3 (multilingual, 8K context), the E5 and GTE families, nomic-embed-text; English-only and small — all-mpnet-base-v2; hosted — OpenAI text-embedding-3-large, Voyage, Cohere Embed. Domain-specific — MedCPT, SapBERT, PubMedBERT for biomedical.
+
+**Benchmark caveat:** MTEB is the standard reference, but it is heavily overfit — models are now tuned against it. A 1-2 point MTEB delta predicts nothing about your corpus. Evaluate the top 3-4 candidates on a few hundred labelled query-document pairs of your own; that measurement beats any leaderboard.
 
 **What breaks:** embedding model quality is the ceiling on retrieval quality. The semantic space may not align with the domain vocabulary of the retrieved documents — a medical embedding model will outperform a general-purpose one for medical retrieval. Model updates require full re-indexing, which is expensive at scale.
 
