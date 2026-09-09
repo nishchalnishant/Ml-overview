@@ -20,6 +20,25 @@ After reading a topic   →  close the file            →  redraw from memory
 Before an interview     →  only redraw, don't read   →  if you can draw it, you can explain it
 ```
 
+**Coverage map — which repo section each part backs onto**
+
+| Part | Topic | Repo section |
+|---|---|---|
+| 1 | Foundations | `00-meta/`, `01-math-foundations/` |
+| 2 | Classical ML | `02-data/`, `03-classical-ml/`, `04-evaluation/` |
+| 3 | DL components | `05-deep-learning-core/` |
+| 4 | DL architectures | `06-architectures/` |
+| 5–6 | NLP, Computer Vision | `07-domains/` |
+| 7 | Large language models | `10-llms/` |
+| 8 | Reinforcement learning | `09-reinforcement-learning/` |
+| 9 | RecSys & GNNs | `06-architectures/05-gnn.md`, `15-system-design/cases/` |
+| 10 | Production ML | `13-production-ml/` |
+| 11–12 | Emerging topics & trends | `08-generative/`, `11-llm-applications/`, `14-responsible-ai/` |
+| 13 | Multimodal | `11-llm-applications/09-multimodal.md` |
+| 14 | Data scientist | `02-data/03-sql-for-interviews.md`, `04-evaluation/06-ab-testing-experimentation.md`, `04-evaluation/07-causal-inference.md` |
+| 15 | Production deployment | `12-systems-and-scale/`, `13-production-ml/` |
+| 16 | AI infrastructure / inference data plane | `20-ai-infrastructure/` |
+
 ---
 
 ## PART 1 — FOUNDATIONS
@@ -1275,10 +1294,18 @@ AGENTIC AI SYSTEMS
 │   ├── external → vector store, key-value → persistent across sessions → RAG-based recall
 │   └── parametric → fine-tuned into weights → implicit, hard to update
 │
-└── Multi-Agent Coordination
-    ├── role specialization → planner, coder, critic, executor agents → division of labor
-    ├── debate / critic → agents critique each other → improve answer quality
-    └── evaluation challenges → no ground truth for open-ended tasks → LLM-as-Judge
+├── Multi-Agent Coordination
+│   ├── role specialization → planner, coder, critic, executor agents → division of labor
+│   ├── debate / critic → agents critique each other → improve answer quality
+│   └── evaluation challenges → no ground truth for open-ended tasks → LLM-as-Judge
+│
+└── Interop Protocols
+    ├── MCP (Model Context Protocol) → agent ↔ TOOLS/data sources → server exposes tools/resources/prompts
+    │   └── standardizes the tool layer → one integration works across hosts
+    └── A2A (Agent-to-Agent) → agent ↔ AGENT across org/vendor boundaries
+        ├── Agent Card → capability discovery → who can do what
+        └── task lifecycle + streaming updates → long-running delegated work
+    → MCP is vertical (down to tools), A2A is horizontal (across peers) → complementary, not competing
 ```
 
 ### 12.4 Advanced RAG & Memory
@@ -1703,4 +1730,222 @@ Production Monitoring & Feedback Loop
 └── Incident Response
     ├── automated rollback on metric/latency breach → same registry-version revert as CI/CD
     └── fallback to heuristic/cached/previous-model response → never let ML outage break the product
+```
+
+---
+
+## PART 16 — AI INFRASTRUCTURE / INFERENCE DATA PLANE
+
+### 16.1 Inference Engine Internals
+
+```
+LLM Inference Engine (the four subsystems)
+│
+├── Memory Manager  ← the real differentiator
+│   ├── PagedAttention (vLLM) → KV cache in fixed blocks → no contiguous allocation → ~0 fragmentation
+│   ├── copy-on-write block sharing → parallel samples/beams share prefix blocks → n× memory saving
+│   ├── automatic prefix caching → exact shared prefix reused across requests → cuts prefill
+│   └── RadixAttention (SGLang) → radix tree keyed on token prefix → longest-common-prefix match
+│       → beats flat cache on: multi-turn chat, agent loops, tree search, few-shot prompts
+│
+├── Scheduler  ← the other real differentiator
+│   ├── continuous batching → finished seq leaves, new seq joins mid-flight → no wait for slowest
+│   ├── chunked prefill → split long prefill into chunks interleaved with decode → bounds HOL blocking
+│   └── preemption/swap → evict low-priority KV to CPU or recompute → admission under memory pressure
+│
+├── Kernels
+│   ├── FlashAttention → tiling in SRAM → IO-aware → no N² matrix materialized
+│   └── fused ops, quantized GEMM (INT8/FP8/AWQ/GPTQ) → arithmetic intensity ↑
+│
+└── Executor
+    ├── CUDA graphs → capture decode step → kill per-token launch overhead
+    └── tensor/pipeline parallel dispatch → see 16.3
+
+Engine choice
+├── vLLM        → default; broadest model support, strong ecosystem, PagedAttention
+├── SGLang      → prefix-heavy workloads (agents, multi-turn), structured output via compressed FSM
+├── TensorRT-LLM→ max NVIDIA perf; AOT compile step → fastest, least flexible, slow model turnaround
+└── Modular MAX → Mojo kernels, portability thesis → newest, smallest ecosystem
+```
+
+### 16.2 Control Plane vs Data Plane
+
+```
+Serving a fleet (not a single engine)
+│
+├── THE INVARIANT
+│   └── data plane must keep serving when control plane is down
+│       → anti-pattern: synchronous controller lookup on every request
+│       → correct: controller pushes state; router caches it; stale-but-serving > correct-but-down
+│
+├── Control Plane (slow path, low QPS)
+│   ├── model registry / weights distribution → which model versions exist, where
+│   ├── placement & autoscaling → what runs on which GPUs
+│   ├── health aggregation → mark replicas in/out of the pool
+│   └── config & rollout → canary %, rate limits, tenant quotas
+│
+├── Data Plane (fast path, every token)
+│   ├── router → picks replica (see 16.4)
+│   ├── engine → prefill + decode
+│   └── streaming transport → gRPC/SSE back to client
+│
+└── Frameworks
+    ├── llm-d          → K8s-native, Gateway API Inference Extension, vLLM-centric
+    ├── NVIDIA Dynamo  → disaggregation-first, KV-aware routing, NIXL KV transfer, engine-agnostic
+    └── Ray Serve      → heterogeneous pipelines (retriever→reranker→LLM), Python-native composition
+```
+
+### 16.3 GPU Hardware, Interconnects & Parallelism
+
+```
+Bandwidth hierarchy — ~1 order of magnitude per step
+SRAM → HBM → NVLink → PCIe → RoCE/IB network → storage
+│
+├── Interconnect
+│   ├── NVLink/NVSwitch → intra-node GPU↔GPU → all-to-all inside the node
+│   ├── XGMI / Infinity Fabric → AMD MI300X equivalent
+│   ├── RoCE vs InfiniBand → RoCE cheaper/Ethernet-native but needs PFC/ECN tuned → else congestion collapse
+│   └── nvidia-smi topo -m → NV#=NVLink, PIX/PXB=PCIe switch, SYS=cross-socket (worst)
+│
+├── Collectives (NCCL)
+│   ├── all-reduce ring cost = 2S(N−1)/N → ≈2S, independent of N → why TP scales at all
+│   ├── all-gather / reduce-scatter → building blocks of TP + FSDP
+│   └── all-to-all → MoE expert dispatch → cost is load-dependent → imbalance = stall
+│
+├── Memory ceiling
+│   ├── weights: params × bytes/param
+│   ├── KV: 2 × L × H_kv × d_head × seq × batch × bytes  ← GQA shrinks H_kv, this is the lever
+│   └── leftover = concurrency budget → KV occupancy is the true saturation metric
+│
+└── PARALLELISM DECISION RULE (in order)
+    ├── 1. fits on one GPU? → data parallel only → best throughput/$, no collectives
+    ├── 2. needs >1 GPU? → tensor parallel, but only WITHIN an NVLink domain
+    │      → constraint: TP degree must divide KV heads (GQA)
+    ├── 3. spans nodes? → TP inside node, pipeline parallel across nodes
+    │      → PP bubble = (S−1)/(M+S−1) → serving can't hide it (small M) → avoid if possible
+    └── 4. MoE? → expert parallel inside the fast domain → watch expert load imbalance
+    Sizing example: 70B on 8×80GB → TP=4 with 2 replicas often beats TP=8 with 1
+      → less collective overhead, independent failure domains, better tail latency
+```
+
+### 16.4 Smart Routing & Scheduling
+
+```
+Why round-robin / least-connections fails for LLMs
+├── false assumption 1: requests cost the same → prompt lengths vary 100×
+└── false assumption 2: replicas are interchangeable → they aren't, KV cache state differs
+│
+├── Routing signals
+│   ├── queue depth, KV cache occupancy, running batch size
+│   ├── prefix-cache overlap with this replica  ← the LLM-specific one
+│   └── UNKNOWABLE: output length → all scheduling is under uncertainty
+│
+├── Prefix-affinity routing
+│   └── score = w₁·prefix_match_length − w₂·load_factor
+│       → pure affinity → hotspots;  pure balance → cache thrash;  tune between
+│
+├── Admission control & queue discipline
+│   ├── FCFS → fair, bad tail;  SJF → good mean, starves long prompts
+│   ├── priority classes (interactive vs batch) → prevent batch starving chat
+│   └── reject early (429) rather than queue forever → queueing latency is invisible failure
+│
+├── Head-of-line blocking → one 100K-token prefill stalls everyone
+│   └── chunked prefill is a FAIRNESS feature, not just a throughput one
+│
+├── Load shedding order → batch first → low-priority tenants → degrade (smaller model) → 429
+│
+└── Disaggregated routing → prefill pool and decode pool routed separately
+    → KV must transfer between them (NIXL) → only pays off when prefill/decode ratio is skewed
+```
+
+### 16.5 Multi-Tenancy & Isolation
+
+```
+Isolation ↔ Utilization tension
+├── separate GPUs per tenant → perfect isolation, terrible utilization
+├── MIG partitions → hard isolation, fixed slices → good for MANY SMALL models, not large ones
+├── shared engine + quotas → best utilization, softest isolation  ← usual answer
+└── multi-LoRA on one base model → many tenants, one set of weights → the density play
+│
+├── FIVE noisy-neighbour mechanisms (each needs its own fix)
+│   ├── KV exhaustion        → per-tenant KV budget
+│   ├── batch-slot monopoly  → cap concurrent seqs per tenant
+│   ├── prefill interference → chunked prefill + prefill quota
+│   ├── prefix-cache eviction→ per-tenant cache partition or scoped LRU
+│   └── LoRA adapter thrash  → adapter pinning / affinity routing
+│
+├── Fairness → weighted fair queueing over TOKENS, not requests
+│   → but output length unknown → charge as you go, not up front
+│
+├── Rate limiting → TPM *and* concurrency (either alone is gameable)
+│
+└── Data / fault / rollout isolation
+    └── cross-tenant prefix cache = TTFT timing side channel → scope caches per tenant for sensitive data
+```
+
+### 16.6 SLOs & Observability for Inference
+
+```
+Why generic web SLOs fail
+├── one "request" = a stream of tokens, not one response
+├── cost varies 100× with prompt length → a single p99 latency SLO is meaningless
+└── degradation is often silent (quality, not errors)
+│
+├── SLIs that matter
+│   ├── TTFT (prefill-bound) and TPOT/ITL (decode-bound) → measure SEPARATELY
+│   ├── GOODPUT = SLO-conformant tokens/sec  ← optimize this, not raw throughput
+│   ├── KV cache utilization → the saturation signal (GPU util lies: 100% while starved)
+│   ├── queue wait time, preemption rate, prefix cache hit rate
+│   └── shed rate (429s) → its own SLI with its own budget, else you "meet" latency by rejecting
+│
+├── Scope SLOs by prompt-length band → e.g. TTFT p95 < 500ms for <2K-token prompts
+│
+├── Alerting → multi-window burn-rate on error budget, not static thresholds
+│
+├── Telemetry sources → DCGM (GPU: SM util, HBM, power, ECC, throttle) + engine metrics + traces
+│   └── trace attribute cardinality: tenant/model OK, request-id as label = metric explosion
+│
+└── Silent degradation → functional health check (canary prompt, verify output) not just /healthz
+```
+
+### 16.7 Service Architecture — gRPC & Go
+
+```
+Inference service in Go
+│
+├── Why gRPC → HTTP/2 streaming, binary protobuf, deadlines + cancellation as first-class
+│
+├── FOUR streaming concerns
+│   ├── cancellation MUST reach the GPU → client disconnect → free KV immediately, else leak
+│   ├── deadlines, not timeouts → propagate through every hop
+│   ├── backpressure → stream.Send blocks under flow control → that IS your signal
+│   └── mid-stream errors → status after partial output → client needs a defined contract
+│
+├── Go patterns
+│   ├── ctx := stream.Context() → select on ctx.Done() and the token channel
+│   ├── bounded worker pool = admission control (unbounded goroutines = OOM under load)
+│   ├── channels for ownership transfer, mutexes for shared state
+│   └── classic bugs: leaked goroutine on early return, loop-variable capture, unbuffered channel deadlock
+│
+├── Service decomposition (boundary rule: split on failure domain + scaling axis, not on nouns)
+│   └── gateway (auth/quota) │ router │ engine pool │ controller │ metrics-telemetry
+│
+└── Resilience with an inference twist
+    ├── retries → only on idempotent/pre-token failures; never replay a half-streamed generation
+    ├── circuit breaker → per-replica, tripped on TTFT not just errors
+    └── graceful drain → stop admitting, let in-flight generations finish, then exit
+```
+
+### 16.8 Where the Layers Meet (recall drill)
+
+```
+A token's journey — name what happens at each hop
+client → gateway (authn, quota, TPM check)
+       → router (prefix-affinity + load score → replica)
+       → engine admission (KV budget available? else queue or 429)
+       → prefill (chunked, cache hit on shared prefix?)
+       → decode loop (continuous batching, spec decoding, CUDA graph)
+       → tokens stream back (gRPC flow control = backpressure)
+       → client disconnects → ctx cancelled → KV freed
+Every arrow has an SLI, a failure mode, and a noisy-neighbour risk.
 ```

@@ -217,6 +217,7 @@ MACHINE LEARNING
 │   │   └── Zero-Shot Learning
 │   │
 │   ├── MCP (Model Context Protocol)
+│   ├── A2A (Agent-to-Agent Protocol)
 │   │
 │   └── PYTORCH
 │       ├── Foundations (tensors, autograd)
@@ -474,6 +475,8 @@ MACHINE LEARNING
 │   ├── AGENTIC AI SYSTEMS
 │   │   ├── Tool use, planning, memory
 │   │   ├── Multi-agent coordination
+│   │   ├── Agent protocols (MCP for tools, A2A for agent-to-agent)
+│   │   ├── Eval & observability for agents/LLM apps
 │   │   └── Autonomous agent evaluation
 │   │
 │   ├── ADVANCED RAG & MEMORY
@@ -594,14 +597,83 @@ MACHINE LEARNING
 │           ├── LLMs
 │           └── Time Series
 │
-└── 11 DATA SCIENTIST
-    ├── Statistics & Probability
-    ├── Experiment Design & A/B Testing
-    ├── Causal Inference
-    ├── EDA & Data Quality
-    ├── Metrics & Business Analytics
-    ├── SQL & Data Manipulation
-    └── Data Scientist Interview Prep
+├── 11 DATA SCIENTIST
+│   ├── Statistics & Probability
+│   ├── Experiment Design & A/B Testing
+│   ├── Causal Inference
+│   ├── EDA & Data Quality
+│   ├── Metrics & Business Analytics
+│   ├── SQL & Data Manipulation
+│   └── Data Scientist Interview Prep
+│
+└── 12 AI INFRASTRUCTURE / INFERENCE DATA PLANE
+    │   (platform-engineer view: running inference as a fleet.
+    │    the ML-engineer view of the same stack lives in 06 PRODUCTION ML)
+    │
+    ├── INFERENCE ENGINES
+    │   ├── Engine anatomy (memory manager, scheduler, kernels, executor)
+    │   ├── vLLM (PagedAttention, copy-on-write sharing, automatic prefix caching)
+    │   ├── SGLang (RadixAttention, compressed-FSM structured generation)
+    │   ├── TensorRT-LLM (AOT compilation tradeoff)
+    │   └── Modular MAX / Mojo
+    │
+    ├── DISTRIBUTED INFERENCE FRAMEWORKS
+    │   ├── Control plane vs data plane (and the survive-the-controller invariant)
+    │   ├── llm-d (Kubernetes-native, Gateway API Inference Extension)
+    │   ├── NVIDIA Dynamo (disaggregation-first, KV-aware routing, NIXL)
+    │   └── Ray Serve (heterogeneous multi-stage pipelines)
+    │
+    ├── GPU HARDWARE & INTERCONNECTS
+    │   ├── Bandwidth hierarchy (SRAM → HBM → NVLink → PCIe → RoCE → storage)
+    │   ├── NVLink / NVSwitch, AMD XGMI / Infinity Fabric
+    │   ├── RoCE vs InfiniBand (PFC/ECN congestion control)
+    │   ├── NCCL collectives + ring all-reduce cost model
+    │   ├── HBM budgeting & KV cache sizing formula
+    │   └── MIG partitioning (and when it does not apply)
+    │
+    ├── PARALLELISM & TOPOLOGY
+    │   ├── Four axes: data, tensor, pipeline, expert parallel
+    │   ├── Placement decision rule (TP within NVLink, PP across nodes)
+    │   ├── GQA KV-head divisibility constraint on TP degree
+    │   ├── Pipeline bubble (S−1)/(M+S−1) and why serving can't hide it
+    │   └── MoE expert load imbalance
+    │
+    ├── SMART ROUTING & SCHEDULING
+    │   ├── Why generic load balancing fails for LLM traffic
+    │   ├── Prefix-affinity routing (affinity vs balance score)
+    │   ├── Admission control, queue discipline, priority classes
+    │   ├── Head-of-line blocking & chunked prefill as fairness
+    │   ├── Load-shedding order
+    │   └── Disaggregated prefill/decode routing
+    │
+    ├── MULTI-TENANCY & ISOLATION
+    │   ├── Isolation vs utilization spectrum
+    │   ├── Five noisy-neighbour mechanisms and their fixes
+    │   ├── Weighted fair queueing over tokens
+    │   ├── Rate limiting (TPM + concurrency)
+    │   ├── Prefix cache as a cross-tenant timing side channel
+    │   └── Multi-LoRA tenant density
+    │
+    ├── SLOs & OBSERVABILITY
+    │   ├── TTFT vs TPOT/ITL measured separately
+    │   ├── Goodput (SLO-conformant tokens/sec) over raw throughput
+    │   ├── KV cache utilization as the true saturation metric
+    │   ├── SLO scoping by prompt-length band
+    │   ├── Shed rate as its own SLI; burn-rate alerting
+    │   └── DCGM + engine telemetry; silent degradation & functional health checks
+    │
+    ├── SERVICE ARCHITECTURE (gRPC / Go)
+    │   ├── gRPC streaming: cancellation to GPU, deadlines, backpressure, mid-stream errors
+    │   ├── Go concurrency patterns & bounded worker pools as admission control
+    │   ├── Service decomposition (gateway, router, engine pool, controller, telemetry)
+    │   └── Resilience: retries, circuit breaking, graceful drain
+    │
+    └── INTERVIEW DRILLS (inference data plane)
+        ├── Design a multi-tenant inference platform
+        ├── Diagnose a p99 TTFT regression
+        ├── Cut serving cost 40%
+        ├── Should you disaggregate prefill and decode?
+        └── Rapid-fire infrastructure Q&A
 ```
 
 ---
@@ -613,6 +685,7 @@ MACHINE LEARNING
 - Intermediate → [03-classical-ml](03-classical-ml/README.md) → [05-deep-learning-core](05-deep-learning-core/README.md) → [06-architectures](06-architectures/README.md)
 - Advanced → [07-domains](07-domains/README.md) → [10-llms](10-llms/README.md) → [15-system-design](15-system-design/README.md)
 - Expert → [08-generative](08-generative/README.md) → [11-llm-applications](11-llm-applications/README.md) → [12-systems-and-scale](12-systems-and-scale/README.md) → [18-resources](18-resources/README.md)
+- Infrastructure/platform → [12-systems-and-scale](12-systems-and-scale/README.md) → [20-ai-infrastructure](20-ai-infrastructure/README.md)
 
 **By interview type:**
 - Classical ML coding → [16-interview-prep/11-ml-coding-patterns.md](16-interview-prep/11-ml-coding-patterns.md) + [16-interview-prep/10-coding.md](16-interview-prep/10-coding.md)
@@ -620,6 +693,7 @@ MACHINE LEARNING
 - LLM theory → [10-llms/03-architecture-deep-dive.md](10-llms/03-architecture-deep-dive.md) + [16-interview-prep/llm-interview-notes/01-llm-fundamentals.md](16-interview-prep/llm-interview-notes/01-llm-fundamentals.md)
 - LLM system design → [16-interview-prep/llm-interview-notes/07-ai-system-design.md](16-interview-prep/llm-interview-notes/07-ai-system-design.md)
 - Behavioral → [16-interview-prep/09-behavioral.md](16-interview-prep/09-behavioral.md)
+- AI infra / inference data plane → [20-ai-infrastructure/README.md](20-ai-infrastructure/README.md) + [16-interview-prep/inference-data-plane/README.md](16-interview-prep/inference-data-plane/README.md)
 
 **By domain:**
 - Vision → [07-domains/04-computer-vision.md](07-domains/04-computer-vision.md)
@@ -629,3 +703,4 @@ MACHINE LEARNING
 - RecSys → [15-system-design/cases/11-recommendation-system.md](15-system-design/cases/11-recommendation-system.md)
 - GNNs → [06-architectures/04-dl-architectures.md](06-architectures/04-dl-architectures.md)
 - Causal Inference / Experimentation → [04-evaluation/06-ab-testing-experimentation.md](04-evaluation/06-ab-testing-experimentation.md) + [04-evaluation/07-causal-inference.md](04-evaluation/07-causal-inference.md)
+- LLM serving / GPU infrastructure → [20-ai-infrastructure/](20-ai-infrastructure/README.md) + [12-systems-and-scale/04-llm-inference-ops.md](12-systems-and-scale/04-llm-inference-ops.md)
