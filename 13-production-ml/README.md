@@ -60,7 +60,7 @@ The answer "it depends" is always correct — but only if you say what it depend
 | [Building ML-Powered Applications](../15-system-design/05-building-ml-powered-applications.md) | Product-focused: from prototype to production, what breaks and why |
 | [Design Interview Case Studies](../15-system-design/01-design-interview-framework.md) | Structured walkthroughs of common system design prompts |
 | [ML Design Patterns](../15-system-design/04-design-patterns.md) | Reusable architectural patterns: transform, serving, reproducibility |
-| [Interview Questions](../16-interview-prep/study-plans/interviewquestions.md) | Tiered Easy/Medium/Hard Q&A bank across MLOps, serving, and system design |
+| [Interview Questions](../16-interview-prep/_interview-questions.md) | Tiered Easy/Medium/Hard Q&A bank across MLOps, serving, and system design |
 | [Recommended Books](../18-resources/01-books-production-ml.md) | Essential reading list for MLOps and production ML engineering |
 
 ---

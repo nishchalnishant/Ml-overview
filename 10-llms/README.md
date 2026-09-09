@@ -101,7 +101,7 @@ This folder is the *theory/training* layer. Applied and systems treatments of th
 
 **Applied companion:** [_interview-questions-applied.md](_interview-questions-applied.md) — a 37-question bank concentrated on RAG pipelines, agent patterns (ReAct, MCP, prompt injection), serving optimizations (PagedAttention, continuous batching, prefix caching), quantization, and LLMOps/eval design.
 
-There is also [interviewquestions.md](../16-interview-prep/study-plans/interviewquestions.md) — a rapid-fire Easy/Medium/Hard tiered Q&A bank spanning the whole folder (tokenization through RLHF math), calibrated to interview round depth rather than organized by topic.
+There is also [interviewquestions.md](../16-interview-prep/_interview-questions.md) — a rapid-fire Easy/Medium/Hard tiered Q&A bank spanning the whole folder (tokenization through RLHF math), calibrated to interview round depth rather than organized by topic.
 
 ---
 

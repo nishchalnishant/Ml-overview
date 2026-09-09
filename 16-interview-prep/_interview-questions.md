@@ -217,6 +217,60 @@ distance-based methods.
 
 ---
 
+
+#### Q: What is machine learning, and what are its three main paradigms? [ML Fundamentals]
+Learning a function $f: X \to Y$ from data $(x_i, y_i)$ rather than hand-coding rules.
+**Supervised** trains on labeled (input, correct output) pairs — classification and regression are the
+canonical tasks. **Unsupervised** works on unlabeled data and looks for structure the data itself
+contains — clustering, dimensionality reduction, density estimation; there is no "correct answer" to
+check against. **Reinforcement** trains an agent taking actions in an environment, learning from a
+reward signal over time rather than a fixed labeled dataset, balancing exploration against
+exploitation; the "label" for an action is often delayed and depends on the agent's own future
+behavior.
+**Senior angle:** say what signal is being optimized, what the labels represent in production, and what
+failure mode appears if the labels are delayed, noisy, or misaligned with the real objective.
+
+#### Q: What's the difference between classification and regression? [ML Fundamentals]
+**Classification** predicts a discrete label (spam/not-spam, cat/dog/bird); loss is cross-entropy;
+output is class probabilities via softmax. **Regression** predicts a continuous value (house price,
+temperature); loss is MSE or MAE; output is a real number. The core difference is the output type and
+the appropriate loss function.
+
+#### Q: What is a confusion matrix? [Model Evaluation]
+A 2x2 table (for binary) showing **True Positives**, **False Positives**, **True Negatives**, and
+**False Negatives**. It is the starting point for every classification evaluation — accuracy,
+precision, recall, F1, and specificity are all derived from it. Always look at the confusion matrix
+first, before quoting a single number.
+
+#### Q: What is the kernel trick in SVMs, and why is it computationally efficient? [Classical Algorithms]
+The kernel trick lets an SVM operate as if it mapped data into a much higher-dimensional (even
+infinite-dimensional) feature space where classes become linearly separable, without ever explicitly
+computing the coordinates in that space. This works because the SVM optimization and prediction only
+ever require dot products between pairs of examples, and a kernel function $K(x, x')$ computes what
+that dot product *would be* in the higher-dimensional space directly from the original-space vectors.
+The RBF kernel $K(x,x') = \exp(-\gamma\|x-x'\|^2)$ implicitly corresponds to an infinite-dimensional
+feature map. Gotcha: the kernel trick doesn't "transform the data" — no new representation is stored;
+it's purely a computational shortcut for computing similarity.
+
+#### Q: Pearson vs. Spearman correlation — when would they disagree? [Probability & Statistics]
+Pearson measures the strength of a *linear* relationship and is sensitive to outliers since it's
+computed from raw values. Spearman measures the strength of a *monotonic* relationship by correlating
+the ranks, making it robust to outliers and able to detect non-linear-but-monotonic relationships
+(e.g. $y = x^3$) that Pearson would underestimate. They disagree most visibly when the relationship is
+monotonic but curved (Spearman near 1, Pearson lower), or when a few extreme outliers dominate the
+Pearson calculation while barely affecting rank-based Spearman. Gotcha: neither captures non-monotonic
+relationships — both can report near-zero correlation for a strong quadratic (U-shaped) relationship,
+which is why EDA should always include scatter plots, not just correlation coefficients.
+
+#### Q: What is an outlier — when should you keep it vs. remove it? [Data Preprocessing]
+Deciding requires domain judgment about *why* the value is extreme. A **data error** (age = 200, a
+negative transaction that should be positive, a sensor glitch) should be corrected or dropped — it's
+corrupted information, not signal. A **genuine extreme value** (a $10M wire transfer in fraud
+detection, a viral post's engagement count) is often exactly the signal the model needs — silently
+removing it guts the model's ability to detect the rare, high-value cases the system exists for.
+Check: could this value plausibly occur in the real world, or does it violate a hard physical/logical
+constraint?
+
 ## Medium
 
 Require connecting two or more concepts, explaining a tradeoff, or applying an idea to a scenario.
@@ -669,6 +723,60 @@ and Brier score, not just AUC.
 
 ---
 
+
+#### Q: Why is Occam's Razor relevant to ML, and does it always mean "pick the simplest model"? [ML Fundamentals]
+Occam's Razor argues that among models with similar fit, the simpler one generalizes better because it
+is less likely to have fit noise. In ML terms this underlies regularization (L1/L2 penalties) and the
+preference for interpretable baselines before complex architectures. It does *not* mean "always use the
+simplest possible model" — simplicity should be preferred *only when predictive performance is
+comparable*. Gotcha: "simple" should be measured by effective capacity (free parameters relative to
+data size), not by algorithm name — a decision tree with unlimited depth can still overfit badly
+despite sounding "simple."
+
+#### Q: State the No Free Lunch theorem. Why does it matter practically? [ML Fundamentals]
+Averaged over all possible problems, no algorithm outperforms any other — an algorithm's success is
+always tied to how well its inductive biases match the structure of the specific problem. Practically,
+you cannot claim "XGBoost is the best algorithm" in the abstract; you can only claim it performs well
+on tabular data with mixed feature types and non-linear interactions, which is a common but not
+universal problem structure. Interview gotcha: this is often used to justify "try multiple algorithms
+and let validation performance decide" rather than defaulting to a favorite model.
+
+#### Q: When is R-squared misleading as a regression metric, and what would you check instead? [Model Evaluation]
+R-squared measures the proportion of target variance explained relative to a mean-predicting baseline,
+but misleads in several ways: (1) it always increases as you add features, even irrelevant ones, making
+it poor for comparing models with different feature counts (use adjusted R-squared); (2) it can be high
+even with systematic bias in a subset of the range — a model that fits the bulk well but is badly wrong
+on a rare-but-important segment; (3) it is not comparable across datasets with different target
+variances — a low value on inherently noisy data doesn't mean the model is worse than a high value on
+cleaner data. Always pair it with residual plots (to check for non-random error patterns) and an
+absolute-error metric like MAE or RMSE that's interpretable in the target's original units.
+
+#### Q: You have a heavily right-skewed feature (e.g. income). What would you do and why? [Data Preprocessing]
+First check with a histogram and skewness statistic (skew > 1 is heavily right-skewed). Right-skewed
+data with a long tail is common when the underlying process is multiplicative or has a natural floor at
+zero (income, word frequency, city population — power-law-like). Apply a log transform ($\log(x+1)$ if
+zeros are present) to compress the tail and make the distribution closer to symmetric, which helps
+linear models and algorithms assuming normally distributed errors, and makes outliers less dominant in
+distance-based methods. Gotcha: tree-based models don't need this since they split on rank order, not
+magnitude — log-transforming before a Random Forest is unnecessary (though harmless), but essential
+before linear regression, k-NN, or PCA.
+
+#### Q: Why does k-NN fail in high-dimensional spaces? [Classical Algorithms]
+As dimensionality grows, the ratio of the distance to the nearest neighbor versus the farthest neighbor
+approaches 1 — all points become approximately equidistant from any query point. Volume grows
+exponentially with dimension, so data becomes increasingly sparse and the notion of a meaningful
+"neighborhood" breaks down geometrically. Practically, with 100,000 samples and 500 raw features, k-NN
+would need dimensionality reduction (PCA) or feature selection first, plus scaled features (Euclidean
+distance is otherwise dominated by whichever feature has the largest raw magnitude). Rule of thumb:
+k-NN needs $n \gg d$ to be reliable.
+
+#### Q: Why is `df[df.revenue > 0]["flag"] = 1` wrong in Pandas? [Coding Patterns]
+This is chained indexing: the first `[]` returns either a view or a copy depending on internal Pandas
+heuristics. If it returns a copy, the second `["flag"] = 1` modifies a temporary object that is
+immediately discarded — `df` is silently left unchanged, with no error raised (only a
+`SettingWithCopyWarning`). Correct form: `df.loc[df.revenue > 0, "flag"] = 1` — a single indexing call
+that Pandas guarantees operates on the original DataFrame.
+
 ## Hard
 
 Deep reasoning, multi-step tradeoffs, and subtle edge cases.
@@ -766,3 +874,43 @@ covering definitional ground first (Easy), then tradeoff/application reasoning (
 stress-testing yourself on the deep derivations and staff-level judgment calls (Hard). If an
 answer references "see X," check the corresponding deep-dive file in this repository's other
 modules for the fuller derivation or worked example.
+
+## Formula Quick Reference
+
+| Concept | Formula |
+|---|---|
+| Bias-Variance Decomposition | `E[(y-ŷ)²] = Bias² + Variance + σ²` |
+| L1 / L2 Regularization | `Loss + α·Σ\|w\|` / `Loss + α·Σw²` |
+| Bayes' Theorem | `P(θ\|D) = P(D\|θ)P(θ) / P(D)` |
+| MLE | `argmax_θ Σ log P(x_i\|θ)` |
+| MAP | `argmax_θ [Σ log P(x_i\|θ) + log P(θ)]` |
+| Shannon Entropy | `H(X) = -Σ p(x) log p(x)` |
+| Cross-Entropy | `H(P,Q) = -Σ p log q` |
+| KL Divergence | `D_KL(P‖Q) = Σ p log(p/q)`, and `H(P,Q) = H(P) + D_KL(P‖Q)` |
+| Mutual Information | `I(X;Y) = H(X) - H(X\|Y) = D_KL(p(x,y)‖p(x)p(y))` |
+| Scaled Dot-Product Attention | `softmax(QKᵀ/√d_k) V` |
+| Condition Number | `κ(A) = σ_max / σ_min` |
+| Normal Equation | `θ* = (XᵀX)⁻¹Xᵀy` |
+| Precision / Recall | `TP/(TP+FP)` / `TP/(TP+FN)` |
+| F1 Score | `2·P·R / (P+R)` |
+| Perplexity | `exp(H(P,Q))` |
+
+## Key Numbers Worth Memorizing
+
+- Chinchilla optimal tokens/param: ~20
+- GPT-3 params: 175B
+- LLaMA 3 training tokens: 15T
+- Standard attention complexity: $O(n^2 d)$
+- LoRA trainable params: ~0.06% of base model
+- BF16 memory: 2 bytes/param
+- 70B model BF16 VRAM: ~140GB
+
+## Where to Next
+
+- [01-ai-ml-systems-and-application.md](../00-meta/01-ai-ml-systems-and-application.md) — full systems guide
+- [02-math-and-theory-foundations.md](../01-math-foundations/01-math-and-theory-foundations.md) — derivations and proofs
+- [01-python-and-data-tooling.md](../02-data/01-python-and-data-tooling.md) — library mechanics
+- [02-data-processing-and-eda.md](../02-data/02-data-processing-and-eda.md) — workflow detail
+- [02-maths.md](../01-math-foundations/02-maths.md) §7, §9 — full derivations
+- [02-ml-glossary.md](../18-resources/02-ml-glossary.md) — complete term-by-term reference
+- [_flashcards.md](../01-math-foundations/_flashcards.md) — active recall companion

@@ -45,7 +45,7 @@ Day 30: Revision guide only. No new material. Logistics check. Sleep.
 
 - [LLM Fundamentals](../../../16-interview-prep/llm-interview-notes/01-llm-fundamentals.md)
 - [RAG](../../../16-interview-prep/llm-interview-notes/03-retrieval-augmented-generation-rag.md)
-- [Top ML Interview Questions (rapid-fire bank)](../../12-top-ml-questions.md)
+- [Master Interview Question Bank](../../_interview-questions.md)
 - [AI & ML Revision Guide (night-before cheat sheet)](../../../00-meta/01-ai-ml-systems-and-application.md)
 - [Behavioral & Scenario-Based Questions](../../../16-interview-prep/llm-interview-notes/14-behavioral-and-scenario-based-questions.md)
 - Day file in this folder: 01-day-26-30

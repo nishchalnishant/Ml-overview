@@ -31,9 +31,9 @@ It is the drill layer, not the deep-dive layer.
 - [09-behavioral.md](09-behavioral.md) — behavioral and scenario-based questions
 - [10-coding.md](10-coding.md) — coding interview prep
 - [11-ml-coding-patterns.md](11-ml-coding-patterns.md) — ML coding patterns reference
-- [12-top-ml-questions.md](12-top-ml-questions.md) — top ML interview questions with reference answers
 - [13-additional-topics.md](13-additional-topics.md) — additional ML interview topics
-- [_comparison.md](_comparison.md), [_interview-questions-foundations.md](_interview-questions-foundations.md), [_interview-questions.md](_interview-questions.md), [_revision-cheatsheet.md](_revision-cheatsheet.md) — companion modalities
+- [_interview-questions.md](_interview-questions.md) — **master question bank** (104 questions, Easy/Medium/Hard) — the single authoritative drill file
+- [_comparison.md](_comparison.md), [_revision-cheatsheet.md](_revision-cheatsheet.md) — companion modalities
 
 **EA-specific tracks:**
 - [ea/00-ml-deep-learning-interview.md](ea/00-ml-deep-learning-interview.md) — practical ML exercise interview (feature engineering → DL model → HPO → CV → perf → production scaling)
@@ -51,7 +51,7 @@ If you want the shortest path to interview readiness:
 1. Start with the relevant deep dive folder if the topic is weak.
 2. [01-communication-framework.md](01-communication-framework.md) → [02-playbook-90min.md](02-playbook-90min.md)
 3. [04-tradeoffs.md](04-tradeoffs.md) → [05-round3-tradeoff-drills.md](05-round3-tradeoff-drills.md)
-4. [12-top-ml-questions.md](12-top-ml-questions.md) for a final tiered drill pass
+4. [_interview-questions.md](_interview-questions.md) for a final tiered drill pass
 5. [03-pre-interview-checklist.md](03-pre-interview-checklist.md)
 6. [../16-interview-prep/llm-interview-notes/README.md](../16-interview-prep/llm-interview-notes/README.md) when the interview turns heavily LLM-specific
 

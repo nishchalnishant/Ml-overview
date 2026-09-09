@@ -29,7 +29,7 @@ Goal: identify gaps, not fill them. If you find a genuine hole, address it now. 
 
 If you want a tighter interview-specific pass before the final review, use:
 - [Tradeoff bank](04-tradeoffs.md)
-- [Top ML questions](12-top-ml-questions.md)
+- [Master interview question bank](_interview-questions.md)
 - [Round 3 production drills](05-round3-tradeoff-drills.md)
 
 ### Verify These Are Solid (Not Just Familiar)

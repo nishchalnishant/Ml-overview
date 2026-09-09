@@ -109,7 +109,7 @@ See [Week 5 README](week-5-llm-deep-dive/README.md) for the full daily pattern, 
 ### Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
 1. **[Master Revision Cheat Sheet](../../00-meta/01-ai-ml-systems-and-application.md)**
-2. **[Master Q&A Bank](../12-top-ml-questions.md)**
+2. **[Master Q&A Bank](../_interview-questions.md)**
 
 ---
 
@@ -429,7 +429,7 @@ Use these to calibrate where to enter the 6-month career tracks above.
 ## Speed Revision Mode (The "Night Before")
 If you have less than 48 hours, skip the deep dives and go straight to:
 1. **[Master Revision Cheat Sheet](../../00-meta/01-ai-ml-systems-and-application.md)**
-2. **[Master Q&A Bank](../12-top-ml-questions.md)**
+2. **[Master Q&A Bank](../_interview-questions.md)**
 
 ---
 

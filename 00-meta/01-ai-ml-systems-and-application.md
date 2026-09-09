@@ -198,7 +198,7 @@ Offline evaluation does not guarantee online business outcomes.
 When an interviewer asks a technical question, use this structure:
 > "The direct answer is ___. The intuition is ___. In production, the trade-off is usually ___."
 
-Worked examples of this pattern (bias-variance, imbalanced data, model selection, attention) are in [interviewquestions.md](../16-interview-prep/study-plans/interviewquestions.md).
+Worked examples of this pattern (bias-variance, imbalanced data, model selection, attention) are in [interviewquestions.md](../16-interview-prep/_interview-questions.md).
 
 ---
 

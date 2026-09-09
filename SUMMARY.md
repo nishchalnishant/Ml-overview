@@ -276,10 +276,8 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
 * [Behavioral and Scenario-Based Questions](16-interview-prep/09-behavioral.md)
 * [Coding](16-interview-prep/10-coding.md)
 * [ML Coding Patterns — First-Principles Interview Reference](16-interview-prep/11-ml-coding-patterns.md)
-* [Top ML Interview Questions — Reference Answers](16-interview-prep/12-top-ml-questions.md)
 * [Additional ML Interview Topics](16-interview-prep/13-additional-topics.md)
 * [Interview Prep — Comparison Cheat Sheet](16-interview-prep/_comparison.md)
-* [Foundations — Interview Questions & Answers](16-interview-prep/_interview-questions-foundations.md)
 * [Master Interview Question Bank — Curated High-Signal Reference](16-interview-prep/_interview-questions.md)
 * [Quick Revision Cheat Sheet](16-interview-prep/_revision-cheatsheet.md)
 * Ea
@@ -340,7 +338,6 @@ This outline indexes every page in the repo. Deep dives, snappy companions, flas
   * [Streaming ML Platform](16-interview-prep/ea/system-design-playbook/systems/streaming-ml.md)
   * [Toxicity Detection](16-interview-prep/ea/system-design-playbook/systems/toxicity-detection.md)
 * [ML Study Plans](16-interview-prep/study-plans/README.md)
-  * [Consolidated Interview Question Bank (4-Week Study Plan)](16-interview-prep/study-plans/interviewquestions.md)
   * [Day 1-2: Introduction to Machine Learning](16-interview-prep/study-plans/week-1-foundations/01-day-1-2-introduction-to-machine-learning.md)
   * [Day 3-4: Data Preprocessing Techniques](16-interview-prep/study-plans/week-1-foundations/02-day-3-4-data-preprocessing-techniques.md)
   * [Day 5-7: Exploratory Data Analysis (EDA)](16-interview-prep/study-plans/week-1-foundations/03-day-5-7-exploratory-data-analysis-eda.md)
